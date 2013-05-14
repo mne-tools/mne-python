@@ -296,29 +296,25 @@ def spatio_temporal_cluster_test_connectivity():
             from scikits.learn.feature_extraction.image import grid_to_graph
     except ImportError:
         return
-    
+
     rng = np.random.RandomState(0)
-    data1_2d = np.transpose(np.dstack((condition1_2d,rng.randn(condition1_2d.shape[0],condition1_2d.shape[1], 10))),[0,2,1])
-    data2_2d = np.transpose(np.dstack((condition2_2d,rng.randn(condition2_2d.shape[0],condition2_2d.shape[1], 10))),[0,2,1])
-    
+    data1_2d = np.transpose(np.dstack((condition1_2d, \
+        rng.randn(condition1_2d.shape[0],condition1_2d.shape[1], 10))),[0,2,1])
+    data2_2d = np.transpose(np.dstack((condition2_2d, \
+        rng.randn(condition2_2d.shape[0],condition2_2d.shape[1], 10))),[0,2,1])
+
     conn = grid_to_graph(data1_2d.shape[-1],1)
-    thresholds = [2, dict(start=0.5, step=5)]
-    for threshold in thresholds:
-        T_obs, clusters, cluster_p_values, hist = spatio_temporal_cluster_test(
-                                    [data1_2d, data2_2d],connectivity=conn,
-                                    n_permutations=10, tail=1, seed=1,threshold=threshold)
-        #assert_equal(np.sum(cluster_p_values < 0.05), 1)
-    
-        T_obs, clusters, cluster_p_values, hist = spatio_temporal_cluster_test(
-                                    [data1_2d, data2_2d],connectivity=conn,
-                                    n_permutations=10, tail=0, seed=1,threshold=threshold)
-        #assert_equal(np.sum(cluster_p_values < 0.05), 1)
-    
-        # test with 2 jobs
-        T_obs, clusters, cluster_p_values_buff, hist =\
-            spatio_temporal_cluster_test([data1_2d, data2_2d],connectivity=conn,
-                                    n_permutations=10, tail=0, seed=1,n_jobs=2,threshold=threshold)
-        assert_array_equal(cluster_p_values, cluster_p_values_buff)
+
+    thresholds = dict(start=0.5, step=5)
+    T_obs, clusters, p_values_conn, hist = spatio_temporal_cluster_test(
+                                [data1_2d, data2_2d],connectivity=conn,
+                                n_permutations=100, tail=1, seed=1,threshold=threshold)
+
+    T_obs, clusters, p_values_no_conn, hist = spatio_temporal_cluster_test(
+                                [data1_2d, data2_2d],
+                                n_permutations=100, tail=1, seed=1,threshold=threshold)
+
+    assert_equal(np.sum(p_values_conn < 0.05), np.sum(p_values_no_conn < 0.05))
 
 
 def ttest_1samp(X):
