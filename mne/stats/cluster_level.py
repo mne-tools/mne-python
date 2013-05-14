@@ -609,10 +609,17 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                               exclude, step_down_p, t_power, out_type,
                               check_disjoint):
     n_jobs = check_n_jobs(n_jobs)
+    """ Aux Function
+
+    Note. X is required to be a list. Depending on the length of X
+    either a 1 sample t-test or an f-test / more sample permutation scheme
+    is elicited.
+    """
 
     if not out_type in ['mask', 'indices']:
         raise ValueError('out_type must be either \'mask\' or \'indices\'')
 
+    # check dimensions for each group in X (a list at this stage).
     X = [x[:, np.newaxis] if x.ndim == 1 else x for x in X]
     n_samples = X[0].shape[0]
     n_times = X[0].shape[1]
