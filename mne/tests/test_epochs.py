@@ -554,7 +554,8 @@ def test_epoch_eq():
     drop_log1 = epochs_1.drop_log = [[] for _ in range(len(epochs_1.events))]
     assert_true(epochs_1.events.shape[0] != epochs_2.events.shape[0])
     equalize_epoch_counts([epochs_1, epochs_2], method='mintime')
-    drop_log2 = [[] if l == ['equalized count'] else l for l in epochs_1.drop_log]
+    log = 'EQUALIZED_COUNT'
+    drop_log2 = [[] if l == [log] else l for l in epochs_1.drop_log]
     assert_true(drop_log1 == drop_log2)
 
     assert_true(epochs_1.events.shape[0] == epochs_2.events.shape[0])
@@ -571,8 +572,8 @@ def test_epoch_eq():
     drop_log1 = [l for l in epochs.drop_log]  # now copy the log
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'], copy=False)
-    # undo the eq logginglen()
-    drop_log2 = [[] if l == ['equalized count'] else l for l in epochs.drop_log]
+    # undo the eq logging
+    drop_log2 = [[] if l == [log] else l for l in epochs.drop_log]
     assert_true(drop_log1 == drop_log2)
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(new_shapes[0] == new_shapes[1])

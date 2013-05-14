@@ -1465,14 +1465,9 @@ def bootstrap(epochs, random_state=None):
 
 
 def _check_add_drop_log(epochs, indices):
-    """Aux Function """
-    log = 'equalized count'
-    if hasattr(epochs, 'drop_log'):
-        # let's not overwrite exisiting logs
-        drop_log = [[log] if (i in indices and not l) else l
-                    for i, l in enumerate(epochs.drop_log)]
-    else:
-        drop_log = [[log] if l in indices else []
-                    for l in xrange(len(epochs.events))]
-    epochs.drop_log = drop_log
+    """Aux Function"""
+    # never called before dropping bads, so its safe to iterate over log
+    # ... we'll not gonna change existing logs
+    epochs.drop_log = [['EQUALIZED_COUNT'] if (i in indices and not l) else l
+                       for i, l in enumerate(epochs.drop_log)]
     return epochs
