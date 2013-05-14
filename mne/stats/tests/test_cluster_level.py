@@ -299,20 +299,20 @@ def spatio_temporal_cluster_test_connectivity():
 
     rng = np.random.RandomState(0)
     data1_2d = np.transpose(np.dstack((condition1_2d, \
-        rng.randn(condition1_2d.shape[0],condition1_2d.shape[1], 10))),[0,2,1])
+        rng.randn(condition1_2d.shape[0], condition1_2d.shape[1], 10))), [0, 2, 1])
     data2_2d = np.transpose(np.dstack((condition2_2d, \
-        rng.randn(condition2_2d.shape[0],condition2_2d.shape[1], 10))),[0,2,1])
+        rng.randn(condition2_2d.shape[0], condition2_2d.shape[1], 10))), [0, 2, 1])
 
-    conn = grid_to_graph(data1_2d.shape[-1],1)
+    conn = grid_to_graph(data1_2d.shape[-1], 1)
 
-    thresholds = dict(start=0.5, step=5)
-    T_obs, clusters, p_values_conn, hist = spatio_temporal_cluster_test(
-                                [data1_2d, data2_2d],connectivity=conn,
-                                n_permutations=100, tail=1, seed=1,threshold=threshold)
+    threshold = dict(start=0.5, step=5)
+    T_obs, clusters, p_values_conn, hist = \
+        spatio_temporal_cluster_test([data1_2d, data2_2d], connectivity=conn,
+                                     n_permutations=100, tail=1, seed=1, threshold=threshold)
 
-    T_obs, clusters, p_values_no_conn, hist = spatio_temporal_cluster_test(
-                                [data1_2d, data2_2d],
-                                n_permutations=100, tail=1, seed=1,threshold=threshold)
+    T_obs, clusters, p_values_no_conn, hist = \
+        spatio_temporal_cluster_test([data1_2d, data2_2d],
+                                     n_permutations=100, tail=1, seed=1, threshold=threshold)
 
     assert_equal(np.sum(p_values_conn < 0.05), np.sum(p_values_no_conn < 0.05))
 
