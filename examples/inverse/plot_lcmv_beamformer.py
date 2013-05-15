@@ -50,7 +50,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()
 
-forward = mne.read_forward_solution(fname_fwd)
+forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 
 noise_cov = mne.read_cov(fname_cov)
 noise_cov = mne.cov.regularize(noise_cov, evoked.info,
@@ -58,15 +58,28 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
 
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
 stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01)
+stc_normal = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='normal',
+                  reg=0.01)
+stc_optimal = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='optimal',
+                   reg=0.01)
 
 # Save result in stc files
 stc.save('lcmv')
+stc_normal.save('lcmv-normal')
+stc_optimal.save('lcmv-optimal')
 
 ###############################################################################
 # View activation time-series
 data, times, _ = mne.label_time_courses(fname_label, "lcmv-lh.stc")
+data_normal, times, _ = mne.label_time_courses(fname_label,
+                                               "lcmv_normal-lh.stc")
+data_optimal, times, _ = mne.label_time_courses(fname_label,
+                                                "lcmv_optimal-lh.stc")
+
 pl.close('all')
-pl.plot(1e3 * times, np.mean(data, axis=0))
+pl.plot(1e3 * times, np.mean(data, axis=0), 'b',
+        1e3 * times, np.mean(data_normal, axis=0), 'k',
+        1e3 * times, np.mean(data_optimal, axis=0), 'r')
 pl.xlabel('time (ms)')
 pl.ylabel('LCMV value')
 pl.title('LCMV in %s' % label_name)
