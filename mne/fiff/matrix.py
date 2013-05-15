@@ -118,9 +118,15 @@ def write_named_matrix(fid, kind, mat):
     write_int(fid, FIFF.FIFF_MNE_NCOL, mat['ncol'])
 
     if len(mat['row_names']) > 0:
+        # let's prevent unintentional stupidity
+        if len(mat['row_names']) != mat['nrow']:
+            raise ValueError('len(mat["row_names"]) != mat["nrow"]')
         write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, mat['row_names'])
 
     if len(mat['col_names']) > 0:
+        # let's prevent unintentional stupidity
+        if len(mat['col_names']) != mat['ncol']:
+            raise ValueError('len(mat["col_names"]) != mat["ncol"]')
         write_name_list(fid, FIFF.FIFF_MNE_COL_NAMES, mat['col_names'])
 
     write_float_matrix(fid, kind, mat['data'])
