@@ -29,6 +29,9 @@ noise_cov = mne.read_cov(fname_cov)
 # that include this file's parent directory :(
 raw = mne.fiff.Raw(fname_raw, preload=False)
 forward = mne.read_forward_solution(fname_fwd)
+forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
+forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
+                                          surf_ori=True)
 events = mne.read_events(fname_event)
 
 
@@ -69,21 +72,31 @@ def test_lcmv():
     assert_true(2. < np.max(max_stc) < 3.)
 
     # Test picking normal orientation
-    forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
     stc_normal = lcmv(evoked, forward_surf_ori, noise_cov, data_cov, reg=0.01,
                       pick_ori="normal")
 
-    assert_true((stc_normal.data <= stc.data).all())
+    assert_true((np.abs(stc_normal.data) <= stc.data).all())
+    
+    # Test picking optimal orientation
+    stc_optimal = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
+                       pick_ori="optimal")
+
+    assert_true((np.abs(stc_optimal.data) <= stc.data + 1).all())
 
     # Test if non-surface oriented forward operator is detected when picking
     # normal orientation
     assert_raises(ValueError, lcmv, evoked, forward, noise_cov, data_cov,
                   reg=0.01, pick_ori="normal")
+    
+    # Test if fixed forward operator is detected when picking normal or optimal
+    # orientation
+    assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
+                  reg=0.01, pick_ori="normal")
+    assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
+                  reg=0.01, pick_ori="optimal")
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
-    forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
-                                              surf_ori=True)
     stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01)
     stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01,
                         return_generator=True)

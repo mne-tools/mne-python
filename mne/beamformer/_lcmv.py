@@ -50,9 +50,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     picks : array of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    pick_ori : None | 'normal'
+    pick_ori : None | 'normal' | 'optimal'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
+        only the radial component is kept. If 'optimal', the source orientation
+        that maximizes output source power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -64,14 +65,14 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
-    if pick_ori == 'normal':
-        if not is_free_ori:
-            raise ValueError('Normal orientation can only be picked when a '
-                             'forward operator with free orientation is used.')
-        if not forward['surf_ori']:
-            raise ValueError('Normal orientation can only be picked when a '
-                             'forward operator oriented in surface '
-                             'coordinates is used.')
+    if pick_ori in ['normal', 'optimal'] and not is_free_ori:
+        raise ValueError('Normal or optimal orientation can only be picked '
+                         'when a forward operator with free orientation is '
+                         'used.')
+    if pick_ori == 'normal' and not forward['surf_ori']:
+        raise ValueError('Normal orientation can only be picked when a '
+                         'forward operator oriented in surface coordinates is '
+                         'used.')
 
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, exclude='bads')
@@ -118,11 +119,25 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     W = np.dot(G.T, Cm_inv)
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
+    if pick_ori == 'optimal':
+        W_opt = np.zeros((n_sources, W.shape[1]))
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         Ck = np.dot(Wk, Gk)
-        Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+        if pick_ori == 'optimal':
+            # Finding the optimal orientation
+            vals, vecs = linalg.eig(Ck)
+            opt_ori = vecs[:, vals.argmin()]
+            Wk = np.dot(opt_ori, Wk)
+            Ck = np.dot(opt_ori, np.dot(Ck, opt_ori))
+            is_free_ori = False
+            Wk = Wk / Ck
+            W_opt[k, :] = Wk
+        else:
+            Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+    if pick_ori == 'optimal':
+        W = W_opt
 
     # noise normalization
     noise_norm = np.sum(W ** 2, axis=1)
