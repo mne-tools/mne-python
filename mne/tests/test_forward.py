@@ -20,6 +20,8 @@ from mne.forward import restrict_forward_to_stc, restrict_forward_to_label
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
+fname_meeg = op.join(data_path, 'MEG', 'sample',
+                     'sample_audvis-meg-eeg-oct-6-fwd.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
@@ -37,6 +39,19 @@ with open(existing_file, 'wb') as fid:
 def test_io_forward():
     """Test IO for forward solutions
     """
+    # test M/EEG
+    fwd_meeg = read_forward_solution(fname_meeg)
+    leadfield = fwd_meeg['sol']['data']
+    assert_equal(leadfield.shape, (366, 22494))
+    assert_equal(len(fwd_meeg['sol']['row_names']), 366)
+    fname_temp = op.join(temp_dir, 'fwd.fif')
+    write_forward_solution(fname_temp, fwd_meeg, overwrite=True)
+
+    fwd_meeg = read_forward_solution(fname_temp)
+    assert_allclose(leadfield, fwd_meeg['sol']['data'])
+    assert_equal(len(fwd_meeg['sol']['row_names']), 366)
+
+    # now do extensive tests with MEG
     fwd = read_forward_solution(fname)
     fwd = read_forward_solution(fname, surf_ori=True)
     leadfield = fwd['sol']['data']

@@ -641,11 +641,12 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     picks_eeg = pick_types(fwd['info'], meg=False, eeg=True, exclude=[])
     n_meg = len(picks_meg)
     n_eeg = len(picks_eeg)
-    row_names = fwd['sol']['row_names']
+    row_names_meg = [fwd['sol']['row_names'][p] for p in picks_meg]
+    row_names_eeg = [fwd['sol']['row_names'][p] for p in picks_eeg]
 
     if n_meg > 0:
         meg_solution = dict(data=sol[picks_meg], nrow=n_meg, ncol=n_col,
-                            row_names=row_names, col_names=[])
+                            row_names=row_names_meg, col_names=[])
         meg_solution = _transpose_named_matrix(meg_solution, copy=False)
         start_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
         write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, FIFF.FIFFV_MNE_MEG)
@@ -657,7 +658,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         if sol_grad is not None:
             meg_solution_grad = dict(data=sol_grad[picks_meg],
                                      nrow=n_meg, ncol=n_col,
-                                     row_names=row_names, col_names=[])
+                                     row_names=row_names_meg, col_names=[])
             meg_solution_grad = _transpose_named_matrix(meg_solution_grad,
                                                         copy=False)
             write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD,
@@ -669,7 +670,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     #
     if n_eeg > 0:
         eeg_solution = dict(data=sol[picks_eeg], nrow=n_eeg, ncol=n_col,
-                            row_names=row_names, col_names=[])
+                            row_names=row_names_eeg, col_names=[])
         eeg_solution = _transpose_named_matrix(eeg_solution, copy=False)
         start_block(fid, FIFF.FIFFB_MNE_FORWARD_SOLUTION)
         write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, FIFF.FIFFV_MNE_EEG)
@@ -681,7 +682,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         if sol_grad is not None:
             eeg_solution_grad = dict(data=sol_grad[picks_eeg],
                                      nrow=n_eeg, ncol=n_col,
-                                     row_names=row_names, col_names=[])
+                                     row_names=row_names_eeg, col_names=[])
             meg_solution_grad = _transpose_named_matrix(eeg_solution_grad,
                                                         copy=False)
             write_named_matrix(fid, FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD,
