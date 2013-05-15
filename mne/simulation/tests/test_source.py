@@ -18,6 +18,10 @@ label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']
 labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                     '%s.label' % label)) for label in label_names]
 
+label_names_single_hemi = ['Aud-rh', 'Vis-rh']
+labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
+                    '%s.label' % label)) for label in label_names_single_hemi]
+
 
 def test_generate_stc():
     """ Test generation of source estimate """
@@ -67,10 +71,6 @@ def test_generate_stc():
         idx = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
         idx = np.searchsorted(stc.vertno[hemi_idx], idx)
 
-        # idx_tmp = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
-        # idx = idx_tmp.copy()
-        # for k in range(len(idx_tmp)):
-        #     idx[k] = np.where(stc.vertno[hemi_idx] == idx_tmp[k])[0]
         if hemi_idx == 1:
             idx += len(stc.vertno[0])
 
@@ -108,6 +108,98 @@ def test_generate_sparse_stc():
 
     # make sure we get the same result when using the same seed
     stc_2 = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep, 0)
+
+    assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
+    assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
+
+
+def test_generate_stc_single_hemi():
+    """ Test generation of source estimate """
+    mylabels = []
+    for i, label in enumerate(labels_single_hemi):
+        new_label = Label(vertices=label.vertices,
+                          pos=label.pos,
+                          values=2 * i * np.ones(len(label.values)),
+                          hemi=label.hemi,
+                          comment=label.comment)
+        mylabels.append(new_label)
+
+    n_times = 10
+    tmin = 0
+    tstep = 1e-3
+
+    stc_data = np.ones((len(labels_single_hemi), n_times))
+    stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep)
+
+    for label in labels_single_hemi:
+        if label.hemi == 'lh':
+            hemi_idx = 0
+        else:
+            hemi_idx = 1
+
+        idx = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
+        idx = np.searchsorted(stc.vertno[hemi_idx], idx)
+
+        if hemi_idx == 1:
+            idx += len(stc.vertno[0])
+
+        assert_true(np.all(stc.data[idx] == 1.0))
+        assert_true(stc.data[idx].shape[1] == n_times)
+
+    # test with function
+    fun = lambda x: x ** 2
+    stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
+
+    # the first label has value 0, the second value 2, the third value 6
+
+    for i, label in enumerate(labels_single_hemi):
+        if label.hemi == 'lh':
+            hemi_idx = 0
+        else:
+            hemi_idx = 1
+
+        idx = np.intersect1d(stc.vertno[hemi_idx], label.vertices)
+        idx = np.searchsorted(stc.vertno[hemi_idx], idx)
+
+        if hemi_idx == 1:
+            idx += len(stc.vertno[0])
+
+        assert_array_almost_equal(stc.data[idx],
+                        ((2. * i) ** 2.) * np.ones((len(idx), n_times)))
+
+
+def test_generate_sparse_stc_single_hemi():
+    """ Test generation of sparse source estimate """
+
+    n_times = 10
+    tmin = 0
+    tstep = 1e-3
+
+    stc_data = np.ones((len(labels_single_hemi), n_times))\
+                     * np.arange(len(labels_single_hemi))[:, None]
+    stc_1 = generate_sparse_stc(fwd['src'], labels_single_hemi, stc_data,
+                                tmin, tstep, 0)
+
+    for i, label in enumerate(labels_single_hemi):
+        if label.hemi == 'lh':
+            hemi_idx = 0
+        else:
+            hemi_idx = 1
+
+        idx = np.intersect1d(stc_1.vertno[hemi_idx], label.vertices)
+        idx = np.searchsorted(stc_1.vertno[hemi_idx], idx)
+
+        if hemi_idx == 1:
+            idx += len(stc_1.vertno[0])
+
+        assert_true(np.all(stc_1.data[idx] == float(i)))
+
+    assert_true(stc_1.data.shape[0] == len(labels_single_hemi))
+    assert_true(stc_1.data.shape[1] == n_times)
+
+    # make sure we get the same result when using the same seed
+    stc_2 = generate_sparse_stc(fwd['src'], labels_single_hemi, stc_data,
+                                tmin, tstep, 0)
 
     assert_array_equal(stc_1.lh_vertno, stc_2.lh_vertno)
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
