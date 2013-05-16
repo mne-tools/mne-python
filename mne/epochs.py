@@ -135,10 +135,9 @@ class Epochs(ProjMixin):
         or the reasons (count equalization, not reaching minimum duration),
         if any, that caused an event in the original event list to be dropped
         by drop_bad_epochs(). Caveat. The drop log will only know about the
-        events passed to epochs. If th events represent a selection the
-        drop log can be misaligned with regard other external logs,
-        e.g. behavioral, responses which still refer to the complete
-        list of events.
+        events passed to epochs. If the events represent a selection the
+        drop log can be misaligned with regard to other external logs (e.g.,
+        behavioral responses) that still refer to the complete list of events.
     verbose : bool, str, int, or None
         See above.
 
