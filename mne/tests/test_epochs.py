@@ -551,13 +551,17 @@ def test_epoch_eq():
     # equalizing epochs objects
     epochs_1 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     epochs_2 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
+    epochs_1.drop_bad_epochs()  # make sure drops are logged
+    assert_true(len([l for l in epochs_1.drop_log if not l]) ==
+                len(epochs_1.events))
     drop_log1 = epochs_1.drop_log = [[] for _ in range(len(epochs_1.events))]
+    drop_log2 = [[] if l == ['EQUALIZED_COUNT'] else l for l in
+                 epochs_1.drop_log]
+    assert_true(drop_log1 == drop_log2)
+    assert_true(len([l for l in epochs_1.drop_log if not l]) ==
+                len(epochs_1.events))
     assert_true(epochs_1.events.shape[0] != epochs_2.events.shape[0])
     equalize_epoch_counts([epochs_1, epochs_2], method='mintime')
-    log = 'EQUALIZED_COUNT'
-    drop_log2 = [[] if l == [log] else l for l in epochs_1.drop_log]
-    assert_true(drop_log1 == drop_log2)
-
     assert_true(epochs_1.events.shape[0] == epochs_2.events.shape[0])
     epochs_3 = Epochs(raw, events, event_id, tmin, tmax, picks=picks)
     epochs_4 = Epochs(raw, events, event_id_2, tmin, tmax, picks=picks)
@@ -569,12 +573,17 @@ def test_epoch_eq():
     epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
                     tmin, tmax, picks=picks, reject=reject)
     epochs.drop_bad_epochs()  # make sure drops are logged
+    assert_true(len([l for l in epochs.drop_log if not l]) ==
+                len(epochs.events))
     drop_log1 = [l for l in epochs.drop_log]  # now copy the log
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'], copy=False)
     # undo the eq logging
-    drop_log2 = [[] if l == [log] else l for l in epochs.drop_log]
+    drop_log2 = [[] if l == ['EQUALIZED_COUNT'] else l for l in
+                 epochs.drop_log]
     assert_true(drop_log1 == drop_log2)
+    assert_true(len([l for l in epochs.drop_log if not l]) ==
+                len(epochs.events))
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     assert_true(new_shapes[0] == new_shapes[1])
     assert_true(new_shapes[2] == new_shapes[2])
