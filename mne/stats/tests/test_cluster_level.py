@@ -287,9 +287,7 @@ def test_permutation_connectivity_equiv():
 
 
 def spatio_temporal_cluster_test_connectivity():
-    """Test cluster level permutations with and without 
-        spatio temporal connectivity
-    """
+    """Test cluster level permutations with and without connectivity """
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
@@ -307,7 +305,7 @@ def spatio_temporal_cluster_test_connectivity():
 
     conn = grid_to_graph(data1_2d.shape[-1], 1)
 
-    threshold = dict(start=0.5, step=5)
+    threshold = dict(start=4.0, step=2)
     T_obs, clusters, p_values_conn, hist = \
         spatio_temporal_cluster_test([data1_2d, data2_2d], connectivity=conn,
                                      n_permutations=50, tail=1, seed=1, 
