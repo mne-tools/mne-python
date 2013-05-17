@@ -42,17 +42,17 @@ FIFF.FIFFB_HPI_SUBSYSTEM      = 121
 FIFF.FIFFB_EPOCHS             = 122
 FIFF.FIFFB_ICA                = 123
 
-FIFF.FIFFB_SPHERE             = 300	  # Concentric sphere model related
-FIFF.FIFFB_BEM                = 310	  # Boundary-element method
-FIFF.FIFFB_BEM_SURF           = 311	  # Boundary-element method surfaces
-FIFF.FIFFB_CONDUCTOR_MODEL    = 312	  # One conductor model definition
+FIFF.FIFFB_SPHERE             = 300   # Concentric sphere model related
+FIFF.FIFFB_BEM                = 310   # Boundary-element method
+FIFF.FIFFB_BEM_SURF           = 311   # Boundary-element method surfaces
+FIFF.FIFFB_CONDUCTOR_MODEL    = 312   # One conductor model definition
 FIFF.FIFFB_PROJ               = 313
 FIFF.FIFFB_PROJ_ITEM          = 314
 FIFF.FIFFB_MRI                = 200
 FIFF.FIFFB_MRI_SET            = 201
 FIFF.FIFFB_MRI_SLICE          = 202
 FIFF.FIFFB_MRI_SCENERY        = 203     # These are for writing unrelated 'slices'
-FIFF.FIFFB_MRI_SCENE          = 204	  # Which are actually 3D scenes...
+FIFF.FIFFB_MRI_SCENE          = 204     # Which are actually 3D scenes...
 FIFF.FIFFB_MRI_SEG            = 205     # MRI segmentation data
 FIFF.FIFFB_MRI_SEG_REGION     = 206     # One MRI segmentation region
 FIFF.FIFFB_PROCESSING_HISTORY = 900
@@ -107,15 +107,15 @@ FIFF.FIFF_BAD_CHS       = 220
 FIFF.FIFF_ARTEF_REMOVAL = 221
 FIFF.FIFF_COORD_TRANS = 222
 FIFF.FIFF_HIGHPASS    = 223
-FIFF.FIFF_CH_CALS        = 224	  # This will not occur in new files
-FIFF.FIFF_HPI_BAD_CHS    = 225     # List of channels considered to be bad in hpi
-FIFF.FIFF_HPI_CORR_COEFF = 226	  # Hpi curve fit correlations
-FIFF.FIFF_EVENT_COMMENT  = 227     # Comment about the events used in averaging
-FIFF.FIFF_NO_SAMPLES     = 228     # Number of samples in an epoch
-FIFF.FIFF_FIRST_TIME     = 229     # Time scale minimum
+FIFF.FIFF_CH_CALS        = 22     # This will not occur in new files
+FIFF.FIFF_HPI_BAD_CHS    = 225    # List of channels considered to be bad in hpi
+FIFF.FIFF_HPI_CORR_COEFF = 226    # Hpi curve fit correlations
+FIFF.FIFF_EVENT_COMMENT  = 227    # Comment about the events used in averaging
+FIFF.FIFF_NO_SAMPLES     = 228    # Number of samples in an epoch
+FIFF.FIFF_FIRST_TIME     = 229    # Time scale minimum
 
-FIFF.FIFF_SUBAVE_SIZE    = 230	  # Size of a subaverage
-FIFF.FIFF_SUBAVE_FIRST   = 231	  # The first epoch # contained in the subaverage
+FIFF.FIFF_SUBAVE_SIZE    = 230    # Size of a subaverage
+FIFF.FIFF_SUBAVE_FIRST   = 231    # The first epoch # contained in the subaverage
 FIFF.FIFF_NAME           = 233          # Intended to be a short name.
 FIFF.FIFF_DESCRIPTION    = FIFF.FIFF_COMMENT # (Textual) Description of an object
 FIFF.FIFF_DIG_STRING     = 234          # String of digitized points
@@ -423,7 +423,7 @@ FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT         = 3547  # Are the sources given in Am 
 FIFF.FIFF_MNE_ENV_WORKING_DIR        = 3550     # Working directory where the file was created
 FIFF.FIFF_MNE_ENV_COMMAND_LINE       = 3551     # The command used to create the file
 FIFF.FIFF_MNE_EXTERNAL_BIG_ENDIAN    = 3552     # Reference to an external binary file (big-endian) */
-FIFF.FIFF_MNE_EXTERNAL_LITTLE_ENDIAN = 3553	    # Reference to an external binary file (little-endian) */
+FIFF.FIFF_MNE_EXTERNAL_LITTLE_ENDIAN = 3553     # Reference to an external binary file (little-endian) */
 #
 # 3560... Miscellaneous
 #
@@ -433,7 +433,7 @@ FIFF.FIFF_MNE_HEMI                   = 3562     # Hemisphere association for gen
 FIFF.FIFF_MNE_DATA_SKIP_NOP          = 3563     # A data skip turned off in the raw data
 FIFF.FIFF_MNE_ORIG_CH_INFO           = 3564     # Channel information before any changes
 FIFF.FIFF_MNE_EVENT_TRIGGER_MASK     = 3565     # Mask applied to the trigger channnel values
-FIFF.FIFF_MNE_EVENT_COMMENTS         = 3566	    # Event comments merged into one long string
+FIFF.FIFF_MNE_EVENT_COMMENTS         = 3566     # Event comments merged into one long string
 #
 # 3570... Morphing maps
 #
@@ -711,3 +711,7 @@ FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA  = 4004  # Magnes WH reference diagonal gradio
 FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF  = 4005  # Magnes WH reference off-diagonal gradiometer
 FIFF.FIFFV_COIL_CTF_GRAD           = 5001  # CTF axial gradiometer
 FIFF.FIFFV_COIL_KIT_GRAD           = 6001  # KIT system axial gradiometer
+
+# MNE RealTime
+FIFF.FIFF_MNE_RT_COMMAND           = 3700
+FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701
