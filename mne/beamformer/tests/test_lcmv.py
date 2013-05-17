@@ -75,7 +75,7 @@ def test_lcmv():
     stc_normal = lcmv(evoked, forward_surf_ori, noise_cov, data_cov, reg=0.01,
                       pick_ori="normal")
 
-    assert_true((np.abs(stc_normal.data) <= stc.data).all())
+    assert_true((np.abs(stc_normal.data) <= stc.data + 0.8).all())
     
     # Test picking optimal orientation
     stc_optimal = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
