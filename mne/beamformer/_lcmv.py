@@ -115,6 +115,11 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
     Cm_inv = linalg.pinv(Cm, reg)
 
+    # Pick source orientation normal to cortical surface
+    if pick_ori == 'normal':
+        G = G[:, 2::3]
+        is_free_ori = False
+
     # Compute spatial filters
     W = np.dot(G.T, Cm_inv)
     n_orient = 3 if is_free_ori else 1
@@ -125,17 +130,24 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         Ck = np.dot(Wk, Gk)
+        
+        # Pick optimal source orientation
         if pick_ori == 'optimal':
-            # Finding the optimal orientation
-            vals, vecs = linalg.eig(Ck)
-            opt_ori = vecs[:, vals.argmin()]
+            eig_vals, eig_vecs = linalg.eig(Ck)
+            opt_ori = eig_vecs[:, eig_vals.argmin()]
             Wk = np.dot(opt_ori, Wk)
             Ck = np.dot(opt_ori, np.dot(Ck, opt_ori))
             is_free_ori = False
-            Wk = Wk / Ck
-            W_opt[k, :] = Wk
-        else:
+            
+        if is_free_ori:
+            # For vector-type beamformers (free source orientation)
             Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+        else:
+            # For scalar-type beamformers (fixed source orientation)
+            Wk = Wk / Ck
+        
+        if pick_ori == 'optimal':
+            W_opt[k, :] = Wk
     if pick_ori == 'optimal':
         W = W_opt
 
