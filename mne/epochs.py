@@ -132,8 +132,12 @@ class Epochs(ProjMixin):
         List of channels' names.
     drop_log : list of lists
         This list (same length as events) contains the channel(s),
-        if any, that caused an event in the original event list
-        to be dropped by drop_bad_epochs().
+        or the reasons (count equalization, not reaching minimum duration),
+        if any, that caused an event in the original event list to be dropped
+        by drop_bad_epochs(). Caveat. The drop log will only know about the
+        events passed to epochs. If the events represent a selection the
+        drop log can be misaligned with regard to other external logs (e.g.,
+        behavioral responses) that still refer to the complete list of events.
     verbose : bool, str, int, or None
         See above.
 
@@ -1464,10 +1468,18 @@ def bootstrap(epochs, random_state=None):
     return epochs_bootstrap
 
 
-def _check_add_drop_log(epochs, indices):
+def _check_add_drop_log(epochs, inds):
     """Aux Function"""
-    # never called before dropping bads, so its safe to iterate over log
-    # ... we'll not gonna change existing logs
-    epochs.drop_log = [['EQUALIZED_COUNT'] if (i in indices and not l) else l
-                       for i, l in enumerate(epochs.drop_log)]
+    new_idx, new_drop_log = 0, []
+    for idx, log in enumerate(epochs.drop_log):
+        if not log:
+            new_idx += 1
+        if new_idx in inds:
+            new_log = ['EQUALIZED_COUNT']
+        elif log:
+            new_log = log
+        else:
+            new_log = []
+        new_drop_log.append(new_log)
+    epochs.drop_log = new_drop_log
     return epochs
