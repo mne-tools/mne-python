@@ -572,15 +572,16 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 
 def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
-                        cmap='RdBu_r', sensors='k,', colorbar=True, res=256):
-    """Plot a time point of evoked data as topographic map
+                        cmap='RdBu_r', sensors='k,', colorbar=True, res=256,
+                        size=1):
+    """Plot topographic maps of specific time points of evoked data
 
     Parameters
     ----------
     evoked : Evoked
         The Evoked object.
-    time : scalar
-        The time point to plot.
+    time : scalar | sequence of scalars
+        The time point(s) to plot.
     ch_type : 'mag' | 'grad' | 'eeg'
         The channel type to plot.
     layout : None | Layout
@@ -598,6 +599,9 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
         Plot a colorbar.
     res : int
         The resolution of the topomap image (n pixels along each side).
+    size : scalar
+        Side length of the topomaps in inches (only applies when plotting
+        multiple topomaps at a time).
     """
     import pylab as pl
 
@@ -606,13 +610,39 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
         layout = read_layout('Vectorview-%s' % ch_type)
 
     picks = pick_types(evoked.info, meg=ch_type, exclude='bads')
-    data = evoked.data[picks, np.where(evoked.times > time)[0][0]]
     pos = [layout.pos[layout.names.index(evoked.ch_names[k])] for k in picks]
 
-    plot_topomap(data, pos, vmax=vmax, cmap=cmap, sensors=sensors, res=res)
+    if np.isscalar(time):
+        data = evoked.data[picks, np.where(evoked.times > time)[0][0]]
+        plot_topomap(data, pos, vmax=vmax, cmap=cmap, sensors=sensors, res=res)
+        if colorbar:
+            pl.colorbar()
+    elif np.iterable(time):
+        n = len(time)
+        nax = n + bool(colorbar)
+        pl.figure(figsize=(size * nax, size * 1.5))
+        time_idx = [np.where(evoked.times > t)[0][0] for t in time]
+        data = evoked.data[:, time_idx][picks]
+        vmax = vmax or np.max(data)
+        for i, t in enumerate(time):
+            pl.subplot(1, nax, i + 1)
+            plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap, sensors=sensors,
+                         res=res)
+            pl.title('%i ms' % (t * 1000))
 
-    if colorbar:
-        pl.colorbar()
+        if colorbar:
+            cax = pl.subplot(1, n + 1, n + 1)
+            pl.colorbar(cax=cax, ticks=[-vmax, 0, vmax])
+            # resize the colorbar (by default the color fills the whole axes)
+            pl.tight_layout()
+            pos = cax.get_position()
+            pos.x0 += .2 / nax
+            pos.x1 -= .4 / nax
+            cax.set_position(pos)
+    else:
+        err = ("time parameter needs to be time (scalar) or sequence of "
+               "times (sequence of scalars). Got ")
+        raise TypeError(err)
 
 
 def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
