@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import stats
 from scipy.signal import detrend
+from ..fixes import matrix_rank
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
@@ -118,7 +119,7 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
 
     for (c1, c2, c3) in defaults_twoway_rm['iter_contrasts'][effect_picks]:
         c_ = np.kron(sc[0][c1], sc[c3][c2])
-        df1 = np.linalg.matrix_rank(c_)
+        df1 = matrix_rank(c_)
         df2 = df1 * (n_subjects - 1)
         yield c_, df1, df2
 
