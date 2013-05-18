@@ -119,16 +119,16 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     noise_norm = np.sqrt(noise_norm)
 
+    if not is_free_ori:
+        W /= noise_norm[:, None]
+
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
         return_single = True
     else:
         return_single = False
-        stcs = []
 
-    if not is_free_ori:
-        W /= noise_norm[:, None]
-
+    subject = _subject_from_forward(forward)
     for i, M in enumerate(data):
         if len(M) != len(picks):
             raise ValueError('data and picks must have the same length')
@@ -155,18 +155,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 sol = np.dot(W, M)
 
         tstep = 1.0 / info['sfreq']
-        subject = _subject_from_forward(forward)
-        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+        yield SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
                              subject=subject)
 
-        if not return_single:
-            stcs.append(stc)
-        logger.info('[done]')
-
-    if return_single:
-        return stc
-    else:
-        return stcs
+    logger.info('[done]')
 
 
 @verbose
@@ -215,14 +207,14 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = evoked.times[0]
 
     stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                      label)
+                      label).next()
 
     return stc
 
 
 @verbose
 def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
-                verbose=None):
+                return_generator=False, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -245,12 +237,15 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label.
+    return_generator : bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    stc: list of SourceEstimate
+    stc: list | generator of SourceEstimate
         The source estimates for all epochs
 
     Notes
@@ -271,7 +266,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     stcs = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                        label)
 
-    return stcs
+    return stcs if return_generator else [s for s in stcs]
 
 
 @verbose
@@ -331,7 +326,6 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = times[0]
 
     stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                      label, picks)
+                      label, picks).next()
 
     return stc
-

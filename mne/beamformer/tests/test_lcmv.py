@@ -73,6 +73,9 @@ def test_lcmv():
     forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
                                               surf_ori=True)
     stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01)
+    stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01,
+                       return_generator=True)
+    assert_true((stcs[0].data == stcs_.next().data).all())
 
     epochs.drop_bad_epochs()
     assert_true(len(epochs.events) == len(stcs))
