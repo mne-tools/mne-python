@@ -423,3 +423,18 @@ if hasattr(scipy.signal, 'firwin2'):
     from scipy.signal import firwin2
 else:
     firwin2 = _firwin2
+
+
+def matrix_rank(M, tol=None):
+    """ This backports the recent martrix functions
+    to numpy version < 1.7
+    """
+    M = np.asarray(M)
+    if M.ndim > 2:
+        raise TypeError('array should have 2 or fewer dimensions')
+    if M.ndim < 2:
+        return np.int(not all(M == 0))
+    S = np.linalg.svd(M, compute_uv=False)
+    if tol is None:
+        tol = S.max() * np.max(M.shape) * np.finfo(S.dtype).eps
+    return np.sum(S > tol)
