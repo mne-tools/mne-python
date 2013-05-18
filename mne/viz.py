@@ -572,7 +572,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 
 def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
-                        cmap='RdBu_r', colorbar=True, res=256):
+                        cmap='RdBu_r', sensors='k,', colorbar=True, res=256):
     """Plot a time point of evoked data as topographic map
 
     Parameters
@@ -591,6 +591,9 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
         None, the largest absolute value in the data is used.
     cmap : matplotlib colormap
         Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses).
     colorbar : bool
         Plot a colorbar.
     res : int
@@ -606,13 +609,13 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
     data = evoked.data[picks, np.where(evoked.times > time)[0][0]]
     pos = [layout.pos[layout.names.index(evoked.ch_names[k])] for k in picks]
 
-    plot_topomap(data, pos, vmax=vmax, cmap=cmap, res=res)
+    plot_topomap(data, pos, vmax=vmax, cmap=cmap, sensors=sensors, res=res)
 
     if colorbar:
         pl.colorbar()
 
 
-def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', res=100):
+def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
     """Plot a topographic map as image
 
     Parameters
@@ -621,6 +624,14 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', res=100):
         The data values to plot.
     pos : array, shape = (n_points, 2)
         For each data point, the x and y coordinates.
+    vmax : scalar
+        The value specfying the range of the color scale (-vmax to +vmax). If
+        None, the largest absolute value in the data is used.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses).
     res : int
         The resolution of the topomap image (n pixels along each side).
     """
@@ -648,6 +659,11 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', res=100):
 
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
+    if sensors:
+        if sensors == True:
+            sensors = 'k,'
+        pl.plot(pos_x, pos_y, sensors)
+
     xmin, xmax = pos_x.min(), pos_x.max()
     ymin, ymax = pos_y.min(), pos_y.max()
     triang = delaunay.Triangulation(pos_x, pos_y)
