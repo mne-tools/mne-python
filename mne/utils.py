@@ -376,7 +376,7 @@ def requires_pandas(function):
         try:
             import pandas
             version = LooseVersion(pandas.__version__)
-            if version < '0.7.3':
+            if version < '0.8.0':
                 skip = True
         except ImportError:
             skip = True
