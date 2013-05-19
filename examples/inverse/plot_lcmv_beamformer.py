@@ -3,8 +3,8 @@
 Compute LCMV beamformer on evoked data
 ======================================
 
-Compute LCMV beamformer solution on evoked dataset
-and stores the solution in stc files for visualisation.
+Compute LCMV beamformer solutions on evoked dataset for three different choices
+of source orienatation and stores the solutions in stc files for visualisation.
 
 """
 
@@ -57,30 +57,35 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
                                mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
-stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01)
-stc_normal = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='normal',
-                  reg=0.01)
-stc_optimal = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='optimal',
-                   reg=0.01)
 
-# Save result in stc files
-stc.save('lcmv')
-stc_normal.save('lcmv-normal')
-stc_optimal.save('lcmv-optimal')
+stcs = dict()
+names = ['free', 'normal', 'optimal']
+descriptions = ['Free orientation', 'Normal orientation', 'Optimal '
+                'orientation']
+colors = ['b', 'k', 'r']
 
-###############################################################################
-# View activation time-series
-data, times, _ = mne.label_time_courses(fname_label, "lcmv-lh.stc")
-data_normal, times, _ = mne.label_time_courses(fname_label,
-                                               "lcmv_normal-lh.stc")
-data_optimal, times, _ = mne.label_time_courses(fname_label,
-                                                "lcmv_optimal-lh.stc")
+stcs[names[0]] = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01)
+stcs[names[1]] = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='normal',
+                      reg=0.01)
+stcs[names[2]] = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='optimal',
+                      reg=0.01)
 
 pl.close('all')
-pl.plot(1e3 * times, np.mean(data, axis=0), 'b',
-        1e3 * times, np.mean(data_normal, axis=0), 'k',
-        1e3 * times, np.mean(data_optimal, axis=0), 'r')
-pl.xlabel('time (ms)')
+
+for name, desc, color in zip(names, descriptions, colors):
+    stc = stcs[name]
+
+    # Save result in stc files
+    stc.save('lcmv-' + name)
+
+    # View activation time-series
+    data, times, _ = mne.label_time_courses(fname_label, "lcmv-" + name +
+                                            "-lh.stc")
+    pl.plot(1e3 * times, np.mean(data, axis=0), color, hold=True, label=desc)
+
+pl.xlabel('Time (ms)')
 pl.ylabel('LCMV value')
+pl.ylim(-0.8, 1.6)
 pl.title('LCMV in %s' % label_name)
+pl.legend()
 pl.show()
