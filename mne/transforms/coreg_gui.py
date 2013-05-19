@@ -18,7 +18,7 @@ from mayavi import mlab
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools import pipeline
 from mayavi.tools.mlab_scene_model import MlabSceneModel
-from pyface.api import error, confirm, OK, YES, NO, CANCEL, ProgressDialog, FileDialog
+from pyface.api import error, confirm, warning, OK, YES, NO, CANCEL, ProgressDialog, FileDialog
 import traits.api as traits
 from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Instance, Property, \
                        Any, Array, Bool, Button, Color, Directory, Enum, File, Float, Int, List, \
@@ -699,6 +699,14 @@ class CoregFrame(HasTraits):
         # lock fiducials if file is found
         if self.fid_panel.fid_file:
             self.lock_fiducials = True
+
+        # check thet MNE_ROOT environment variable is set
+        if 'MNE_ROOT' not in os.environ:
+            err = ("MNE_ROOT environment variable not set. Scaling MRIs will "
+                   "fail. Please specify the MNE_ROOT environment variable. "
+                   "In Python this can be done using:\n\n"
+                   ">>> os.environ['MNE_ROOT'] = '/Applications/mne-2.7.3'")
+            warning(None, err, "MNE_ROOT Not Set")
 
     @on_trait_change('s_sel.subject')
     def _on_subject_changes(self, new):
