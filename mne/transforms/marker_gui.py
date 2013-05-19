@@ -291,7 +291,7 @@ class MarkerStats(HasPrivateTraits):
 
 
 
-class MarkerPanel(HasTraits):
+class CombineMarkersPanel(HasTraits):
     """Has two marker points sources and interpolates to a third one"""
     mrk1_file = File
     mrk2_file = File
@@ -360,7 +360,7 @@ class MarkerPanel(HasTraits):
 
 
 
-class MainWindow(HasTraits):
+class CombineMarkersFrame(HasTraits):
     """GUI for interpolating between two KIT marker files
 
     Parameters
@@ -370,13 +370,14 @@ class MainWindow(HasTraits):
     """
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)
-    panel = Instance(MarkerPanel)
+    panel = Instance(CombineMarkersPanel)
 
     def _headview_default(self):
         return HeadViewController(scene=self.scene, system='ALS')
 
     def _panel_default(self):
-        return MarkerPanel(scene=self.scene, mrk1_file=self._mrk1, mrk2_file=self._mrk2)
+        return CombineMarkersPanel(scene=self.scene, mrk1_file=self._mrk1,
+                                   mrk2_file=self._mrk2)
 
     view = View(HGroup(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
                             dock='vertical'),
@@ -385,11 +386,10 @@ class MainWindow(HasTraits):
                               show_labels=False),
                        show_labels=False,
                       ),
-                resizable=True,
-                height=0.75, width=0.75,
+                width=1100, resizable=True,
                 buttons=NoButtons)
 
     def __init__(self, mrk1='', mrk2=''):
         self._mrk1 = mrk1
         self._mrk2 = mrk2
-        super(MainWindow, self).__init__()
+        super(CombineMarkersFrame, self).__init__()
