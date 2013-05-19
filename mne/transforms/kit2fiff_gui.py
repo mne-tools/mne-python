@@ -20,7 +20,7 @@ from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor, Enu
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
-from .marker_gui import MarkerPanel
+from .marker_gui import CombineMarkersPanel
 from .coreg import fit_matched_pts
 from .transforms import apply_trans, coord_trans
 from .viewer import HeadViewController, headview_borders, headview_item, PointObject
@@ -345,7 +345,7 @@ class Kit2FiffPanel(HasPrivateTraits):
 
 class ControlPanel(HasTraits):
     scene = Instance(MlabSceneModel, ())
-    marker_panel = Instance(MarkerPanel)
+    marker_panel = Instance(CombineMarkersPanel)
     kit2fiff_panel = Instance(Kit2FiffPanel)
 
     view = View(Group(Item('marker_panel', label="Markers", style="custom",
@@ -356,7 +356,7 @@ class ControlPanel(HasTraits):
                       )
 
     def _marker_panel_default(self):
-        panel = MarkerPanel(scene=self.scene)
+        panel = CombineMarkersPanel(scene=self.scene)
         return panel
 
     def _kit2fiff_panel_default(self):
