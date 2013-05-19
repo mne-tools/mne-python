@@ -622,7 +622,7 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
         nax = n + bool(colorbar)
         pl.figure(figsize=(size * nax, size * 1.5))
         time_idx = [np.where(evoked.times > t)[0][0] for t in time]
-        data = evoked.data[:, time_idx][picks]
+        data = evoked.data[np.ix_(picks, time_idx)]
         vmax = vmax or np.max(data)
         for i, t in enumerate(time):
             pl.subplot(1, nax, i + 1)
