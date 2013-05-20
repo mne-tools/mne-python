@@ -12,7 +12,7 @@ logger = logging.getLogger('mne')
 from ..forward import is_fixed_orient, _to_fixed_ori
 from ..minimum_norm.inverse import _prepare_forward
 from .. import verbose
-from .inverse import _make_sparse_stc, _prepare_gain
+from .mxne_inverse import _make_sparse_stc, _prepare_gain
 
 
 @verbose

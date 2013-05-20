@@ -10,7 +10,7 @@ from scipy import linalg
 import logging
 logger = logging.getLogger('mne')
 
-from .debiasing import compute_bias
+from .mxne_debiasing import compute_bias
 from .. import verbose
 from ..time_frequency.stft import stft_norm2, stft, istft
 

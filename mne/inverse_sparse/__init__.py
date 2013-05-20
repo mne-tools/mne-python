@@ -4,5 +4,5 @@
 #
 # License: Simplified BSD
 
-from .inverse import mixed_norm, tf_mixed_norm
+from .mxne_inverse import mixed_norm, tf_mixed_norm
 from ._gamma_map import gamma_map
