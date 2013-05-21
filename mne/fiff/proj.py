@@ -142,8 +142,11 @@ class ProjMixin(object):
             if data is None:
                 continue
             elif callable(data):
-                # if epochs.proj == True, get_data will apply projs
-                data = data()
+                # if epochs.proj == True and preload, get_data will apply projs
+                if self.preload:
+                    data = np.array([np.dot(self._projector, d) for d in self._data])
+                else:
+                    data = data()
             else:
                 data = np.dot(self._projector, data)
             break

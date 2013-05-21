@@ -353,7 +353,7 @@ class Epochs(ProjMixin):
     def _delayed_ssp(self):
         """ Aux method
         """
-        return self.proj == False and self.reject == True
+        return self.proj == False and self.reject is not None
 
     @verbose
     def drop_epochs(self, indices, verbose=None):
@@ -403,14 +403,19 @@ class Epochs(ProjMixin):
 
         epoch_raw, _ = self.raw[self.picks, start:stop]
 
+        # setup list of epochs to handle delayed SSP
         epochs = []
+        # whenever requested, the first epoch is being projected.
         if self._projector is not None and proj is True:
             epochs += [np.dot(self._projector, epoch_raw)]
         else:
             epochs += [epoch_raw]
-        if self.proj != proj:
+
+        # in case the proj passed is True but self proj is not we have delayed SSP
+        if self.proj != proj:  # so append another unprojected epoch
             epochs += [epoch_raw.copy()]
 
+        # process projected, unprojected, print once
         for ii, (e, verbose) in enumerate(zip(epochs, [self.verbose, False])):
             # Detrend
             if self.detrend is not None:
@@ -425,6 +430,7 @@ class Epochs(ProjMixin):
                 e = e[:, self._decim_idx]
             epochs[ii] = e
 
+        # return a second None if nothing is projected
         if len(epochs) == 1:
             epochs += [None]
 
