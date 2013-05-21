@@ -8,21 +8,18 @@ import cPickle as pickle
 import os
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
-from mayavi.modules.glyph import Glyph
-from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 import numpy as np
 from pyface.api import confirm, error, FileDialog, OK, YES
 from traits.api import HasTraits, HasPrivateTraits, on_trait_change, cached_property, \
                        Instance, Property, \
-                       Array, Bool, Button, Color, Enum, File, Float, List, \
-                       Str, Tuple
-from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor
+                       Array, Bool, Button, Enum, File, Float, List, Str
+from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
-from .coreg import fit_matched_pts
-from .transforms import apply_trans, rotation, translation
+from ..transforms.coreg import fit_matched_pts
+from ..transforms.transforms import apply_trans, rotation, translation
 from .viewer import HeadViewController, headview_borders, PointObject
 from ..fiff.kit.coreg import read_mrk
 

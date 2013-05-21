@@ -9,15 +9,13 @@ from mayavi.modules.glyph import Glyph
 from mayavi.modules.surface import Surface
 from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
-from mayavi.modules.text3d import Text3D
 import numpy as np
 from pyface.api import error
-from scipy.spatial import Delaunay
 from traits.api import HasTraits, HasPrivateTraits, on_trait_change, cached_property, Instance, Property, \
-                       Array, Bool, Button, Color, Enum, Float, List, Range, Str, Tuple
+                       Array, Bool, Button, Color, Enum, Float, List, Range, Str
 from traitsui.api import View, Item, Group, HGroup, VGroup
 
-from .transforms import apply_trans
+from ..transforms.transforms import apply_trans
 
 
 headview_item = Item('headview', style='custom', show_label=False)

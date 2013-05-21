@@ -1,4 +1,4 @@
-"""GUI for coregistration between different coordinate frames"""
+"""Traits-based GUI for head-MRI coregistration"""
 
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
@@ -10,32 +10,26 @@ from threading import Thread
 
 import numpy as np
 from numpy import dot
-from scipy.cluster.hierarchy import linkage, to_tree, leaves_list
-from scipy.spatial import Delaunay
-from scipy.spatial.distance import cdist, pdist
+from scipy.spatial.distance import cdist
 
-from mayavi import mlab
 from mayavi.core.ui.mayavi_scene import MayaviScene
-from mayavi.tools import pipeline
 from mayavi.tools.mlab_scene_model import MlabSceneModel
-from pyface.api import error, confirm, warning, OK, YES, NO, CANCEL, ProgressDialog, FileDialog
-import traits.api as traits
+from pyface.api import error, confirm, warning, OK, YES, NO, ProgressDialog, FileDialog
 from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Instance, Property, \
-                       Any, Array, Bool, Button, Color, Directory, Enum, File, Float, Int, List, \
-                       Range, Str, Tuple
-from traitsui.api import View, Item, Group, HGroup, VGroup, EnumEditor
-from traitsui.menu import Action, UndoButton, NoButtons, OKCancelButtons, OKButton, \
-                          CancelButton, HelpButton
+                       Any, Array, Bool, Button, Directory, Enum, Float, Int, List, Str
+from traitsui.api import View, Item, HGroup, VGroup, EnumEditor
+from traitsui.menu import Action, UndoButton, CancelButton
 from tvtk.pyface.scene_editor import SceneEditor
 
-from .coreg import trans_fname, fit_matched_pts, fit_point_cloud, scale_mri
-from .fiducials_gui import FiducialsPanel
-from .file_traits import BemSource, FidSource, RawHspSource, SubjectSelector
-from .transforms import rotation, rotation3d, translation, apply_trans, write_trans
-from .viewer import HeadViewController, PointObject, SurfaceObject, headview_item
 from ..fiff import FIFF
 from ..source_space import prepare_bem_model, setup_source_space
-from ..utils import get_config, get_subjects_dir
+from ..transforms import write_trans
+from ..transforms.transforms import rotation, translation, apply_trans
+from ..transforms.coreg import trans_fname, fit_matched_pts, fit_point_cloud, scale_mri
+from ..utils import get_subjects_dir
+from .fiducials_gui import FiducialsPanel
+from .file_traits import BemSource, RawHspSource, SubjectSelector
+from .viewer import HeadViewController, PointObject, SurfaceObject, headview_item
 
 
 

@@ -7,14 +7,13 @@
 import os
 
 import numpy as np
-from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Instance, Property, \
-                       Any, Array, Bool, Button, Color, Directory, Enum, File, Float, Int, List, \
-                       Range, Str, Tuple
-from traitsui.api import View, Item, Group, HGroup, VGroup, EnumEditor
+from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Property, \
+                       Array, Directory, Enum, File, List, Str
+from traitsui.api import View, Item, VGroup
 
-from .coreg import is_mri_subject
-from ..fiff import Raw, FIFF, read_fiducials, write_fiducials
+from ..fiff import Raw, read_fiducials
 from ..surface import read_bem_surfaces
+from ..transforms.coreg import is_mri_subject
 
 
 

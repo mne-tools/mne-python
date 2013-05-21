@@ -5,30 +5,23 @@
 # License: BSD (3-clause)
 
 from glob import glob
-import cPickle as pickle
 import os
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
-from mayavi.modules.glyph import Glyph
-from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 import numpy as np
-from pyface.api import confirm, error, FileDialog, OK, YES
+from pyface.api import confirm, FileDialog, OK, YES
 from traits.api import HasTraits, HasPrivateTraits, on_trait_change, \
                        cached_property, Instance, Property, \
-                       Array, Bool, Button, Color, Enum, File, Float, List, \
-                       Str, Tuple
-from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor
+                       Array, Bool, Button, Enum, File, Str
+from traitsui.api import View, Item, HGroup, VGroup
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
-from .coreg import fit_matched_pts
+from ..fiff import FIFF, read_fiducials, write_fiducials
+from ..utils import get_subjects_dir
 from .file_traits import SubjectSelector, BemSource
-from .transforms import apply_trans, rotation, translation
 from .viewer import HeadViewController, PointObject, SurfaceObject, headview_borders
-from ..fiff import Raw, FIFF, read_fiducials, write_fiducials
-from ..fiff.kit.coreg import read_mrk
-from ..utils import get_config, get_subjects_dir
 
 
 

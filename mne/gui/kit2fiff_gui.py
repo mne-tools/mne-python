@@ -14,19 +14,18 @@ from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import confirm, error, FileDialog, OK, YES, ProgressDialog
 from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Instance, Property, \
-                       Array, Bool, Button, Color, Enum, File, Float, Int, List, \
-                       Range, Str, Tuple
+                       Array, Bool, Button, Enum, File, Int, List, Str
 from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor, EnumEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
-from .marker_gui import CombineMarkersPanel
-from .coreg import fit_matched_pts
-from .transforms import apply_trans, coord_trans
-from .viewer import HeadViewController, headview_borders, headview_item, PointObject
 from ..fiff.kit.coreg import read_hsp, read_elp, transform_ALS_to_RAS, \
                              get_neuromag_transform
 from ..fiff.kit.kit import RawKIT, KIT
+from ..transforms.transforms import coord_trans
+from ..transforms.coreg import fit_matched_pts
+from .marker_gui import CombineMarkersPanel
+from .viewer import HeadViewController, headview_borders, headview_item, PointObject
 
 
 
