@@ -37,7 +37,7 @@ event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 raw = fiff.Raw(raw_fname, preload=True)
 events = mne.read_events(event_fname)
 
-event_id = 1
+event_id = dict(vis_l=3, vis_r=4)  # use more trial
 # choses large time window to improve spectral estimation
 tmin, tmax = -1, 1
 include = []
@@ -109,30 +109,23 @@ print 'Maximum magnitude in channels: %s, %s' % max_ch
 hw = scipy.hanning(n_times)
 magnitudes = [np.abs(fftpack.fft(data[some_trial] * hw))[:, freq_mask]]
 
-# now the multi taper ...
-from mne.time_frequency.multitaper import dpss_windows
-half_nbw = 8   # let's take a few tapers to make a difference
-n_tapers_max = half_nbw * 2
+# ... now the multi taper
+from mne.time_frequency.multitaper import multitaper_psd
+mt_x,  mt_freqs = multitaper_psd(data[some_trial], raw.info['sfreq'])
+# as this is returns the power estimates, we will take the square root
+magnitudes.append(np.sqrt(mt_x[:, (mt_freqs > 7) & (mt_freqs < 100)]))
 
-# compute windows and weights
-dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max, low_bias=True)
-weights = np.sqrt(eigvals)[np.newaxis, :, np.newaxis]
-# apply windows
-tapered_spectra = np.abs(fftpack.fft(data[some_trial, :, np.newaxis, :] * \
-                         dpss))[:, :, freq_mask]
-# apply weights
-magnitudes += [np.mean(np.abs(weights * tapered_spectra), axis=1)]
-# now put everything together
 for m, title in zip(magnitudes, ['Hanning', 'multitaper']):
     pl.figure()
     pl.title('single trial spectra (%s)' % title)
     pl.imshow(m.T, aspect='auto', origin='lower')
-    pl.ylabel(xlabel)
+    pl.ylabel(ylabel)
     pl.yticks(np.arange(0, len(yticks), 20), yticks[::20])
-    pl.xlabel(ylabel)
+    pl.xlabel(xlabel)
     pl.show()
 
 # The quality of the plots improves with the tapers applied,
 # especially with the multi taper. Still, for our purpose the initial
-# variant produced acceptable results, so we don't need to update
-# our inferences. It is advisable to at least use a Hanning window.
+# variant did produce acceptable results, hence, we don't have to update
+# our conclusions. But it is advisable to at least use the
+# Hanning window.
