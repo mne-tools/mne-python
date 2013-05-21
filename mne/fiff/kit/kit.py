@@ -107,9 +107,8 @@ class RawKIT(Raw):
         self.info['ctf_head_t'] = None
         self.info['dev_ctf_t'] = []
         self.info['filenames'] = []
-        self.info['dev_head_t'] = {}
-        self.info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
-        self.info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
+        self.info['dig'] = None
+        self.info['dev_head_t'] = None
 
         if (mrk and elp and hsp):
             self.set_dig(mrk, elp, hsp)
@@ -454,7 +453,9 @@ class RawKIT(Raw):
         trans = np.asarray(trans)
         if not trans.shape == (4, 4):
             raise ValueError("trans needs to be 4 by 4 array")
-        self.info['dev_head_t']['trans'] = trans
+        self.info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
+                                   'to': FIFF.FIFFV_COORD_HEAD,
+                                   'trans': trans}
 
 
 
