@@ -47,6 +47,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     hsp_fname = Property(Str, depends_on='hsp_file')
     fid_file = File(exists=True, filter=['*.txt'], desc="Digitizer fiducials")
     fid_fname = Property(Str, depends_on='fid_file')
+    reset_dig = Button
 
     # Raw
     raw = Property(depends_on=['sqd_file'])
@@ -94,6 +95,8 @@ class Kit2FiffPanel(HasPrivateTraits):
                               Item('hsp_fname', show_label=False, style='readonly'),
                               Item('fid_file', label='Dig Points'),
                               Item('fid_fname', show_label=False, style='readonly'),
+                              Item('reset_dig', label='Clear Digitizer Files',
+                                   show_label=False),
                               Item('use_mrk', editor=use_editor, style='custom'),
                               label="Sources", show_border=True),
                     VGroup(Item('stim_chs', label="Stim Channel Binary Coding", style='custom',
@@ -258,9 +261,13 @@ class Kit2FiffPanel(HasPrivateTraits):
 
     @cached_property
     def _get_can_save(self):
-        can_save = (self.raw and np.any(self.dev_head_trans)
-                    and np.any(self.hsp_src) and np.any(self.elp_src)
-                    and np.any(self.fid_src))
+        can_save = (# with head shape:
+                    (self.raw and np.any(self.dev_head_trans)
+                     and np.any(self.hsp_src) and np.any(self.elp_src)
+                     and np.any(self.fid_src)) or
+                    # without head shape:
+                    (self.raw and not (self.hsp_file or self.fid_file
+                                       or np.any(self.mrk))))
         return can_save
 
     @cached_property
@@ -275,6 +282,9 @@ class Kit2FiffPanel(HasPrivateTraits):
             raise
         else:
             return raw
+
+    def _reset_dig_fired(self):
+        self.reset_traits(['hsp_file', 'fid_file'])
 
     def _save_as_fired(self):
         # find default path
@@ -303,8 +313,10 @@ class Kit2FiffPanel(HasPrivateTraits):
 
         raw = self.raw
         raw.set_stimchannels(self.stim_chs, self.stim_slope)
-        raw.set_transformed_dig(self.fid_src, self.elp_src, self.hsp_src,
-                                self.dev_head_trans)
+
+        if np.any(self.fid_src):
+            raw.set_transformed_dig(self.fid_src, self.elp_src, self.hsp_src,
+                                    self.dev_head_trans)
 
         prog = ProgressDialog(title="KIT to FIFF", message="Converting SQD to "
                               "FIFF...")
