@@ -266,7 +266,10 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     stcs = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                        label)
 
-    return stcs if return_generator else [s for s in stcs]
+    if not return_generator:
+        stcs = [s for s in stcs]
+
+    return stcs
 
 
 @verbose
