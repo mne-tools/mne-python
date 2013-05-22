@@ -21,6 +21,7 @@ import mne
 from mne.datasets import sample
 from mne.fiff import Raw, pick_types
 from mne.beamformer import lcmv
+from mne.viz import tight_layout
 
 
 data_path = sample.data_path()
@@ -58,8 +59,8 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
 
 pl.close('all')
-fig_1, axes_1 = pl.subplots(nrows=1, ncols=3, figsize=(17, 5))
-fig_2, axes_2 = pl.subplots(nrows=1, ncols=3, figsize=(18, 5))
+fig_1, axes_1 = pl.subplots(nrows=1, ncols=3, figsize=(9, 3))
+fig_2, axes_2 = pl.subplots(nrows=3, ncols=1, figsize=(8, 6))
 
 cutoff_point = 0.8
 lcmv_limits = (-2, 2.3)
@@ -88,10 +89,10 @@ for pick_ori, name, desc, ax_1, ax_2 in zip(pick_oris, names, descriptions,
     data = img.get_data()
     coronal_slice = data[:, 10, :, 60]
 
-    boo = ax_1.imshow(np.ma.masked_inside(coronal_slice, -1 * cutoff_point,
-                      cutoff_point), cmap=pl.cm.Spectral_r,
-                      interpolation='nearest')
-    boo.set_clim(lcmv_limits)
+    ax_img = ax_1.imshow(np.ma.masked_inside(coronal_slice, -1 * cutoff_point,
+                         cutoff_point), cmap=pl.cm.jet,
+                         interpolation='nearest')
+    ax_img.set_clim(lcmv_limits)
     ax_1.contour(coronal_slice != 0, 1, colors=['black'])
     ax_1.set_title(desc)
     ax_1.set_xticks([])
@@ -100,6 +101,8 @@ for pick_ori, name, desc, ax_1, ax_2 in zip(pick_oris, names, descriptions,
 
     ax_2.plot(stc.times, stc.data[np.argsort(np.max(stc.data,
               axis=1))[-40:]].T)
+    ax_2.set_xlabel('Time (ms)')
+    ax_2.set_ylabel('LCMV value')
     ax_2.set_title(desc)
     ax_2.set_ylim(lcmv_limits)
 
@@ -108,7 +111,6 @@ cbar_ax = fig_1.add_axes([0.98, 0.2, 0.015, 0.6])
 cbar = fig_1.colorbar(cax=cbar_ax, mappable=axes_1[0].get_images()[0])
 cbar.set_label('LCMV value', rotation=270)
 
-axes_2[0].set_xlabel('Time (ms)')
-axes_2[0].set_ylabel('LCMV value')
+tight_layout()
 
 pl.show()
