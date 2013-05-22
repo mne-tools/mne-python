@@ -198,7 +198,7 @@ class FiducialsPanel(HasPrivateTraits):
 # FiducialsPanel view that allows manipulating coordinates numerically
 view2 = View(VGroup(Item('fid_file', label='Fiducials File'),
                     Item('fid_name', show_label=False, style='readonly'),
-                    Item('set', style='custom'), 'nasion', 'LAP', 'RAP',
+                    Item('set', style='custom'), 'LAP', 'nasion', 'RAP',
                     HGroup(Item('save', enabled_when='can_save'),
                            Item('save_as', enabled_when='can_save_as'),
                            show_labels=False),
