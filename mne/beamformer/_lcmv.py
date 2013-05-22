@@ -2,6 +2,7 @@
 """
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -226,9 +227,10 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label
-    pick_ori : None | 'normal'
+    pick_ori : None | 'normal' | 'optimal'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
+        only the radial component is kept. If 'optimal', the source orientation
+        that maximizes output source power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -243,6 +245,11 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     Van Veen et al. Localization of brain electrical activity via linearly
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    
+    The reference for finding the optimal orientation is:
+    Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
+    beamformers for neuromagnetic source reconstruction. 
+    Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
     """
 
     info = evoked.info
@@ -280,9 +287,10 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label.
-    pick_ori : None | 'normal'
+    pick_ori : None | 'normal' | 'optimal'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
+        only the radial component is kept. If 'optimal', the source orientation
+        that maximizes output source power is chosen.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -300,6 +308,11 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     Van Veen et al. Localization of brain electrical activity via linearly
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    
+    The reference for finding the optimal orientation is:
+    Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
+    beamformers for neuromagnetic source reconstruction. 
+    Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
     """
 
     info = epochs.info
@@ -350,9 +363,10 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     picks : array of int
         Channel indices in raw to use for beamforming (if None all channels
         are used except bad channels).
-    pick_ori : None | 'normal'
+    pick_ori : None | 'normal' | 'optimal'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
+        only the radial component is kept. If 'optimal', the source orientation
+        that maximizes output source power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -367,6 +381,11 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     Van Veen et al. Localization of brain electrical activity via linearly
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    
+    The reference for finding the optimal orientation is:
+    Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
+    beamformers for neuromagnetic source reconstruction. 
+    Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
     """
 
     info = raw.info
