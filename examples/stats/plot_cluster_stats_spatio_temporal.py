@@ -23,9 +23,10 @@ from scipy import stats as stats
 
 import mne
 from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
-    grade_to_tris, SourceEstimate
+    grade_to_tris
 from mne.epochs import equalize_epoch_counts
-from mne.stats import spatio_temporal_cluster_1samp_test
+from mne.stats import spatio_temporal_cluster_1samp_test,\
+                      summarize_clusters_stc
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
 from mne.viz import mne_analyze_colormap
@@ -145,7 +146,7 @@ X = np.transpose(X, [2, 1, 0])
 p_threshold = 0.001
 t_threshold = -stats.distributions.t.ppf(p_threshold / 2., n_subjects - 1)
 print 'Clustering.'
-T_obs, clusters, cluster_p_values, H0 = \
+T_obs, clusters, cluster_p_values, H0 = clu = \
     spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=2,
                                        threshold=t_threshold)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
@@ -159,22 +160,8 @@ print 'Visualizing clusters.'
 
 #    Now let's build a convenient representation of each cluster, where each
 #    cluster becomes a "time point" in the SourceEstimate
-data = np.zeros((n_vertices_fsave, n_times))
-data_summary = np.zeros((n_vertices_fsave, len(good_cluster_inds) + 1))
-for ii, cluster_ind in enumerate(good_cluster_inds):
-    data.fill(0)
-    v_inds = clusters[cluster_ind][1]
-    t_inds = clusters[cluster_ind][0]
-    data[v_inds, t_inds] = T_obs[t_inds, v_inds]
-    # Store a nice visualization of the cluster by summing across time (in ms)
-    data = np.sign(data) * np.logical_not(data == 0) * tstep
-    data_summary[:, ii + 1] = 1e3 * np.sum(data, axis=1)
-
-#    Make the first "time point" a sum across all clusters for easy
-#    visualization
-data_summary[:, 0] = np.sum(data_summary, axis=1)
-stc_all_cluster_vis = SourceEstimate(data_summary, fsave_vertices, tmin=0,
-                                     tstep=1e-3, subject='fsaverage')
+stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
+                                vertno=fsave_vertices, subject='fsaverage')
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration

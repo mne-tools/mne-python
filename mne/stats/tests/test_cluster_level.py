@@ -10,7 +10,7 @@ from mne.stats.cluster_level import permutation_cluster_test, \
                                     permutation_cluster_1samp_test, \
                                     spatio_temporal_cluster_test, \
                                     spatio_temporal_cluster_1samp_test, \
-                                    ttest_1samp_no_p
+                                    ttest_1samp_no_p, summarize_clusters_stc
 
 noise_level = 20
 
@@ -329,12 +329,12 @@ def spatio_temporal_cluster_test_connectivity():
     threshold = dict(start=4.0, step=2)
     T_obs, clusters, p_values_conn, hist = \
         spatio_temporal_cluster_test([data1_2d, data2_2d], connectivity=conn,
-                                     n_permutations=50, tail=1, seed=1, 
+                                     n_permutations=50, tail=1, seed=1,
                                      threshold=threshold)
 
     T_obs, clusters, p_values_no_conn, hist = \
         spatio_temporal_cluster_test([data1_2d, data2_2d],
-                                     n_permutations=50, tail=1, seed=1, 
+                                     n_permutations=50, tail=1, seed=1,
                                      threshold=threshold)
 
     assert_equal(np.sum(p_values_conn < 0.05), np.sum(p_values_no_conn < 0.05))
@@ -344,3 +344,16 @@ def ttest_1samp(X):
     """Returns T-values
     """
     return stats.ttest_1samp(X, 0)[0]
+
+
+def test_summarize_clusters():
+    """ test summary stcs
+    """
+    clu = (np.random.random([1, 20484]),
+           [(np.array([0]), np.array([0, 2, 4]))],
+            np.array([0.02, 0.1]),
+            np.array([12, -14, 30]))
+    stc_sum = summarize_clusters_stc(clu)
+    assert_true(stc_sum.data.shape[1] == 2)
+    clu[2][0] = 0.3
+    assert_raises(RuntimeError, summarize_clusters_stc, clu)

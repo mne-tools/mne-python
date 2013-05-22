@@ -5,6 +5,7 @@
 #          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: Simplified BSD
 
@@ -19,6 +20,7 @@ from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import split_list
 from ..fixes import in1d, unravel_index
+from .. import SourceEstimate
 from .. import verbose
 
 
@@ -1357,3 +1359,56 @@ def _reshape_clusters(clusters, sample_shape):
         else:  # format of indices
             clusters = [unravel_index(c, sample_shape) for c in clusters]
     return clusters
+
+
+def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
+    subject='fsaverage', vertno=[np.arange(10242), np.arange(10242)]):
+    """ Assemble summary SourceEstimate from spatiotemporal cluster results
+
+    This helps visualizing results from spatio-temporal-clustering
+    permutation tests
+
+    Parameters
+    ----------
+    clu : tuple
+        the output from clustering permutation tests.
+    p_thresh : float
+        The significance threshold for inclusion of clusters.
+    tstep : float
+        The temporal difference between two time samples.
+    tmin : float | int
+        The time of the first sample.
+    subject : str
+        The name of the subject.
+    vertno : list of arrays
+        The vertex numbers associated with the source space locations.
+
+    Returns
+    -------
+    out : instance of SourceEstimate
+    """
+    T_obs, clusters, clu_pvals, _ = clu
+    n_times, n_vertices = T_obs.shape
+    good_cluster_inds = np.where(clu_pvals < p_thresh)[0]
+    #  Build a convenient representation of each cluster, where each
+    #  cluster becomes a "time point" in the SourceEstimate
+    if len(good_cluster_inds) > 0:
+        data = np.zeros((n_vertices, n_times))
+        data_summary = np.zeros((n_vertices, len(good_cluster_inds) + 1))
+        for ii, cluster_ind in enumerate(good_cluster_inds):
+            data.fill(0)
+            v_inds = clusters[cluster_ind][1]
+            t_inds = clusters[cluster_ind][0]
+            data[v_inds, t_inds] = T_obs[t_inds, v_inds]
+            # Store a nice visualization of the cluster by summing across time (in ms)
+            data = np.sign(data) * np.logical_not(data == 0) * tstep
+            data_summary[:, ii + 1] = 1e3 * np.sum(data, axis=1)
+            # Make the first "time point" a sum across all clusters for easy
+            # visualization
+        data_summary[:, 0] = np.sum(data_summary, axis=1)
+
+        return SourceEstimate(data_summary, vertno, tmin=tmin, tstep=tstep,
+                             subject=subject)
+    else:
+        raise RuntimeError('No significant clusters available. Please adjust '
+                           'your threshold or check your statistical analysis.')
