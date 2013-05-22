@@ -245,10 +245,10 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     Van Veen et al. Localization of brain electrical activity via linearly
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    
+
     The reference for finding the optimal orientation is:
     Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
-    beamformers for neuromagnetic source reconstruction. 
+    beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
     """
 
@@ -308,10 +308,10 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     Van Veen et al. Localization of brain electrical activity via linearly
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    
+
     The reference for finding the optimal orientation is:
     Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
-    beamformers for neuromagnetic source reconstruction. 
+    beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
     """
 
@@ -381,10 +381,10 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     Van Veen et al. Localization of brain electrical activity via linearly
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
-    
+
     The reference for finding the optimal orientation is:
     Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
-    beamformers for neuromagnetic source reconstruction. 
+    beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
     """
 
