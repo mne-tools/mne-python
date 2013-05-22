@@ -97,6 +97,8 @@ Changelog
 
    - Add function for summarizing clusters from spatio-temporal-cluster permutation tests by `Denis Engemann`_ and `Eric Larson`_
 
+   - Add generator support for lcmv_epochs by `Denis Engemann`_
+
 
 API
 ~~~

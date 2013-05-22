@@ -2,7 +2,7 @@ import os.path as op
 
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import mne
 from mne.datasets import sample
@@ -73,6 +73,9 @@ def test_lcmv():
     forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
                                               surf_ori=True)
     stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01)
+    stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01,
+                        return_generator=True)
+    assert_array_equal(stcs[0].data, stcs_.next().data)
 
     epochs.drop_bad_epochs()
     assert_true(len(epochs.events) == len(stcs))
