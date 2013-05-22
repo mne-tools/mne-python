@@ -7,5 +7,6 @@ from .cluster_level import permutation_cluster_test, \
                            spatio_temporal_cluster_1samp_test, \
                            spatio_temporal_cluster_test, \
                            _st_mask_from_s_inds, \
-                           ttest_1samp_no_p
+                           ttest_1samp_no_p,\
+                           summarize_clusters_stc
 from .multi_comp import fdr_correction, bonferroni_correction
