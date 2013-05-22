@@ -1222,7 +1222,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     event_times = [e.events[:, 0] for e in epochs_list]
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
-        e = _check_add_drop_log(e, indices)
+        e = _check_add_drop_log(e, inds)
         e.drop_epochs(inds)
 
 
