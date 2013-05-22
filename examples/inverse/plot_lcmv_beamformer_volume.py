@@ -57,17 +57,6 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
 
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
 
-stcs = dict()
-names = ['free', 'normal', 'optimal']
-descriptions = ['Free orientation', 'Normal orientation', 'Optimal '
-                'orientation']
-
-stcs[names[0]] = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01)
-stcs[names[1]] = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='normal',
-                      reg=0.01)
-stcs[names[2]] = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='optimal',
-                      reg=0.01)
-
 pl.close('all')
 fig_1, axes_1 = pl.subplots(nrows=1, ncols=3, figsize=(17, 5))
 fig_2, axes_2 = pl.subplots(nrows=1, ncols=3, figsize=(18, 5))
@@ -75,8 +64,15 @@ fig_2, axes_2 = pl.subplots(nrows=1, ncols=3, figsize=(18, 5))
 cutoff_point = 0.8
 lcmv_limits = (-2, 2.3)
 
-for name, desc, ax_1, ax_2 in zip(names, descriptions, axes_1, axes_2):
-    stc = stcs[name]
+pick_oris = [None, 'normal', 'optimal']
+names = ['free', 'normal', 'optimal']
+descriptions = ['Free orientation', 'Normal orientation', 'Optimal '
+                'orientation']
+
+for pick_ori, name, desc, ax_1, ax_2 in zip(pick_oris, names, descriptions,
+                                            axes_1, axes_2):
+    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
+               pick_ori=pick_ori)
 
     # Save result in stc files
     stc.save('lcmv-' + name + '-vol')

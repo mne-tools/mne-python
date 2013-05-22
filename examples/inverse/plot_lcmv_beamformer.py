@@ -58,22 +58,17 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
 
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
 
-stcs = dict()
+pl.close('all')
+
+pick_oris = [None, 'normal', 'optimal']
 names = ['free', 'normal', 'optimal']
 descriptions = ['Free orientation', 'Normal orientation', 'Optimal '
                 'orientation']
 colors = ['b', 'k', 'r']
 
-stcs[names[0]] = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01)
-stcs[names[1]] = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='normal',
-                      reg=0.01)
-stcs[names[2]] = lcmv(evoked, forward, noise_cov, data_cov, pick_ori='optimal',
-                      reg=0.01)
-
-pl.close('all')
-
-for name, desc, color in zip(names, descriptions, colors):
-    stc = stcs[name]
+for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
+    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
+               pick_ori=pick_ori)
 
     # Save result in stc files
     stc.save('lcmv-' + name)
