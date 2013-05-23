@@ -169,8 +169,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 @verbose
 def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
-              gammas=None, pca=True, return_residual=False,
-              verbose=None):
+              gammas=None, pca=True, verbose=None):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method
 
     Models each source time course using a zero-mean Gaussian prior with an
