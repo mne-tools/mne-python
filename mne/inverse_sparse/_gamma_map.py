@@ -10,6 +10,7 @@ import logging
 logger = logging.getLogger('mne')
 
 from ..forward import is_fixed_orient, _to_fixed_ori
+from ..fiff.pick import pick_channels_evoked
 from ..minimum_norm.inverse import _prepare_forward
 from .. import verbose
 from .mxne_inverse import _make_sparse_stc, _prepare_gain
@@ -169,7 +170,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 @verbose
 def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
-              gammas=None, pca=True, verbose=None):
+              gammas=None, pca=True, return_residual=False, verbose=None):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method
 
     Models each source time course using a zero-mean Gaussian prior with an
@@ -212,6 +213,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         variance of 1.0 is used.
     pca : bool
         If True the rank of the data is reduced to the true dimension.
+    return_residual : bool
+        If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -219,6 +222,9 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     -------
     stc : instance of SourceEstimate
         Source time courses.
+    residual : instance of Evoked
+        The residual a.k.a. data not explained by the sources.
+        Only returned if return_residual is True.
 
     References
     ----------
@@ -263,6 +269,15 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     # reapply weights to have correct unit
     X /= source_weighting[active_set][:, None]
 
+    if return_residual:
+        sel = [forward['sol']['row_names'].index(c)
+               for c in gain_info['ch_names']]
+        residual = evoked.copy()
+        residual = pick_channels_evoked(residual,
+                                        include=gain_info['ch_names'])
+        residual.data -= np.dot(forward['sol']['data'][sel, :][:, active_set],
+                                X)
+
     if group_size == 1 and not is_fixed_orient(forward):
         # make sure each source has 3 components
         active_src = np.unique(active_set // 3)
@@ -283,4 +298,7 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     stc = _make_sparse_stc(X, active_set, forward, tmin, tstep,
                            active_is_idx=True, verbose=verbose)
 
-    return stc
+    if return_residual:
+        return stc, residual
+    else:
+        return stc

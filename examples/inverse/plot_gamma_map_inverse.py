@@ -13,6 +13,7 @@ NeuroImage, vol. 44, no. 3, pp. 947?66, Mar. 2009.
 print __doc__
 
 import numpy as np
+import pylab as pl
 
 import mne
 from mne.datasets import sample
@@ -39,14 +40,27 @@ cov = mne.cov.regularize(cov, evoked.info)
 
 # Run the Gamma-MAP method
 alpha = 0.5
-stc = gamma_map(evoked, forward, cov, alpha, xyz_same_gamma=True)
+stc, residual = gamma_map(evoked, forward, cov, alpha, xyz_same_gamma=True,
+                          return_residual=True)
 
 # View in 2D and 3D ("glass" brain like 3D plot)
 
-# show the sources as spheres scaled by their strength
+# Show the sources as spheres scaled by their strength
 scale_factors = np.max(np.abs(stc.data), axis=1)
 scale_factors = 0.5 * (1 + scale_factors / np.max(scale_factors))
 
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
     modes=['sphere'], opacity=0.1, scale_factors=(scale_factors, None),
     fig_name="Gamma-MAP")
+
+# Show the evoked response and the residual for gradiometers
+ylim = dict(grad=[-120, 120])
+evoked = mne.fiff.pick_types_evoked(evoked, meg='grad', exclude='bads')
+pl.figure()
+evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
+            proj=True)
+
+residual = mne.fiff.pick_types_evoked(residual, meg='grad', exclude='bads')
+pl.figure()
+residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
+              proj=True)

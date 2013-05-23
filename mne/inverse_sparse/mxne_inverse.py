@@ -50,7 +50,8 @@ def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min,
         if len(weights) != gain.shape[1]:
             raise ValueError('weights do not have the correct dimension '
                              ' (%d != %d)' % (len(weights), gain.shape[1]))
-        source_weighting /= weights
+        nz_idx = np.where(weights != 0.0)[0]
+        source_weighting[nz_idx] /= weights[nz_idx]
         gain *= weights[None, :]
 
         if weights_min is not None:

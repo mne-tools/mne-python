@@ -5,6 +5,7 @@
 import os.path as op
 import numpy as np
 from nose.tools import assert_true
+from numpy.testing import assert_array_almost_equal
 
 import mne
 from mne.datasets import sample
@@ -41,8 +42,10 @@ def test_gamma_map():
     assert_true(np.concatenate(stc.vertno)[idx] == 82010)
 
     # force fixed orientation
-    stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
-                    xyz_same_gamma=False, update_mode=2,
-                    loose=None)
+    stc, res = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
+                         xyz_same_gamma=False, update_mode=2,
+                         loose=None, return_residual=True)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     assert_true(np.concatenate(stc.vertno)[idx] == 83398)
+
+    assert_array_almost_equal(evoked.times, res.times)
