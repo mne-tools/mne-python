@@ -366,13 +366,13 @@ Inverse Solutions
    source_induced_power
    write_inverse_operator
 
-:py:mod:`mne.mixed_norm`:
+:py:mod:`mne.inverse_sparse`:
 
-.. automodule:: mne.mixed_norm
+.. automodule:: mne.inverse_sparse
   :no-members:
   :no-inherited-members:
 
-.. currentmodule:: mne.mixed_norm
+.. currentmodule:: mne.inverse_sparse
 
 .. autosummary::
    :toctree: generated/
@@ -380,6 +380,7 @@ Inverse Solutions
 
    mixed_norm
    tf_mixed_norm
+   gamma_map
 
 :py:mod:`mne.beamformer`:
 
