@@ -1,7 +1,7 @@
-"""Non-Linear inverse solvers based on Mixed Norm Estimates (MxNE)"""
+from ..utils import deprecated
+from ..inverse_sparse import mxne_inverse
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#
-# License: Simplified BSD
+dec = deprecated('Use the function from mne.inverse_sparse')
 
-from .inverse import mixed_norm, tf_mixed_norm
+mixed_norm = dec(mxne_inverse.mixed_norm)
+tf_mixed_norm = dec(mxne_inverse.tf_mixed_norm)

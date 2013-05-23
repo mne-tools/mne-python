@@ -6,7 +6,7 @@
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from mne.mixed_norm.debiasing import compute_bias
+from mne.inverse_sparse.mnxe_debiasing import compute_bias
 
 
 def test_compute_debiasing():

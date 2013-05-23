@@ -42,7 +42,7 @@ import mne
 from mne import fiff
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
-from mne.mixed_norm import tf_mixed_norm
+from mne.inverse_sparse import tf_mixed_norm
 from mne.viz import plot_sparse_source_estimates
 
 data_path = sample.data_path()

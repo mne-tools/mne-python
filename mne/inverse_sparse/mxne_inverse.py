@@ -13,7 +13,7 @@ from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
 from ..fiff.pick import pick_channels_evoked
-from .optim import mixed_norm_solver, norm_l2inf, tf_mixed_norm_solver
+from .mxne_optim import mixed_norm_solver, norm_l2inf, tf_mixed_norm_solver
 from .. import verbose
 
 
@@ -50,7 +50,8 @@ def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min,
         if len(weights) != gain.shape[1]:
             raise ValueError('weights do not have the correct dimension '
                              ' (%d != %d)' % (len(weights), gain.shape[1]))
-        source_weighting /= weights
+        nz_idx = np.where(weights != 0.0)[0]
+        source_weighting[nz_idx] /= weights[nz_idx]
         gain *= weights[None, :]
 
         if weights_min is not None:
@@ -63,12 +64,17 @@ def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min,
 
 
 @verbose
-def _make_sparse_stc(X, active_set, forward, tmin, tstep, verbose=None):
+def _make_sparse_stc(X, active_set, forward, tmin, tstep,
+                     active_is_idx=False, verbose=None):
     if not is_fixed_orient(forward):
         logger.info('combining the current components...')
         X = combine_xyz(X)
 
-    active_idx = np.where(active_set)[0]
+    if not active_is_idx:
+        active_idx = np.where(active_set)[0]
+    else:
+        active_idx = active_set
+
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
     if n_dip_per_pos > 1:
         active_idx = np.unique(active_idx // n_dip_per_pos)

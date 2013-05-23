@@ -87,7 +87,7 @@ Changelog
 
    - Support for "hat" variance regularization by `Eric Larson`_
 
-   - Access source estimates as Pandas DataFrame by `Denis Engemann`_. 
+   - Access source estimates as Pandas DataFrame by `Denis Engemann`_.
 
    - Add example of decoding/MVPA on MEG source space data by `Denis Engemann`_
 
@@ -99,6 +99,7 @@ Changelog
 
    - Add generator support for lcmv_epochs by `Denis Engemann`_
 
+   - Gamma-MAP sparse source localization method by `Martin Luessi`_ and `Alex Gramfort`_
 
 API
 ~~~
@@ -114,6 +115,8 @@ API
    - mne.utils.set_config(), get_config(), get_config_path() moved to mne namespace.
 
    - Raw constructor argument proj_active deprecated -- use proj argument instead.
+
+   - Functions from the mne.mixed_norm module have been moved to the mne.inverse_sparse module.
 
 .. _changes_0_5:
 
