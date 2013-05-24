@@ -132,7 +132,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
         # Find and pick optimal source orientation
         if pick_ori == 'optimal':
-            eig_vals, eig_vecs = linalg.eig(Ck)
+            eig_vals, eig_vecs = linalg.eigh(Ck)
             opt_ori = eig_vecs[:, eig_vals.argmin()]
             Wk[:] = np.dot(opt_ori, Wk)
             Ck = np.dot(opt_ori, np.dot(Ck, opt_ori))
