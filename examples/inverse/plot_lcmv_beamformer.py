@@ -4,7 +4,7 @@ Compute LCMV beamformer on evoked data
 ======================================
 
 Compute LCMV beamformer solutions on evoked dataset for three different choices
-of source orienatation and stores the solutions in stc files for visualisation.
+of source orientation and stores the solutions in stc files for visualisation.
 
 """
 
