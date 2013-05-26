@@ -879,6 +879,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
 
     subject = _subject_from_inverse(inverse_operator)
     for k, e in enumerate(epochs):
+        if epochs._delayed_ssp():
+            e = epochs._preprocess(e)
         logger.info('Processing epoch : %d' % (k + 1))
         if is_free_ori:
             # Compute solution and combine current components (non-linear)

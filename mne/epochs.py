@@ -96,7 +96,9 @@ class Epochs(ProjMixin):
         Apply SSP projection vectors. If proj is False but reject is not None
         data will still be projected before the rejection decision, but
         stored in the Epochs object unprojected. By doing so the selection
-        of the good projections can be postponed to the evoked stage.
+        of the good projections can be postponed to the evoked stage. Note
+        that in this case also baselining, detrending and temporal decimation
+        will be postponed.
     decim : int
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered
@@ -260,6 +262,9 @@ class Epochs(ProjMixin):
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=self.proj)
 
+        if self._delayed_ssp():
+            logger.info('Entering delayed SSP mode.')
+
         #   Set up the CTF compensator
         current_comp = fiff.get_current_comp(self.info)
         if current_comp > 0:
@@ -353,7 +358,10 @@ class Epochs(ProjMixin):
     def _delayed_ssp(self):
         """ Aux method
         """
-        return self.proj == False and self.reject is not None
+        is_delayed = \
+            (self.proj == False and self.reject is not None) or \
+            (self.proj == False and self.preload == True)
+        return is_delayed
 
     @verbose
     def drop_epochs(self, indices, verbose=None):
@@ -415,26 +423,30 @@ class Epochs(ProjMixin):
         if self.proj != proj:  # so append another unprojected epoch
             epochs += [epoch_raw.copy()]
 
-        # process projected, unprojected, print once
-        for ii, (e, verbose) in enumerate(zip(epochs, [self.verbose, False])):
-            # Detrend
-            if self.detrend is not None:
-                picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                                   eog=False, ecg=False, emg=False, exclude=[])
-                e[picks] = detrend(e[picks], self.detrend, axis=1)
-            # Baseline correct
-            e = rescale(e, self._raw_times, self.baseline, 'mean',
-                        copy=False, verbose=verbose)
-            # Decimate
-            if self.decim > 1:
-                e = e[:, self._decim_idx]
-            epochs[ii] = e
+        # only preprocess first candidate
+        epochs[0] = self._preprocess(epochs[0], verbose)
 
         # return a second None if nothing is projected
         if len(epochs) == 1:
             epochs += [None]
 
         return epochs
+
+    @verbose
+    def _preprocess(self, epoch, verbose=None):
+        """ Aux Function
+        """
+        if self.detrend is not None:
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               eog=False, ecg=False, emg=False, exclude=[])
+            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+        # Baseline correct
+        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
+                    copy=False, verbose=verbose)
+        # Decimate
+        if self.decim > 1:
+            epoch = epoch[:, self._decim_idx]
+        return epoch
 
     @verbose
     def _get_data_from_disk(self, out=True, verbose=None):
@@ -699,6 +711,8 @@ class Epochs(ProjMixin):
         n_times = len(self.times)
         if self.preload:
             n_events = len(self.events)
+            if self._delayed_ssp():
+                [self._preprocess(e) for e in self]
             if not _do_std:
                 data = np.mean(self._data, axis=0)
             else:
@@ -708,7 +722,7 @@ class Epochs(ProjMixin):
             data = np.zeros((n_channels, n_times))
             n_events = 0
             for e in self:
-                data += e
+                data += self._preprocess(e) if self._delayed_ssp() else e
                 n_events += 1
             data /= n_events
             # convert to stderr if requested, could do in one pass but do in

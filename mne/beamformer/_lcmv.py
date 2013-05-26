@@ -262,6 +262,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     # use only the good data channels
     picks = pick_types(info, meg=True, eeg=True, exclude='bads')
     data = epochs.get_data()[:, picks, :]
+    if epochs._delayed_ssp():
+        [epochs._preprocess(e) for e in data]
 
     stcs = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                        label)

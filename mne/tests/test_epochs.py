@@ -715,7 +715,7 @@ def test_epochs_proj_mixin():
         print 'preload is %s' % preload
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), proj=False, preload=preload,
-                        add_eeg_ref=True)
+                        add_eeg_ref=True, verbose=True)
         epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), proj=True, preload=preload,
                         add_eeg_ref=True)
