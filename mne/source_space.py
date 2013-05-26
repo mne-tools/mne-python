@@ -500,8 +500,20 @@ def _get_vertno(src):
 
 
 def prepare_bem_model(bem, method='linear'):
+    """Wrapper for the mne_prepare_bem_model command line utility
+
+    Parameters
+    ----------
+    bem : str
+        The name of the file containing the triangulations of the BEM surfaces
+        and the conductivities of the compartments. The standard ending for
+        this file is -bem.fif and it is produced either with the utility
+        mne_surf2bem or the convenience script mne_setup_forward_model.
+    method : 'linear' | 'constant'
+        The BEM approach.
+    """
     cmd = ['mne_prepare_bem_model', '--bem', bem, '--method', method]
-    stdout, stderr = run_subprocess(cmd)
+    run_subprocess(cmd)
 
 
 def setup_mri(subject, subjects_dir=None):
@@ -521,13 +533,52 @@ def setup_mri(subject, subjects_dir=None):
     run_subprocess(cmd, env=env)
 
 
-def setup_source_space(subject, ico=4, subjects_dir=None):
-    "Incomplete"
+def setup_source_space(subject, spacing=7, ico=None, surface='white',
+                       overwrite=False, subjects_dir=None):
+    """Run the mne_setup_source_space bash command
+
+    The mne_setup_source_space command achieves the following:
+
+    1. Creating a suitable decimated dipole grid on the white matter surface.
+    2. Creating the source space file in fif format.
+    3. Creating ascii versions of the source space file for viewing with
+       MRIlab.
+
+    Parameters
+    ----------
+    subject : str
+        The MRI subject for which to run the command.
+    spacing : scalar [mm]
+        The grid spacing for the source space in mm. Either the default or a
+        5-mm spacing is recommended.
+    ico : None | int
+        Instead of using the traditional method for cortical surface decima-
+        tion, create the source space using the topology of a recursively
+        subdivided icosahedron (ico > 0) or an octahedron (ico < 0). If the ico
+        parameter is specified, the spacing parameter is ignored.
+    surface : str
+        Name of the surface under the surf directory to be used.
+        mne_setup_source_space looks for files rh.<name> and lh.<name> under
+        the surf directory.
+    overwrite : bool
+        Overwrite existing files.
+    """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     env = os.environ.copy()
     env['SUBJECTS_DIR'] = subjects_dir
 
-    cmd = ['mne_setup_source_space', '--subject', subject, '--ico', str(ico)]
+    cmd = ['mne_setup_source_space', '--subject', subject]
+
+    if ico is not None:
+        cmd += ['--ico', str(ico)]
+    elif spacing != 7:
+        cmd += ['--spacing', str(spacing)]
+
+    if surface != 'white':
+        cmd += ['--surface', surface]
+
+    if overwrite:
+        cmd.append('--overwrite')
 
     run_subprocess(cmd, env=env)
 
