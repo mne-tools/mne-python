@@ -182,9 +182,9 @@ def run_subprocess(command, *args, **kwargs):
     stdout, stderr = p.communicate()
 
     if stdout.strip():
-        logger.info("stdout:\n%s" % stdout)
+        logger.info("======\nstdout\n======\n%s" % stdout)
     if stderr.strip():
-        logger.info("stderr:\n%s" % stderr)
+        logger.info("======\nstderr\n======\n%s" % stderr)
 
     output = (stdout, stderr)
     if p.returncode:
