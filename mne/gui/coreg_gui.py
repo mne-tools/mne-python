@@ -352,8 +352,14 @@ class CoregControl(HasPrivateTraits):
                         self.queue.put((setup_source_space, (subject,),
                                         dict(ico=mridlg.ss_param,
                                              subjects_dir=self.subjects_dir)))
+                    elif mridlg.ss_subd == 'spacing':
+                        self.queue.put((setup_source_space, (subject,),
+                                        dict(spacing=mridlg.ss_param,
+                                             subjects_dir=self.subjects_dir)))
                     else:
-                        raise NotImplementedError
+                        err = ("ss_param needs to be 'ico' or 'spacing', can "
+                               "not be %s" % mridlg.ss_subd)
+                        raise ValueError(err)
 
                 return
 
@@ -397,10 +403,13 @@ class CoregControl(HasPrivateTraits):
                     if mridlg.ss_subd == 'ico':
                         setup_source_space(subject, ico=mridlg.ss_param,
                                            subjects_dir=self.subjects_dir)
+                    elif mridlg.ss_subd == 'spacing':
+                        setup_source_space(subject, spacing=mridlg.ss_param,
+                                           subjects_dir=self.subjects_dir)
                     else:
-                        err = ("Can only use ico parameter, not "
-                               "%s" % mridlg.ss_subd)
-                        raise NotImplementedError(err)
+                        err = ("ss_param needs to be 'ico' or 'spacing', can "
+                               "not be %s" % mridlg.ss_subd)
+                        raise ValueError(err)
                 except Exception as e:
                     err = "%s\n\nSee log for more information." % str(e)
                     error(None, err, "Error in mne_setup_source_space")
@@ -443,7 +452,7 @@ class NewMriDialog(HasPrivateTraits):
                 Item('setup_source_space', tooltip="Execute "
                      "mne_setup_source_space after saving the scaled brain. "
                      "This step is required before a forward solution can be "
-                     "generated"),
+                     "generated", enabled_when='prepare_bem_model'),
                 Item('ss_subd', label='Subdivision Method',
                      enabled_when='setup_source_space'),
                 Item('ss_param', label='Subdivision Parameter',
