@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from copy import deepcopy
 import fnmatch
 from glob import glob
 import os
@@ -18,12 +17,9 @@ logger = logging.getLogger('mne')
 
 import numpy as np
 from numpy import dot
-from scipy.linalg import inv
 from scipy.optimize import leastsq
-from scipy.spatial import Delaunay
 from scipy.spatial.distance import cdist
 
-from ..fiff import Raw, FIFF
 from ..fiff.meas_info import read_fiducials, write_fiducials
 from ..label import read_label, Label
 from ..source_space import read_source_spaces, write_source_spaces, \
@@ -31,16 +27,14 @@ from ..source_space import read_source_spaces, write_source_spaces, \
 from ..surface import read_surface, write_surface, read_bem_surfaces, \
                       write_bem_surface
 from ..utils import get_subjects_dir
-from .transforms import apply_trans, rotation, rotation3d, scaling, \
-                        translation, write_trans
+from .transforms import rotation, rotation3d, scaling, translation
 
 
 
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 
 
-def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None,
-                           ico=None):
+def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
     """Create a default subject in subjects_dir
 
     Create a copy of fsaverage from the freesurfer directory in subjects_dir
@@ -57,10 +51,6 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None,
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (os.environ['SUBJECTS_DIR']) as destination for the new subject.
-    ico : None | int
-        If not None, prepare the source space for fsaverage with this
-        subdivision level (only necessary if unscaled fsaverage brain is used
-        as source space).
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
@@ -123,17 +113,11 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None,
 
     # add files from mne
     dest_bem = os.path.join(dest, 'bem')
-    os.mkdir(dest_bem)
+    if not os.path.exists(dest_bem):
+        os.mkdir(dest_bem)
     logger.info("Copying auxiliary fsaverage files from mne directory...")
     for name in mne_files:
         shutil.copy(mne_fname % name, dest_bem)
-
-    # prepare source space
-    if ico:
-        bem = os.path.join(dest_bem, 'fsaverage-inner_skull-bem.fif')
-        prepare_bem_model(bem)
-        setup_source_space('fsaverage', ico=ico, subjects_dir=subjects_dir)
-
 
 
 def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
@@ -374,7 +358,6 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
     paths | dict
         Dictionary whose keys are relevant file type names (str), and whose
         values are lists of paths.
-
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
@@ -388,7 +371,6 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
 
     paths['dirs'] = [bem_dir, surf_dir]
 
-#    bem_path = os.path.join(bem_dir, '{name}.{ext}')
     surf_path = os.path.join(surf_dir, '{name}')
 
     # surf/ files
@@ -403,11 +385,6 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
         for hemi in ('lh.', 'rh.'):
             fname = surf_path.format(sub='{sub}', name=hemi + name)
             surf.append(fname)
-
-    # watershed files
-#    for name in ['inner_skull', 'outer_skull', 'outer_skin']:
-#        fname = bem_path.format(sub='{sub}', name=name, ext='surf')
-#        surf.append(fname)
 
     # bem files
     paths['bem'] = bem = []
@@ -541,27 +518,18 @@ def scale_labels(s_to, s_from='fsaverage', fname='aparc/*.label',
 
 
 def scale_mri(s_from, s_to, scale, overwrite=False, subjects_dir=None):
-    """
-    Save the scaled MRI as well as the trans file
+    """Create a scaled copy of an MRI subject
 
     Parameters
     ----------
-    s_to : None | str
-        Subject for which to save MRI. With None (default), use the s_to
-        set on initialization.
-    surf, homog : bool
-        Arguments for the `mne_setup_forward_model` call.
-    setup_fwd : bool
-        Execute `mne_setup_forward_model` after creating the mri files.
+    s_from : str
+        Name of the subject providing the MRI.
+    s_to : str
+        New subject name for which to save the scaled MRI.
     overwrite : bool
-        If an MRI already exists for this subject, overwrite it.
-    trans_fname : None
-        Where to save the head-mri transform -trans file. Default (None) is
-        '{raw_dir}/{s_to}-trans.fif'
-
-    See Also
-    --------
-    MriHeadFitter.save_trans : save only the trans file
+        If an MRI already exists for s_to, overwrite it.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = find_mri_paths(s_from, subjects_dir)
