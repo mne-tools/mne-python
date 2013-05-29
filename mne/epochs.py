@@ -423,7 +423,8 @@ class Epochs(ProjMixin):
         if self.proj != proj:  # so append another unprojected epoch
             epochs += [epoch_raw.copy()]
 
-        # only preprocess first candidate
+        # only preprocess first candidate, to make delayed SSP working we need to
+        # postpone the preprocessing since projection comes first.
         epochs[0] = self._preprocess(epochs[0], verbose)
 
         # return a second None if nothing is projected
