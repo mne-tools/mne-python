@@ -711,12 +711,20 @@ def test_epochs_proj_mixin():
             epochs.add_proj(projs, remove_existing=True)
             assert_true(len(epochs.info['projs']) == n_proj)
 
-    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), proj=False, add_eeg_ref=True)
-    epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), proj=True, add_eeg_ref=True)
-    assert_allclose(epochs.copy().apply_proj().get_data()[0],
-                    epochs2.get_data()[0])
+    for preload in [True, False]:
+        print 'preload is %s' % preload
+        epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0), proj=False, preload=preload,
+                        add_eeg_ref=True, verbose=True)
+        epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0), proj=True, preload=preload,
+                        add_eeg_ref=True)
+        assert_allclose(epochs.copy().apply_proj().get_data()[0],
+                        epochs2.get_data()[0])
+
+        # make sure the preprocssing works on copies by calling
+        # get_data twice
+        assert_array_equal(epochs2.get_data(), epochs2.get_data())
 
     data = epochs.get_data().copy()
     data2 = np.array([e for e in epochs])
