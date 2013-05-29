@@ -101,7 +101,7 @@ Changelog
 
    - Gamma-MAP sparse source localization method by `Martin Luessi`_ and `Alex Gramfort`_
 
-   - Add regular expression and substring selction support for selecting parcellation labels by `Denis Engemann`_
+   - Add regular expression and substring support for selecting parcellation labels by `Denis Engemann`_
 
 API
 ~~~
