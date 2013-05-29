@@ -143,7 +143,7 @@ class ProjMixin(object):
                 continue
             elif callable(data):
                 if self.preload:
-                    data = np.zeros(self._data.shape)
+                    data = np.empty_like(self._data)
                     for ii, e in enumerate(self._data):
                         data[ii] = self._preprocess(np.dot(self._projector, e),
                             self.verbose)
