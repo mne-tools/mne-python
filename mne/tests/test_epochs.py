@@ -722,6 +722,10 @@ def test_epochs_proj_mixin():
         assert_allclose(epochs.copy().apply_proj().get_data()[0],
                         epochs2.get_data()[0])
 
+        # make sure the preprocssing works on copies by calling
+        # get_data twice
+        assert_array_equal(epochs2.get_data(), epochs2.get_data())
+
     data = epochs.get_data().copy()
     data2 = np.array([e for e in epochs])
     assert_array_equal(data, data2)
