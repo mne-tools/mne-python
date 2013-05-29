@@ -47,7 +47,7 @@ picks = fiff.pick_types(raw.info, meg='mag', stim=False, eog=True,
 # the application of our SSP projectors. This also works for preloaded data.
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(mag=4e-12),
-                    proj=False, preload=True)
+                    proj=False)
 
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
 

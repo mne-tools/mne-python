@@ -540,7 +540,8 @@ class Epochs(ProjMixin):
             The epochs data
         """
         if self.preload:
-            return self._data
+            return (self._data if not self._delayed_ssp() else
+                np.asarray([self._preprocess(e) for e in self._data]))
         else:
             data = self._get_data_from_disk()
             return data
@@ -591,7 +592,8 @@ class Epochs(ProjMixin):
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
-            epoch = self._data[self._current]
+            epoch = (self._data[self._current] if not self._delayed_ssp() else
+                self._preprocess(self._data[self._current]))
             self._current += 1
         else:
             is_good = False
