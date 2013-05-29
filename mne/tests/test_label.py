@@ -174,10 +174,10 @@ def test_labels_from_parc():
     label = labels_from_parc('sample', parc='aparc.a2009s', regexp='Angu',
                 subjects_dir=subjects_dir)[0][0]
     assert_true(label.name == 'G_pariet_inf-Angular-lh')
-    label = labels_from_parc('sample', annot_fname=annot_fname,
-                regexp='superior',
-                subjects_dir=subjects_dir)[0]
-    assert_true(len(label) == 3)  # three labels start with 'superior'
+    label = labels_from_parc('sample', parc='aparc.a2009s',
+                regexp='.*-.{4,}_.{3,3}-L',  # silly, but real regexp
+                subjects_dir=subjects_dir)[0][0]
+    assert_true(label.name == 'G_oc-temp_med-Lingual-lh')
     assert_raises(RuntimeError, labels_from_parc, 'sample', parc='aparc',
                 annot_fname=annot_fname, regexp='JackTheRipper',
                 subjects_dir=subjects_dir)
