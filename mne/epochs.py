@@ -541,11 +541,16 @@ class Epochs(ProjMixin):
             The epochs data
         """
         if self.preload:
-            return (self._data if not self._delayed_ssp() else
-                np.asarray([self._preprocess(e) for e in self._data]))
+            if self._delayed_ssp():
+                data = np.zeros(self._data.shape)
+                for ii, e in enumerate(self._data):
+                    data[ii] = self._preprocess(np.dot(self._projector, e),
+                                                self.verbose)
+            else:
+                data = self._data
         else:
             data = self._get_data_from_disk()
-            return data
+        return data
 
     def _reject_setup(self):
         """Sets self._reject_time and self._channel_type_idx (called from
@@ -593,8 +598,9 @@ class Epochs(ProjMixin):
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
-            epoch = (self._data[self._current] if not self._delayed_ssp() else
-                self._preprocess(self._data[self._current]))
+            epoch = self._data[self._current]
+            if self._delayed_ssp():
+                epoch = self._preprocess(epoch.copy())
             self._current += 1
         else:
             is_good = False

@@ -143,9 +143,10 @@ class ProjMixin(object):
                 continue
             elif callable(data):
                 if self.preload:
-                    data = np.array([self._preprocess(np.dot(self._projector,
-                                     d), self.verbose) for d in self])
-                # if epochs.proj == True and not preload, get_data will apply projs
+                    data = np.zeros(self._data.shape)
+                    for ii, e in enumerate(self._data):
+                        data[ii] = self._preprocess(np.dot(self._projector, e),
+                            self.verbose)
                 else:
                     data = data()
             else:
