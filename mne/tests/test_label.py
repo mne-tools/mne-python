@@ -170,6 +170,18 @@ def test_labels_from_parc():
     # aparc has 68 cortical labels
     assert_true(len(labels_both) == 68)
 
+    # test regexp
+    label = labels_from_parc('sample', parc='aparc.a2009s', regexp='Angu',
+                subjects_dir=subjects_dir)[0][0]
+    assert_true(label.name == 'G_pariet_inf-Angular-lh')
+    label = labels_from_parc('sample', parc='aparc.a2009s',
+                regexp='.*-.{4,}_.{3,3}-L',  # silly, but real regexp
+                subjects_dir=subjects_dir)[0][0]
+    assert_true(label.name == 'G_oc-temp_med-Lingual-lh')
+    assert_raises(RuntimeError, labels_from_parc, 'sample', parc='aparc',
+                annot_fname=annot_fname, regexp='JackTheRipper',
+                subjects_dir=subjects_dir)
+
 
 @requires_mne
 def test_labels_from_parc_annot2labels():

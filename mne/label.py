@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -7,6 +8,7 @@ from os import path as op
 import os
 import copy as cp
 import numpy as np
+import re
 from scipy import linalg, sparse
 
 import logging
@@ -857,7 +859,8 @@ def _read_annot(fname):
 
 
 def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
-                     annot_fname=None, subjects_dir=None, verbose=None):
+                     annot_fname=None, regexp=None, subjects_dir=None,
+                     verbose=None):
     """ Read labels from FreeSurfer parcellation
 
     Note: Only cortical labels will be returned.
@@ -876,6 +879,10 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     annot_fname : str or None
         Filename of the .annot file. If not None, only this file is read
         and 'parc' and 'hemi' are ignored.
+    regexp : str
+        Regular expression or substring to select particular labels from the
+        parcellation. E.g. 'superior' will return all labels in which this
+        substring is contained.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
@@ -947,14 +954,23 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
         n_read = len(labels) - n_read
         logger.info('   read %d labels from %s' % (n_read, fname))
 
+    if regexp is not None:
+        # allow for convenient substring match
+        r_ = (re.compile('.*%s.*' % regexp if regexp.replace('_', '').isalnum()
+              else regexp))
+
     # sort the labels and colors by label name
     names = [label.name for label in labels]
-    labels, label_colors = zip(*((label, color) for (name, label, color)
-                               in sorted(zip(names, labels, label_colors))))
+    labels_ = zip(*((label, color) for (name, label, color) in sorted(
+                    zip(names, labels, label_colors))
+                        if (r_.match(name) if regexp else True)))
+    if labels_:
+        labels, label_colors = labels_
+    else:
+        raise RuntimeError('The regular expression supplied did not match.')
     # convert tuples to lists
     labels = list(labels)
     label_colors = list(label_colors)
-
     logger.info('[done]')
 
     return labels, label_colors
