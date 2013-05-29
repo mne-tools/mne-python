@@ -882,7 +882,7 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     regexp : str
         Regular expression or substring to select particular labels from the
         parcellation. E.g. 'superior' will return all labels in which this
-        this substring is contained.
+        substring is contained.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
