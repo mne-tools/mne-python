@@ -582,11 +582,11 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
         The Evoked object.
     time : scalar | sequence of scalars
         The time point(s) to plot.
-    ch_type : 'mag' | 'grad' | 'eeg'
-        The channel type to plot.
-    layout : None | Layout
-        Layout instance specifying sensor positions (does not need to be
-        specified for Neuromag data).
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        The channel type to plot. For 'grad', the ...
+    layout : None | str | Layout
+        Layout name or instance specifying sensor positions (does not need to
+        be specified for Neuromag data).
     vmax : scalar
         The value specfying the range of the color scale (-vmax to +vmax). If
         None, the largest absolute value in the data is used.
@@ -607,12 +607,13 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
     """
     import pylab as pl
 
-    if layout is None:
-        from .layouts import read_layout
-        layout = read_layout('Vectorview-%s' % ch_type)
-
     picks = pick_types(evoked.info, meg=ch_type, exclude='bads')
-    pos = [layout.pos[layout.names.index(evoked.ch_names[k])] for k in picks]
+    if (layout is None) or isinstance(layout, str):
+        chs = [evoked.info['chs'][i] for i in picks]
+        from .layouts.layout import find_topomap_coords
+        pos = find_topomap_coords(chs, layout)
+    else:
+        pos = [layout.pos[layout.names.index(evoked.ch_names[k])] for k in picks]
 
     if np.isscalar(time):
         data = evoked.data[picks, np.where(evoked.times > time)[0][0]]
@@ -711,7 +712,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
                 xi.min():xi.max():complex(0, xi.shape[1])]
     im = np.ma.masked_array(im, im == np.nan)
 
-    pl.imshow(im, cmap=cmap, vmin= -vmax, vmax=vmax, origin='lower',
+    pl.imshow(im, cmap=cmap, vmin=-vmax, vmax=vmax, origin='lower',
               aspect='equal', extent=(xmin, xmax, ymin, ymax))
 
 

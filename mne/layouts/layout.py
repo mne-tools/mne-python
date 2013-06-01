@@ -1,7 +1,8 @@
 import os.path as op
 import numpy as np
+from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
-from ..fiff import pick_types
+from ..fiff import FIFF, pick_types
 
 
 class Layout(object):
@@ -230,3 +231,82 @@ def make_grid_layout(info, picks=None):
 
     layout = Layout(box=box, pos=pos, names=names, kind='grid-misc', ids=ids)
     return layout
+
+
+def find_topomap_coords(chs, layout_name=None):
+    """Try to guess the MEG system and return appropriate topomap coordinates
+
+    Parameters
+    ----------
+    chs : list
+        A list of channels as contained in the info['chs'] entry.
+
+    Returns
+    -------
+    coords : array, shape = (n_
+    """
+    if layout_name is None:
+        coil_types = np.unique([ch['coil_type'] for ch in chs])
+        has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
+        has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
+        if has_vv_mag and has_vv_grad:
+            layout_name = 'Vectorview-all'
+        elif has_vv_mag:
+            layout_name = 'Vectorview-mag'
+        elif has_vv_grad:
+            layout_name = 'Vectorview-grad'
+
+    if layout_name:
+        layout = read_layout(layout_name)
+        pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
+    else:
+        pos = auto_topomap_coords(chs)
+
+    return pos
+
+
+def auto_topomap_coords(chs):
+    """Make a 2 dimensional sensor map from sensor positions in an info dict
+
+    Parameters
+    ----------
+    chs : list
+        A list of channels as contained in the info['chs'] entry.
+
+    Returns
+    -------
+    locs : array, shape = (n_sensors, 2)
+        An array of positions of the 2 dimensional map.
+    """
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
+
+    # fit the 3d sensor locations to a sphere with center (cx, cy, cz)
+    # and radius r
+
+    # error function
+    def err(params):
+        r, cx, cy, cz = params
+        return   np.sum((locs3d - [cx, cy, cz]) ** 2, 1) - r ** 2
+
+    (r, cx, cy, cz), _ = leastsq(err, (1, 0, 0, 0))
+
+    # center the sensor locations based on the sphere and scale to
+    # radius 1
+    sphere_center = np.array((cx, cy, cz))
+    locs3d -= sphere_center
+    locs3d /= r
+
+    # implement projection
+    locs2d = np.copy(locs3d[:, :2])
+    z = max(locs3d[:, 2]) - locs3d[:, 2]  # distance form top
+    r = np.sqrt(z)  # desired 2d radius
+    r_xy = np.sqrt(np.sum(locs3d[:, :2] ** 2, 1))  # current radius in xy
+    idx = (r_xy != 0)  # avoid zero division
+    F = r[idx] / r_xy[idx]  # stretching factor accounting for current r
+    locs2d[idx, :] *= F[:, None]
+
+    return locs2d
+
+
+def merge_grad():
+    pass
