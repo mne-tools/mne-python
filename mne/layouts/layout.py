@@ -139,7 +139,7 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     """
     radius_head, origin_head, origin_device = fit_sphere_to_headshape(info)
     inds = pick_types(info, meg=False, eeg=True, exclude='bads')
-    hsp = [info['chs'][ii]['eeg_loc'][:, 0] for ii in inds]
+    hsp = [info['chs'][ii]['eeg_loc'].ravel() for ii in inds]
     names = [info['chs'][ii]['ch_name'] for ii in inds]
     if len(hsp) <= 0:
         raise ValueError('No EEG digitization points found')

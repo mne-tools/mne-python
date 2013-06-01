@@ -11,6 +11,7 @@ import warnings
 from itertools import cycle
 from functools import partial
 from copy import deepcopy
+import math
 
 import difflib
 import tempfile
@@ -571,9 +572,9 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     return fig
 
 
-def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None, vmax=None,
-                        cmap='RdBu_r', sensors='k,', colorbar=True, res=256,
-                        size=1, show=True):
+def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
+                        vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                        res=256, size=1, show=True):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -650,6 +651,72 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None, vmax=Non
         err = ("time parameter needs to be time (scalar) or sequence of "
                "times (sequence of scalars). Got ")
         raise TypeError(err)
+
+    if show:
+        pl.show()
+
+
+def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
+                       colorbar=False, res=256, size=1, show=True):
+    """Plot topographic maps of SSP projections
+
+    Parameters
+    ----------
+    projs : list of Projection
+        The projections
+    layout : None | Layout | list of Layout
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). Or a list of Layout if projections
+        are from different sensor types.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses).
+    colorbar : bool
+        Plot a colorbar.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    size : scalar
+        Side length of the topomaps in inches (only applies when plotting
+        multiple topomaps at a time).
+    show : bool
+        Show figures if True
+    """
+    import pylab as pl
+
+    if layout is None:
+        from .layouts import read_layout
+        layout = read_layout('Vectorview-all')
+
+    if not isinstance(layout, list):
+        layout = [layout]
+
+    n_projs = len(projs)
+    nrows = math.floor(math.sqrt(n_projs))
+    ncols = math.ceil(math.sqrt(n_projs))
+
+    pl.clf()
+    for k, proj in enumerate(projs):
+        ch_names = proj['data']['col_names']
+        data = proj['data']['data'].ravel()
+
+        idx = []
+        for l in layout:
+            idx = [l.names.index(c) for c in ch_names if c in l.names]
+            if len(idx) > 0:
+                break
+
+        ax = pl.subplot(nrows, ncols, k + 1)
+        ax.set_title(proj['desc'])
+        if len(idx):
+            plot_topomap(data, l.pos[idx], vmax=None, cmap=cmap,
+                         sensors=sensors, res=res)
+            if colorbar:
+                pl.colorbar()
+        else:
+            raise RuntimeError('Cannot find a proper layout for projection %s'
+                               % proj['desc'])
 
     if show:
         pl.show()
