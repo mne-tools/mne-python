@@ -571,7 +571,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     return fig
 
 
-def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
+def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None, vmax=None,
                         cmap='RdBu_r', sensors='k,', colorbar=True, res=256,
                         size=1, show=True):
     """Plot topographic maps of specific time points of evoked data
@@ -580,8 +580,9 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
     ----------
     evoked : Evoked
         The Evoked object.
-    time : scalar | sequence of scalars
-        The time point(s) to plot.
+    times : scalar | sequence of scalars | None.
+        The time point(s) to plot. If None, 10 topographies will be shown
+        will a regular time spacing between the first and last time instant.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
         The channel type to plot. For 'grad', the ...
     layout : None | str | Layout
@@ -603,7 +604,7 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
         Side length of the topomaps in inches (only applies when plotting
         multiple topomaps at a time).
     show : bool
-        Call pylab.show() as the end or not.
+        Call pylab.show() at the end.
     """
     import pylab as pl
 
@@ -615,22 +616,25 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
     else:
         pos = [layout.pos[layout.names.index(evoked.ch_names[k])] for k in picks]
 
-    if np.isscalar(time):
-        data = evoked.data[picks, np.where(evoked.times > time)[0][0]]
+    if times is None:
+        times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+
+    if np.isscalar(times):
+        data = evoked.data[picks, np.where(evoked.times > times)[0][0]]
         plot_topomap(data, pos, vmax=vmax, cmap=cmap, sensors=sensors, res=res)
         if colorbar:
             pl.colorbar()
-    elif np.iterable(time):
-        n = len(time)
+    elif np.iterable(times):
+        n = len(times)
         nax = n + bool(colorbar)
         pl.figure(figsize=(size * nax, size * 1.5))
-        time_idx = [np.where(evoked.times > t)[0][0] for t in time]
+        time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
         data = evoked.data[np.ix_(picks, time_idx)]
         vmax = vmax or np.max(data)
-        for i, t in enumerate(time):
+        for i, t in enumerate(times):
             pl.subplot(1, nax, i + 1)
-            plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap, sensors=sensors,
-                         res=res)
+            plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap,
+                         sensors=sensors, res=res)
             pl.title('%i ms' % (t * 1000))
 
         if colorbar:
@@ -682,7 +686,6 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
     elif len(data) != len(pos):
         err = ("Data and pos need to be of same length. Got data of shape %s, "
                "pos of shape %s." % (str(), str()))
-
 
     axes = pl.gca()
     axes.set_frame_on(False)
@@ -2073,8 +2076,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # set up projection and data parameters
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
-                  info=info, projs=projs, remove_dc=remove_dc, n_channels=n_channels,
-                  scalings=scalings, types=types, n_times=n_times, events=events)
+                  info=info, projs=projs, remove_dc=remove_dc,
+                  n_channels=n_channels, scalings=scalings, types=types,
+                  n_times=n_times, events=events)
 
     # set up plotting
     fig = figure_nobar(facecolor=bgcolor)
