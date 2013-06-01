@@ -27,5 +27,3 @@ times = np.arange(0.05, 0.15, 0.01)
 vmax = 5e-13
 
 mne.viz.plot_evoked_topomap(evoked, times, vmax=vmax, ch_type='mag')
-
-pl.show()

@@ -573,7 +573,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
                         cmap='RdBu_r', sensors='k,', colorbar=True, res=256,
-                        size=1):
+                        size=1, show=True):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -602,6 +602,8 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
     size : scalar
         Side length of the topomaps in inches (only applies when plotting
         multiple topomaps at a time).
+    show : bool
+        Call pylab.show() as the end or not.
     """
     import pylab as pl
 
@@ -643,6 +645,9 @@ def plot_evoked_topomap(evoked, time, ch_type='mag', layout=None, vmax=None,
         err = ("time parameter needs to be time (scalar) or sequence of "
                "times (sequence of scalars). Got ")
         raise TypeError(err)
+
+    if show:
+        pl.show()
 
 
 def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
