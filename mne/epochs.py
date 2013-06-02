@@ -250,7 +250,8 @@ class Epochs(ProjMixin):
         self.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
         if picks is None:
             picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
-                               ecg=True, eog=True, misc=True, exclude=[])
+                               ecg=True, eog=True, misc=True, ref_meg=True,
+                               exclude=[])
         self.info['chs'] = [self.info['chs'][k] for k in picks]
         self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
         self.info['nchan'] = len(picks)
@@ -274,8 +275,8 @@ class Epochs(ProjMixin):
             dest_comp = current_comp
 
         if current_comp != dest_comp:
-            raw['comp'] = fiff.raw.make_compensator(raw.info, current_comp,
-                                                    dest_comp)
+            raw.comp = fiff.compensator.make_compensator(raw.info,
+                                                    current_comp, dest_comp)
             logger.info('Appropriate compensator added to change to '
                         'grade %d.' % (dest_comp))
 
@@ -760,7 +761,7 @@ class Epochs(ProjMixin):
         if picks is None:
             picks = pick_types(evoked.info, meg=True, eeg=True,
                                stim=False, eog=False, ecg=False,
-                               emg=False, exclude=[])
+                               emg=False, ref_meg=True, exclude=[])
             if len(picks) == 0:
                 raise ValueError('No data channel found when averaging.')
 
