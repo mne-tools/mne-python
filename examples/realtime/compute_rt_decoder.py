@@ -11,6 +11,7 @@ import mne
 from mne.realtime import RtClient, RtEpochs
 
 import numpy as np
+import pylab as pl
 
 client = RtClient('localhost')
 info = client.get_measurement_info()
@@ -18,9 +19,12 @@ info = client.get_measurement_info()
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
-minchunks = 20
-trnum = minchunks*3
-testnum = minchunks
+minchunks = 5
+tr_percent = 60
+min_trials = 20 # minimum trials after which decoding should start
+
+#trnum = minchunks*10
+#testnum = minchunks*4
 
 # select gradiometers
 picks = mne.fiff.pick_types(info, meg='grad', eeg=False, eog=True,
@@ -36,32 +40,39 @@ rt_epochs.start()
 
 # Decoding in sensor space using a linear SVM
 n_times = len(rt_epochs.times)
+from sklearn.svm import SVC
 
-for ii in range(0,3):
+ii=0
+
+while 1:
 
     if (ii==0):
         epochs = rt_epochs._get_data_from_disk()
-        events = np.asarray(rt_epochs.events)
+        Y = np.asarray(rt_epochs.events)[0:minchunks,2]
     else:
         epochs = np.append(epochs,rt_epochs._get_data_from_disk(),axis=0)
-        events = np.append(events,np.asarray(rt_epochs.events),axis=0)
+        Y = np.append(Y,np.asarray(rt_epochs.events)[0:minchunks,2],axis=0)
     
-    print events.shape
-    rt_epochs.remove_old_epochs(minchunks)
+    rt_epochs.remove_old_epochs(minchunks)   
+    
+    if np.shape(epochs)[0] > min_trials:
 
-X = np.reshape(epochs, [trnum, np.shape(epochs)[2]*np.shape(epochs)[1]])
-Y = events[:,2]
+        trnum = round(np.shape(epochs)[0]*tr_percent/100)
+        tsnum = np.shape(epochs)[0] - trnum 
 
-from sklearn.svm import SVC
+        Tr_X = np.reshape(epochs[:trnum,:,:], [trnum, np.shape(epochs)[2]*np.shape(epochs)[1]])
+        Ts_X= np.reshape(epochs[-tsnum:,:,:], [tsnum, np.shape(epochs)[2]*np.shape(epochs)[1]])
+        Tr_Y = Y[:trnum]
+        Ts_Y = Y[-tsnum:]
 
-clf = SVC(C=1, kernel='linear')
-clf.fit(X,Y)
+        clf = SVC(C=1, kernel='linear')
+        clf.fit(Tr_X,Tr_Y)
 
-#rt_epochs.remove_old_epochs(m)
+        result = clf.predict(Ts_X)
 
-epochs_test = rt_epochs._get_data_from_disk()
-X_test = np.reshape(epochs_test, [testnum, np.shape(epochs_test)[2]*np.shape(epochs_test)[1]])
-Y_test = np.asarray(rt_epochs.events)[0:testnum,2]
-result = clf.predict(X_test)
-
-acc = sum(result==Y_test)/testnum*100
+        acc = sum(result==Ts_Y)/tsnum*100
+        
+        print "(train:test = %d:%d) :: (accuracy=%f)" % (trnum,tsnum,acc)
+        
+    ii += 1
+#pl.plot(acc)
