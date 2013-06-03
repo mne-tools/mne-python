@@ -571,7 +571,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, proj=False, xlim='tight', hline=None, units=None,
-                scalings=None, titles=None, axes=None):
+                scalings=None, titles=None, axes=None, toggle_proj=False):
     """Plot evoked data
 
     Note: If bad channels are not excluded they are shown in red.
@@ -612,6 +612,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
+    toggle_proj : bool
+        Show check box for interactive selection of SSP projection vecotrs.
     """
     import pylab as pl
     scalings, titles, units = _mutable_defaults(('scalings', scalings),
@@ -654,6 +656,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%g)' % (len(axes), n_channel_types))
 
+    fig = axes[0].get_figure()
     times = 1e3 * evoked.times  # time in miliseconds
     for ax, t in zip(axes, ch_types_used):
         ch_unit = units[t]
@@ -688,8 +691,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 pl.xlim(xlim)
             if ylim is not None and t in ylim:
                 pl.ylim(ylim[t])
-            pl.title(titles[t] + ' (%d channel%s)'
-                     % (len(D), 's' if len(D) > 1 else ''))
+            pl.title(titles[t] + ' (%d channel%s)' % (
+                len(D), 's' if len(D) > 1 else ''))
             pl.xlabel('time (ms)')
             pl.ylabel('data (%s)' % ch_unit)
 
@@ -702,6 +705,97 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
     if show:
         pl.show()
+
+    if toggle_proj:
+        if evoked.proj is True:
+            raise RuntimeError('Projs are already applied. Please initialize'
+                ' evokeds with proj set to False.')
+        elif len(evoked.info['projs']) < 1:
+            raise RuntimeError('No projs found in evoked.')
+
+        params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
+                      axes=axes, types=types, units=units, scalings=scalings,
+                      unit=unit, ch_types_used=ch_types_used,
+                      picks=picks)
+        _draw_proj_checkbox(None, params)
+
+    if show:
+        fig.show()
+
+    return fig
+
+
+def _draw_proj_checkbox(event, params):
+    """Toggle options (projectors) dialog"""
+    import pylab as pl
+    projs = params['projs']
+    # turn on options dialog
+    fig_proj = figure_nobar()
+    fig_proj.canvas.set_window_title('SSP projection vectors')
+    ax_temp = pl.axes((0, 0, 1, 1))
+    ax_temp.get_yaxis().set_visible(False)
+    ax_temp.get_xaxis().set_visible(False)
+    fig_proj.add_axes(ax_temp)
+    labels = [p['desc'] for p in projs]
+    actives = [p['active'] for p in projs]
+    proj_checks = pl.mpl.widgets.CheckButtons(ax_temp, labels=labels,
+                                              actives=actives)
+    # change already-applied projectors to red
+    for ii, p in enumerate(projs):
+        if p['active'] is True:
+            for x in proj_checks.lines[ii]:
+                x.set_color('r')
+    # make minimal size
+    width = max([len(p['desc']) for p in projs]) / 6.0 + 0.5
+    height = len(projs) / 6.0 + 0.5
+    # have to try/catch when there's no toolbar
+    try:
+        fig_proj.set_size_inches((width, height), forward=True)
+    except Exception:
+        pass
+    # pass key presses from option dialog over
+    proj_checks.on_clicked(partial(_toggle_proj_evoked, params=params))
+    params['proj_checks'] = proj_checks
+    # this should work for non-test cases
+    try:
+        fig_proj.canvas.show()
+    except Exception:
+        pass
+
+
+def _toggle_proj_evoked(event, params):
+    """Operation to perform when proj boxes clicked"""
+    # read options if possible
+    if 'proj_checks' in params:
+        bools = [x[0].get_visible() for x in params['proj_checks'].lines]
+        for bi, (b, p) in enumerate(zip(bools, params['projs'])):
+            # see if they tried to deactivate an active one
+            if not b and p['active']:
+                bools[bi] = True
+
+    compute_proj = False
+    if not 'proj_bools' in params:
+        compute_proj = True
+    elif not np.array_equal(bools, params['proj_bools']):
+        compute_proj = True
+
+    # if projectors changed, update plots
+    picks, evoked = [params[k] for k in 'picks', 'evoked']
+    times = evoked.times * 1e3
+    if compute_proj is True:
+        projs = [proj for ii, proj in enumerate(params['projs'])
+            if ii in np.where(bools)[0]]
+        params['proj_bools'] = bools
+        new_evoked = evoked.copy()
+        new_evoked.info['projs'] = []
+        new_evoked.add_proj(projs)
+        new_evoked.apply_proj()
+        for ax, t in zip(params['axes'], params['ch_types_used']):
+            this_scaling = params['scalings'][t]
+            idx = [picks[i] for i in range(len(picks)) if params['types'][i] == t]
+            D = this_scaling * new_evoked.data[idx, :]
+            [line.set_data(times, di) for line, di in zip(ax.lines, D)]
+    params['fig'].canvas.draw()
 
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
