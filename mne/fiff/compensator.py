@@ -26,21 +26,6 @@ def get_current_comp(info):
     return comp
 
 
-def findall(L, value, start=0):
-    """Returns indices of all occurrence of value in list L starting from start
-    """
-    c = L.count(value)
-    if c == 0:
-        return list()
-    else:
-        ind = list()
-        i = start-1
-        for _ in range(c):
-            i = L.index(value, i+1)
-            ind.append(i)
-        return ind
-
-
 def _make_compensator(info, kind):
     """Auxiliary function for make_compensator
     """
@@ -51,20 +36,22 @@ def _make_compensator(info, kind):
             #   Create the preselector
             presel = np.zeros((this_data['ncol'], info['nchan']))
             for col, col_name in enumerate(this_data['col_names']):
-                ind = findall(info['ch_names'], col_name)
+                ind = [k for k, c in enumerate(info['ch_names'])
+                                                            if c == col_name]
                 if len(ind) == 0:
-                    raise ValueError, 'Channel %s is not available in data' % \
-                                                                      col_name
+                    raise ValueError('Channel %s is not available in data' % \
+                                                                      col_name)
                 elif len(ind) > 1:
-                    raise ValueError, 'Ambiguous channel %s' % col_name
+                    raise ValueError('Ambiguous channel %s' % col_name)
                 presel[col, ind] = 1.0
 
             #   Create the postselector
             postsel = np.zeros((info['nchan'], this_data['nrow']))
             for c, ch_name in enumerate(info['ch_names']):
-                ind = findall(this_data['row_names'], ch_name)
+                ind = [k for k, c in enumerate(info['row_names'])
+                                                            if c == ch_name]
                 if len(ind) > 1:
-                    raise ValueError, 'Ambiguous channel %s' % ch_name
+                    raise ValueError('Ambiguous channel %s' % ch_name)
                 elif len(ind) == 1:
                     postsel[c, ind] = 1.0
 
@@ -150,7 +137,7 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
 #     comp = make_compensator(newdata['info'], now, to)
 #     for k in range(len(newdata['evoked'])):
 #         newdata['evoked'][k]['epochs'] = np.dot(comp,
-#                                                 newdata['evoked'][k]['epochs'])
+#                                               newdata['evoked'][k]['epochs'])
 #
 #     #  Update the compensation info in the channel descriptors
 #     newdata['info']['chs'] = set_current_comp(newdata['info']['chs'], to)
