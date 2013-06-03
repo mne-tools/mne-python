@@ -27,7 +27,7 @@ from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
                    write_id
 
-from ..viz import plot_evoked, _mutable_defaults
+from ..viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .. import verbose
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -394,6 +394,44 @@ class Evoked(ProjMixin):
         plot_evoked(self, picks=picks, exclude=exclude, unit=unit, show=show,
                     ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
                     scalings=scalings, titles=titles, axes=axes)
+
+    def plot_topomap(self, times=None, ch_type='mag', layout=None, vmax=None,
+                     cmap='RdBu_r', sensors='k,', colorbar=True, res=256,
+                     size=1, show=True):
+        """Plot topographic maps of specific time points
+
+        Parameters
+        ----------
+        evoked : Evoked
+            The Evoked object.
+        times : scalar | sequence of scalars | None.
+            The time point(s) to plot. If None, 10 topographies will be shown
+            will a regular time spacing between the first and last time instant.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+            The channel type to plot. For 'grad', the ...
+        layout : None | str | Layout
+            Layout name or instance specifying sensor positions (does not need to
+            be specified for Neuromag data).
+        vmax : scalar
+            The value specfying the range of the color scale (-vmax to +vmax). If
+            None, the largest absolute value in the data is used.
+        cmap : matplotlib colormap
+            Colormap.
+        sensors : bool | str
+            Add markers for sensor locations to the plot. Accepts matplotlib plot
+            format string (e.g., 'r+' for red plusses).
+        colorbar : bool
+            Plot a colorbar.
+        res : int
+            The resolution of the topomap image (n pixels along each side).
+        size : scalar
+            Side length of the topomaps in inches (only applies when plotting
+            multiple topomaps at a time).
+        show : bool
+            Call pylab.show() at the end.
+        """
+        plot_evoked_topomap(self, times, ch_type, layout, vmax, cmap, sensors,
+                            colorbar, res, size)
 
     def to_nitime(self, picks=None):
         """ Export Evoked object to NiTime
