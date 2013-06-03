@@ -117,12 +117,12 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
     comp = np.eye(info['nchan']) + C1 - C2 - np.dot(C2, C1)
 
     if exclude_comp_chs:
-        pick = np.zeros((info['nchan'], info['nchan']))
+        pick = np.zeros(info['nchan'], dtype=np.int)
         npick = 0
         for k, chan in enumerate(info['chs']):
             if chan['kind'] != FIFF.FIFFV_REF_MEG_CH:
-                npick += 1
                 pick[npick] = k
+                npick += 1
 
         if npick == 0:
             raise ValueError('Nothing remains after excluding the '
