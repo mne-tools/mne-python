@@ -352,7 +352,7 @@ class Evoked(ProjMixin):
 
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=None, scalings=None,
-             titles=None, axes=None):
+             titles=None, axes=None, toggle_proj=False):
         """Plot evoked data
 
         Note: If bad channels are not excluded they are shown in red.
@@ -390,10 +390,13 @@ class Evoked(ProjMixin):
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
+        oggle_proj : bool
+            Show check box for interactive selection of SSP projection vecotrs.
         """
         plot_evoked(self, picks=picks, exclude=exclude, unit=unit, show=show,
                     ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
-                    scalings=scalings, titles=titles, axes=axes)
+                    scalings=scalings, titles=titles, axes=axes,
+                    toggle_proj=toggle_proj)
 
     def to_nitime(self, picks=None):
         """ Export Evoked object to NiTime

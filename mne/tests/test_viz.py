@@ -51,6 +51,9 @@ picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
 epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                 baseline=(None, 0))
 evoked = epochs.average()
+epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                baseline=(None, 0), proj=False)
+evoked_delayed_ssp = epochs_delayed_ssp.average()
 layout = read_layout('Vectorview-all')
 
 
@@ -108,6 +111,13 @@ def test_plot_evoked():
 
     # test selective updating of dict keys is working.
     evoked.plot(hline=[1], units=dict(mag='femto foo'))
+    evoked_delayed_ssp.plot(toggle_proj=True)
+    evoked_delayed_ssp.apply_proj()
+    assert_raises(RuntimeError, evoked_delayed_ssp.plot,
+        toggle_proj=True)
+    evoked_delayed_ssp.info['projs'] = []
+    assert_raises(RuntimeError, evoked_delayed_ssp.plot,
+        toggle_proj=True)
 
 
 @requires_mayavi
