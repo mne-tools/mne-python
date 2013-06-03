@@ -29,3 +29,6 @@ vmax = 5e-13  # set max value to scale colormap
 
 # plot magnetometer data as topomaps
 evoked.plot_topomap(times, vmax=vmax, ch_type='mag')
+
+# plot gradiometer data (plots the RMS for each pair of gradiometers)
+evoked.plot_topomap(times, ch_type='grad')

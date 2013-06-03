@@ -1,8 +1,10 @@
+from collections import defaultdict
 import os.path as op
 import numpy as np
 from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import FIFF, pick_types
+from ..fiff.pick import pick_channels
 
 
 class Layout(object):
@@ -255,10 +257,13 @@ def find_topomap_coords(chs, layout_name=None):
             layout_name = 'Vectorview-mag'
         elif has_vv_grad:
             layout_name = 'Vectorview-grad'
+    elif layout_name == 'auto':
+        layout_name = None
 
     if layout_name:
         layout = read_layout(layout_name)
         pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
+        pos = np.asarray(pos)
     else:
         pos = auto_topomap_coords(chs)
 
@@ -308,5 +313,65 @@ def auto_topomap_coords(chs):
     return locs2d
 
 
-def merge_grad():
-    pass
+def pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
+    """Find the picks for pairing grad channels
+
+    Parameters
+    ----------
+    info : dict
+        An info dictionary containing channel information.
+    topomap_coords : bool
+        Return the coordinates for a topomap plot along with the picks. If
+        False, only picks are returned.
+    exclude : list of str | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in info['bads'].
+
+    Returns
+    -------
+    picks : list of int
+        Picks for the grad channels, ordered in pairs.
+    coords (optional) : array, shape = (n_grad_channels, 3)
+        Coordinates for a topomap plot (optional).
+    """
+    # find all complete pairs of grad channels
+    pairs = defaultdict(list)
+    grad_picks = pick_types(info, meg='grad', exclude=exclude)
+    for i in grad_picks:
+        ch = info['chs'][i]
+        name = ch['ch_name']
+        if name.startswith('MEG'):
+            if name.endswith(('2', '3')):
+                key = name[-4:-1]
+                pairs[key].append(ch)
+    pairs = [p for p in pairs.values() if len(p) == 2]
+
+    # find the picks corresponding to the grad channels
+    grad_chs = sum(pairs, [])
+    ch_names = info['ch_names']
+    picks = [ch_names.index(ch['ch_name']) for ch in grad_chs]
+
+    if topomap_coords:
+        shape = (len(pairs), 2, -1)
+        coords = find_topomap_coords(grad_chs).reshape(shape).mean(1)
+        return picks, coords
+    else:
+        return picks
+
+
+def merge_grad_data(data):
+    """Merge data from channel pairs using the RMS
+
+    Parameters
+    ----------
+    data : array, shape = (n_channels, n_times)
+        Data for channels, ordered in pairs.
+
+    Returns
+    -------
+    data : array, shape = (n_channels / 2, n_times)
+        The root mean square for each pair.
+    """
+    data = data.reshape((len(data) / 2, 2, -1))
+    data = np.sqrt(np.sum(data ** 2, 1) / 2)
+    return data
