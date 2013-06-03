@@ -71,26 +71,32 @@ def _make_compensator(info, kind):
             this_comp = np.dot(postsel, np.dot(this_data['data'], presel))
             return this_comp
 
-    raise ValueError("Compensator of kind %s not available." % kind)
+    raise ValueError('Desired compensation matrix (kind = %d) not'
+                     ' found' % kind)
 
 
 def make_compensator(info, from_, to, exclude_comp_chs=False):
-    """ XXX : bug !!! 2 make_compensator functions
-    %
-    % [comp] = mne_make_compensator(info,from,to,exclude_comp_chs)
-    %
-    % info              - measurement info as returned by the fif reading routines
-    % from              - compensation in the input data
-    % to                - desired compensation in the output
-    % exclude_comp_chs  - exclude compensation channels from the output (optional)
-    %
+    """Returns compensation matrix eg. for CTF system.
 
-    %
-    % Create a compensation matrix to bring the data from one compensation
-    % state to another
-    %
+    Create a compensation matrix to bring the data from one compensation
+    state to another.
+
+    Parameters
+    ----------
+    info : dict
+        The measurement info.
+    from_ : int
+        Compensation in the input data.
+    to : int
+        Desired compensation in the output.
+    exclude_comp_chs : bool
+        Exclude compensation channels from the output.
+
+    Returns
+    -------
+    comp : array
+        The compensation matrix.
     """
-
     if from_ == to:
         comp = np.zeros((info['nchan'], info['nchan']))
         return comp
@@ -98,28 +104,12 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
     if from_ == 0:
         C1 = np.zeros((info['nchan'], info['nchan']))
     else:
-        try:
-            C1 = _make_compensator(info, from_)
-        except Exception as inst:
-            raise ValueError, 'Cannot create compensator C1 (%s)' % inst
-
-        if len(C1) == 0:
-            raise ValueError, ('Desired compensation matrix (kind = %d) not'
-                               ' found' % from_)
-
+        C1 = _make_compensator(info, from_)
 
     if to == 0:
         C2 = np.zeros((info['nchan'], info['nchan']))
     else:
-        try:
-            C2 = _make_compensator(info, to)
-        except Exception as inst:
-            raise ValueError, 'Cannot create compensator C2 (%s)' % inst
-
-        if len(C2) == 0:
-            raise ValueError, ('Desired compensation matrix (kind = %d) not '
-                               'found' % to)
-
+        C2 = _make_compensator(info, to)
 
     #   s_orig = s_from + C1*s_from = (I + C1)*s_from
     #   s_to   = s_orig - C2*s_orig = (I - C2)*s_orig
@@ -135,51 +125,51 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
                 pick[npick] = k
 
         if npick == 0:
-            raise ValueError, ('Nothing remains after excluding the '
-                               'compensation channels')
+            raise ValueError('Nothing remains after excluding the '
+                             'compensation channels')
 
         comp = comp[pick[:npick], :]
 
     return comp
 
 
-@verbose
-def compensate_to(data, to, verbose=None):
-    """
-    %
-    % [newdata] = mne_compensate_to(data,to)
-    %
-    % Apply compensation to the data as desired
-    %
-    """
+# @verbose
+# def compensate_to(data, to, verbose=None):
+#     """
+#     %
+#     % [newdata] = mne_compensate_to(data,to)
+#     %
+#     % Apply compensation to the data as desired
+#     %
+#     """
+#
+#     newdata = data.copy()
+#     now = get_current_comp(newdata['info'])
+#
+#     #   Are we there already?
+#     if now == to:
+#         logger.info('Data are already compensated as desired')
+#
+#     #   Make the compensator and apply it to all data sets
+#     comp = make_compensator(newdata['info'], now, to)
+#     for k in range(len(newdata['evoked'])):
+#         newdata['evoked'][k]['epochs'] = np.dot(comp,
+#                                                 newdata['evoked'][k]['epochs'])
+#
+#     #  Update the compensation info in the channel descriptors
+#     newdata['info']['chs'] = set_current_comp(newdata['info']['chs'], to)
+#     return newdata
 
-    newdata = data.copy()
-    now = get_current_comp(newdata['info'])
 
-    #   Are we there already?
-    if now == to:
-        logger.info('Data are already compensated as desired')
-
-    #   Make the compensator and apply it to all data sets
-    comp = make_compensator(newdata['info'], now, to)
-    for k in range(len(newdata['evoked'])):
-        newdata['evoked'][k]['epochs'] = np.dot(comp,
-                                                newdata['evoked'][k]['epochs'])
-
-    #  Update the compensation info in the channel descriptors
-    newdata['info']['chs'] = set_current_comp(newdata['info']['chs'], to)
-    return newdata
-
-
-def set_current_comp(chs, value):
-    """Set the current compensation value in the channel info structures
-    """
-    new_chs = chs
-
-    lower_half = int('FFFF', 16) # hex2dec('FFFF')
-    for k in range(len(chs)):
-        if chs[k]['kind'] == FIFF.FIFFV_MEG_CH:
-            coil_type = float(chs[k]['coil_type']) & lower_half
-            new_chs[k]['coil_type'] = int(coil_type | (value << 16))
-
-    return new_chs
+# def set_current_comp(chs, value):
+#     """Set the current compensation value in the channel info structures
+#     """
+#     new_chs = chs
+#
+#     lower_half = int('FFFF', 16) # hex2dec('FFFF')
+#     for k in range(len(chs)):
+#         if chs[k]['kind'] == FIFF.FIFFV_MEG_CH:
+#             coil_type = float(chs[k]['coil_type']) & lower_half
+#             new_chs[k]['coil_type'] = int(coil_type | (value << 16))
+#
+#     return new_chs

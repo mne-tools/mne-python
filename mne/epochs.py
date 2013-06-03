@@ -275,6 +275,7 @@ class Epochs(ProjMixin):
             dest_comp = current_comp
 
         if current_comp != dest_comp:
+            # XXX : should find a wat to avoid the change to raw...
             raw.comp = fiff.compensator.make_compensator(raw.info,
                                                     current_comp, dest_comp)
             logger.info('Appropriate compensator added to change to '

@@ -138,7 +138,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
             raise Exception('Compensation type not found')
 
         #   Get the compensation kind and map it to a simple number
-        one = dict(ctfkind=tag.data, kind=-1)
+        one = dict(ctfkind=tag.data)
         del tag
 
         if one['ctfkind'] == int('47314252', 16):  # hex2dec('47314252'):
@@ -148,7 +148,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
         elif one['ctfkind'] == int('47334252', 16):  # hex2dec('47334252'):
             one['kind'] = 3
         else:
-            one['kind'] = one['ctfkind']
+            one['kind'] = int(one['ctfkind'])
 
         for p in range(node['nent']):
             kind = node['directory'][p].kind
@@ -172,9 +172,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
             #
             #   Do the columns first
             #
-            ch_names = []
-            for p in range(len(chs)):
-                ch_names.append(chs[p]['ch_name'])
+            ch_names = [c['ch_name'] for c in chs]
 
             col_cals = np.zeros(mat['data'].shape[1], dtype=np.float)
             for col in range(mat['data'].shape[1]):
@@ -185,8 +183,8 @@ def read_ctf_comp(fid, node, chs, verbose=None):
                 elif p > 1:
                     raise Exception('Ambiguous channel %s' %
                                                         mat['col_names'][col])
-
-                col_cals[col] = 1.0 / (chs[p]['range'] * chs[p]['cal'])
+                idx = ch_names.index(mat['col_names'][col])
+                col_cals[col] = 1.0 / (chs[idx]['range'] * chs[idx]['cal'])
 
             #    Then the rows
             row_cals = np.zeros(mat['data'].shape[0])
@@ -198,8 +196,8 @@ def read_ctf_comp(fid, node, chs, verbose=None):
                 elif p > 1:
                     raise Exception('Ambiguous channel %s' %
                                                 mat['row_names'][row])
-
-                row_cals[row] = chs[p]['range'] * chs[p]['cal']
+                idx = ch_names.index(mat['row_names'][row])
+                row_cals[row] = chs[idx]['range'] * chs[idx]['cal']
 
             mat['data'] = np.dot(np.diag(row_cals), np.dot(mat['data'],
                                                         np.diag(col_cals)))
