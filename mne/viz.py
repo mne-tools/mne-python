@@ -713,24 +713,21 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
     tight_layout()
 
-    if show:
-        pl.show()
-
     if toggle_proj:
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
                       axes=axes, types=types, units=units, scalings=scalings,
-                      unit=unit, ch_types_used=ch_types_used,
-                      picks=picks, update_figure_fun=_plot_update_evoked)
+                      unit=unit, ch_types_used=ch_types_used, picks=picks,
+                      plot_update_proj_callback=_plot_update_evoked)
         _draw_proj_checkbox(None, params)
 
     if show:
-        fig.show()
+        pl.show()
 
     return fig
 
 
-def _plot_update_evoked(bools, params):
+def _plot_update_evoked(params, bools):
     """ update the plot evoked lines
     """
     picks, evoked = [params[k] for k in 'picks', 'evoked']
@@ -750,7 +747,7 @@ def _plot_update_evoked(bools, params):
     params['fig'].canvas.draw()
 
 
-def _draw_proj_checkbox(event, params):
+def _draw_proj_checkbox(event, params, draw_current_state=True):
     """Toggle options (projectors) dialog"""
     import pylab as pl
     projs = params['projs']
@@ -762,7 +759,8 @@ def _draw_proj_checkbox(event, params):
     ax_temp.get_xaxis().set_visible(False)
     fig_proj.add_axes(ax_temp)
     labels = [p['desc'] for p in projs]
-    actives = [p['active'] for p in projs]
+    actives = [p['active'] for p in projs] if draw_current_state else \
+              [True] * len(params['projs'])
     proj_checks = pl.mpl.widgets.CheckButtons(ax_temp, labels=labels,
                                               actives=actives)
     # change already-applied projectors to red
@@ -779,34 +777,13 @@ def _draw_proj_checkbox(event, params):
     except Exception:
         pass
     # pass key presses from option dialog over
-    proj_checks.on_clicked(partial(_toggle_proj_evoked, params=params))
+    proj_checks.on_clicked(partial(_toggle_proj, params=params))
     params['proj_checks'] = proj_checks
     # this should work for non-test cases
     try:
         fig_proj.canvas.show()
     except Exception:
         pass
-
-
-def _toggle_proj_evoked(event, params):
-    """Operation to perform when proj boxes clicked"""
-    # read options if possible
-    if 'proj_checks' in params:
-        bools = [x[0].get_visible() for x in params['proj_checks'].lines]
-        for bi, (b, p) in enumerate(zip(bools, params['projs'])):
-            # see if they tried to deactivate an active one
-            if not b and p['active']:
-                bools[bi] = True
-
-    compute_proj = False
-    if not 'proj_bools' in params:
-        compute_proj = True
-    elif not np.array_equal(bools, params['proj_bools']):
-        compute_proj = True
-
-    # if projectors changed, update plots
-    if compute_proj is True:
-        params['update_figure_fun'](bools, params)
 
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
@@ -2097,21 +2074,26 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     lines = [ax.plot([np.nan])[0] for _ in xrange(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
 
-    plot_fun = partial(_plot_traces, params=params, inds=inds, color=color,
-                       bad_color=bad_color, lines=lines,
-                       event_line=event_line, offsets=offsets)
+    params['plot_fun'] = partial(_plot_traces, params=params, inds=inds,
+                                 color=color, bad_color=bad_color, lines=lines,
+                                 event_line=event_line, offsets=offsets)
 
     # set up callbacks
     opt_button = pl.mpl.widgets.Button(ax_button, 'Opt')
     callback_option = partial(_toggle_options, params=params)
     opt_button.on_clicked(callback_option)
-    callback_key = partial(_plot_raw_onkey, params=params, plot_fun=plot_fun)
+    callback_key = partial(_plot_raw_onkey, params=params)
     fig.canvas.mpl_connect('key_press_event', callback_key)
-    callback_pick = partial(_mouse_click, params=params, plot_fun=plot_fun)
+    callback_pick = partial(_mouse_click, params=params)
     fig.canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_resize, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
-    callback_proj = partial(_toggle_proj, params=params, plot_fun=plot_fun)
+
+    # As here code is shared with plot_evoked, some extra steps:
+    # first the actual plot update function
+    params['plot_update_proj_callback'] = _plot_update_raw_proj
+    # then the toggle handler
+    callback_proj = partial(_toggle_proj, params=params)
     # store these for use by callbacks in the options figure
     params['callback_proj'] = callback_proj
     params['callback_key'] = callback_key
@@ -2134,44 +2116,7 @@ def _toggle_options(event, params):
     import pylab as pl
     if len(params['projs']) > 0:
         if params['fig_opts'] is None:
-            # turn on options dialog
-            fig_opts = figure_nobar()
-            fig_opts.canvas.set_window_title('Options')
-            ax_temp = pl.axes((0, 0, 1, 1))
-            ax_temp.get_yaxis().set_visible(False)
-            ax_temp.get_xaxis().set_visible(False)
-            fig_opts.add_axes(ax_temp)
-            labels = [p['desc'] for p in params['projs']]
-            if 'proj_bools' not in params:
-                actives = [True] * len(params['projs'])
-            else:
-                actives = params['proj_bools']
-            proj_checks = pl.mpl.widgets.CheckButtons(ax_temp, labels=labels,
-                                                      actives=actives)
-            # change already-applied projectors to red
-            for ii, p in enumerate(params['projs']):
-                if p['active'] is True:
-                    for x in proj_checks.lines[ii]:
-                        x.set_color('r')
-            # make minimal size
-            width = max([len(p['desc']) for p in params['projs']]) / 6.0 + 0.5
-            height = len(params['projs']) / 6.0 + 0.5
-            # have to try/catch when there's no toolbar
-            try:
-                fig_opts.set_size_inches((width, height), forward=True)
-            except Exception:
-                pass
-            # pass key presses from option dialog over
-            fig_opts.canvas.mpl_connect('key_press_event',
-                                        params['callback_key'])
-            proj_checks.on_clicked(params['callback_proj'])
-            params['fig_opts'] = fig_opts
-            params['proj_checks'] = proj_checks
-            # this should work for non-test cases
-            try:
-                fig_opts.canvas.show()
-            except Exception:
-                pass
+            _draw_proj_checkbox(event, params, draw_current_state=False)
         else:
             # turn off options dialog
             pl.close(params['fig_opts'])
@@ -2179,7 +2124,7 @@ def _toggle_options(event, params):
             params['fig_opts'] = None
 
 
-def _toggle_proj(event, params, plot_fun):
+def _toggle_proj(event, params):
     """Operation to perform when proj boxes clicked"""
     # read options if possible
     if 'proj_checks' in params:
@@ -2199,19 +2144,19 @@ def _toggle_proj(event, params, plot_fun):
 
     # if projectors changed, update plots
     if compute_proj is True:
-        inds = np.where(bools)[0]
-        params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
-                                   for ii in inds]
-        params['proj_bools'] = bools
-        _update_raw_proj(params)
-        _update_raw_data(params)
-        plot_fun()
+        params['plot_update_proj_callback'](params, bools)
 
 
-def _update_raw_proj(params):
+def _plot_update_raw_proj(params, bools):
     """Helper only needs to be called when proj is changed"""
-    projector = setup_proj(params['info'], add_eeg_ref=False, verbose=False)[0]
-    params['projector'] = projector
+    inds = np.where(bools)[0]
+    params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
+                               for ii in inds]
+    params['proj_bools'] = bools
+    params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
+                                        verbose=False)
+    _update_raw_data(params)
+    params['plot_fun']()
 
 
 def _update_raw_data(params):
@@ -2285,11 +2230,11 @@ def _helper_resize(event, params):
     _layout_raw(params)
 
 
-def _mouse_click(event, params, plot_fun):
+def _mouse_click(event, params):
     """Vertical select callback"""
     if event.inaxes is None or event.button != 1:
         return
-
+    plot_fun = params['plot_fun']
     # vertical scrollbar changed
     if event.inaxes == params['ax_vscroll']:
         ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
@@ -2301,7 +2246,7 @@ def _mouse_click(event, params, plot_fun):
         _plot_raw_time(event.xdata - params['duration'] / 2, params, plot_fun)
 
 
-def _plot_raw_time(value, params, plot_fun):
+def _plot_raw_time(value, params):
     """Deal with changed time value"""
     info = params['info']
     max_times = params['n_times'] / float(info['sfreq']) - params['duration']
@@ -2313,13 +2258,14 @@ def _plot_raw_time(value, params, plot_fun):
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
         _update_raw_data(params)
-        plot_fun()
+        params['plot_fun']()
 
 
-def _plot_raw_onkey(event, params, plot_fun):
+def _plot_raw_onkey(event, params):
     """Interpret key presses"""
     import pylab as pl
     # check for initial plot
+    plot_fun = params['plot_fun']
     if event is None:
         plot_fun()
         return
@@ -2360,7 +2306,7 @@ def _plot_raw_onkey(event, params, plot_fun):
             params['ch_start'] -= rem if rem != 0 else params['n_channels']
 
     if ch_changed:
-        plot_fun()
+        params['plot_fun']()
 
 
 def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):

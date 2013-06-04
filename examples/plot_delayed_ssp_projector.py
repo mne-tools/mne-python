@@ -96,7 +96,8 @@ pl.show()
 
 # while this example has exposed the mechanism used for handling
 # delayed SSP application we can make life easier this way:
-
+pl.figure()
 evoked.plot(toggle_proj=True)
+pl.show()
 # Noe select / deselect the SSP projection vectors and see how the figure
 # updates.
