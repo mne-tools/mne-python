@@ -54,21 +54,10 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 ###############################################################################
 # Interactively select / deselect the SSP projection vectors
 
-# The toggle_proj option will open a check box that allows to reversibly select
-# projection vectors. Any changes of the selection will immediately cause the
-# figure to update which which is convenient for explorative purposes.
-
-pl.figure()
-evoked.plot(toggle_proj=True)
-pl.show()
-
-# However you might be interested in the underlying mechanics or you might
-# want to write a systematic script that tackling the appropriate dose of SSPs.
-# Here we go:
-
+# Here we expose the details of how to apply SSPs reversibly
 title = 'Incremental SSP application'
 
-# let's move the proj list to another place
+# let's first move the proj list to another location
 projs, evoked.info['projs'] = evoked.info['projs'], []
 fig, axes = pl.subplots(2, 2)  # create 4 subplots for our four vectors
 
@@ -79,13 +68,22 @@ fig, axes = pl.subplots(2, 2)  # create 4 subplots for our four vectors
 # keep things reversible.
 
 for proj, ax in zip(projs, axes.flatten()):
-    evoked.add_proj(proj)  # add projs loop by loop.
+    evoked.add_proj(proj)  # add projection vectors loop by loop.
     evoked.copy().apply_proj().plot(axes=ax)  # apply on a copy of evoked
     ax.set_title('+ %s' % proj['desc'])  # extract description.
 pl.suptitle(title)
 pl.show()
 
 # We also could have easily visualized the impact of single projection vectors
-# by deleting the vector directly after plotting
-# E.g. had we appended the following line to the loop:
+# by deleting the vector directly after visualizing the changes.
+# E.g. had we appended the following line to our loop:
 #   `evoked.del_proj(-1)`
+
+# Often, it is desirable to interactively explore things. To make this easier
+# we can make use of the 'interactive' option which will open a check box that
+# allows us to reversibly select projection vectors. Any changes of the
+# selection will immediately cause the figure to update.
+
+pl.figure()
+evoked.plot(proj='interactive')
+pl.show()

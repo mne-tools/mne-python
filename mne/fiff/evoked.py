@@ -373,8 +373,10 @@ class Evoked(ProjMixin):
             Valid keys are eeg, mag, grad
         xlim : 'tight' | tuple | None
             xlim for plots.
-        proj : bool
-            If true SSP projections are applied before display.
+        proj : bool | 'interactive'
+            If true SSP projections are applied before display. If 'interactive',
+            a check box for reversible selection of SSP projection vecotrs will
+            be shown.
         hline : list of floats | None
             The values at which show an horizontal line.
         units : dict | None
@@ -395,8 +397,7 @@ class Evoked(ProjMixin):
         """
         plot_evoked(self, picks=picks, exclude=exclude, unit=unit, show=show,
                     ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
-                    scalings=scalings, titles=titles, axes=axes,
-                    toggle_proj=toggle_proj)
+                    scalings=scalings, titles=titles, axes=axes)
 
     def to_nitime(self, picks=None):
         """ Export Evoked object to NiTime
