@@ -569,6 +569,16 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     return fig
 
 
+def _check_delayed_ssp(container):
+    """ Aux function to be used for interactive SSP selection
+    """
+    if container.proj is True:
+        raise RuntimeError('Projs are already applied. Please initialize'
+                ' the data with proj set to False.')
+    elif len(container.info['projs']) < 1:
+        raise RuntimeError('No projs found in evoked.')
+
+
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, proj=False, xlim='tight', hline=None, units=None,
                 scalings=None, titles=None, axes=None, toggle_proj=False):
@@ -707,22 +717,37 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         pl.show()
 
     if toggle_proj:
-        if evoked.proj is True:
-            raise RuntimeError('Projs are already applied. Please initialize'
-                ' evokeds with proj set to False.')
-        elif len(evoked.info['projs']) < 1:
-            raise RuntimeError('No projs found in evoked.')
-
+        _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
                       axes=axes, types=types, units=units, scalings=scalings,
                       unit=unit, ch_types_used=ch_types_used,
-                      picks=picks)
+                      picks=picks, update_figure_fun=_plot_update_evoked)
         _draw_proj_checkbox(None, params)
 
     if show:
         fig.show()
 
     return fig
+
+
+def _plot_update_evoked(bools, params):
+    """ update the plot evoked lines
+    """
+    picks, evoked = [params[k] for k in 'picks', 'evoked']
+    times = evoked.times * 1e3
+    projs = [proj for ii, proj in enumerate(params['projs'])
+        if ii in np.where(bools)[0]]
+    params['proj_bools'] = bools
+    new_evoked = evoked.copy()
+    new_evoked.info['projs'] = []
+    new_evoked.add_proj(projs)
+    new_evoked.apply_proj()
+    for ax, t in zip(params['axes'], params['ch_types_used']):
+        this_scaling = params['scalings'][t]
+        idx = [picks[i] for i in range(len(picks)) if params['types'][i] == t]
+        D = this_scaling * new_evoked.data[idx, :]
+        [line.set_data(times, di) for line, di in zip(ax.lines, D)]
+    params['fig'].canvas.draw()
 
 
 def _draw_proj_checkbox(event, params):
@@ -780,22 +805,8 @@ def _toggle_proj_evoked(event, params):
         compute_proj = True
 
     # if projectors changed, update plots
-    picks, evoked = [params[k] for k in 'picks', 'evoked']
-    times = evoked.times * 1e3
     if compute_proj is True:
-        projs = [proj for ii, proj in enumerate(params['projs'])
-            if ii in np.where(bools)[0]]
-        params['proj_bools'] = bools
-        new_evoked = evoked.copy()
-        new_evoked.info['projs'] = []
-        new_evoked.add_proj(projs)
-        new_evoked.apply_proj()
-        for ax, t in zip(params['axes'], params['ch_types_used']):
-            this_scaling = params['scalings'][t]
-            idx = [picks[i] for i in range(len(picks)) if params['types'][i] == t]
-            D = this_scaling * new_evoked.data[idx, :]
-            [line.set_data(times, di) for line, di in zip(ax.lines, D)]
-    params['fig'].canvas.draw()
+        params['update_figure_fun'](bools, params)
 
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
