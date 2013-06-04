@@ -104,6 +104,9 @@ Changelog
 
    - Add regular expression and substring support for selecting parcellation labels by `Denis Engemann`_
 
+   - New plot_evoked option for interactive and reversible selection of SSP
+   projection vectors by `Denis Engemann`_
+
 API
 ~~~
 

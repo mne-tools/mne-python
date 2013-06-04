@@ -581,7 +581,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, proj=False, xlim='tight', hline=None, units=None,
-                scalings=None, titles=None, axes=None, toggle_proj=False):
+                scalings=None, titles=None, axes=None):
     """Plot evoked data
 
     Note: If bad channels are not excluded they are shown in red.
@@ -605,8 +605,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         for each channel equals the pylab default.
     xlim : 'tight' | tuple | None
         xlim for plots.
-    proj : bool
-        If true SSP projections are applied before display.
+    proj : bool | 'interactive'
+        If true SSP projections are applied before display. If 'interactive',
+        a check box for reversible selection of SSP projection vecotrs will
+        be show.
     hline : list of floats | None
         The values at which show an horizontal line.`.
     units : dict | None
@@ -622,11 +624,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
-    toggle_proj : bool
-        Show check box for interactive selection of SSP projection vecotrs.
     """
     import pylab as pl
-    if axes is not None and toggle_proj:
+    if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
 
@@ -671,6 +671,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                          'types (%g)' % (len(axes), n_channel_types))
 
     fig = axes[0].get_figure()
+
+    # instead of projecting during each iteration let's use the mixin here.
+    if proj is True:
+        evoked = evoked.copy()
+        evoked.apply_proj()
+
     times = 1e3 * evoked.times  # time in miliseconds
     for ax, t in zip(axes, ch_types_used):
         ch_unit = units[t]
@@ -691,12 +697,6 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ax._get_lines.color_cycle = cycle(['k'])
 
             D = this_scaling * evoked.data[idx, :]
-            if proj:
-                projs = activate_proj(evoked.info['projs'])
-                this_ch_names = [evoked.ch_names[k] for k in idx]
-                P, ncomp, _ = make_projector(projs, this_ch_names)
-                D = np.dot(P, D)
-
             pl.axes(ax)
             ax.plot(times, D.T)
             if xlim is not None:
@@ -706,7 +706,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
             if ylim is not None and t in ylim:
                 pl.ylim(ylim[t])
             pl.title(titles[t] + ' (%d channel%s)' % (
-                len(D), 's' if len(D) > 1 else ''))
+                     len(D), 's' if len(D) > 1 else ''))
             pl.xlabel('time (ms)')
             pl.ylabel('data (%s)' % ch_unit)
 
@@ -717,7 +717,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
     tight_layout()
 
-    if toggle_proj:
+    if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
                       axes=axes, types=types, units=units, scalings=scalings,
