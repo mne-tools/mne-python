@@ -607,7 +607,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         xlim for plots.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
-        a check box for reversible selection of SSP projection vecotrs will
+        a check box for reversible selection of SSP projection vectors will
         be show.
     hline : list of floats | None
         The values at which show an horizontal line.`.

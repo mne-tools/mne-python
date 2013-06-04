@@ -352,7 +352,7 @@ class Evoked(ProjMixin):
 
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=None, scalings=None,
-             titles=None, axes=None, toggle_proj=False):
+             titles=None, axes=None):
         """Plot evoked data
 
         Note: If bad channels are not excluded they are shown in red.
@@ -375,7 +375,7 @@ class Evoked(ProjMixin):
             xlim for plots.
         proj : bool | 'interactive'
             If true SSP projections are applied before display. If 'interactive',
-            a check box for reversible selection of SSP projection vecotrs will
+            a check box for reversible selection of SSP projection vectors will
             be shown.
         hline : list of floats | None
             The values at which show an horizontal line.
@@ -392,8 +392,6 @@ class Evoked(ProjMixin):
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
-        toggle_proj : bool
-            Show check box for interactive selection of SSP projection vecotrs.
         """
         plot_evoked(self, picks=picks, exclude=exclude, unit=unit, show=show,
                     ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
