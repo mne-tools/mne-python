@@ -21,6 +21,7 @@ base_dir = op.join(op.dirname(__file__), 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
 fif_gz_fname = op.join(base_dir, 'test_raw.fif.gz')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 fif_bad_marked_fname = op.join(base_dir, 'test_withbads_raw.fif')
 bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
@@ -745,3 +746,11 @@ def test_with_statement():
     for preload in [True, False]:
         with Raw(fif_fname, preload=preload) as raw_:
             print raw_
+
+
+def test_compensation_raw():
+    raw = Raw(ctf_comp_fname, compensation=None)
+    assert_true(raw.comp is None)
+    raw = Raw(ctf_comp_fname, compensation=3)
+    assert_true(raw.comp is not None)
+    assert_raises(ValueError, Raw, ctf_comp_fname, compensation=33)
