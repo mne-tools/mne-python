@@ -79,12 +79,12 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
 
     Returns
     -------
-    comp : array
-        The compensation matrix.
+    comp : array | None.
+        The compensation matrix. Might be None if no compensation
+        is needed (from == to).
     """
     if from_ == to:
-        comp = np.zeros((info['nchan'], info['nchan']))
-        return comp
+        return None
 
     if from_ == 0:
         C1 = np.zeros((info['nchan'], info['nchan']))

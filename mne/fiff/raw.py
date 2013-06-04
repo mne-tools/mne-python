@@ -7,13 +7,14 @@
 
 from math import floor, ceil
 import copy
+from copy import deepcopy
 import warnings
 import os
 import os.path as op
 
 import numpy as np
 from scipy.signal import hilbert
-from copy import deepcopy
+from scipy import linalg
 
 import logging
 logger = logging.getLogger('mne')
@@ -305,8 +306,9 @@ class Raw(ProjMixin):
 
         if compensation is not None:
             raw.comp = make_compensator(info, current_comp, compensation)
-            logger.info('Appropriate compensator added to change to '
-                        'grade %d.' % (compensation))
+            if raw.comp is not None:
+                logger.info('Appropriate compensator added to change to '
+                            'grade %d.' % (compensation))
 
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     raw.first_samp, raw.last_samp,
@@ -958,6 +960,12 @@ class Raw(ProjMixin):
         #
         #   Read and write all the data
         #
+
+        # Take care of CTF compensation
+        inv_comp = None
+        if self.comp is not None:
+            inv_comp = linalg.inv(self.comp)
+
         write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
         for first in range(start, stop, buffer_size):
             last = first + buffer_size
@@ -978,7 +986,7 @@ class Raw(ProjMixin):
                             '[done]')
                 break
             logger.info('Writing ...')
-            write_raw_buffer(outfid, data, cals, format)
+            write_raw_buffer(outfid, data, cals, format, inv_comp)
             logger.info('[done]')
 
         finish_writing_raw(outfid)
@@ -1476,15 +1484,13 @@ class Raw(ProjMixin):
         else:
             data = None  # we will allocate it later, once we know the type
 
-        if projector is not None:
-            mult = list()
-            for ri in range(len(self._raw_lengths)):
-                mult.append(np.diag(self.cals.ravel()))
-                if self.comp is not None:
-                    mult[ri] = np.dot(self.comp[idx, :], mult[ri])
+        mult = list()
+        for ri in range(len(self._raw_lengths)):
+            mult.append(np.diag(self.cals.ravel()))
+            if self.comp is not None:
+                mult[ri] = np.dot(self.comp[idx, :], mult[ri])
+            if projector is not None:
                 mult[ri] = np.dot(projector, mult[ri])
-        else:
-            mult = None
 
         # deal with having multiple files accessed by the raw object
         cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
@@ -1763,7 +1769,7 @@ def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     return fid, cals
 
 
-def write_raw_buffer(fid, buf, cals, format):
+def write_raw_buffer(fid, buf, cals, format, inv_comp):
     """Write raw buffer
 
     Parameters
@@ -1778,6 +1784,9 @@ def write_raw_buffer(fid, buf, cals, format):
         'short', 'int', 'single', or 'double' for 16/32 bit int or 32/64 bit
         float for each item. This will be doubled for complex datatypes. Note
         that short and int formats cannot be used for complex data.
+    inv_comp : array | None
+        The CTF compensation matrix used to revert compensation
+        change when reading.
     """
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
@@ -1802,7 +1811,13 @@ def write_raw_buffer(fid, buf, cals, format):
         else:
             raise ValueError('only "single" and "double" supported for '
                              'writing complex data')
-    write_function(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
+
+    if inv_comp is not None:
+        buf = np.dot(inv_comp / np.ravel(cals)[:, None], buf)
+    else:
+        buf = buf / np.ravel(cals)[:, None]
+
+    write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
 
 def finish_writing_raw(fid):
