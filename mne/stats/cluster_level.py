@@ -30,7 +30,7 @@ def _get_clusters_spatial(s, neighbors):
     This is equivalent to _get_components with n_times = 1, with a properly
     reconfigured connectivity matrix (formed as "neighbors" list)
     """
-    # s is a vector of spatial indicies that are significant, like:
+    # s is a vector of spatial indices that are significant, like:
     #     s = np.where(x_in)[0]
     # for x_in representing a single time-instant
     r = np.ones(s.shape, dtype=bool)
