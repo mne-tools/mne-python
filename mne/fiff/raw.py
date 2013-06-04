@@ -25,6 +25,7 @@ from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types, channel_type
 from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
+from .compensator import get_current_comp, make_compensator
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
@@ -62,6 +63,10 @@ class Raw(ProjMixin):
         recommended to apply the projectors at this point as they are
         applied automatically later on (e.g. when computing inverse
         solutions).
+    compensation : None | int
+        If None the compensation in the data is not modified.
+        If set to n, e.g. 3, apply gradient compensation of grade n as
+        for CTF systems.
 
     Attributes
     ----------
@@ -76,7 +81,8 @@ class Raw(ProjMixin):
     """
     @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 verbose=None, proj=False, proj_active=None):
+                 verbose=None, proj=False, proj_active=None,
+                 compensation=None):
 
         if proj_active is not None:
             warnings.warn('proj_active param in Raw is deprecated and will be'
@@ -108,6 +114,16 @@ class Raw(ProjMixin):
         self.info['filenames'] = fnames
         self.orig_format = raws[0].orig_format
         self.proj = False
+
+        #   Set up the CTF compensator
+        current_comp = get_current_comp(self.info)
+        if current_comp is not None:
+            logger.info('Current compensation grade : %d' % current_comp)
+
+        if compensation is not None:
+            self.comp = make_compensator(self.info, current_comp, compensation)
+            logger.info('Appropriate compensator added to change to '
+                        'grade %d.' % (compensation))
 
         if preload:
             self._preload_data(preload)

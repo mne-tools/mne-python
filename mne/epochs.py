@@ -16,7 +16,6 @@ from copy import deepcopy
 import logging
 logger = logging.getLogger('mne')
 
-from . import fiff
 from .fiff.write import start_file, start_block, end_file, end_block, \
                         write_int, write_float_matrix, write_float, \
                         write_id, write_string
@@ -61,8 +60,6 @@ class Epochs(ProjMixin):
         End time after event.
     name : string
         Comment that describes the Evoked data created.
-    keep_comp : boolean
-        Apply CTF gradient compensation.
     baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -194,7 +191,7 @@ class Epochs(ProjMixin):
     """
     @verbose
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
-                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
+                 picks=None, name='Unknown', keep_comp=None, dest_comp=None,
                  preload=False, reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
                  add_eeg_ref=True, verbose=None):
@@ -266,20 +263,10 @@ class Epochs(ProjMixin):
         if self._delayed_ssp():
             logger.info('Entering delayed SSP mode.')
 
-        #   Set up the CTF compensator
-        current_comp = fiff.get_current_comp(self.info)
-        if current_comp > 0:
-            logger.info('Current compensation grade : %d' % current_comp)
-
-        if keep_comp:
-            dest_comp = current_comp
-
-        if current_comp != dest_comp:
-            # XXX : should find a way to avoid the change to raw...
-            raw.comp = fiff.compensator.make_compensator(raw.info,
-                                                    current_comp, dest_comp)
-            logger.info('Appropriate compensator added to change to '
-                        'grade %d.' % (dest_comp))
+        #   XXX : deprecate CTF compensator
+        if dest_comp is not None or keep_comp is not None:
+            raise ValueError('current_comp and keep_comp are deprecated.'
+                             ' Use the compensation parameter in Raw.')
 
         #    Select the desired events
         self.events = events

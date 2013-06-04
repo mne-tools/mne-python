@@ -12,7 +12,7 @@ from .. import verbose
 def get_current_comp(info):
     """Get the current compensation in effect in the data
     """
-    comp = 0
+    comp = None
     first_comp = -1
     for k, chan in enumerate(info['chs']):
         if chan['kind'] == FIFF.FIFFV_MEG_CH:
