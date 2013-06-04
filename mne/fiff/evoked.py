@@ -404,11 +404,12 @@ class Evoked(ProjMixin):
         ----------
         evoked : Evoked
             The Evoked object.
-        times : scalar | sequence of scalars | None.
+        times : float | array of floats | None.
             The time point(s) to plot. If None, 10 topographies will be shown
             will a regular time spacing between the first and last time instant.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
-            The channel type to plot. For 'grad', the ...
+            The channel type to plot. For 'grad', the gradiometers are collected in
+            pairs and the RMS for each pair is plotted.
         layout : None | str | Layout
             Layout name or instance specifying sensor positions (does not need to
             be specified for Neuromag data).

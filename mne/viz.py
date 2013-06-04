@@ -581,11 +581,12 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     ----------
     evoked : Evoked
         The Evoked object.
-    times : scalar | sequence of scalars | None.
+    times : float | array of floats | None.
         The time point(s) to plot. If None, 10 topographies will be shown
         will a regular time spacing between the first and last time instant.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
-        The channel type to plot. For 'grad', the ...
+        The channel type to plot. For 'grad', the gradiometers are collected in
+        pairs and the RMS for each pair is plotted.
     layout : None | str | Layout
         Layout name or instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
@@ -602,7 +603,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Plot a colorbar.
     res : int
         The resolution of the topomap image (n pixels along each side).
-    size : scalar
+    size : float
         Side length of the topomaps in inches (only applies when plotting
         multiple topomaps at a time).
     show : bool
@@ -616,12 +617,15 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
                     np.unique([ch['coil_type'] for ch in evoked.info['chs']])):
-        from .layouts.layout import pair_grad_sensors, merge_grad_data
-        picks, pos = pair_grad_sensors(evoked.info)
+        from .layouts.layout import _pair_grad_sensors, _merge_grad_data
+        picks, pos = _pair_grad_sensors(evoked.info)
         merge_grads = True
     else:
         merge_grads = False
         picks = pick_types(evoked.info, meg=ch_type, exclude='bads')
+        if len(picks) == 0:
+            raise ValueError("No channels of type %r" % ch_type)
+
         if (layout is None) or isinstance(layout, str):
             chs = [evoked.info['chs'][i] for i in picks]
             from .layouts.layout import find_topomap_coords
@@ -632,7 +636,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if np.isscalar(times):
         data = evoked.data[picks, np.where(evoked.times > times)[0][0]]
         if merge_grads:
-            data = merge_grad_data(data)
+            data = _merge_grad_data(data)
         plot_topomap(data, pos, vmax=vmax, cmap=cmap, sensors=sensors, res=res)
         if colorbar:
             pl.colorbar()
@@ -643,7 +647,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
         data = evoked.data[np.ix_(picks, time_idx)]
         if merge_grads:
-            data = merge_grad_data(data)
+            data = _merge_grad_data(data)
         vmax = vmax or np.max(data)
         for i, t in enumerate(times):
             pl.subplot(1, nax, i + 1)

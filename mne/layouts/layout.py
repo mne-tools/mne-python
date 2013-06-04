@@ -247,6 +247,9 @@ def find_topomap_coords(chs, layout_name=None):
     -------
     coords : array, shape = (n_
     """
+    if len(chs) == 0:
+        raise ValueError("Need more than 0 channels.")
+
     if layout_name is None:
         coil_types = np.unique([ch['coil_type'] for ch in chs])
         has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
@@ -313,7 +316,7 @@ def auto_topomap_coords(chs):
     return locs2d
 
 
-def pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
+def _pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
     """Find the picks for pairing grad channels
 
     Parameters
@@ -331,8 +334,9 @@ def pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
     -------
     picks : list of int
         Picks for the grad channels, ordered in pairs.
-    coords (optional) : array, shape = (n_grad_channels, 3)
-        Coordinates for a topomap plot (optional).
+    coords : array, shape = (n_grad_channels, 3)
+        Coordinates for a topomap plot (optional, only returned if
+        topomap_coords == True).
     """
     # find all complete pairs of grad channels
     pairs = defaultdict(list)
@@ -345,6 +349,8 @@ def pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
                 key = name[-4:-1]
                 pairs[key].append(ch)
     pairs = [p for p in pairs.values() if len(p) == 2]
+    if len(pairs) == 0:
+        raise ValueError("No 'grad' channel pairs found.")
 
     # find the picks corresponding to the grad channels
     grad_chs = sum(pairs, [])
@@ -359,7 +365,7 @@ def pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
         return picks
 
 
-def merge_grad_data(data):
+def _merge_grad_data(data):
     """Merge data from channel pairs using the RMS
 
     Parameters
@@ -372,6 +378,6 @@ def merge_grad_data(data):
     data : array, shape = (n_channels / 2, n_times)
         The root mean square for each pair.
     """
-    data = data.reshape((len(data) / 2, 2, -1))
-    data = np.sqrt(np.sum(data ** 2, 1) / 2)
+    data = data.reshape((len(data) // 2, 2, -1))
+    data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
     return data

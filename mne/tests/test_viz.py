@@ -34,6 +34,7 @@ if not lacks_mayavi:
 data_dir = data_path()
 sample_src = read_source_spaces(op.join(data_dir, 'subjects', 'sample',
                                         'bem', 'sample-oct-6-src.fif'))
+evoked_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis-ave.fif')
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -198,7 +199,13 @@ def test_plot_raw():
 def test_plot_topomap():
     """Testing topomap plotting
     """
+    evoked = fiff.read_evoked(evoked_fname, 'Left Auditory', baseline=(None, 0))
     plot_evoked_topomap(evoked, 0.1, 'mag')
+    times = [0.1, 0.2]
+    plot_evoked_topomap(evoked, times, 'mag')
+    plot_evoked_topomap(evoked, times, 'grad')
+    plot_evoked_topomap(evoked, times, 'planar1')
+    plot_evoked_topomap(evoked, times, 'mag', layout='auto')
 
 
 def test_compare_fiff():
