@@ -54,8 +54,6 @@ class Raw(ProjMixin):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     proj : bool
         Apply the signal space projection (SSP) operators present in
         the file to the data. Note: Once the projectors have been
@@ -67,6 +65,8 @@ class Raw(ProjMixin):
         If None the compensation in the data is not modified.
         If set to n, e.g. 3, apply gradient compensation of grade n as
         for CTF systems.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Attributes
     ----------
@@ -81,8 +81,8 @@ class Raw(ProjMixin):
     """
     @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 verbose=None, proj=False, proj_active=None,
-                 compensation=None):
+                 proj=False, proj_active=None, compensation=None,
+                 verbose=None):
 
         if proj_active is not None:
             warnings.warn('proj_active param in Raw is deprecated and will be'
