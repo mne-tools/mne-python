@@ -585,6 +585,17 @@ class Epochs(ProjMixin):
 
             self._reject_time = slice(reject_imin, reject_imax)
 
+    def __len__(self):
+        """Number of epochs.
+        """
+        if not self._bad_dropped:
+            err = ("Since bad epochs have not been dropped, the length of the "
+                   "Epochs is not known. Load the Epochs with preload=True, "
+                   "or call Epochs.drop_bad_epochs(). To find the number of "
+                   "events in the Epochs, use len(Epochs.events).")
+            raise RuntimeError(err)
+        return len(self.events)
+
     def __iter__(self):
         """To make iteration over epochs easy.
         """
