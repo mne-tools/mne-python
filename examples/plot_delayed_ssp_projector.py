@@ -99,5 +99,5 @@ pl.show()
 pl.figure()
 evoked.plot(toggle_proj=True)
 pl.show()
-# Noe select / deselect the SSP projection vectors and see how the figure
+# Now select / deselect the SSP projection vectors and see how the figure
 # updates.
