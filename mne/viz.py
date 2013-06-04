@@ -91,6 +91,16 @@ def _clean_names(names):
     return [n.replace(' ', '') if ' ' in n else n for n in names]
 
 
+def _check_delayed_ssp(container):
+    """ Aux function to be used for interactive SSP selection
+    """
+    if container.proj is True:
+        raise RuntimeError('Projs are already applied. Please initialize'
+                ' the data with proj set to False.')
+    elif len(container.info['projs']) < 1:
+        raise RuntimeError('No projs found in evoked.')
+
+
 def tight_layout(pad=1.2, h_pad=None, w_pad=None):
     """ Adjust subplot parameters to give specified padding.
 
@@ -569,16 +579,6 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     return fig
 
 
-def _check_delayed_ssp(container):
-    """ Aux function to be used for interactive SSP selection
-    """
-    if container.proj is True:
-        raise RuntimeError('Projs are already applied. Please initialize'
-                ' the data with proj set to False.')
-    elif len(container.info['projs']) < 1:
-        raise RuntimeError('No projs found in evoked.')
-
-
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, proj=False, xlim='tight', hline=None, units=None,
                 scalings=None, titles=None, axes=None, toggle_proj=False):
@@ -626,6 +626,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         Show check box for interactive selection of SSP projection vecotrs.
     """
     import pylab as pl
+    if axes is not None and toggle_proj:
+        raise RuntimeError('Currently only single axis figures are supported'
+                           ' for interactive SSP selection.')
+
     scalings, titles, units = _mutable_defaults(('scalings', scalings),
                                                 ('titles', titles),
                                                 ('units', units))

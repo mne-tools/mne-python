@@ -51,53 +51,41 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
-
 ###############################################################################
-# View evoked response with projectors idle
+# Interactively select / deselect the SSP projection vectors
 
-times = 1e3 * epochs.times  # time in milliseconds
-pl.figure()
-evoked.plot()
-pl.xlim([times[0], times[-1]])
-pl.xlabel('time (ms)')
-pl.ylabel('MEG evoked fields (fT)')
-pl.title('Magnetometers | SSP off')
-pl.show()
+# The toggle_proj option will open a check box that allows to reversibly select
+# projection vectors. Any changes of the selection will immediately cause the
+# figure to update which which is convenient for explorative purposes.
 
-# Now with all projectors activated.
-times = evoked.times * 1e3
-pl.figure()
-evoked.copy().apply_proj().plot()
-pl.xlim([times[0], times[-1]])
-pl.xlabel('time (ms)')
-pl.ylabel('MEG evoked fields (fT)')
-pl.title('Magnetometers | SSP on')
-pl.show()
-
-# Finally we are going to investigate the incremental effects of the single
-# projection vectors.
-
-title = 'Incremental SSP application'
-projs, evoked.info['projs'] = evoked.info['projs'], []  # pop projs
-fig, axes = pl.subplots(2, 2)  # create 4 subplots for our four vectors
-
-# As the bulk of projectors was extracted from the same source, an incremental
-# 'protocol' will be informative. We could also easily visualize the impact of
-# single projection vectors by deleting the vector directly after plotting
-# by adding the following line to the loop:
-#   evoked.del_proj(-1)
-for proj, ax in zip(projs, axes.flatten()):
-    evoked.add_proj(proj)  # add and apply on a copy,
-    evoked.copy().apply_proj().plot(axes=ax)  # as this cannot be undone.
-    ax.set_title('+ %s' % proj['desc'])
-pl.suptitle(title)
-pl.show()
-
-
-# while this example has exposed the mechanism used for handling
-# delayed SSP application we can make life easier this way:
 pl.figure()
 evoked.plot(toggle_proj=True)
 pl.show()
-# Now select / deselect the SSP projection vectors and see how the figure
-# updates.
+
+# However you might be interested in the underlying mechanics or you might
+# want to write a systematic script that tackling the appropriate dose of SSPs.
+# Here we go:
+
+title = 'Incremental SSP application'
+
+# let's move the proj list to another place
+projs, evoked.info['projs'] = evoked.info['projs'], []
+fig, axes = pl.subplots(2, 2)  # create 4 subplots for our four vectors
+
+# As the bulk of projectors was extracted from the same source, we can simply
+# iterate over our collection of projs and add them step by step to see how
+# the signals change as a function of the SSPs applied. As this operation
+# can't be undone we will operate on copies of the original evoked object to
+# keep things reversible.
+
+for proj, ax in zip(projs, axes.flatten()):
+    evoked.add_proj(proj)  # add projs loop by loop.
+    evoked.copy().apply_proj().plot(axes=ax)  # apply on a copy of evoked
+    ax.set_title('+ %s' % proj['desc'])  # extract description.
+pl.suptitle(title)
+pl.show()
+
+# We also could have easily visualized the impact of single projection vectors
+# by deleting the vector directly after plotting
+# E.g. had we appended the following line to the loop:
+#   `evoked.del_proj(-1)`
