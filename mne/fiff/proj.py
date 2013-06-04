@@ -132,9 +132,16 @@ class ProjMixin(object):
                          'nothing.')
             return
 
+        _projector, info = setup_proj(deepcopy(self.info), activate=True,
+                                      verbose=self.verbose)
+        # let's not raise a RuntimeError here, otherwise interactive plotting
+        if _projector is None:  # won't be fun.
+            logger.info('The projections don\'t apply to these data.'
+                        ' Doing nothing.')
+            return self
+
+        self._projector, self.info = _projector, info
         self.proj = True  # track that proj were applied
-        self._projector, self.info = setup_proj(self.info, activate=True,
-                                                verbose=self.verbose)
         # handle different data / preload attrs and create reference
         # this also helps avoiding circular imports
         for attr in ('get_data', '_data', 'data'):
@@ -147,7 +154,7 @@ class ProjMixin(object):
                     for ii, e in enumerate(self._data):
                         data[ii] = self._preprocess(np.dot(self._projector, e),
                             self.verbose)
-                else:
+                else:  # get data knows what to do.
                     data = data()
             else:
                 data = np.dot(self._projector, data)
