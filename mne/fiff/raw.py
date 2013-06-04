@@ -94,8 +94,8 @@ class Raw(ProjMixin):
         else:
             fnames = [op.abspath(f) if not op.isabs(f) else f for f in fnames]
 
-        raws = [self._read_raw_file(fname, allow_maxshield, preload)
-                for fname in fnames]
+        raws = [self._read_raw_file(fname, allow_maxshield, preload,
+                                    compensation) for fname in fnames]
 
         _check_raw_compatibility(raws)
 
@@ -107,23 +107,13 @@ class Raw(ProjMixin):
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
         self.cals = raws[0].cals
         self.rawdirs = [r.rawdir for r in raws]
-        self.comp = None
+        self.comp = copy.deepcopy(raws[0].comp)
         self.fids = [r.fid for r in raws]
         self.info = copy.deepcopy(raws[0].info)
         self.verbose = verbose
         self.info['filenames'] = fnames
         self.orig_format = raws[0].orig_format
         self.proj = False
-
-        #   Set up the CTF compensator
-        current_comp = get_current_comp(self.info)
-        if current_comp is not None:
-            logger.info('Current compensation grade : %d' % current_comp)
-
-        if compensation is not None:
-            self.comp = make_compensator(self.info, current_comp, compensation)
-            logger.info('Appropriate compensator added to change to '
-                        'grade %d.' % (compensation))
 
         if preload:
             self._preload_data(preload)
@@ -170,7 +160,8 @@ class Raw(ProjMixin):
         self.close()
 
     @verbose
-    def _read_raw_file(self, fname, allow_maxshield, preload, verbose=None):
+    def _read_raw_file(self, fname, allow_maxshield, preload, compensation,
+                       verbose=None):
         """Read in header information from a raw file"""
         logger.info('Opening raw data file %s...' % fname)
 
@@ -306,7 +297,17 @@ class Raw(ProjMixin):
         raw.cals = cals
         raw.rawdir = rawdir
         raw.comp = None
-        # XXX raw.comp never changes!
+
+        #   Set up the CTF compensator
+        current_comp = get_current_comp(info)
+        if current_comp is not None:
+            logger.info('Current compensation grade : %d' % current_comp)
+
+        if compensation is not None:
+            raw.comp = make_compensator(info, current_comp, compensation)
+            logger.info('Appropriate compensator added to change to '
+                        'grade %d.' % (compensation))
+
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     raw.first_samp, raw.last_samp,
                     float(raw.first_samp) / info['sfreq'],
