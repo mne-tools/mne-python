@@ -390,7 +390,7 @@ class Evoked(ProjMixin):
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
-        oggle_proj : bool
+        toggle_proj : bool
             Show check box for interactive selection of SSP projection vecotrs.
         """
         plot_evoked(self, picks=picks, exclude=exclude, unit=unit, show=show,
