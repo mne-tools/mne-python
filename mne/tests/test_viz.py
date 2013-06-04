@@ -116,6 +116,8 @@ def test_plot_evoked():
     assert_raises(RuntimeError, evoked_delayed_ssp.plot, toggle_proj=True)
     evoked_delayed_ssp.info['projs'] = []
     assert_raises(RuntimeError, evoked_delayed_ssp.plot, toggle_proj=True)
+    assert_raises(RuntimeError, evoked_delayed_ssp.plot, toggle_proj=True,
+                  axes='foo')
 
 
 @requires_mayavi
