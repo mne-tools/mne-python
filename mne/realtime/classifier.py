@@ -1,26 +1,37 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jun  5 16:58:27 2013
+# Author: Mainak Jas <mainak@neuro.hut.fi>
+#          
+# License: BSD (3-clause)
 
-@author: mainakjas
-"""
-
-import sklearn
+from sklearn.svm import SVC
 import numpy as np
 
-class RtClassifier():
+class RtClassifier(object):
     
-    def __init__(self, method, fit, predict, partial_fit):
+    def __init__(self, method, epochs, Y, tr_percent):
                 
-
-        [Tr_X, Ts_X, Tr_Y, Ts_Y] = SplitData(self, epochs, Y, tr_percent)
-
-        # Online training and testing
-        clf = SVC(C=1, kernel='linear')
-        clf.fit(Tr_X,Tr_Y)
-        result = clf.predict(Ts_X)
+        #[Tr_X, Ts_X, Tr_Y, Ts_Y] = split_data(self, epochs, Y, tr_percent)
         
-    def SplitData(self, epochs, Y, tr_percent):
+        #clf = fit(self, Tr_X, Tr_Y, method='SVM')
+        #result = clf.predict(self, Ts_X)        
+        
+        #return result
+                
+    def split_data(self, epochs, Y, tr_percent):      
+        """Split data into training and test set
+
+        Parameters
+        ----------
+        epochs : 
+        Y:
+        tr_percent:
+
+        Returns
+        -------
+        Tr_X:
+        Ts_X:
+        Tr_Y:
+        Ts_Y:
+        """
         
         trnum = round(np.shape(epochs)[0]*tr_percent/100)
         tsnum = np.shape(epochs)[0] - trnum 
@@ -33,3 +44,20 @@ class RtClassifier():
         Ts_Y = Y[-tsnum:]
         
         return Tr_X, Ts_X, Tr_Y, Ts_Y
+    
+    def fit(self, Tr_X, Tr_Y, method):
+        
+        # Online training and testing
+        
+        if method=='SVM':
+            clf = SVC(C=1, kernel='linear')
+              
+        clf.fit(Tr_X,Tr_Y)
+        
+        return clf
+        
+    def predict(self, Ts_X):
+        
+        result = clf.predict(Ts_X)
+        
+        return result, clf
