@@ -242,10 +242,15 @@ def find_topomap_coords(chs, layout_name=None):
     ----------
     chs : list
         A list of channels as contained in the info['chs'] entry.
+    layout_name : None | str
+        Enforce using a specific layout. With 'auto', a new map is generated.
+        With None, a layout is chosen based on the channels in the chs
+        parameter.
 
     Returns
     -------
-    coords : array, shape = (n_
+    coords : array, shape = (n_chs, 2)
+        2 dimensional coordinates for each sensor for a topomap plot.
     """
     if len(chs) == 0:
         raise ValueError("Need more than 0 channels.")

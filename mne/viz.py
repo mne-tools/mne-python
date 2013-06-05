@@ -574,7 +574,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        scale=None, unit=None, res=256, size=1.5, show=True):
+                        scale=None, unit=None, res=256, size=1, show=True):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
