@@ -25,10 +25,8 @@ evoked = mne.fiff.read_evoked(fname, 'Left Auditory', baseline=(None, 0))
 times = np.arange(0.05, 0.15, 0.01)
 # If times is set to None only 10 regularly spaced topographies will be shown
 
-vmax = 5e-13  # set max value to scale colormap
-
 # plot magnetometer data as topomaps
-evoked.plot_topomap(times, vmax=vmax, ch_type='mag')
+evoked.plot_topomap(times, ch_type='mag')
 
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
 evoked.plot_topomap(times, ch_type='grad')
