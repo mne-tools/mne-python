@@ -45,19 +45,18 @@ rt_epochs.start()
 n_times = len(rt_epochs.times)
 from sklearn.svm import SVC
 
-ii=0; times = []; score = [];
+ii, times, score = 0, [], []
 
 pl.ion()
 
-while 1:
-        
-    # Fetch epochs and labels
-    if (ii==0):
-        epochs = rt_epochs._get_data_from_disk()
-        Y = np.asarray(rt_epochs.events)[0:minchunks,2]
-    else:
-        epochs = np.append(epochs,rt_epochs._get_data_from_disk(),axis=0)
-        Y = np.append(Y,np.asarray(rt_epochs.events)[0:minchunks,2],axis=0)
+epochs = np.array([ep for ep in rt_epochs])
+Y = np.array([y for y in rt_epochs.events])[0:minchunks,2]
+
+while True:        
+    
+    # Fetch epochs and labels   
+    epochs = np.append(epochs, np.array([ep for ep in rt_epochs]),axis=0)
+    Y = np.append(Y, np.array([y for y in rt_epochs.events])[0:minchunks,2])
     
     rt_epochs.remove_old_epochs(minchunks)   
     
@@ -98,5 +97,3 @@ while 1:
         pl.show()
 
         pl.waitforbuttonpress(0.1)
-                
-    ii += 1
