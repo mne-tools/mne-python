@@ -45,7 +45,7 @@ rt_epochs.start()
 n_times = len(rt_epochs.times)
 from sklearn.svm import SVC
 
-ii, times, score = 0, [], []
+times, score = [], []
 
 pl.ion()
 
