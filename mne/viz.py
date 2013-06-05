@@ -654,7 +654,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     width = size * nax
     width *= (1 + pl.rcParams['figure.subplot.left'] + 1 -
               pl.rcParams['figure.subplot.right'])
-    pl.figure(figsize=(width, size * 1.2))
+    height = size * 1.2 + .3
+    pl.figure(figsize=(width, height))
     time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
     data = evoked.data[np.ix_(picks, time_idx)] * scale
     if merge_grads:

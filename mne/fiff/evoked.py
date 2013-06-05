@@ -396,8 +396,8 @@ class Evoked(ProjMixin):
                     scalings=scalings, titles=titles, axes=axes)
 
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmax=None,
-                     cmap='RdBu_r', sensors='k,', colorbar=True, res=256,
-                     size=1, show=True):
+                     cmap='RdBu_r', sensors='k,', colorbar=True, scale=None,
+                     unit=None, res=256, size=1, show=True):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -406,23 +406,30 @@ class Evoked(ProjMixin):
             The Evoked object.
         times : float | array of floats | None.
             The time point(s) to plot. If None, 10 topographies will be shown
-            will a regular time spacing between the first and last time instant.
+            will a regular time spacing between the first and last time
+            instant.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
-            The channel type to plot. For 'grad', the gradiometers are collected in
-            pairs and the RMS for each pair is plotted.
+            The channel type to plot. For 'grad', the gradiometers are collec-
+            ted in pairs and the RMS for each pair is plotted.
         layout : None | str | Layout
-            Layout name or instance specifying sensor positions (does not need to
-            be specified for Neuromag data).
+            Layout name or instance specifying sensor positions (does not need
+            to be specified for Neuromag data).
         vmax : scalar
-            The value specfying the range of the color scale (-vmax to +vmax). If
-            None, the largest absolute value in the data is used.
+            The value specfying the range of the color scale (-vmax to +vmax).
+            If None, the largest absolute value in the data is used.
         cmap : matplotlib colormap
             Colormap.
         sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib plot
-            format string (e.g., 'r+' for red plusses).
+            Add markers for sensor locations to the plot. Accepts matplotlib
+            plot format string (e.g., 'r+' for red plusses).
         colorbar : bool
             Plot a colorbar.
+        scale : float | None
+            Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
+            for grad and 1e15 for mag.
+        units : str | None
+            The units of the channel types used for colorbar lables. If
+            scale == None the unit is automatically determined.
         res : int
             The resolution of the topomap image (n pixels along each side).
         size : scalar
@@ -431,8 +438,10 @@ class Evoked(ProjMixin):
         show : bool
             Call pylab.show() at the end.
         """
-        plot_evoked_topomap(self, times, ch_type, layout, vmax, cmap, sensors,
-                            colorbar, res, size)
+        plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
+                            vmax=vmax, cmap=cmap, sensors=sensors,
+                            colorbar=colorbar, scale=scale, unit=unit, res=res,
+                            size=size)
 
     def to_nitime(self, picks=None):
         """ Export Evoked object to NiTime
