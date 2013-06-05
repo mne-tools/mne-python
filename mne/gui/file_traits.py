@@ -7,14 +7,14 @@
 import os
 
 import numpy as np
-from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Property, \
-                       Array, Directory, Enum, File, List, Str
+from traits.api import HasTraits, HasPrivateTraits, cached_property, \
+                       on_trait_change, Property, Array, Directory, Enum, \
+                       File, List, Str
 from traitsui.api import View, Item, VGroup
 
 from ..fiff import Raw, read_fiducials
 from ..surface import read_bem_surfaces
 from ..transforms.coreg import is_mri_subject
-
 
 
 class BemSource(HasTraits):
@@ -41,7 +41,6 @@ class BemSource(HasTraits):
             self.tri = np.empty((0, 3))
 
 
-
 class FidSource(HasPrivateTraits):
     """Read fiducials from a fiff file"""
     file = File(exists=True, filter=['*.fif'])
@@ -58,7 +57,6 @@ class FidSource(HasPrivateTraits):
             return np.array([nasion, rap, lap])
         else:
             return np.zeros((3, 3))
-
 
 
 class RawHspSource(HasPrivateTraits):
@@ -123,13 +121,13 @@ class RawHspSource(HasPrivateTraits):
         return dig
 
 
-
 class SubjectSelector(HasPrivateTraits):
     """Select a subjects directory and a subject it contains"""
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir'])
     subject = Enum(values='subjects')
-    mri_dir = Property(depends_on=['subjects_dir', 'subject'])  # path to the current subject's mri directory
+    mri_dir = Property(depends_on=['subjects_dir', 'subject'], desc="the "
+                       "current subject's mri directory")
     bem_file = Property(depends_on='mri_dir')
 
     view = View(VGroup(Item('subjects_dir', label='subjects_dir'),

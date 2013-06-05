@@ -11,8 +11,9 @@ from mayavi.sources.vtk_data_source import VTKDataSource
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 import numpy as np
 from pyface.api import error
-from traits.api import HasTraits, HasPrivateTraits, on_trait_change, cached_property, Instance, Property, \
-                       Array, Bool, Button, Color, Enum, Float, List, Range, Str
+from traits.api import HasTraits, HasPrivateTraits, on_trait_change, \
+                       cached_property, Instance, Property, Array, Bool, \
+                       Button, Color, Enum, Float, List, Range, Str
 from traitsui.api import View, Item, Group, HGroup, VGroup
 
 from ..transforms.transforms import apply_trans
@@ -70,13 +71,13 @@ class HeadViewController(HasTraits):
 
         if system == 'ALS':
             if view == 'front':
-                kwargs = dict(azimuth=0, elevation=90, roll= -90)
+                kwargs = dict(azimuth=0, elevation=90, roll=-90)
             elif view == 'left':
                 kwargs = dict(azimuth=90, elevation=90, roll=180)
             elif view == 'right':
-                kwargs = dict(azimuth= -90, elevation=90, roll=0)
+                kwargs = dict(azimuth=-90, elevation=90, roll=0)
             elif view == 'top':
-                kwargs = dict(azimuth=0, elevation=0, roll= -90)
+                kwargs = dict(azimuth=0, elevation=0, roll=-90)
         elif system == 'RAS':
             if view == 'front':
                 kwargs = dict(azimuth=90, elevation=90, roll=180)
@@ -90,7 +91,7 @@ class HeadViewController(HasTraits):
             if view == 'front':
                 kwargs = dict(azimuth=0, elevation=90, roll=90)
             elif view == 'left':
-                kwargs = dict(azimuth= -90, elevation=90, roll=180)
+                kwargs = dict(azimuth=-90, elevation=90, roll=180)
             elif view == 'right':
                 kwargs = dict(azimuth=90, elevation=90, roll=0)
             elif view == 'top':
@@ -103,7 +104,6 @@ class HeadViewController(HasTraits):
 
         self.scene.mlab.view(distance=None, reset_roll=True,
                              figure=self.scene.mayavi_scene, **kwargs)
-
 
 
 class Object(HasPrivateTraits):
@@ -150,8 +150,6 @@ class Object(HasPrivateTraits):
 
         self.src.data.points = pts
         self.scene.reset_zoom()
-
-
 
 
 class PointObject(Object):
@@ -206,13 +204,13 @@ class PointObject(Object):
         self.glyph = glyph
 
         self.sync_trait('point_scale', self.glyph.glyph.glyph, 'scale_factor')
-        self.sync_trait('rgbcolor', self.glyph.actor.property, 'color', mutual=False)
+        self.sync_trait('rgbcolor', self.glyph.actor.property, 'color',
+                        mutual=False)
         self.sync_trait('visible', self.glyph, 'visible')
         self.sync_trait('opacity', self.glyph.actor.property, 'opacity')
         self.on_trait_change(self._update_points, 'points')
 
         self.scene.camera.parallel_scale = _scale
-
 
 
 class SurfaceObject(Object):
@@ -258,14 +256,16 @@ class SurfaceObject(Object):
             rep = 'surface'
 
         src = pipeline.triangular_mesh_source(x, y, z, self.tri, figure=fig)
-        surf = pipeline.surface(src, figure=fig, color=self.rgbcolor, opacity=self.opacity,
+        surf = pipeline.surface(src, figure=fig, color=self.rgbcolor,
+                                opacity=self.opacity,
                                 representation=rep, line_width=1)
 
         self.src = src
         self.surf = surf
 
         self.sync_trait('visible', self.surf, 'visible')
-        self.sync_trait('rgbcolor', self.surf.actor.property, 'color', mutual=False)
+        self.sync_trait('rgbcolor', self.surf.actor.property, 'color',
+                        mutual=False)
         self.sync_trait('opacity', self.surf.actor.property, 'opacity')
 
         self.scene.camera.parallel_scale = _scale

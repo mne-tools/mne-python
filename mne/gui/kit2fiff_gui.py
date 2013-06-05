@@ -13,9 +13,11 @@ from scipy.linalg import inv
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import confirm, error, FileDialog, OK, YES, ProgressDialog
-from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Instance, Property, \
-                       Array, Bool, Button, Enum, File, Int, List, Str
-from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor, EnumEditor
+from traits.api import HasTraits, HasPrivateTraits, cached_property, \
+                       on_trait_change, Instance, Property, Array, Bool, \
+                       Button, Enum, File, Int, List, Str
+from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor, \
+                         EnumEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -25,8 +27,8 @@ from ..fiff.kit.kit import RawKIT, KIT
 from ..transforms.transforms import coord_trans
 from ..transforms.coreg import fit_matched_pts
 from .marker_gui import CombineMarkersPanel
-from .viewer import HeadViewController, headview_borders, headview_item, PointObject
-
+from .viewer import HeadViewController, headview_borders, headview_item, \
+                    PointObject
 
 
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in xrange(5)])
@@ -36,7 +38,7 @@ hsp_wildcard = ['Supported Files (*.pickled;*.txt)|*.pickled;*.txt',
 kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
 
 
-class Kit2FiffPanel(HasPrivateTraits):
+class Kit2FiffCoregPanel(HasPrivateTraits):
     """Control panel for kit2fiff conversion"""
     # Source Files
     sqd_file = File(exists=True, filter=kit_con_wildcard)
@@ -89,30 +91,41 @@ class Kit2FiffPanel(HasPrivateTraits):
     save_feedback = Str('')
 
     view = View(VGroup(VGroup(Item('sqd_file', label="Data"),
-                              Item('sqd_fname', show_label=False, style='readonly'),
+                              Item('sqd_fname', show_label=False,
+                                   style='readonly'),
                               Item('hsp_file', label='Dig Head Shape'),
-                              Item('hsp_fname', show_label=False, style='readonly'),
+                              Item('hsp_fname', show_label=False,
+                                   style='readonly'),
                               Item('fid_file', label='Dig Points'),
-                              Item('fid_fname', show_label=False, style='readonly'),
+                              Item('fid_fname', show_label=False,
+                                   style='readonly'),
                               Item('reset_dig', label='Clear Digitizer Files',
                                    show_label=False),
-                              Item('use_mrk', editor=use_editor, style='custom'),
+                              Item('use_mrk', editor=use_editor,
+                                   style='custom'),
                               label="Sources", show_border=True),
-                    VGroup(Item('stim_chs', label="Stim Channel Binary Coding", style='custom',
+                    VGroup(Item('stim_chs', label="Stim Channel Binary Coding",
+                                style='custom',
                                 editor=EnumEditor(values={'>': '1:low to high',
-                                                          '<': '2:high to low'}, cols=2),
-                                help="Specifies the bit order in event channels. Assign the "
-                                "first bit (1) to the first or the last trigger channel."),
-                           Item('stim_slope', label="Stim Channel Event Type", style='custom',
+                                                          '<': '2:high to low',
+                                                          },
+                                                  cols=2),
+                                help="Specifies the bit order in event "
+                                "channels. Assign the first bit (1) to the "
+                                "first or the last trigger channel."),
+                           Item('stim_slope', label="Stim Channel Event Type",
+                                style='custom',
                                 editor=EnumEditor(values={'+': '2:Peak',
-                                                          '-': '1:Trough'}, cols=2),
+                                                          '-': '1:Trough'},
+                                                  cols=2),
                                 help="Whether events are marked by a decrease "
                                 "(trough) or an increase (peak) in trigger "
                                 "channel values"),
-#                            Item('event_info', style='readonly', show_label=False),
                            label='Events', show_border=True),
-                       Item('save_as', enabled_when='can_save', show_label=False),
-                       Item('save_feedback', show_label=False, style='readonly')))
+                       Item('save_as', enabled_when='can_save',
+                            show_label=False),
+                       Item('save_feedback', show_label=False,
+                            style='readonly')))
 
     @cached_property
     def _get_sqd_fname(self):
@@ -260,7 +273,8 @@ class Kit2FiffPanel(HasPrivateTraits):
 
     @cached_property
     def _get_can_save(self):
-        can_save = (# with head shape:
+        can_save = (
+                    # with head shape:
                     (self.raw and np.any(self.dev_head_trans)
                      and np.any(self.hsp_src) and np.any(self.elp_src)
                      and np.any(self.fid_src)) or
@@ -293,7 +307,8 @@ class Kit2FiffPanel(HasPrivateTraits):
         default_path = stem + '.fif'
 
         # save as dialog
-        dlg = FileDialog(action="save as", wildcard="fiff raw file (*.fif)|*.fif",
+        dlg = FileDialog(action="save as",
+                         wildcard="fiff raw file (*.fif)|*.fif",
                          default_path=default_path)
         dlg.open()
         if dlg.return_code != OK:
@@ -304,8 +319,8 @@ class Kit2FiffPanel(HasPrivateTraits):
         if not fname.endswith('.fif'):
             fname += '.fif'
             if os.path.exists(fname):
-                answer = confirm(None, "The file %r already exists. Should it be "
-                                 "replaced?", "Overwrite File?")
+                answer = confirm(None, "The file %r already exists. Should it "
+                                 "be replaced?", "Overwrite File?")
                 if answer != YES:
                     self.save_feedback = "Saving aborted."
                     return
@@ -353,11 +368,10 @@ class Kit2FiffPanel(HasPrivateTraits):
         self.sync_trait('head_dev_trans', self.hsp_obj, 'trans', mutual=False)
 
 
-
-class ControlPanel(HasTraits):
+class Kit2FiffPanel(HasTraits):
     scene = Instance(MlabSceneModel, ())
     marker_panel = Instance(CombineMarkersPanel)
-    kit2fiff_panel = Instance(Kit2FiffPanel)
+    kit2fiff_panel = Instance(Kit2FiffCoregPanel)
 
     view = View(Group(Item('marker_panel', label="Markers", style="custom",
                            dock='tab'),
@@ -371,7 +385,7 @@ class ControlPanel(HasTraits):
         return panel
 
     def _kit2fiff_panel_default(self):
-        panel = Kit2FiffPanel(scene=self.scene)
+        panel = Kit2FiffCoregPanel(scene=self.scene)
         return panel
 
     @on_trait_change('scene.activated')
@@ -385,7 +399,6 @@ class ControlPanel(HasTraits):
         mrk.sync_trait('points', self.kit2fiff_panel, 'mrk_ALS', mutual=False)
 
 
-
 view_hrs = View(HGroup(Item('scene',
                             editor=SceneEditor(scene_class=MayaviScene)),
                        VGroup(headview_borders,
@@ -397,22 +410,22 @@ view_hrs = View(HGroup(Item('scene',
                 buttons=NoButtons)
 
 
-
-class MainWindow(HasTraits):
+class Kit2FiffFrame(HasTraits):
     """GUI for interpolating between two KIT marker files"""
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)
-    panel = Instance(ControlPanel)
+    panel = Instance(Kit2FiffPanel)
 
     def _headview_default(self):
         hv = HeadViewController(scene=self.scene, scale=160, system='RAS')
         return hv
 
     def _panel_default(self):
-        p = ControlPanel(scene=self.scene)
+        p = Kit2FiffPanel(scene=self.scene)
         return p
 
-    view = View(HGroup(VGroup(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
+    view = View(HGroup(VGroup(Item('scene',
+                                   editor=SceneEditor(scene_class=MayaviScene),
                                    dock='vertical', show_label=False),
                               VGroup(headview_item,
                                      show_labels=False,

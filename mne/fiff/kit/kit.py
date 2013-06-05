@@ -578,8 +578,7 @@ def get_sqd_params(rawfile):
     return sqd
 
 
-def read_raw_kit(input_fname, mrk, elp, hsp,
-                 stim='>', slope='-', stimthresh=1,
+def read_raw_kit(input_fname, mrk, elp, hsp, stim='>', slope='-', stimthresh=1,
                  verbose=None, preload=False):
     """Reader function for KIT conversion to FIF
 

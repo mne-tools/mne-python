@@ -25,15 +25,18 @@ from ..fiff import FIFF
 from ..source_space import prepare_bem_model, setup_source_space
 from ..transforms import write_trans
 from ..transforms.transforms import rotation, translation, apply_trans
-from ..transforms.coreg import trans_fname, fit_matched_pts, fit_point_cloud, scale_mri
+from ..transforms.coreg import trans_fname, fit_matched_pts, fit_point_cloud, \
+                               scale_mri
 from ..utils import get_subjects_dir
 from .fiducials_gui import FiducialsPanel
-from .file_traits import BemSource, RawHspSource, SubjectSelector
-from .viewer import HeadViewController, PointObject, SurfaceObject, headview_item
+from .file_traits import assert_env_set, BemSource, RawHspSource, \
+                         SubjectSelector
+from .viewer import HeadViewController, PointObject, SurfaceObject, \
+                    headview_item
 
 
 
-class CoregControl(HasPrivateTraits):
+class CoregPanel(HasPrivateTraits):
     """Traits object for estimating the head mri transform.
 
     Notes
@@ -51,8 +54,9 @@ class CoregControl(HasPrivateTraits):
        transformation of the digitizer head)
     """
     raw_dir = Str
-    subject = Any  # MRI subject name (used for constructing trans file name)
-    tgt_subject = Str  # subject for which the MRI will be scaled
+    subject = Any("MRI subject name")
+    tgt_subject = Str(desc="subject for which the MRI will be scaled, "
+                      "inferred from raw file name")
     subjects_dir = Str
 
     # data source
@@ -60,13 +64,15 @@ class CoregControl(HasPrivateTraits):
     mri_fid = Array(shape=(3, 3))
     hsp_pts = Array(shape=(None, 3))
     hsp_fid = Array(shape=(3, 3))
-    dig = List  # digitizer fiducials for info['dig']
+    dig = List(desc="digitizer fiducials for info['dig']")
 
     # dependent
-    src_pts = Property(depends_on=['hsp_pts', 'hsp_fid'])  # hsp points moved to their nasion
+    src_pts = Property(depends_on=['hsp_pts', 'hsp_fid'], desc="hsp points "
+                       "moved to their nasion")
     src_fid = Property(depends_on='hsp_fid')
     tgt_origin = Property(depends_on=['mri_fid', 'scale'])
-    tgt_pts = Property(depends_on=['mri_pts', 'tgt_origin'])  # mri_pts scaled and moved to their nasion
+    tgt_pts = Property(depends_on=['mri_pts', 'tgt_origin'], desc="mri_pts "
+                       "scaled and moved to their nasion")
     tgt_fid = Property(depends_on=['tgt_origin'])
 
     # parameters
@@ -81,8 +87,8 @@ class CoregControl(HasPrivateTraits):
 
     # transforms
     scale = Property(depends_on=['n_scale_params', 'scale3', 'scale1'])
-    head_mri_trans = Property(depends_on=['tgt_origin', 'hsp_fid', 'translation',
-                                          'rotation', 'scale'])
+    head_mri_trans = Property(depends_on=['tgt_origin', 'hsp_fid',
+                                          'translation', 'rotation', 'scale'])
 
     # fitting
     has_fid_data = Property(Bool, depends_on=['mri_fid', 'hsp_fid'])
@@ -92,7 +98,7 @@ class CoregControl(HasPrivateTraits):
     fits_fid = Button(label='Fit Fiducials')
     fits_ap = Button(label='Fit LAP/RAP')
     # fitting without scaling
-    fit_rot = Button(label='Fit Rotation')
+    fit_rot = Button(label='Fit Head Shape')
     fit_fid = Button(label='Fit Fiducials')
     fit_ap = Button(label='Fit LAP/RAP')
 
@@ -107,11 +113,7 @@ class CoregControl(HasPrivateTraits):
     # View Element
     axis_labels = Str("Right   \t\tAnterior\t\tSuperior")
 
-    view = View(VGroup(HGroup(Item('reset_params', tooltip="Reset all "
-                                   "coregistration parameters"),
-                              show_labels=False),
-                       '_',
-                       Item('n_scale_params', label='MRI Scaling',
+    view = View(VGroup(Item('n_scale_params', label='MRI Scaling',
                             style='custom', show_label=True,
                             editor=EnumEditor(values={0: '1:No Scaling',
                                                       1: '2:1 Parameter',
@@ -125,15 +127,18 @@ class CoregControl(HasPrivateTraits):
                             tooltip="Scaling along x (right), y (anterior) "
                             "and z (superior) axes"),
                        HGroup(Item('fits_rot', enabled_when='n_scale_params',
-                                   tooltip="Rotate the digitizer "
-                                   "head shape and scale the MRI so as to minimize the distance "
-                                   "from each digitizer point to the closest MRI point"),
-                              Item('fits_ap', enabled_when='n_scale_params == 1',
+                                   tooltip="Rotate the digitizer head shape "
+                                   "and scale the MRI so as to minimize the "
+                                   "distance from each digitizer point to the "
+                                   "closest MRI point"),
+                              Item('fits_ap',
+                                   enabled_when='n_scale_params == 1',
                                    tooltip="While leaving the nasion in "
-                                   "place, rotate the digitizer head shape and scale the MRI so as to "
-                                   "minimize the distance of the two "
-                                   "auricular points"),
-                              Item('fits_fid', enabled_when='n_scale_params == 1',
+                                   "place, rotate the digitizer head shape "
+                                   "and scale the MRI so as to minimize the "
+                                   "distance of the two auricular points"),
+                              Item('fits_fid',
+                                   enabled_when='n_scale_params == 1',
                                    tooltip="Move and rotate the digitizer "
                                    "head shape, and scale the MRI so as to "
                                    "minimize the distance of the three "
@@ -149,9 +154,9 @@ class CoregControl(HasPrivateTraits):
                             "and superior axes"),
                        HGroup(Item('fit_rot', enabled_when='has_pts_data',
                                    tooltip="Rotate the head shape (around the "
-                                   "nasion) so as to minimize the distance from "
-                                   "each head shape point to its closest MRI "
-                                   "point"),
+                                   "nasion) so as to minimize the distance "
+                                   "from each head shape point to its closest "
+                                   "MRI point"),
                               Item('fit_ap', enabled_when='has_fid_data',
                                    tooltip="Try to match the LAP and the RAP, "
                                    "leaving the Nasion in place"),
@@ -160,9 +165,15 @@ class CoregControl(HasPrivateTraits):
                                    "as to minimize the distance between the "
                                    "MRI and head shape fiducials"),
                               show_labels=False),
-                       Item('save', enabled_when='can_save', show_label=False),
+                       '_',
+                       HGroup(Item('save', enabled_when='can_save',
+                                   tooltip="Save the trans file and (if "
+                                   "scaling is enabled) the scaled MRI"),
+                              Item('reset_params', tooltip="Reset all "
+                                   "coregistration parameters"),
+                              show_labels=False),
                        show_labels=False),
-                buttons=[UndoButton])
+                kind='panel', buttons=[UndoButton])
 
     @cached_property
     def _get_can_save(self):
@@ -254,7 +265,8 @@ class CoregControl(HasPrivateTraits):
 
     def _fits_fid_fired(self):
         tgt_fid = self.mri_fid - self.mri_fid[0]
-        x0 = tuple(self.rotation[0]) + tuple(self.translation[0]) + (1 / self.scale1,)
+        x0 = tuple(self.rotation[0]) + tuple(self.translation[0]) \
+             + (1 / self.scale1,)
         x = fit_matched_pts(self.src_fid, tgt_fid, rotate=True,
                             translate=True, scale=1, x0=x0)
         self.scale1 = 1 / x[6]
@@ -304,8 +316,8 @@ class CoregControl(HasPrivateTraits):
         if not dest.endswith('.fif'):
             dest = dest + '.fif'
             if os.path.exists(dest):
-                answer = confirm(None, "The file %r already exists. Should it be "
-                                 "replaced?", "Overwrite File?")
+                answer = confirm(None, "The file %r already exists. Should it "
+                                 "be replaced?", "Overwrite File?")
                 if answer != YES:
                     return
 
@@ -415,7 +427,6 @@ class CoregControl(HasPrivateTraits):
                     error(None, err, "Error in mne_setup_source_space")
 
             prog.close()
-
 
 
 class NewMriDialog(HasPrivateTraits):
@@ -529,50 +540,15 @@ class NewMriDialog(HasPrivateTraits):
 #            self.overwrite_status = 'None'
 
 
-# view for high resolution (all controls on the right)
-view_hrs = View(HGroup(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
-                            dock='vertical'),
-                       VGroup(VGroup(headview_item,
-                                     Item('mri_obj', label='MRI', style='custom'),
-                                     label='View', show_labels=False,
-                                     show_border=True),
-                              VGroup(Item('hsp_src', style="custom"),
-                                     Item('s_sel', style="custom"),
-                                     label='Data Source', show_labels=False,
-                                     show_border=True),
-                              VGroup(Item('lock_fiducials', style='custom',
-                                          editor=EnumEditor(values={False: '2:Edit',
-                                                                    True: '1:Lock'},
-                                                            cols=2)),
-                                     Item('fid_panel', style='custom'),
-                                     label='MRI Fiducials', show_labels=False,
-                                     show_border=True),
-                              VGroup(Item('coreg', style='custom'),
-                                     label='Coregistration', show_labels=False,
-                                     show_border=True, enabled_when='lock_fiducials'),
-                              show_labels=False),
-                       show_labels=False,
-                      ),
-                resizable=True,  # height=0.75,
-                width=1100,  # 0.75,
-                buttons=[UndoButton])  # HelpButton
-
-
 class CoregFrame(HasTraits):
     """GUI for interpolating between two KIT marker files
-
-    Parameters
-    ----------
-    mrk1, mrk2 : str
-        Path to pre- and post measurement marker files (*.sqd) or empty string.
     """
     # controls
     headview = Instance(HeadViewController)
     mri_src = Instance(BemSource, ())
     hsp_src = Instance(RawHspSource, ())
-#    mri_fid_src = Instance(FidSource, ())
     s_sel = Instance(SubjectSelector, ())
-    coreg = Instance(CoregControl, ())
+    coreg = Instance(CoregPanel, ())
 
     pick_tolerance = Float(.0025)
 
@@ -589,37 +565,42 @@ class CoregFrame(HasTraits):
     nas_obj = Instance(PointObject)
     rap_obj = Instance(PointObject)
 
+    # feedback strings
     fit_eval_fid = Str('-')
     fit_eval_pts = Str('-')
 
-    view = View(HGroup(VGroup(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
+    view = View(HGroup(VGroup(Item('scene',
+                                   editor=SceneEditor(scene_class=MayaviScene),
                                    dock='vertical', show_label=False),
                               VGroup(headview_item,
-                                     Item('mri_obj', label='MRI', style='custom'),
-                                     Item('hsp_obj', label='Head Shape', style='custom'),
-                                     label='View Options',
-                                     show_border=True
-#                                      show_labels=False,
+                                     Item('mri_obj', label='MRI',
+                                          style='custom'),
+                                     Item('hsp_obj', label='Head Shape',
+                                          style='custom'),
+                                     label='View Options', show_border=True
                                      ),
                               ),
-                       VGroup(
-                              VGroup(Item('hsp_src', style="custom"),
+                       VGroup(VGroup(Item('hsp_src', style="custom"),
                                      Item('s_sel', style="custom"),
                                      label='Data Source', show_labels=False,
                                      show_border=True),
-                              VGroup(HGroup(Item('lock_fiducials', style='custom',
-                                                 editor=EnumEditor(values={False: '2:Edit',
-                                                                           True: '1:Lock'},
-                                                            cols=2), show_label=False)),
+                              VGroup(HGroup(
+                                        Item('lock_fiducials', style='custom',
+                                             editor=EnumEditor(cols=2,
+                                                 values={False: '2:Edit',
+                                                         True: '1:Lock'}),
+                                             show_label=False)),
                                      Item('fid_panel', style='custom'),
                                      label='MRI Fiducials', show_labels=False,
                                      show_border=True),
                               VGroup(Item('coreg', style='custom'),
                                      label='Coregistration', show_labels=False,
-                                     show_border=True, enabled_when='lock_fiducials'),
+                                     show_border=True,
+                                     enabled_when='lock_fiducials'),
                               VGroup(Item('fit_eval_fid', style='readonly'),
                                      Item('fit_eval_pts', style='readonly'),
-                                     label='Fit', show_labels=False, show_border=True),
+                                     label='Fit', show_labels=False,
+                                     show_border=True),
                               show_labels=False),
                        show_labels=False,
                       ),
@@ -640,7 +621,8 @@ class CoregFrame(HasTraits):
         head_fid = np.array(self.hsp_fid_obj.src.data.points)
         dists = np.sqrt(np.sum((mri_fid - head_fid) ** 2, 1))
         dists *= 1000
-        self.fit_eval_fid = "Fiducials Error: NAS %.1f mm, LAP %.1f mm, RAP %.1f mm" % tuple(dists)
+        self.fit_eval_fid = ("Fiducials Error: NAS %.1f mm, LAP %.1f mm, RAP "
+                             "%.1f mm" % tuple(dists))
 
     @on_trait_change('hsp_obj.src.data.points', True)
     def _update_fit_eval_pts(self):
@@ -670,13 +652,13 @@ class CoregFrame(HasTraits):
 
         # sync data to coreg panel
         self.mri_src.sync_trait('pts', self.coreg, 'mri_pts', mutual=False)
-#        self.mri_fid_src.sync_trait('fid', self.coreg, 'mri_fid', mutual=False)
         self.hsp_src.sync_trait('pts', self.coreg, 'hsp_pts', mutual=False)
         self.hsp_src.sync_trait('fid', self.coreg, 'hsp_fid', mutual=False)
         self.hsp_src.sync_trait('fid_dig', self.coreg, 'dig', mutual=False)
 
         # sync ficudials panel
-        self.sync_trait('lock_fiducials', self.fid_panel, 'locked', mutual=True)
+        self.sync_trait('lock_fiducials', self.fid_panel, 'locked',
+                        mutual=True)
 
         # sync path source to coreg panel
         self.hsp_src.sync_trait('raw_dir', self.coreg, mutual=False)
@@ -694,6 +676,10 @@ class CoregFrame(HasTraits):
         if subject is not None:
             if subject in self.s_sel.subjects:
                 self.s_sel.subject = subject
+            else:
+                msg = ("No MRI subject named %r; ignoring subject "
+                       "argument." % subject)
+                error(msg, "Subject Not Found")
 
         # sync path components to fiducials panel
         self.s_sel.sync_trait('subjects_dir', self.fid_panel, mutual=False)
@@ -721,15 +707,13 @@ class CoregFrame(HasTraits):
         self.scene.disable_render = True
 
         # MRI scalp
-        self.mri_obj = SurfaceObject(points=self.mri_src.pts, tri=self.mri_src.tri,
+        self.mri_obj = SurfaceObject(points=self.mri_src.pts,
+                                     tri=self.mri_src.tri,
                                      scene=self.scene, color=(255, 255, 255))
         self.coreg.sync_trait('scale', self.mri_obj, 'trans', mutual=False)
         self.fid_panel.hsp_obj = self.mri_obj
 
         # MRI Fiducials
-#        self.mri_fid_obj = PointObject(scene=self.scene, color=(255, 0, 0), point_scale=1e-2)
-#        self.mri_fid_src.sync_trait('fid', self.mri_fid_obj, 'points', mutual=False)
-#        self.coreg.sync_trait('scale', self.mri_fid_obj, 'trans', mutual=False)
         self.lap_obj = PointObject(scene=self.scene, color=(255, 0, 0),
                                    point_scale=1e-2)
         self.fid_panel.sync_trait('LAP', self.lap_obj, 'points', mutual=False)
@@ -737,7 +721,8 @@ class CoregFrame(HasTraits):
 
         self.nas_obj = PointObject(scene=self.scene, color=(0, 255, 0),
                                    point_scale=1e-2)
-        self.fid_panel.sync_trait('nasion', self.nas_obj, 'points', mutual=False)
+        self.fid_panel.sync_trait('nasion', self.nas_obj, 'points',
+                                  mutual=False)
         self.coreg.sync_trait('scale', self.nas_obj, 'trans', mutual=False)
 
         self.rap_obj = PointObject(scene=self.scene, color=(0, 0, 255),
@@ -755,8 +740,10 @@ class CoregFrame(HasTraits):
         # Digitizer Fiducials
         self.hsp_fid_obj = PointObject(scene=self.scene, color=(0, 0, 255),
                                        opacity=0.3, point_scale=3e-2)
-        self.hsp_src.sync_trait('fid', self.hsp_fid_obj, 'points', mutual=False)
-        self.coreg.sync_trait('head_mri_trans', self.hsp_fid_obj, 'trans', mutual=False)
+        self.hsp_src.sync_trait('fid', self.hsp_fid_obj, 'points',
+                                mutual=False)
+        self.coreg.sync_trait('head_mri_trans', self.hsp_fid_obj, 'trans',
+                              mutual=False)
 
         mscene = self.scene.mayavi_scene
         self.picker = mscene.on_mouse_pick(self.fid_panel._on_mouse_click)
@@ -764,7 +751,8 @@ class CoregFrame(HasTraits):
         self.scene.disable_render = False
 
         # adapt picker sensitivity when zooming
-        self.scene.camera.on_trait_change(self._on_view_scale_change, 'parallel_scale')
+        self.scene.camera.on_trait_change(self._on_view_scale_change,
+                                          'parallel_scale')
 
     @on_trait_change('lock_fiducials')
     def _on_lock_fiducials(self):
@@ -783,7 +771,6 @@ class CoregFrame(HasTraits):
             self.hsp_obj.visible = False
             self.hsp_fid_obj.visible = False
 
-#     @on_trait_change('scene.camera.parallel_scale', post_init=True)
     def _on_view_scale_change(self, scale):
         self.picker.tolerance = self.pick_tolerance / scale
 

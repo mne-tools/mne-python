@@ -11,9 +11,9 @@ from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 import numpy as np
 from pyface.api import confirm, error, FileDialog, OK, YES
-from traits.api import HasTraits, HasPrivateTraits, on_trait_change, cached_property, \
-                       Instance, Property, \
-                       Array, Bool, Button, Enum, File, Float, List, Str
+from traits.api import HasTraits, HasPrivateTraits, on_trait_change, \
+                       cached_property, Instance, Property, Array, Bool, \
+                       Button, Enum, File, Float, List, Str
 from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
@@ -22,7 +22,6 @@ from ..transforms.coreg import fit_matched_pts
 from ..transforms.transforms import apply_trans, rotation, translation
 from .viewer import HeadViewController, headview_borders, PointObject
 from ..fiff.kit.coreg import read_mrk
-
 
 
 out_wildcard = ("Pickled KIT parameters (*.pickled)|*.pickled|"
@@ -36,24 +35,27 @@ mrk_view_editable = View(
         VGroup('file',
                Item('name', show_label=False, style='readonly'),
                HGroup(
-                      Item('use', editor=use_editor_v, enabled_when="enabled", style='custom'),
+                      Item('use', editor=use_editor_v, enabled_when="enabled",
+                           style='custom'),
                       'points',
                       ),
                HGroup(Item('clear', enabled_when="can_save", show_label=False),
-                      Item('save_as', enabled_when="can_save", show_label=False)),
+                      Item('save_as', enabled_when="can_save",
+                           show_label=False)),
                   ))
 
 mrk_view_basic = View(
         VGroup('file',
                Item('name', show_label=False, style='readonly'),
-               Item('use', editor=use_editor_h, enabled_when="enabled", style='custom'),
+               Item('use', editor=use_editor_h, enabled_when="enabled",
+                    style='custom'),
                HGroup(Item('clear', enabled_when="can_save", show_label=False),
                       Item('edit', show_label=False),
-                      Item('save_as', enabled_when="can_save", show_label=False)),
+                      Item('save_as', enabled_when="can_save",
+                           show_label=False)),
                   ))
 
 mrk_view_edit = View(VGroup('points'))
-
 
 
 class MarkerPoints(HasPrivateTraits):
@@ -83,8 +85,8 @@ class MarkerPoints(HasPrivateTraits):
         if not path.endswith(ext):
             path = path + ext
             if os.path.exists(path):
-                answer = confirm(None, "The file %r already exists. Should it be "
-                                 "replaced?", "Overwrite File?")
+                answer = confirm(None, "The file %r already exists. Should it "
+                                 "be replaced?", "Overwrite File?")
                 if answer != YES:
                     return
 
@@ -94,7 +96,6 @@ class MarkerPoints(HasPrivateTraits):
                 pickle.dump({'mrk': mrk}, fid)
         elif ext == '.txt':
             np.savetxt(path, mrk, fmt='%.18e', delimiter='\t', newline='\n')
-
 
 
 class MarkerPointSource(MarkerPoints):
@@ -150,7 +151,6 @@ class MarkerPointSource(MarkerPoints):
         self.edit_traits(view=mrk_view_edit)
 
 
-
 class MarkerPointDest(MarkerPoints):
     """MarkerPoints subclass that serves for derived points"""
     src1 = Instance(MarkerPointSource)
@@ -169,7 +169,8 @@ class MarkerPointDest(MarkerPoints):
                   "of the mrk1 and mrk2 coordinates for each point.")
 
     view = View(VGroup(Item('method', style='custom'),
-                       Item('save_as', enabled_when='can_save', show_label=False)))
+                       Item('save_as', enabled_when='can_save',
+                            show_label=False)))
 
     @cached_property
     def _get_dir(self):
@@ -263,7 +264,6 @@ class MarkerPointDest(MarkerPoints):
         return pts
 
 
-
 class MarkerStats(HasPrivateTraits):
     """Provides stats on the relationship between two markers"""
     mrk1 = Instance(MarkerPointSource)
@@ -285,7 +285,6 @@ class MarkerStats(HasPrivateTraits):
         ds = np.sqrt(np.sum((self.mrk1.points - self.mrk2.points) ** 2, 1))
         desc = '\t'.join('%.1f mm' % (d * 1000) for d in ds)
         return desc
-
 
 
 class CombineMarkersPanel(HasTraits):
@@ -356,7 +355,6 @@ class CombineMarkersPanel(HasTraits):
         self.mrk3.sync_trait('enabled', self.mrk3_obj, 'visible', mutual=False)
 
 
-
 class CombineMarkersFrame(HasTraits):
     """GUI for interpolating between two KIT marker files
 
@@ -376,7 +374,8 @@ class CombineMarkersFrame(HasTraits):
         return CombineMarkersPanel(scene=self.scene, mrk1_file=self._mrk1,
                                    mrk2_file=self._mrk2)
 
-    view = View(HGroup(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
+    view = View(HGroup(Item('scene',
+                            editor=SceneEditor(scene_class=MayaviScene),
                             dock='vertical'),
                        VGroup(headview_borders,
                               Item('panel', style="custom"),

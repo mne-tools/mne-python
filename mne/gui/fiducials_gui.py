@@ -21,12 +21,11 @@ from tvtk.pyface.scene_editor import SceneEditor
 from ..fiff import FIFF, read_fiducials, write_fiducials
 from ..utils import get_subjects_dir
 from .file_traits import SubjectSelector, BemSource
-from .viewer import HeadViewController, PointObject, SurfaceObject, headview_borders
-
+from .viewer import HeadViewController, PointObject, SurfaceObject, \
+                    headview_borders
 
 
 fid_fname = "{subjects_dir}/{subject}/bem/{name}-fiducials.fif"
-
 
 
 class FiducialsPanel(HasPrivateTraits):
@@ -59,7 +58,7 @@ class FiducialsPanel(HasPrivateTraits):
     # the layout of the dialog created
     view = View(VGroup(Item('fid_file', label='Fiducials File'),
                        Item('fid_name', show_label=False, style='readonly'),
-                       Item('set', style='custom'),  # 'nasion', 'LAP', 'RAP',
+                       Item('set', style='custom'),
                        HGroup(Item('save', enabled_when='can_save'),
                               Item('save_as', enabled_when='can_save_as'),
                               Item('reset_fid', enabled_when='can_reset'),
@@ -162,8 +161,8 @@ class FiducialsPanel(HasPrivateTraits):
         if not path.endswith('.fif'):
             path = path + '.fif'
             if os.path.exists(path):
-                answer = confirm(None, "The file %r already exists. Should it be "
-                                 "replaced?", "Overwrite File?")
+                answer = confirm(None, "The file %r already exists. Should it "
+                                 "be replaced?", "Overwrite File?")
                 if answer != YES:
                     return
 
@@ -194,7 +193,6 @@ class FiducialsPanel(HasPrivateTraits):
             self.headview.right = True
 
 
-
 # FiducialsPanel view that allows manipulating coordinates numerically
 view2 = View(VGroup(Item('fid_file', label='Fiducials File'),
                     Item('fid_name', show_label=False, style='readonly'),
@@ -205,13 +203,15 @@ view2 = View(VGroup(Item('fid_file', label='Fiducials File'),
                     enabled_when="locked==False"))
 
 
-class MainWindow(HasTraits):
+class FiducialsFrame(HasTraits):
     """GUI for interpolating between two KIT marker files
 
     Parameters
     ----------
-    mrk1, mrk2 : str
-        Path to pre- and post measurement marker files (*.sqd) or empty string.
+    subject : None | str
+        Set the subject which is initially selected.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
     """
     headview = Instance(HeadViewController)
     mri_src = Instance(BemSource, ())
@@ -233,7 +233,8 @@ class MainWindow(HasTraits):
         pnl.trait_view('view', view2)
         return pnl
 
-    view = View(HGroup(Item('scene', editor=SceneEditor(scene_class=MayaviScene),
+    view = View(HGroup(Item('scene',
+                            editor=SceneEditor(scene_class=MayaviScene),
                             dock='vertical'),
                        VGroup(headview_borders,
                               VGroup(Item('s_sel', style='custom'),
@@ -248,9 +249,9 @@ class MainWindow(HasTraits):
                 height=0.75, width=0.75,
                 buttons=NoButtons)
 
-    def __init__(self, subject=None, subjects_dir=None, fid_file=None):
+    def __init__(self, subject=None, subjects_dir=None, **kwargs):
         subjects_dir = get_subjects_dir(subjects_dir)
-        super(MainWindow, self).__init__()
+        super(FiducialsFrame, self).__init__(**kwargs)
 
         # set initial parameters
         if subjects_dir is not None:
@@ -270,14 +271,16 @@ class MainWindow(HasTraits):
 
         self.nas_obj = PointObject(scene=self.scene, color=(0, 255, 0),
                                    point_scale=self.point_scale)
-        self.fid_panel.sync_trait('nasion', self.nas_obj, 'points', mutual=False)
+        self.fid_panel.sync_trait('nasion', self.nas_obj, 'points',
+                                  mutual=False)
 
         self.rap_obj = PointObject(scene=self.scene, color=(0, 0, 255),
                                    point_scale=self.point_scale)
         self.fid_panel.sync_trait('RAP', self.rap_obj, 'points', mutual=False)
 
         # bem
-        self.mri_obj = SurfaceObject(points=self.mri_src.pts, tri=self.mri_src.tri,
+        self.mri_obj = SurfaceObject(points=self.mri_src.pts,
+                                     tri=self.mri_src.tri,
                                      scene=self.scene, color=(255, 255, 255))
         self.mri_src.on_trait_change(self._on_mri_src_change, 'tri')
         self.fid_panel.hsp_obj = self.mri_obj

@@ -22,13 +22,11 @@ from scipy.spatial.distance import cdist
 
 from ..fiff.meas_info import read_fiducials, write_fiducials
 from ..label import read_label, Label
-from ..source_space import read_source_spaces, write_source_spaces, \
-                           prepare_bem_model, setup_source_space
+from ..source_space import read_source_spaces, write_source_spaces
 from ..surface import read_surface, write_surface, read_bem_surfaces, \
                       write_bem_surface
 from ..utils import get_subjects_dir
 from .transforms import rotation, rotation3d, scaling, translation
-
 
 
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
@@ -57,14 +55,14 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
         fs_home = get_config('FREESURFER_HOME', fs_home)
         if fs_home is None:
             err = ("FREESURFER_HOME environment variable not found. Please "
-                   "specify the fs_home parameter in you call to "
+                   "specify the fs_home parameter in your call to "
                    "create_default_subject().")
             raise ValueError(err)
     if mne_root is None:
         mne_root = get_config('MNE_ROOT', mne_root)
         if mne_root is None:
             err = ("MNE_ROOT environment variable not found. Please "
-                   "specify the mne_root parameter in you call to "
+                   "specify the mne_root parameter in your call to "
                    "create_default_subject().")
             raise ValueError(err)
 
@@ -94,7 +92,6 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
                "subjects_dir %r. Delete or rename the existing fsaverage "
                "subject folder." % ('fsaverage', subjects_dir))
         raise IOError(err)
-
 
     # make sure mne files exist
     mne_fname = os.path.join(mne_root, 'share', 'mne', 'mne_analyze',
@@ -135,22 +132,34 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
     tgt_pts : array, shape = (n, 3)
         Points to which src_pts should be fitted. Each point in tgt_pts should
         correspond to the point in src_pts with the same index.
+    rotate : bool
+        Allow rotation of the ``src_pts``.
+    translate : bool
+        Allow translation of the ``src_pts``.
+    scale : 0 | 1
+        Number of scaling parameters.
     tol : scalar | None
         The error tolerance. If the distance between any of the matched points
         exceeds this value in the solution, a RuntimeError is raised. With
         None, no error check is performed.
-    params : bool
-        Also return the estimated rotation and translation parameters.
+    x0 : None | tuple
+        Initial values for the fit parameters.
+    out : 'params' | 'trans'
+        In what format to return the estimate: 'params' returns a tuple with
+        the fit parameters; 'trans' returns a transformation matrix of shape
+        (4, 4).
+
 
     Returns
     -------
+    One of the following, depending on the ``out`` parameter:
+
     trans : array, shape = (4, 4)
         Transformation that, if applied to src_pts, minimizes the squared
         distance to tgt_pts.
-    [rotation : array, len = 3, optional]
-        The rotation parameters around the x, y, and z axes (in radians).
-    [translation : array, len = 3, optional]
-        The translation parameters in x, y, and z direction.
+    params : array, shape = (n_params, )
+        A single tuple containing the translation, rotation and scaling
+        parameters in that order.
     """
     src_pts = np.atleast_2d(src_pts)
     tgt_pts = np.atleast_2d(tgt_pts)
@@ -176,7 +185,7 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
             x0 = (0, 0, 0)
     elif params == (False, True, 1):
         def error(x):
-            rx, ry, rz , s = x
+            rx, ry, rz, s = x
             trans = rotation3d(rx, ry, rz) * s
             est = dot(src_pts, trans.T)
             return (tgt_pts - est).ravel()
@@ -185,7 +194,7 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
     elif params == (True, True, 0):
         def error(x):
             rx, ry, rz, tx, ty, tz = x
-            trans = dot(translation(tx, ty, tz), rotation(rx , ry, rz))
+            trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
             est = dot(src_pts, trans.T)
             return (tgt_pts - est[:, :3]).ravel()
         if x0 is None:
@@ -193,7 +202,7 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
     elif params == (True, True, 1):
         def error(x):
             rx, ry, rz, tx, ty, tz, s = x
-            trans = dot(translation(tx, ty, tz), rotation(rx , ry, rz))
+            trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
             trans = dot(scaling(s, s, s), trans)
             est = dot(src_pts, trans.T)
             return (tgt_pts - est[:, :3]).ravel()
@@ -234,6 +243,10 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
         return x
     elif out == 'trans':
         return trans
+    else:
+        err = ("Invalid out parameter: %r. Needs to be 'params' or "
+              "'trans'." % out)
+        raise ValueError(err)
 
 
 def _point_cloud_error(src_pts, tgt_pts):
@@ -245,6 +258,12 @@ def _point_cloud_error(src_pts, tgt_pts):
         Source points.
     tgt_pts : array, shape = (m, 3)
         Target points.
+
+    Returns
+    -------
+    dist : array, shape = (n, )
+        For each point in ``src_pts``, te distance to the closest point in
+        ``tgt_pts``.
     """
     Y = cdist(src_pts, tgt_pts, 'euclidean')
     dist = Y.min(axis=1)
@@ -266,26 +285,27 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     tgt_pts : array, shape = (n, 3)
         Points to which src_pts should be fitted. Each point in tgt_pts should
         correspond to the point in src_pts with the same index.
-    tol : scalar | None
-        The error tolerance. If the distance between any of the matched points
-        exceeds this value in the solution, a RuntimeError is raised. With
-        None, no error check is performed.
-    params : bool
-        Also return the estimated rotation and translation parameters.
+    rotate : bool
+        Allow rotation of the ``src_pts``.
+    translate : bool
+        Allow translation of the ``src_pts``.
+    scale : 0 | 1 | 3
+        Number of scaling parameters.
+    x0 : None | tuple
+        Initial values for the fit parameters.
+    lsq_args : dict
+        Additional parameters to submit to :func:`scipy.optimize.leastsq`.
 
     Returns
     -------
-    trans : array, shape = (4, 4)
-        Transformation that, if applied to src_pts, minimizes the squared
-        distance to tgt_pts.
-    [rotation : array, len = 3, optional]
-        The rotation parameters around the x, y, and z axes (in radians).
-    [translation : array, len = 3, optional]
-        The translation parameters in x, y, and z direction.
+    x : array, shape = (n_params, )
+        Estimated parameters for the transformation.
 
     Notes
     -----
     Assumes that the target points form a dense enough point cloud so that
+    the distance of each src_pt to the closest tgt_pt can be used as an
+    estimate of the distance of src_pt to tgt_pts.
     """
     kwargs = {'epsfcn': 0.01}
     kwargs.update(lsq_args)
@@ -339,7 +359,6 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     logging.debug("fit_point_cloud leastsq (%r) info: %r", (msg, info))
 
     return est
-
 
 
 def find_mri_paths(subject='fsaverage', subjects_dir=None):
@@ -438,7 +457,19 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
 
 
 def is_mri_subject(subject, subjects_dir):
-    """Check whether a directory is an mri subject's directory
+    """Check whether a directory in subjects_dir is an mri subject directory
+
+    Parameters
+    ----------
+    subject : str
+        Name of the potential subject/directory.
+    subjects_dir : str
+        Path to subjects_dir.
+
+    Returns
+    -------
+    is_mri_subject : bool
+        Whether ``subject`` is an mri subject.
     """
     sdir = os.path.join(subjects_dir, subject)
     for name in ('head',):
@@ -466,7 +497,8 @@ def read_mri_scale(subject, subjects_dir=None):
         parameters were used).
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.pickled')
+    fname = os.path.join(subjects_dir, subject,
+                         'MRI scaling parameters.pickled')
 
     with open(fname) as fid:
         info = pickle.load(fid)
@@ -477,7 +509,7 @@ def read_mri_scale(subject, subjects_dir=None):
 
 def scale_labels(s_to, s_from='fsaverage', fname='aparc/*.label',
                  subjects_dir=None):
-    """Scale labels to match a brain that was created by scaling fsaverage
+    """Scale labels to match a brain that was previously created by scaling
 
     Parameters
     ----------
@@ -526,6 +558,8 @@ def scale_mri(s_from, s_to, scale, overwrite=False, subjects_dir=None):
         Name of the subject providing the MRI.
     s_to : str
         New subject name for which to save the scaled MRI.
+    scale : array, shape = () | (3,)
+        The scaling factor (one or 3 parameters).
     overwrite : bool
         If an MRI already exists for s_to, overwrite it.
     subjects_dir : None | str
@@ -533,6 +567,7 @@ def scale_mri(s_from, s_to, scale, overwrite=False, subjects_dir=None):
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = find_mri_paths(s_from, subjects_dir)
+    scale = np.asarray(scale)
 
     # make sure we have an empty target directory
     dest = paths['s_dir'].format(sub=s_to)
@@ -548,8 +583,8 @@ def scale_mri(s_from, s_to, scale, overwrite=False, subjects_dir=None):
         os.makedirs(dirname.format(sub=s_to))
 
     # MRI Scaling
-    if np.isscalar(scale):
-        norm_scale = scale
+    if np.isscalar(scale) or scale.shape == ():
+        norm_scale = None
     else:
         norm_scale = 1 / scale
 
@@ -563,7 +598,6 @@ def scale_mri(s_from, s_to, scale, overwrite=False, subjects_dir=None):
                                              for item in params])
     with open(fname + '.txt', 'w') as fid:
         fid.write(info)
-
 
     # surf files [in mm]
     for fname in paths['surf']:

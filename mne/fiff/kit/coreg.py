@@ -277,7 +277,7 @@ def transform_ALS_to_RAS(pts, unit='mm'):
 
     This is used to orient points in Neuromag coordinates. KIT and Polhemus
     points are originally in a ALS (anterior, left, superior) coordinate
-    system and ahve to be transformed to the neuromag RAS (right, anterior,
+    system and have to be transformed to the neuromag RAS (right, anterior,
     superior) coordinate system.
     KIT sensors are (x,y,z) in [mm].
     KIT markers are (x,y,z) in [m].
@@ -294,7 +294,7 @@ def transform_ALS_to_RAS(pts, unit='mm'):
     Returns
     -------
     pts : numpy.array, shape = (n_points, 3)
-        Points transformed to Neuromag-like head space (RAS).
+        Points transformed to Neuromag-like head space (RAS, [m]).
     """
     pts = np.array(pts, ndmin=2)
     pts = pts[:, [1, 0, 2]]

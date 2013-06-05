@@ -523,6 +523,8 @@ def setup_mri(subject, subjects_dir=None):
     ----------
     subject : str
         The mri subject.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     env = os.environ.copy()
@@ -550,7 +552,8 @@ def setup_source_space(subject, spacing=7, ico=None, surface='white',
         The MRI subject for which to run the command.
     spacing : scalar [mm]
         The grid spacing for the source space in mm. Either the default or a
-        5-mm spacing is recommended.
+        5-mm spacing is recommended. This parameter is ignored if the ``ico``
+        parameter is specified.
     ico : None | int
         Instead of using the traditional method for cortical surface decima-
         tion, create the source space using the topology of a recursively
@@ -562,6 +565,8 @@ def setup_source_space(subject, spacing=7, ico=None, surface='white',
         the surf directory.
     overwrite : bool
         Overwrite existing files.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     env = os.environ.copy()
@@ -592,6 +597,8 @@ def watershed_bem(subject, atlas=False, subjects_dir=None):
         The mri subject.
     atlas : bool
         Employ atlas information to correct the segmentation.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
