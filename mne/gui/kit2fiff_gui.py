@@ -6,18 +6,20 @@
 
 import cPickle as pickle
 import os
+from Queue import Queue
+from threading import Thread
 
 import numpy as np
 from scipy.linalg import inv
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
-from pyface.api import confirm, error, FileDialog, OK, YES, ProgressDialog
+from pyface.api import confirm, error, FileDialog, OK, YES, information
 from traits.api import HasTraits, HasPrivateTraits, cached_property, \
                        on_trait_change, Instance, Property, Array, Bool, \
                        Button, Enum, File, Int, List, Str
 from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor, \
-                         EnumEditor
+                         EnumEditor, Handler
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -36,6 +38,20 @@ hsp_wildcard = ['Supported Files (*.pickled;*.txt)|*.pickled;*.txt',
                 'Pickled Head Shape (*.pickled)|*.pickled',
                 'Plain Text File (*.txt)|*.txt']
 kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
+
+
+class Kit2FiffFrameHandler(Handler):
+    "Handler to check for unfinished processes before closing the window"
+    def close(self, info, is_ok):
+        if info.object.kit2fiff_panel.kit2fiff_coreg_panel\
+                                                    .queue.unfinished_tasks:
+            msg = ("Can not close the window while saving is still in "
+                   "progress. Please wait until all files are processed.")
+            title = "Saving Still in Progress"
+            information(None, msg, title)
+            return False
+        else:
+            return True
 
 
 class Kit2FiffCoregPanel(HasPrivateTraits):
@@ -88,7 +104,12 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
     can_save = Property(Bool, depends_on=['raw', 'fid_src', 'elp_src',
                                           'hsp_src', 'dev_head_trans'])
     save_as = Button(label='Save FIFF...')
-    save_feedback = Str('')
+    queue = Instance(Queue, ())
+    queue_feedback = Str('')
+    queue_current = Str('')
+    queue_len = Int(0)
+    queue_len_str = Property(Str, depends_on=['queue_len'])
+    error = Str('')
 
     view = View(VGroup(VGroup(Item('sqd_file', label="Data"),
                               Item('sqd_fname', show_label=False,
@@ -124,8 +145,42 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
                            label='Events', show_border=True),
                        Item('save_as', enabled_when='can_save',
                             show_label=False),
-                       Item('save_feedback', show_label=False,
-                            style='readonly')))
+                       Item('queue_feedback', show_label=False,
+                            style='readonly'),
+                       Item('queue_current', show_label=False,
+                            style='readonly'),
+                       Item('queue_len_str', show_label=False,
+                            style='readonly'),
+                       ))
+
+    def __init__(self, *args, **kwargs):
+        super(Kit2FiffCoregPanel, self).__init__(*args, **kwargs)
+
+        # setup save worker
+        def worker():
+            while True:
+                raw, fname = self.queue.get()
+                basename = os.path.basename(fname)
+                self.queue_len -= 1
+                self.queue_current = 'Processing: %s' % basename
+
+                # task
+                try:
+                    raw.save(fname, overwrite=True)
+                except Exception as err:
+                    self.error = str(err)
+                    res = "Error saving: %s"
+                else:
+                    res = "Saved: %s"
+
+                # finalize
+                self.queue_current = ''
+                self.queue_feedback = res % basename
+                self.queue.task_done()
+
+        t = Thread(target=worker)
+        t.daemon = True
+        t.start()
 
     @cached_property
     def _get_sqd_fname(self):
@@ -296,6 +351,13 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
         else:
             return raw
 
+    @cached_property
+    def _get_queue_len_str(self):
+        if self.queue_len:
+            return "Queue length: %i" % self.queue_len
+        else:
+            return ''
+
     def _reset_dig_fired(self):
         self.reset_traits(['hsp_file', 'fid_file'])
 
@@ -312,7 +374,6 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
                          default_path=default_path)
         dlg.open()
         if dlg.return_code != OK:
-            self.save_feedback = "Saving aborted."
             return
 
         fname = dlg.path
@@ -322,7 +383,6 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
                 answer = confirm(None, "The file %r already exists. Should it "
                                  "be replaced?", "Overwrite File?")
                 if answer != YES:
-                    self.save_feedback = "Saving aborted."
                     return
 
         raw = self.raw
@@ -332,23 +392,8 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
             raw.set_transformed_dig(self.fid_src, self.elp_src, self.hsp_src,
                                     self.dev_head_trans)
 
-        prog = ProgressDialog(title="KIT to FIFF", message="Converting SQD to "
-                              "FIFF...")
-        prog.open()
-        prog.update(0)
-
-        self.save_feedback = "Saving ..."
-        try:
-            raw.save(fname, overwrite=True)
-        except Exception as err:
-            prog.close()
-            msg = str(err)
-            self.save_feedback = "Saving failed."
-            error(None, msg, "Error Saving Fiff")
-            raise
-        else:
-            prog.close()
-            self.save_feedback = "Saved: %r" % os.path.basename(fname)
+        self.queue.put((raw, fname))
+        self.queue_len += 1
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
@@ -371,12 +416,12 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
 class Kit2FiffPanel(HasTraits):
     scene = Instance(MlabSceneModel, ())
     marker_panel = Instance(CombineMarkersPanel)
-    kit2fiff_panel = Instance(Kit2FiffCoregPanel)
+    kit2fiff_coreg_panel = Instance(Kit2FiffCoregPanel)
 
     view = View(Group(Item('marker_panel', label="Markers", style="custom",
                            dock='tab'),
-                      Item('kit2fiff_panel', label="Kit2Fiff", style="custom",
-                           dock='tab'),
+                      Item('kit2fiff_coreg_panel', label="Kit2Fiff",
+                           style="custom", dock='tab'),
                       layout='tabbed', show_labels=False)
                       )
 
@@ -384,7 +429,7 @@ class Kit2FiffPanel(HasTraits):
         panel = CombineMarkersPanel(scene=self.scene)
         return panel
 
-    def _kit2fiff_panel_default(self):
+    def _kit2fiff_coreg_panel_default(self):
         panel = Kit2FiffCoregPanel(scene=self.scene)
         return panel
 
@@ -396,7 +441,8 @@ class Kit2FiffPanel(HasTraits):
         self.marker_panel.mrk3_obj.trans = mrk_trans
 
         mrk = self.marker_panel.mrk3
-        mrk.sync_trait('points', self.kit2fiff_panel, 'mrk_ALS', mutual=False)
+        mrk.sync_trait('points', self.kit2fiff_coreg_panel, 'mrk_ALS',
+                       mutual=False)
 
 
 view_hrs = View(HGroup(Item('scene',
@@ -414,13 +460,13 @@ class Kit2FiffFrame(HasTraits):
     """GUI for interpolating between two KIT marker files"""
     scene = Instance(MlabSceneModel, ())
     headview = Instance(HeadViewController)
-    panel = Instance(Kit2FiffPanel)
+    kit2fiff_panel = Instance(Kit2FiffPanel)
 
     def _headview_default(self):
         hv = HeadViewController(scene=self.scene, scale=160, system='RAS')
         return hv
 
-    def _panel_default(self):
+    def _kit2fiff_panel_default(self):
         p = Kit2FiffPanel(scene=self.scene)
         return p
 
@@ -431,8 +477,9 @@ class Kit2FiffFrame(HasTraits):
                                      show_labels=False,
                                      ),
                               ),
-                       VGroup(Item('panel', style='custom'),
+                       VGroup(Item('kit2fiff_panel', style='custom'),
                               show_labels=False),
                        show_labels=False,
                       ),
+                handler=Kit2FiffFrameHandler(),
                 width=1100, resizable=True, buttons=NoButtons)
