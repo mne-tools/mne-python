@@ -21,6 +21,7 @@ base_dir = op.join(op.dirname(__file__), 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
 fif_gz_fname = op.join(base_dir, 'test_raw.fif.gz')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
+ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 fif_bad_marked_fname = op.join(base_dir, 'test_withbads_raw.fif')
 bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
@@ -745,3 +746,39 @@ def test_with_statement():
     for preload in [True, False]:
         with Raw(fif_fname, preload=preload) as raw_:
             print raw_
+
+
+def test_compensation_raw():
+    raw1 = Raw(ctf_comp_fname, compensation=None)
+    assert_true(raw1.comp is None)
+    data1, times1 = raw1[:, :]
+    raw2 = Raw(ctf_comp_fname, compensation=3)
+    data2, times2 = raw2[:, :]
+    assert_true(raw2.comp is None)  # unchanged (data come with grade 3)
+    assert_array_equal(times1, times2)
+    assert_array_equal(data1, data2)
+    raw3 = Raw(ctf_comp_fname, compensation=1)
+    data3, times3 = raw3[:, :]
+    assert_true(raw3.comp is not None)
+    assert_array_equal(times1, times3)
+    # make sure it's different with a different compensation:
+    assert_true(np.mean(np.abs(data1 - data3)) > 1e-12)
+    assert_raises(ValueError, Raw, ctf_comp_fname, compensation=33)
+
+    # Try IO with compensation
+    temp_file = op.join(tempdir, 'raw.fif')
+
+    raw1.save(temp_file, overwrite=True)
+    raw4 = Raw(temp_file)
+    data4, times4 = raw4[:, :]
+    assert_array_equal(times1, times4)
+    assert_array_equal(data1, data4)
+
+    # Now save the file that has modified compensation
+    # and make sure we can the same data as input ie. compensation
+    # is undone
+    raw3.save(temp_file, overwrite=True)
+    raw5 = Raw(temp_file)
+    data5, times5 = raw5[:, :]
+    assert_array_equal(times1, times5)
+    assert_allclose(data1, data5, rtol=1e-12, atol=1e-22)

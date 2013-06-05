@@ -1,3 +1,4 @@
+
 What's new
 ==========
 
@@ -119,6 +120,8 @@ API
    - Raw constructor argument proj_active deprecated -- use proj argument instead.
 
    - Functions from the mne.mixed_norm module have been moved to the mne.inverse_sparse module.
+
+   - Deprecate CTF compensation (keep_comp and dest_comp) in Epochs and move it to Raw with a single compensation parameter.
 
 .. _changes_0_5:
 

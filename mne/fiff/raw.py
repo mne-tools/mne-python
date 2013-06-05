@@ -7,13 +7,14 @@
 
 from math import floor, ceil
 import copy
+from copy import deepcopy
 import warnings
 import os
 import os.path as op
 
 import numpy as np
 from scipy.signal import hilbert
-from copy import deepcopy
+from scipy import linalg
 
 import logging
 logger = logging.getLogger('mne')
@@ -25,6 +26,7 @@ from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types, channel_type
 from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
+from .compensator import get_current_comp, make_compensator
 
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
@@ -53,8 +55,6 @@ class Raw(ProjMixin):
         large amount of memory). If preload is a string, preload is the
         file name of a memory-mapped file which is used to store the data
         on the hard drive (slower, requires less memory).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     proj : bool
         Apply the signal space projection (SSP) operators present in
         the file to the data. Note: Once the projectors have been
@@ -62,6 +62,12 @@ class Raw(ProjMixin):
         recommended to apply the projectors at this point as they are
         applied automatically later on (e.g. when computing inverse
         solutions).
+    compensation : None | int
+        If None the compensation in the data is not modified.
+        If set to n, e.g. 3, apply gradient compensation of grade n as
+        for CTF systems.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Attributes
     ----------
@@ -76,7 +82,8 @@ class Raw(ProjMixin):
     """
     @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 verbose=None, proj=False, proj_active=None):
+                 proj=False, proj_active=None, compensation=None,
+                 verbose=None):
 
         if proj_active is not None:
             warnings.warn('proj_active param in Raw is deprecated and will be'
@@ -88,8 +95,8 @@ class Raw(ProjMixin):
         else:
             fnames = [op.abspath(f) if not op.isabs(f) else f for f in fnames]
 
-        raws = [self._read_raw_file(fname, allow_maxshield, preload)
-                for fname in fnames]
+        raws = [self._read_raw_file(fname, allow_maxshield, preload,
+                                    compensation) for fname in fnames]
 
         _check_raw_compatibility(raws)
 
@@ -101,7 +108,7 @@ class Raw(ProjMixin):
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
         self.cals = raws[0].cals
         self.rawdirs = [r.rawdir for r in raws]
-        self.comp = None
+        self.comp = copy.deepcopy(raws[0].comp)
         self.fids = [r.fid for r in raws]
         self.info = copy.deepcopy(raws[0].info)
         self.verbose = verbose
@@ -154,7 +161,8 @@ class Raw(ProjMixin):
         self.close()
 
     @verbose
-    def _read_raw_file(self, fname, allow_maxshield, preload, verbose=None):
+    def _read_raw_file(self, fname, allow_maxshield, preload, compensation,
+                       verbose=None):
         """Read in header information from a raw file"""
         logger.info('Opening raw data file %s...' % fname)
 
@@ -290,7 +298,18 @@ class Raw(ProjMixin):
         raw.cals = cals
         raw.rawdir = rawdir
         raw.comp = None
-        # XXX raw.comp never changes!
+
+        #   Set up the CTF compensator
+        current_comp = get_current_comp(info)
+        if current_comp is not None:
+            logger.info('Current compensation grade : %d' % current_comp)
+
+        if compensation is not None:
+            raw.comp = make_compensator(info, current_comp, compensation)
+            if raw.comp is not None:
+                logger.info('Appropriate compensator added to change to '
+                            'grade %d.' % (compensation))
+
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     raw.first_samp, raw.last_samp,
                     float(raw.first_samp) / info['sfreq'],
@@ -941,6 +960,12 @@ class Raw(ProjMixin):
         #
         #   Read and write all the data
         #
+
+        # Take care of CTF compensation
+        inv_comp = None
+        if self.comp is not None:
+            inv_comp = linalg.inv(self.comp)
+
         write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
         for first in range(start, stop, buffer_size):
             last = first + buffer_size
@@ -961,7 +986,7 @@ class Raw(ProjMixin):
                             '[done]')
                 break
             logger.info('Writing ...')
-            write_raw_buffer(outfid, data, cals, format)
+            write_raw_buffer(outfid, data, cals, format, inv_comp)
             logger.info('[done]')
 
         finish_writing_raw(outfid)
@@ -1459,15 +1484,13 @@ class Raw(ProjMixin):
         else:
             data = None  # we will allocate it later, once we know the type
 
-        if projector is not None:
-            mult = list()
-            for ri in range(len(self._raw_lengths)):
-                mult.append(np.diag(self.cals.ravel()))
-                if self.comp is not None:
-                    mult[ri] = np.dot(self.comp[idx, :], mult[ri])
+        mult = list()
+        for ri in range(len(self._raw_lengths)):
+            mult.append(np.diag(self.cals.ravel()))
+            if self.comp is not None:
+                mult[ri] = np.dot(self.comp[idx, :], mult[ri])
+            if projector is not None:
                 mult[ri] = np.dot(projector, mult[ri])
-        else:
-            mult = None
 
         # deal with having multiple files accessed by the raw object
         cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
@@ -1746,7 +1769,7 @@ def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     return fid, cals
 
 
-def write_raw_buffer(fid, buf, cals, format):
+def write_raw_buffer(fid, buf, cals, format, inv_comp):
     """Write raw buffer
 
     Parameters
@@ -1761,6 +1784,9 @@ def write_raw_buffer(fid, buf, cals, format):
         'short', 'int', 'single', or 'double' for 16/32 bit int or 32/64 bit
         float for each item. This will be doubled for complex datatypes. Note
         that short and int formats cannot be used for complex data.
+    inv_comp : array | None
+        The CTF compensation matrix used to revert compensation
+        change when reading.
     """
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
@@ -1785,7 +1811,13 @@ def write_raw_buffer(fid, buf, cals, format):
         else:
             raise ValueError('only "single" and "double" supported for '
                              'writing complex data')
-    write_function(fid, FIFF.FIFF_DATA_BUFFER, buf / np.ravel(cals)[:, None])
+
+    if inv_comp is not None:
+        buf = np.dot(inv_comp / np.ravel(cals)[:, None], buf)
+    else:
+        buf = buf / np.ravel(cals)[:, None]
+
+    write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
 
 def finish_writing_raw(fid):
