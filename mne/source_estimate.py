@@ -570,18 +570,18 @@ class SourceEstimate(object):
             if ftype == 'stc':
                 logger.info('Writing STC to disk...')
                 _write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
-                          vertices=self.lh_vertno, data=lh_data)
+                           vertices=self.lh_vertno, data=lh_data)
                 _write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
-                          vertices=self.rh_vertno, data=rh_data)
+                           vertices=self.rh_vertno, data=rh_data)
             elif ftype == 'w':
                 if self.shape[1] != 1:
                     raise ValueError('w files can only contain a single time '
                                      'point')
                 logger.info('Writing STC to disk (w format)...')
                 _write_w(fname + '-lh.w', vertices=self.lh_vertno,
-                        data=lh_data[:, 0])
+                         data=lh_data[:, 0])
                 _write_w(fname + '-rh.w', vertices=self.rh_vertno,
-                        data=rh_data[:, 0])
+                         data=rh_data[:, 0])
         else:
             if isinstance(self.vertno, list):
                 write_vertices = self.vertno[0]
@@ -593,7 +593,7 @@ class SourceEstimate(object):
                         or fname.endswith('-vol.stc')):
                     fname += '-vl.stc'
                 _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
-                          vertices=write_vertices, data=self.data)
+                           vertices=write_vertices, data=self.data)
             elif ftype == 'w':
                 logger.info('Writing STC to disk (w format)...')
                 if not (fname.endswith('-vl.w')

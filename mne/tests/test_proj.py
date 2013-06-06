@@ -3,7 +3,7 @@ from nose.tools import assert_true
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_allclose
 
 import copy as cp
 
@@ -13,7 +13,7 @@ from mne.fiff import Raw, pick_types
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.fiff.proj import make_projector, activate_proj
 from mne.proj import read_proj, write_proj
-from mne import read_events, Epochs, sensitivity_map
+from mne import read_events, Epochs, sensitivity_map, read_source_estimate
 from mne.utils import _TempDir
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
@@ -35,62 +35,36 @@ tempdir = _TempDir()
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
-    projs = None
     proj_eog = read_proj(eog_fname)
     decim = 6
     for ch_type in ['eeg', 'grad', 'mag']:
-        w_lh = mne.read_w(sensmap_fname % (ch_type, 'lh'))
-        w_rh = mne.read_w(sensmap_fname % (ch_type, 'rh'))
-        w = np.r_[w_lh['data'], w_rh['data']]
-        stc = sensitivity_map(fwd, projs=projs, ch_type=ch_type,
+        w = read_source_estimate(sensmap_fname % (ch_type, 'lh')).data
+        stc = sensitivity_map(fwd, projs=None, ch_type=ch_type,
                               mode='free', exclude='bads')
-        assert_array_almost_equal(stc.data.ravel(), w, decim)
+        assert_array_almost_equal(stc.data, w, decim)
         assert_true(stc.subject == 'sample')
         # let's just make sure the others run
         if ch_type == 'grad':
-            # fixed
-            w_lh = mne.read_w(sensmap_fname % (ch_type, '2-lh'))
-            w_rh = mne.read_w(sensmap_fname % (ch_type, '2-rh'))
-            w = np.r_[w_lh['data'], w_rh['data']]
-            stc = sensitivity_map(fwd, projs=projs, mode='fixed',
+            # fixed (2)
+            w = read_source_estimate(sensmap_fname % (ch_type, '2-lh')).data
+            stc = sensitivity_map(fwd, projs=None, mode='fixed',
                                   ch_type=ch_type, exclude='bads')
-            assert_array_almost_equal(stc.data.ravel(), w, decim)
+            assert_array_almost_equal(stc.data, w, decim)
         if ch_type == 'mag':
-            # ratio
-            w_lh = mne.read_w(sensmap_fname % (ch_type, '3-lh'))
-            w_rh = mne.read_w(sensmap_fname % (ch_type, '3-rh'))
-            w = np.r_[w_lh['data'], w_rh['data']]
-            stc = sensitivity_map(fwd, projs=projs, mode='ratio',
+            # ratio (3)
+            w = read_source_estimate(sensmap_fname % (ch_type, '3-lh')).data
+            stc = sensitivity_map(fwd, projs=None, mode='ratio',
                                   ch_type=ch_type, exclude='bads')
-            assert_array_almost_equal(stc.data.ravel(), w, decim)
+            assert_array_almost_equal(stc.data, w, decim)
         if ch_type == 'eeg':
-            # radiality (4)
-            w_lh = mne.read_w(sensmap_fname % (ch_type, '4-lh'))
-            w_rh = mne.read_w(sensmap_fname % (ch_type, '4-rh'))
-            w = np.r_[w_lh['data'], w_rh['data']]
-            stc = sensitivity_map(fwd, projs=projs, mode='radiality',
-                                  ch_type=ch_type, exclude='bads')
-            # angle (5)
-            w_lh = mne.read_w(sensmap_fname % (ch_type, '5-lh'))
-            w_rh = mne.read_w(sensmap_fname % (ch_type, '5-rh'))
-            w = np.r_[w_lh['data'], w_rh['data']]
-            stc = sensitivity_map(fwd, projs=proj_eog, mode='angle',
-                                  ch_type=ch_type, exclude='bads')
-            assert_array_almost_equal(stc.data.ravel(), w, decim)
-            # remaining (6)
-            w_lh = mne.read_w(sensmap_fname % (ch_type, '6-lh'))
-            w_rh = mne.read_w(sensmap_fname % (ch_type, '6-rh'))
-            w = np.r_[w_lh['data'], w_rh['data']]
-            stc = sensitivity_map(fwd, projs=proj_eog, mode='remaining',
-                                  ch_type=ch_type, exclude='bads')
-            assert_array_almost_equal(stc.data.ravel(), w, decim)
-            # dampening (7)
-            w_lh = mne.read_w(sensmap_fname % (ch_type, '7-lh'))
-            w_rh = mne.read_w(sensmap_fname % (ch_type, '7-rh'))
-            w = np.r_[w_lh['data'], w_rh['data']]
-            stc = sensitivity_map(fwd, projs=proj_eog, mode='dampening',
-                                  ch_type=ch_type, exclude='bads')
-            assert_array_almost_equal(stc.data.ravel(), w, decim)
+            # radiality (4), angle (5), remaining (6), and  dampening (7)
+            modes = ['radiality', 'angle', 'remaining', 'dampening']
+            ends = ['4-lh', '5-lh', '6-lh', '7-lh']
+            for mode, end in zip(modes, ends):
+                w = read_source_estimate(sensmap_fname % (ch_type, end)).data
+                stc = sensitivity_map(fwd, projs=proj_eog, mode=mode,
+                                      ch_type=ch_type, exclude='bads')
+                assert_array_almost_equal(stc.data, w, decim)
 
 
 def test_compute_proj_epochs():
@@ -145,13 +119,14 @@ def test_compute_proj_epochs():
     projs = read_proj(proj_fname)
 
     projs_evoked = compute_proj_evoked(evoked, n_grad=1, n_mag=1, n_eeg=0)
+    assert_true(len(projs_evoked) == 2)
     # XXX : test something
 
     # test parallelization
     projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=2)
     projs = activate_proj(projs)
     proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
-    assert_true(np.allclose(proj, proj_par, rtol=1e-8, atol=1e-16))
+    assert_allclose(proj, proj_par, rtol=1e-8, atol=1e-16)
 
 
 def test_compute_proj_raw():
