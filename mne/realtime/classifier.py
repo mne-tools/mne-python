@@ -5,9 +5,22 @@
 from sklearn.svm import SVC
 import numpy as np
 
-class RtClassifier(object):
+class RtClassifier:
 
-    def __init__(self, method, epochs, Y, tr_percent):
+    """
+
+    Parameters
+    ----------
+
+    Attributes
+    ----------
+
+
+    """
+
+    def __init__(self):
+
+        print "Instantiating classifier object ..."
 
         #[Tr_X, Ts_X, Tr_Y, Ts_Y] = split_data(self, epochs, Y, tr_percent)
 
@@ -22,7 +35,7 @@ class RtClassifier(object):
         Parameters
         ----------
         epochs :
-        Y:
+        Y :
         tr_percent:
 
         Returns
@@ -31,6 +44,7 @@ class RtClassifier(object):
         Ts_X:
         Tr_Y:
         Ts_Y:
+
         """
 
         trnum = round(np.shape(epochs)[0]*tr_percent/100)
@@ -56,7 +70,7 @@ class RtClassifier(object):
 
         return clf
 
-    def predict(self, Ts_X):
+    def predict(self, clf, Ts_X):
 
         result = clf.predict(Ts_X)
 
