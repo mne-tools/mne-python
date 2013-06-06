@@ -2247,7 +2247,7 @@ def _mouse_click(event, params):
             plot_fun()
     # horizontal scrollbar changed
     elif event.inaxes == params['ax_hscroll']:
-        _plot_raw_time(event.xdata - params['duration'] / 2, params, plot_fun)
+        _plot_raw_time(event.xdata - params['duration'] / 2, params)
 
 
 def _plot_raw_time(value, params):
@@ -2288,12 +2288,10 @@ def _plot_raw_onkey(event, params):
         params['ch_start'] -= params['n_channels']
         ch_changed = True
     elif event.key == 'right':
-        _plot_raw_time(params['t_start'] + params['duration'], params,
-                       plot_fun)
+        _plot_raw_time(params['t_start'] + params['duration'], params)
         return
     elif event.key == 'left':
-        _plot_raw_time(params['t_start'] - params['duration'], params,
-                       plot_fun)
+        _plot_raw_time(params['t_start'] - params['duration'], params)
         return
     elif event.key in ['o', 'p']:
         _toggle_options(None, params)
@@ -2310,7 +2308,7 @@ def _plot_raw_onkey(event, params):
             params['ch_start'] -= rem if rem != 0 else params['n_channels']
 
     if ch_changed:
-        params['plot_fun']()
+        plot_fun()
 
 
 def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
