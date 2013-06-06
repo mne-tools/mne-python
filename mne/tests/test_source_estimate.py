@@ -4,15 +4,14 @@ import warnings
 from copy import deepcopy
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal,\
+from numpy.testing import assert_array_almost_equal, assert_array_equal, \
                           assert_allclose
 
 from scipy.fftpack import fft
 
 from mne.datasets import sample
 from mne import stats, SourceEstimate, Label
-from mne import _read_stc, _write_stc, read_source_estimate, morph_data,\
-                extract_label_time_course
+from mne import read_source_estimate, morph_data, extract_label_time_course
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
                                 compute_morph_matrix, grade_to_vertices, \
@@ -85,16 +84,16 @@ def test_expand():
 def test_io_stc():
     """Test IO for STC files
     """
-    stc = _read_stc(fname)
+    stc = read_source_estimate(fname)
+    stc.save(op.join(tempdir, "tmp.stc"))
+    stc2 = read_source_estimate(op.join(tempdir, "tmp.stc"))
 
-    _write_stc(op.join(tempdir, "tmp.stc"), stc['tmin'], stc['tstep'],
-              stc['vertices'], stc['data'])
-    stc2 = _read_stc(op.join(tempdir, "tmp.stc"))
-
-    assert_array_almost_equal(stc['data'], stc2['data'])
-    assert_array_almost_equal(stc['tmin'], stc2['tmin'])
-    assert_array_almost_equal(stc['vertices'], stc2['vertices'])
-    assert_array_almost_equal(stc['tstep'], stc2['tstep'])
+    assert_array_almost_equal(stc.data, stc2.data)
+    assert_array_almost_equal(stc.tmin, stc2.tmin)
+    assert_true(len(stc.vertno) == len(stc2.vertno))
+    for v1, v2 in zip(stc.vertno, stc2.vertno):
+        assert_array_almost_equal(v1, v2)
+    assert_array_almost_equal(stc.tstep, stc2.tstep)
 
 
 def test_io_w():
