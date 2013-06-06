@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger('mne')
 
 from .utils import get_subjects_dir, _check_subject
-from .source_estimate import read_stc, mesh_edges, mesh_dist, morph_data, \
+from .source_estimate import _read_stc, mesh_edges, mesh_dist, morph_data, \
                              SourceEstimate
 from .surface import read_surface
 from . import verbose
@@ -511,7 +511,7 @@ def label_time_courses(labelfile, stcfile):
     vertices : array
         The indices of the vertices corresponding to the time points.
     """
-    stc = read_stc(stcfile)
+    stc = _read_stc(stcfile)
     lab = read_label(labelfile)
 
     vertices = np.intersect1d(stc['vertices'], lab.vertices)
