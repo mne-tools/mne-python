@@ -14,10 +14,12 @@ from scipy.spatial.distance import cdist
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
-from pyface.api import error, confirm, warning, OK, YES, NO, ProgressDialog, FileDialog
-from traits.api import HasTraits, HasPrivateTraits, cached_property, on_trait_change, Instance, Property, \
-                       Any, Array, Bool, Button, Directory, Enum, Float, Int, List, Str
-from traitsui.api import View, Item, HGroup, VGroup, EnumEditor
+from pyface.api import error, confirm, warning, OK, YES, NO, information, \
+                       FileDialog
+from traits.api import HasTraits, HasPrivateTraits, cached_property, \
+                       on_trait_change, Instance, Property, Any, Array, Bool, \
+                       Button, Directory, Enum, Float, Int, List, Str
+from traitsui.api import View, Item, HGroup, VGroup, EnumEditor, Handler
 from traitsui.menu import Action, UndoButton, CancelButton
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -29,11 +31,22 @@ from ..transforms.coreg import trans_fname, fit_matched_pts, fit_point_cloud, \
                                scale_mri
 from ..utils import get_subjects_dir
 from .fiducials_gui import FiducialsPanel
-from .file_traits import assert_env_set, BemSource, RawHspSource, \
-                         SubjectSelector
+from .file_traits import BemSource, RawHspSource, SubjectSelector
 from .viewer import HeadViewController, PointObject, SurfaceObject, \
                     headview_item
 
+
+class CoregFrameHandler(Handler):
+    "Handler to check for unfinished processes before closing the window"
+    def close(self, info, is_ok):
+        if info.object.coreg.queue.unfinished_tasks:
+            msg = ("Can not close the window while saving is still in "
+                   "progress. Please wait until all MRIs are processed.")
+            title = "Saving Still in Progress"
+            information(None, msg, title)
+            return False
+        else:
+            return True
 
 
 class CoregPanel(HasPrivateTraits):
@@ -106,9 +119,11 @@ class CoregPanel(HasPrivateTraits):
     can_save = Property(Bool, depends_on='dig')
     save = Button
     queue = Instance(Queue, ())
-    has_worker = Bool(False)
-
-    background_processing = Bool(False)
+    queue_feedback = Str('')
+    queue_current = Str('')
+    queue_len = Int(0)
+    queue_len_str = Property(Str, depends_on=['queue_len'])
+    process_repr = Property(Str, depends_on=['queue_len', 'queue_current'])
 
     # View Element
     axis_labels = Str("Right   \t\tAnterior\t\tSuperior")
@@ -172,8 +187,39 @@ class CoregPanel(HasPrivateTraits):
                               Item('reset_params', tooltip="Reset all "
                                    "coregistration parameters"),
                               show_labels=False),
+                       Item('process_repr', style='readonly'),
                        show_labels=False),
                 kind='panel', buttons=[UndoButton])
+
+    def __init__(self, *args, **kwargs):
+        super(CoregPanel, self).__init__(*args, **kwargs)
+
+        # setup save worker
+        def worker():
+            while True:
+                desc, cmd, args, kwargs = self.queue.get()
+
+                self.queue_len -= 1
+                self.queue_current = 'Processing: %s' % desc
+
+                # task
+                try:
+                    cmd(*args, **kwargs)
+                except Exception as err:
+                    msg = str(err)
+                    error(None, msg, "Error Scaling MRI")
+                    res = "Error in %s"
+                else:
+                    res = "Done: %s"
+
+                # finalize
+                self.queue_current = ''
+                self.queue_feedback = res % desc
+                self.queue.task_done()
+
+        t = Thread(target=worker)
+        t.daemon = True
+        t.start()
 
     @cached_property
     def _get_can_save(self):
@@ -200,6 +246,13 @@ class CoregPanel(HasPrivateTraits):
         x, y, z = self.translation[0] + self.tgt_origin
         trans = dot(translation(x, y, z), trans)
         return trans
+
+    @cached_property
+    def _get_queue_len_str(self):
+        if self.queue_len:
+            return "Queue length: %i" % self.queue_len
+        else:
+            return ''
 
     @cached_property
     def _get_scale(self):
@@ -233,6 +286,18 @@ class CoregPanel(HasPrivateTraits):
         fid = self.mri_fid * self.scale
         fid -= self.tgt_origin
         return fid
+
+    @cached_property
+    def _get_process_repr(self):
+        if self.queue_current:
+            items = [self.queue_current]
+        else:
+            return ''
+
+        if self.queue_len:
+            items.append("(%i in queue)" % self.queue_len)
+
+        return '  '.join(items)
 
     def _fit_ap_fired(self):
         tgt_fid = self.tgt_fid[1:] - self.translation[0]
@@ -340,93 +405,34 @@ class CoregPanel(HasPrivateTraits):
             bemdir = os.path.join(self.subjects_dir, subject, 'bem')
             bem = os.path.join(bemdir, '%s-inner_skull-bem.fif' % subject)
 
-            if mridlg.background or self.background_processing:
-                if not self.has_worker:
-                    def worker():
-                        while True:
-                            cmd, args, kwargs = self.queue.get()
-                            cmd(*args, **kwargs)
-                            self.queue.task_done()
-
-                    t = Thread(target=worker)
-                    t.daemon = True
-                    t.start()
-                    self.has_worker = True
-
-                self.queue.put((scale_mri, (self.subject, subject),
-                                dict(scale=self.scale, overwrite=True)))
-
-                if mridlg.prepare_bem_model:
-                    self.queue.put((prepare_bem_model, (bem,), {}))
-
-                if mridlg.setup_source_space:
-                    if mridlg.ss_subd == 'ico':
-                        self.queue.put((setup_source_space, (subject,),
-                                        dict(ico=mridlg.ss_param,
-                                             subjects_dir=self.subjects_dir)))
-                    elif mridlg.ss_subd == 'spacing':
-                        self.queue.put((setup_source_space, (subject,),
-                                        dict(spacing=mridlg.ss_param,
-                                             subjects_dir=self.subjects_dir)))
-                    else:
-                        err = ("ss_param needs to be 'ico' or 'spacing', can "
-                               "not be %s" % mridlg.ss_subd)
-                        raise ValueError(err)
-
-                return
-
-            # progress dialog
-            title = "Saving %s..." % subject
-            message = "Saving scaled MRI %s for %s" % (self.subject, subject)
-            vmax = 1 + mridlg.prepare_bem_model + mridlg.setup_source_space
-            if vmax == 1:  # indefinite progress bar
-                prog = ProgressDialog(title=title, message=message)
-            else:
-                prog = ProgressDialog(title=title, message=message, min=0,
-                                      max=vmax)
-
-            progi = 0
-            prog.open()
-            prog.update(0)
-
-            try:
-                scale_mri(self.subject, subject, scale=self.scale,
-                          overwrite=True, subjects_dir=self.subjects_dir)
-            except Exception as e:
-                error(None, str(e), "Error while Saving Scaled MRI")
+            self.queue.put(('Scaling %s' % subject, scale_mri,
+                            (self.subject, subject),
+                            dict(scale=self.scale, overwrite=True,
+                                 subjects_dir=self.subjects_dir)))
+            self.queue_len += 1
 
             if mridlg.prepare_bem_model:
-                progi += 1
-                prog.update(progi)
-                prog.change_message("Running mne_prepare_bem_model...")
-
-                try:
-                    prepare_bem_model(bem)
-                except Exception as e:
-                    err = "%s\n\nSee log for more information." % str(e)
-                    error(None, err, "Error in mne_prepare_bem_model")
+                self.queue.put(('mne_prepare_bem_model %s' % subject,
+                                prepare_bem_model, (bem,), {}))
+                self.queue_len += 1
 
             if mridlg.setup_source_space:
-                progi += 1
-                prog.update(progi)
-                prog.change_message("Running mne_setup_source_space...")
-
-                try:
-                    if mridlg.ss_subd == 'ico':
-                        setup_source_space(subject, ico=mridlg.ss_param,
-                                           subjects_dir=self.subjects_dir)
-                    elif mridlg.ss_subd == 'spacing':
-                        setup_source_space(subject, spacing=mridlg.ss_param,
-                                           subjects_dir=self.subjects_dir)
-                    else:
-                        err = ("ss_param needs to be 'ico' or 'spacing', can "
-                               "not be %s" % mridlg.ss_subd)
-                        raise ValueError(err)
-                except Exception as e:
-                    err = "%s\n\nSee log for more information." % str(e)
-                    error(None, err, "Error in mne_setup_source_space")
-
-            prog.close()
+                if mridlg.ss_subd == 'ico':
+                    self.queue.put(('mne_setup_source_space %s' % subject,
+                                    setup_source_space, (subject,),
+                                    dict(ico=mridlg.ss_param,
+                                         subjects_dir=self.subjects_dir)))
+                    self.queue_len += 1
+                elif mridlg.ss_subd == 'spacing':
+                    self.queue.put(('mne_setup_source_space %s' % subject,
+                                    setup_source_space, (subject,),
+                                    dict(spacing=mridlg.ss_param,
+                                         subjects_dir=self.subjects_dir)))
+                    self.queue_len += 1
+                else:
+                    err = ("ss_param needs to be 'ico' or 'spacing', can "
+                           "not be %s" % mridlg.ss_subd)
+                    raise ValueError(err)
 
 
 class NewMriDialog(HasPrivateTraits):
@@ -445,8 +451,6 @@ class NewMriDialog(HasPrivateTraits):
     setup_source_space = Bool(True)
     ss_subd = Enum('ico', 'spacing')
     ss_param = Int(4)
-
-    background = Bool(False)
 
     view = View(Item('subject', label='New MRI Subject Name', tooltip="A new "
                      "folder with this name will be created in the current "
@@ -468,11 +472,6 @@ class NewMriDialog(HasPrivateTraits):
                      enabled_when='setup_source_space'),
                 Item('ss_param', label='Subdivision Parameter',
                      enabled_when='setup_source_space'),
-#                '_',
-#                Item('background', label='Run in Background', tooltip="Exe"
-#                     "cute MRI preparation in the background (in a searate "
-#                     "thread) without blocking the the current "
-#                     "GUI/interpreter"),
                 width=500,
                 buttons=[CancelButton,
                            Action(name='OK', enabled_when='can_save')])
@@ -604,7 +603,8 @@ class CoregFrame(HasTraits):
                               show_labels=False),
                        show_labels=False,
                       ),
-                resizable=True, buttons=[UndoButton])  # HelpButton
+                resizable=True, buttons=[UndoButton],
+                handler=CoregFrameHandler())  # HelpButton
 
     def _fid_panel_default(self):
         return FiducialsPanel(scene=self.scene, headview=self.headview)
