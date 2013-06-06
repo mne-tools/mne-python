@@ -1089,6 +1089,38 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     -------
     inv : dict
         Inverse operator.
+
+    Notes
+    -----
+    For different sets of options (**loose**, **depth**, **fixed**) to work,
+    the forward operator must have been loaded using a certain configuration
+    (i.e., with **force_fixed** and **surf_ori** set appropriately):
+
+        +-------------------+-----------+-----------+-----------+-----------------+--------------+
+        | Inverse desired                           | Forward(s) allowed                         |
+        +===================+===========+===========+===========+=================+==============+
+        |                   | **loose** | **depth** | **fixed** | **force_fixed** | **surf_ori** |
+        +-------------------+-----------+-----------+-----------+-----------------+--------------+
+        | Loose constraint, | 0.2       | 0.8       | False     | False           | True         |
+        | Depth weighted    |           |           |           |                 |              |
+        +-------------------+-----------+-----------+-----------+-----------------+--------------+
+        | Loose constraint  | 0.2       | None      | False     | False           | True         |
+        +-------------------+-----------+-----------+-----------+-----------------+--------------+
+        | Free orientation, | None      | 0.8       | False     | False           | True         |
+        | Depth weighted    |           |           |           |                 |              |
+        +-------------------+-----------+-----------+-----------+-----------------+--------------+
+        | Free orientation  | None      | None      | False     | False           | True | False |
+        +-------------------+-----------+-----------+-----------+-----------------+--------------+
+        | Fixed constraint, | None      | 0.8       | True      | False           | True         |
+        | Depth weighted    |           |           |           |                 |              |
+        +-------------------+-----------+-----------+-----------+-----------------+--------------+
+        | Fixed constraint  | None      | None      | True      | True            | False        |
+        +-------------------+-----------+-----------+-----------+-----------------+--------------+
+
+    Also note that, if the source space (as stored in the forward solution)
+    has patch statistics computed, these are used to improve the depth
+    weighting. Thus slightly different results are to be expected with
+    and without this information.
     """
     is_fixed_ori = is_fixed_orient(forward)
 
