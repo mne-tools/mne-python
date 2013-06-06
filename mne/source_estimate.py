@@ -19,12 +19,15 @@ from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
 from .utils import get_subjects_dir, _check_subject, \
-                   _check_pandas_index_arguments, _check_pandas_installed
+                   _check_pandas_index_arguments, _check_pandas_installed, \
+                   deprecated
 from .viz import plot_source_estimates
 from . import verbose
 from . fixes import in1d
 
 
+@deprecated('read_stc is deprecated and will be removed with version 0.7. '
+            'Please use read_source_estimate instead.')
 def read_stc(filename):
     """Read an STC file and return as dict
 
@@ -47,6 +50,12 @@ def read_stc(filename):
     See Also
     --------
     read_source_estimate
+    """
+    return _read_stc(filename)
+
+
+def _read_stc(filename):
+    """ Aux Function
     """
     fid = open(filename, 'rb')
 
@@ -86,7 +95,32 @@ def read_stc(filename):
     return stc
 
 
+@deprecated('write_stc is deprecated and will be removed with version 0.7. '
+            'Please use SourceEstimate.save instead.')
 def write_stc(filename, tmin, tstep, vertices, data):
+    """Write an STC file
+
+    Parameters
+    ----------
+    filename : string
+        The name of the STC file.
+    tmin : float
+        The first time point of the data in seconds.
+    tstep : float
+        Time between frames in seconds.
+    vertices : array of integers
+        Vertex indices (0 based).
+    data : 2D array
+        The data matrix (nvert * ntime).
+
+    See Also
+    --------
+    SourceEstimate.save (instance method)
+    """
+    return _write_stc(filename, tmin, tstep, vertices, data)
+
+
+def _write_stc(filename, tmin, tstep, vertices, data):
     """Write an STC file
 
     Parameters
@@ -134,7 +168,30 @@ def _read_3(fid):
     return out
 
 
+@deprecated('read_w is deprecated and will be removed with version 0.7. '
+            'Please use read_source_estimate instead.')
 def read_w(filename):
+    """Read a w file and return as dict
+
+    w files contain activations or source reconstructions for a single time
+    point.
+
+    Parameters
+    ----------
+    filename : string
+        The name of the w file.
+
+    Returns
+    -------
+    data: dict
+        The w structure. It has the following keys:
+           vertices       vertex indices (0 based)
+           data           The data matrix (nvert long)
+    """
+    return _read_w(filename)
+
+
+def _read_w(filename):
     """Read a w file and return as dict
 
     w files contain activations or source reconstructions for a single time
@@ -191,6 +248,8 @@ def _write_3(fid, val):
     fid.write(f_bytes.tostring())
 
 
+@deprecated('read_w is deprecated and will be removed with version 0.7. '
+            'Please use SoureEstimate.save instead.')
 def write_w(filename, vertices, data):
     """Read a w file
 
@@ -208,7 +267,25 @@ def write_w(filename, vertices, data):
 
     See Also
     --------
-    read_source_estimate
+    SourceEstimate.save (instance method)
+    """
+    return _write_w(filename, vertices, data)
+
+
+def _write_w(filename, vertices, data):
+    """Read a w file
+
+    w files contain activations or source reconstructions for a single time
+    point.
+
+    Parameters
+    ----------
+    filename: string
+        The name of the w file.
+    vertices: array of int
+        Vertex indices (0 based).
+    data: 1D array
+        The data array (nvert).
     """
 
     assert(len(vertices) == len(data))
@@ -258,10 +335,6 @@ def read_source_estimate(fname, subject=None):
      - for single time point .w files, ``fname`` should follow the same
        pattern as for surface estimates, except that files are named
        '*-lh.w' and '*-rh.w'.
-
-    See Also
-    --------
-    read_stc, read_w
     """
     fname_arg = fname
 
@@ -306,25 +379,25 @@ def read_source_estimate(fname, subject=None):
     # read the files
     if ftype == 'volume':  # volume source space
         if fname.endswith('.stc'):
-            kwargs = read_stc(fname)
+            kwargs = _read_stc(fname)
         elif fname.endswith('.w'):
-            kwargs = read_w(fname)
+            kwargs = _read_w(fname)
             kwargs['data'] = kwargs['data'][:, np.newaxis]
             kwargs['tmin'] = 0.0
             kwargs['tstep'] = 0.0
         else:
             raise IOError('Volume source estimate must end with .stc or .w')
     elif ftype == 'surface':  # stc file with surface source spaces
-        lh = read_stc(fname + '-lh.stc')
-        rh = read_stc(fname + '-rh.stc')
+        lh = _read_stc(fname + '-lh.stc')
+        rh = _read_stc(fname + '-rh.stc')
         assert lh['tmin'] == rh['tmin']
         assert lh['tstep'] == rh['tstep']
         kwargs = lh.copy()
         kwargs['data'] = np.r_[lh['data'], rh['data']]
         kwargs['vertices'] = [lh['vertices'], rh['vertices']]
     elif ftype == 'w':  # w file with surface source spaces
-        lh = read_w(fname + '-lh.w')
-        rh = read_w(fname + '-rh.w')
+        lh = _read_w(fname + '-lh.w')
+        rh = _read_w(fname + '-rh.w')
         kwargs = lh.copy()
         kwargs['data'] = np.atleast_2d(np.r_[lh['data'], rh['data']]).T
         kwargs['vertices'] = [lh['vertices'], rh['vertices']]
@@ -496,19 +569,19 @@ class SourceEstimate(object):
 
             if ftype == 'stc':
                 logger.info('Writing STC to disk...')
-                write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
-                          vertices=self.lh_vertno, data=lh_data)
-                write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
-                          vertices=self.rh_vertno, data=rh_data)
+                _write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.lh_vertno, data=lh_data)
+                _write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.rh_vertno, data=rh_data)
             elif ftype == 'w':
                 if self.shape[1] != 1:
                     raise ValueError('w files can only contain a single time '
                                      'point')
                 logger.info('Writing STC to disk (w format)...')
-                write_w(fname + '-lh.w', vertices=self.lh_vertno,
-                        data=lh_data[:, 0])
-                write_w(fname + '-rh.w', vertices=self.rh_vertno,
-                        data=rh_data[:, 0])
+                _write_w(fname + '-lh.w', vertices=self.lh_vertno,
+                         data=lh_data[:, 0])
+                _write_w(fname + '-rh.w', vertices=self.rh_vertno,
+                         data=rh_data[:, 0])
         else:
             if isinstance(self.vertno, list):
                 write_vertices = self.vertno[0]
@@ -519,14 +592,14 @@ class SourceEstimate(object):
                 if not (fname.endswith('-vl.stc')
                         or fname.endswith('-vol.stc')):
                     fname += '-vl.stc'
-                write_stc(fname, tmin=self.tmin, tstep=self.tstep,
-                          vertices=write_vertices, data=self.data)
+                _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
+                           vertices=write_vertices, data=self.data)
             elif ftype == 'w':
                 logger.info('Writing STC to disk (w format)...')
                 if not (fname.endswith('-vl.w')
                         or fname.endswith('-vol.w')):
                     fname += '-vl.w'
-                write_w(fname, vertices=write_vertices, data=self.data)
+                _write_w(fname, vertices=write_vertices, data=self.data)
 
         logger.info('[done]')
 
