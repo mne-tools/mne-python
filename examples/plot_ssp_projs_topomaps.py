@@ -20,7 +20,7 @@ data_path = sample.data_path()
 ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
-evoked = mne.fiff.read_evoked(ave_fname, setno=1)
+evoked = mne.fiff.read_evoked(ave_fname, setno='Left Auditory')
 projs = mne.read_proj(ecg_fname)
 
 layouts = [mne.layouts.read_layout('Vectorview-all'),

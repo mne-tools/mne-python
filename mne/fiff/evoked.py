@@ -381,8 +381,8 @@ class Evoked(ProjMixin):
             The units of the channel types used for axes lables. If None,
             defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
         scalings : dict | None
-            The scalings of the channel types to be applied for plotting. If None,`
-            defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+            The scalings of the channel types to be applied for plotting.
+            If None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
         titles : dict | None
             The titles associated with the channels. If None, defaults to
             `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.

@@ -643,8 +643,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
         if (layout is None) or isinstance(layout, str):
             chs = [evoked.info['chs'][i] for i in picks]
-            from .layouts.layout import find_topomap_coords
-            pos = find_topomap_coords(chs, layout)
+            from .layouts.layout import _find_topomap_coords
+            pos = _find_topomap_coords(chs, layout)
         else:
             pos = [layout.pos[layout.names.index(evoked.ch_names[k])] for k in
                    picks]
