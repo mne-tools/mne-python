@@ -2,6 +2,7 @@
 
 # Authors: Christoph Dinh <chdinh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Mainak Jas <mainak@neuro.hut.fi>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
