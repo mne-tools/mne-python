@@ -96,4 +96,5 @@ while True:
         pl.title('Real-time decoding')
         pl.show()
 
+        # time.sleep() isn't used because of known issues with the Spyder
         pl.waitforbuttonpress(0.1)
