@@ -13,7 +13,7 @@ import numpy as np
 from pyface.api import confirm, FileDialog, OK, YES
 from traits.api import HasTraits, HasPrivateTraits, on_trait_change, \
                        cached_property, Instance, Property, \
-                       Array, Bool, Button, Enum, File, Str
+                       Array, Bool, Button, Enum, File, Str, Any
 from traitsui.api import View, Item, HGroup, VGroup
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
@@ -35,7 +35,7 @@ class FiducialsPanel(HasPrivateTraits):
     fid_pts = Property(depends_on=['fid_file'])
 
     subjects_dir = Str()
-    subject = Str()
+    subject = Any()
 
     locked = Bool(False)
     set = Enum('LAP', 'Nasion', 'RAP')
