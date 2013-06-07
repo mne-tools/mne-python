@@ -274,6 +274,7 @@ def test_reject_epochs():
     """
     epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
                     reject=reject, flat=flat)
+    assert_raises(RuntimeError, len, epochs)
     n_events = len(epochs.events)
     data = epochs.get_data()
     n_clean_epochs = len(data)
@@ -301,6 +302,7 @@ def test_reject_epochs():
     data = epochs.get_data()
     n_clean_epochs = len(data)
     assert_true(n_clean_epochs == 7)
+    assert_true(len(epochs) == 7)
     assert_true(epochs.times[epochs._reject_time][0] >= 0.)
     assert_true(epochs.times[epochs._reject_time][-1] <= 0.1)
 
