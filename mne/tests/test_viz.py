@@ -201,13 +201,14 @@ def test_plot_raw():
 def test_plot_topomap():
     """Testing topomap plotting
     """
-    evoked = fiff.read_evoked(evoked_fname, 'Left Auditory', baseline=(None, 0))
+    evoked = fiff.read_evoked(evoked_fname, 'Left Auditory',
+                              baseline=(None, 0))
     plot_evoked_topomap(evoked, 0.1, 'mag')
     times = [0.1, 0.2]
-    plot_evoked_topomap(evoked, times, 'mag')
-    plot_evoked_topomap(evoked, times, 'grad')
-    plot_evoked_topomap(evoked, times, 'planar1')
-    plot_evoked_topomap(evoked, times, 'mag', layout='auto')
+    plot_evoked_topomap(evoked, times, ch_type='mag')
+    plot_evoked_topomap(evoked, times, ch_type='grad')
+    plot_evoked_topomap(evoked, times, ch_type='planar1')
+    plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
 
 
 def test_compare_fiff():

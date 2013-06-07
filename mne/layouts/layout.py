@@ -4,7 +4,6 @@ import numpy as np
 from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import FIFF, pick_types
-from ..fiff.pick import pick_channels
 
 
 class Layout(object):
@@ -141,7 +140,7 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     """
     radius_head, origin_head, origin_device = fit_sphere_to_headshape(info)
     inds = pick_types(info, meg=False, eeg=True, exclude='bads')
-    hsp = [info['chs'][ii]['eeg_loc'].ravel() for ii in inds]
+    hsp = [info['chs'][ii]['eeg_loc'][:, 0] for ii in inds]
     names = [info['chs'][ii]['ch_name'] for ii in inds]
     if len(hsp) <= 0:
         raise ValueError('No EEG digitization points found')
@@ -159,8 +158,8 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     phi = np.arctan2(hsp[:, 1], hsp[:, 0])
 
     # Mark the points that might have caused bad angle estimates
-    iffy = np.nonzero(
-        np.sum(hsp[:, :2] ** 2, axis=-1) ** (1. / 2) < np.finfo(np.float).eps * 10)
+    iffy = np.nonzero(np.sum(hsp[:, :2] ** 2, axis=-1) ** (1. / 2)
+                      < np.finfo(np.float).eps * 10)
     theta[iffy] = 0
     phi[iffy] = 0
 
@@ -169,7 +168,8 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     y = radius * (2.0 * theta / np.pi) * np.sin(phi)
 
     n_channels = len(x)
-    pos = np.c_[x, y, width * np.ones(n_channels), height * np.ones(n_channels)]
+    pos = np.c_[x, y, width * np.ones(n_channels),
+                height * np.ones(n_channels)]
 
     box = (x.min() - 0.1 * width, x.max() + 1.1 * width,
            y.min() - 0.1 * width, y.max() + 1.1 * height)
@@ -235,7 +235,7 @@ def make_grid_layout(info, picks=None):
     return layout
 
 
-def find_topomap_coords(chs, layout_name=None):
+def _find_topomap_coords(chs, layout_name=None):
     """Try to guess the MEG system and return appropriate topomap coordinates
 
     Parameters
@@ -268,17 +268,17 @@ def find_topomap_coords(chs, layout_name=None):
     elif layout_name == 'auto':
         layout_name = None
 
-    if layout_name:
+    if layout_name is not None:
         layout = read_layout(layout_name)
         pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
         pos = np.asarray(pos)
     else:
-        pos = auto_topomap_coords(chs)
+        pos = _auto_topomap_coords(chs)
 
     return pos
 
 
-def auto_topomap_coords(chs):
+def _auto_topomap_coords(chs):
     """Make a 2 dimensional sensor map from sensor positions in an info dict
 
     Parameters
@@ -364,7 +364,7 @@ def _pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
 
     if topomap_coords:
         shape = (len(pairs), 2, -1)
-        coords = find_topomap_coords(grad_chs).reshape(shape).mean(1)
+        coords = _find_topomap_coords(grad_chs).reshape(shape).mean(axis=1)
         return picks, coords
     else:
         return picks
