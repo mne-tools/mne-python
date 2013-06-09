@@ -202,10 +202,12 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             sol /= noise_norm[:, None]
         else:
             # Linear inverse: do computation here or delayed
-            if M.shape[0] < W.shape[0]:
+            if M.shape[0] < W.shape[0] and pick_ori != 'optimal':
                 sol = (W, M)
             else:
                 sol = np.dot(W, M)
+            if pick_ori == 'optimal':
+                sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
         yield SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
