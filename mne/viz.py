@@ -11,6 +11,7 @@ import warnings
 from itertools import cycle
 from functools import partial
 from copy import deepcopy
+import math
 
 import difflib
 import tempfile
@@ -21,6 +22,7 @@ import inspect
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
+from matplotlib import delaunay
 
 import logging
 logger = logging.getLogger('mne')
@@ -32,7 +34,7 @@ from .fixes import tril_indices, Counter
 from .baseline import rescale
 from .utils import deprecated, get_subjects_dir, get_config, set_config, \
                    _check_subject
-from .fiff import show_fiff
+from .fiff import show_fiff, FIFF
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, activate_proj, setup_proj
 from . import verbose
@@ -577,6 +579,264 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
                      x_label='Time (s)', y_label='Epoch')
 
     return fig
+
+
+def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
+                        vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                        scale=None, unit=None, res=256, size=1, show=True):
+    """Plot topographic maps of specific time points of evoked data
+
+    Parameters
+    ----------
+    evoked : Evoked
+        The Evoked object.
+    times : float | array of floats | None.
+        The time point(s) to plot. If None, 10 topographies will be shown
+        will a regular time spacing between the first and last time instant.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        The channel type to plot. For 'grad', the gradiometers are collected in
+        pairs and the RMS for each pair is plotted.
+    layout : None | str | Layout
+        Layout name or instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
+    vmax : scalar
+        The value specfying the range of the color scale (-vmax to +vmax). If
+        None, the largest absolute value in the data is used.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses).
+    colorbar : bool
+        Plot a colorbar.
+    scale : float | None
+        Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
+        for grad and 1e15 for mag.
+    units : str | None
+        The units of the channel types used for colorbar lables. If
+        scale == None the unit is automatically determined.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    size : float
+        Side length per topomap in inches.
+    show : bool
+        Call pylab.show() at the end.
+    """
+    import pylab as pl
+
+    if scale is None:
+        if ch_type.startswith('planar'):
+            key = 'grad'
+        else:
+            key = ch_type
+        scale = DEFAULTS['scalings'][key]
+        unit = DEFAULTS['units'][key]
+
+    if times is None:
+        times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+    elif np.isscalar(times):
+        times = [times]
+
+    # special case for merging grad channels
+    if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
+                    np.unique([ch['coil_type'] for ch in evoked.info['chs']])):
+        from .layouts.layout import _pair_grad_sensors, _merge_grad_data
+        picks, pos = _pair_grad_sensors(evoked.info)
+        merge_grads = True
+    else:
+        merge_grads = False
+        picks = pick_types(evoked.info, meg=ch_type, exclude='bads')
+        if len(picks) == 0:
+            raise ValueError("No channels of type %r" % ch_type)
+
+        if (layout is None) or isinstance(layout, str):
+            chs = [evoked.info['chs'][i] for i in picks]
+            from .layouts.layout import _find_topomap_coords
+            pos = _find_topomap_coords(chs, layout)
+        else:
+            pos = [layout.pos[layout.names.index(evoked.ch_names[k])] for k in
+                   picks]
+
+    n = len(times)
+    nax = n + bool(colorbar)
+    width = size * nax
+    width *= (1 + pl.rcParams['figure.subplot.left'] + 1 -
+              pl.rcParams['figure.subplot.right'])
+    height = size * 1.2 + .3
+    pl.figure(figsize=(width, height))
+    time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
+    data = evoked.data[np.ix_(picks, time_idx)] * scale
+    if merge_grads:
+        data = _merge_grad_data(data)
+    vmax = vmax or np.max(np.abs(data))
+    for i, t in enumerate(times):
+        pl.subplot(1, nax, i + 1)
+        plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap, sensors=sensors,
+                     res=res)
+        pl.title('%i ms' % (t * 1000))
+
+    tight_layout()
+
+    if colorbar:
+        cax = pl.subplot(1, n + 1, n + 1)
+        pl.colorbar(cax=cax, ticks=[-vmax, 0, vmax])
+        # resize the colorbar (by default the color fills the whole axes)
+        tight_layout()
+        pos = cax.get_position()
+        pos.x0 = 1 - .7 / nax
+        pos.x1 = pos.x0 + .1 / nax
+        cax.set_position(pos)
+        if unit is not None:
+            cax.set_title(unit)
+
+    if show:
+        pl.show()
+
+
+def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
+                       colorbar=False, res=256, size=1, show=True):
+    """Plot topographic maps of SSP projections
+
+    Parameters
+    ----------
+    projs : list of Projection
+        The projections
+    layout : None | Layout | list of Layout
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). Or a list of Layout if projections
+        are from different sensor types.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses).
+    colorbar : bool
+        Plot a colorbar.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    size : scalar
+        Side length of the topomaps in inches (only applies when plotting
+        multiple topomaps at a time).
+    show : bool
+        Show figures if True
+    """
+    import pylab as pl
+
+    if layout is None:
+        from .layouts import read_layout
+        layout = read_layout('Vectorview-all')
+
+    if not isinstance(layout, list):
+        layout = [layout]
+
+    n_projs = len(projs)
+    nrows = math.floor(math.sqrt(n_projs))
+    ncols = math.ceil(math.sqrt(n_projs))
+
+    pl.clf()
+    for k, proj in enumerate(projs):
+        ch_names = proj['data']['col_names']
+        data = proj['data']['data'].ravel()
+
+        idx = []
+        for l in layout:
+            is_vv = l.kind.startswith('Vectorview')
+            if is_vv:
+                from .layouts.layout import _pair_grad_sensors_from_ch_names
+                grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
+                if grad_pairs:
+                    ch_names = [ch_names[i] for i in grad_pairs]
+
+            idx = [l.names.index(c) for c in ch_names if c in l.names]
+            if len(idx) == 0:
+                continue
+
+            pos = l.pos[idx]
+            if is_vv and grad_pairs:
+                from .layouts.layout import _merge_grad_data
+                shape = (len(idx) / 2, 2, -1)
+                pos = pos.reshape(shape).mean(axis=1)
+                data = _merge_grad_data(data[grad_pairs]).ravel()
+
+            break
+
+        ax = pl.subplot(nrows, ncols, k + 1)
+        ax.set_title(proj['desc'])
+        if len(idx):
+            plot_topomap(data, pos, vmax=None, cmap=cmap,
+                         sensors=sensors, res=res)
+            if colorbar:
+                pl.colorbar()
+        else:
+            raise RuntimeError('Cannot find a proper layout for projection %s'
+                               % proj['desc'])
+
+    if show:
+        pl.show()
+
+
+def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
+    """Plot a topographic map as image
+
+    Parameters
+    ----------
+    data : array, length = n_points
+        The data values to plot.
+    pos : array, shape = (n_points, 2)
+        For each data point, the x and y coordinates.
+    vmax : scalar
+        The value specfying the range of the color scale (-vmax to +vmax). If
+        None, the largest absolute value in the data is used.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses).
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    """
+    import pylab as pl
+
+    data = np.asarray(data)
+    pos = np.asarray(pos)
+    if data.ndim > 1:
+        err = ("Data needs to be array of shape (n_sensors,); got shape "
+               "%s." % str(data.shape))
+        raise ValueError(err)
+    elif len(data) != len(pos):
+        err = ("Data and pos need to be of same length. Got data of shape %s, "
+               "pos of shape %s." % (str(), str()))
+
+    axes = pl.gca()
+    axes.set_frame_on(False)
+
+    vmax = vmax or np.abs(data).max()
+
+    pl.xticks(())
+    pl.yticks(())
+
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+    if sensors:
+        if sensors == True:
+            sensors = 'k,'
+        pl.plot(pos_x, pos_y, sensors)
+
+    xmin, xmax = pos_x.min(), pos_x.max()
+    ymin, ymax = pos_y.min(), pos_y.max()
+    triang = delaunay.Triangulation(pos_x, pos_y)
+    interp = triang.linear_interpolator(data)
+    x = np.linspace(xmin, xmax, res)
+    y = np.linspace(ymin, ymax, res)
+    xi, yi = np.meshgrid(x, y)
+
+    im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
+                xi.min():xi.max():complex(0, xi.shape[1])]
+    im = np.ma.masked_array(im, im == np.nan)
+
+    pl.imshow(im, cmap=cmap, vmin=-vmax, vmax=vmax, origin='lower',
+              aspect='equal', extent=(xmin, xmax, ymin, ymax))
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
@@ -2017,8 +2277,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # set up projection and data parameters
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
-                  info=info, projs=projs, remove_dc=remove_dc, n_channels=n_channels,
-                  scalings=scalings, types=types, n_times=n_times, events=events)
+                  info=info, projs=projs, remove_dc=remove_dc,
+                  n_channels=n_channels, scalings=scalings, types=types,
+                  n_times=n_times, events=events)
 
     # set up plotting
     fig = figure_nobar(facecolor=bgcolor)

@@ -27,7 +27,7 @@ from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
                    write_id
 
-from ..viz import plot_evoked, _mutable_defaults
+from ..viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .. import verbose
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
@@ -383,8 +383,8 @@ class Evoked(ProjMixin):
             The units of the channel types used for axes lables. If None,
             defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
         scalings : dict | None
-            The scalings of the channel types to be applied for plotting. If None,`
-            defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+            The scalings of the channel types to be applied for plotting.
+            If None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
         titles : dict | None
             The titles associated with the channels. If None, defaults to
             `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
@@ -396,6 +396,54 @@ class Evoked(ProjMixin):
         plot_evoked(self, picks=picks, exclude=exclude, unit=unit, show=show,
                     ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
                     scalings=scalings, titles=titles, axes=axes)
+
+    def plot_topomap(self, times=None, ch_type='mag', layout=None, vmax=None,
+                     cmap='RdBu_r', sensors='k,', colorbar=True, scale=None,
+                     unit=None, res=256, size=1, show=True):
+        """Plot topographic maps of specific time points
+
+        Parameters
+        ----------
+        evoked : Evoked
+            The Evoked object.
+        times : float | array of floats | None.
+            The time point(s) to plot. If None, 10 topographies will be shown
+            will a regular time spacing between the first and last time
+            instant.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+            The channel type to plot. For 'grad', the gradiometers are collec-
+            ted in pairs and the RMS for each pair is plotted.
+        layout : None | str | Layout
+            Layout name or instance specifying sensor positions (does not need
+            to be specified for Neuromag data).
+        vmax : scalar
+            The value specfying the range of the color scale (-vmax to +vmax).
+            If None, the largest absolute value in the data is used.
+        cmap : matplotlib colormap
+            Colormap.
+        sensors : bool | str
+            Add markers for sensor locations to the plot. Accepts matplotlib
+            plot format string (e.g., 'r+' for red plusses).
+        colorbar : bool
+            Plot a colorbar.
+        scale : float | None
+            Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
+            for grad and 1e15 for mag.
+        units : str | None
+            The units of the channel types used for colorbar lables. If
+            scale == None the unit is automatically determined.
+        res : int
+            The resolution of the topomap image (n pixels along each side).
+        size : scalar
+            Side length of the topomaps in inches (only applies when plotting
+            multiple topomaps at a time).
+        show : bool
+            Call pylab.show() at the end.
+        """
+        plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
+                            vmax=vmax, cmap=cmap, sensors=sensors,
+                            colorbar=colorbar, scale=scale, unit=unit, res=res,
+                            size=size)
 
     def to_nitime(self, picks=None):
         """ Export Evoked object to NiTime

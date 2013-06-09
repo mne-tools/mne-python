@@ -1,7 +1,9 @@
+from collections import defaultdict
 import os.path as op
 import numpy as np
+from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
-from ..fiff import pick_types
+from ..fiff import FIFF, pick_types
 
 
 class Layout(object):
@@ -156,8 +158,8 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     phi = np.arctan2(hsp[:, 1], hsp[:, 0])
 
     # Mark the points that might have caused bad angle estimates
-    iffy = np.nonzero(
-        np.sum(hsp[:, :2] ** 2, axis=-1) ** (1. / 2) < np.finfo(np.float).eps * 10)
+    iffy = np.nonzero(np.sum(hsp[:, :2] ** 2, axis=-1) ** (1. / 2)
+                      < np.finfo(np.float).eps * 10)
     theta[iffy] = 0
     phi[iffy] = 0
 
@@ -166,7 +168,8 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     y = radius * (2.0 * theta / np.pi) * np.sin(phi)
 
     n_channels = len(x)
-    pos = np.c_[x, y, width * np.ones(n_channels), height * np.ones(n_channels)]
+    pos = np.c_[x, y, width * np.ones(n_channels),
+                height * np.ones(n_channels)]
 
     box = (x.min() - 0.1 * width, x.max() + 1.1 * width,
            y.min() - 0.1 * width, y.max() + 1.1 * height)
@@ -230,3 +233,182 @@ def make_grid_layout(info, picks=None):
 
     layout = Layout(box=box, pos=pos, names=names, kind='grid-misc', ids=ids)
     return layout
+
+
+def _find_topomap_coords(chs, layout_name=None):
+    """Try to guess the MEG system and return appropriate topomap coordinates
+
+    Parameters
+    ----------
+    chs : list
+        A list of channels as contained in the info['chs'] entry.
+    layout_name : None | str
+        Enforce using a specific layout. With 'auto', a new map is generated.
+        With None, a layout is chosen based on the channels in the chs
+        parameter.
+
+    Returns
+    -------
+    coords : array, shape = (n_chs, 2)
+        2 dimensional coordinates for each sensor for a topomap plot.
+    """
+    if len(chs) == 0:
+        raise ValueError("Need more than 0 channels.")
+
+    if layout_name is None:
+        coil_types = np.unique([ch['coil_type'] for ch in chs])
+        has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
+        has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
+        if has_vv_mag and has_vv_grad:
+            layout_name = 'Vectorview-all'
+        elif has_vv_mag:
+            layout_name = 'Vectorview-mag'
+        elif has_vv_grad:
+            layout_name = 'Vectorview-grad'
+    elif layout_name == 'auto':
+        layout_name = None
+
+    if layout_name is not None:
+        layout = read_layout(layout_name)
+        pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
+        pos = np.asarray(pos)
+    else:
+        pos = _auto_topomap_coords(chs)
+
+    return pos
+
+
+def _auto_topomap_coords(chs):
+    """Make a 2 dimensional sensor map from sensor positions in an info dict
+
+    Parameters
+    ----------
+    chs : list
+        A list of channels as contained in the info['chs'] entry.
+
+    Returns
+    -------
+    locs : array, shape = (n_sensors, 2)
+        An array of positions of the 2 dimensional map.
+    """
+    locs3d = np.array([ch['loc'][:3] for ch in chs])
+
+    # fit the 3d sensor locations to a sphere with center (cx, cy, cz)
+    # and radius r
+
+    # error function
+    def err(params):
+        r, cx, cy, cz = params
+        return   np.sum((locs3d - [cx, cy, cz]) ** 2, 1) - r ** 2
+
+    (r, cx, cy, cz), _ = leastsq(err, (1, 0, 0, 0))
+
+    # center the sensor locations based on the sphere and scale to
+    # radius 1
+    sphere_center = np.array((cx, cy, cz))
+    locs3d -= sphere_center
+    locs3d /= r
+
+    # implement projection
+    locs2d = np.copy(locs3d[:, :2])
+    z = max(locs3d[:, 2]) - locs3d[:, 2]  # distance form top
+    r = np.sqrt(z)  # desired 2d radius
+    r_xy = np.sqrt(np.sum(locs3d[:, :2] ** 2, 1))  # current radius in xy
+    idx = (r_xy != 0)  # avoid zero division
+    F = r[idx] / r_xy[idx]  # stretching factor accounting for current r
+    locs2d[idx, :] *= F[:, None]
+
+    return locs2d
+
+
+def _pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
+    """Find the picks for pairing grad channels
+
+    Parameters
+    ----------
+    info : dict
+        An info dictionary containing channel information.
+    topomap_coords : bool
+        Return the coordinates for a topomap plot along with the picks. If
+        False, only picks are returned.
+    exclude : list of str | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in info['bads'].
+
+    Returns
+    -------
+    picks : list of int
+        Picks for the grad channels, ordered in pairs.
+    coords : array, shape = (n_grad_channels, 3)
+        Coordinates for a topomap plot (optional, only returned if
+        topomap_coords == True).
+    """
+    # find all complete pairs of grad channels
+    pairs = defaultdict(list)
+    grad_picks = pick_types(info, meg='grad', exclude=exclude)
+    for i in grad_picks:
+        ch = info['chs'][i]
+        name = ch['ch_name']
+        if name.startswith('MEG'):
+            if name.endswith(('2', '3')):
+                key = name[-4:-1]
+                pairs[key].append(ch)
+    pairs = [p for p in pairs.values() if len(p) == 2]
+    if len(pairs) == 0:
+        raise ValueError("No 'grad' channel pairs found.")
+
+    # find the picks corresponding to the grad channels
+    grad_chs = sum(pairs, [])
+    ch_names = info['ch_names']
+    picks = [ch_names.index(ch['ch_name']) for ch in grad_chs]
+
+    if topomap_coords:
+        shape = (len(pairs), 2, -1)
+        coords = _find_topomap_coords(grad_chs).reshape(shape).mean(axis=1)
+        return picks, coords
+    else:
+        return picks
+
+
+def _pair_grad_sensors_from_ch_names(ch_names):
+    """Find the indexes for pairing grad channels
+
+    Parameters
+    ----------
+    ch_names : list of str
+        A list of channel names.
+
+    Returns
+    -------
+    indexes : list of int
+        Indexes of the grad channels, ordered in pairs.
+    """
+    pairs = defaultdict(list)
+    for i, name in enumerate(ch_names):
+        if name.startswith('MEG'):
+            if name.endswith(('2', '3')):
+                key = name[-4:-1]
+                pairs[key].append(i)
+
+    pairs = [p for p in pairs.values() if len(p) == 2]
+
+    grad_chs = sum(pairs, [])
+    return grad_chs
+
+
+def _merge_grad_data(data):
+    """Merge data from channel pairs using the RMS
+
+    Parameters
+    ----------
+    data : array, shape = (n_channels, n_times)
+        Data for channels, ordered in pairs.
+
+    Returns
+    -------
+    data : array, shape = (n_channels / 2, n_times)
+        The root mean square for each pair.
+    """
+    data = data.reshape((len(data) // 2, 2, -1))
+    data = np.sqrt(np.sum(data ** 2, axis=1) / 2)
+    return data
