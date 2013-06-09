@@ -370,6 +370,32 @@ def _pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
         return picks
 
 
+def _pair_grad_sensors_from_ch_names(ch_names):
+    """Find the indexes for pairing grad channels
+
+    Parameters
+    ----------
+    ch_names : list of str
+        A list of channel names.
+
+    Returns
+    -------
+    indexes : list of int
+        Indexes of the grad channels, ordered in pairs.
+    """
+    pairs = defaultdict(list)
+    for i, name in enumerate(ch_names):
+        if name.startswith('MEG'):
+            if name.endswith(('2', '3')):
+                key = name[-4:-1]
+                pairs[key].append(i)
+
+    pairs = [p for p in pairs.values() if len(p) == 2]
+
+    grad_chs = sum(pairs, [])
+    return grad_chs
+
+
 def _merge_grad_data(data):
     """Merge data from channel pairs using the RMS
 

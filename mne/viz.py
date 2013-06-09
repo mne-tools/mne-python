@@ -732,14 +732,30 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
 
         idx = []
         for l in layout:
+            is_vv = l.kind.startswith('Vectorview')
+            if is_vv:
+                from .layouts.layout import _pair_grad_sensors_from_ch_names
+                grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
+                if grad_pairs:
+                    ch_names = [ch_names[i] for i in grad_pairs]
+
             idx = [l.names.index(c) for c in ch_names if c in l.names]
-            if len(idx) > 0:
-                break
+            if len(idx) == 0:
+                continue
+
+            pos = l.pos[idx]
+            if is_vv and grad_pairs:
+                from .layouts.layout import _merge_grad_data
+                shape = (len(idx) / 2, 2, -1)
+                pos = pos.reshape(shape).mean(axis=1)
+                data = _merge_grad_data(data[grad_pairs]).ravel()
+
+            break
 
         ax = pl.subplot(nrows, ncols, k + 1)
         ax.set_title(proj['desc'])
         if len(idx):
-            plot_topomap(data, l.pos[idx], vmax=None, cmap=cmap,
+            plot_topomap(data, pos, vmax=None, cmap=cmap,
                          sensors=sensors, res=res)
             if colorbar:
                 pl.colorbar()
