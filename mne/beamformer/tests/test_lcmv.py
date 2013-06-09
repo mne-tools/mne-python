@@ -71,18 +71,6 @@ def test_lcmv():
     assert_true(0.09 < tmax < 0.1)
     assert_true(2. < np.max(max_stc) < 3.)
 
-    # Test picking normal orientation
-    stc_normal = lcmv(evoked, forward_surf_ori, noise_cov, data_cov, reg=0.01,
-                      pick_ori="normal")
-
-    assert_true((np.abs(stc_normal.data) <= stc.data + 0.8).all())
-    
-    # Test picking source orientation maximizing output source power
-    stc_max_power = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
-                         pick_ori="max-power")
-
-    assert_true((np.abs(stc_max_power.data) <= stc.data + 1).all())
-
     # Test if non-surface oriented forward operator is detected when picking
     # normal orientation
     assert_raises(ValueError, lcmv, evoked, forward, noise_cov, data_cov,
