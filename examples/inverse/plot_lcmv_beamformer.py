@@ -60,9 +60,9 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
 
 pl.close('all')
 
-pick_oris = [None, 'normal', 'optimal']
-names = ['free', 'normal', 'optimal']
-descriptions = ['Free orientation', 'Normal orientation', 'Optimal '
+pick_oris = [None, 'normal', 'max-power']
+names = ['free', 'normal', 'max-power']
+descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
                 'orientation']
 colors = ['b', 'k', 'r']
 
@@ -80,7 +80,7 @@ for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
 
 pl.xlabel('Time (ms)')
 pl.ylabel('LCMV value')
-pl.ylim(-0.8, 1.6)
+pl.ylim(-0.8, 2.2)
 pl.title('LCMV in %s' % label_name)
 pl.legend()
 pl.show()

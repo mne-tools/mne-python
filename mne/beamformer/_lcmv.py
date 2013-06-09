@@ -51,10 +51,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     picks : array of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    pick_ori : None | 'normal' | 'optimal'
+    pick_ori : None | 'normal' | 'max-power'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'optimal', the source orientation
-        that maximizes output source power is chosen.
+        only the radial component is kept. If 'max-power', the source
+        orientation that maximizes output source power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -66,8 +66,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
-    if pick_ori in ['normal', 'optimal'] and not is_free_ori:
-        raise ValueError('Normal or optimal orientation can only be picked '
+    if pick_ori in ['normal', 'max-power'] and not is_free_ori:
+        raise ValueError('Normal or max-power orientation can only be picked '
                          'when a forward operator with free orientation is '
                          'used.')
     if pick_ori == 'normal' and not forward['surf_ori']:
@@ -130,8 +130,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         Ck = np.dot(Wk, Gk)
 
-        # Find and pick optimal source orientation
-        if pick_ori == 'optimal':
+        # Find source orientation maximizing output source power
+        if pick_ori == 'max-power':
             eig_vals, eig_vecs = linalg.eigh(Ck)
             
             # Choosing the eigenvector associated with the middle eigenvalue.
@@ -144,13 +144,12 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
             # TODO: The eigenvector associated with the smallest eigenvalue
             # should probably be used when using combined EEG and MEG data
-            opt_ori = eig_vecs[:, idx_middle]
+            max_ori = eig_vecs[:, idx_middle]
             
-            Wk[:] = np.dot(opt_ori, Wk)
-            Ck = np.dot(opt_ori, np.dot(Ck, opt_ori))
+            Wk[:] = np.dot(max_ori, Wk)
+            Ck = np.dot(max_ori, np.dot(Ck, max_ori))
             is_free_ori = False
 
-        # Find and pick optimal source orientation
         if is_free_ori:
             # For vector-type beamformers (free source orientation)
             Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
@@ -158,7 +157,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             # For scalar-type beamformers (fixed source orientation)
             Wk[:] = Wk / Ck
 
-    if pick_ori == 'optimal':
+    # Pick source orientation maximizing output source power
+    if pick_ori == 'max-power':
         W = W[0::3]
 
     # noise normalization
@@ -202,11 +202,11 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             sol /= noise_norm[:, None]
         else:
             # Linear inverse: do computation here or delayed
-            if M.shape[0] < W.shape[0] and pick_ori != 'optimal':
+            if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
                 sol = (W, M)
             else:
                 sol = np.dot(W, M)
-            if pick_ori == 'optimal':
+            if pick_ori == 'max-power':
                 sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
@@ -241,9 +241,9 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label
-    pick_ori : None | 'normal' | 'optimal'
+    pick_ori : None | 'normal' | 'max-power'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'optimal', the source orientation
+        only the radial component is kept. If 'max-power', the source orientation
         that maximizes output source power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -260,7 +260,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
 
-    The reference for finding the optimal orientation is:
+    The reference for finding the max-power orientation is:
     Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
     beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
@@ -301,10 +301,10 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label.
-    pick_ori : None | 'normal' | 'optimal'
+    pick_ori : None | 'normal' | 'max-power'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'optimal', the source orientation
-        that maximizes output source power is chosen.
+        only the radial component is kept. If 'max-power', the source
+        orientation that maximizes output source power is chosen.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -323,7 +323,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
 
-    The reference for finding the optimal orientation is:
+    The reference for finding the max-power orientation is:
     Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
     beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
@@ -377,10 +377,10 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     picks : array of int
         Channel indices in raw to use for beamforming (if None all channels
         are used except bad channels).
-    pick_ori : None | 'normal' | 'optimal'
+    pick_ori : None | 'normal' | 'max-power'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'optimal', the source orientation
-        that maximizes output source power is chosen.
+        only the radial component is kept. If 'max-power', the source
+        orientation that maximizes output source power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -396,7 +396,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
 
-    The reference for finding the optimal orientation is:
+    The reference for finding the max-power orientation is:
     Sekihara et al. Asymptotic SNR of scalar and vector minimum-variance
     beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34

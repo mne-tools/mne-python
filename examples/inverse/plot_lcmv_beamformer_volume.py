@@ -65,9 +65,9 @@ fig_2, axes_2 = pl.subplots(nrows=3, ncols=1, figsize=(8, 6))
 cutoff_point = 0.8
 lcmv_limits = (-2, 2.3)
 
-pick_oris = [None, 'normal', 'optimal']
-names = ['free', 'normal', 'optimal']
-descriptions = ['Free orientation', 'Normal orientation', 'Optimal '
+pick_oris = [None, 'normal', 'max-power']
+names = ['free', 'normal', 'max-power']
+descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
                 'orientation']
 
 for pick_ori, name, desc, ax_1, ax_2 in zip(pick_oris, names, descriptions,
