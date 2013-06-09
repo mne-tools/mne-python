@@ -6,7 +6,7 @@ from mne import fiff, read_events, Epochs, SourceEstimate, read_cov
 from mne.layouts import read_layout
 from mne.viz import plot_topo, plot_topo_tfr, plot_topo_power, \
                     plot_topo_phase_lock, plot_topo_image_epochs, \
-                    plot_evoked, plot_sparse_source_estimates, \
+                    plot_evoked_topomap, plot_sparse_source_estimates, \
                     plot_source_estimates, plot_cov, mne_analyze_colormap, \
                     plot_image_epochs, plot_connectivity_circle, \
                     circular_layout, plot_drop_log, compare_fiff
@@ -32,8 +32,10 @@ if not lacks_mayavi:
     mlab.options.backend = 'test'
 
 data_dir = data_path()
+subjects_dir = op.join(data_dir, 'subjects')
 sample_src = read_source_spaces(op.join(data_dir, 'subjects', 'sample',
                                         'bem', 'sample-oct-6-src.fif'))
+evoked_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis-ave.fif')
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -136,7 +138,8 @@ def test_plot_sparse_source_estimates():
     # don't really need to test matplotlib method since it's not used now...
     colormap = mne_analyze_colormap()
     plot_source_estimates(stc, 'sample', colormap=colormap,
-                          config_opts={'background': (1, 1, 0)})
+                          config_opts={'background': (1, 1, 0)},
+                          subjects_dir=subjects_dir)
     assert_raises(RuntimeError, plot_source_estimates, stc, 'sample',
                   figure='foo', hemi='both')
 
@@ -203,6 +206,19 @@ def test_plot_raw():
     """Test plotting of raw data
     """
     raw.plot(events=events, show_options=True)
+
+
+def test_plot_topomap():
+    """Testing topomap plotting
+    """
+    evoked = fiff.read_evoked(evoked_fname, 'Left Auditory',
+                              baseline=(None, 0))
+    plot_evoked_topomap(evoked, 0.1, 'mag')
+    times = [0.1, 0.2]
+    plot_evoked_topomap(evoked, times, ch_type='mag')
+    plot_evoked_topomap(evoked, times, ch_type='grad')
+    plot_evoked_topomap(evoked, times, ch_type='planar1')
+    plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
 
 
 def test_compare_fiff():
