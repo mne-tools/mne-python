@@ -2,14 +2,15 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_raises
 
-from mne import fiff, read_events, Epochs, SourceEstimate, read_cov
+from mne import fiff, read_events, Epochs, SourceEstimate, read_cov, read_proj
 from mne.layouts import read_layout
 from mne.viz import plot_topo, plot_topo_tfr, plot_topo_power, \
                     plot_topo_phase_lock, plot_topo_image_epochs, \
-                    plot_evoked_topomap, plot_sparse_source_estimates, \
-                    plot_source_estimates, plot_cov, mne_analyze_colormap, \
-                    plot_image_epochs, plot_connectivity_circle, \
-                    circular_layout, plot_drop_log, compare_fiff
+                    plot_evoked_topomap, plot_projs_topomap, \
+                    plot_sparse_source_estimates, plot_source_estimates, \
+                    plot_cov, mne_analyze_colormap, plot_image_epochs, \
+                    plot_connectivity_circle, circular_layout, plot_drop_log, \
+                    compare_fiff
 from mne.datasets.sample import data_path
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
@@ -35,6 +36,7 @@ data_dir = data_path()
 subjects_dir = op.join(data_dir, 'subjects')
 sample_src = read_source_spaces(op.join(data_dir, 'subjects', 'sample',
                                         'bem', 'sample-oct-6-src.fif'))
+ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 evoked_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis-ave.fif')
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname = op.join(base_dir, 'test-ave.fif')
@@ -270,14 +272,19 @@ def test_plot_raw():
 def test_plot_topomap():
     """Testing topomap plotting
     """
+    # evoked
     evoked = fiff.read_evoked(evoked_fname, 'Left Auditory',
                               baseline=(None, 0))
-    plot_evoked_topomap(evoked, 0.1, 'mag')
+    evoked.plot_topomap(0.1, 'mag', layout=layout)
+    plot_evoked_topomap(evoked, None, ch_type='mag')
     times = [0.1, 0.2]
-    plot_evoked_topomap(evoked, times, ch_type='mag')
     plot_evoked_topomap(evoked, times, ch_type='grad')
     plot_evoked_topomap(evoked, times, ch_type='planar1')
     plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
+
+    # projs
+    projs = read_proj(ecg_fname)[:7]
+    plot_projs_topomap(projs)
 
 
 def test_compare_fiff():
