@@ -19,19 +19,14 @@ path = mne.datasets.sample.data_path()
 fname = path + '/MEG/sample/sample_audvis-ave.fif'
 
 # load evoked and subtract baseline
-evoked = mne.fiff.read_evoked(fname, 'Left Auditory', baseline=(None, 0),
-                              proj=False)
+evoked = mne.fiff.read_evoked(fname, 'Left Auditory', baseline=(None, 0))
 
 # set time instants in seconds (from 50 to 150ms in a step of 10ms)
 times = np.arange(0.05, 0.15, 0.01)
 # If times is set to None only 10 regularly spaced topographies will be shown
 
 # plot magnetometer data as topomaps
-evoked.plot_topomap(times, ch_type='mag', proj=True)
+evoked.plot_topomap(times, ch_type='mag')
 
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
-evoked.plot_topomap(times, ch_type='grad', proj=True)
-
-
-# Interactively explore magnetometers
-evoked.plot_topomap(times, ch_type='mag', proj='interactive')
+evoked.plot_topomap(times, ch_type='grad')

@@ -18,7 +18,6 @@ SSP application.
 print __doc__
 
 import numpy as np
-import pylab as pl
 import mne
 from mne import fiff
 from mne.datasets import sample
@@ -33,13 +32,12 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
 raw = fiff.Raw(raw_fname)
+events = mne.read_events(event_fname)
+
 # delete EEG projections (we know it's the last one)
 raw.del_proj(-1)
 # add ECG projs for magnetometers
 [raw.add_proj(p) for p in mne.read_proj(ecg_fname) if 'axial' in p['desc']]
-
-
-events = mne.read_events(event_fname)
 
 # pick magnetometer channels
 picks = fiff.pick_types(raw.info, meg='mag', stim=False, eog=True,
@@ -48,13 +46,10 @@ picks = fiff.pick_types(raw.info, meg='mag', stim=False, eog=True,
 # We will make of the proj `delayed` option to
 # interactively select projections at the evoked stage.
 # more information can be found in the example/plot_evoked_delayed_ssp.py
-
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(mag=4e-12),
-                    proj='delayed')
+                    baseline=(None, 0), reject=dict(mag=4e-12), proj='delayed')
 
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
-
 
 ###############################################################################
 # Interactively select / deselect the SSP projection vectors
@@ -63,4 +58,4 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 times = np.arange(0.05, 0.15, 0.01)
 
 evoked.plot_topomap(proj='interactive')
-# Hint: the same works with evoked.plot.
+# Hint: the same works with evoked.plot

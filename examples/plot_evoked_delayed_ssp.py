@@ -39,15 +39,15 @@ events = mne.read_events(event_fname)
 picks = fiff.pick_types(raw.info, meg='mag', stim=False, eog=True,
                         include=[], exclude='bads')
 
-# When we set proj to `delayed` while passing reject parameters
-# each epoch will be projected in order to preserve data when performing
-# the peak-to-peak amplitude rejection. If the epoch will be kept in this mode,
-# the unprojected raw epoch will be included. This allows us to process our
-# epochs as if we had projected them. As a consequence, the point in time at
-# which the projection is applied will not affect the results, e.g., by
-# imbalanced epoch counts we would get would we not have projected the epochs
-# before performing the rejection. We will make use of this function to
-# interactively select projections at the evoked stage.
+# If we suspend SSP projection at the epochs stage we might reject
+# more epochs than necessary. To deal with this we set proj to `delayed`
+# while passing reject parameters. Each epoch will then be projected before
+# performing peak-to-peak amplitude rejection. If it survives the rejection
+# procedure the unprojected raw epoch will be employed instead.
+# As a consequence, the point in time at which the projection is applied will
+# not have impact on the final results.
+# We will make use of this function to prepare for interactively selecting
+# projections at the evoked stage.
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(mag=4e-12),
@@ -83,13 +83,13 @@ pl.show()
 # E.g. had we appended the following line to our loop:
 #   `evoked.del_proj(-1)`
 
-# Often, it is desirable to interactively explore things. To make this easier
-# we can make use of the 'interactive' option which will open a check box that
-# allows us to reversibly select projection vectors. Any changes of the
-# selection will immediately cause the figure to update.
+# Often, it is desirable to interactively explore data. To make this more
+# convenient we can make use of the 'interactive' option. This will open a
+# check box that allows us to reversibly select projection vectors. Any
+# modification of the selection will immediately cause the figure to update.
 
 pl.figure()
 evoked.plot(proj='interactive')
 pl.show()
 
-# Hint: the same works with evoked.plot_topomap.
+# Hint: the same works with evoked.plot_topomap
