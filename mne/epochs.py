@@ -89,13 +89,17 @@ class Epochs(ProjMixin):
         Epoch rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
-    proj : bool, optional
-        Apply SSP projection vectors. If proj is False but reject is not None
-        data will still be projected before the rejection decision, but
-        stored in the Epochs object unprojected. By doing so the selection
-        of the good projections can be postponed to the evoked stage. Note
-        that in this case also baselining, detrending and temporal decimation
-        will be postponed.
+    proj : bool | 'delayed'
+        Apply SSP projection vectors. If proj is 'delayed' and reject is not
+        None the single epochs will be projected before the rejection
+        decision, but used in unprojected state if they are kept.
+        This way deciding which projection vectors are good can be postponed
+        to the evoked stage without resulting in lower epoch counts and
+        without producing results different from early SSP application
+        given comparable parameters. Note that in this case baselining,
+        detrending and temporal decimation will be postponed.
+        If proj is False no projections will be applied which is the
+        recommended value if SSPs are not used for cleaning the data.
     decim : int
         Factor by which to downsample the data from the raw file upon import.
         Warning: This simply selects every nth sample, data is not filtered
@@ -235,7 +239,13 @@ class Epochs(ProjMixin):
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
         self.flat = flat
-        self.proj = proj or raw.proj  # proj is on when applied in Raw
+
+        proj = proj or raw.proj  # proj is on when applied in Raw
+        if proj not in [True, 'delayed', False]:
+            raise ValueError(r"'proj' must either be 'True', 'False' or "
+                              "'delayed'")
+        self.proj = proj
+
         self.decim = decim = int(decim)
         self._bad_dropped = False
         self.drop_log = None
@@ -257,11 +267,12 @@ class Epochs(ProjMixin):
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
 
-        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
-                                                activate=self.proj)
-
-        if self._delayed_ssp():
+        if self._check_delayed():
             logger.info('Entering delayed SSP mode.')
+
+        activate = False if self._check_delayed() else self.proj
+        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
+                                                activate=activate)
 
         #   XXX : deprecate CTF compensator
         if dest_comp is not None or keep_comp is not None:
@@ -344,12 +355,16 @@ class Epochs(ProjMixin):
         """
         self._get_data_from_disk(out=False)
 
-    def _delayed_ssp(self):
+    def _check_delayed(self):
         """ Aux method
         """
-        is_delayed = \
-            (self.proj == False and self.reject is not None) or \
-            (self.proj == False and self.preload == True)
+        is_delayed = False
+        if self.proj == 'delayed':
+            if self.reject is None:
+                raise RuntimeError('The delayed SSP mode was requested '
+                        'but no rejection parameters are present. Please add '
+                        'rejection parameters before using this option.')
+            is_delayed = True
         return is_delayed
 
     @verbose
@@ -454,26 +469,29 @@ class Epochs(ProjMixin):
         n_events = len(self.events)
         data = np.array([])
         if self._bad_dropped:
+            proj = False if self._check_delayed() else self.proj
             if not out:
                 return
             for ii in xrange(n_events):
                 # faster to pre-allocate memory here
-                epoch, _ = self._get_epoch_from_disk(ii, proj=self.proj)
+                epoch, epoch_raw = self._get_epoch_from_disk(ii, proj=proj)
                 if ii == 0:
                     data = np.empty((n_events, epoch.shape[0],
                                      epoch.shape[1]), dtype=epoch.dtype)
+                if self._check_delayed():
+                    epoch = epoch_raw
                 data[ii] = epoch
         else:
+            proj = True if self._check_delayed() else self.proj
             good_events = []
             drop_log = [[] for _ in range(n_events)]
             n_out = 0
-            proj = True if self._delayed_ssp() else self.proj
             for idx in xrange(n_events):
                 epoch, epoch_raw = self._get_epoch_from_disk(idx, proj=proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
                     good_events.append(idx)
-                    if self._delayed_ssp():
+                    if self._check_delayed():
                         epoch = epoch_raw
                     if out:
                         # faster to pre-allocate, then trim as necessary
@@ -530,15 +548,16 @@ class Epochs(ProjMixin):
             The epochs data
         """
         if self.preload:
-            if self._delayed_ssp():
-                data = np.zeros(self._data.shape)
-                for ii, e in enumerate(self._data):
-                    data[ii] = self._preprocess(np.dot(self._projector, e),
-                                                self.verbose)
-            else:
-                data = self._data
+            data_ = self._data
         else:
-            data = self._get_data_from_disk()
+            data_ = self._get_data_from_disk()
+        if self._check_delayed():
+            data = np.zeros_like(data_)
+            for ii, e in enumerate(data_):
+                data[ii] = self._preprocess(e.copy(), self.verbose)
+        else:
+            data = data_
+
         return data
 
     def _reject_setup(self):
@@ -594,15 +613,15 @@ class Epochs(ProjMixin):
     def next(self):
         """To make iteration over epochs easy.
         """
-        proj = True if self._delayed_ssp() else self.proj
         if self.preload:
             if self._current >= len(self._data):
                 raise StopIteration
             epoch = self._data[self._current]
-            if self._delayed_ssp():
+            if self._check_delayed():
                 epoch = self._preprocess(epoch.copy())
             self._current += 1
         else:
+            proj = True if self._check_delayed() else self.proj
             is_good = False
             while not is_good:
                 if self._current >= len(self.events):
@@ -612,8 +631,8 @@ class Epochs(ProjMixin):
                 self._current += 1
                 is_good, _ = self._is_good_epoch(epoch)
             # If delayed-ssp mode, pass 'virgin' data after rejection decision.
-            if self._delayed_ssp():
-                epoch = epoch_raw
+            if self._check_delayed():
+                epoch = self._preprocess(epoch_raw)
 
         return epoch
 
@@ -720,8 +739,6 @@ class Epochs(ProjMixin):
         n_times = len(self.times)
         if self.preload:
             n_events = len(self.events)
-            if self._delayed_ssp():
-                [self._preprocess(e) for e in self]
             if not _do_std:
                 data = np.mean(self._data, axis=0)
             else:
@@ -731,7 +748,7 @@ class Epochs(ProjMixin):
             data = np.zeros((n_channels, n_times))
             n_events = 0
             for e in self:
-                data += self._preprocess(e) if self._delayed_ssp() else e
+                data += e
                 n_events += 1
             data /= n_events
             # convert to stderr if requested, could do in one pass but do in
@@ -1349,8 +1366,17 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     ----------
     fname : str
         The name of the file.
-    proj : bool, optional
-        Apply SSP projection vectors.
+    proj : bool | 'delayed'
+        Apply SSP projection vectors. If proj is 'delayed' and reject is not
+        None the single epochs will be projected before the rejection
+        decision, but used in unprojected state if they are kept.
+        This way deciding which projection vectors are good can be postponed
+        to the evoked stage without resulting in lower epoch counts and
+        without producing results different from early SSP application
+        given comparable parameters. Note that in this case baselining,
+        detrending and temporal decimation will be postponed.
+        If proj is False no projections will be applied which is the
+        recommended value if SSPs are not used for cleaning the data.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).

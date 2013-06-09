@@ -36,7 +36,7 @@ from .utils import deprecated, get_subjects_dir, get_config, set_config, \
                    _check_subject
 from .fiff import show_fiff, FIFF
 from .fiff.pick import channel_type, pick_types
-from .fiff.proj import make_projector, activate_proj, setup_proj
+from .fiff.proj import make_projector, setup_proj
 from . import verbose
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',

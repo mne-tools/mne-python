@@ -53,8 +53,9 @@ picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
 epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                 baseline=(None, 0))
 evoked = epochs.average()
+reject = dict(mag=4e-12)
 epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                baseline=(None, 0), proj=False)
+                            baseline=(None, 0), proj='delayed', reject=reject)
 evoked_delayed_ssp = epochs_delayed_ssp.average()
 layout = read_layout('Vectorview-all')
 
