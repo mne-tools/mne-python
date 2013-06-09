@@ -4,8 +4,8 @@ Compute LCMV inverse solution on evoked data in volume source space
 ===================================================================
 
 Compute LCMV inverse solution on an auditory evoked dataset in a volume source
-space with three different settings for picking source orientation. It stores
-the solution in a nifti file for visualisation e.g. with Freeview.
+space. It stores the solution in a nifti file for visualisation e.g. with
+Freeview.
 
 """
 
@@ -21,7 +21,6 @@ import mne
 from mne.datasets import sample
 from mne.fiff import Raw, pick_types
 from mne.beamformer import lcmv
-from mne.viz import tight_layout
 
 
 data_path = sample.data_path()
@@ -50,7 +49,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()
 
-forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
+forward = mne.read_forward_solution(fname_fwd)
 
 noise_cov = mne.read_cov(fname_cov)
 noise_cov = mne.cov.regularize(noise_cov, evoked.info,
@@ -58,59 +57,34 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
 
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
 
+# Run free orientation (vector) beamformer. Source orientation can be
+# restricted by setting pick_ori to 'normal' or 'max-power'
+stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, pick_ori=None)
+
+# Save result in stc files
+stc.save('lcmv-vol')
+
+stc.crop(0.0, 0.2)
+
+# Save result in a 4D nifti file
+img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
+        forward['src'], mri_resolution=False)  # True for full MRI resolution
+
+# plot result (one slice)
 pl.close('all')
-fig_1, axes_1 = pl.subplots(nrows=1, ncols=3, figsize=(9, 3))
-fig_2, axes_2 = pl.subplots(nrows=3, ncols=1, figsize=(8, 6))
+data = img.get_data()
+coronal_slice = data[:, 10, :, 60]
+pl.figure()
+pl.imshow(np.ma.masked_less(coronal_slice, 1), cmap=pl.cm.Reds,
+          interpolation='nearest')
+pl.colorbar()
+pl.contour(coronal_slice != 0, 1, colors=['black'])
+pl.xticks([])
+pl.yticks([])
 
-cutoff_point = 0.8
-lcmv_limits = (-2, 2.3)
-
-pick_oris = [None, 'normal', 'max-power']
-names = ['free', 'normal', 'max-power']
-descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
-                'orientation']
-
-for pick_ori, name, desc, ax_1, ax_2 in zip(pick_oris, names, descriptions,
-                                            axes_1, axes_2):
-    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
-               pick_ori=pick_ori)
-
-    # Save result in stc files
-    stc.save('lcmv-' + name + '-vol')
-
-    stc.crop(0.0, 0.2)
-
-    # Save result in a 4D nifti file
-    # (for full MRI resolution use mri_resolution=True)
-    img = mne.save_stc_as_volume('lcmv_inverse_ ' + name + '.nii.gz', stc,
-                                 forward['src'], mri_resolution=False)
-
-    # Plot result (one slice)
-    data = img.get_data()
-    coronal_slice = data[:, 10, :, 60]
-
-    ax_img = ax_1.imshow(np.ma.masked_inside(coronal_slice, -1 * cutoff_point,
-                         cutoff_point), cmap=pl.cm.jet,
-                         interpolation='nearest')
-    ax_img.set_clim(lcmv_limits)
-    ax_1.contour(coronal_slice != 0, 1, colors=['black'])
-    ax_1.set_title(desc)
-    ax_1.set_xticks([])
-    ax_1.set_yticks([])
-    ax_1.set_frame_on(False)
-
-    ax_2.plot(stc.times, stc.data[np.argsort(np.max(stc.data,
-              axis=1))[-40:]].T)
-    ax_2.set_xlabel('Time (ms)')
-    ax_2.set_ylabel('LCMV value')
-    ax_2.set_title(desc)
-    ax_2.set_ylim(lcmv_limits)
-
-fig_1.subplots_adjust(right=0.97)
-cbar_ax = fig_1.add_axes([0.98, 0.2, 0.015, 0.6])
-cbar = fig_1.colorbar(cax=cbar_ax, mappable=axes_1[0].get_images()[0])
-cbar.set_label('LCMV value', rotation=270)
-
-tight_layout()
-
+# plot source time courses with the maximum peak amplitudes
+pl.figure()
+pl.plot(stc.times, stc.data[np.argsort(np.max(stc.data, axis=1))[-40:]].T)
+pl.xlabel('Time (ms)')
+pl.ylabel('LCMV value')
 pl.show()
