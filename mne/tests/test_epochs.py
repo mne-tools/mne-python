@@ -713,27 +713,40 @@ def test_epochs_proj_mixin():
             epochs.add_proj(projs, remove_existing=True)
             assert_true(len(epochs.info['projs']) == n_proj)
 
+    # catch no-gos.
+    # wrong proj argument
+    assert_raises(ValueError, Epochs, raw, events[:4], event_id, tmin, tmax,
+                  picks=picks, baseline=(None, 0), proj='crazy')
+    # delayed without reject params
+    assert_raises(RuntimeError, Epochs, raw, events[:4], event_id, tmin, tmax,
+                  picks=picks, baseline=(None, 0), proj='delayed', reject=None)
+
     for preload in [True, False]:
-        print 'preload is %s' % preload
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), proj=False, preload=preload,
-                        add_eeg_ref=True, verbose=True)
+                        baseline=(None, 0), proj='delayed', preload=preload,
+                        add_eeg_ref=True, verbose=True, reject=reject)
         epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), proj=True, preload=preload,
-                        add_eeg_ref=True)
+                        add_eeg_ref=True, reject=reject)
         assert_allclose(epochs.copy().apply_proj().get_data()[0],
                         epochs2.get_data()[0])
 
-        # make sure the preprocssing works on copies by calling
-        # get_data twice
+        # make sure data outputis constant across repeated calls
+        # e.g. drop log
+        assert_array_equal(epochs.get_data(), epochs.get_data())
         assert_array_equal(epochs2.get_data(), epochs2.get_data())
 
+    # test epochs.next calls
     data = epochs.get_data().copy()
     data2 = np.array([e for e in epochs])
     assert_array_equal(data, data2)
+
+    # cross application from processing stream 1 to 2
     epochs.apply_proj()
     assert_array_equal(epochs._projector, epochs2._projector)
     assert_allclose(epochs._data, epochs2.get_data())
+
+    # test mixin against manual application
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=None, proj=False, add_eeg_ref=True)
     data = epochs.get_data().copy()
