@@ -91,3 +91,5 @@ pl.show()
 pl.figure()
 evoked.plot(proj='interactive')
 pl.show()
+
+# Hint: the same works with evoked.plot_topomap.
