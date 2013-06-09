@@ -89,6 +89,8 @@ Changelog
 
    - Access source estimates as Pandas DataFrame by `Denis Engemann`_. 
 
+   - Plot 2D flat topographies with interpolation for evoked and SSPs by `Christian Brodbeck`_ and `Alex Gramfort`_
+
 API
 ~~~
 
