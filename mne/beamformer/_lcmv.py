@@ -133,7 +133,19 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         # Find and pick optimal source orientation
         if pick_ori == 'optimal':
             eig_vals, eig_vecs = linalg.eigh(Ck)
-            opt_ori = eig_vecs[:, eig_vals.argmin()]
+            
+            # Choosing the eigenvector associated with the middle eigenvalue.
+            # The middle and not the minimal eigenvalue is used because MEG is
+            # insensitive to one (radial) of the three dipole orientations and
+            # therefore the smallest eigenvalue reflects mostly noise.
+            for i in range(3):
+                if i != eig_vals.argmax() and i != eig_vals.argmin():
+                    idx_middle = i
+
+            # TODO: The eigenvector associated with the smallest eigenvalue
+            # should probably be used when using combined EEG and MEG data
+            opt_ori = eig_vecs[:, idx_middle]
+            
             Wk[:] = np.dot(opt_ori, Wk)
             Ck = np.dot(opt_ori, np.dot(Ck, opt_ori))
             is_free_ori = False
