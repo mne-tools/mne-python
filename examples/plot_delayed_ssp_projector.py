@@ -39,12 +39,16 @@ events = mne.read_events(event_fname)
 picks = fiff.pick_types(raw.info, meg='mag', stim=False, eog=True,
                         include=[], exclude='bads')
 
-# Note. if the reject parameter is not None but proj == False
-# each epoch will be projected to inform the rejection decision.
-# If, in this mode, the epoch is considered good,
-# instead of the projected epochs an the original data will be included in the
-# epochs object. This allows us to have both, rejection and the option to delay
-# the application of our SSP projectors. This also works for preloaded data.
+# When we set proj to `delayed` while passing reject parameters
+# each epoch will be projected in order to preserve data when performing
+# the peak-to-peak amplitude rejection. If the epoch will be kept in this mode,
+# the unprojected raw epoch will be included. This allows us to process our
+# epochs as if we had projected them. As a consequence, the point in time at
+# which the projection is applied will not affect the results, e.g., by
+# imbalanced epoch counts we would get would we not have projected the epochs
+# before performing the rejection. We will make use of this function to
+# interactively select projections at the evoked stage.
+
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(mag=4e-12),
                     proj='delayed')
