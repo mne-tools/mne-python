@@ -731,8 +731,8 @@ def test_epochs_proj_mixin():
         assert_allclose(epochs.copy().apply_proj().get_data()[0],
                         epochs2.get_data()[0])
 
-        # make sure data outputis constant across repeated calls
-        # e.g. drop log
+        # make sure data output is constant across repeated calls
+        # e.g. drop bads
         assert_array_equal(epochs.get_data(), epochs.get_data())
         assert_array_equal(epochs2.get_data(), epochs2.get_data())
 

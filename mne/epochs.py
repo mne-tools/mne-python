@@ -362,7 +362,7 @@ class Epochs(ProjMixin):
         if self.proj == 'delayed':
             if self.reject is None:
                 raise RuntimeError('The delayed SSP mode was requested '
-                        'but no rejection parameters ate present. Please add '
+                        'but no rejection parameters are present. Please add '
                         'rejection parameters before using this option.')
             is_delayed = True
         return is_delayed
@@ -552,7 +552,7 @@ class Epochs(ProjMixin):
         else:
             data_ = self._get_data_from_disk()
         if self._check_delayed():
-            data = np.zeros(data_.shape)
+            data = np.zeros_like(data_)
             for ii, e in enumerate(data_):
                 data[ii] = self._preprocess(e.copy(), self.verbose)
         else:
