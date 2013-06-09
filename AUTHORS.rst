@@ -16,3 +16,4 @@ Authors
   * Simon Kornblith 2013
   * Mainak Jas 2013
   * Roman Goj 2013
+  * Teon Brooks 2013
