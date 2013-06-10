@@ -39,7 +39,7 @@ from ..fiff.write import start_file, end_file
 
 
 def _make_xy_sfunc(func, ndim_output=False):
-    """Helper Function"""
+    """Aux function"""
     if ndim_output:
         sfunc = lambda x, y: np.array([func(a, y.ravel()) for a in x])[:, 0]
     else:
@@ -92,7 +92,11 @@ class ICA(object):
         smaller then max_pca_components. If None, all PCA components will be
         used. If float between 0 and 1 components can will be selected by the
         cumulative percentage of explained variance.
-    n_pca_components
+    max_pca_components : int | None
+        The number of components used for PCA decomposition. If None, no
+        dimension reduction will be applied and max_pca_components will equal
+        the number of channels supplied on decomposing data.
+    n_pca_components : int
         The number of PCA components used after ICA recomposition. The ensuing
         attribute allows to balance noise reduction against potential loss of
         features due to dimensionality reduction. If greater than
@@ -100,10 +104,6 @@ class ICA(object):
         'n_components_' PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
-    max_pca_components : int | None
-        The number of components used for PCA decomposition. If None, no
-        dimension reduction will be applied and max_pca_components will equal
-        the number of channels supplied on decomposing data.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.
@@ -177,9 +177,8 @@ class ICA(object):
 
         if isinstance(n_components, float) \
                 and not 0 < n_components <= 1:
-            raise ValueError('For selecting ICA components by the '
-                             'explained variance of PCA components the'
-                             ' float value must be between 0.0 and 1.0 ')
+            raise ValueError('Selecting ICA components by explained variance '
+                             'necessitates values between 0.0 and 1.0 ')
 
         self.current_fit = 'unfitted'
         self.verbose = verbose
@@ -194,6 +193,7 @@ class ICA(object):
         self.exclude = []
 
     def __repr__(self):
+        """ICA fit information"""
         if self.current_fit == 'unfitted':
             s = 'no'
         elif self.current_fit == 'raw':
@@ -226,12 +226,12 @@ class ICA(object):
         picks : array-like
             Channels to be included. This selection remains throughout the
             initialized ICA session. If None only good data channels are used.
-        start : int | None
-            First sample to include (first is 0). If omitted, defaults to the
-            first sample in data. If None, the entire data will be used.
-        stop : int | None
-            First sample to not include. If omitted, data is included to the
-            end. If None, the entire data will be used.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -332,13 +332,12 @@ class ICA(object):
         ----------
         raw : instance of Raw
             Raw object to draw sources from.
-        start : int | None
-            First sample to include (first is 0). If omitted, defaults to the
-            first sample in data. If None, the entire data will be used.
-        stop : int | None
-            First sample to not include.  If None, the entire data will
-            be used.
-            If omitted, data is included to the end.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, the entire data will be used.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, the entire data will be used.
 
         Returns
         -------
@@ -352,6 +351,10 @@ class ICA(object):
         return self._get_sources_raw(raw, start, stop)[0]
 
     def _get_sources_raw(self, raw, start, stop):
+        """Aux function"""
+
+        start, stop = [c if isinstance(c, int) else raw.time_as_index(c)
+                       for c in start, stop]
         picks = [raw.ch_names.index(k) for k in self.ch_names]
         data, _ = self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
         pca_data = self._transform_pca(data.T)
@@ -406,7 +409,7 @@ class ICA(object):
 
     @verbose
     def save(self, fname):
-        """ Store ICA session into a fiff file.
+        """Store ICA session into a fiff file.
 
         Parameters
         ----------
@@ -439,13 +442,12 @@ class ICA(object):
         picks : array-like
             Channels to be included in addition to the sources. If None,
             artifact and stimulus channels will be included.
-        start : int | None
-            First sample to include (first is 0). If omitted, defaults to the
-            first sample in data.  If None, the entire data will be used.
-        stop : int | None
-            First sample to not include. If omitted, data is included to the
-            end. If None, the entire data will be used.
-
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
         Returns
         -------
         out : instance of mne.Raw
@@ -486,7 +488,7 @@ class ICA(object):
         return out
 
     def _export_info(self, info, container, picks):
-        """ Aux function
+        """Aux function
         """
         # set channel names and info
         ch_names = info['ch_names'] = []
@@ -513,7 +515,7 @@ class ICA(object):
         info['filenames'] = []
 
     def sources_as_epochs(self, epochs, picks=None):
-        """ Create epochs in ICA space from epochs object
+        """Create epochs in ICA space from epochs object
 
         Parameters
         ----------
@@ -615,10 +617,12 @@ class ICA(object):
             Example: arg_sort = np.argsort(np.var(sources)).
         sources : ndarray
             Sources as drawn from self.get_sources.
-        start : int | None
-            X-axis start index. If None, the entire data will be plotted.
-        stop : int | None
-            X-axis stop index. If None, the entire data will be plotted.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be shown from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be shown to the last sample.
         n_components : int
             Number of components fitted.
         source_idx : array-like
@@ -675,13 +679,12 @@ class ICA(object):
             scipy.stats taking compatible input arguments are supported. These
             function have been modified to support iteration over the rows of a
             2D array.
-        start : int | None
-            First sample to include (first is 0). If omitted, defaults to the
-            first sample in data. If None, the entire data will be used.
-        stop : int | None
-            First sample to not include.
-            If omitted, data is included to the end. If None, the entire data
-            will be used.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
         scores : ndarray
             Scores for each source as returned from score_func.
 
@@ -765,19 +768,19 @@ class ICA(object):
             The source indices to use. If None all are used.
         exclude : list-like | None
             The source indices to remove. If None all are used.
-        n_pca_components:
+        n_pca_components : int
             The number of PCA components to be unwhitened, where
             n_components_ is the lower bound and max_pca_components
             the upper bound. If greater than self.n_components_, the next
             'n_pca_components' minus 'n_components' PCA components will
             be added before restoring the sensor space data. This can be used
             to take back the PCA dimension reduction.
-        start : int | None
-            The first time index to include. If None, the entire data will
-            be returned.
-        stop : int | None
-            The first time index to exclude. If None, the entire data will
-            be returned.
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
         copy: bool
             modify raw instance in place or return modified copy.
 
@@ -829,7 +832,7 @@ class ICA(object):
             The source indices to use. If None all are used.
         exclude : list-like | None
             The source indices to remove. If None  all are used.
-        n_pca_components:
+        n_pca_components : int
             The number of PCA components to be unwhitened, where
             n_components_ is the lower bound and max_pca_components
             the upper bound. If greater than self.n_components_, the next
@@ -882,10 +885,16 @@ class ICA(object):
                 eog_ch=None, eog_score_func='pearsonr', eog_criterion=0.1,
                 skew_criterion=-1, kurt_criterion=-1, var_criterion=0,
                 add_nodes=None):
-        """ Run ICA artifacts detection workflow.
+        """Run ICA artifacts detection workflow.
 
-        This function implements an automated artifact removal work flow.
-        Note. Consider using shorter times for start_find and stop_find than
+        Hints and caveats:
+        - It is highly recommended to bandpass filter ECG and EOG
+        data and pass them instead of the channel names as ecg_ch and eog_ch
+        arguments.
+        - please check your results. Detection by kurtosis and variance
+        may be powerful but misclassification of brain signals as
+        noise cannot be precluded.
+        - Consider using shorter times for start_find and stop_find than
         for start and stop. It can save you much time.
 
         Example invocation (taking advantage of the defaults):
@@ -894,13 +903,14 @@ class ICA(object):
 
         Parameters
         ----------
-        start_find : int | None
-            First sample to include (first is 0) for sources detection.
-            If omitted, defaults to the first sample in data. If None, the
-            entire data will be used.
-        stop_find : int | None
-            First sample to not include for sources detection. If omitted, data
-            is included to the end. If None, the entire data will be used.
+        start_find : int | float | None
+            First sample to include for artifact search. If float, data will be
+            interpreted as time in seconds. If None, data will be used from the
+            first sample.
+        stop_find : int | float | None
+            Last sample to not include for artifact search. If float, data will be
+            interpreted as time in seconds. If None, data will be used to the last
+            sample.
         ecg_ch : str | ndarray | None
             The `target` argument passed to ica.find_sources_raw. Either the
             name of the ECG channel or the ECG time series. If None, this step
@@ -954,7 +964,6 @@ class ICA(object):
             the same structure. Example:
             add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
 
-
         Returns
         -------
         self : instance of ICA
@@ -974,7 +983,7 @@ class ICA(object):
         return self
 
     def _pre_whiten(self, data, info, picks):
-        """Helper function"""
+        """Aux function"""
         if self.noise_cov is None:  # use standardization as whitener
             pre_whitener = np.atleast_1d(np.std(data)) ** -1
             data *= pre_whitener
@@ -993,7 +1002,7 @@ class ICA(object):
         return data, pre_whitener
 
     def _decompose(self, data, max_pca_components, fit_type):
-        """ Helper Function """
+        """Aux function """
         from sklearn.decomposition import RandomizedPCA
 
         # sklearn < 0.11 does not support random_state argument
@@ -1011,15 +1020,16 @@ class ICA(object):
         pca_data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
-            logger.info('Selecting pca_components via explained variance.')
+            logger.info('Selecting PCA components by explained variance.')
             n_components_ = np.sum(pca.explained_variance_ratio_.cumsum()
                                    < self.n_components)
             to_ica = pca_data[:, :n_components_]
         else:
-            logger.info('Selecting pca_components directly.')
+            logger.info('Selecting PCA components by number.')
             if self.n_components is not None:  # normal n case
                 to_ica = pca_data[:, :self.n_components]
             else:  # None case
+                logger.info('Using all PCA components.')
                 to_ica = pca_data
 
         # the things to store for PCA
@@ -1062,7 +1072,7 @@ class ICA(object):
         self.current_fit = fit_type
 
     def _pick_sources(self, sources, pca_data, include, exclude):
-        """Helper function"""
+        """Aux function"""
 
         _n_pca_comp = self.n_pca_components
         if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components):
@@ -1105,12 +1115,12 @@ class ICA(object):
         return X
 
     def _transform_ica(self, data):
-        """Apply ICA un-mixing matrix to recover the latent sources.
+        """Apply ICA unmixing matrix to recover the latent sources.
         """
         return np.dot(np.atleast_2d(data), self.unmixing_matrix_.T)
 
     def _inverse_transform_pca(self, X):
-        """Helper Function"""
+        """Aux function"""
         components = self.pca_components_[:X.shape[1]]
         X_orig = np.dot(X, components)
 
@@ -1203,7 +1213,7 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
 
 
 def _get_target_ch(container, target):
-    """Helper Function"""
+    """Aux function"""
     # auto target selection
     pick = pick_channels(container.ch_names, include=[target])
     if len(pick) == 0:
@@ -1213,7 +1223,7 @@ def _get_target_ch(container, target):
 
 
 def _find_sources(sources, target, score_func):
-    """Helper Function"""
+    """Aux function"""
     if isinstance(score_func, basestring):
         score_func = score_funcs.get(score_func, score_func)
 
@@ -1243,6 +1253,7 @@ def _serialize(dict_, outer_sep=';', inner_sep=':'):
 
 
 def _deserialize(str_, outer_sep=';', inner_sep=':'):
+    """Aux Function"""
     out = {}
     for mapping in str_.split(outer_sep):
         k, v = mapping.split(inner_sep)
@@ -1363,8 +1374,7 @@ def read_ica(fname):
     interface = _deserialize(ica_interface)
     current_fit = interface.pop('current_fit')
     if interface['noise_cov'] == Covariance.__name__:
-        logger.warning('The noise covariance used on fit cannot be restored.'
-                       ' The whitener drawn from the covariance will be used.')
+        logger.info('Reading whitener drawn from noise covariance ...')
 
     logger.info('Now restoring ICA session ...')
     ica = ICA(**interface)
@@ -1389,7 +1399,7 @@ _ica_node = namedtuple('Node', 'name target score_func criterion')
 def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
                     ecg_criterion, eog_ch, eog_score_func, eog_criterion,
                     skew_criterion, kurt_criterion, var_criterion, add_nodes):
-    """ Aux Function """
+    """Aux Function"""
 
     nodes = []
     if ecg_ch is not None:
@@ -1444,13 +1454,21 @@ def run_ica(raw, n_components, max_pca_components=100,
             ecg_criterion=0.1, eog_ch=None, eog_score_func='pearsonr',
             eog_criterion=0.1, skew_criterion=-1, kurt_criterion=-1,
             var_criterion=0, add_nodes=None):
-    """ Run ICA decomposition on raw data and identify artifact sources
+    """Run ICA decomposition on raw data and identify artifact sources
 
     This function implements an automated artifact removal work flow.
-    Note. Consider using shorter times for start_find and stop_find than
+
+    Hints and caveats:
+    - It is highly recommended to bandpass filter ECG and EOG
+    data and pass them instead of the channel names as ecg_ch and eog_ch
+    arguments.
+    - please check your results. Detection by kurtosis and variance
+    can be powerful but misclassification of brain signals as
+    noise cannot be precluded. If you are not sure set those to None.
+    - Consider using shorter times for start_find and stop_find than
     for start and stop. It can save you much time.
 
-    Example invocation (taking advantage of the defaults):
+    Example invocation (taking advantage of defaults):
 
     ica = run_ica(raw, n_components=.9, start_find=10000, stop_find=12000,
                   ecg_channel='MEG 1531', eog_channel='EOG 061')
@@ -1501,24 +1519,22 @@ def run_ica(raw, n_components, max_pca_components=100,
     picks : array-like
         Channels to be included. This selection remains throughout the
         initialized ICA session. If None only good data channels are used.
-    start : int | None
-        First sample to include (first is 0) for decomposition. If omitted,
-        defaults to the first sample in data. If None, the entire data will
-        be used.
-    stop : int | None
-        First sample to not include for decomposition. If omitted, data is
-        included to the end. If None, the entire data will
-        be used.
-        This function implements an automated artifact removal work flow.
-        Note. Consider using shorter times for start_find and stop_find than
-        for start and stop. It can save you much time.
-    start_find : int | None
-        First sample to include (first is 0) for sources detection.
-        If omitted, defaults to the first sample in data. If None, the
-        entire data will be used.
-    stop_find : int | None
-        First sample to not include for sources detection. If omitted, data
-        is included to the end. If None, the entire data will be used.
+    start : int | float | None
+        First sample to include for decomposition. If float, data will be
+        interpreted as time in seconds. If None, data will be used from the
+        first sample.
+    stop : int | float | None
+        Last sample to not include for decomposition. If float, data will be
+        interpreted as time in seconds. If None, data will be used to the
+        last sample.
+    start_find : int | float | None
+        First sample to include for artifact search. If float, data will be
+        interpreted as time in seconds. If None, data will be used from the
+        first sample.
+    stop_find : int | float | None
+        Last sample to not include for artifact search. If float, data will be
+        interpreted as time in seconds. If None, data will be used to the last
+        sample.
     ecg_ch : str | ndarray | None
         The `target` argument passed to ica.find_sources_raw. Either the
         name of the ECG channel or the ECG time series. If None, this step
@@ -1575,7 +1591,7 @@ def run_ica(raw, n_components, max_pca_components=100,
     Returns
     -------
     ica : instance of ICA
-        The ica object with the detected artifact indices marked for exclusion
+        The ica object with detected artifact sources marked for exclusion
     """
     ica = ICA(n_components=n_components, max_pca_components=max_pca_components,
               n_pca_components=n_pca_components, noise_cov=noise_cov,
