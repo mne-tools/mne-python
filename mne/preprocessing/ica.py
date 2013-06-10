@@ -353,7 +353,7 @@ class ICA(object):
     def _get_sources_raw(self, raw, start, stop):
         """Aux function"""
 
-        start, stop = [c if isinstance(int, c) else raw.time_as_index(c)
+        start, stop = [c if isinstance(c, int) else raw.time_as_index(c)
                        for c in start, stop]
         picks = [raw.ch_names.index(k) for k in self.ch_names]
         data, _ = self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
