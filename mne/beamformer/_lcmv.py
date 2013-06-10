@@ -74,6 +74,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         raise ValueError('Normal orientation can only be picked when a '
                          'forward operator oriented in surface coordinates is '
                          'used.')
+    if pick_ori == 'normal' and not forward['src'][0]['type'] == 'surf':
+        raise ValueError('Normal orientation can only be picked when a '
+                         'forward operator with a surface-based source space '
+                         'is used.')
 
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, exclude='bads')
@@ -133,7 +137,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         # Find source orientation maximizing output source power
         if pick_ori == 'max-power':
             eig_vals, eig_vecs = linalg.eigh(Ck)
-            
+
             # Choosing the eigenvector associated with the middle eigenvalue.
             # The middle and not the minimal eigenvalue is used because MEG is
             # insensitive to one (radial) of the three dipole orientations and
@@ -145,7 +149,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             # TODO: The eigenvector associated with the smallest eigenvalue
             # should probably be used when using combined EEG and MEG data
             max_ori = eig_vecs[:, idx_middle]
-            
+
             Wk[:] = np.dot(max_ori, Wk)
             Ck = np.dot(max_ori, np.dot(Ck, max_ori))
             is_free_ori = False
@@ -243,8 +247,8 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
         Restricts the LCMV solution to a given label
     pick_ori : None | 'normal' | 'max-power'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source orientation
-        that maximizes output source power is chosen.
+        only the radial component is kept. If 'max-power', the source
+        orientation that maximizes output source power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
