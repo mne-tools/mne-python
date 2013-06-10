@@ -399,7 +399,7 @@ class Evoked(ProjMixin):
 
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmax=None,
                      cmap='RdBu_r', sensors='k,', colorbar=True, scale=None,
-                     unit=None, res=256, size=1, show=True):
+                     unit=None, res=256, size=1, proj=False, show=True):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -437,13 +437,17 @@ class Evoked(ProjMixin):
         size : scalar
             Side length of the topomaps in inches (only applies when plotting
             multiple topomaps at a time).
+        proj : bool | 'interactive'
+            If true SSP projections are applied before display. If 'interactive',
+            a check box for reversible selection of SSP projection vectors will
+            be shown.
         show : bool
             Call pylab.show() at the end.
         """
         plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
                             vmax=vmax, cmap=cmap, sensors=sensors,
                             colorbar=colorbar, scale=scale, unit=unit, res=res,
-                            size=size)
+                            proj=proj, size=size)
 
     def to_nitime(self, picks=None):
         """ Export Evoked object to NiTime

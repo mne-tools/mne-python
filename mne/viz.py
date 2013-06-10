@@ -583,7 +583,8 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        scale=None, unit=None, res=256, size=1, show=True):
+                        scale=None, unit=None, res=256, size=1, proj=False,
+                        show=True):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -620,6 +621,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         The resolution of the topomap image (n pixels along each side).
     size : float
         Side length per topomap in inches.
+    proj : bool | 'interactive'
+        If true SSP projections are applied before display. If 'interactive',
+        a check box for reversible selection of SSP projection vectors will
+        be show.
     show : bool
         Call pylab.show() at the end.
     """
@@ -664,16 +669,23 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     width *= (1 + pl.rcParams['figure.subplot.left'] + 1 -
               pl.rcParams['figure.subplot.right'])
     height = size * 1.2 + .3
-    pl.figure(figsize=(width, height))
+    fig = pl.figure(figsize=(width, height))
     time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
-    data = evoked.data[np.ix_(picks, time_idx)] * scale
+
+    if proj is True and evoked.proj is not True:
+        data = evoked.copy().apply_proj().data
+    else:
+        data = evoked.data
+
+    data = data[np.ix_(picks, time_idx)] * scale
     if merge_grads:
         data = _merge_grad_data(data)
     vmax = vmax or np.max(np.abs(data))
+    images = []
     for i, t in enumerate(times):
         pl.subplot(1, nax, i + 1)
-        plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap, sensors=sensors,
-                     res=res)
+        images.append(plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap,
+                      sensors=sensors, res=res))
         pl.title('%i ms' % (t * 1000))
 
     tight_layout()
@@ -683,15 +695,61 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         pl.colorbar(cax=cax, ticks=[-vmax, 0, vmax])
         # resize the colorbar (by default the color fills the whole axes)
         tight_layout()
-        pos = cax.get_position()
-        pos.x0 = 1 - .7 / nax
-        pos.x1 = pos.x0 + .1 / nax
-        cax.set_position(pos)
+        cpos = cax.get_position()
+        cpos.x0 = 1 - .7 / nax
+        cpos.x1 = cpos.x0 + .1 / nax
+        cax.set_position(cpos)
         if unit is not None:
             cax.set_title(unit)
 
+    if proj == 'interactive':
+        _check_delayed_ssp(evoked)
+        params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
+                      picks=picks, images=images, time_idx=time_idx,
+                      scale=scale, merge_grads=merge_grads, res=res, pos=pos,
+                      plot_update_proj_callback=_plot_update_evoked_topomap)
+        _draw_proj_checkbox(None, params)
+
     if show:
         pl.show()
+
+    return fig
+
+
+def _plot_update_evoked_topomap(params, bools):
+    """ Helper to update topomaps """
+    projs = [proj for ii, proj in enumerate(params['projs'])
+             if ii in np.where(bools)[0]]
+
+    params['proj_bools'] = bools
+    new_evoked = params['evoked'].copy()
+    new_evoked.info['projs'] = []
+    new_evoked.add_proj(projs)
+    new_evoked.apply_proj()
+
+    data = new_evoked.data[np.ix_(params['picks'], params['time_idx'])] \
+                            * params['scale']
+    if params['merge_grads']:
+        from .layouts.layout import _merge_grad_data
+        data = _merge_grad_data(data)
+
+    pos = np.asarray(params['pos'])
+    pos_x = pos[:, 0]
+    pos_y = pos[:, 1]
+    xmin, xmax = pos_x.min(), pos_x.max()
+    ymin, ymax = pos_y.min(), pos_y.max()
+    triang = delaunay.Triangulation(pos_x, pos_y)
+    x = np.linspace(xmin, xmax, params['res'])
+    y = np.linspace(ymin, ymax, params['res'])
+    xi, yi = np.meshgrid(x, y)
+
+    for ii, im in enumerate(params['images']):
+        interp = triang.linear_interpolator(data[:, ii])
+        im_ = interp[yi.min():yi.max():complex(0, yi.shape[0]),
+                     xi.min():xi.max():complex(0, xi.shape[1])]
+        im_ = np.ma.masked_array(im_, im_ == np.nan)
+        im.set_data(im_)
+    params['fig'].canvas.draw()
 
 
 def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
@@ -835,8 +893,9 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
                 xi.min():xi.max():complex(0, xi.shape[1])]
     im = np.ma.masked_array(im, im == np.nan)
 
-    pl.imshow(im, cmap=cmap, vmin=-vmax, vmax=vmax, origin='lower',
-              aspect='equal', extent=(xmin, xmax, ymin, ymax))
+    im = pl.imshow(im, cmap=cmap, vmin=-vmax, vmax=vmax, origin='lower',
+                   aspect='equal', extent=(xmin, xmax, ymin, ymax))
+    return im
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
