@@ -1,4 +1,3 @@
-
 What's new
 ==========
 
@@ -108,7 +107,7 @@ Changelog
 
    - Plot 2D flat topographies with interpolation for evoked and SSPs by `Christian Brodbeck`_ and `Alex Gramfort`_
 
-   - Support delayed SSP applicationon for 2D flat tographies by `Denis Engemann`_ and `Christian Brodbeck`_ and `Alex Gramfort`_
+   - Support delayed SSP applicationon for 2D flat topographies by `Denis Engemann`_ and `Christian Brodbeck`_ and `Alex Gramfort`_
 
 API
 ~~~
