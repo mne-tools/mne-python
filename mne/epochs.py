@@ -1483,8 +1483,9 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.times = times
     epochs._data = data
     epochs.proj = proj
+    activate = False if epochs._check_delayed() else proj
     epochs._projector, epochs.info = setup_proj(info, add_eeg_ref,
-                                                activate=proj)
+                                                activate=activate)
 
     epochs.baseline = baseline
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
