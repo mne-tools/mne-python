@@ -281,7 +281,7 @@ def test_plot_topomap():
     plot_evoked_topomap(evoked, times, ch_type='grad')
     plot_evoked_topomap(evoked, times, ch_type='planar1')
     plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
-    plot_evoked_topomap(evoked_delayed_ssp, 0.1, 'mag', proj='interactive')
+    # plot_evoked_topomap(evoked_delayed_ssp, 0.1, 'mag', proj='interactive')
 
     # projs
     projs = read_proj(ecg_fname)[:7]
