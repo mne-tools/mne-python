@@ -9,12 +9,12 @@ import os
 import numpy as np
 from traits.api import HasTraits, HasPrivateTraits, cached_property, \
                        on_trait_change, Property, Array, Directory, Enum, \
-                       File, List, Str
-from traitsui.api import View, Item, VGroup
+                       File, List, Str, Event
+from traitsui.api import View, Item, VGroup, error
 
 from ..fiff import Raw, read_fiducials
 from ..surface import read_bem_surfaces
-from ..transforms.coreg import is_mri_subject
+from ..transforms.coreg import is_mri_subject, create_default_subject
 
 
 class BemSource(HasTraits):
@@ -123,8 +123,9 @@ class RawHspSource(HasPrivateTraits):
 
 class SubjectSelector(HasPrivateTraits):
     """Select a subjects directory and a subject it contains"""
+    refresh = Event
     subjects_dir = Directory(exists=True)
-    subjects = Property(List(Str), depends_on=['subjects_dir'])
+    subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
     mri_dir = Property(depends_on=['subjects_dir', 'subject'], desc="the "
                        "current subject's mri directory")
@@ -154,6 +155,24 @@ class SubjectSelector(HasPrivateTraits):
     def _get_subjects(self):
         sdir = self.subjects_dir
         if sdir and os.path.isdir(sdir):
-            return [s for s in os.listdir(sdir) if is_mri_subject(s, sdir)]
+            subjects = [s for s in os.listdir(sdir) if is_mri_subject(s, sdir)]
         else:
-            return ()
+            subjects = []
+
+        if len(subjects) == 0:
+            subjects.append('')
+        if 'fsaverage' not in subjects:
+            subjects.append('(create fsaverage)')
+
+        return subjects
+
+    def _subject_changed(self, old, new):
+        if new == '(create fsaverage)':
+            if not self.subjects_dir:
+                error("No subjects diretory is selected. Please specify "
+                      "subjects_dir first.", "No SUBJECTS_DIR", ['OK'])
+                self.subject = old
+                return
+
+            create_default_subject(subjects_dir=self.subjects_dir)
+            self.refresh = True
