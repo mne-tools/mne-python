@@ -410,3 +410,5 @@ of commits):
 .. _Teon Brooks: https://files.nyu.edu/tlb331/public/
 
 .. _Mainak Jas: http://ltl.tkk.fi/wiki/Mainak_Jas
+
+.. _Roman Goj: http://romanmne.blogspot.co.uk
