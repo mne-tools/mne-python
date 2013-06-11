@@ -175,7 +175,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     if pick_ori == 'normal':
         W = W[2::3, :]
         is_free_ori = False
-    
+
     if not is_free_ori:
         W /= noise_norm[:, None]
 
