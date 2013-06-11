@@ -1,6 +1,6 @@
 import os.path as op
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -18,6 +18,8 @@ fname_cov = op.join(data_path, 'MEG', 'sample',
                             'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                             'sample_audvis-meg-oct-6-fwd.fif')
+fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
+                            'sample_audvis-meg-vol-7-fwd.fif')
 fname_event = op.join(data_path, 'MEG', 'sample',
                             'sample_audvis_raw-eve.fif')
 label = 'Aud-lh'
@@ -29,6 +31,10 @@ noise_cov = mne.read_cov(fname_cov)
 # that include this file's parent directory :(
 raw = mne.fiff.Raw(fname_raw, preload=False)
 forward = mne.read_forward_solution(fname_fwd)
+forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
+forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
+                                          surf_ori=True)
+forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
 events = mne.read_events(fname_event)
 
 
@@ -68,10 +74,25 @@ def test_lcmv():
     assert_true(0.09 < tmax < 0.1)
     assert_true(2. < np.max(max_stc) < 3.)
 
+    # Test if non-surface oriented forward operator is detected when picking
+    # normal orientation
+    assert_raises(ValueError, lcmv, evoked, forward, noise_cov, data_cov,
+                  reg=0.01, pick_ori="normal")
+
+    # Test if fixed forward operator is detected when picking normal or
+    # max-power orientation
+    assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
+                  reg=0.01, pick_ori="normal")
+    assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
+                  reg=0.01, pick_ori="max-power")
+
+    # Test if volume forward operator is detected when picking normal
+    # orientation
+    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov, data_cov,
+                  reg=0.01, pick_ori="normal")
+
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
-    forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
-                                              surf_ori=True)
     stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01)
     stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01,
                         return_generator=True)

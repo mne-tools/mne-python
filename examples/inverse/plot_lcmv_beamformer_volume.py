@@ -56,7 +56,11 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
                                mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
-stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01)
+
+# Run free orientation (vector) beamformer. Source orientation can be
+# restricted by setting pick_ori to 'max-power' (or 'normal' but only when
+# using a surface-based source space)
+stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, pick_ori=None)
 
 # Save result in stc files
 stc.save('lcmv-vol')
