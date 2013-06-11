@@ -21,6 +21,9 @@ fname = path + '/MEG/sample/sample_audvis-ave.fif'
 # load evoked and subtract baseline
 evoked = mne.fiff.read_evoked(fname, 'Left Auditory', baseline=(None, 0))
 
+# plot magnetometer data as topomap at 1 time point : 100ms
+evoked.plot_topomap(0.1, ch_type='mag', size=3, colorbar=False)
+
 # set time instants in seconds (from 50 to 150ms in a step of 10ms)
 times = np.arange(0.05, 0.15, 0.01)
 # If times is set to None only 10 regularly spaced topographies will be shown

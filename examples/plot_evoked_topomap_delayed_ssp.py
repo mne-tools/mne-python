@@ -57,5 +57,5 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 # set time instants in seconds (from 50 to 150ms in a step of 10ms)
 times = np.arange(0.05, 0.15, 0.01)
 
-evoked.plot_topomap(proj='interactive')
+evoked.plot_topomap(times, proj='interactive')
 # Hint: the same works with evoked.plot

@@ -404,8 +404,6 @@ class Evoked(ProjMixin):
 
         Parameters
         ----------
-        evoked : Evoked
-            The Evoked object.
         times : float | array of floats | None.
             The time point(s) to plot. If None, 10 topographies will be shown
             will a regular time spacing between the first and last time
