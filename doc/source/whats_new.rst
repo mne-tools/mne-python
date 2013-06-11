@@ -109,6 +109,8 @@ Changelog
 
    - Support delayed SSP applicationon for 2D flat topographies by `Denis Engemann`_ and `Christian Brodbeck`_ and `Alex Gramfort`_
 
+   - Allow picking normal and maximum power source orientations in LCMV beamformers by `Roman Goj`_, `Alex Gramfort`_, `Denis Engemann`_ and `Martin Luessi`_
+
 API
 ~~~
 
@@ -408,3 +410,5 @@ of commits):
 .. _Teon Brooks: https://files.nyu.edu/tlb331/public/
 
 .. _Mainak Jas: http://ltl.tkk.fi/wiki/Mainak_Jas
+
+.. _Roman Goj: http://romanmne.blogspot.co.uk

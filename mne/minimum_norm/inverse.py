@@ -389,9 +389,9 @@ def combine_xyz(vec, square=False):
         Output vector [sqrt(x1^2+y1^2+z1^2), ..., sqrt(x_n^2+y_n^2+z_n^2)]
     """
     if vec.ndim != 2:
-        raise Exception('Input must be 2D')
+        raise ValueError('Input must be 2D')
     if (vec.shape[0] % 3) != 0:
-        raise Exception('Input must have 3N rows')
+        raise ValueError('Input must have 3N rows')
 
     n, p = vec.shape
     if np.iscomplexobj(vec):

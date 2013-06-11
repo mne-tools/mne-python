@@ -3,8 +3,8 @@
 Compute LCMV beamformer on evoked data
 ======================================
 
-Compute LCMV beamformer solution on evoked dataset
-and stores the solution in stc files for visualisation.
+Compute LCMV beamformer solutions on evoked dataset for three different choices
+of source orientation and stores the solutions in stc files for visualisation.
 
 """
 
@@ -50,24 +50,37 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()
 
-forward = mne.read_forward_solution(fname_fwd)
+forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 
 noise_cov = mne.read_cov(fname_cov)
 noise_cov = mne.cov.regularize(noise_cov, evoked.info,
                                mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
-stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01)
 
-# Save result in stc files
-stc.save('lcmv')
-
-###############################################################################
-# View activation time-series
-data, times, _ = mne.label_time_courses(fname_label, "lcmv-lh.stc")
 pl.close('all')
-pl.plot(1e3 * times, np.mean(data, axis=0))
-pl.xlabel('time (ms)')
+
+pick_oris = [None, 'normal', 'max-power']
+names = ['free', 'normal', 'max-power']
+descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
+                'orientation']
+colors = ['b', 'k', 'r']
+
+for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
+    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
+               pick_ori=pick_ori)
+
+    # Save result in stc files
+    stc.save('lcmv-' + name)
+
+    # View activation time-series
+    data, times, _ = mne.label_time_courses(fname_label, "lcmv-" + name +
+                                            "-lh.stc")
+    pl.plot(1e3 * times, np.mean(data, axis=0), color, hold=True, label=desc)
+
+pl.xlabel('Time (ms)')
 pl.ylabel('LCMV value')
+pl.ylim(-0.8, 2.2)
 pl.title('LCMV in %s' % label_name)
+pl.legend()
 pl.show()
