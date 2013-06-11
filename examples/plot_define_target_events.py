@@ -23,7 +23,7 @@ import mne
 from mne import fiff
 from mne.event import define_target_events
 from mne.datasets import sample
-data_path = sample.data_path('.')
+data_path = sample.data_path()
 
 ###############################################################################
 # Set parameters
