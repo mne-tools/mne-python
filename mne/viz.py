@@ -42,6 +42,7 @@ from . import verbose
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
+
 DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                     emg='k', ref_meg='steelblue', misc='k', stim='k',
                     resp='k', chpi='k'),
@@ -131,8 +132,8 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
 
 
 def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
-               cmap, layout_scale, comment=None, color=None, title=None, 
-               x_label=None, y_label=None):
+               border, cmap, layout_scale, title=None, x_label=None,
+               y_label=None):
     """Helper function to plot on sensor layout"""
     import pylab as pl
     orig_facecolor = pl.rcParams['axes.facecolor']
@@ -155,7 +156,7 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
             cb = fig.colorbar(sm, ax=ax)
             cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
             pl.setp(cb_yticks, color='w')
-        pl.rcParams['axes.edgecolor'] = 'none'
+        pl.rcParams['axes.edgecolor'] = border
         for idx, name in enumerate(_clean_names(layout.names)):
             if name in ch_names:
                 ax = pl.axes(pos[idx], axisbg='k')
@@ -163,22 +164,20 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
                 # hack to inlcude channel idx and name, to use in callback
                 ax.__dict__['_mne_ch_name'] = name
                 ax.__dict__['_mne_ch_idx'] = ch_idx
+
                 if layout.kind == 'Vectorview-all':
-                    if info['chs'][ch_idx]['unit']==112:
-                        show_func(ax, ch_idx, tmin, tmax, vmin[0], vmax[0])
-                    elif info['chs'][ch_idx]['unit']==201:
-                        show_func(ax, ch_idx, tmin, tmax, vmin[1], vmax[1])
+                    this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
+                    vmin_, vmax_ = [v[this_type] if _check_vmax(v) else
+                                    v for v in vmin, vmax]
                 else:
-                    show_func(ax, ch_idx, tmin, tmax, vmin, vmax)
+                    vmin_, vmax_ = vmin, vmax
+                show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin_,
+                          vmax=vmax_)
+
+                if not any(v is None for v in [vmin_, vmax_]):
+                    pl.ylim(vmin_, vmax_)
                 pl.xticks([], ())
                 pl.yticks([], ())
-            if layout.kind == 'Vectorview-all':
-                if info['chs'][ch_idx]['unit']==112:
-                    pl.ylim(vmin[0],vmax[0])
-                elif info['chs'][ch_idx]['unit']==201:
-                    pl.ylim(vmin[1],vmax[1])
-            else:
-                pl.ylim(vmin,vmax)
 
         # register callback
         callback = partial(_plot_topo_onpick, show_func=show_func, tmin=tmin,
@@ -186,16 +185,9 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
                            title=title, x_label=x_label, y_label=y_label)
 
         fig.canvas.mpl_connect('pick_event', callback)
-
         if title is not None:
             pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
 
-        if comment is not None:
-            pos = 0
-            for comment_,color in zip(comment[::-1],color[::-1]):
-                pl.figtext(0.775, pos, comment_, color=color, fontsize=12)
-                pos += 0.035
-  
     finally:
         # Revert global pylab config
         pl.rcParams['axes.facecolor'] = orig_facecolor
@@ -246,19 +238,26 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times):
     """ Aux function to show time series on topo """
-    ax.plot(times, np.zeros(len(times)), '#FFFFFF')
-    ax.plot(np.array([0,0]), np.array([0.25*vmin,0.25*vmax]), '#FFFFFF')
+    if all([_check_vmax(v) for v in vmin, vmax]):
+        ax.plot(times, np.zeros(len(times)), '#FFFFFF')
+        ax.plot(np.array([0, 0]), np.array([0.25 * vmin, 0.25 * vmax]), '#FFFFFF')
     picker_flag = False
-    for data_, color in zip(data, color):
+    for data_, color_ in zip(data, color):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times, data_[ch_idx], color, picker=1e9)
+            ax.plot(times, data_[ch_idx], color_, picker=1e9)
             picker_flag = True
         else:
-            ax.plot(times, data_[ch_idx], color)
+            ax.plot(times, data_[ch_idx], color_)
 
 
-def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
+def _check_vmax(vmax):
+    """AUX function"""
+    return not np.isscalar(vmax) and not vmax is None
+
+
+def plot_topo(evoked, layout, layout_scale=0.945, color=None,
+              border='none', scaling=None, title=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -277,6 +276,16 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
         Everything matplotlib accepts to specify colors. If not list-like,
         the color specified will be repeated. If None, colors are
         automatically drawn.
+    border : str
+        Borders style to be used for each sensor plot.
+    scaling : None | dict | callable
+        The scaling method to be applied to channel types. If None, peak-to-peak
+        scaling will be used for each sensor and each channel type. If dict
+        a scalar value can be assigned to each sensor type, e.g.,
+        dict(mag=mag=1e-4). If callable a functoon is expected that returns
+        a float value and takes an array-like objet as argument, e.g.
+        lambda x: max(abs(x)). The funciton will then be applied separately
+        to each sensor type.
     title : str
         Title of the figure.
 
@@ -315,38 +324,33 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
                        color=color, times=times)
 
     # scale each channel to max svalue of channel type across all channels
-    picks = pick_types(evoked[0].info, meg=True, eeg=True, stim=False, 
-                       eog=False)
-    
-    names = list(layout.names)
-    for bad in evoked[0].info['bads']:
-        if bad in names:
-            names.pop(names.index(bad))
-    for name in names:
-        if name not in ch_names:
-            names.pop(names.index(name))
-            
-    unit = np.array([evoked[0].info['chs'][ch_names.index(names[index])]['unit'] 
-                    for index in range(len(names))])
-                    
-    if unit[0] == 107:  # EEG layout
-        picks = pick_types(evoked[0].info, meg=False, eeg=True, stim=False, eog=False)
-        dummy_max = np.max([np.max(np.abs(cond.data[picks,:])) for cond in evoked])
-    else:               # MEG layout
-        picks = pick_types(evoked[0].info, meg=True, eeg=False, stim=False, eog=False)	        
-        if len(np.unique(unit))>1: # handle mags and grads
-            mags = np.intersect1d(picks,np.where(unit==112)[0])
-            grads = np.intersect1d(picks,np.where(unit==201)[0])
-            dummy_max = np.array([np.max([np.max(np.abs(cond.data[mags,:])) for cond in evoked]),
-                                  np.max([np.max(np.abs(cond.data[grads,:])) for cond in evoked])])
-        else:
-            dummy_max = np.max([np.max(np.abs(cond.data[picks,:])) for cond in evoked])
-
     info = evoked[0].info
-    comment = [e.comment for e in evoked]
-    fig = _plot_topo(info, times, plot_fun, layout,
-                     decim=1, colorbar=False, vmin=-dummy_max, vmax=dummy_max,
-                     cmap=None, layout_scale=layout_scale, comment=comment, color=color, title=title, x_label='Time (s)')
+    if scaling is not None:
+        chs_in_layout = set(layout.names) & set(ch_names)
+        types_used = set(channel_type(info, evoked[0].ch_names.index(ch))
+                         for ch in chs_in_layout)
+        if callable(scaling):
+            is_vv = types_used == set(['grad', 'mag'])
+            if is_vv:
+                picks = [pick_types(info, meg=k, exclude=[]) for k in
+                         types_used][::-1]  # -> restore kwarg order
+            else:
+                types_used_kwargs = dict((t, True) for t in types_used)
+                picks = [pick_types(info, meg=False, **types_used_kwargs)]
+            scaling_ = [scaling([e.data[t] for e in evoked]) for t in picks]
+        elif isinstance(scaling, dict):
+            scaling_ = [scaling[k] for k in (types_used if is_vv else
+                        [types_used[0]])]
+
+        vmax = np.array(scaling_)
+        vmin = -vmax
+    else:
+        vmin, vmax = None, None
+    fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
+                     decim=1, colorbar=False, vmin=vmin, vmax=vmax, cmap=None,
+                     layout_scale=layout_scale, border=border, title=title,
+                     x_label='Time (s)')
+
     return fig
 
 
