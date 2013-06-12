@@ -61,11 +61,21 @@ test_info = {'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
 tempdir = _TempDir()
 
 
-def test_io_layout():
+def test_io_layout_lout():
     """Test IO with .lout files"""
     layout = read_layout('Vectorview-all', scale=False)
     layout.save(op.join(tempdir, 'foobar.lout'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lout'), path='./',
+                              scale=False)
+    assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
+    assert_true(layout.names, layout_read.names)
+
+
+def test_io_layout_lay():
+    """Test IO with .lay files"""
+    layout = read_layout('CTF151', scale=False)
+    layout.save(op.join(tempdir, 'foobar.lay'))
+    layout_read = read_layout(op.join(tempdir, 'foobar.lay'), path='./',
                               scale=False)
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert_true(layout.names, layout_read.names)
