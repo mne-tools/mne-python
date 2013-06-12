@@ -2,6 +2,7 @@ from collections import defaultdict
 import os.path as op
 import numpy as np
 from scipy.optimize import leastsq
+from ..viz import _clean_names
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import FIFF, pick_types
 
@@ -326,7 +327,8 @@ def _find_topomap_coords(chs, layout=None):
         raise ValueError("Need more than 0 channels.")
 
     if layout is not None:
-        pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
+        ch_names = _clean_names([ch['ch_name'] for ch in chs])
+        pos = [layout.pos[layout.names.index(ch)] for ch in ch_names]
         pos = np.asarray(pos)
     else:
         pos = _auto_topomap_coords(chs)
