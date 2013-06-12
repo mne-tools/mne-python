@@ -1,9 +1,9 @@
 """
-============================
-Export Raw Objects to NiTime
-============================
+=======================
+Export Epochs to NiTime
+=======================
 
-This script shows how to export raw files to the NiTime library
+This script shows how to export Epochs to the NiTime library
 for further signal processing and data analysis.
 
 """
@@ -41,7 +41,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6))
 
-
+# Export to NiTime
 epochs_ts = epochs.to_nitime(picks=np.arange(20), collapse=True)
 
 ###############################################################################
