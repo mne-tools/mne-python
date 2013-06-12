@@ -13,7 +13,7 @@ evoked responses.
 
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
 #          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#
+
 # License: BSD (3-clause)
 
 print __doc__
@@ -61,17 +61,21 @@ evokeds = [epochs[name].average() for name in 'audio_l', 'visual_r']
 ###############################################################################
 # Show topography for two different conditions
 
-my_scale_func = lambda x: np.max(np.abs(x))
+# we'll use a custom scaling function to better depcit evoked responses
+
+
+def my_scale_func(x):
+    return np.max(np.abs(x))
+
 layout = read_layout('Vectorview-all.lout')
-colors = ['yellow', 'green']
+colors = 'yellow', 'green'
 title = 'MNE sample data - left auditory and visual'
+border = 'none'  # this time we won't draw borders around our sensors
 
 plot_topo(evokeds, layout, color=colors, title=title, scaling=my_scale_func)
 
 conditions = [e.comment for e in evokeds]
-pos = 0.01
-for cond, col in zip(conditions, colors):
+for cond, col, pos in zip(conditions, colors, (0.01, 0.045)):
     pl.figtext(0.775, pos, cond, color=col, fontsize=12)
-    pos += 0.035
 
 pl.show()

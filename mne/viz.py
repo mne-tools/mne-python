@@ -277,14 +277,15 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         the color specified will be repeated. If None, colors are
         automatically drawn.
     border : str
-        Borders style to be used for each sensor plot.
+        matplotlib borders style to be used for each sensor plot.
     scaling : None | dict | callable
-        The scaling method to be applied to channel types. If None, peak-to-peak
-        scaling will be used for each sensor and each channel type. If dict
-        a scalar value can be assigned to each sensor type, e.g.,
-        dict(mag=mag=1e-4). If callable a functoon is expected that returns
-        a float value and takes an array-like objet as argument, e.g.
-        lambda x: max(abs(x)). The funciton will then be applied separately
+        The scaling method to be applied to channel types. The value determines
+        the upper and lower subplot limits. If None, peak-to-peak
+        scaling will be used for each sensor and each channel type. If dict,
+        a scalar value will be assigned to the sensors used in the layout.,
+        e.g. dict(mag=mag=1e-4). If callable, a function is expected that returns
+        a float value and takes an array-like object as argument, e.g.
+        lambda x: max(abs(x)). The function will then be applied separately
         to each sensor type.
     title : str
         Title of the figure.
@@ -329,8 +330,8 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         chs_in_layout = set(layout.names) & set(ch_names)
         types_used = set(channel_type(info, evoked[0].ch_names.index(ch))
                          for ch in chs_in_layout)
+        is_vv = types_used == set(['grad', 'mag'])
         if callable(scaling):
-            is_vv = types_used == set(['grad', 'mag'])
             if is_vv:
                 picks = [pick_types(info, meg=k, exclude=[]) for k in
                          types_used][::-1]  # -> restore kwarg order
