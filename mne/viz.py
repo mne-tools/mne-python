@@ -643,11 +643,17 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     elif np.isscalar(times):
         times = [times]
 
+    if layout is None:
+        from .layouts.layout import find_layout
+        layout = find_layout(evoked.info['chs'])
+
+    layout.names = _clean_names(layout.names)
+
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
                     np.unique([ch['coil_type'] for ch in evoked.info['chs']])):
         from .layouts.layout import _pair_grad_sensors, _merge_grad_data
-        picks, pos = _pair_grad_sensors(evoked.info)
+        picks, pos = _pair_grad_sensors(evoked.info, layout)
         merge_grads = True
     else:
         merge_grads = False
