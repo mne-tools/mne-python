@@ -165,19 +165,24 @@ Visualization
 
    circular_layout
    compare_fiff
+   show_fiff
    mne_analyze_colormap
    plot_connectivity_circle
    plot_cov
    plot_drop_log
    plot_evoked
+   plot_evoked_topomap
    plot_ica_panel
    plot_image_epochs
    plot_raw
+   plot_source_estimates
    plot_sparse_source_estimates
    plot_topo
    plot_topo_image_epochs
    plot_topo_phase_lock
    plot_topo_power
+   plot_topo_tfr
+   plot_topomap
 
 
 Preprocessing
@@ -472,6 +477,7 @@ Connectivity Estimation
 
    seed_target_indices
    spectral_connectivity
+   phase_slope_index
 
 
 Statistics
