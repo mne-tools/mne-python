@@ -48,7 +48,14 @@ class Layout(object):
         y = self.pos[:, 1]
         width = self.pos[:, 2]
         height = self.pos[:, 3]
-        out_str = '%8.2f %8.2f %8.2f %8.2f\n' % self.box
+        if fname.endswith('.lout'):
+            out_str = '%8.2f %8.2f %8.2f %8.2f\n' % self.box
+        elif fname.endswith('.lay'):
+            out_str = ''
+        else:
+            raise ValueError('Unknown layout type. Should be of type '
+                             '.lout or .lay.')
+
         for ii in range(x.shape[0]):
             out_str += ('%03d %8.2f %8.2f %8.2f %8.2f %s\n' % (self.ids[ii],
                         x[ii], y[ii], width[ii], height[ii], self.names[ii]))
@@ -56,6 +63,51 @@ class Layout(object):
         f = open(fname, 'w')
         f.write(out_str)
         f.close()
+
+
+def _read_lout(fname):
+    f = open(fname)
+    box_line = f.readline()  # first line contains box dimension
+    box = tuple(map(float, box_line.split()))
+
+    names = []
+    pos = []
+    ids = []
+
+    for line in f:
+        splits = line.split()
+        if len(splits) == 7:
+            cid, x, y, dx, dy, chkind, nb = splits
+            name = chkind + ' ' + nb
+        else:
+            cid, x, y, dx, dy, name = splits
+        pos.append(np.array([x, y, dx, dy], dtype=np.float))
+        names.append(name)
+        ids.append(int(cid))
+
+    f.close()
+    pos = np.array(pos)
+    return box, pos, names, ids
+
+
+def _read_lay(fname):
+    f = open(fname)
+    box = None
+
+    names = []
+    pos = []
+    ids = []
+
+    for line in f:
+        splits = line.split()
+        cid, x, y, dx, dy, name = splits
+        pos.append(np.array([x, y, dx, dy], dtype=np.float))
+        names.append(name)
+        ids.append(int(cid))
+
+    f.close()
+    pos = np.array(pos)
+    return box, pos, names, ids
 
 
 def read_layout(kind, path=None, scale=True):
@@ -81,30 +133,23 @@ def read_layout(kind, path=None, scale=True):
     if path is None:
         path = op.dirname(__file__)
 
+    if not kind.endswith('.lout') and op.exists(op.join(path, kind + '.lout')):
+        kind += '.lout'
+    elif not kind.endswith('.lay') and op.exists(op.join(path, kind + '.lay')):
+        kind += '.lay'
+
     if kind.endswith('.lout'):
+        fname = op.join(path, kind)
         kind = kind[:-5]
-    lout_fname = op.join(path, kind + '.lout')
-
-    f = open(lout_fname)
-    box_line = f.readline()  # first line contains box dimension
-    box = tuple(map(float, box_line.split()))
-
-    names = []
-    pos = []
-    ids = []
-
-    for line in f:
-        splits = line.split()
-        if len(splits) == 7:
-            cid, x, y, dx, dy, chkind, nb = splits
-            name = chkind + ' ' + nb
-        else:
-            cid, x, y, dx, dy, name = splits
-        pos.append(np.array([x, y, dx, dy], dtype=np.float))
-        names.append(name)
-        ids.append(int(cid))
-
-    pos = np.array(pos)
+        box, pos, names, ids = _read_lout(fname)
+    elif kind.endswith('.lay'):
+        fname = op.join(path, kind)
+        kind = kind[:-4]
+        box, pos, names, ids = _read_lay(fname)
+        kind.endswith('.lay')
+    else:
+        raise ValueError('Unknown layout type. Should be of type '
+                         '.lout or .lay.')
 
     if scale:
         pos[:, 0] -= np.min(pos[:, 0])
@@ -115,7 +160,6 @@ def read_layout(kind, path=None, scale=True):
         pos[:, :2] *= 0.97 / 1.03
         pos[:, 2:] *= 0.94
 
-    f.close()
     return Layout(box=box, pos=pos, names=names, kind=kind, ids=ids)
 
 
