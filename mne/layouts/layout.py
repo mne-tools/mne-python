@@ -235,15 +235,43 @@ def make_grid_layout(info, picks=None):
     return layout
 
 
-def _find_topomap_coords(chs, layout_name=None):
+def find_layout(chs):
+    """Choose a layout based on the channels in the chs parameter
+
+    Parameters
+    ----------
+    chs : list
+        A list of channels as contained in the info['chs'] entry.
+
+    Returns
+    -------
+    layout : Layout instance | None
+        None if layout not found.
+    """
+
+    coil_types = np.unique([ch['coil_type'] for ch in chs])
+    has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
+    has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
+    if has_vv_mag and has_vv_grad:
+        layout_name = 'Vectorview-all'
+    elif has_vv_mag:
+        layout_name = 'Vectorview-mag'
+    elif has_vv_grad:
+        layout_name = 'Vectorview-grad'
+    else:
+        return None
+    
+    return read_layout(layout_name)
+
+def _find_topomap_coords(chs, layout=None):
     """Try to guess the MEG system and return appropriate topomap coordinates
 
     Parameters
     ----------
     chs : list
         A list of channels as contained in the info['chs'] entry.
-    layout_name : None | str
-        Enforce using a specific layout. With 'auto', a new map is generated.
+    layout : None | instance of Layout
+        Enforce using a specific layout. With None, a new map is generated.
         With None, a layout is chosen based on the channels in the chs
         parameter.
 
@@ -255,21 +283,7 @@ def _find_topomap_coords(chs, layout_name=None):
     if len(chs) == 0:
         raise ValueError("Need more than 0 channels.")
 
-    if layout_name is None:
-        coil_types = np.unique([ch['coil_type'] for ch in chs])
-        has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
-        has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
-        if has_vv_mag and has_vv_grad:
-            layout_name = 'Vectorview-all'
-        elif has_vv_mag:
-            layout_name = 'Vectorview-mag'
-        elif has_vv_grad:
-            layout_name = 'Vectorview-grad'
-    elif layout_name == 'auto':
-        layout_name = None
-
-    if layout_name is not None:
-        layout = read_layout(layout_name)
+    if layout is not None:
         pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
         pos = np.asarray(pos)
     else:
@@ -321,13 +335,15 @@ def _auto_topomap_coords(chs):
     return locs2d
 
 
-def _pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
+def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     """Find the picks for pairing grad channels
 
     Parameters
     ----------
     info : dict
         An info dictionary containing channel information.
+    layout : Layout
+        The layout if available.
     topomap_coords : bool
         Return the coordinates for a topomap plot along with the picks. If
         False, only picks are returned.
@@ -364,7 +380,7 @@ def _pair_grad_sensors(info, topomap_coords=True, exclude='bads'):
 
     if topomap_coords:
         shape = (len(pairs), 2, -1)
-        coords = _find_topomap_coords(grad_chs).reshape(shape).mean(axis=1)
+        coords = _find_topomap_coords(grad_chs, layout).reshape(shape).mean(axis=1)
         return picks, coords
     else:
         return picks
