@@ -674,10 +674,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     n = len(times)
     nax = n + bool(colorbar)
     width = size * nax
-    width *= (1 + pl.rcParams['figure.subplot.left'] + 1 -
-              pl.rcParams['figure.subplot.right'])
-    height = size * 1.2 + .3
+    height = size * 1. + max(0, 0.1 * (3 - size))
     fig = pl.figure(figsize=(width, height))
+    w_frame = pl.rcParams['figure.subplot.wspace'] / (2 * nax)
+    top_frame = max(.05, .2 / size)
+    fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0, top=1 - top_frame)
     time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
 
     if proj is True and evoked.proj is not True:
@@ -696,16 +697,15 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                       sensors=sensors, res=res))
         pl.title('%i ms' % (t * 1000))
 
-    tight_layout()
-
     if colorbar:
         cax = pl.subplot(1, n + 1, n + 1)
         pl.colorbar(cax=cax, ticks=[-vmax, 0, vmax])
         # resize the colorbar (by default the color fills the whole axes)
-        tight_layout()
         cpos = cax.get_position()
-        cpos.x0 = 1 - .7 / nax
+        cpos.x0 = 1 - (.7 + .1 / size) / nax
         cpos.x1 = cpos.x0 + .1 / nax
+        cpos.y0 = .1
+        cpos.y1 = .7
         cax.set_position(cpos)
         if unit is not None:
             cax.set_title(unit)
@@ -1119,7 +1119,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  fontsize=18, bgcolor=(.05, 0, .1),
-                                 opacity=0.2, brain_color=(0.7, ) * 3,
+                                 opacity=0.2, brain_color=(0.7,) * 3,
                                  show=True, high_resolution=False,
                                  fig_name=None, fig_number=None, labels=None,
                                  modes=['cone', 'sphere'],
@@ -1506,7 +1506,7 @@ def plot_source_estimate(src, stc, n_smooth=200, cmap='jet'):
                     MlabSceneModel
 
     class SurfaceViewer(HasTraits):
-        n_times = Range(0, 100, 0, )
+        n_times = Range(0, 100, 0,)
 
         scene = Instance(MlabSceneModel, ())
         surf = Instance(PipelineBase)
