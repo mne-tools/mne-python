@@ -597,8 +597,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
-    layout : None | str | Layout
-        Layout name or instance specifying sensor positions (does not need to
+    layout : None | Layout
+        Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
     vmax : scalar
@@ -647,7 +647,9 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         from .layouts.layout import find_layout
         layout = find_layout(evoked.info['chs'])
 
-    layout.names = _clean_names(layout.names)
+    if layout is not None:
+        layout = copy.deepcopy(layout)
+        layout.names = _clean_names(layout.names)
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
@@ -661,7 +663,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         if len(picks) == 0:
             raise ValueError("No channels of type %r" % ch_type)
 
-        if (layout is None) or isinstance(layout, str):
+        if layout is None:
             chs = [evoked.info['chs'][i] for i in picks]
             from .layouts.layout import _find_topomap_coords
             pos = _find_topomap_coords(chs, layout)

@@ -242,6 +242,11 @@ def find_layout(chs):
     ----------
     chs : list
         A list of channels as contained in the info['chs'] entry.
+
+    Returns
+    -------
+    layout : Layout instance | None
+        None if layout not found.
     """
 
     coil_types = np.unique([ch['coil_type'] for ch in chs])
@@ -253,6 +258,8 @@ def find_layout(chs):
         layout_name = 'Vectorview-mag'
     elif has_vv_grad:
         layout_name = 'Vectorview-grad'
+    else:
+        return None
     
     return read_layout(layout_name)
 
@@ -263,8 +270,8 @@ def _find_topomap_coords(chs, layout=None):
     ----------
     chs : list
         A list of channels as contained in the info['chs'] entry.
-    layout : None | str | Layout
-        Enforce using a specific layout. With 'auto', a new map is generated.
+    layout : None | instance of Layout
+        Enforce using a specific layout. With None, a new map is generated.
         With None, a layout is chosen based on the channels in the chs
         parameter.
 
