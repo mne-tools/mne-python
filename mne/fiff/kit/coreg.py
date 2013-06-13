@@ -14,71 +14,8 @@ import numpy as np
 from scipy import linalg
 
 from ... import __version__
-from ..constants import FIFF
 from .constants import KIT
 
-
-
-def get_dig_points(fid_points, elp_points, hsp_points):
-    """Create a dig point list for the info dictionary
-
-    Parameters
-    ----------
-    fid_points : array, shape = (3, 3)
-        Polhemus fiducial (in the target coordinate system).
-    elp_points : array, shape = (5, 3)
-        Polhemus elp points (in the target coordinate system).
-    hsp_points : array, shape = (n_points, 3)
-        Array with headshape points (in the target coordinate system).
-
-    Returns
-    -------
-    dig : list
-        A list containing the mrk_points, elp_points, and hsp_points in
-        the format used for raw.info['dig'].
-    """
-    dig = []
-
-    nasion, lpa, rpa = fid_points
-
-    point_dict = {}
-    point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-    point_dict['ident'] = FIFF.FIFFV_POINT_NASION
-    point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-    point_dict['r'] = nasion
-    dig.append(point_dict)
-
-    point_dict = {}
-    point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-    point_dict['ident'] = FIFF.FIFFV_POINT_LPA
-    point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-    point_dict['r'] = lpa
-    dig.append(point_dict)
-
-    point_dict = {}
-    point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-    point_dict['ident'] = FIFF.FIFFV_POINT_RPA
-    point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-    point_dict['r'] = rpa
-    dig.append(point_dict)
-
-    for idx, point in enumerate(elp_points):
-        point_dict = {}
-        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = idx
-        point_dict['kind'] = FIFF.FIFFV_POINT_HPI
-        point_dict['r'] = point
-        dig.append(point_dict)
-
-    for idx, point in enumerate(hsp_points):
-        point_dict = {}
-        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = idx
-        point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
-        point_dict['r'] = point
-        dig.append(point_dict)
-
-    return dig
 
 
 def read_mrk(fname):

@@ -389,8 +389,8 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
         raw.set_stimchannels(self.stim_chs, self.stim_slope)
 
         if np.any(self.fid_src):
-            raw.set_transformed_dig(self.fid_src, self.elp_src, self.hsp_src,
-                                    self.dev_head_trans)
+            raw.set_dig_neuromag(self.fid_src, self.elp_src, self.hsp_src,
+                                 self.dev_head_trans)
 
         self.queue.put((raw, fname))
         self.queue_len += 1

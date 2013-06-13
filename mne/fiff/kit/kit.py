@@ -25,8 +25,8 @@ from ..raw import Raw
 from ..constants import FIFF
 from ..meas_info import Info
 from .constants import KIT, KIT_NY, KIT_AD
-from .coreg import get_dig_points, read_elp, read_hsp, read_mrk, \
-                   get_neuromag_transform, transform_ALS_to_RAS
+from .coreg import read_elp, read_hsp, read_mrk, get_neuromag_transform, \
+                   transform_ALS_to_RAS
 
 logger = logging.getLogger('mne')
 
@@ -111,7 +111,7 @@ class RawKIT(Raw):
         self.info['dev_head_t'] = None
 
         if (mrk and elp and hsp):
-            self.set_dig(mrk, elp, hsp)
+            self.set_dig_kit(mrk, elp, hsp)
         elif (mrk or elp or hsp):
             err = ("mrk, elp and hsp need to be provided as a group (all or "
                    "none)")
@@ -354,17 +354,20 @@ class RawKIT(Raw):
 
         return data, times
 
-    def set_dig(self, mrk, elp, hsp):
-        """
-        Fill in the digitizer data using points in Polhemus space
+    def set_dig_kit(self, mrk, elp, hsp):
+        """Add landmark points and head shape data to the RawKIT instance
+
+        Digitizer data (elp and hsp) are represented in Polhemus space.
 
         Parameters
         ----------
-        mrk : None | array, shape = (5, 3)
-            Marker points used to estimate the device head transform. If trans
-            is provided, mrk is not used and can be None).
-        max_hsp_n : None | int
-            Maximum number of head shape points to keep.
+        mrk : str | array, shape = (5, 3)
+            Marker points representing the subject's head position relative to
+            the MEG sensors.
+        elp : str | array, shape = (8, 3)
+            Landmark points in head shape space.
+        hsp : str | array, (n_points, 3)
+            Head shape points.
         """
         if isinstance(hsp, basestring):
             hsp = read_hsp(hsp)
@@ -392,7 +395,51 @@ class RawKIT(Raw):
         # device head transform
         trans = fit_matched_pts(tgt_pts=elp[3:], src_pts=mrk, out='trans')
 
-        self.set_transformed_dig(elp[:3], elp[3:], hsp, trans)
+        self.set_dig_neuromag(elp[:3], elp[3:], hsp, trans)
+
+    def set_dig_neuromag(self, fid, elp, hsp, trans):
+        """Fill in the digitizer data using points in neuromag space
+
+        Parameters
+        ----------
+        fid : array, shape = (3, 3)
+            Digitizer fiducials.
+        elp : array, shape = (5, 3)
+            Digitizer ELP points.
+        hsp : array, shape = (n_points, 3)
+            Head shape points.
+        trans : None | array, shape = (4, 4)
+            Device head transformation.
+        """
+        trans = np.asarray(trans)
+        if not trans.shape == (4, 4):
+            raise ValueError("trans needs to be 4 by 4 array")
+
+        nasion, lpa, rpa = fid
+        dig = [{'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'coord_frame':  FIFF.FIFFV_COORD_HEAD},
+               {'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'coord_frame': FIFF.FIFFV_COORD_HEAD},
+               {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'coord_frame': FIFF.FIFFV_COORD_HEAD}]
+
+        for idx, point in enumerate(elp):
+            dig.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+
+        for idx, point in enumerate(hsp):
+            dig.append({'r': point, 'ident': idx,
+                        'kind': FIFF.FIFFV_POINT_EXTRA,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+
+        dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
+                      'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
+
+        self.info['dig'] = dig
+        self.info['dev_head_t'] = dev_head_t
 
     def set_stimchannels(self, stim='<', slope='-'):
         """Specify how the trigger channel is synthesized form analog channels.
@@ -433,29 +480,6 @@ class RawKIT(Raw):
                                  "'<', not %r" % str(stim))
 
         self._sqd_params['stim'] = stim
-
-    def set_transformed_dig(self, fid, elp, hsp, trans):
-        """
-        Fill in the digitizer data using points that are already transformed to
-        neuromag space
-
-        Parameters
-        ----------
-        fid : array, shape = (3, 3)
-            Digitizer fiducials.
-        elp : array, shape = (5, 3)
-            Digitizer ELP points.
-        trans : None | array, shape = (4, 4)
-            Device head transformation.
-        """
-        self.info['dig'] = get_dig_points(fid, elp, hsp)
-
-        trans = np.asarray(trans)
-        if not trans.shape == (4, 4):
-            raise ValueError("trans needs to be 4 by 4 array")
-        self.info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                                   'to': FIFF.FIFFV_COORD_HEAD,
-                                   'trans': trans}
 
 
 
