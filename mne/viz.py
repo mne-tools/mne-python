@@ -239,10 +239,10 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
 
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
-                     zero_tick=False):
+                     tick=False):
     """ Aux function to show time series on topo """
-    if np.all([vmin, vmax]) and zero_tick is not False:
-        c, col = [zero_tick[k] for k in 'scale', 'color']
+    if np.all([vmin, vmax]) and tick is not False:
+        c, col = [tick[k] for k in 'scale', 'color']
         ax.plot(np.array([0, 0]), np.array([c * vmin, c * vmax]), col)
     picker_flag = False
     for data_, color_ in zip(data, color):
@@ -260,7 +260,8 @@ def _check_vmax(vmax):
 
 
 def plot_topo(evoked, layout, layout_scale=0.945, color=None,
-              border='none', ylim=None, scalings=None, title=None, proj=False):
+              border='none', ylim=None, scalings=None, title=None, proj=False,
+              tick=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -295,7 +296,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         be shown.
     title : str
         Title of the figure.
-    zero_tick : dict | False
+    tick : dict | False
         Show a tick at time 0. Defaults to dict(scale=0.25, color=#FFFFFF).
         If False no tick is shown.
 
@@ -304,6 +305,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
@@ -358,8 +360,9 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         for e in evoked:
             _check_delayed_ssp(e)
 
+    tick = dict(scale=0.25, color='#FFFFFF') if tick is None else tick
     plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
-                       color=color, times=times)
+                       color=color, times=times, tick=tick)
 
     if ylim is None:
         set_ylim = lambda x: np.abs(x).max()
