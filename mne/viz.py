@@ -645,9 +645,17 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     elif np.isscalar(times):
         times = [times]
 
+    info = copy.deepcopy(evoked.info)
+
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(evoked.info['chs'])
+        layout = find_layout(info['chs'])
+    elif layout == 'auto':
+        layout = None
+
+    info['ch_names'] = _clean_names(info['ch_names'])
+    for ii, this_ch in enumerate(info['chs']):
+        this_ch['ch_name'] = info['ch_names'][ii]
 
     if layout is not None:
         layout = copy.deepcopy(layout)
@@ -655,22 +663,22 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
-                    np.unique([ch['coil_type'] for ch in evoked.info['chs']])):
+                    np.unique([ch['coil_type'] for ch in info['chs']])):
         from .layouts.layout import _pair_grad_sensors, _merge_grad_data
-        picks, pos = _pair_grad_sensors(evoked.info, layout)
+        picks, pos = _pair_grad_sensors(info, layout)
         merge_grads = True
     else:
         merge_grads = False
-        picks = pick_types(evoked.info, meg=ch_type, exclude='bads')
+        picks = pick_types(info, meg=ch_type, exclude='bads')
         if len(picks) == 0:
             raise ValueError("No channels of type %r" % ch_type)
 
         if layout is None:
-            chs = [evoked.info['chs'][i] for i in picks]
+            chs = [info['chs'][i] for i in picks]
             from .layouts.layout import _find_topomap_coords
             pos = _find_topomap_coords(chs, layout)
         else:
-            pos = [layout.pos[layout.names.index(evoked.ch_names[k])] for k in
+            pos = [layout.pos[layout.names.index(info['ch_names'][k])] for k in
                    picks]
 
     n = len(times)
