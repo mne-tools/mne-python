@@ -54,7 +54,8 @@ DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                 ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
                           misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
-                    mag='Magnetometers', misc='misc'))
+                    mag='Magnetometers', misc='misc'),
+                tick=dict(scale=0.25, color='w'))
 
 
 def _mutable_defaults(*mappings):
@@ -297,7 +298,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     title : str
         Title of the figure.
     tick : dict | False
-        Show a tick at time 0. Defaults to dict(scale=0.25, color=#FFFFFF).
+        Show a tick at time 0. Defaults to dict(scale=0.25, color='w').
         If False no tick is shown.
 
     Returns
@@ -348,8 +349,8 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         picks = [pick_types(info, meg=False, **types_used_kwargs)]
     assert isinstance(picks, list) and len(types_used) == len(picks)
 
-    evoked = [e.copy() for e in evoked]
     scalings = _mutable_defaults(('scalings', scalings))[0]
+    evoked = [e.copy() for e in evoked]
     for e in evoked:
         for pick, t in zip(picks, types_used):
             e.data[pick] = e.data[pick] * scalings[t]
@@ -360,7 +361,8 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         for e in evoked:
             _check_delayed_ssp(e)
 
-    tick = dict(scale=0.25, color='#FFFFFF') if tick is None else tick
+    if tick is not False:
+        tick = _mutable_defaults(('tick', tick))[0]
     plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
                        color=color, times=times, tick=tick)
 
