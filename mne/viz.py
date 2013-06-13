@@ -55,7 +55,7 @@ DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                           misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
                     mag='Magnetometers', misc='misc'),
-                tick=dict(scale=0.25, color='w'))
+                tick=dict(scale=0.5, color='w'))
 
 
 def _mutable_defaults(*mappings):
@@ -136,7 +136,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
 
 def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
                border, cmap, layout_scale, title=None, x_label=None,
-               y_label=None):
+               y_label=None, tick=False):
     """Helper function to plot on sensor layout"""
     import pylab as pl
     orig_facecolor = pl.rcParams['axes.facecolor']
@@ -183,9 +183,12 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
                 pl.yticks([], ())
 
         # register callback
+        if tick is not False:
+            tick['scale'] = 1.0
         callback = partial(_plot_topo_onpick, show_func=show_func, tmin=tmin,
                            tmax=tmax, vmin=vmin, vmax=vmax, colorbar=colorbar,
-                           title=title, x_label=x_label, y_label=y_label)
+                           title=title, x_label=x_label, y_label=y_label,
+                           tick=tick)
 
         fig.canvas.mpl_connect('pick_event', callback)
         if title is not None:
@@ -201,7 +204,7 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
 
 def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
                       vmin=None, vmax=None, colorbar=False, title=None,
-                      x_label=None, y_label=None):
+                      x_label=None, y_label=None, tick=False):
     """Onpick callback that shows a single channel in a new figure"""
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
@@ -214,7 +217,7 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
         ch_idx = artist.axes._mne_ch_idx
         fig, ax = pl.subplots(1)
         ax.set_axis_bgcolor('k')
-        show_func(pl, ch_idx, tmin, tmax, vmin, vmax)
+        show_func(pl, ch_idx, tmin, tmax, vmin, vmax, tick=tick)
         if colorbar:
             pl.colorbar()
         if title is not None:
@@ -332,11 +335,14 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     ch_names = evoked[0].ch_names
     if not all([e.ch_names == ch_names for e in evoked]):
         raise ValueError('All evoked.picks must be the same')
+    ch_names = _clean_names(ch_names)
 
     # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
     info = evoked[0].info
+    layout = copy.deepcopy(layout)
+    layout.names = _clean_names(layout.names)
     chs_in_layout = set(layout.names) & set(ch_names)
-    types_used = set(channel_type(info, evoked[0].ch_names.index(ch))
+    types_used = set(channel_type(info, ch_names.index(ch))
                      for ch in chs_in_layout)
     # one check for all vendors
     meg_types = ('mag'), ('grad'), ('mag', 'grad'),
@@ -381,7 +387,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
                      decim=1, colorbar=False, vmin=vmin, vmax=vmax, cmap=None,
                      layout_scale=layout_scale, border=border, title=title,
-                     x_label='Time (s)')
+                     x_label='Time (s)', tick=tick)
 
     if proj == 'interactive':
         for e in evoked:
