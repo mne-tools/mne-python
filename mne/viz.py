@@ -51,6 +51,8 @@ DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                 scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6,
                     eog=150e-6, ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
                     stim=1, resp=1, chpi=1e-4),
+                ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
+                          misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
                     mag='Magnetometers', misc='misc'))
 
@@ -236,10 +238,12 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
               vmin=vmin, vmax=vmax, picker=True)
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times):
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
+                     zero_tick=False):
     """ Aux function to show time series on topo """
-    if all([v for v in vmin, vmax]):
-        ax.plot(np.array([0, 0]), np.array([0.25 * vmin, 0.25 * vmax]), '#FFFFFF')
+    if np.all([vmin, vmax]) and zero_tick is not False:
+        c, col = [zero_tick[k] for k in 'scale', 'color']
+        ax.plot(np.array([0, 0]), np.array([c * vmin, c * vmax]), col)
     picker_flag = False
     for data_, color_ in zip(data, color):
         if not picker_flag:
@@ -256,7 +260,7 @@ def _check_vmax(vmax):
 
 
 def plot_topo(evoked, layout, layout_scale=0.945, color=None,
-              border='none', scaling=None, title=None, proj=False):
+              border='none', ylim=None, scalings=None, title=None, proj=False):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -277,21 +281,23 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         automatically drawn.
     border : str
         matplotlib borders style to be used for each sensor plot.
-    scaling : None | dict | callable
-        The scaling method to be applied to channel types. The value determines
-        the upper and lower subplot limits. If None, peak-to-peak
-        scaling will be used for each sensor and each channel type. If dict,
-        a scalar value will be assigned to the sensors used in the layout.,
-        e.g. dict(mag=mag=1e-4). If callable, a function is expected that returns
-        a float value and takes an array-like object as argument, e.g.
-        lambda x: max(abs(x)). The function will then be applied separately
-        to each sensor type.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    ylim : dict | None
+        ylim for plots. The value determines the upper and lower subplot
+        limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
+        mag, grad, misc. If None, the ylim parameter for each channel is
+        determined by the maximum absolute peak.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
         be shown.
     title : str
         Title of the figure.
+    zero_tick : dict | False
+        Show a tick at time 0. Defaults to dict(scale=0.25, color=#FFFFFF).
+        If False no tick is shown.
 
     Returns
     -------
@@ -324,8 +330,30 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     if not all([e.ch_names == ch_names for e in evoked]):
         raise ValueError('All evoked.picks must be the same')
 
+    # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
+    info = evoked[0].info
+    chs_in_layout = set(layout.names) & set(ch_names)
+    types_used = set(channel_type(info, evoked[0].ch_names.index(ch))
+                     for ch in chs_in_layout)
+    # on check for all vendors
+    meg_types = ('mag'), ('grad'), ('mag', 'grad'),
+    is_meg = any(types_used == set(k) for k in meg_types)
+    if is_meg:
+        types_used = list(types_used)[::-1]  # -> restore kwarg order
+        picks = [pick_types(info, meg=k, exclude=[]) for k in types_used]
+    else:
+        types_used_kwargs = dict((t, True) for t in types_used)
+        picks = [pick_types(info, meg=False, **types_used_kwargs)]
+    assert isinstance(picks, list) and len(types_used) == len(picks)
+
+    evoked = [e.copy() for e in evoked]
+    scalings = _mutable_defaults(('scalings', scalings))[0]
+    for e in evoked:
+        for pick, t in zip(picks, types_used):
+            e.data[pick] = e.data[pick] * scalings[t]
+
     if proj is True and all([e.proj is not True for e in evoked]):
-        evoked = [e.copy().apply_proj() for e in evoked]
+        evoked = [e.apply_proj() for e in evoked]
     elif proj == 'interactive':  # let it fail early.
         for e in evoked:
             _check_delayed_ssp(e)
@@ -333,30 +361,17 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
                        color=color, times=times)
 
-    # scale each channel to max value of channel type across all channels
-    info = evoked[0].info
-    if scaling is not None:
-        chs_in_layout = set(layout.names) & set(ch_names)
-        types_used = set(channel_type(info, evoked[0].ch_names.index(ch))
-                         for ch in chs_in_layout)
-        is_vv = types_used == set(['grad', 'mag'])
-
-        if callable(scaling):
-            if is_vv:
-                picks = [pick_types(info, meg=k, exclude=[]) for k in
-                         types_used][::-1]  # -> restore kwarg order
-            else:
-                types_used_kwargs = dict((t, True) for t in types_used)
-                picks = [pick_types(info, meg=False, **types_used_kwargs)]
-            scaling_ = [scaling([e.data[t] for e in evoked]) for t in picks]
-        elif isinstance(scaling, dict):
-            scaling_ = [scaling[k] for k in (types_used if is_vv else
-                        [types_used[0]])]
-
-        vmax = np.array(scaling_)
+    if ylim is None:
+        set_ylim = lambda x: np.abs(x).max()
+        ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
+        vmax = np.array(ylim_)
         vmin = -vmax
+    elif isinstance(ylim, dict):
+        ylim_ = _mutable_defaults(('ylim', ylim))[0]
+        ylim_ = [ylim_[k] for k in types_used]
+        vmin, vmax = zip(*[np.array(yl) for yl in ylim_])
     else:
-        vmin, vmax = None, None
+        raise ValueError('ylim must be None ore a dict')
 
     fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
                      decim=1, colorbar=False, vmin=vmin, vmax=vmax, cmap=None,
@@ -388,8 +403,14 @@ def _plot_update_evoked_topo(params, bools):
         e.add_proj(projs)
         e.apply_proj()
 
-    for ax in fig.get_axes():
-        for line, evoked in zip(ax.lines, evokeds):
+    # make sure to only modify the time courses, not the ticks
+    axes = fig.get_axes()
+    n_lines = len(axes[0].lines)
+    n_cond = len(evokeds)
+    ax_slice = slice(1, n_lines) if n_cond < n_lines else slice(n_lines)
+    for ax in axes:
+        lines = ax.lines[ax_slice]
+        for line, evoked in zip(lines, evokeds):
             line.set_data(times, evoked.data[ax._mne_ch_idx])
 
     fig.canvas.draw()
@@ -1047,7 +1068,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         a check box for reversible selection of SSP projection vectors will
         be shown.
     hline : list of floats | None
-        The values at which show an horizontal line.`.
+        The values at which show an horizontal line.
     units : dict | None
         The units of the channel types used for axes lables. If None,
         defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.

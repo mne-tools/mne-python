@@ -72,14 +72,13 @@ def test_plot_topo():
     picked_evoked = pick_channels_evoked(evoked, evoked.ch_names[:3])
 
     # test scaling
-    for scaling in [dict(mag=5.3e-13, grad=1.9e-11),
-                    lambda x: np.max(np.abs(x))]:
-        plot_topo([picked_evoked] * 2, layout, scaling=scaling)
+    for ylim in [dict(mag=[-600, 600]), None]:
+        plot_topo([picked_evoked] * 2, layout, ylim=ylim)
 
     for evo in [evoked, [evoked, picked_evoked]]:
         assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'])
 
-    plot_topo(evoked_delayed_ssp, layout, scaling=scaling, proj='interactive')
+    plot_topo(evoked_delayed_ssp, layout, proj='interactive')
 
 
 def test_plot_topo_tfr():

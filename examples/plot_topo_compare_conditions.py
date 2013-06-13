@@ -18,7 +18,6 @@ evoked responses.
 
 print __doc__
 
-import numpy as np
 import pylab as pl
 import mne
 
@@ -61,18 +60,12 @@ evokeds = [epochs[name].average() for name in 'audio_l', 'visual_r']
 ###############################################################################
 # Show topography for two different conditions
 
-# we'll use a custom scaling function to better depcit evoked responses
-
-
-def my_scale_func(x):
-    return np.max(np.abs(x))
-
 layout = read_layout('Vectorview-all.lout')
 colors = 'yellow', 'green'
 title = 'MNE sample data - left auditory and visual'
-border = 'none'  # this time we won't draw borders around our sensors
+border = 'none'  # we won't draw borders around our sensors
 
-plot_topo(evokeds, layout, color=colors, title=title, scaling=my_scale_func)
+plot_topo(evokeds, layout, color=colors, title=title)
 
 conditions = [e.comment for e in evokeds]
 for cond, col, pos in zip(conditions, colors, (0.01, 0.045)):
