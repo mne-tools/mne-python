@@ -376,8 +376,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
 
 def _plot_update_evoked_topo(params, bools):
     """Helper function to update topo sensor plots"""
-    evokeds, times, fig = [params[k] for k in 'evokeds',
-                           'times', 'fig']
+    evokeds, times, fig = [params[k] for k in 'evokeds', 'times', 'fig']
 
     projs = [proj for ii, proj in enumerate(params['projs'])
              if ii in np.where(bools)[0]]
