@@ -215,7 +215,6 @@ class _BaseEpochs(ProjMixin):
         self._current = 0
 
         while True:
-
             evoked = Evoked(None)
             evoked.info = cp.deepcopy(self.info)
 
