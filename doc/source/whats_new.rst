@@ -114,7 +114,6 @@ Changelog
    - Add sensor type scaling parameter to plot_topo by `Andrew Dykstra`_,
      `Denis Engemann`_  and `Eric Larson`_
 
-
 API
 ~~~
 
