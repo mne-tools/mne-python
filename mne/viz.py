@@ -639,26 +639,25 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         unit = DEFAULTS['units'][key]
 
     if times is None:
-        times = np.linspace(evoked.times[0], evoked.times[-1], 10)
+       times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     elif np.isscalar(times):
-        times = [times]
+       times = [times]
 
-    info = evoked.info
-    info = copy.deepcopy(info)
+    info = copy.deepcopy(evoked.info)
 
     if layout is None:
-        from .layouts.layout import find_layout
-        layout = find_layout(info['chs'])
+       from .layouts.layout import find_layout
+       layout = find_layout(info['chs'])
     elif layout == 'auto':
-        layout = None
+       layout = None
 
     info['ch_names'] = _clean_names(info['ch_names'])
-    for i in range(len(info['chs'])):
-        info['chs'][i]['ch_name'] = _clean_names([info['chs'][i]['ch_name']])[0]
+    for ii, this_ch in enumerate(info['chs']):
+        this_ch['ch_name'] = info['ch_names'][ii]
 
     if layout is not None:
-        layout = copy.deepcopy(layout)
-        layout.names = _clean_names(layout.names)
+       layout = copy.deepcopy(layout)
+       layout.names = _clean_names(layout.names)
         
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
