@@ -114,6 +114,8 @@ Changelog
    - Add sensor type scaling parameter to plot_topo by `Andrew Dykstra`_,
      `Denis Engemann`_  and `Eric Larson`_
 
+   - Support delayed SSP applicationon in plot_topo by `Denis Engemann`_
+
 API
 ~~~
 
