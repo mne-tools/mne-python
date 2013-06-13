@@ -341,7 +341,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     types_used = set(channel_type(info, ch_names.index(ch))
                      for ch in chs_in_layout)
     # one check for all vendors
-    meg_types = ('mag'), ('grad'), ('mag', 'grad'),
+    meg_types = ['mag'], ['grad'], ['mag', 'grad'],
     is_meg = any(types_used == set(k) for k in meg_types)
     if is_meg:
         types_used = list(types_used)[::-1]  # -> restore kwarg order
