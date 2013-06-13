@@ -54,8 +54,7 @@ DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                 ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
                           misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
-                    mag='Magnetometers', misc='misc'),
-                tick=dict(scale=0.5, color='w'))
+                    mag='Magnetometers', misc='misc'))
 
 
 def _mutable_defaults(*mappings):
@@ -136,7 +135,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
 
 def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
                border, cmap, layout_scale, title=None, x_label=None,
-               y_label=None, tick=False):
+               y_label=None, vline=None):
     """Helper function to plot on sensor layout"""
     import pylab as pl
     orig_facecolor = pl.rcParams['axes.facecolor']
@@ -183,12 +182,10 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
                 pl.yticks([], ())
 
         # register callback
-        if tick is not False:
-            tick['scale'] = 1.0
         callback = partial(_plot_topo_onpick, show_func=show_func, tmin=tmin,
                            tmax=tmax, vmin=vmin, vmax=vmax, colorbar=colorbar,
                            title=title, x_label=x_label, y_label=y_label,
-                           tick=tick)
+                           vline=vline)
 
         fig.canvas.mpl_connect('pick_event', callback)
         if title is not None:
@@ -204,7 +201,7 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
 
 def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
                       vmin=None, vmax=None, colorbar=False, title=None,
-                      x_label=None, y_label=None, tick=False):
+                      x_label=None, y_label=None, vline=None):
     """Onpick callback that shows a single channel in a new figure"""
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
@@ -217,7 +214,7 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
         ch_idx = artist.axes._mne_ch_idx
         fig, ax = pl.subplots(1)
         ax.set_axis_bgcolor('k')
-        show_func(pl, ch_idx, tmin, tmax, vmin, vmax, tick=tick)
+        show_func(pl, ch_idx, tmin, tmax, vmin, vmax, vline=vline, onpick=True)
         if colorbar:
             pl.colorbar()
         if title is not None:
@@ -243,11 +240,9 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
 
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
-                     tick=False):
+                     vline=None, onpick=False):
     """ Aux function to show time series on topo """
-    if np.all([vmin, vmax]) and tick is not False:
-        c, col = [tick[k] for k in 'scale', 'color']
-        ax.plot(np.array([0, 0]), np.array([c * vmin, c * vmax]), col)
+    import pylab as pl
     picker_flag = False
     for data_, color_ in zip(data, color):
         if not picker_flag:
@@ -257,6 +252,14 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
         else:
             ax.plot(times, data_[ch_idx], color_)
 
+    if vline:  # trick so we can hav the cake and eat it
+        if onpick is True:  # real limits when onpick
+            vmin, vmax = pl.ylim()
+        else:  # different values on sensor layout
+            vmin, vmax = [v * 0.5 for v in vmin, vmax]
+        [ax.vlines(x, vmin, vmax, color='w') for x in vline]
+
+
 
 def _check_vmax(vmax):
     """AUX function"""
@@ -265,7 +268,7 @@ def _check_vmax(vmax):
 
 def plot_topo(evoked, layout, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
-              tick=None):
+              vline=[0.0]):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -300,10 +303,8 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         be shown.
     title : str
         Title of the figure.
-    tick : dict | False
-        Show a tick at time 0. Defaults to dict(scale=0.25, color='w').
-        If False no tick is shown.
-
+    vline : list of floats | None
+        The values at which show an vertical line.
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
@@ -367,10 +368,8 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         for e in evoked:
             _check_delayed_ssp(e)
 
-    if tick is not False:
-        tick = _mutable_defaults(('tick', tick))[0]
     plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
-                       color=color, times=times, tick=tick)
+                       color=color, times=times, vline=vline)
 
     if ylim is None:
         set_ylim = lambda x: np.abs(x).max()
@@ -387,7 +386,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
                      decim=1, colorbar=False, vmin=vmin, vmax=vmax, cmap=None,
                      layout_scale=layout_scale, border=border, title=title,
-                     x_label='Time (s)', tick=tick)
+                     x_label='Time (s)', vline=vline)
 
     if proj == 'interactive':
         for e in evoked:
@@ -417,8 +416,8 @@ def _plot_update_evoked_topo(params, bools):
     # make sure to only modify the time courses, not the ticks
     axes = fig.get_axes()
     n_lines = len(axes[0].lines)
-    n_cond = len(evokeds)
-    ax_slice = slice(1, n_lines) if n_cond < n_lines else slice(n_lines)
+    n_diff = len(evokeds) - n_lines
+    ax_slice = slice(abs(n_diff)) if n_diff < 0 else slice(n_lines)
     for ax in axes:
         lines = ax.lines[ax_slice]
         for line, evoked in zip(lines, evokeds):
