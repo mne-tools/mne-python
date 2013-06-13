@@ -2,7 +2,6 @@ from collections import defaultdict
 import os.path as op
 import numpy as np
 from scipy.optimize import leastsq
-from ..viz import _clean_names
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import FIFF, pick_types
 
@@ -302,9 +301,8 @@ def find_layout(chs):
         layout_name = 'magnesWH3600'
     else:
         return None
-
+    
     return read_layout(layout_name)
-
 
 def _find_topomap_coords(chs, layout=None):
     """Try to guess the MEG system and return appropriate topomap coordinates
@@ -327,8 +325,7 @@ def _find_topomap_coords(chs, layout=None):
         raise ValueError("Need more than 0 channels.")
 
     if layout is not None:
-        ch_names = _clean_names([ch['ch_name'] for ch in chs])
-        pos = [layout.pos[layout.names.index(ch)] for ch in ch_names]
+        pos = [layout.pos[layout.names.index(ch['ch_name'])] for ch in chs]
         pos = np.asarray(pos)
     else:
         pos = _auto_topomap_coords(chs)
