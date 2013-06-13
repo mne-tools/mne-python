@@ -583,8 +583,8 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
 
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        scale=None, unit=None, res=256, size=1, proj=False,
-                        show=True):
+                        scale=None, unit=None, res=256, size=1, format='%3.1f',
+                        proj=False, show=True):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -621,6 +621,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         The resolution of the topomap image (n pixels along each side).
     size : float
         Side length per topomap in inches.
+    format : str
+        String format for colorbar values.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
@@ -699,7 +701,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     if colorbar:
         cax = pl.subplot(1, n + 1, n + 1)
-        pl.colorbar(cax=cax, ticks=[-vmax, 0, vmax])
+        pl.colorbar(cax=cax, ticks=[-vmax, 0, vmax], format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         cpos.x0 = 1 - (.7 + .1 / size) / nax
