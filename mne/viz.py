@@ -214,7 +214,7 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
         ch_idx = artist.axes._mne_ch_idx
         fig, ax = pl.subplots(1)
         ax.set_axis_bgcolor('k')
-        show_func(pl, ch_idx, tmin, tmax, vmin, vmax, vline=vline, onpick=True)
+        show_func(pl, ch_idx, tmin, tmax, vmin, vmax, vline=vline)
         if colorbar:
             pl.colorbar()
         if title is not None:
@@ -240,9 +240,8 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
 
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
-                     vline=None, onpick=False):
+                     vline=None):
     """ Aux function to show time series on topo """
-    import pylab as pl
     picker_flag = False
     for data_, color_ in zip(data, color):
         if not picker_flag:
@@ -251,14 +250,9 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
             picker_flag = True
         else:
             ax.plot(times, data_[ch_idx], color_)
-
-    if vline:  # trick so we can hav the cake and eat it
-        if onpick is True:  # real limits when onpick
-            vmin, vmax = pl.ylim()
-        else:  # different values on sensor layout
-            vmin, vmax = [v * 0.5 for v in vmin, vmax]
-        [ax.vlines(x, vmin, vmax, color='w') for x in vline]
-
+    if vline:
+        import pylab as pl
+        [pl.axvline(x, color='w', linewidth=0.5) for x in vline]
 
 
 def _check_vmax(vmax):
@@ -304,7 +298,8 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     title : str
         Title of the figure.
     vline : list of floats | None
-        The values at which show an vertical line.
+        The values at which to show an vertical line.
+
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
@@ -1078,7 +1073,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         a check box for reversible selection of SSP projection vectors will
         be shown.
     hline : list of floats | None
-        The values at which show an horizontal line.
+        The values at which to show an horizontal line.
     units : dict | None
         The units of the channel types used for axes lables. If None,
         defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
