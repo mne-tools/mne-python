@@ -66,47 +66,41 @@ class Layout(object):
 
 
 def _read_lout(fname):
-    f = open(fname)
-    box_line = f.readline()  # first line contains box dimension
-    box = tuple(map(float, box_line.split()))
+    """Aux function"""
+    with open(fname) as f:
+        box_line = f.readline()  # first line contains box dimension
+        box = tuple(map(float, box_line.split()))
+        names, pos, ids = [], [], []
+        for line in f:
+            splits = line.split()
+            if len(splits) == 7:
+                cid, x, y, dx, dy, chkind, nb = splits
+                name = chkind + ' ' + nb
+            else:
+                cid, x, y, dx, dy, name = splits
+            pos.append(np.array([x, y, dx, dy], dtype=np.float))
+            names.append(name)
+            ids.append(int(cid))
 
-    names = []
-    pos = []
-    ids = []
-
-    for line in f:
-        splits = line.split()
-        if len(splits) == 7:
-            cid, x, y, dx, dy, chkind, nb = splits
-            name = chkind + ' ' + nb
-        else:
-            cid, x, y, dx, dy, name = splits
-        pos.append(np.array([x, y, dx, dy], dtype=np.float))
-        names.append(name)
-        ids.append(int(cid))
-
-    f.close()
     pos = np.array(pos)
+
     return box, pos, names, ids
 
 
 def _read_lay(fname):
-    f = open(fname)
-    box = None
+    """Aux function"""
+    with open(fname) as f:
+        box = None
+        names, pos, ids = [], [], []
+        for line in f:
+            splits = line.split()
+            cid, x, y, dx, dy, name = splits
+            pos.append(np.array([x, y, dx, dy], dtype=np.float))
+            names.append(name)
+            ids.append(int(cid))
 
-    names = []
-    pos = []
-    ids = []
-
-    for line in f:
-        splits = line.split()
-        cid, x, y, dx, dy, name = splits
-        pos.append(np.array([x, y, dx, dy], dtype=np.float))
-        names.append(name)
-        ids.append(int(cid))
-
-    f.close()
     pos = np.array(pos)
+
     return box, pos, names, ids
 
 
@@ -296,16 +290,20 @@ def find_layout(chs):
     coil_types = np.unique([ch['coil_type'] for ch in chs])
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
     has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
+    has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
     if has_vv_mag and has_vv_grad:
         layout_name = 'Vectorview-all'
     elif has_vv_mag:
         layout_name = 'Vectorview-mag'
     elif has_vv_grad:
         layout_name = 'Vectorview-grad'
+    elif has_4D_mag:
+        layout_name = 'magnesWH3600'
     else:
         return None
-    
+
     return read_layout(layout_name)
+
 
 def _find_topomap_coords(chs, layout=None):
     """Try to guess the MEG system and return appropriate topomap coordinates
