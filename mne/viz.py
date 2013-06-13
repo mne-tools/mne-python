@@ -338,7 +338,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     chs_in_layout = set(layout.names) & set(ch_names)
     types_used = set(channel_type(info, evoked[0].ch_names.index(ch))
                      for ch in chs_in_layout)
-    # on check for all vendors
+    # one check for all vendors
     meg_types = ('mag'), ('grad'), ('mag', 'grad'),
     is_meg = any(types_used == set(k) for k in meg_types)
     if is_meg:

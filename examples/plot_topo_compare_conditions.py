@@ -63,12 +63,11 @@ evokeds = [epochs[name].average() for name in 'audio_l', 'visual_r']
 layout = read_layout('Vectorview-all.lout')
 colors = 'yellow', 'green'
 title = 'MNE sample data - left auditory and visual'
-border = 'none'  # we won't draw borders around our sensors
 
 plot_topo(evokeds, layout, color=colors, title=title)
 
 conditions = [e.comment for e in evokeds]
-for cond, col, pos in zip(conditions, colors, (0.01, 0.045)):
+for cond, col, pos in zip(conditions, colors, (0.025, 0.05)):
     pl.figtext(0.775, pos, cond, color=col, fontsize=12)
 
 pl.show()
