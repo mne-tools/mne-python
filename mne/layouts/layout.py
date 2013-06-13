@@ -66,47 +66,41 @@ class Layout(object):
 
 
 def _read_lout(fname):
-    f = open(fname)
-    box_line = f.readline()  # first line contains box dimension
-    box = tuple(map(float, box_line.split()))
+    """Aux function"""
+    with open(fname) as f:
+        box_line = f.readline()  # first line contains box dimension
+        box = tuple(map(float, box_line.split()))
+        names, pos, ids = [], [], []
+        for line in f:
+            splits = line.split()
+            if len(splits) == 7:
+                cid, x, y, dx, dy, chkind, nb = splits
+                name = chkind + ' ' + nb
+            else:
+                cid, x, y, dx, dy, name = splits
+            pos.append(np.array([x, y, dx, dy], dtype=np.float))
+            names.append(name)
+            ids.append(int(cid))
 
-    names = []
-    pos = []
-    ids = []
-
-    for line in f:
-        splits = line.split()
-        if len(splits) == 7:
-            cid, x, y, dx, dy, chkind, nb = splits
-            name = chkind + ' ' + nb
-        else:
-            cid, x, y, dx, dy, name = splits
-        pos.append(np.array([x, y, dx, dy], dtype=np.float))
-        names.append(name)
-        ids.append(int(cid))
-
-    f.close()
     pos = np.array(pos)
+
     return box, pos, names, ids
 
 
 def _read_lay(fname):
-    f = open(fname)
-    box = None
+    """Aux function"""
+    with open(fname) as f:
+        box = None
+        names, pos, ids = [], [], []
+        for line in f:
+            splits = line.split()
+            cid, x, y, dx, dy, name = splits
+            pos.append(np.array([x, y, dx, dy], dtype=np.float))
+            names.append(name)
+            ids.append(int(cid))
 
-    names = []
-    pos = []
-    ids = []
-
-    for line in f:
-        splits = line.split()
-        cid, x, y, dx, dy, name = splits
-        pos.append(np.array([x, y, dx, dy], dtype=np.float))
-        names.append(name)
-        ids.append(int(cid))
-
-    f.close()
     pos = np.array(pos)
+
     return box, pos, names, ids
 
 
