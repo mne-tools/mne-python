@@ -79,6 +79,8 @@ def test_plot_topo():
     for evo in [evoked, [evoked, picked_evoked]]:
         assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'])
 
+    plot_topo(evoked_delayed_ssp, layout, scaling=scaling, proj='interactive')
+
 
 def test_plot_topo_tfr():
     """Test plotting of TFR

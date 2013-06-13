@@ -157,6 +157,7 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
             cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
             pl.setp(cb_yticks, color='w')
         pl.rcParams['axes.edgecolor'] = border
+        params = {'axes': [], 'ch_indices': []}
         for idx, name in enumerate(_clean_names(layout.names)):
             if name in ch_names:
                 ax = pl.axes(pos[idx], axisbg='k')
@@ -178,6 +179,8 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
                     pl.ylim(vmin_, vmax_)
                 pl.xticks([], ())
                 pl.yticks([], ())
+                params['axes'].append(ax)
+                params['ch_indices'].append(ch_idx)
 
         # register callback
         callback = partial(_plot_topo_onpick, show_func=show_func, tmin=tmin,
@@ -193,7 +196,7 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
         pl.rcParams['axes.facecolor'] = orig_facecolor
         pl.rcParams['axes.edgecolor'] = orig_edgecolor
 
-    return fig
+    return fig, params
 
 
 def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
@@ -238,8 +241,7 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times):
     """ Aux function to show time series on topo """
-    if all([_check_vmax(v) for v in vmin, vmax]):
-        ax.plot(times, np.zeros(len(times)), '#FFFFFF')
+    if all([v for v in vmin, vmax]):
         ax.plot(np.array([0, 0]), np.array([0.25 * vmin, 0.25 * vmax]), '#FFFFFF')
     picker_flag = False
     for data_, color_ in zip(data, color):
@@ -257,7 +259,7 @@ def _check_vmax(vmax):
 
 
 def plot_topo(evoked, layout, layout_scale=0.945, color=None,
-              border='none', scaling=None, title=None):
+              border='none', scaling=None, title=None, proj=False):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -287,6 +289,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         a float value and takes an array-like object as argument, e.g.
         lambda x: max(abs(x)). The function will then be applied separately
         to each sensor type.
+    proj : bool
     title : str
         Title of the figure.
 
@@ -324,7 +327,13 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
                        color=color, times=times)
 
-    # scale each channel to max svalue of channel type across all channels
+    if proj is True and all([e.proj is not True for e in evoked]):
+        evoked = [e.copy().apply_proj() for e in evoked]
+    elif proj == 'interactive':  # let it fail early.
+        for e in evoked:
+            _check_delayed_ssp(e)
+
+    # scale each channel to max value of channel type across all channels
     info = evoked[0].info
     if scaling is not None:
         chs_in_layout = set(layout.names) & set(ch_names)
@@ -347,12 +356,43 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
         vmin = -vmax
     else:
         vmin, vmax = None, None
-    fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
+
+    fig, params = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
                      decim=1, colorbar=False, vmin=vmin, vmax=vmax, cmap=None,
                      layout_scale=layout_scale, border=border, title=title,
                      x_label='Time (s)')
 
+    if proj == 'interactive':
+        for e in evoked:
+            _check_delayed_ssp(e)
+        params.update(dict(evokeds=evoked, times=times,
+                           plot_update_proj_callback=_plot_update_evoked_topo,
+                           projs=evoked[0].info['projs']), fig=fig)
+        _draw_proj_checkbox(None, params)
+
     return fig
+
+
+def _plot_update_evoked_topo(params, bools):
+    """Helper function to update topo sensor plots"""
+    evokeds, times,  axes, ch_indices = [params[k] for k in 'evokeds',
+                                         'times', 'axes', 'ch_indices']
+
+    projs = [proj for ii, proj in enumerate(params['projs'])
+             if ii in np.where(bools)[0]]
+
+    params['proj_bools'] = bools
+    for e in evokeds:
+        e = e.copy()
+        e.info['projs'] = []
+        e.add_proj(projs)
+        e.apply_proj()
+
+    for ax, ch_idx in zip(axes, ch_indices):
+        for line, evoked in zip(ax.lines, evokeds):
+            line.set_data(times, evoked.data[ch_idx])
+
+    params['fig'].canvas.draw()
 
 
 def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
@@ -399,7 +439,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
 
     tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
 
-    fig = _plot_topo(epochs.info, epochs.times, tfr_imshow, layout,
+    fig, _ = _plot_topo(epochs.info, epochs.times, tfr_imshow, layout,
                      decim=1, colorbar=colorbar, vmin=vmin, vmax=vmax,
                      cmap=cmap, layout_scale=layout_scale, title=title,
                      x_label='Time (s)', y_label='Frequency (Hz)')
@@ -475,7 +515,7 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
 
     power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
 
-    fig = _plot_topo(epochs.info, epochs.times, power_imshow, layout,
+    fig, _ = _plot_topo(epochs.info, epochs.times, power_imshow, layout,
                      decim=decim, colorbar=colorbar, vmin=vmin, vmax=vmax,
                      cmap=cmap, layout_scale=layout_scale, title=title,
                      x_label='Time (s)', y_label='Frequency (Hz)')
@@ -548,7 +588,7 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
 
     phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
 
-    fig = _plot_topo(epochs.info, epochs.times, phase_imshow, layout,
+    fig, _ = _plot_topo(epochs.info, epochs.times, phase_imshow, layout,
                      decim=decim, colorbar=colorbar, vmin=vmin, vmax=vmax,
                      cmap=cmap, layout_scale=layout_scale, title=title,
                      x_label='Time (s)', y_label='Frequency (Hz)')
@@ -633,7 +673,7 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
                          data=data, epochs=epochs, sigma=sigma)
 
-    fig = _plot_topo(epochs.info, epochs.times, erf_imshow, layout, decim=1,
+    fig, _ = _plot_topo(epochs.info, epochs.times, erf_imshow, layout, decim=1,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
                      x_label='Time (s)', y_label='Epoch')
@@ -1070,7 +1110,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     fig = axes[0].get_figure()
 
     # instead of projecting during each iteration let's use the mixin here.
-    if proj is True:
+    if proj is True and evoked.proj is not True:
         evoked = evoked.copy()
         evoked.apply_proj()
 
