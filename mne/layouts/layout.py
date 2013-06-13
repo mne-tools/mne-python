@@ -296,16 +296,20 @@ def find_layout(chs):
     coil_types = np.unique([ch['coil_type'] for ch in chs])
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
     has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
+    has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
     if has_vv_mag and has_vv_grad:
         layout_name = 'Vectorview-all'
     elif has_vv_mag:
         layout_name = 'Vectorview-mag'
     elif has_vv_grad:
         layout_name = 'Vectorview-grad'
+    elif has_4D_mag:
+        layout_name = 'magnesWH3600'
     else:
         return None
-    
+
     return read_layout(layout_name)
+
 
 def _find_topomap_coords(chs, layout=None):
     """Try to guess the MEG system and return appropriate topomap coordinates
