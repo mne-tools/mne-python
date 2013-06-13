@@ -17,3 +17,4 @@ from .pick import pick_types, pick_channels, pick_types_evoked, \
 
 from .proj import proj_equal, make_eeg_average_ref_proj
 from .cov import read_cov, write_cov
+from . import bti
