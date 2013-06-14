@@ -13,7 +13,7 @@ evoked responses.
 
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
 #          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#
+
 # License: BSD (3-clause)
 
 print __doc__
@@ -60,9 +60,13 @@ evokeds = [epochs[name].average() for name in 'audio_l', 'visual_r']
 ###############################################################################
 # Show topography for two different conditions
 
-layout = read_layout('Vectorview-all.lout')
-
-pl.close('all')
+colors = 'yellow', 'green'
 title = 'MNE sample data - left auditory and visual'
-plot_topo(evokeds, layout, color=['y', 'g'], title=title)
+
+plot_topo(evokeds, color=colors, title=title)
+
+conditions = [e.comment for e in evokeds]
+for cond, col, pos in zip(conditions, colors, (0.025, 0.07)):
+    pl.figtext(0.775, pos, cond, color=col, fontsize=12)
+
 pl.show()

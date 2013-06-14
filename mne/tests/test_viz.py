@@ -4,6 +4,7 @@ from numpy.testing import assert_raises
 
 from mne import fiff, read_events, Epochs, SourceEstimate, read_cov, read_proj
 from mne.layouts import read_layout
+from mne.fiff.pick import pick_channels_evoked
 from mne.viz import plot_topo, plot_topo_tfr, plot_topo_power, \
                     plot_topo_phase_lock, plot_topo_image_epochs, \
                     plot_evoked_topomap, plot_projs_topomap, \
@@ -68,6 +69,16 @@ def test_plot_topo():
     """
     # Show topography
     plot_topo(evoked, layout)
+    picked_evoked = pick_channels_evoked(evoked, evoked.ch_names[:3])
+
+    # test scaling
+    for ylim in [dict(mag=[-600, 600]), None]:
+        plot_topo([picked_evoked] * 2, layout, ylim=ylim)
+
+    for evo in [evoked, [evoked, picked_evoked]]:
+        assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'])
+
+    plot_topo(evoked_delayed_ssp, layout, proj='interactive')
 
 
 def test_plot_topo_tfr():

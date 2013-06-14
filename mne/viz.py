@@ -42,6 +42,7 @@ from . import verbose
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
+
 DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                     emg='k', ref_meg='steelblue', misc='k', stim='k',
                     resp='k', chpi='k'),
@@ -50,6 +51,8 @@ DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                 scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6,
                     eog=150e-6, ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
                     stim=1, resp=1, chpi=1e-4),
+                ylim=dict(mag=(-600., 600.), grad=(-200., 200.), eeg=(-200., 200.),
+                          misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
                     mag='Magnetometers', misc='misc'))
 
@@ -131,7 +134,8 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
 
 
 def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
-               cmap, layout_scale, title=None, x_label=None, y_label=None):
+               border, cmap, layout_scale, title=None, x_label=None,
+               y_label=None, vline=None):
     """Helper function to plot on sensor layout"""
     import pylab as pl
     orig_facecolor = pl.rcParams['axes.facecolor']
@@ -154,7 +158,7 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
             cb = fig.colorbar(sm, ax=ax)
             cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
             pl.setp(cb_yticks, color='w')
-        pl.rcParams['axes.edgecolor'] = 'w'
+        pl.rcParams['axes.edgecolor'] = border
         for idx, name in enumerate(_clean_names(layout.names)):
             if name in ch_names:
                 ax = pl.axes(pos[idx], axisbg='k')
@@ -162,17 +166,28 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
                 # hack to inlcude channel idx and name, to use in callback
                 ax.__dict__['_mne_ch_name'] = name
                 ax.__dict__['_mne_ch_idx'] = ch_idx
-                show_func(ax, ch_idx, tmin, tmax, vmin, vmax)
+
+                if layout.kind == 'Vectorview-all':
+                    this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
+                    vmin_, vmax_ = [v[this_type] if _check_vmax(v) else
+                                    v for v in vmin, vmax]
+                else:
+                    vmin_, vmax_ = vmin, vmax
+                show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin_,
+                          vmax=vmax_)
+
+                if not any(v is None for v in [vmin_, vmax_]):
+                    pl.ylim(vmin_, vmax_)
                 pl.xticks([], ())
                 pl.yticks([], ())
 
         # register callback
         callback = partial(_plot_topo_onpick, show_func=show_func, tmin=tmin,
                            tmax=tmax, vmin=vmin, vmax=vmax, colorbar=colorbar,
-                           title=title, x_label=x_label, y_label=y_label)
+                           title=title, x_label=x_label, y_label=y_label,
+                           vline=vline)
 
         fig.canvas.mpl_connect('pick_event', callback)
-
         if title is not None:
             pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
 
@@ -186,7 +201,7 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
 
 def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
                       vmin=None, vmax=None, colorbar=False, title=None,
-                      x_label=None, y_label=None):
+                      x_label=None, y_label=None, vline=None):
     """Onpick callback that shows a single channel in a new figure"""
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
@@ -199,7 +214,7 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
         ch_idx = artist.axes._mne_ch_idx
         fig, ax = pl.subplots(1)
         ax.set_axis_bgcolor('k')
-        show_func(pl, ch_idx, tmin, tmax, vmin, vmax)
+        show_func(pl, ch_idx, tmin, tmax, vmin, vmax, vline=vline)
         if colorbar:
             pl.colorbar()
         if title is not None:
@@ -224,14 +239,30 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
               vmin=vmin, vmax=vmax, picker=True)
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times):
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
+                     vline=None):
     """ Aux function to show time series on topo """
-    # use large tol for picker so we can click anywhere in the axes
-    for data_, color in zip(data, color):
-        ax.plot(times, data_[ch_idx], color, picker=1e9)
+    picker_flag = False
+    for data_, color_ in zip(data, color):
+        if not picker_flag:
+            # use large tol for picker so we can click anywhere in the axes
+            ax.plot(times, data_[ch_idx], color_, picker=1e9)
+            picker_flag = True
+        else:
+            ax.plot(times, data_[ch_idx], color_)
+    if vline:
+        import pylab as pl
+        [pl.axvline(x, color='w', linewidth=0.5) for x in vline]
 
 
-def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
+def _check_vmax(vmax):
+    """AUX function"""
+    return not np.isscalar(vmax) and not vmax is None
+
+
+def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
+              border='none', ylim=None, scalings=None, title=None, proj=False,
+              vline=[0.0]):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -241,8 +272,10 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
     ----------
     evoked : list of Evoked | Evoked
         The evoked response to plot.
-    layout : instance of Layout
-        System specific sensor positions
+    layout : instance of Layout | None
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
     layout_scale: float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
@@ -250,14 +283,31 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
         Everything matplotlib accepts to specify colors. If not list-like,
         the color specified will be repeated. If None, colors are
         automatically drawn.
+    border : str
+        matplotlib borders style to be used for each sensor plot.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    ylim : dict | None
+        ylim for plots. The value determines the upper and lower subplot
+        limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
+        mag, grad, misc. If None, the ylim parameter for each channel is
+        determined by the maximum absolute peak.
+    proj : bool | 'interactive'
+        If true SSP projections are applied before display. If 'interactive',
+        a check box for reversible selection of SSP projection vectors will
+        be shown.
     title : str
         Title of the figure.
+    vline : list of floats | None
+        The values at which to show a vertical line.
 
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
 
@@ -280,19 +330,101 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None, title=None):
     if not all([(e.times == times).all() for e in evoked]):
         raise ValueError('All evoked.times must be the same')
 
+    info = evoked[0].info
     ch_names = evoked[0].ch_names
     if not all([e.ch_names == ch_names for e in evoked]):
         raise ValueError('All evoked.picks must be the same')
+    ch_names = _clean_names(ch_names)
+
+    if layout is None:
+        from .layouts.layout import find_layout
+        layout = find_layout(info['chs'])
+
+    # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
+    layout = copy.deepcopy(layout)
+    layout.names = _clean_names(layout.names)
+    chs_in_layout = set(layout.names) & set(ch_names)
+    types_used = set(channel_type(info, ch_names.index(ch))
+                     for ch in chs_in_layout)
+    # one check for all vendors
+    meg_types = ['mag'], ['grad'], ['mag', 'grad'],
+    is_meg = any(types_used == set(k) for k in meg_types)
+    if is_meg:
+        types_used = list(types_used)[::-1]  # -> restore kwarg order
+        picks = [pick_types(info, meg=k, exclude=[]) for k in types_used]
+    else:
+        types_used_kwargs = dict((t, True) for t in types_used)
+        picks = [pick_types(info, meg=False, **types_used_kwargs)]
+    assert isinstance(picks, list) and len(types_used) == len(picks)
+
+    scalings = _mutable_defaults(('scalings', scalings))[0]
+    evoked = [e.copy() for e in evoked]
+    for e in evoked:
+        for pick, t in zip(picks, types_used):
+            e.data[pick] = e.data[pick] * scalings[t]
+
+    if proj is True and all([e.proj is not True for e in evoked]):
+        evoked = [e.apply_proj() for e in evoked]
+    elif proj == 'interactive':  # let it fail early.
+        for e in evoked:
+            _check_delayed_ssp(e)
 
     plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
-                       color=color, times=times)
+                       color=color, times=times, vline=vline)
 
-    info = evoked[0].info
-    fig = _plot_topo(info, times, plot_fun, layout,
-                     decim=1, colorbar=False, vmin=0, vmax=0,
-                     cmap=None, layout_scale=layout_scale, title=title,
-                     x_label='Time (s)')
+    if ylim is None:
+        set_ylim = lambda x: np.abs(x).max()
+        ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
+        vmax = np.array(ylim_)
+        vmin = -vmax
+    elif isinstance(ylim, dict):
+        ylim_ = _mutable_defaults(('ylim', ylim))[0]
+        ylim_ = [ylim_[k] for k in types_used]
+        vmin, vmax = zip(*[np.array(yl) for yl in ylim_])
+    else:
+        raise ValueError('ylim must be None ore a dict')
+
+    fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
+                     decim=1, colorbar=False, vmin=vmin, vmax=vmax, cmap=None,
+                     layout_scale=layout_scale, border=border, title=title,
+                     x_label='Time (s)', vline=vline)
+
+    if proj == 'interactive':
+        for e in evoked:
+            _check_delayed_ssp(e)
+        params = dict(evokeds=evoked, times=times,
+                      plot_update_proj_callback=_plot_update_evoked_topo,
+                      projs=evoked[0].info['projs'], fig=fig)
+        _draw_proj_checkbox(None, params)
+
     return fig
+
+
+def _plot_update_evoked_topo(params, bools):
+    """Helper function to update topo sensor plots"""
+    evokeds, times, fig = [params[k] for k in 'evokeds', 'times', 'fig']
+
+    projs = [proj for ii, proj in enumerate(params['projs'])
+             if ii in np.where(bools)[0]]
+
+    params['proj_bools'] = bools
+    evokeds = [e.copy() for e in evokeds]
+    for e in evokeds:
+        e.info['projs'] = []
+        e.add_proj(projs)
+        e.apply_proj()
+
+    # make sure to only modify the time courses, not the ticks
+    axes = fig.get_axes()
+    n_lines = len(axes[0].lines)
+    n_diff = len(evokeds) - n_lines
+    ax_slice = slice(abs(n_diff)) if n_diff < 0 else slice(n_lines)
+    for ax in axes:
+        lines = ax.lines[ax_slice]
+        for line, evoked in zip(lines, evokeds):
+            line.set_data(times, evoked.data[ax._mne_ch_idx])
+
+    fig.canvas.draw()
 
 
 def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
@@ -945,9 +1077,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
-        be show.
+        be shown.
     hline : list of floats | None
-        The values at which show an horizontal line.`.
+        The values at which to show an horizontal line.
     units : dict | None
         The units of the channel types used for axes lables. If None,
         defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
@@ -1010,7 +1142,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     fig = axes[0].get_figure()
 
     # instead of projecting during each iteration let's use the mixin here.
-    if proj is True:
+    if proj is True and evoked.proj is not True:
         evoked = evoked.copy()
         evoked.apply_proj()
 
