@@ -260,7 +260,7 @@ def _check_vmax(vmax):
     return not np.isscalar(vmax) and not vmax is None
 
 
-def plot_topo(evoked, layout, layout_scale=0.945, color=None,
+def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
               vline=[0.0]):
     """Plot 2D topography of evoked responses.
@@ -272,8 +272,10 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     ----------
     evoked : list of Evoked | Evoked
         The evoked response to plot.
-    layout : instance of Layout
-        System specific sensor positions
+    layout : instance of Layout | None
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
     layout_scale: float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
@@ -298,7 +300,7 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     title : str
         Title of the figure.
     vline : list of floats | None
-        The values at which to show an vertical line.
+        The values at which to show a vertical line.
 
     Returns
     -------
@@ -328,13 +330,17 @@ def plot_topo(evoked, layout, layout_scale=0.945, color=None,
     if not all([(e.times == times).all() for e in evoked]):
         raise ValueError('All evoked.times must be the same')
 
+    info = evoked[0].info
     ch_names = evoked[0].ch_names
     if not all([e.ch_names == ch_names for e in evoked]):
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
 
+    if layout is None:
+        from .layouts.layout import find_layout
+        layout = find_layout(info['chs'])
+
     # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
-    info = evoked[0].info
     layout = copy.deepcopy(layout)
     layout.names = _clean_names(layout.names)
     chs_in_layout = set(layout.names) & set(ch_names)
