@@ -450,7 +450,8 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
     layout : instance of Layout | None
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
-        inferred from the data.    colorbar : bool
+        inferred from the data.
+    colorbar : bool
         If true, colorbar will be added to the plot
     vmin : float
         Minimum value mapped to lowermost color
