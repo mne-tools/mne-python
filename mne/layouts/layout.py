@@ -301,9 +301,8 @@ def find_layout(chs):
         layout_name = 'magnesWH3600'
     else:
         return None
-
+    
     return read_layout(layout_name)
-
 
 def _find_topomap_coords(chs, layout=None):
     """Try to guess the MEG system and return appropriate topomap coordinates
