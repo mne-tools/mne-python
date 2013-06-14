@@ -17,7 +17,6 @@ import pylab as pl
 import mne
 from mne import fiff
 from mne.time_frequency import induced_power
-from mne.layouts import read_layout
 from mne.viz import plot_topo_power, plot_topo_phase_lock
 from mne.datasets import sample
 
@@ -56,7 +55,6 @@ power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
 ###############################################################################
 # Prepare topography plots, set baseline correction parameters
 
-layout = read_layout('Vectorview-all')
 baseline = (None, 0)  # set the baseline for induced power
 mode = 'ratio'  # set mode for baseline rescaling
 
@@ -64,7 +62,7 @@ mode = 'ratio'  # set mode for baseline rescaling
 # Show topography of power.
 
 title = 'Induced power - MNE sample data'
-plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
+plot_topo_power(epochs, power, frequencies, baseline=baseline,
                 mode=mode, decim=decim, vmin=0., vmax=14, title=title)
 pl.show()
 
@@ -74,7 +72,7 @@ pl.show()
 mode = None  # no baseline rescaling for PLV
 
 title = 'Phase locking value - MNE sample data'
-plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
-                     baseline=baseline, mode=mode, decim=decim, title=title)
+plot_topo_phase_lock(epochs, phase_lock, frequencies, baseline=baseline,
+                    mode=mode, decim=decim, title=title)
 
 pl.show()
