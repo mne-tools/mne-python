@@ -552,8 +552,9 @@ class CoregFrame(HasTraits):
     pick_tolerance = Float(.0025)
 
     # fiducials
-    lock_fiducials = Bool(True)
     fid_panel = Instance(FiducialsPanel)
+    fid_ok = Bool(False)
+    lock_fiducials = Bool(True)
 
     # visualization
     scene = Instance(MlabSceneModel, ())
@@ -588,7 +589,8 @@ class CoregFrame(HasTraits):
                                              editor=EnumEditor(cols=2,
                                                  values={False: '2:Edit',
                                                          True: '1:Lock'}),
-                                             show_label=False)),
+                                             show_label=False,
+                                             enabled_when='fid_ok')),
                                      Item('fid_panel', style='custom'),
                                      label='MRI Fiducials', show_labels=False,
                                      show_border=True),
@@ -696,6 +698,11 @@ class CoregFrame(HasTraits):
                    "In Python this can be done using:\n\n"
                    ">>> os.environ['MNE_ROOT'] = '/Applications/mne-2.7.3'")
             warning(None, err, "MNE_ROOT Not Set")
+
+    @on_trait_change('fid_panel.fid_ok', post_init=True)
+    def _on_fid_ok_change(self, new):
+        # simply using 'fid_panel.fid_ok' resulted in delayed updates
+        self.fid_ok = new
 
     @on_trait_change('s_sel.subject')
     def _on_subject_changes(self, new):

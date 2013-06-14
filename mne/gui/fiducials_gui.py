@@ -42,6 +42,7 @@ class FiducialsPanel(HasPrivateTraits):
     LAP = Array(float, (1, 3))
     nasion = Array(float, (1, 3))
     RAP = Array(float, (1, 3))
+    fid_ok = Property(depends_on=['nasion', 'LAP', 'RAP'])  # all points set
 
     can_save_as = Property(depends_on=['LAP', 'nasion', 'RAP'])
     save_as = Button(label='Save As...')
@@ -69,6 +70,10 @@ class FiducialsPanel(HasPrivateTraits):
     def _get_fid_name(self):
         name = os.path.basename(self.fid_file)
         return name
+
+    @cached_property
+    def _get_fid_ok(self):
+        return all(np.any(pt) for pt in (self.nasion, self.LAP, self.RAP))
 
     @cached_property
     def _get_fid_pts(self):
