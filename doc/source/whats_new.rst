@@ -134,6 +134,8 @@ API
 
    - Deprecate CTF compensation (keep_comp and dest_comp) in Epochs and move it to Raw with a single compensation parameter.
 
+   - Remove artifacts module. Artifacts- and preprocessing related functions can now be found in mne.preprocessing.
+
 .. _changes_0_5:
 
 Version 0.5
