@@ -812,6 +812,14 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     elif np.isscalar(times):
         times = [times]
+    if len(times) > 20:
+        raise RuntimeError('Too many plots requested. Please pass fewer '
+                           'than 20 time instants.')
+    tmin, tmax = evoked.times[[0, -1]]
+    for ii, t in enumerate(times):
+        if not tmin <= t <= tmax:
+            raise ValueError('Times should be between %0.3f and %0.3f. (Got '
+                             '%0.3f).' % (tmin, tmax, t))
 
     info = copy.deepcopy(evoked.info)
 
