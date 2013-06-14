@@ -31,7 +31,8 @@ from ..transforms.coreg import trans_fname, fit_matched_pts, fit_point_cloud, \
                                scale_mri
 from ..utils import get_subjects_dir
 from .fiducials_gui import FiducialsPanel
-from .file_traits import BemSource, RawHspSource, SubjectSelector
+from .file_traits import assert_env_set, BemSource, RawHspSource, \
+                         SubjectSelector
 from .viewer import HeadViewController, PointObject, SurfaceObject, \
                     headview_item
 
@@ -351,6 +352,19 @@ class CoregPanel(HasPrivateTraits):
                                   translate=False, scale=3, x0=x0)
             self.scale3 = [1 / est[3:]]
         self.rotation = [est[:3]]
+
+    def _n_scale_params_changed(self, new):
+        if not new:
+            return
+
+        # Make sure that MNE_ROOT environment variable is set
+        if not assert_env_set(mne_root=True):
+            err = ("MNE_ROOT environment variable could not be set. "
+                   "You will be able to scale MRIs, but the preparatory mne "
+                   "tools will fail. Please specify the MNE_ROOT environment "
+                   "variable. In Python this can be done using:\n\n"
+                   ">>> os.environ['MNE_ROOT'] = '/Applications/mne-2.7.3'")
+            warning(None, err, "MNE_ROOT Not Set")
 
     def _reset_params_fired(self):
         self.reset_traits(('n_scaling_params', 'scale1', 'scale3',
@@ -690,14 +704,6 @@ class CoregFrame(HasTraits):
         # lock fiducials if file is found
         if self.fid_panel.fid_file:
             self.lock_fiducials = True
-
-        # check thet MNE_ROOT environment variable is set
-        if 'MNE_ROOT' not in os.environ:
-            err = ("MNE_ROOT environment variable not set. Scaling MRIs will "
-                   "fail. Please specify the MNE_ROOT environment variable. "
-                   "In Python this can be done using:\n\n"
-                   ">>> os.environ['MNE_ROOT'] = '/Applications/mne-2.7.3'")
-            warning(None, err, "MNE_ROOT Not Set")
 
     @on_trait_change('fid_panel.fid_ok', post_init=True)
     def _on_fid_ok_change(self, new):

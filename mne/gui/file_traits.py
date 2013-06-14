@@ -11,10 +11,66 @@ from traits.api import HasTraits, HasPrivateTraits, cached_property, \
                        on_trait_change, Property, Array, Directory, Enum, \
                        File, List, Str, Event
 from traitsui.api import View, Item, VGroup, error
+from pyface.api import DirectoryDialog, OK, ProgressDialog
 
 from ..fiff import Raw, read_fiducials
 from ..surface import read_bem_surfaces
 from ..transforms.coreg import is_mri_subject, create_default_subject
+from ..utils import get_config
+
+
+def assert_env_set(mne_root=True, fs_home=False):
+    """Make sure that environment variables are correctly set
+
+    Parameters
+    ----------
+    mne_root : bool
+        Make sure the MNE_ROOT environment variable is set correctly.
+    fs_home : bool
+        Make sure the FREESURFER_HOME environment variable is set correctly.
+
+    Returns
+    -------
+    success : bool
+        Whether the requested environment variables are successfully set or
+        not.
+
+    Notes
+    -----
+    Environment variables are added to ``os.environ`` to make sure that bash
+    tools can find them.
+    """
+    if fs_home:
+        fs_home = os.environ.get('FREESURFER_HOME', None)
+        test_dir = os.path.join('%s', 'subjects', 'fsaverage')
+        while (fs_home is None) or not os.path.exists(test_dir % fs_home):
+            msg = ("Please select the FREESURFER_HOME directory. This is the "
+                   "root directory of the freesurfer installation. In order "
+                   "to avoid this prompt in the future, set the "
+                   "FREESURFER_HOME environment variable.")
+            dlg = DirectoryDialog(message=msg, new_directory=False)
+            if dlg.open() == OK:
+                fs_home = dlg.path
+            else:
+                return False
+        os.environ['FREESURFER_HOME'] = fs_home
+
+    if mne_root:
+        mne_root = get_config('MNE_ROOT')
+        test_dir = os.path.join('%s', 'share', 'mne', 'mne_analyze')
+        while (mne_root is None) or not os.path.exists(test_dir % mne_root):
+            msg = ("Please select the MNE_ROOT directory. This is the root "
+                   "directory of the MNE installation. In order to "
+                   "avoid this prompt in the future, set the MNE_ROOT "
+                   "environment variable.")
+            dlg = DirectoryDialog(message=msg, new_directory=False)
+            if dlg.open() == OK:
+                mne_root = dlg.path
+            else:
+                return False
+        os.environ['MNE_ROOT'] = mne_root
+
+    return True
 
 
 class BemSource(HasTraits):
@@ -134,6 +190,30 @@ class SubjectSelector(HasPrivateTraits):
     view = View(VGroup(Item('subjects_dir', label='subjects_dir'),
                        'subject'))
 
+    def _create_fsaverage(self):
+        if not assert_env_set(mne_root=True, fs_home=True):
+            msg = ("Not all files required for creating the fsaverage brain\n"
+                   "were found. Both mne and freesurfer are required.")
+            error(msg, "Error Creating FsAverage", buttons=['OK'])
+            return
+
+        # progress dialog with indefinite progress bar
+        title = "Creating FsAverage ..."
+        message = "Copying fsaverage files ..."
+        prog = ProgressDialog(title=title, message=message)
+        prog.open()
+        prog.update(0)
+
+        try:
+            create_default_subject(subjects_dir=self.subjects_dir)
+        except Exception as err:
+            msg = str(err)
+            error(msg, "Error Creating FsAverage", buttons=['OK'])
+        else:
+            self.refresh = True
+            self.subject = 'fsaverage'
+        prog.close()
+
     @cached_property
     def _get_bem_file(self):
         if not self.mri_dir:
@@ -168,11 +248,9 @@ class SubjectSelector(HasPrivateTraits):
 
     def _subject_changed(self, old, new):
         if new == '(create fsaverage)':
-            if not self.subjects_dir:
+            if self.subjects_dir:
+                self._create_fsaverage()
+            else:
                 error("No subjects diretory is selected. Please specify "
                       "subjects_dir first.", "No SUBJECTS_DIR", ['OK'])
                 self.subject = old
-                return
-
-            create_default_subject(subjects_dir=self.subjects_dir)
-            self.refresh = True
