@@ -133,9 +133,10 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
         warn(msg % case)
 
 
-def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
-               border, cmap, layout_scale, title=None, x_label=None,
-               y_label=None, vline=None):
+def _plot_topo(info=None, times=None, show_func=None, layout=None,
+               decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
+               border='none', cmap=None, layout_scale=None, title=None,
+               x_label=None, y_label=None, vline=None):
     """Helper function to plot on sensor layout"""
     import pylab as pl
     orig_facecolor = pl.rcParams['axes.facecolor']
@@ -167,24 +168,26 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
                 ax.__dict__['_mne_ch_name'] = name
                 ax.__dict__['_mne_ch_idx'] = ch_idx
 
-                if layout.kind == 'Vectorview-all':
+                if layout.kind == 'Vectorview-all' and ylim is not None:
                     this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
-                    vmin_, vmax_ = [v[this_type] if _check_vmax(v) else
-                                    v for v in vmin, vmax]
+                    ylim_ = [v[this_type] if _check_vlim(v) else
+                                    v for v in ylim]
                 else:
-                    vmin_, vmax_ = vmin, vmax
-                show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin_,
-                          vmax=vmax_)
+                    ylim_ = ylim
 
-                if not any(v is None for v in [vmin_, vmax_]):
-                    pl.ylim(vmin_, vmax_)
+                show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
+                          vmax=vmax, ylim=ylim_)
+
+                if ylim_ and not any(v is None for v in ylim_):
+                    pl.ylim(*ylim_)
                 pl.xticks([], ())
                 pl.yticks([], ())
 
         # register callback
         callback = partial(_plot_topo_onpick, show_func=show_func, tmin=tmin,
-                           tmax=tmax, vmin=vmin, vmax=vmax, colorbar=colorbar,
-                           title=title, x_label=x_label, y_label=y_label,
+                           tmax=tmax, vmin=vmin, vmax=vmax, ylim=ylim,
+                           colorbar=colorbar, title=title, x_label=x_label,
+                           y_label=y_label,
                            vline=vline)
 
         fig.canvas.mpl_connect('pick_event', callback)
@@ -200,8 +203,8 @@ def _plot_topo(info, times, show_func, layout, decim, vmin, vmax, colorbar,
 
 
 def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
-                      vmin=None, vmax=None, colorbar=False, title=None,
-                      x_label=None, y_label=None, vline=None):
+                      vmin=None, vmax=None, ylim=None, colorbar=False,
+                      title=None, x_label=None, y_label=None, vline=None):
     """Onpick callback that shows a single channel in a new figure"""
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
@@ -214,7 +217,8 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
         ch_idx = artist.axes._mne_ch_idx
         fig, ax = pl.subplots(1)
         ax.set_axis_bgcolor('k')
-        show_func(pl, ch_idx, tmin, tmax, vmin, vmax, vline=vline)
+        show_func(pl, ch_idx, tmin, tmax, vmin, vmax, ylim=ylim,
+                  vline=vline)
         if colorbar:
             pl.colorbar()
         if title is not None:
@@ -232,15 +236,16 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
         raise err
 
 
-def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, tfr=None, freq=None):
+def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
+                freq=None, vline=None):
     """ Aux function to show time-freq map on topo """
     extent = (tmin, tmax, freq[0], freq[-1])
     ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
               vmin=vmin, vmax=vmax, picker=True)
 
 
-def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
-                     vline=None):
+def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
+                     times, vline=None):
     """ Aux function to show time series on topo """
     picker_flag = False
     for data_, color_ in zip(data, color):
@@ -255,9 +260,9 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, data, color, times,
         [pl.axvline(x, color='w', linewidth=0.5) for x in vline]
 
 
-def _check_vmax(vmax):
+def _check_vlim(vlim):
     """AUX function"""
-    return not np.isscalar(vmax) and not vmax is None
+    return not np.isscalar(vlim) and not vlim is None
 
 
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -375,17 +380,17 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     if ylim is None:
         set_ylim = lambda x: np.abs(x).max()
         ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
-        vmax = np.array(ylim_)
-        vmin = -vmax
+        ymax = np.array(ylim_)
+        ylim_ = (-ymax, ymax)
     elif isinstance(ylim, dict):
         ylim_ = _mutable_defaults(('ylim', ylim))[0]
         ylim_ = [ylim_[k] for k in types_used]
-        vmin, vmax = zip(*[np.array(yl) for yl in ylim_])
+        ylim_ = zip(*[np.array(yl) for yl in ylim_])
     else:
         raise ValueError('ylim must be None ore a dict')
 
     fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
-                     decim=1, colorbar=False, vmin=vmin, vmax=vmax, cmap=None,
+                     decim=1, colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border, title=title,
                      x_label='Time (s)', vline=vline)
 
@@ -427,7 +432,7 @@ def _plot_update_evoked_topo(params, bools):
     fig.canvas.draw()
 
 
-def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
+def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
                   vmax=None, cmap=None, layout_scale=0.945, title=None):
     """Plot time-frequency data on sensor layout
 
@@ -442,9 +447,10 @@ def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
         The time-frequency data. Must have the same channels as Epochs.
     freq : array-like
         Frequencies of interest as passed to induced_power
-    layout : instance of Layout
-        System specific sensor positions
-    colorbar : bool
+    layout : instance of Layout | None
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.    colorbar : bool
         If true, colorbar will be added to the plot
     vmin : float
         Minimum value mapped to lowermost color
@@ -469,18 +475,26 @@ def plot_topo_tfr(epochs, tfr, freq, layout, colorbar=True, vmin=None,
     if vmax is None:
         vmax = tfr.max()
 
+    if layout is None:
+        from .layouts.layout import find_layout
+        layout = find_layout(epochs.info['chs'])
+    layout = copy.deepcopy(layout)
+    layout.names = _clean_names(layout.names)
+
     tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
 
-    fig = _plot_topo(epochs.info, epochs.times, tfr_imshow, layout,
-                     decim=1, colorbar=colorbar, vmin=vmin, vmax=vmax,
-                     cmap=cmap, layout_scale=layout_scale, title=title,
+    fig = _plot_topo(info=epochs.info, times=epochs.times,
+                     show_func=tfr_imshow, layout=layout, border='w',
+                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+                     layout_scale=layout_scale, title=title,
                      x_label='Time (s)', y_label='Frequency (Hz)')
+
     return fig
 
 
-def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
-                    decim=1, colorbar=True, vmin=None, vmax=None, cmap=None,
-                    layout_scale=0.945, dB=True, title=None):
+def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
+                    mode='mean', decim=1, colorbar=True, vmin=None, vmax=None,
+                    cmap=None, layout_scale=0.945, dB=True, title=None):
     """Plot induced power on sensor layout
 
     Clicking on the induced power map of an individual sensor opens a
@@ -494,8 +508,10 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         First return value from mne.time_frequency.induced_power
     freq : array-like
         Frequencies of interest as passed to induced_power
-    layout : instance of Layout
-        System specific sensor positions
+    layout : instance of Layout | None
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
     baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -533,10 +549,10 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
     fig : Instance of matplotlib.figure.Figure
         Images of induced power at sensor locations
     """
+    times = epochs.times[::decim] * 1e3
     if mode is not None:
         if baseline is None:
             baseline = epochs.baseline
-        times = epochs.times[::decim] * 1e3
         power = rescale(power.copy(), times, baseline, mode)
     if dB:
         power = 20 * np.log10(power)
@@ -544,17 +560,24 @@ def plot_topo_power(epochs, power, freq, layout, baseline=None, mode='mean',
         vmin = power.min()
     if vmax is None:
         vmax = power.max()
+    if layout is None:
+        from .layouts.layout import find_layout
+        layout = find_layout(epochs.info['chs'])
+    layout = copy.deepcopy(layout)
+    layout.names = _clean_names(layout.names)
 
     power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
 
-    fig = _plot_topo(epochs.info, epochs.times, power_imshow, layout,
-                     decim=decim, colorbar=colorbar, vmin=vmin, vmax=vmax,
-                     cmap=cmap, layout_scale=layout_scale, title=title,
+    fig = _plot_topo(info=epochs.info, times=times,
+                     show_func=power_imshow, layout=layout, decim=decim,
+                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+                     layout_scale=layout_scale, title=title, border='w',
                      x_label='Time (s)', y_label='Frequency (Hz)')
+
     return fig
 
 
-def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
+def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
                          mode='mean', decim=1, colorbar=True, vmin=None,
                          vmax=None, cmap=None, layout_scale=0.945,
                          title=None):
@@ -572,8 +595,10 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
         mne.time_frequency.induced_power.
     freq : array-like
         Frequencies of interest as passed to induced_power
-    layout : instance of Layout
-        System specific sensor positions.
+    layout : instance of Layout | None
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
     baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -608,29 +633,35 @@ def plot_topo_phase_lock(epochs, phase, freq, layout, baseline=None,
     fig : Instance of matplotlib.figure.Figrue
         Phase lock images at sensor locations
     """
-    if mode is not None:  # do baseline correction
+    times = epochs.times[::decim] * 1e3
+    if mode is not None:
         if baseline is None:
             baseline = epochs.baseline
-        times = epochs.times[::decim] * 1e3
         phase = rescale(phase.copy(), times, baseline, mode)
     if vmin is None:
         vmin = phase.min()
     if vmax is None:
         vmax = phase.max()
+    if layout is None:
+        from .layouts.layout import find_layout
+        layout = find_layout(epochs.info['chs'])
+    layout = copy.deepcopy(layout)
+    layout.names = _clean_names(layout.names)
 
     phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
 
-    fig = _plot_topo(epochs.info, epochs.times, phase_imshow, layout,
-                     decim=decim, colorbar=colorbar, vmin=vmin, vmax=vmax,
-                     cmap=cmap, layout_scale=layout_scale, title=title,
+    fig = _plot_topo(info=epochs.info, times=times,
+                     show_func=phase_imshow, layout=layout, decim=decim,
+                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+                     layout_scale=layout_scale, title=title, border='w',
                      x_label='Time (s)', y_label='Frequency (Hz)')
 
     return fig
 
 
-def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
+def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                      data=None, epochs=None, sigma=None,
-                     order=None, scalings=None):
+                     order=None, scalings=None, vline=None):
     """Aux function to plot erfimage on sensor topography"""
 
     this_data = data[:, ch_idx, :].copy()
@@ -651,10 +682,9 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax,
               origin='lower', vmin=vmin, vmax=vmax, picker=True)
 
 
-def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
-                           vmax=None, colorbar=True, order=None,
-                           cmap=None, layout_scale=.95, title=None,
-                           scalings=None):
+def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
+                           vmax=None, colorbar=True, order=None, cmap=None,
+                           layout_scale=.95, title=None, scalings=None):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -701,14 +731,19 @@ def plot_topo_image_epochs(epochs, layout, sigma=0.3, vmin=None,
         vmin = data.min()
     if vmax is None:
         vmax = data.max()
+    if layout is None:
+        from .layouts.layout import find_layout
+        layout = find_layout(epochs.info['chs'])
+    layout = copy.deepcopy(layout)
+    layout.names = _clean_names(layout.names)
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
                          data=data, epochs=epochs, sigma=sigma)
 
-    fig = _plot_topo(epochs.info, epochs.times, erf_imshow, layout, decim=1,
-                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
-                     layout_scale=layout_scale, title=title,
-                     x_label='Time (s)', y_label='Epoch')
+    fig = _plot_topo(info=epochs.info, times=epochs.times, show_func=erf_imshow,
+                     layout=layout, decim=1, colorbar=colorbar, vmin=vmin,
+                     vmax=vmax, cmap=cmap, layout_scale=layout_scale, title=title,
+                     border='w', x_label='Time (s)', y_label='Epoch')
 
     return fig
 
