@@ -19,7 +19,8 @@ from pyface.api import error, confirm, warning, OK, YES, NO, information, \
 from traits.api import HasTraits, HasPrivateTraits, cached_property, \
                        on_trait_change, Instance, Property, Any, Array, Bool, \
                        Button, Directory, Enum, Float, Int, List, Str
-from traitsui.api import View, Item, HGroup, VGroup, EnumEditor, Handler
+from traitsui.api import View, Item, HGroup, VGroup, EnumEditor, TextEditor, \
+                         Handler
 from traitsui.menu import Action, UndoButton, CancelButton
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -35,6 +36,9 @@ from .file_traits import assert_env_set, BemSource, RawHspSource, \
                          SubjectSelector
 from .viewer import HeadViewController, PointObject, SurfaceObject, \
                     headview_item
+
+
+laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
 
 
 class CoregFrameHandler(Handler):
@@ -137,6 +141,7 @@ class CoregPanel(HasPrivateTraits):
                                               cols=3)),
                        Item('scale1', enabled_when='n_scale_params == 1',
                             label="Scale (x1)", show_label=True,
+                            editor=laggy_float_editor,
                             tooltip="Scale along all axes with this factor"),
                        Item('scale3', enabled_when='n_scale_params == 3',
                             label="Scale (x3)", show_label=True,
