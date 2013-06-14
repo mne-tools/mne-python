@@ -566,7 +566,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
 
 
 @verbose
-def _assemble_kernel(inv, label, method, pick_normal, verbose=None):
+def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     #
     #   Simple matrix multiplication followed by combination of the
     #   current components
@@ -596,14 +596,14 @@ def _assemble_kernel(inv, label, method, pick_normal, verbose=None):
         eigen_leads = eigen_leads[src_sel]
         source_cov = source_cov[src_sel]
 
-    if pick_normal:
+    if pick_ori == "normal":
         if not inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-            raise ValueError('Pick normal can only be used with a free '
-                             'orientation inverse operator.')
+            raise ValueError('Picking normal orientation can only be done '
+                             'with a free orientation inverse operator.')
 
         is_loose = 0 < inv['orient_prior']['data'][0] < 1
         if not is_loose:
-            raise ValueError('The pick_normal parameter is only valid '
+            raise ValueError('Picking normal orientation can only be done '
                              'when working with loose orientations.')
 
         # keep only the normal components
@@ -664,7 +664,7 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_normal=False, dSPM=None, verbose=None):
+                  pick_ori=None, dSPM=None, verbose=None):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -681,8 +681,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     verbose : bool, str, int, or None
@@ -708,11 +708,11 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
     logger.info('Picked %d channels from the data' % len(sel))
     logger.info('Computing inverse...')
-    K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_normal)
+    K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_ori)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
+                   and pick_ori == None)
 
     if is_free_ori:
         logger.info('combining the current components...')
@@ -736,7 +736,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 @verbose
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
-                      time_func=None, pick_normal=False,
+                      time_func=None, pick_ori=None,
                       buffer_size=None, dSPM=None, verbose=None):
     """Apply inverse operator to Raw data
 
@@ -766,8 +766,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Set to 1 on raw data.
     time_func : callable
         Linear function applied to sensor space time series.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     buffer_size : int (or None)
@@ -806,10 +806,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     if time_func is not None:
         data = time_func(data)
 
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
+                   and pick_ori == None)
 
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
@@ -848,7 +848,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
-                              label=None, nave=1, pick_normal=False, dSPM=None,
+                              label=None, nave=1, pick_ori=None, dSPM=None,
                               verbose=None):
     """ see apply_inverse_epochs """
     method = _check_method(method, dSPM)
@@ -865,13 +865,13 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
     logger.info('Picked %d channels from the data' % len(sel))
     logger.info('Computing inverse...')
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     tstep = 1.0 / epochs.info['sfreq']
     tmin = epochs.times[0]
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
+                   and pick_ori == None)
 
     if not is_free_ori and noise_norm is not None:
         # premultiply kernel with noise normalization
@@ -906,7 +906,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
 
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
-                         label=None, nave=1, pick_normal=False, dSPM=None,
+                         label=None, nave=1, pick_ori=None, dSPM=None,
                          return_generator=False, verbose=None):
     """Apply inverse operator to Epochs
 
@@ -929,8 +929,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     nave : int
         Number of averages used to regularize the solution.
         Set to 1 on single Epoch by default.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     return_generator : bool
@@ -947,7 +947,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
-                                     pick_normal=pick_normal, dSPM=dSPM,
+                                     pick_ori=pick_ori, dSPM=dSPM,
                                      verbose=verbose)
 
     if not return_generator:

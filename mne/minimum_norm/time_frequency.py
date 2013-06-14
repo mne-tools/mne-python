@@ -118,13 +118,13 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
 @verbose
 def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
-                     pick_normal, decim, verbose=None):
+                     pick_ori, decim, verbose=None):
     """Aux function for source_induced_power"""
     n_times = data[:, :, ::decim].shape[2]
     n_freqs = len(Ws)
     n_sources = K.shape[0]
     is_free_ori = False
-    if (source_ori == FIFF.FIFFV_MNE_FREE_ORI and not pick_normal):
+    if (source_ori == FIFF.FIFFV_MNE_FREE_ORI and pick_ori == None):
         is_free_ori = True
         n_sources /= 3
 
@@ -186,7 +186,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
 @verbose
 def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
                           lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
-                          decim=1, use_fft=False, pca=True, pick_normal=True,
+                          decim=1, use_fft=False, pca=True, pick_ori="normal",
                           n_jobs=1, with_plv=True, zero_mean=False,
                           verbose=None):
     """Aux function for source_induced_power
@@ -212,7 +212,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -232,7 +232,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     n_jobs = min(n_jobs, len(epochs_data))
     out = parallel(my_compute_pow_plv(data, K, sel, Ws,
                                       inv['source_ori'], use_fft, Vh,
-                                      with_plv, pick_normal, decim)
+                                      with_plv, pick_ori, decim)
                         for data in np.array_split(epochs_data, n_jobs))
     power = sum(o[0] for o in out)
     power /= len(epochs_data)  # average power over epochs
@@ -253,7 +253,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
 @verbose
 def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                          lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
-                         decim=1, use_fft=False, pick_normal=False,
+                         decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
                          n_jobs=1, dSPM=None, zero_mean=False, verbose=None):
     """Compute induced power and phase lock
@@ -282,8 +282,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         Temporal decimation factor.
     use_fft : bool
         Do convolutions in time or frequency domain with FFT.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     baseline : None (default) or tuple of length 2
@@ -316,7 +316,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                             inverse_operator, frequencies,
                             label=label, lambda2=lambda2, method=method,
                             nave=nave, n_cycles=n_cycles, decim=decim,
-                            use_fft=use_fft, pick_normal=pick_normal,
+                            use_fft=use_fft, pick_ori=pick_ori,
                             pca=pca, n_jobs=n_jobs)
 
     # Run baseline correction
@@ -330,7 +330,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
 @verbose
 def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
-                       NFFT=2048, overlap=0.5, pick_normal=False, label=None,
+                       NFFT=2048, overlap=0.5, pick_ori=None, label=None,
                        nave=1, pca=True, verbose=None):
     """Compute source power spectrum density (PSD)
 
@@ -359,8 +359,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     overlap: float
         The overlap fraction between windows. Should be between 0 and 1.
         0 means no overlap.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     label: Label
@@ -398,7 +398,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -438,7 +438,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         data_fft = fftpack.fft(data)[:, freqs_mask]
         sol = np.dot(K, data_fft)
 
-        if is_free_ori and not pick_normal:
+        if is_free_ori and pick_ori == None:
             sol = combine_xyz(sol, square=True)
         else:
             sol = np.abs(sol) ** 2
@@ -462,7 +462,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 @verbose
 def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               method="dSPM", fmin=0., fmax=200.,
-                              pick_normal=False, label=None, nave=1,
+                              pick_ori=None, label=None, nave=1,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True, n_jobs=1,
                               verbose=None):
@@ -486,7 +486,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -573,7 +573,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
             pos += K_part.shape[0]
 
         # combine orientations
-        if is_free_ori and not pick_normal:
+        if is_free_ori and pick_ori == None:
             psd = combine_xyz(psd, square=False)
 
         if method != "MNE":
@@ -589,7 +589,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 @verbose
 def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               method="dSPM", fmin=0., fmax=200.,
-                              pick_normal=False, label=None, nave=1,
+                              pick_ori=None, label=None, nave=1,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True,
                               return_generator=False, n_jobs=1,
@@ -611,8 +611,8 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         The lower frequency of interest.
     fmax : float
         The upper frequency of interest.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     label : Label
@@ -650,7 +650,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     # use an auxiliary function so we can either return a generator or a list
     stcs_gen = _compute_source_psd_epochs(epochs, inverse_operator,
                               lambda2=lambda2, method=method, fmin=fmin,
-                              fmax=fmax, pick_normal=pick_normal, label=label,
+                              fmax=fmax, pick_ori=pick_ori, label=label,
                               nave=nave, pca=pca, inv_split=inv_split,
                               bandwidth=bandwidth, adaptive=adaptive,
                               low_bias=low_bias, n_jobs=n_jobs)
