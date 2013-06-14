@@ -277,7 +277,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     ----------
     evoked : list of Evoked | Evoked
         The evoked response to plot.
-    layout : instance of Layout | None
+         instance of Layout | None
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
@@ -812,6 +812,14 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     elif np.isscalar(times):
         times = [times]
+    if len(times) > 20:
+        raise RuntimeError('Too many plots requested. Please pass fewer '
+                           'time instants.')
+    tmin, tmax = evoked.times[[0, -1]]
+    for ii, t in enumerate(times):
+        if not tmin <= t <= tmax:
+            raise ValueError('Time point %i (%0.3f) outside of evoked.times' % (
+                             ii, t))
 
     info = copy.deepcopy(evoked.info)
 
