@@ -293,6 +293,8 @@ def test_plot_topomap():
     plot_evoked_topomap(evoked, times, ch_type='planar1')
     plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
     plot_evoked_topomap(evoked, 0.1, 'mag', proj='interactive')
+    assert_raises(RuntimeError, plot_evoked_topomap, evoked, np.repeat(.1, 50))
+    assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
 
     # projs
     projs = read_proj(ecg_fname)[:7]
