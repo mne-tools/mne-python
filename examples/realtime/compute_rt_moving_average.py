@@ -19,7 +19,6 @@ print __doc__
 
 import mne
 import pylab as pl
-import time
 
 from mne.realtime import RtClient, RtEpochs
 
@@ -35,7 +34,7 @@ picks = mne.fiff.pick_types(info, meg='grad', eeg=False, eog=True,
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # the number of epochs to average
-n_epochs = 5
+n_epochs = 100
 
 # create the real-time epochs object
 rt_epochs = RtEpochs(client, event_id, tmin, tmax, n_epochs,
@@ -45,12 +44,20 @@ rt_epochs = RtEpochs(client, event_id, tmin, tmax, n_epochs,
 # start the acquisition
 rt_epochs.start()
 
-# compute evoked responses from the received data and plot them
-while True:
-    evoked = rt_epochs.average()
+# make the plot interactive
+pl.ion()
+
+evoked = None
+
+for ev in rt_epochs.iter_evoked():
+
+    if evoked is None:
+        evoked = ev
+    else:
+        evoked += ev
+
     pl.figure(1)
+
     evoked.plot()
     pl.show()
-    time.sleep(0.1)
-    # remove the oldest epoch
-    rt_epochs.remove_old_epochs(1)
+    pl.waitforbuttonpress(0.1)
