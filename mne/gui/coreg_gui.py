@@ -750,7 +750,7 @@ class CoregFrame(HasTraits):
 
         # Digitizer Head Shape
         self.hsp_obj = PointObject(scene=self.scene, color=(255, 255, 255),
-                                   point_scale=5e-3)
+                                   point_scale=5e-3, resolution=5)
         self.hsp_src.sync_trait('pts', self.hsp_obj, 'points', mutual=False)
         self.coreg.sync_trait('head_mri_trans', self.hsp_obj, 'trans',
                               mutual=False)

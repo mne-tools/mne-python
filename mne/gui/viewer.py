@@ -13,7 +13,7 @@ import numpy as np
 from pyface.api import error
 from traits.api import HasTraits, HasPrivateTraits, on_trait_change, \
                        cached_property, Instance, Property, Array, Bool, \
-                       Button, Color, Enum, Float, List, Range, Str
+                       Button, Color, Enum, Float, Int, List, Range, Str
 from traitsui.api import View, Item, Group, HGroup, VGroup
 
 from ..transforms.transforms import apply_trans
@@ -158,6 +158,7 @@ class PointObject(Object):
     text3d = List  # (None, [])
 
     glyph = Instance(Glyph)
+    resolution = Int(8)
 
     view = View(HGroup(Item('point_scale', label='Size'), 'color',
                       'visible', 'label'))
@@ -199,7 +200,8 @@ class PointObject(Object):
         x, y, z = self.points.T
         scatter = pipeline.scalar_scatter(x, y, z)
         glyph = pipeline.glyph(scatter, color=self.rgbcolor, figure=fig,
-                               scale_factor=self.point_scale, opacity=1.)
+                               scale_factor=self.point_scale, opacity=1.,
+                               resolution=self.resolution)
         self.src = scatter
         self.glyph = glyph
 
@@ -211,6 +213,13 @@ class PointObject(Object):
         self.on_trait_change(self._update_points, 'points')
 
         self.scene.camera.parallel_scale = _scale
+
+    def _resolution_changed(self, new):
+        if not self.glyph:
+            return
+
+        self.glyph.glyph.glyph_source.glyph_source.phi_resolution = new
+        self.glyph.glyph.glyph_source.glyph_source.theta_resolution = new
 
 
 class SurfaceObject(Object):
