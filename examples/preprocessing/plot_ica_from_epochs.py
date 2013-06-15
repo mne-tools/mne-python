@@ -62,7 +62,6 @@ print ica
 # In our example, the find_sources method returns and array of correlation
 # scores for each ICA source.
 
-
 ecg_scores = ica.find_sources_epochs(epochs, target='MEG 1531',
                                      score_func='pearsonr')
 
@@ -72,9 +71,8 @@ ecg_source_idx = np.abs(ecg_scores).argmax()
 # get sources from concatenated epochs
 sources = ica.get_sources_epochs(epochs, concatenate=True)
 
-times = epochs.times
-
 # plot first epoch
+times = epochs.times
 first_trial = np.arange(len(times))
 
 pl.figure()
