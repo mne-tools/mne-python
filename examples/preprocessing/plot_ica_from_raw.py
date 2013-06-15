@@ -69,21 +69,7 @@ ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 ###############################################################################
 # Automatically find the ECG component using correlation with ECG signal.
 
-# First, we create a helper function that iteratively applies the pearson
-# correlation function to sources and returns an array of r values
-# This is to illustrate the way ica.find_sources_raw works. Actually, this is
-# the default score_func.
-
-from scipy.stats import pearsonr
-
-corr = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
-
-# As we don't have an ECG channel we use one that correlates a lot with heart
-# beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
-# In our example, the find_sources method returns and array of correlation
-# scores for each ICA source.
-
-ecg_scores = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr)
+ecg_scores = ica.find_sources_raw(raw, target='MEG 1531')
 
 # get sources
 sources = ica.get_sources_raw(raw, start=start_plot, stop=stop_plot)
@@ -120,7 +106,7 @@ ica.exclude.extend(np.where(np.abs(ecg_scores) ** 2 > .05)[0])
 
 # As we have an EOG channel, we can use it to detect the source.
 
-eog_scores = ica.find_sources_raw(raw, target='EOG 061', score_func=corr)
+eog_scores = ica.find_sources_raw(raw, target='EOG 061')
 
 # get maximum correlation index for EOG
 eog_source_idx = np.abs(eog_scores).argmax()
