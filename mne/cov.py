@@ -39,18 +39,16 @@ class Covariance(dict):
     Parameters
     ----------
     fname : string
-        The name of the raw file
+        The name of the raw file.
 
     Attributes
     ----------
-    data : 2D array of shape [n_channels x n_channels]
-        The covariance
-
-    ch_names: list of string
-        List of channels' names
-
+    data : array of shape (n_channels, n_channels)
+        The covariance.
+    ch_names : list of string
+        The names of the channels.
     nfree : int
-        Number of degrees of freedom i.e. number of time points used
+        Number of degrees of freedom i.e. number of time points used.
     """
 
     def __init__(self, fname):
@@ -209,12 +207,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         Rejection parameters based on peak to peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
         If reject is None then no rejection is done.
-        Values are float. Example:
-        reject = dict(grad=4000e-13, # T / m (gradiometers)
-                      mag=4e-12, # T (magnetometers)
-                      eeg=40e-6, # uV (EEG channels)
-                      eog=250e-6 # uV (EOG channels)
-                      )
+        Same as in Epochs.
     flat : dict
         Rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'

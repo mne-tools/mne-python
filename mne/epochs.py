@@ -875,8 +875,7 @@ class Epochs(ProjMixin):
             raise RuntimeError('Can only resample preloaded data')
 
     def copy(self):
-        """ Return copy of Epochs instance
-        """
+        """Return copy of Epochs instance"""
         raw = self.raw
         del self.raw
         new = deepcopy(self)

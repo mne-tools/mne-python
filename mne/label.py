@@ -22,7 +22,7 @@ from . import verbose
 
 
 class Label(object):
-    """An freesurfer/MNE label with vertices restricted to one hemisphere
+    """A FreeSurfer/MNE label with vertices restricted to one hemisphere
 
     Labels can be combined with the ``+`` operator:
      - Duplicate vertices are removed.

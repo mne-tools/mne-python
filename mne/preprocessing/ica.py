@@ -79,11 +79,11 @@ class ICA(object):
     Caveat! If supplying a noise covariance keep track of the projections
     available in the cov or in the raw object. For example, if you are
     interested in EOG or ECG artifacts, EOG and ECG projections should be
-    temporally removed before fitting the ICA. You can say:
+    temporally removed before fitting the ICA. You can say::
 
-    >> projs, raw.info['projs'] = raw.info['projs'], []
-    >> ica.decompose_raw(raw)
-    >> raw.info['projs'] = projs
+        >> projs, raw.info['projs'] = raw.info['projs'], []
+        >> ica.decompose_raw(raw)
+        >> raw.info['projs'] = projs
 
     Parameters
     ----------
@@ -100,8 +100,8 @@ class ICA(object):
         The number of PCA components used after ICA recomposition. The ensuing
         attribute allows to balance noise reduction against potential loss of
         features due to dimensionality reduction. If greater than
-        self.n_components_, the next 'n_pca_components' minus
-        'n_components_' PCA components will be added before restoring the
+        `self.n_components_`, the next `n_pca_components` minus
+        `n_components_` PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
     noise_cov : None | instance of mne.cov.Covariance
@@ -446,6 +446,7 @@ class ICA(object):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+
         Returns
         -------
         out : instance of mne.Raw
@@ -832,9 +833,9 @@ class ICA(object):
             The source indices to remove. If None  all are used.
         n_pca_components : int
             The number of PCA components to be unwhitened, where
-            n_components_ is the lower bound and max_pca_components
-            the upper bound. If greater than self.n_components_, the next
-            'n_pca_components' minus 'n_components_' PCA components will
+            `n_components_` is the lower bound and max_pca_components
+            the upper bound. If greater than `self.n_components_`, the next
+            `n_pca_components` minus `n_components_` PCA components will
             be added before restoring the sensor space data. This can be used
             to take back the PCA dimension reduction.
         copy : bool

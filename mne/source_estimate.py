@@ -824,9 +824,11 @@ class SourceEstimate(object):
         return self
 
     def sqrt(self):
+        """Return copy of SourceEstimate with sqrt(data)."""
         return self ** (0.5)
 
     def copy(self):
+        """Return copy of SourceEstimate instance"""
         return copy.deepcopy(self)
 
     def bin(self, width, tstart=None, tstop=None, func=np.mean):

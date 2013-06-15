@@ -3,6 +3,7 @@
 Find events in a raw file
 =========================
 
+Find events from the stimulation/trigger channel in the raw data.
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #

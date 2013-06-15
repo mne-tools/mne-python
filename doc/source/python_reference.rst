@@ -164,8 +164,6 @@ Visualization
    :template: function.rst
 
    circular_layout
-   compare_fiff
-   show_fiff
    mne_analyze_colormap
    plot_connectivity_circle
    plot_cov
@@ -183,7 +181,15 @@ Visualization
    plot_topo_power
    plot_topo_tfr
    plot_topomap
+   compare_fiff
 
+.. currentmodule:: mne.fiff
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   show_fiff
 
 Preprocessing
 =============
@@ -260,25 +266,13 @@ Events
    read_events
    write_events
 
-:py:mod:`mne.event`:
-
-.. automodule:: mne.event
- :no-members:
- :no-inherited-members:
-
-.. currentmodule:: mne.epochs
+.. currentmodule:: mne.event
 
 .. autosummary::
-   :toctree: generated/
-   :template: function.rst
+  :toctree: generated/
+  :template: function.rst
 
    define_target_events
-
-:py:mod:`mne.epochs`:
-
-.. automodule:: mne.epochs
- :no-members:
- :no-inherited-members:
 
 .. currentmodule:: mne.epochs
 
@@ -471,6 +465,7 @@ Time-Frequency
    iir_filter_raw
    stft
    istft
+   stftfreq
 
 
 Connectivity Estimation

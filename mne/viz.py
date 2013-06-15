@@ -526,7 +526,7 @@ def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
         power during baseline) or z-score (power is divided by standard
         deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline))
-    If None, baseline no correction will be performed.
+        If None, baseline no correction will be performed.
     decim : integer
         Increment for selecting each nth time slice
     colorbar : bool
@@ -629,6 +629,7 @@ def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
         on the canvas.
     title : str
         Title of the figure.
+
     Returns
     -------
     fig : Instance of matplotlib.figure.Figrue
@@ -721,6 +722,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If
         None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+
     Returns
     -------
     fig : instacne fo matplotlib figure
@@ -1939,6 +1941,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
         If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15)`
+
     Returns
     -------
     figs : the list of matplotlib figures
@@ -2371,6 +2374,8 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
                   color=(0.9, 0.9, 0.9), width=0.8):
     """Show the channel stats based on a drop_log from Epochs
 
+    Parameters
+    ----------
     drop_log : list of lists
         Epoch drop log from Epochs.drop_log.
     threshold : float

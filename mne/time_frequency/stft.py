@@ -130,7 +130,7 @@ def istft(X, tstep=None, Tx=None):
 
     See also
     --------
-    stft.
+    stft
     """
     ### Errors and warnings ###
     n_signals, n_win, n_step = X.shape
@@ -202,6 +202,12 @@ def stftfreq(wsize, sfreq=None):
     -------
     freqs : array
         The positive frequencies returned by stft
+
+
+    See also
+    --------
+    stft
+    istft
     """
     n_freq = wsize / 2 + 1
     freqs = fftfreq(wsize)

@@ -73,9 +73,12 @@ plot : wrapper around plt.plot
     However it comes with some special options. For examples see below.
 shape : shape attribute
     gets the dimensions of the data frame.
-values : return underlying numpy array.
-to_records : export data as numpy record array.
-to_dict : export data as dict of arrays.
+values :
+    return underlying numpy array.
+to_records :
+    export data as numpy record array.
+to_dict :
+    export data as dict of arrays.
 
 Reference
 ~~~~~~~~~
