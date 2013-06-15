@@ -14,7 +14,7 @@ from scipy.spatial.distance import cdist
 
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
-from pyface.api import error, confirm, warning, OK, YES, NO, information, \
+from pyface.api import error, confirm, warning, OK, YES, information, \
                        FileDialog
 from traits.api import HasTraits, HasPrivateTraits, cached_property, \
                        on_trait_change, Instance, Property, Any, Array, Bool, \
@@ -462,7 +462,7 @@ class NewMriDialog(HasPrivateTraits):
     subject_exists = Property(Bool, depends_on='sdir')
 
     feedback = Str(' ' * 100)
-    can_delete = Bool
+    can_overwrite = Bool
     overwrite = Bool
     can_save = Bool
 
@@ -475,7 +475,7 @@ class NewMriDialog(HasPrivateTraits):
                      "folder with this name will be created in the current "
                      "subjects_dir for the scaled MRI files"),
                 Item('feedback', show_label=False, style='readonly'),
-                Item('overwrite', enabled_when='can_delete', tooltip="If a "
+                Item('overwrite', enabled_when='can_overwrite', tooltip="If a "
                      "subject with the chosen name exists, delete the old "
                      "subject"),
                 '_',
@@ -487,13 +487,19 @@ class NewMriDialog(HasPrivateTraits):
                      "mne_setup_source_space after saving the scaled brain. "
                      "This step is required before a forward solution can be "
                      "generated", enabled_when='prepare_bem_model'),
-                Item('ss_subd', label='Subdivision Method',
+                Item('ss_subd', label='Subdivision Method', tooltip="mne_"
+                     "setup_source_space parameter",
                      enabled_when='setup_source_space'),
-                Item('ss_param', label='Subdivision Parameter',
+                Item('ss_param', label='Subdivision Parameter', tooltip="mne_"
+                     "setup_source_space parameter",
                      enabled_when='setup_source_space'),
                 width=500,
                 buttons=[CancelButton,
                            Action(name='OK', enabled_when='can_save')])
+
+    def _can_overwrite_changed(self, new):
+        if not new:
+            self.overwrite = False
 
     @cached_property
     def _get_sdir(self):
@@ -508,54 +514,29 @@ class NewMriDialog(HasPrivateTraits):
         else:
             return False
 
-    @on_trait_change('subjects_dir,subject')
-    def update_feedback(self):
-        self.overwrite = False
+    @on_trait_change('sdir,overwrite')
+    def update_dialog(self):
         if not self.subject:
             self.feedback = "No subject specified..."
             self.can_save = False
-            self.can_delete = False
+            self.can_overwrite = False
         elif self.subject == self.src_subject:
             self.feedback = "Must be different from MRI source subject..."
             self.can_save = False
-            self.can_delete = False
+            self.can_overwrite = False
         elif self.subject_exists:
-            self.feedback = "Subject already exists..."
-            self.can_save = False
-            self.can_delete = True
+            if self.overwrite:
+                self.feedback = "%s will be overwritten." % self.subject
+                self.can_save = True
+                self.can_overwrite = True
+            else:
+                self.feedback = "Subject already exists..."
+                self.can_save = False
+                self.can_overwrite = True
         else:
             self.feedback = "Name ok."
             self.can_save = True
-            self.can_delete = False
-
-    @on_trait_change('overwrite')
-    def on_overwrite_change(self, new):
-        if not new:
-            self.update_feedback()
-            return
-
-        subject = self.subject
-        title = "Overwrite %s?" % subject
-        msg = ("The current MRI subject %s will be deleted. This can not be "
-               "undone." % subject)
-        answer = confirm(None, msg, title, cancel=False, default=NO)
-        if answer == YES:
-            self.feedback = "%s will be overwritten." % subject
-            self.can_save = True
-        else:
-#            self.reset_traits(['overwrite'])
-#            self.overwrite_status = 'declined'
-#            obj.trait_set(overwrite=False)
-            self.overwrite = False
-            self.update_feedback()
-            self.feedback = "Will NOT overwrite"
-#            self.trait_property_changed('overwrite', False, False)
-
-#    @on_trait_change('overwrite_status')
-#    def on_overwrite_status(self, new):
-#        if new == 'declined':
-#            self.overwrite = False
-#            self.overwrite_status = 'None'
+            self.can_overwrite = False
 
 
 class CoregFrame(HasTraits):
