@@ -493,17 +493,13 @@ class SourceEstimate(object):
     ----------
     subject : str | None
         The subject name.
-
     times : array of shape (n_times,)
         The time vector.
-
     vertno : array or list of array of shape (n_dipoles,)
         The indices of the dipoles in the different source spaces. Can
         be an array if there is only one source space (e.g., for volumes).
-
     data : array of shape (n_dipoles, n_times)
         The data in source space.
-
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
     """

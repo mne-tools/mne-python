@@ -994,7 +994,7 @@ class Raw(ProjMixin):
     def plot(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
-             show_options=False, title=None):
+             show_options=False, title=None, show=True):
         """Plot raw data
 
         Parameters
@@ -1035,6 +1035,8 @@ class Raw(ProjMixin):
         title : str | None
             The title of the window. If None, and either the filename of the
             raw object or '<unknown>' will be displayed as title.
+        show : bool
+            Show figures if True
 
         Returns
         -------
@@ -1049,7 +1051,7 @@ class Raw(ProjMixin):
         """
         return plot_raw(raw, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
-                        order, show_options, title)
+                        order, show_options, title, show)
 
     @deprecated('time_to_index is deprecated please use time_as_index instead.'
                 ' Will be removed in v0.7.')

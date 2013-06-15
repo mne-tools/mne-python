@@ -160,9 +160,7 @@ class ICA(object):
         the .pick_sources method via the 'exclude' argument are added to the
         .exclude attribute. When saving the ICA also the indices are restored.
         Hence, artifact components once identified don't have to be added
-        again. To dump this 'artifact memory' say::
-
-            >> ica.exclude = []
+        again. To dump this 'artifact memory' say: ica.exclude = []
 
     """
     @verbose

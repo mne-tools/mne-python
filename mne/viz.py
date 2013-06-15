@@ -2423,7 +2423,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
-             show_options=False, title=None):
+             show_options=False, title=None, show=True):
     """Plot raw data
 
     Parameters
@@ -2463,6 +2463,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     title : str | None
         The title of the window. If None, and either the filename of the
         raw object or '<unknown>' will be displayed as title.
+    show : bool
+        Show figure if True
 
     Returns
     -------
@@ -2631,6 +2633,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     params['fig_opts'] = None
     if show_options is True:
         _toggle_options(None, params)
+
+    if show:
+        pl.show()
     return fig
 
 
