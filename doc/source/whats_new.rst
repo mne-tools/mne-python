@@ -1,6 +1,21 @@
 What's new
 ==========
 
+.. _changes_0_7:
+
+Current
+-------
+
+Changelog
+~~~~~~~~~
+
+   - ...
+
+API
+~~~
+
+   - ...
+
 .. _changes_0_6:
 
 Version 0.6
