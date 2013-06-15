@@ -3,7 +3,7 @@ What's new
 
 .. _changes_0_6:
 
-Current
+Version 0.6
 -----------
 
 Changelog
@@ -135,6 +135,28 @@ API
    - Deprecate CTF compensation (keep_comp and dest_comp) in Epochs and move it to Raw with a single compensation parameter.
 
    - Remove artifacts module. Artifacts- and preprocessing related functions can now be found in mne.preprocessing.
+
+Authors
+~~~~~~~~~
+
+The committer list for this release is the following (preceded by number
+of commits):
+
+   * 340  Eric Larson
+   * 330  Denis A. Engemann
+   * 204  Alexandre Gramfort
+   *  72  Christian Brodbeck
+   *  66  Roman Goj
+   *  65  Martin Luessi
+   *  37  Teon Brooks
+   *  18  Mainak Jas
+   *   9  Simon Kornblith
+   *   7  Daniel Strohmeier
+   *   6  Romain Trachel
+   *   5  Yousra BEKHTI
+   *   5  Brad Buran
+   *   1  Andrew Dykstra
+   *   1  Christoph Dinh
 
 .. _changes_0_5:
 
