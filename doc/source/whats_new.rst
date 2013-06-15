@@ -418,3 +418,5 @@ of commits):
 .. _Mainak Jas: http://ltl.tkk.fi/wiki/Mainak_Jas
 
 .. _Roman Goj: http://romanmne.blogspot.co.uk
+
+.. _Andrew Dykstra: https://github.com/adykstra

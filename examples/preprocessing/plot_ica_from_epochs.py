@@ -35,21 +35,6 @@ raw = Raw(raw_fname, preload=True)
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
                             ecg=True, stim=False, exclude='bads')
 
-###############################################################################
-# Setup ICA seed decompose data, then access and plot sources.
-
-# Instead of the actual number of components here we pass a float value
-# between 0 and 1 to select n_components by a percentage of
-# explained variance. Also we decide to use 64 PCA components before mixing
-# back to sensor space. These include the PCA components supplied to ICA plus
-# additional PCA components up to rank 64 of the MEG data.
-# This allows to control the trade-off between denoising and preserving signal.
-
-ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
-          noise_cov=None, random_state=0)
-print ica
-
-# get epochs
 tmin, tmax, event_id = -0.2, 0.5, 1
 baseline = (None, 0)
 reject = None
@@ -58,12 +43,19 @@ events = mne.find_events(raw, stim_channel='STI 014')
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
+###############################################################################
+# Setup ICA seed decompose data, then access and plot sources.
+# for more background information visit the plot_ica_from_raw.py example
 
 # fit sources from epochs or from raw (both works for epochs)
+ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
+          noise_cov=None, random_state=0)
+
 ica.decompose_epochs(epochs)
+print ica
 
 ###############################################################################
-# Automatically find the ECG component using correlation with ECG signal
+# Automatically find ECG and EOG component using correlation coefficient.
 
 # As we don't have an ECG channel we use one that correlates a lot with heart
 # beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
@@ -76,37 +68,41 @@ ecg_scores = ica.find_sources_epochs(epochs, target='MEG 1531',
 # get maximum correlation index for ECG
 ecg_source_idx = np.abs(ecg_scores).argmax()
 
-print '#%i -- ICA component resembling the ECG' % ecg_source_idx
+# get sources from concatenated epochs
+sources = ica.get_sources_epochs(epochs, concatenate=True)
 
-###############################################################################
-# Automatically find the EOG component using correlation with EOG signal
+# plot first epoch
+times = epochs.times
+first_trial = np.arange(len(times))
+
+pl.figure()
+pl.title('Source most correlated with the ECG channel')
+pl.plot(times, sources[ecg_source_idx, first_trial].T, color='r')
+pl.xlabel('Time (s)')
+pl.ylabel('AU')
+pl.show()
 
 # As we have an EOG channel, we can use it to detect the source.
-
 eog_scores = ica.find_sources_epochs(epochs, target='EOG 061',
                                      score_func='pearsonr')
 
 # get maximum correlation index for EOG
 eog_source_idx = np.abs(eog_scores).argmax()
 
-print '#%i -- ICA component resembling the EOG' % eog_source_idx
+# compute times for concatenated epochs
+times = np.linspace(times[0], times[-1] * len(epochs), sources.shape[1])
 
 # As the subject did not constantly move her eyes, the movement artifacts
 # may remain hidden when plotting single epochs.
 # Plotting the identified source across epochs reveals
 # considerable EOG artifacts.
 
-# get maximum correlation index for EOG
-eog_source_idx = np.abs(eog_scores).argmax()
-
-# get sources
-sources = ica.get_sources_epochs(epochs, concatenate=True)
-
 pl.figure()
 pl.title('Source most correlated with the EOG channel')
-pl.plot(sources[eog_source_idx].T, color='r')
+pl.plot(times, sources[eog_source_idx].T, color='r')
 pl.xlabel('Time (s)')
 pl.ylabel('AU')
+pl.xlim(times[[0, -1]])
 pl.show()
 
 ###############################################################################
@@ -135,3 +131,6 @@ ica_picks = mne.fiff.pick_types(ica_epochs.info, misc=True, exclude=[])
 ica_evoked = ica_epochs.average(ica_picks)
 pl.figure()
 ica_evoked.plot(titles=dict(misc='ICA sources'))
+
+# Tip: use this for epochs constructed around ECG r-peaks to check whether all
+# ECG components were identified.
