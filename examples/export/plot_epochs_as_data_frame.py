@@ -1,7 +1,7 @@
 """
-=======================================
-Export Epochs to a data frame in Pandas
-=======================================
+=================================
+Export epochs to Pandas DataFrame
+=================================
 
 In this example the pandas exporter will be used to produce a DataFrame
 object. After exploring some basic features a split-apply-combine
@@ -10,7 +10,7 @@ maxima across epochs and conditions.
 Note. Equivalent methods are available for raw and evoked data objects.
 
 Short Pandas Primer
-----------------------------
+-------------------
 
 Pandas Data Frames
 ~~~~~~~~~~~~~~~~~~

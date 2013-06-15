@@ -1,6 +1,6 @@
 """
 =================================================
-Compare Evoked Responses for Different Conditions
+Compare evoked responses for different conditions
 =================================================
 
 In this example, an Epochs object for visual and

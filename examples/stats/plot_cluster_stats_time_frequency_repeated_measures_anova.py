@@ -1,6 +1,6 @@
 """
 ====================================================================
-Mass-Univariate Twoway Repeated Measures ANOVA on Single Trial Power
+Mass-univariate twoway repeated measures ANOVA on single trial power
 ====================================================================
 
 This script shows how to conduct a mass-univariate repeated measures
@@ -181,7 +181,8 @@ def stat_fun(*args):
 
 
 pthresh = 0.00001  # set threshold rather high to save some time
-f_thresh = f_threshold_twoway_rm(n_replications, factor_levels, effects, pthresh)
+f_thresh = f_threshold_twoway_rm(n_replications, factor_levels, effects,
+                                 pthresh)
 tail = 1  # f-test, so tail > 0
 n_permutations = 256  # Save some time (the test won't be too sensitive ...)
 T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
