@@ -237,7 +237,7 @@ class RtEpochs(_BaseEpochs):
         if stop_receive_thread or stop_measurement:
             self._client.stop_receive_thread(stop_measurement=stop_measurement)
 
-    def next(self):
+    def next(self, return_event_id=False):
         """To make iteration over epochs easy.
         """
         if self._current >= self._n_epochs:
@@ -256,7 +256,7 @@ class RtEpochs(_BaseEpochs):
                 else:
                     epoch = self._epoch_queue[self._current]
                 self._current += 1
-                return epoch
+                return epoch if not return_event_id else epoch, self.event_id
             if self._started:
                 if first:
                     logger.info('Waiting for epochs.. (%d / %d)' %
