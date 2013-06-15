@@ -22,22 +22,19 @@ from .. import verbose
 def read_cov(fid, node, cov_kind, verbose=None):
     """Read a noise covariance matrix
 
-    This is a low-level function. Consider using mne.cov.read_cov()
+    This is a low-level function. Consider using `mne.cov.read_cov()`
     for most user-level purposes.
 
     Parameters
     ----------
     fid : file
-        The file descriptor
-
+        The file descriptor.
     node : dict
-        The node in the FIF tree
-
+        The node in the FIF tree.
     cov_kind : int
         The type of covariance. This is typically
         FIFF.FIFFV_MNE_NOISE_COV, although it could also be
         FIFF.FIFFV_MNE_SOURCE_COV or FIFF.FIFFV_MNE_FMRI_PRIOR_COV.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -143,10 +140,9 @@ def write_cov(fid, cov):
     Parameters
     ----------
     fid : file
-        The file descriptor
-
+        The file descriptor.
     cov : dict
-        The noise covariance matrix to write
+        The noise covariance matrix to write.
     """
     start_block(fid, FIFF.FIFFB_MNE_COV)
 

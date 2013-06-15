@@ -112,7 +112,7 @@ class ICA(object):
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results.
     algorithm : {'parallel', 'deflation'}
-        Apply parallel or deflational algorithm for FastICA
+        Apply parallel or deflational algorithm for FastICA.
     fun : string or function, optional. Default: 'logcosh'
         The functional form of the G function used in the
         approximation to neg-entropy. Could be either 'logcosh', 'exp',
@@ -160,8 +160,10 @@ class ICA(object):
         the .pick_sources method via the 'exclude' argument are added to the
         .exclude attribute. When saving the ICA also the indices are restored.
         Hence, artifact components once identified don't have to be added
-        again. To dump this 'artifact memory' say:
-        >> ica.exclude = []
+        again. To dump this 'artifact memory' say::
+
+            >> ica.exclude = []
+
     """
     @verbose
     def __init__(self, n_components, max_pca_components=100,
@@ -556,9 +558,12 @@ class ICA(object):
         raw : instance of mne.fiff.Raw
             Raw object to plot the sources from.
         order : ndarray | None.
-            Index of length n_components_. If None, plot will show the sources
+            Index of length `n_components_`. If None, plot will show the sources
             in the order as fitted.
-            Example: arg_sort = np.argsort(np.var(sources)).
+            Example::
+
+                arg_sort = np.argsort(np.var(sources)).
+
         start : int
             X-axis start index. If None from the beginning.
         stop : int
@@ -768,9 +773,9 @@ class ICA(object):
             The source indices to remove. If None all are used.
         n_pca_components : int
             The number of PCA components to be unwhitened, where
-            n_components_ is the lower bound and max_pca_components
-            the upper bound. If greater than self.n_components_, the next
-            'n_pca_components' minus 'n_components' PCA components will
+            `n_components_` is the lower bound and max_pca_components
+            the upper bound. If greater than `self.n_components_`, the next
+            `n_pca_components` minus 'n_components' PCA components will
             be added before restoring the sensor space data. This can be used
             to take back the PCA dimension reduction.
         start : int | float | None
@@ -896,9 +901,9 @@ class ICA(object):
         - Consider using shorter times for start_find and stop_find than
         for start and stop. It can save you much time.
 
-        Example invocation (taking advantage of the defaults):
+        Example invocation (taking advantage of the defaults)::
 
-        ica.detect_artifacts(ecg_channel='MEG 1531', eog_channel='EOG 061')
+            ica.detect_artifacts(ecg_channel='MEG 1531', eog_channel='EOG 061')
 
         Parameters
         ----------

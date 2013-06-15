@@ -79,12 +79,14 @@ class Epochs(ProjMixin):
         Epoch rejection parameters based on peak to peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
         If reject is None then no rejection is done.
-        Values are float. Example:
-        reject = dict(grad=4000e-13, # T / m (gradiometers)
-                      mag=4e-12, # T (magnetometers)
-                      eeg=40e-6, # uV (EEG channels)
-                      eog=250e-6 # uV (EOG channels)
-                      )
+        Values are float. Example::
+
+            reject = dict(grad=4000e-13, # T / m (gradiometers)
+                          mag=4e-12, # T (magnetometers)
+                          eeg=40e-6, # uV (EEG channels)
+                          eog=250e-6 # uV (EOG channels)
+                          )
+
     flat : dict
         Epoch rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
@@ -144,37 +146,9 @@ class Epochs(ProjMixin):
     verbose : bool, str, int, or None
         See above.
 
-    Methods
-    -------
-    get_data() : self
-        Return all epochs as a 3D array [n_epochs x n_channels x n_times].
-    average(picks=None) : Evoked
-        Return Evoked object containing averaged epochs as a
-        2D array [n_channels x n_times].
-    standard_error(picks=None) : self
-        Return Evoked object containing standard error over epochs as a
-        2D array [n_channels x n_times].
-    drop_bad_epochs() : None
-        Drop all epochs marked as bad. Should be used before indexing and
-        slicing operations, and is done automatically by preload=True.
-    drop_epochs() : self, indices
-        Drop a set of epochs (both from preloaded data and event list).
-    equalize_trial_counts() : list, str, bool
-        Equalize the number of trials in each condition.
-    resample() : self, int, int, int, string or list
-        Resample preloaded data.
-    as_data_frame() : DataFrame
-        Export Epochs object as Pandas DataFrame for subsequent statistical
-        analyses.
-    to_nitime() : TimeSeries
-        Export Epochs object as nitime TimeSeries object for subsequent
-        analyses.
-
     Notes
     -----
     For indexing and slicing:
-
-    epochs = Epochs(...)
 
     epochs[idx] : Epochs
         Return Epochs object with a subset of epochs (supports single
@@ -185,13 +159,15 @@ class Epochs(ProjMixin):
     epochs['name'] : Epochs
         Return Epochs object with a subset of epochs corresponding to an
         experimental condition as specified by 'name'.
+
     epochs[['name_1', 'name_2', ... ]] : Epochs
         Return Epochs object with a subset of epochs corresponding to multiple
         experimental conditions as specified by 'name_1', 'name_2', ... .
 
-    See also mne.epochs.combine_event_ids and Epochs.equalize_event_counts
-    for other functions involving manipulating experimental conditions.
-
+    See also
+    --------
+    mne.epochs.combine_event_ids
+    mne.Epochs.equalize_event_counts
     """
     @verbose
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),

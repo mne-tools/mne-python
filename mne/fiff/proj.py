@@ -76,54 +76,60 @@ class ProjMixin(object):
     def apply_projector(self):
         """Apply the signal space projection (SSP) operators to the data.
 
-        Note: Once the projectors have been applied, they can no longer be
-              removed. It is usually not recommended to apply the projectors at
-              too early stages, as they are applied automatically later on
-              (e.g. when computing inverse solutions).
-              Hint: using the copy method individual projection vectors
-              can be tested without affecting the original data.
-              With evoked data, consider the following example:
+        Notes
+        -----
+        Once the projectors have been applied, they can no longer be
+        removed. It is usually not recommended to apply the projectors at
+        too early stages, as they are applied automatically later on
+        (e.g. when computing inverse solutions).
+        Hint: using the copy method individual projection vectors
+        can be tested without affecting the original data.
+        With evoked data, consider the following example::
 
-                  projs_a = mne.read_proj('proj_a.fif')
-                  projs_b = mne.read_proj('proj_b.fif')
-                  # add the first, copy, apply and see ...
-                  evoked.add_proj(a).copy().apply_proj().plot()
-                  # add the second, copy, apply and see ...
-                  evoked.add_proj(b).copy().apply_proj().plot()
-                  # drop the first and see again
-                  evoked.copy().del_proj(0).apply_proj().plot()
-                  evoked.apply_proj()  # finally keep both
+            projs_a = mne.read_proj('proj_a.fif')
+            projs_b = mne.read_proj('proj_b.fif')
+            # add the first, copy, apply and see ...
+            evoked.add_proj(a).copy().apply_proj().plot()
+            # add the second, copy, apply and see ...
+            evoked.add_proj(b).copy().apply_proj().plot()
+            # drop the first and see again
+            evoked.copy().del_proj(0).apply_proj().plot()
+            evoked.apply_proj()  # finally keep both
 
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
+            The instance.
         """
         return self.apply_proj()
 
     def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
 
-        Note: Once the projectors have been applied, they can no longer be
-              removed. It is usually not recommended to apply the projectors at
-              too early stages, as they are applied automatically later on
-              (e.g. when computing inverse solutions).
-              Hint: using the copy method individual projection vectors
-              can be tested without affecting the original data.
-              With evoked data, consider the following example:
+        Notes
+        -----
+        Once the projectors have been applied, they can no longer be
+        removed. It is usually not recommended to apply the projectors at
+        too early stages, as they are applied automatically later on
+        (e.g. when computing inverse solutions).
+        Hint: using the copy method individual projection vectors
+        can be tested without affecting the original data.
+        With evoked data, consider the following example::
 
-                  projs_a = mne.read_proj('proj_a.fif')
-                  projs_b = mne.read_proj('proj_b.fif')
-                  # add the first, copy, apply and see ...
-                  evoked.add_proj(a).copy().apply_proj().plot()
-                  # add the second, copy, apply and see ...
-                  evoked.add_proj(b).copy().apply_proj().plot()
-                  # drop the first and see again
-                  evoked.copy().del_proj(0).apply_proj().plot()
-                  evoked.apply_proj()  # finally keep both
+            projs_a = mne.read_proj('proj_a.fif')
+            projs_b = mne.read_proj('proj_b.fif')
+            # add the first, copy, apply and see ...
+            evoked.add_proj(a).copy().apply_proj().plot()
+            # add the second, copy, apply and see ...
+            evoked.add_proj(b).copy().apply_proj().plot()
+            # drop the first and see again
+            evoked.copy().del_proj(0).apply_proj().plot()
+            evoked.apply_proj()  # finally keep both
 
         Returns
         -------
         self : instance of Raw | Epochs | Evoked
+            The instance.
         """
         if self.info['projs'] is None:
             logger.info('No projector specified for this dataset.'

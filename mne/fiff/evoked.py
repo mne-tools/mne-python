@@ -81,7 +81,7 @@ class Evoked(ProjMixin):
         Comment on dataset. Can be the condition.
     times : array
         Array of time instants in seconds.
-    data : 2D array of shape [n_channels x n_times]
+    data : array of shape (n_channels, n_times)
         Evoked response.
     verbose : bool, str, int, or None.
         See above.
@@ -451,7 +451,8 @@ class Evoked(ProjMixin):
                             proj=proj, size=size, format=format)
 
     def to_nitime(self, picks=None):
-        """ Export Evoked object to NiTime
+        """Export Evoked object to NiTime
+
         Parameters
         ----------
         picks : array-like | None
@@ -461,6 +462,7 @@ class Evoked(ProjMixin):
         Returns
         -------
         evoked_ts : instance of nitime.TimeSeries
+            The TimeSeries instance
         """
         try:
             from nitime import TimeSeries  # to avoid strong dependency
