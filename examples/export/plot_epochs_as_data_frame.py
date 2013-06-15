@@ -1,7 +1,7 @@
 """
-=======================================
-Export Epochs to a data frame in Pandas
-=======================================
+=================================
+Export epochs to Pandas DataFrame
+=================================
 
 In this example the pandas exporter will be used to produce a DataFrame
 object. After exploring some basic features a split-apply-combine
@@ -10,11 +10,11 @@ maxima across epochs and conditions.
 Note. Equivalent methods are available for raw and evoked data objects.
 
 Short Pandas Primer
-----------------------------
+-------------------
 
 Pandas Data Frames
 ~~~~~~~~~~~~~~~~~~
-A data frame can be thought of as a product between a matrix, a list and a dict:
+A data frame can be thought of as a combination of matrix, list and dict:
 It knows about linear algebra and element-wise operations but is size mutable
 and allows for labeled access to its data. In addition, the pandas data frame
 class provides many useful methods for restructuring, reshaping and visualizing
@@ -47,8 +47,8 @@ However, it is also possible to include this index as regular categorial data
 columns which yields a long table format typically used for repeated measure
 designs. To take control of this feature, on export, you can specify which
 of the three dimensions 'condition', 'epoch' and 'time' is passed to the Pandas
-index using the index parameter. Note that this decision is revertible any time,
-as demonstrated below.
+index using the index parameter. Note that this decision is revertible any
+time, as demonstrated below.
 
 Similarly, for convenience, it is possible to scale the times, e.g. from
 seconds to milliseconds.
@@ -66,9 +66,9 @@ describe : quickly generate summary stats
     Very useful for exploring data.
 groupby : generate subgroups and initialize a 'split-apply-combine' operation.
     Creates a group object. Subsequently, methods like apply, agg, or transform
-    can be used to manipulate the underlying data separately but simultaneously.
-    Finally reset_index can be used to combine the results back into a data
-    frame.
+    can be used to manipulate the underlying data separately but
+    simultaneously. Finally, reset_index can be used to combine the results
+    back into a data frame.
 plot : wrapper around plt.plot
     However it comes with some special options. For examples see below.
 shape : shape attribute
@@ -79,8 +79,8 @@ to_dict : export data as dict of arrays.
 
 Reference
 ~~~~~~~~~
-More information and additional introductory materials can be found at the pandas
-doc sites: http://pandas.pydata.org/pandas-docs/stable/
+More information and additional introductory materials can be found at the
+pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
 """
 # Author: Denis Engemann <d.engemann@fz-juelich.de>
 #
@@ -127,8 +127,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 # The following parameters will scale the channels and times plotting
 # friendly. The info columns 'epoch' and 'time' will be used as hierarchical
 # index whereas the condition is treated as categorial data. Note that
-# this is optional. By passing None you could also print out all nesting factors
-# in a long table style commonly used for analyzing repeated measure designs.
+# this is optional. By passing None you could also print out all nesting
+# factors in a long table style commonly used for analyzing repeated measure
+# designs.
 
 index, scale_time, scalings = ['epoch', 'time'], 1e3, dict(grad=1e13)
 
@@ -154,7 +155,6 @@ print df.index.names, df.index.levels
 # and the second the columns, that is, channels.
 
 # Plot some channels across the first three epochs
-pl.close('all')
 xticks, sel = np.arange(3, 600, 120), meg_chs[:15]
 df.ix[:3, sel].plot(xticks=xticks)
 mne.viz.tight_layout()
@@ -187,7 +187,8 @@ grouped = df[sel].groupby(factors)
 df.condition = df.condition.apply(lambda name: name + ' ')
 
 # Now we compare the mean of two channels response across conditions.
-grouped.mean().plot(kind='bar', stacked=True, title='Mean MEG Response')
+grouped.mean().plot(kind='bar', stacked=True, title='Mean MEG Response',
+                    color=['steelblue', 'orange'])
 mne.viz.tight_layout()
 
 # We can even accomplish more complicated tasks in a few lines calling
@@ -202,7 +203,8 @@ print max_latency
 df.condition = df.condition.apply(lambda name: name + ' ')
 
 pl.figure()
-max_latency.plot(kind='barh', title='Latency of Maximum Reponse')
+max_latency.plot(kind='barh', title='Latency of Maximum Reponse',
+                 color='steelblue')
 mne.viz.tight_layout()
 
 # Finally, we will again remove the index to create a proper data table that

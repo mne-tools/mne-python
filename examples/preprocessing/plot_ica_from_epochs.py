@@ -1,6 +1,6 @@
 """
 ================================
-Compute ICA components on Epochs
+Compute ICA components on epochs
 ================================
 
 ICA is used to decompose raw data in 49 to 50 sources.
@@ -51,21 +51,16 @@ print ica
 
 # get epochs
 tmin, tmax, event_id = -0.2, 0.5, 1
-# baseline = None
 baseline = (None, 0)
 reject = None
 
 events = mne.find_events(raw, stim_channel='STI 014')
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
 
 # fit sources from epochs or from raw (both works for epochs)
 ica.decompose_epochs(epochs)
-
-# plot components for one epoch of interest
-# A distinct cardiac component should be visible
-ica.plot_sources_epochs(epochs, epoch_idx=13, n_components=25)
 
 ###############################################################################
 # Automatically find the ECG component using correlation with ECG signal
@@ -109,7 +104,9 @@ sources = ica.get_sources_epochs(epochs, concatenate=True)
 
 pl.figure()
 pl.title('Source most correlated with the EOG channel')
-pl.plot(sources[eog_source_idx].T)
+pl.plot(sources[eog_source_idx].T, color='r')
+pl.xlabel('Time (s)')
+pl.ylabel('AU')
 pl.show()
 
 ###############################################################################
@@ -119,17 +116,13 @@ pl.show()
 ica.exclude += [ecg_source_idx, eog_source_idx]
 
 # Restore sensor space data
-epochs_ica = ica.pick_sources_epochs(epochs, include=None)
+epochs_ica = ica.pick_sources_epochs(epochs)
 
-# plot original epochs
-pl.figure()
-epochs.average().plot()
-pl.show()
-
-# plot cleaned epochs
-pl.figure()
-epochs_ica.average().plot()
-pl.show()
+# First show unprocessed, then cleaned epochs
+for e in epochs, epochs_ica:
+    pl.figure()
+    e.average().plot()
+    pl.show()
 
 ###############################################################################
 # Inspect evoked ICA sources

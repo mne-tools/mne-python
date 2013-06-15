@@ -1,7 +1,7 @@
 """
-=========================================
-Create evoked objects in delayed SSP mode
-=========================================
+===============================================
+Create topographic ERF maps in delayed SSP mode
+===============================================
 
 This script shows how to apply SSP projectors delayed, that is,
 at the evoked stage. This is particularly useful to support decisions
@@ -58,4 +58,4 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 times = np.arange(0.05, 0.15, 0.01)
 
 evoked.plot_topomap(times, proj='interactive')
-# Hint: the same works with evoked.plot
+# Hint: the same works for evoked.plot and viz.plot_topo

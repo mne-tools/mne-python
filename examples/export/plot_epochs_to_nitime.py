@@ -1,6 +1,6 @@
 """
 =======================
-Export Epochs to NiTime
+Export epochs to NiTime
 =======================
 
 This script shows how to export Epochs to the NiTime library

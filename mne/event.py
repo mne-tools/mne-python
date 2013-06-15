@@ -65,7 +65,7 @@ def pick_events(events, include=None, exclude=None):
 
 def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
                          new_id=None, fill_na=None):
-    """ Define new events by co-occurrence of existing events
+    """Define new events by co-occurrence of existing events
 
     This function can be used to evaluate events depending on the
     temporal lag to another event. For example, this can be used to
@@ -74,7 +74,6 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
 
     Parameters
     ----------
-
     events : ndarray
         Array as returned by mne.find_events.
     reference_id : int
@@ -138,6 +137,7 @@ def define_target_events(events, reference_id, target_id, sfreq, tmin, tmax,
 
 
 def _read_events_fif(fid, tree):
+    """Aux function"""
     #   Find the desired block
     events = dir_tree_find(tree, FIFF.FIFFB_MNE_EVENTS)
 

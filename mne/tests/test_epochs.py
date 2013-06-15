@@ -684,6 +684,8 @@ def test_as_data_frame():
     for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
         df = epochs.as_data_frame(index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
+        # test that non-indexed data were present as categorial variables
+        df.reset_index().columns[:3] == ['condition', 'epoch', 'time']
 
 
 def test_epochs_proj_mixin():

@@ -1374,7 +1374,7 @@ class SourceEstimate(object):
         """
         pd = _check_pandas_installed()
 
-        default_index = 'subject', 'time'
+        default_index = ['subject', 'time']
         if index is not None:
             _check_pandas_index_arguments(index, default_index)
         else:
@@ -1382,27 +1382,25 @@ class SourceEstimate(object):
 
         data = self.data.T
         shape = data.shape
-        mindex_list = []
-        if 'time' in index:
-            mindex_list.append(('time', self.times * scale_time))
-        if 'subject' in index:
-            mindex_list.append(('subject', np.repeat(self.subject, shape[0])))
+        mindex = list()
+        mindex.append(('time', self.times * scale_time))
+        mindex.append(('subject', np.repeat(self.subject, shape[0])))
 
         if copy:
             data = data.copy()
-        assert all(len(mdx) == len(mindex_list[0]) for mdx in mindex_list)
+        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
 
         vert_names = [i for e in [['%s %i' % ('LH' if ii < 1 else 'RH', vert)
                       for vert in vertno]
                       for ii, vertno in enumerate(self.vertno)] for i in e]
         df = pd.DataFrame(data, columns=vert_names)
-        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex_list)]
+        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
 
         if index is not None:
             with warnings.catch_warnings(True):
-                df.set_index([k for k, v in mindex_list], inplace=True)
+                df.set_index(index, inplace=True)
             if 'time' in df.index.names and hasattr(df.index, 'levels'):
-                df.index.levels[1] = df.index.levels[0].astype(int)
+                df.index.levels[1] = df.index.levels[1].astype(int)
 
         return df
 
