@@ -1021,19 +1021,18 @@ class Epochs(ProjMixin):
         id_swapped = dict((v, k) for k, v in self.event_id.items())
         names = [id_swapped[k] for k in self.events[:, 2]]
 
-        mindex_list = []
-        if 'condition' in index:
-            mindex_list.append(('condition', np.repeat(names, shape[2])))
-        if 'time' in index:
-            mindex_list.append(('time', np.tile(self.times, shape[0]) * scale_time))
-        if 'epoch' in index:
-            mindex_list.append(('epoch', np.repeat(np.arange(shape[0]), shape[2])))
+        mindex = list()
+        mindex.append(('condition', np.repeat(names, shape[2])))
+        mindex.append(('time', np.tile(self.times, shape[0]) *
+                                scale_time))        # if 'epoch' in index:
+        mindex.append(('epoch', np.repeat(np.arange(shape[0]),
+                                shape[2])))
 
-        assert all(len(mdx) == len(mindex_list[0]) for mdx in mindex_list)
+        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
         col_names = [self.ch_names[k] for k in picks]
 
         df = pd.DataFrame(data, columns=col_names)
-        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex_list)]
+        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
         if index is not None:
             with warnings.catch_warnings(True):
                 df.set_index(index, inplace=True)

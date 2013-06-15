@@ -435,7 +435,9 @@ def test_as_data_frame():
     fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
     stc = read_source_estimate(fname, subject='sample')
     assert_raises(ValueError, stc.as_data_frame, index=['foo', 'bar'])
-    for ind in ['time', ['time', 'subject']]:
+    for ncat, ind in zip([1, 0], ['time', ['subject', 'time']]):
         df = stc.as_data_frame(index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
-        assert_array_equal(df.values.T, stc.data)
+        assert_array_equal(df.values.T[ncat:], stc.data)
+        # test that non-indexed data were present as categorial variables
+        df.reset_index().columns[:3] == ['subject', 'time']
