@@ -1,7 +1,7 @@
 """
-===============================
-Exporting Evoked Data to Nitime
-===============================
+============================
+Export evoked data to Nitime
+============================
 
 """
 # Author: Denis Engemann <d.engemann@fz-juelichde>

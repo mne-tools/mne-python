@@ -258,7 +258,7 @@ class ICA(object):
             logger.info('Inferring max_pca_components from picks.')
 
         self.ch_names = [raw.ch_names[k] for k in picks]
-
+        start, stop = _check_start_stop(raw, start, stop)
         data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                     raw.info, picks)
 
@@ -347,14 +347,12 @@ class ICA(object):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
-
+        start, stop = _check_start_stop(raw, start, stop)
         return self._get_sources_raw(raw, start, stop)[0]
 
     def _get_sources_raw(self, raw, start, stop):
         """Aux function"""
 
-        start, stop = [c if isinstance(c, int) else (raw.time_as_index(c) if
-                       c is not None else c) for c in start, stop]
         picks = [raw.ch_names.index(k) for k in self.ch_names]
         data, _ = self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
         pca_data = self._transform_pca(data.T)
@@ -453,7 +451,6 @@ class ICA(object):
         out : instance of mne.Raw
             Container object for ICA sources
         """
-
         # include 'reference' channels for comparison with ICA
         if picks is None:
             picks = pick_types(raw.info, meg=False, eeg=False, misc=True,
@@ -461,6 +458,7 @@ class ICA(object):
 
         # merge copied instance and picked data with sources
 
+        start, stop = _check_start_stop(raw, start, stop)
         sources = self.get_sources_raw(raw, start=start, stop=stop)
         if raw._preloaded:
             data, times = raw._data, raw._times
@@ -581,6 +579,7 @@ class ICA(object):
         -------
         fig : instance of pyplot.Figure
         """
+        start, stop = _check_start_stop(raw, start, stop)
         sources = self.get_sources_raw(raw, start=start, stop=stop)
 
         if order is not None:
@@ -615,14 +614,12 @@ class ICA(object):
             Index of length n_components. If None, plot will show the sources
             in the order as fitted.
             Example: arg_sort = np.argsort(np.var(sources)).
-        sources : ndarray
-            Sources as drawn from self.get_sources.
-        start : int | float | None
-            First sample to include. If float, data will be interpreted as
-            time in seconds. If None, data will be shown from the first sample.
-        stop : int | float | None
-            Last sample to not include. If float, data will be interpreted as
-            time in seconds. If None, data will be shown to the last sample.
+        start : int | None
+            First sample to include. If None, data will be shown from the first
+            sample.
+        stop : int | None
+            Last sample to not include. If None, data will be shown to the last
+            sample.
         n_components : int
             Number of components fitted.
         source_idx : array-like
@@ -693,7 +690,7 @@ class ICA(object):
         scores : ndarray
             scores for each source as returned from score_func
         """
-        # auto source drawing
+        start, stop = _check_start_stop(raw, start, stop)
         sources = self.get_sources_raw(raw=raw, start=start, stop=stop)
 
         # auto target selection
@@ -808,6 +805,7 @@ class ICA(object):
         if n_pca_components is not None:
             self.n_pca_components = n_pca_components
 
+        start, stop = _check_start_stop(raw, start, stop)
         sources, pca_data = self._get_sources_raw(raw, start=start, stop=stop)
         recomposed = self._pick_sources(sources, pca_data, include,
                                         self.exclude)
@@ -908,9 +906,9 @@ class ICA(object):
             interpreted as time in seconds. If None, data will be used from the
             first sample.
         stop_find : int | float | None
-            Last sample to not include for artifact search. If float, data will be
-            interpreted as time in seconds. If None, data will be used to the last
-            sample.
+            Last sample to not include for artifact search. If float, data will
+            be interpreted as time in seconds. If None, data will be used to
+            the last sample.
         ecg_ch : str | ndarray | None
             The `target` argument passed to ica.find_sources_raw. Either the
             name of the ECG channel or the ECG time series. If None, this step
@@ -1128,6 +1126,12 @@ class ICA(object):
             X_orig += self.pca_mean_
 
         return X_orig
+
+
+def _check_start_stop(raw, start, stop):
+    """Aux function"""
+    return [c if (isinstance(c, int) or c is None) else
+            raw.time_as_index(c)[0] for c in start, stop]
 
 
 @verbose

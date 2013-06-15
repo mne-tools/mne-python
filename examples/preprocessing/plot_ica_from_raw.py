@@ -1,6 +1,6 @@
 """
 ==================================
-Compute ICA components on Raw data
+Compute ICA components on raw data
 ==================================
 
 ICA is used to decompose raw data in 49 to 50 sources.
@@ -49,12 +49,12 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
           noise_cov=None, random_state=0)
-print ica
 
 # 1 minute exposure should be sufficient for artifact detection.
 # However, rejection performance may significantly improve when using
 # the entire data range
-start, stop = raw.time_as_index([100, 160])
+
+start, stop = 100., 160.  # floats, otherwise it will be interpreted as index
 
 # decompose sources for raw data
 ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
@@ -62,10 +62,8 @@ print ica
 
 sources = ica.get_sources_raw(raw, start=start, stop=stop)
 
-# setup reasonable time window for inspection
-start_plot, stop_plot = raw.time_as_index([100, 103])
-
-# plot components
+# plot reasonable time window for inspection
+start_plot, stop_plot = 100., 103.
 ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 
 ###############################################################################
@@ -90,15 +88,17 @@ ecg_scores = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr)
 # get sources
 sources = ica.get_sources_raw(raw, start=start_plot, stop=stop_plot)
 
-# get times
-times = raw.time_as_index(np.arange(stop_plot - start_plot))
+# compute times
+times = np.linspace(start_plot, stop_plot, sources.shape[1])
 
 # get maximum correlation index for ECG
 ecg_source_idx = np.abs(ecg_scores).argmax()
 
 pl.figure()
-pl.plot(times, sources[ecg_source_idx])
+pl.plot(times, sources[ecg_source_idx], color='r')
 pl.title('ICA source matching ECG')
+pl.xlabel('Time (s)')
+pl.ylabel('AU')
 pl.show()
 
 # let us have a look which other components resemble the ECG.
@@ -127,8 +127,10 @@ eog_source_idx = np.abs(eog_scores).argmax()
 
 # plot the component that correlates most with the EOG
 pl.figure()
-pl.plot(times, sources[eog_source_idx])
+pl.plot(times, sources[eog_source_idx], color='r')
 pl.title('ICA source matching EOG')
+pl.xlabel('Time (s)')
+pl.ylabel('AU')
 pl.show()
 
 ###############################################################################
@@ -167,13 +169,13 @@ affected_idx = raw.ch_names.index('MEG 1531')
 
 # plot the component that correlates most with the ECG
 pl.figure()
-pl.plot(times, data[affected_idx])
+pl.plot(times, data[affected_idx], color='k')
 pl.title('Affected channel MEG 1531 before cleaning.')
 y0, y1 = pl.ylim()
 
 # plot the component that correlates most with the ECG
 pl.figure()
-pl.plot(times, data_clean[affected_idx])
+pl.plot(times, data_clean[affected_idx], color='k')
 pl.title('Affected channel MEG 1531 after cleaning.')
 pl.ylim(y0, y1)
 pl.show()
@@ -185,7 +187,7 @@ from mne.layouts import make_grid_layout
 
 ica_raw = ica.sources_as_raw(raw, start=start, stop=stop, picks=None)
 
-print ica_raw.ch_names
+print ica_raw.ch_names[:5]  # just a few
 
 ica_lout = make_grid_layout(ica_raw.info)
 
@@ -193,7 +195,7 @@ ica_lout = make_grid_layout(ica_raw.info)
 # ica_raw.save('ica_raw.fif')
 # ica_lout.save(os.path.join(os.environ['HOME'], '.mne/lout/ica.lout'))
 
-################################################################################
+###############################################################################
 # To save an ICA session you can say:
 # ica.save('my_ica.fif')
 #

@@ -1844,8 +1844,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     hangover = n_components % ncol
     nplots = nrow * ncol
 
-    if source_idx.shape > nrow * ncol:
-        logger.info('More sources selected than rows and cols specified.'
+    if source_idx.size > nrow * ncol:
+        logger.info('More sources selected than rows and cols specified. '
                     'Showing the first %i sources.' % nplots)
         source_idx = np.arange(nplots)
 
