@@ -250,7 +250,6 @@ Events
    :toctree: generated/
    :template: function.rst
 
-   define_target_events
    concatenate_events
    find_events
    find_stim_steps
@@ -260,6 +259,20 @@ Events
    pick_events
    read_events
    write_events
+
+:py:mod:`mne.event`:
+
+.. automodule:: mne.event
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.epochs
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   define_target_events
 
 :py:mod:`mne.epochs`:
 
