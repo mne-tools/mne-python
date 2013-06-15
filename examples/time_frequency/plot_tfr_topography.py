@@ -41,6 +41,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
 data = epochs.get_data()  # as 3D matrix
 
+layout = mne.layouts.read_layout('Vectorview-all')
+
 ###############################################################################
 # Calculate power and phase locking value
 
@@ -62,7 +64,7 @@ mode = 'ratio'  # set mode for baseline rescaling
 # Show topography of power.
 
 title = 'Induced power - MNE sample data'
-plot_topo_power(epochs, power, frequencies, baseline=baseline,
+plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
                 mode=mode, decim=decim, vmin=0., vmax=14, title=title)
 pl.show()
 
@@ -72,7 +74,7 @@ pl.show()
 mode = None  # no baseline rescaling for PLV
 
 title = 'Phase locking value - MNE sample data'
-plot_topo_phase_lock(epochs, phase_lock, frequencies, baseline=baseline,
-                    mode=mode, decim=decim, title=title)
+plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
+                     baseline=baseline, mode=mode, decim=decim, title=title)
 
 pl.show()
