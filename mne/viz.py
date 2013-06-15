@@ -111,8 +111,8 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
 
     Note. For plotting please use this function instead of pl.tight_layout
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     pad : float
         padding between the figure edge and the edges of subplots, as a
         fraction of the font-size.

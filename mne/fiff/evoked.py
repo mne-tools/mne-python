@@ -65,9 +65,9 @@ class Evoked(ProjMixin):
 
     Attributes
     ----------
-    info: dict
+    info : dict
         Measurement info.
-    ch_names: list of string
+    ch_names : list of string
         List of channels' names.
     nave : int
         Number of averaged epochs.

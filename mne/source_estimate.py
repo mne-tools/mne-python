@@ -493,8 +493,8 @@ class SourceEstimate(object):
     ----------
     data : array of shape (n_dipoles, n_times)
         The data in source space.
-    shape : 2-tuple of int (n_dipoles, n_times)
-        The shape of the data.
+    shape : tuple
+        The shape of the data. A tuple of int (n_dipoles, n_times)
     subject : str | None
         The subject name.
     times : array of shape (n_times,)

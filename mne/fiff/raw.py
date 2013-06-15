@@ -73,9 +73,9 @@ class Raw(ProjMixin):
     ----------
     info : dict
         Measurement info.
-    ch_names : list of string
+    `ch_names` : list of string
         List of channels' names.
-    n_times : int
+    `n_times` : int
         Total number of time points in the raw file.
     verbose : bool, str, int, or None
         See above.
@@ -1290,6 +1290,7 @@ class Raw(ProjMixin):
             self._times = np.arange(self.n_times) / self.info['sfreq']
 
     def close(self):
+        """Close the files on disk."""
         [f.close() for f in self.fids]
         self.fids = []
 
