@@ -60,11 +60,10 @@ data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
 
 pl.close('all')
 
-pick_oris = [None, 'normal', 'max-power']
-names = ['free', 'normal', 'max-power']
-descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
-                'orientation']
-colors = ['b', 'k', 'r']
+pick_oris = [None, 'max-power']
+names = ['free', 'max-power']
+descriptions = ['Free orientation', 'Max-power orientation']
+colors = ['b', 'r']
 
 for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,

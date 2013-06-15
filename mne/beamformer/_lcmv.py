@@ -51,10 +51,9 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     picks : array of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
+    pick_ori : None | 'max-power'
+        If 'max-power', the source orientation that maximizes output source
+        power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -66,18 +65,10 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
-    if pick_ori in ['normal', 'max-power'] and not is_free_ori:
-        raise ValueError('Normal or max-power orientation can only be picked '
+    if pick_ori in ['max-power'] and not is_free_ori:
+        raise ValueError('Max-power orientation can only be picked '
                          'when a forward operator with free orientation is '
                          'used.')
-    if pick_ori == 'normal' and not forward['surf_ori']:
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator oriented in surface coordinates is '
-                         'used.')
-    if pick_ori == 'normal' and not forward['src'][0]['type'] == 'surf':
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator with a surface-based source space '
-                         'is used.')
 
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, exclude='bads')
@@ -154,7 +145,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
         else:
             # Fixed source orientation
-            Wk[:] = Wk / Ck
+            Wk /= Ck
 
     # Pick source orientation maximizing output source power
     if pick_ori == 'max-power':
@@ -168,11 +159,6 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     if not is_free_ori:
         W /= noise_norm[:, None]
-
-    # Pick source orientation normal to cortical surface
-    if pick_ori == 'normal':
-        W = W[2::3]
-        is_free_ori = False
 
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
@@ -240,10 +226,9 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
+    pick_ori : None | 'max-power'
+        If 'max-power', the source orientation that maximizes output source
+        power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -300,10 +285,9 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label.
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
+    pick_ori : None | 'max-power'
+        If 'max-power', the source orientation that maximizes output source
+        power is chosen.
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
@@ -376,10 +360,9 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     picks : array of int
         Channel indices in raw to use for beamforming (if None all channels
         are used except bad channels).
-    pick_ori : None | 'normal' | 'max-power'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
+    pick_ori : None | 'max-power'
+        If 'max-power', the source orientation that maximizes output source
+        power is chosen.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

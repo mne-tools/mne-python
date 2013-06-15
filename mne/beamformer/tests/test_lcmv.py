@@ -74,34 +74,16 @@ def test_lcmv():
     assert_true(0.09 < tmax < 0.1)
     assert_true(2. < np.max(max_stc) < 3.)
 
-    # Test if non-surface oriented forward operator is detected when picking
-    # normal orientation
-    assert_raises(ValueError, lcmv, evoked, forward, noise_cov, data_cov,
-                  reg=0.01, pick_ori="normal")
-
-    # Test picking normal orientation
-    stc_normal = lcmv(evoked, forward_surf_ori, noise_cov, data_cov, reg=0.01,
-                      pick_ori="normal")
-
-    assert_true((np.abs(stc_normal.data) <= stc.data).all())
-
     # Test picking source orientation maximizing output source power
     stc_max_power = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
                          pick_ori="max-power")
 
     assert_true((np.abs(stc_max_power.data) <= stc.data + 1).all())
 
-    # Test if fixed forward operator is detected when picking normal or
+    # Test if fixed forward operator is detected when picking
     # max-power orientation
     assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
-                  reg=0.01, pick_ori="normal")
-    assert_raises(ValueError, lcmv, evoked, forward_fixed, noise_cov, data_cov,
                   reg=0.01, pick_ori="max-power")
-
-    # Test if volume forward operator is detected when picking normal
-    # orientation
-    assert_raises(ValueError, lcmv, evoked, forward_vol, noise_cov, data_cov,
-                  reg=0.01, pick_ori="normal")
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
