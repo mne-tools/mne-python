@@ -50,8 +50,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
 # fit sources from epochs or from raw (both works for epochs)
 ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
           noise_cov=None, random_state=0)
-print ica
+
 ica.decompose_epochs(epochs)
+print ica
 
 ###############################################################################
 # Automatically find ECG and EOG component using correlation coefficient.
@@ -61,35 +62,19 @@ ica.decompose_epochs(epochs)
 # In our example, the find_sources method returns and array of correlation
 # scores for each ICA source.
 
+
 ecg_scores = ica.find_sources_epochs(epochs, target='MEG 1531',
                                      score_func='pearsonr')
 
 # get maximum correlation index for ECG
 ecg_source_idx = np.abs(ecg_scores).argmax()
 
-print '#%i -- ICA component resembling ECG' % ecg_source_idx
-
-# As we have an EOG channel, we can use it to detect the source.
-
-eog_scores = ica.find_sources_epochs(epochs, target='EOG 061',
-                                     score_func='pearsonr')
-
-# get maximum correlation index for EOG
-eog_source_idx = np.abs(eog_scores).argmax()
-
-print '#%i -- ICA component resembling EOG' % eog_source_idx
-
-# As the subject did not constantly move her eyes, the movement artifacts
-# may remain hidden when plotting single epochs.
-# Plotting the identified source across epochs reveals
-# considerable EOG artifacts.
-
-# get maximum correlation index for EOG
-eog_source_idx = np.abs(eog_scores).argmax()
-
-# get sources concatenated
+# get sources from concatenated epochs
 sources = ica.get_sources_epochs(epochs, concatenate=True)
+
 times = epochs.times
+
+# plot first epoch
 first_trial = np.arange(len(times))
 
 pl.figure()
@@ -99,8 +84,20 @@ pl.xlabel('Time (s)')
 pl.ylabel('AU')
 pl.show()
 
+# As we have an EOG channel, we can use it to detect the source.
+eog_scores = ica.find_sources_epochs(epochs, target='EOG 061',
+                                     score_func='pearsonr')
+
+# get maximum correlation index for EOG
+eog_source_idx = np.abs(eog_scores).argmax()
+
 # compute times for concatenated epochs
 times = np.linspace(times[0], times[-1] * len(epochs), sources.shape[1])
+
+# As the subject did not constantly move her eyes, the movement artifacts
+# may remain hidden when plotting single epochs.
+# Plotting the identified source across epochs reveals
+# considerable EOG artifacts.
 
 pl.figure()
 pl.title('Source most correlated with the EOG channel')
