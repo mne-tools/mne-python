@@ -11,7 +11,7 @@ class Info(dict):
 
     def __repr__(self):
         """Summarize info instead of printing all"""
-        st = '<Info | %s non-empty fields'
+        st = '<Info | %s non-empty fields\n'
         non_empty = 0
         strs = []
         for k, v in self.items():
