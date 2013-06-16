@@ -253,7 +253,7 @@ def test_morph():
                 [np.arange(10242), np.arange(10242)], subjects_dir, 2,
                  copy=False)
     # subject name should be inferred now
-    label.smooth()
+    label.smooth(subjects_dir=subjects_dir)
 
 
 def test_grow_labels():

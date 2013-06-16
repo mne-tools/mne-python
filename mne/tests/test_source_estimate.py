@@ -158,7 +158,7 @@ def test_stc_methods():
 
     assert_raises(ValueError, stc.center_of_mass, 'sample')
     stc.lh_data[:] = 0
-    vertex, hemi, t = stc.center_of_mass('sample')
+    vertex, hemi, t = stc.center_of_mass('sample', subjects_dir=subjects_dir)
     assert_true(hemi == 1)
     # XXX Should design a fool-proof test case, but here were the results:
     assert_true(vertex == 90186)
@@ -292,15 +292,18 @@ def test_morph_data():
     # make sure we can specify grade
     stc_from.crop(0.09, 0.1)  # for faster computation
     stc_to.crop(0.09, 0.1)  # for faster computation
-    stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000)
+    stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000,
+                             subjects_dir=subjects_dir)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
     # make sure we can specify vertices
     vertices_to = grade_to_vertices(subject_to, grade=3)
     stc_to2 = morph_data(subject_from, subject_to, stc_from,
-                         grade=vertices_to, smooth=12, buffer_size=1000)
+                         grade=vertices_to, smooth=12, buffer_size=1000,
+                         subjects_dir=subjects_dir)
     # make sure we can use different buffer_size
     stc_to3 = morph_data(subject_from, subject_to, stc_from,
-                         grade=vertices_to, smooth=12, buffer_size=3)
+                         grade=vertices_to, smooth=12, buffer_size=3,
+                         subjects_dir=subjects_dir)
     # indexing silliness here due to mne_make_movie's indexing oddities
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
@@ -308,7 +311,7 @@ def test_morph_data():
     # make sure precomputed morph matrices work
     morph_mat = compute_morph_matrix(subject_from, subject_to,
                                      stc_from.vertno, vertices_to,
-                                     smooth=12)
+                                     smooth=12, subjects_dir=subjects_dir)
     stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
 
@@ -317,8 +320,8 @@ def test_morph_data():
     assert_true(np.corrcoef(mean_to, mean_from).min() > 0.999)
 
     # make sure we can fill by morphing
-    stc_to5 = morph_data(subject_from, subject_to, stc_from,
-                         grade=None, smooth=12, buffer_size=3)
+    stc_to5 = morph_data(subject_from, subject_to, stc_from, grade=None,
+                         smooth=12, buffer_size=3, subjects_dir=subjects_dir)
     assert_true(stc_to5.data.shape[0] == 163842 + 163842)
 
 
