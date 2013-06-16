@@ -14,6 +14,7 @@ from mne.datasets import sample
 data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
+subjects_dir = data_path + '/subjects'
 
 fwd = mne.read_forward_solution(fname, surf_ori=True)
 leadfield = fwd['sol']['data']
@@ -41,4 +42,5 @@ pl.title('Normal orientation sensitivity')
 pl.show()
 
 args = dict(fmin=0.1, fmid=0.5, fmax=0.9, smoothing_steps=7)
-grad_map.plot(subject='sample', time_label='Gradiometers sensitivity', **args)
+grad_map.plot(subject='sample', time_label='Gradiometers sensitivity',
+              subjects_dir=subjects_dir, **args)
