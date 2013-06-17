@@ -20,16 +20,16 @@ class CSP(object):
     """
     
     @verbose
-    def __init__(self, n_components, n_csp_components=64, cov_func=None, 
+    def __init__(self, components, n_components=64, cov_func=None, 
                  random_state=None, verbose=None):
         
-        if n_components is not None and \
-                n_components > n_csp_components:
-            raise ValueError('n_components must be smaller than '
-                             'n_csp_components')
+        if components is not None and \
+                len(components) > n_csp_components:
+            raise ValueError('components number must be smaller than '
+                             'n_components')
         
+        self.components   = components
         self.n_components = n_components
-        self.n_csp_components = n_csp_components
         self.cov_func = cov_func
 
     
@@ -65,36 +65,17 @@ class CSP(object):
         return self
     
     @verbose
-    def _decompose(self, data_a, data_b, cov_func):
+    def _decompose(self, data_a, data_b, 
+               cov = covariance.EmpiricalCovariance(assume_centered = True)):
         
         n = data_a.shape[1]
         
-        if cov_func is None:
-            # Compute concatenated epochs covariance matrices
-            cov_a = np.dot(np.transpose(data_a,[1,0,2])[:,:,:].reshape(n,-1),
-                          np.transpose(data_a,[1,0,2])[:,:,:].reshape(n,-1).T)
-            cov_b = np.dot(np.transpose(data_b,[1,0,2])[:,:,:].reshape(n,-1),
-                          np.transpose(data_b,[1,0,2])[:,:,:].reshape(n,-1).T)
-            # normalise 
-            cov_a /= np.trace(cov_a)
-            cov_b /= np.trace(cov_b)
-        else:
-            cov_a = np.matrix(np.zeros([n,n]))
-            cov_b = np.matrix(np.zeros([n,n]))
-            # Compute single trial covariance matrices (more robust)
-            for i in np.arange(data_a.shape[0]):
-                cov_fit = cov_func.fit(data_a[i,:,:].T).covariance_
-                cov_a  += cov_fit/np.trace(cov_fit)
-            
-            # and average it
-            cov_a = cov_a/(1.0*(i+1))
-            
-            for i in np.arange(data_b.shape[0]):
-                cov_fit = cov_func.fit(data_b[i,:,:].T).covariance_
-                cov_b  += cov_fit/np.trace(cov_fit)
-            
-            # and average it
-            cov_b = cov_b/(1.0*(i+1))
+        # Compute concatenated epochs covariance matrices
+        cov.fit(np.transpose(data_a,[1, 0, 2]).reshape(n, -1).T)
+        cov_a = np.matrix(cov.covariance_ / np.trace(cov.covariance_))
+        
+        cov.fit(np.transpose(data_b,[1, 0, 2]).reshape(n, -1).T)
+        cov_b = np.matrix(cov.covariance_ / np.trace(cov.covariance_))
         
         # computes the eigen values
         (Lambda,U)  = linalg.eig(cov_a + cov_b)
@@ -118,12 +99,35 @@ class CSP(object):
         self.csp_filters  = W
         self.csp_patterns = linalg.pinv(W).T
     
+    
+    def get_sources_epochs(self, epochs, components):
+        """Estimate epochs sources given the CSP filters
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            Epochs object to draw sources from.
+        components : array of shape (n_components)
+            The list of CSP filters to estimate the sources
+        
+        Returns
+        -------
+        epochs_sources : ndarray of shape (n_epochs, n_sources, n_times)
+            The sources for each epoch
+        """
+        if not hasattr(self, 'csp_filters'):
+            raise RuntimeError('No filters available. Please first fit CSP '
+                               'decomposition.')
+
+        return self._get_sources_epochs(epochs, components)
+    
     def _get_sources_epochs(self, epochs, components):
         
         data = epochs.get_data()
-        csp_data = np.zeros_like(data)
-        for i in np.arange(csp_data.shape[0]):
-            csp_data[i,:,:] = np.dot(self.csp_filters,data[i,:,:])
+        (nEpoch,nSensor,nTime) = data.shape
+        csp_data = np.zeros([nEpoch,components.shape[0],nTime])
+        for i in np.arange(nEpoch):
+            csp_data[i,:,:] = np.dot(self.csp_filters[components,:],data[i,:,:])
         
         return csp_data
         
