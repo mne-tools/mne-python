@@ -5,9 +5,11 @@
 
 from warnings import warn
 from copy import deepcopy
+import os.path as op
 import numpy as np
 from scipy import linalg
 from StringIO import StringIO
+from datetime import datetime as dt
 
 import logging
 logger = logging.getLogger('mne')
@@ -26,6 +28,11 @@ from .write import start_block, end_block, write_string, write_dig_point, \
 from .. import verbose
 
 
+def _summarize_str(st):
+    """Aux function"""
+    return st[:56][::-1].split(',', 1)[-1][::-1] + ', ...'
+
+
 class Info(dict):
     """ Info class to nicely represent info dicts
     """
@@ -35,23 +42,38 @@ class Info(dict):
         strs = ['<Info | %s non-empty fields']
         non_empty = 0
         for k, v in self.items():
-            this_len = (len(v) if hasattr(v, '__len__') else
-                       ('%s' % v if v is not None else None))
-            entries = ((' | %d items' % this_len) if isinstance(this_len, int)
-                       else (' | %s' % this_len if this_len else ''))
-            if entries:
+            if k in ['bads', 'ch_names']:
+                entr = (', '.join(b for ii, b in enumerate(v) if ii < 10)
+                           if v else '0 items')
+                if len(entr) >= 56:
+                    # get rid of of half printed ch names
+                    entr = _summarize_str(entr)
+            elif k == 'filename' and v:
+                path, fname = op.split(v)
+                entr = path[:10] + '.../' + fname
+            elif k == 'projs' and v:
+                entr = ', '.join(p['desc'] + ': o%s' %
+                                 {0: 'ff', 1: 'n'}[p['active']] for p in v)
+                if len(entr) >= 56:
+                    entr = _summarize_str(entr)
+            elif k == 'meas_date' and np.iterable(v):
+                # first entire in meas_date is meaningful
+                entr = dt.fromtimestamp(v[0]).strftime('%Y-%m-%d %H:%M:%S')
+            else:
+                this_len = (len(v) if hasattr(v, '__len__') else
+                           ('%s' % v if v is not None else None))
+                entr = (('%d items' % this_len) if isinstance(this_len, int)
+                           else ('%s' % this_len if this_len else ''))
+            if entr:
                 non_empty += 1
-            strs.append('%s : %s%s' % (k, str(type(v))[7:-2], entries))
+                entr = ' | ' + entr
+            strs.append('%s : %s%s' % (k, str(type(v))[7:-2], entr))
         strs_non_empty = sorted(s for s in strs if '|' in s)
         strs_empty = sorted(s for s in strs if '|' not in s)
         st = '\n    '.join(strs_non_empty + strs_empty)
         st += '\n>'
         st %= non_empty
         return st
-
-    def deepcopy(self):
-        """Return deep copy of info | don't override dict.copy"""
-        return deepcopy(self)
 
 
 @verbose
