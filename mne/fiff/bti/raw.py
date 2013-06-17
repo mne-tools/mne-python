@@ -995,7 +995,7 @@ class RawBTi(Raw):
 
         use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
-        info = dict()
+        info = Info()
         info['bads'] = []
         info['meas_id'] = None
         info['file_id'] = None
@@ -1094,7 +1094,7 @@ class RawBTi(Raw):
         dev_head_t = _convert_dev_head_t(dev_ctf_t, bti_to_nm,
                                          ctf_head_t)
 
-        info['dev_head_t'] = Info()
+        info['dev_head_t'] = dict()
         info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
         info['dev_head_t']['trans'] = dev_head_t
