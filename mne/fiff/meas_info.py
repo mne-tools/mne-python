@@ -52,7 +52,7 @@ class Info(dict):
         return st
 
     def deepcopy(self):
-        """Return deep copy of info"""
+        """Return deep copy of info | don't override dict.copy"""
         return deepcopy(self)
 
 
