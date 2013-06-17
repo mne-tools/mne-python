@@ -154,7 +154,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
         else:
             # Fixed source orientation
-            Wk[:] = Wk / Ck
+            Wk /= Ck
 
     # Pick source orientation maximizing output source power
     if pick_ori == 'max-power':
