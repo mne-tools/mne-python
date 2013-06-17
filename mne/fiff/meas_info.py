@@ -29,8 +29,6 @@ from .. import verbose
 class Info(dict):
     """ Info class to nicely represent info dicts
     """
-    def __init__(self, *args, **kwargs):
-        dict.__init__(self, *args, **kwargs)
 
     def __repr__(self):
         """Summarize info instead of printing all"""
