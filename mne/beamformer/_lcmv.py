@@ -160,19 +160,20 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     if pick_ori == 'max-power':
         W = W[0::3]
 
-    # noise normalization
+    # Preparing noise normalization
     noise_norm = np.sum(W ** 2, axis=1)
     if is_free_ori:
         noise_norm = np.sum(np.reshape(noise_norm, (-1, 3)), axis=1)
     noise_norm = np.sqrt(noise_norm)
 
-    if not is_free_ori:
-        W /= noise_norm[:, None]
-
     # Pick source orientation normal to cortical surface
     if pick_ori == 'normal':
         W = W[2::3]
         is_free_ori = False
+
+    # Applying noise normalization
+    if not is_free_ori:
+        W /= noise_norm[:, None]
 
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
