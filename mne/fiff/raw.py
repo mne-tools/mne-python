@@ -33,7 +33,6 @@ from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
 from ..parallel import parallel_func
 from ..utils import deprecated, _check_fname, estimate_rank, \
                     _check_pandas_installed
-from ..info import Info
 from ..viz import plot_raw, _mutable_defaults
 from .. import verbose
 
