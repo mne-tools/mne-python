@@ -1735,7 +1735,7 @@ def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     #    Measurement info
     #
-    info = copy.deepcopy(info)
+    info = info.copy.deepcopy()
     if sel is not None:
         info['chs'] = [info['chs'][k] for k in sel]
         info['nchan'] = len(sel)

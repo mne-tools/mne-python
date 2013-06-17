@@ -51,7 +51,7 @@ class Info(dict):
         st %= non_empty
         return st
 
-    def copy(self):
+    def deepcopy(self):
         """Return deep copy of info"""
         return deepcopy(self)
 

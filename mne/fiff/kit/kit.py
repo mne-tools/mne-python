@@ -19,6 +19,7 @@ from ...transforms.coreg import fit_matched_pts
 from ...utils import verbose
 from ..raw import Raw
 from ..constants import FIFF
+from ..meas_info import Info
 from .constants import KIT, KIT_NY, KIT_AD
 from . import coreg
 
@@ -80,7 +81,7 @@ class RawKIT(Raw):
         self.comp = None  # no compensation for KIT
 
         # Create raw.info dict for raw fif object with SQD data
-        self.info = {}
+        self.info = Info()
         self.info['meas_id'] = None
         self.info['file_id'] = None
         self.info['meas_date'] = int(time.time())

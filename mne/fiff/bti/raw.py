@@ -22,6 +22,7 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
                   read_int16_matrix)
 from .transforms import (bti_identity_trans, bti_to_vv_trans,
                         bti_to_vv_coil_trans, inverse_trans, merge_trans)
+from ..meas_info import Info
 
 logger = logging.getLogger('mne')
 
@@ -1093,7 +1094,7 @@ class RawBTi(Raw):
         dev_head_t = _convert_dev_head_t(dev_ctf_t, bti_to_nm,
                                          ctf_head_t)
 
-        info['dev_head_t'] = dict()
+        info['dev_head_t'] = Info()
         info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
         info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
         info['dev_head_t']['trans'] = dev_head_t
