@@ -42,6 +42,7 @@ class FiducialsPanel(HasPrivateTraits):
     lap = Array(float, (1, 3))
     nasion = Array(float, (1, 3))
     rap = Array(float, (1, 3))
+    current_pos = Array(float, (1, 3))  # for editing
     fid_ok = Property(depends_on=['nasion', 'lap', 'rap'])  # all points set
 
     can_save_as = Property(depends_on=['lap', 'nasion', 'rap'])
@@ -60,11 +61,16 @@ class FiducialsPanel(HasPrivateTraits):
     view = View(VGroup(Item('fid_file', label='Fiducials File'),
                        Item('fid_name', show_label=False, style='readonly'),
                        Item('set', style='custom'),
+                       Item('current_pos', label='Pos'),
                        HGroup(Item('save', enabled_when='can_save'),
                               Item('save_as', enabled_when='can_save_as'),
                               Item('reset_fid', enabled_when='can_reset'),
                               show_labels=False),
                        enabled_when="locked==False"))
+
+    @on_trait_change('scene.activated')
+    def _init(self):
+        self.sync_trait('lap', self, 'current_pos', mutual=True)
 
     @cached_property
     def _get_fid_name(self):
@@ -188,12 +194,15 @@ class FiducialsPanel(HasPrivateTraits):
             raise ValueError("set = %r" % self.set)
 
     @on_trait_change('set')
-    def _on_set_change(self):
-        if self.set == 'Nasion':
+    def _on_set_change(self, obj, name, old, new):
+        self.sync_trait(old.lower(), self, 'current_pos', mutual=True,
+                        remove=True)
+        self.sync_trait(new.lower(), self, 'current_pos', mutual=True)
+        if new == 'Nasion':
             self.headview.front = True
-        elif self.set == 'LAP':
+        elif new == 'LAP':
             self.headview.left = True
-        elif self.set == 'RAP':
+        elif new == 'RAP':
             self.headview.right = True
 
 
