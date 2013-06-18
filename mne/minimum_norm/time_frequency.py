@@ -19,7 +19,7 @@ from ..time_frequency.multitaper import dpss_windows, _psd_from_mt,\
 from ..baseline import rescale
 from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
                      _pick_channels_inverse_operator, _check_method, \
-                     _subject_from_inverse
+                     _check_ori, _subject_from_inverse
 from ..parallel import parallel_func
 from .. import verbose
 
@@ -255,7 +255,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                          lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                          decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
-                         n_jobs=1, dSPM=None, zero_mean=False, verbose=None):
+                         n_jobs=1, pick_normal=None, dSPM=None,
+                         zero_mean=False, verbose=None):
     """Compute induced power and phase lock
 
     Computation can optionaly be restricted in a label.
@@ -311,6 +312,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         If not None, override default verbose level (see mne.verbose).
     """
     method = _check_method(method, dSPM)
+    pick_ori = _check_ori(pick_ori, pick_normal)
 
     power, plv, vertno = _source_induced_power(epochs,
                             inverse_operator, frequencies,
@@ -331,7 +333,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
 def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
                        NFFT=2048, overlap=0.5, pick_ori=None, label=None,
-                       nave=1, pca=True, verbose=None):
+                       nave=1, pca=True, pick_normal=None, verbose=None):
     """Compute source power spectrum density (PSD)
 
     Parameters
@@ -379,6 +381,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc : SourceEstimate
         The PSD (in dB) of each of the sources.
     """
+    pick_ori = _check_ori(pick_ori, pick_normal)
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
@@ -593,7 +596,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True,
                               return_generator=False, n_jobs=1,
-                              verbose=None):
+                              pick_normal=None, verbose=None):
     """Compute source power spectrum density (PSD) from Epochs using
        multi-taper method
 

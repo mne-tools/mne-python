@@ -640,7 +640,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
 def _check_method(method, dSPM):
     if dSPM is not None:
         warnings.warn('DEPRECATION: The dSPM parameter has been changed to '
-                      'method. Please update your code')
+                      'method. Please update your code.')
         method = dSPM
     if method is True:
         warnings.warn('DEPRECATION:Inverse method should now be "MNE" or '
@@ -657,6 +657,26 @@ def _check_method(method, dSPM):
     return method
 
 
+def _check_ori(pick_ori, pick_normal):
+    if pick_normal is not None:
+        warnings.warn('DEPRECATION: The pick_normal parameter has been '
+                      'changed to pick_ori. Please update your code.')
+        pick_ori = pick_normal
+    if pick_ori == True:
+        warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
+                      'or "normal".')
+        pick_ori = "normal"
+    elif pick_ori == False:
+        warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
+                      'or "normal".')
+        pick_ori = None
+
+    if pick_ori not in [None, "normal"]:
+        raise ValueError('The pick_ori parameter should now be None or '
+                         '"normal".')
+    return pick_ori
+
+
 def _subject_from_inverse(inverse_operator):
     """Get subject id from inverse operator"""
     return inverse_operator['src'][0].get('subject_his_id', None)
@@ -664,7 +684,7 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_ori=None, dSPM=None, verbose=None):
+                  pick_ori=None, pick_normal=None, dSPM=None, verbose=None):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -694,6 +714,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         The source estimates
     """
     method = _check_method(method, dSPM)
+    pick_ori = _check_ori(pick_ori, pick_normal)
     #
     #   Set up the inverse according to the parameters
     #
@@ -737,7 +758,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_ori=None,
-                      buffer_size=None, dSPM=None, verbose=None):
+                      buffer_size=None, pick_normal=None, dSPM=None,
+                      verbose=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -787,6 +809,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         The source estimates.
     """
     method = _check_method(method, dSPM)
+    pick_ori = _check_ori(pick_ori, pick_normal)
 
     _check_ch_names(inverse_operator, raw.info)
 
@@ -848,10 +871,11 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
-                              label=None, nave=1, pick_ori=None, dSPM=None,
-                              verbose=None):
+                              label=None, nave=1, pick_ori=None,
+                              pick_normal=None, dSPM=None, verbose=None):
     """ see apply_inverse_epochs """
     method = _check_method(method, dSPM)
+    pick_ori = _check_ori(pick_ori, pick_normal)
 
     _check_ch_names(inverse_operator, epochs.info)
 
@@ -906,8 +930,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
 
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
-                         label=None, nave=1, pick_ori=None, dSPM=None,
-                         return_generator=False, verbose=None):
+                         label=None, nave=1, pick_ori=None, pick_normal=None,
+                         dSPM=None, return_generator=False, verbose=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -947,7 +971,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
-                                     pick_ori=pick_ori, dSPM=dSPM,
+                                     pick_ori=pick_ori,
+                                     pick_normal=pick_normal, dSPM=dSPM,
                                      verbose=verbose)
 
     if not return_generator:
