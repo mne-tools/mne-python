@@ -2,10 +2,8 @@
 #
 # License: BSD (3-clause)
 
-import sklearn
-from sklearn import covariance
+from cov import compute_covariance, compute_raw_data_covariance
 import numpy as np
-from numpy import linalg
 import scipy.linalg
 
 class CSP(object):
@@ -21,9 +19,9 @@ class CSP(object):
         The list of components (aka filters) to decompose the signals
     n_components : int
         The number of maximum components
-    cov_func : instance of sklearn.covariance, None
+    cov_func : instance of Covariance, sklearn.covariance or None
         The method to estimate covariance matrix of the signals
-        None uses empirical covariance method
+        if None MNE Covariance is used
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -33,7 +31,7 @@ class CSP(object):
                  verbose=None):
         
         if components is not None and \
-                len(components) > n_csp_components:
+                len(components) > n_components:
             raise ValueError('components number must be smaller than '
                              'n_components')
         
@@ -43,21 +41,17 @@ class CSP(object):
 
     
     @verbose
-    def decompose_epochs(self, epochs_a, epochs_b, cov_func = None,
+    def decompose_raw(self, raw_signals, events, cov_func = None,
                          picks=None, verbose=None):
-        """Run the CSP decomposition on epochs
+        """Run the CSP decomposition on raw objects
         
         Parameters
         ----------
-        epochs_a : instance of Epochs
-            The epochs for class a. 
-            The CSP is estimated on the concatenated epochs.
-        epochs_b : instance of Epochs for class b
-            The epochs for class b. 
-            The CSP is estimated on the concatenated epochs.
-        cov_func : instance of sklearn.covariance
-            The CSP can estimate covariance matrices using the sklearn package
-            or empirically (if cov_func = None)
+        raw_signals : list of Raw objects
+            The CSP is estimated on raw signals.
+        cov_func : instance of Covariance, sklearn.covariance or None
+            The method to estimate covariance matrix of the signals
+            if None MNE Covariance is used.
         picks : array-like
             Channels to be included relative to the channels already picked on
             epochs-initialization.
@@ -70,43 +64,112 @@ class CSP(object):
         self : instance of CSP
             Returns the modified instance.
         """
-        self._decompose(epochs_a.get_data(),epochs_b.get_data(),self.cov_func)
+        
+        n = data_a.shape[1]
+        if cov_func == None:
+            # compute covariance for class a
+            cov_a = compute_raw_data_covariance(raw_signals[0]).data
+            cov_a /= np.trace(cov_a)
+            # and for class b
+            cov_b = compute_raw_data_covariance(raw_signals[1]).data
+            cov_b /= np.trace(cov_b)
+        else:
+            if raw_signals[0]._preloaded:
+                data_a = raw_signals[0]._data
+            else:
+                raise RuntimeError('Raw object needs to be preloaded before '
+                               'CSP decomposition.')
+            
+            if raw_signals[1]._preloaded:
+                data_b = raw_signals[1]._data
+            else:
+                raise RuntimeError('Raw object needs to be preloaded before '
+                               'CSP decomposition.')
+            
+            # compute covariance for class a
+            cov_func.fit(data_a)
+            cov_a = cov_func.covariance_ / np.trace(cov.covariance_)
+            # and for class b
+            cov_func.fit(data_b)
+            cov_b = cov_func.covariance_ / np.trace(cov.covariance_)
+        # call decomposition algorithm
+        self._decompose(cov_a,cov_b)
         return self
     
     @verbose
-    def _decompose(self, data_a, data_b, 
-               cov = covariance.EmpiricalCovariance(assume_centered = True)):
+    def decompose_epochs(self, epochs, cov_func = None,
+                         picks=None, verbose=None):
+        """Run the CSP decomposition on epochs
+        
+        Parameters
+        ----------
+        epochs : list of Epochs
+            The epochs for 2 classes. 
+            The CSP is estimated on the concatenated epochs.
+        cov_func : instance of Covariance, sklearn.covariance or None
+            The method to estimate covariance matrix of the signals
+            if None MNE Covariance is used.
+        picks : array-like
+            Channels to be included relative to the channels already picked on
+            epochs-initialization.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+        
+        Returns
+        -------
+        self : instance of CSP
+            Returns the modified instance.
+        """
         
         n = data_a.shape[1]
-        
-        # Compute concatenated epochs covariance matrices
-        cov.fit(np.transpose(data_a,[1, 0, 2]).reshape(n, -1).T)
-        cov_a = np.matrix(cov.covariance_ / np.trace(cov.covariance_))
-        
-        cov.fit(np.transpose(data_b,[1, 0, 2]).reshape(n, -1).T)
-        cov_b = np.matrix(cov.covariance_ / np.trace(cov.covariance_))
-        
+        if cov_func == None:
+            # compute covariance for class a
+            cov_a = compute_covariance(epochs[0]).data
+            cov_a /= np.trace(cov_a)
+            # and for class b
+            cov_b = compute_covariance(epochs[1]).data
+            cov_b /= np.trace(cov_b)
+        else:
+            # compute concatenated epochs 
+            data_a = np.transpose(epochs[0].get_data(),
+                                  [1, 0, 2]).reshape(n, -1).T
+            data_b = np.transpose(epochs[1].get_data(),
+                                  [1, 0, 2]).reshape(n, -1).T
+            # compute covariance for class a
+            cov_func.fit(data_a)
+            cov_a = cov_func.covariance_ / np.trace(cov.covariance_)
+            # and for class b
+            cov_func.fit(data_b)
+            cov_b = cov_func.covariance_ / np.trace(cov.covariance_)
+        # call decomposition algorithm
+        self._decompose(cov_a,cov_b)
+        return self
+    
+    @verbose
+    def _decompose(self, cov_a, cov_b):
+        """ Aux Function """
         # computes the eigen values
-        (Lambda,U)  = linalg.eig(cov_a + cov_b)
+        (lambda_, u) = np.linalg.eig(cov_a + cov_b)
         # sort them
-        ind    = np.argsort(Lambda)[::-1]
-        Lambda = np.sort(Lambda)[::-1]
+        ind = np.argsort(lambda_)[::-1]
+        lambda2_ = np.sort(lambda_)[::-1]
         
-        U  = U[:,ind]
-        P  = np.sqrt(linalg.pinv(np.diag(Lambda.real)))*U.T
+        u  = u[:,ind]
+        p  = np.sqrt(np.linalg.pinv(np.diag(lambda2_.real))) * u.T
         # Compute the generalized eigen value problem
-        Wa = P*cov_a*P.T
-        Wb = P*cov_b*P.T
+        w_a = np.dot(np.dot(p, cov_a), p.T)
+        w_b = np.dot(np.dot(p, cov_b), p.T)
         # and solve it
-        (G,B) = scipy.linalg.eig(Wa, Wb)
+        (g, b) = scipy.linalg.eig(w_a, w_b)
         # sort eigen values
-        ind = np.argsort(G.real)
-        B   = B[:,ind].real
+        ind = np.argsort(g.real)
+        b = b[:,ind].real
         # and project
-        W = B.T*P
+        w = np.dot(b.T,p)
         
-        self.csp_filters  = W
-        self.csp_patterns = linalg.pinv(W).T
+        self.csp_filters  = w
+        self.csp_patterns = np.linalg.pinv(w).T
     
     
     def get_sources_epochs(self, epochs, components):
@@ -131,6 +194,7 @@ class CSP(object):
         return self._get_sources_epochs(epochs, components)
     
     def _get_sources_epochs(self, epochs, components):
+        """ Aux Function """
         data = epochs.get_data()
         (nEpoch,nSensor,nTime) = data.shape
         csp_data = np.zeros([nEpoch,len(components),nTime])
