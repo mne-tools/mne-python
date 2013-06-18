@@ -136,8 +136,8 @@ class CoregPanel(HasPrivateTraits):
     view = View(VGroup(Item('n_scale_params', label='MRI Scaling',
                             style='custom', show_label=True,
                             editor=EnumEditor(values={0: '1:No Scaling',
-                                                      1: '2:1 Parameter',
-                                                      3: '3:3 Parameters'},
+                                                      1: '2:1 Param',
+                                                      3: '3:3 Params'},
                                               cols=3)),
                        Item('scale1', enabled_when='n_scale_params == 1',
                             label="Scale (x1)", show_label=True,
@@ -569,44 +569,43 @@ class CoregFrame(HasTraits):
     fit_eval_fid = Str('-')
     fit_eval_pts = Str('-')
 
-    view = View(HGroup(VGroup(Item('scene',
-                                   editor=SceneEditor(scene_class=MayaviScene),
-                                   dock='vertical', show_label=False),
-                              VGroup(headview_item,
-                                     Item('mri_obj', label='MRI',
-                                          style='custom'),
-                                     Item('hsp_obj', label='Head Shape',
-                                          style='custom'),
-                                     label='View Options', show_border=True
-                                     ),
-                              ),
-                       VGroup(VGroup(Item('hsp_src', style="custom"),
-                                     Item('s_sel', style="custom"),
-                                     label='Data Source', show_labels=False,
-                                     show_border=True),
-                              VGroup(HGroup(
-                                        Item('lock_fiducials', style='custom',
-                                             editor=EnumEditor(cols=2,
-                                                 values={False: '2:Edit',
-                                                         True: '1:Lock'}),
-                                             show_label=False,
-                                             enabled_when='fid_ok')),
-                                     Item('fid_panel', style='custom'),
-                                     label='MRI Fiducials', show_labels=False,
-                                     show_border=True),
-                              VGroup(Item('coreg', style='custom'),
-                                     label='Coregistration', show_labels=False,
-                                     show_border=True,
-                                     enabled_when='lock_fiducials'),
-                              VGroup(Item('fit_eval_fid', style='readonly'),
-                                     Item('fit_eval_pts', style='readonly'),
-                                     label='Fit', show_labels=False,
-                                     show_border=True),
-                              show_labels=False),
-                       show_labels=False,
-                      ),
-                resizable=True, buttons=[UndoButton],
-                handler=CoregFrameHandler())  # HelpButton
+    view = View(
+        HGroup(
+            VGroup(
+                VGroup(Item('hsp_src', style="custom"),
+                       Item('s_sel', style="custom"),
+                       label='Data Source', show_labels=False,
+                       show_border=True),
+                VGroup(HGroup(Item('lock_fiducials', style='custom',
+                                   editor=EnumEditor(cols=2,
+                                                     values={False: '2:Edit',
+                                                             True: '1:Lock'}),
+                                   show_label=False,
+                                   enabled_when='fid_ok')),
+                       Item('fid_panel', style='custom'),
+                       label='MRI Fiducials', show_labels=False,
+                       show_border=True)),
+            VGroup(Item('scene',
+                        editor=SceneEditor(scene_class=MayaviScene),
+                        dock='vertical', show_label=False),
+                   VGroup(headview_item,
+                          VGroup(
+                                Item('mri_obj', label='MRI', style='custom'),
+                                Item('hsp_obj', label='HSP', style='custom')),
+                          label='View Options', show_border=True,
+                          show_labels=False)),
+            VGroup(VGroup(Item('coreg', style='custom'),
+                          label='Coregistration', show_labels=False,
+                          show_border=True,
+                          enabled_when='lock_fiducials'),
+                   VGroup(Item('fit_eval_fid', style='readonly'),
+                          Item('fit_eval_pts', style='readonly'),
+                          label='Fit', show_labels=False,
+                          show_border=True),
+                   show_labels=False),
+            show_labels=False),
+        resizable=True, buttons=[UndoButton], handler=CoregFrameHandler(),
+        height=700)
 
     def _fid_panel_default(self):
         return FiducialsPanel(scene=self.scene, headview=self.headview)
@@ -730,8 +729,9 @@ class CoregFrame(HasTraits):
         self.coreg.sync_trait('scale', self.rap_obj, 'trans', mutual=False)
 
         # Digitizer Head Shape
-        self.hsp_obj = PointObject(scene=self.scene, color=(255, 255, 255),
-                                   point_scale=5e-3, resolution=5)
+        self.hsp_obj = PointObject(view='cloud', scene=self.scene,
+                                   color=(255, 255, 255), point_scale=2e-3,
+                                   resolution=5)
         self.hsp_src.sync_trait('pts', self.hsp_obj, 'points', mutual=False)
         self.coreg.sync_trait('head_mri_trans', self.hsp_obj, 'trans',
                               mutual=False)

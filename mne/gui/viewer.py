@@ -160,8 +160,29 @@ class PointObject(Object):
     glyph = Instance(Glyph)
     resolution = Int(8)
 
-    view = View(HGroup(Item('point_scale', label='Size'), 'color',
-                      'visible', 'label'))
+    def __init__(self, view='points', *args, **kwargs):
+        """
+        Parameters
+        ----------
+        view : 'points' | 'cloud'
+            Whether the view options should be tailored to individual points
+            or a point cloud.
+        """
+        self._view = view
+        super(PointObject, self).__init__(*args, **kwargs)
+
+    def default_traits_view(self):
+        color = Item('color', show_label=False)
+        scale = Item('point_scale', label='Size')
+        if self._view == 'points':
+            visible = Item('visible', label='Show', show_label=True)
+            view = View(HGroup(visible, color, scale, 'label'))
+        elif self._view == 'cloud':
+            visible = Item('visible', show_label=False)
+            view = View(HGroup(visible, color, scale))
+        else:
+            raise ValueError("PointObject(view = %r)" % self._view)
+        return view
 
     @on_trait_change('label')
     def _show_labels(self, show):
@@ -237,7 +258,8 @@ class SurfaceObject(Object):
 
     surf = Instance(Surface)
 
-    view = View(HGroup('color', 'visible', 'opacity'))
+    view = View(HGroup(Item('visible', show_label=False),
+                       Item('color', show_label=False), Item('opacity')))
 
     def clear(self):
         if hasattr(self.src, 'remove'):
