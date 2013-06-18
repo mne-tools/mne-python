@@ -8,6 +8,8 @@
 def combine_markers(mrk1='', mrk2=''):
     """Create a new KIT marker file by interpolating two marker files
 
+    All parameters are optional, since they can be set through the GUI.
+
     Parameters
     ----------
     mrk1, mrk2 : str

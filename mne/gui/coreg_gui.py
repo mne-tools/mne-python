@@ -42,7 +42,8 @@ laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
 
 
 class CoregFrameHandler(Handler):
-    "Handler to check for unfinished processes before closing the window"
+    """Handler that checks for unfinished processes before closing its window
+    """
     def close(self, info, is_ok):
         if info.object.coreg.queue.unfinished_tasks:
             msg = ("Can not close the window while saving is still in "

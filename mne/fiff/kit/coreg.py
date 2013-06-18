@@ -85,8 +85,8 @@ def read_elp(elp_fname):
     elp_points : numpy.array, shape = (n_points, 3)
         Fiducial and marker points in Polhemus head space.
     """
-    p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    elp_points = p.findall(open(elp_fname).read())
+    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    elp_points = pattern.findall(open(elp_fname).read())
     elp_points = np.array(elp_points, dtype=float)
     if elp_points.shape != (8, 3):
         err = ("File %r does not contain correct number of points for a "
@@ -213,7 +213,7 @@ def transform_ALS_to_RAS(pts, unit='mm'):
     """Transform points from a ALS to RAS a coordinate system
 
     This is used to orient points in Neuromag coordinates. KIT and Polhemus
-    points are originally in a ALS (anterior, left, superior) coordinate
+    points are originally in an ALS (anterior, left, superior) coordinate
     system and have to be transformed to the neuromag RAS (right, anterior,
     superior) coordinate system.
     KIT sensors are (x,y,z) in [mm].

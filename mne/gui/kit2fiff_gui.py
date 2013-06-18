@@ -41,7 +41,8 @@ kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
 
 
 class Kit2FiffFrameHandler(Handler):
-    "Handler to check for unfinished processes before closing the window"
+    """Handler that checks for unfinished processes before closing its window
+    """
     def close(self, info, is_ok):
         if info.object.kit2fiff_panel.kit2fiff_coreg_panel\
                                                     .queue.unfinished_tasks:

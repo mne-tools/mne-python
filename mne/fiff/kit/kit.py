@@ -445,7 +445,8 @@ class RawKIT(Raw):
         """Specify how the trigger channel is synthesized form analog channels.
 
         Has to be done before loading data. For a RawKIT instance that has been
-        created with preload=True, this method will raise a NotImplementedError.
+        created with preload=True, this method will raise a
+        NotImplementedError.
 
         Parameters
         ----------

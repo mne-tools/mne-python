@@ -89,13 +89,13 @@ class FiducialsPanel(HasPrivateTraits):
             fids, _ = read_fiducials(fname)
             for fid in fids:
                 ident = fid['ident']
-                r = fid['r']
+                pt = fid['r']
                 if ident == 1:
-                    pts[0] = r
+                    pts[0] = pt
                 elif ident == 2:
-                    pts[1] = r
+                    pts[1] = pt
                 elif ident == 3:
-                    pts[2] = r
+                    pts[2] = pt
         return pts
 
     @on_trait_change('fid_pts')
