@@ -13,15 +13,24 @@ class CSP(object):
     algorithm 
     
     This object can be used as a supervised decomposition to estimate
-    spatial filters for feature extraction in binary decoding problems.
+    spatial filters for feature extraction in a 2 class decoding problems.
 
     Parameters
     ----------
+    components : list, array
+        The list of components (aka filters) to decompose the signals
+    n_components : int
+        The number of maximum components
+    cov_func : instance of sklearn.covariance, None
+        The method to estimate covariance matrix of the signals
+        None uses empirical covariance method
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     
     @verbose
     def __init__(self, components, n_components=64, cov_func=None, 
-                 random_state=None, verbose=None):
+                 verbose=None):
         
         if components is not None and \
                 len(components) > n_csp_components:
@@ -89,7 +98,7 @@ class CSP(object):
         Wa = P*cov_a*P.T
         Wb = P*cov_b*P.T
         # and solve it
-        (G,B) = scipy.linalg.eig(Wa,Wb)
+        (G,B) = scipy.linalg.eig(Wa, Wb)
         # sort eigen values
         ind = np.argsort(G.real)
         B   = B[:,ind].real
@@ -122,12 +131,12 @@ class CSP(object):
         return self._get_sources_epochs(epochs, components)
     
     def _get_sources_epochs(self, epochs, components):
-        
         data = epochs.get_data()
         (nEpoch,nSensor,nTime) = data.shape
-        csp_data = np.zeros([nEpoch,components.shape[0],nTime])
+        csp_data = np.zeros([nEpoch,len(components),nTime])
         for i in np.arange(nEpoch):
-            csp_data[i,:,:] = np.dot(self.csp_filters[components,:],data[i,:,:])
+            csp_data[i,:,:] = np.dot(self.csp_filters[components,:], 
+                                     data[i,:,:])
         
         return csp_data
         
