@@ -482,4 +482,4 @@ class Kit2FiffFrame(HasTraits):
                        show_labels=False,
                       ),
                 handler=Kit2FiffFrameHandler(),
-                width=1100, resizable=True, buttons=NoButtons)
+                width=1100, height=700, resizable=True, buttons=NoButtons)
