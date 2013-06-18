@@ -715,7 +715,7 @@ class CoregFrame(HasTraits):
         # MRI Fiducials
         self.lap_obj = PointObject(scene=self.scene, color=(255, 0, 0),
                                    point_scale=1e-2)
-        self.fid_panel.sync_trait('LAP', self.lap_obj, 'points', mutual=False)
+        self.fid_panel.sync_trait('lap', self.lap_obj, 'points', mutual=False)
         self.coreg.sync_trait('scale', self.lap_obj, 'trans', mutual=False)
 
         self.nas_obj = PointObject(scene=self.scene, color=(0, 255, 0),
@@ -726,7 +726,7 @@ class CoregFrame(HasTraits):
 
         self.rap_obj = PointObject(scene=self.scene, color=(0, 0, 255),
                                    point_scale=1e-2)
-        self.fid_panel.sync_trait('RAP', self.rap_obj, 'points', mutual=False)
+        self.fid_panel.sync_trait('rap', self.rap_obj, 'points', mutual=False)
         self.coreg.sync_trait('scale', self.rap_obj, 'trans', mutual=False)
 
         # Digitizer Head Shape
@@ -762,8 +762,8 @@ class CoregFrame(HasTraits):
             self.hsp_obj.visible = True
             self.hsp_fid_obj.visible = True
             fid = np.vstack((self.fid_panel.nasion,
-                             self.fid_panel.LAP,
-                             self.fid_panel.RAP))
+                             self.fid_panel.lap,
+                             self.fid_panel.rap))
             self.coreg.mri_fid = fid
             self._update_fit_eval_fid()
         else:

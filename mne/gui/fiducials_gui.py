@@ -39,18 +39,18 @@ class FiducialsPanel(HasPrivateTraits):
 
     locked = Bool(False)
     set = Enum('LAP', 'Nasion', 'RAP')
-    LAP = Array(float, (1, 3))
+    lap = Array(float, (1, 3))
     nasion = Array(float, (1, 3))
-    RAP = Array(float, (1, 3))
-    fid_ok = Property(depends_on=['nasion', 'LAP', 'RAP'])  # all points set
+    rap = Array(float, (1, 3))
+    fid_ok = Property(depends_on=['nasion', 'lap', 'rap'])  # all points set
 
-    can_save_as = Property(depends_on=['LAP', 'nasion', 'RAP'])
+    can_save_as = Property(depends_on=['lap', 'nasion', 'rap'])
     save_as = Button(label='Save As...')
     can_save = Property(depends_on=['fid_file', 'can_save_as'])
     save = Button(label='Save')
     reset_fid = Button(label="Reset to File")
-    can_reset = Property(depends_on=['fid_file', 'fid_pts', 'LAP', 'nasion',
-                                     'RAP'])
+    can_reset = Property(depends_on=['fid_file', 'fid_pts', 'lap', 'nasion',
+                                     'rap'])
 
     scene = Instance(MlabSceneModel)
     headview = Instance(HeadViewController)
@@ -73,7 +73,7 @@ class FiducialsPanel(HasPrivateTraits):
 
     @cached_property
     def _get_fid_ok(self):
-        return all(np.any(pt) for pt in (self.nasion, self.LAP, self.RAP))
+        return all(np.any(pt) for pt in (self.nasion, self.lap, self.rap))
 
     @cached_property
     def _get_fid_pts(self):
@@ -94,9 +94,9 @@ class FiducialsPanel(HasPrivateTraits):
 
     @on_trait_change('fid_pts')
     def reset_fid_to_file(self):
-        self.LAP = self.fid_pts[0:1]
+        self.lap = self.fid_pts[0:1]
         self.nasion = self.fid_pts[1:2]
-        self.RAP = self.fid_pts[2:3]
+        self.rap = self.fid_pts[2:3]
 
     def _reset_fid_fired(self):
         self.reset_fid_to_file()
@@ -105,19 +105,19 @@ class FiducialsPanel(HasPrivateTraits):
     def _get_can_reset(self):
         if not self.fid_file:
             return False
-        elif np.any(self.LAP != self.fid_pts[0:1]):
+        elif np.any(self.lap != self.fid_pts[0:1]):
             return True
         elif np.any(self.nasion != self.fid_pts[1:2]):
             return True
-        elif np.any(self.RAP != self.fid_pts[2:3]):
+        elif np.any(self.rap != self.fid_pts[2:3]):
             return True
         return False
 
     @cached_property
     def _get_can_save_as(self):
-        can = not (np.all(self.nasion == self.LAP)
-                   or np.all(self.nasion == self.RAP)
-                   or np.all(self.LAP == self.RAP))
+        can = not (np.all(self.nasion == self.lap)
+                   or np.all(self.nasion == self.rap)
+                   or np.all(self.lap == self.rap))
         return can
 
     @cached_property
@@ -132,9 +132,9 @@ class FiducialsPanel(HasPrivateTraits):
             return False
 
     def get_dig_list(self):
-        dig = [{'kind': 1, 'ident': 1, 'r': np.array(self.LAP[0])},
+        dig = [{'kind': 1, 'ident': 1, 'r': np.array(self.lap[0])},
                {'kind': 1, 'ident': 2, 'r': np.array(self.nasion[0])},
-               {'kind': 1, 'ident': 3, 'r': np.array(self.RAP[0])}]
+               {'kind': 1, 'ident': 3, 'r': np.array(self.rap[0])}]
         return dig
 
     def _save_fired(self):
@@ -182,9 +182,9 @@ class FiducialsPanel(HasPrivateTraits):
         if self.set == 'Nasion':
             self.nasion = pt
         elif self.set == 'LAP':
-            self.LAP = pt
+            self.lap = pt
         elif self.set == 'RAP':
-            self.RAP = pt
+            self.rap = pt
         else:
             raise ValueError("set = %r" % self.set)
 
@@ -201,7 +201,7 @@ class FiducialsPanel(HasPrivateTraits):
 # FiducialsPanel view that allows manipulating coordinates numerically
 view2 = View(VGroup(Item('fid_file', label='Fiducials File'),
                     Item('fid_name', show_label=False, style='readonly'),
-                    Item('set', style='custom'), 'LAP', 'nasion', 'RAP',
+                    Item('set', style='custom'), 'lap', 'nasion', 'rap',
                     HGroup(Item('save', enabled_when='can_save'),
                            Item('save_as', enabled_when='can_save_as'),
                            show_labels=False),
@@ -272,7 +272,7 @@ class FiducialsFrame(HasTraits):
         # fiducials
         self.lap_obj = PointObject(scene=self.scene, color=(255, 0, 0),
                                    point_scale=self.point_scale)
-        self.fid_panel.sync_trait('LAP', self.lap_obj, 'points', mutual=False)
+        self.fid_panel.sync_trait('lap', self.lap_obj, 'points', mutual=False)
 
         self.nas_obj = PointObject(scene=self.scene, color=(0, 255, 0),
                                    point_scale=self.point_scale)
@@ -281,7 +281,7 @@ class FiducialsFrame(HasTraits):
 
         self.rap_obj = PointObject(scene=self.scene, color=(0, 0, 255),
                                    point_scale=self.point_scale)
-        self.fid_panel.sync_trait('RAP', self.rap_obj, 'points', mutual=False)
+        self.fid_panel.sync_trait('rap', self.rap_obj, 'points', mutual=False)
 
         # bem
         self.mri_obj = SurfaceObject(points=self.mri_src.pts,
