@@ -41,13 +41,12 @@ class CSP(object):
 
     
     @verbose
-    def decompose_raw(self, raw_signals, events, cov_func = None,
-                         picks=None, verbose=None):
+    def decompose_raw(self, raws, cov_func=None, picks=None, verbose=None):
         """Run the CSP decomposition on raw objects
         
         Parameters
         ----------
-        raw_signals : list of Raw objects
+        raws : list of Raw objects
             The CSP is estimated on raw signals.
         cov_func : instance of Covariance, sklearn.covariance or None
             The method to estimate covariance matrix of the signals
@@ -68,23 +67,18 @@ class CSP(object):
         n = data_a.shape[1]
         if cov_func == None:
             # compute covariance for class a
-            cov_a = compute_raw_data_covariance(raw_signals[0]).data
+            cov_a = compute_raw_data_covariance(raws[0]).data
             cov_a /= np.trace(cov_a)
             # and for class b
-            cov_b = compute_raw_data_covariance(raw_signals[1]).data
+            cov_b = compute_raw_data_covariance(raws[1]).data
             cov_b /= np.trace(cov_b)
         else:
-            if raw_signals[0]._preloaded:
+            if (raw_signals[0]._preloaded) and (raw_signals[1]._preloaded):
                 data_a = raw_signals[0]._data
-            else:
-                raise RuntimeError('Raw object needs to be preloaded before '
-                               'CSP decomposition.')
-            
-            if raw_signals[1]._preloaded:
                 data_b = raw_signals[1]._data
             else:
                 raise RuntimeError('Raw object needs to be preloaded before '
-                               'CSP decomposition.')
+                                   'CSP decomposition.')
             
             # compute covariance for class a
             cov_func.fit(data_a)
@@ -203,5 +197,8 @@ class CSP(object):
                                      data[i,:,:])
         
         return csp_data
+    
+    
+    def plot_sources_maps(self):
         
         
