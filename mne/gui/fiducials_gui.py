@@ -173,12 +173,11 @@ class FiducialsPanel(HasPrivateTraits):
 
         write_fiducials(path, self.get_dig_list(), FIFF.FIFFV_COORD_MRI)
 
-    def _on_mouse_click(self, picker):
+    def _on_pick(self, picker):
         if self.locked:
             return
 
-        pid = picker.point_id
-        pt = [self.hsp_obj.src.data.points[pid]]
+        pt = [picker.picked_positions[0]]
         if self.set == 'Nasion':
             self.nasion = pt
         elif self.set == 'LAP':

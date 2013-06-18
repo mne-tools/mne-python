@@ -744,21 +744,21 @@ class CoregFrame(HasTraits):
         self.coreg.sync_trait('head_mri_trans', self.hsp_fid_obj, 'trans',
                               mutual=False)
 
-        mscene = self.scene.mayavi_scene
-        self.picker = mscene.on_mouse_pick(self.fid_panel._on_mouse_click)
         self.headview.left = True
         self.scene.disable_render = False
 
-        # adapt picker sensitivity when zooming
-        self.scene.camera.on_trait_change(self._on_view_scale_change,
-                                          'parallel_scale')
-
     @on_trait_change('lock_fiducials')
-    def _on_lock_fiducials(self):
+    def _on_lock_fiducials(self, lock):
         if (not self.hsp_obj) or (not self.hsp_fid_obj):
             return
 
-        if self.lock_fiducials:
+        if lock:
+            pass  # removing the picker here leads to exception
+        else:
+            on_pick = self.scene.mayavi_scene.on_mouse_pick
+            self.picker = on_pick(self.fid_panel._on_pick, type='cell')
+
+        if lock:
             self.hsp_obj.visible = True
             self.hsp_fid_obj.visible = True
             fid = np.vstack((self.fid_panel.nasion,
@@ -770,9 +770,6 @@ class CoregFrame(HasTraits):
             self.hsp_obj.visible = False
             self.hsp_fid_obj.visible = False
 
-    def _on_view_scale_change(self, scale):
-        self.picker.tolerance = self.pick_tolerance / scale
-
     def _on_bem_file_change(self):
         bem_file = self.s_sel.bem_file
         if not bem_file:
@@ -781,15 +778,12 @@ class CoregFrame(HasTraits):
             return
         self.mri_src.file = bem_file % 'head'
         fid_file = bem_file % 'fiducials'
+        self.lock_fiducials = False
         if os.path.exists(fid_file):
             self.fid_panel.fid_file = fid_file
-            if self.lock_fiducials:
-                self._on_lock_fiducials()
-            else:
-                self.lock_fiducials = True
+            self.lock_fiducials = True
         else:
             self.fid_panel.reset_traits(('fid_file',))
-            self.lock_fiducials = False
 
     @on_trait_change('mri_src.tri')
     def _on_mri_src_change(self):
