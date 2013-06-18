@@ -26,7 +26,6 @@ class CSP(object):
         If not None, override default verbose level (see mne.verbose).
     """
     
-    @verbose
     def __init__(self, components, n_components=64, cov_func=None, 
                  verbose=None):
         
@@ -40,7 +39,6 @@ class CSP(object):
         self.cov_func = cov_func
 
     
-    @verbose
     def decompose_raw(self, raws, cov_func=None, picks=None, verbose=None):
         """Run the CSP decomposition on raw objects
         
@@ -90,7 +88,7 @@ class CSP(object):
         self._decompose(cov_a,cov_b)
         return self
     
-    @verbose
+    
     def decompose_epochs(self, epochs, cov_func = None,
                          picks=None, verbose=None):
         """Run the CSP decomposition on epochs
@@ -116,7 +114,17 @@ class CSP(object):
             Returns the modified instance.
         """
         
-        n = data_a.shape[1]
+        if len(epochs) != 2:
+            raise ValueError('CSP decomposition needs 2 sets of epochs')
+        
+        if not all([isinstance(e, mne.Epochs) for e in epochs]):
+            raise ValueError('CSP decomposition needs 2 sets of epochs')
+        
+        if picks is None:
+            # just use epochs good data channels and avoid double picking
+            picks = pick_types(epochs[0].info, include=epochs.ch_names,
+                               exclude='bads')
+        
         if cov_func == None:
             # compute covariance for class a
             cov_a = compute_covariance(epochs[0]).data
@@ -140,7 +148,7 @@ class CSP(object):
         self._decompose(cov_a,cov_b)
         return self
     
-    @verbose
+    
     def _decompose(self, cov_a, cov_b):
         """ Aux Function """
         # computes the eigen values
@@ -191,14 +199,14 @@ class CSP(object):
         """ Aux Function """
         data = epochs.get_data()
         (nEpoch,nSensor,nTime) = data.shape
-        csp_data = np.zeros([nEpoch,len(components),nTime])
+        csp_data = np.zeros_like(data)
         for i in np.arange(nEpoch):
-            csp_data[i,:,:] = np.dot(self.csp_filters[components,:], 
-                                     data[i,:,:])
+            csp_data[i,:,:] = np.dot(self.csp_filters,data[i,:,:])
         
         return csp_data
     
     
     def plot_sources_maps(self):
-        
+        """Plot CSP sources topographies
+        """
         
