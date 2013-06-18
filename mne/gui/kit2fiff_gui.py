@@ -23,10 +23,10 @@ from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor, \
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
-from ..fiff.kit.coreg import read_hsp, read_elp, transform_ALS_to_RAS, \
-                             get_neuromag_transform
+from ..fiff.kit.coreg import read_hsp, read_elp, get_neuromag_transform
 from ..fiff.kit.kit import RawKIT, KIT
-from ..transforms.transforms import coord_trans
+from ..transforms.transforms import apply_trans, als_ras_trans, \
+                                    als_ras_trans_mm
 from ..transforms.coreg import fit_matched_pts
 from .marker_gui import CombineMarkersPanel
 from .viewer import HeadViewController, headview_borders, headview_item, \
@@ -206,7 +206,7 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
 
     @cached_property
     def _get_mrk(self):
-        return transform_ALS_to_RAS(self.mrk_ALS, unit='m')
+        return apply_trans(als_ras_trans, self.mrk_ALS)
 
     @cached_property
     def _get_elp_raw(self):
@@ -254,7 +254,7 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
     def _get_neuromag_trans(self):
         if self.elp_raw is None:
             return
-        pts = transform_ALS_to_RAS(self.elp_raw[:3])
+        pts = apply_trans(als_ras_trans_mm, self.elp_raw[:3])
         nasion, lpa, rpa = pts
         trans = get_neuromag_transform(nasion, lpa, rpa)
         return trans
@@ -264,7 +264,7 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
         if self.elp_raw is None:
             return np.empty((0, 3))
         pts = self.elp_raw[:3]
-        pts = transform_ALS_to_RAS(pts)
+        pts = apply_trans(als_ras_trans_mm, pts)
         pts = np.dot(pts, self.neuromag_trans.T)
         return pts
 
@@ -273,7 +273,7 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
         if self.elp_raw is None:
             return np.empty((0, 3))
         pts = self.elp_raw[3:]
-        pts = transform_ALS_to_RAS(pts)
+        pts = apply_trans(als_ras_trans_mm, pts)
         pts = np.dot(pts, self.neuromag_trans.T)
         return pts
 
@@ -282,7 +282,7 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
         if (self.hsp_raw is None) or not np.any(self.neuromag_trans):
             return  np.empty((0, 3))
         else:
-            pts = transform_ALS_to_RAS(self.hsp_raw)
+            pts = apply_trans(als_ras_trans_mm, self.hsp_raw)
             pts = np.dot(pts, self.neuromag_trans.T)
             return pts
 
@@ -436,10 +436,9 @@ class Kit2FiffPanel(HasTraits):
 
     @on_trait_change('scene.activated')
     def _init_plot(self):
-        mrk_trans = coord_trans('ALS', 'RAS')
-        self.marker_panel.mrk1_obj.trans = mrk_trans
-        self.marker_panel.mrk2_obj.trans = mrk_trans
-        self.marker_panel.mrk3_obj.trans = mrk_trans
+        self.marker_panel.mrk1_obj.trans = als_ras_trans
+        self.marker_panel.mrk2_obj.trans = als_ras_trans
+        self.marker_panel.mrk3_obj.trans = als_ras_trans
 
         mrk = self.marker_panel.mrk3
         mrk.sync_trait('points', self.kit2fiff_coreg_panel, 'mrk_ALS',

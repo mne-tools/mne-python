@@ -18,6 +18,13 @@ from ..fiff.write import start_file, end_file, start_block, end_block, \
                          write_coord_trans, write_dig_point, write_int
 
 
+# transformation from anterior/left/superior coordinate system to
+# right/anterior/superior:
+als_ras_trans = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+# simultaneously convert [m] to [mm]:
+als_ras_trans_mm = als_ras_trans * 0.001
+
+
 def apply_trans(trans, pts):
     """Apply a transform matrix to an array of points
 
@@ -150,31 +157,6 @@ def translation(x=0, y=0, z=0):
                   [0, 0, 1, z],
                   [0, 0, 0, 1]], dtype=float)
     return m
-
-
-def coord_trans(src='ALS', dst='RAS'):
-    """Create a transform between two coordinate systems
-
-    Currently only ALS -> RAS is implemented.
-
-    Parameters
-    ----------
-    src : str
-        Source coordinate system.
-    dst : str
-        Target coordinate system.
-
-    Returns
-    -------
-    trans : array, shape = (3, 3)
-        Transform from src to dst coordinate system.
-    """
-    if src == 'ALS' and dst == 'RAS':
-        trans = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-    else:
-        raise NotImplementedError
-
-    return trans
 
 
 def read_trans(fname):

@@ -207,37 +207,3 @@ def get_neuromag_transform(nasion, lpa, rpa):
 
     trans = linalg.inv(axes)
     return trans
-
-
-def transform_ALS_to_RAS(pts, unit='mm'):
-    """Transform points from a ALS to RAS a coordinate system
-
-    This is used to orient points in Neuromag coordinates. KIT and Polhemus
-    points are originally in an ALS (anterior, left, superior) coordinate
-    system and have to be transformed to the neuromag RAS (right, anterior,
-    superior) coordinate system.
-    KIT sensors are (x,y,z) in [mm].
-    KIT markers are (x,y,z) in [m].
-    Polhemus points are (x,y,z) in [mm].
-    The transformation to RAS space is -y,x,z in [m].
-
-    Parameters
-    ----------
-    pts : numpy.array, shape = (n_points, 3)
-        Points to be transformed.
-    unit : 'mm' | 'm'
-        Unit of source points to be converted.
-
-    Returns
-    -------
-    pts : numpy.array, shape = (n_points, 3)
-        Points transformed to Neuromag-like head space (RAS, [m]).
-    """
-    pts = np.array(pts, ndmin=2)
-    pts = pts[:, [1, 0, 2]]
-    pts[:, 0] *= -1
-    if unit == 'mm':
-        pts /= 1e3
-    elif unit != 'm':
-        raise ValueError('The unit must be either "m" or "mm".')
-    return pts

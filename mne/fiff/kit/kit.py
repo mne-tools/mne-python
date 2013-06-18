@@ -20,13 +20,14 @@ from scipy.linalg import norm
 
 from ...fiff import pick_types
 from ...transforms.coreg import fit_matched_pts
+from ...transforms.transforms import apply_trans, als_ras_trans, \
+                                     als_ras_trans_mm
 from ...utils import verbose
 from ..raw import Raw
 from ..constants import FIFF
 from ..meas_info import Info
 from .constants import KIT, KIT_NY, KIT_AD
-from .coreg import read_elp, read_hsp, read_mrk, get_neuromag_transform, \
-                   transform_ALS_to_RAS
+from .coreg import read_elp, read_hsp, read_mrk, get_neuromag_transform
 
 logger = logging.getLogger('mne')
 
@@ -127,7 +128,7 @@ class RawKIT(Raw):
                                           + 1)]
         ch_names['STIM'] = ['STI 014']
         locs = self._sqd_params['sensor_locs']
-        chan_locs = transform_ALS_to_RAS(locs[:, :3], unit='m')
+        chan_locs = apply_trans(als_ras_trans, locs[:, :3])
         chan_angles = locs[:, 3:]
         self.info['chs'] = []
         for idx, ch_info in enumerate(zip(ch_names['MEG'], chan_locs,
@@ -174,7 +175,7 @@ class RawKIT(Raw):
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((vec_x, vec_y, vec_z))
-            vecs = transform_ALS_to_RAS(vecs, unit='m')
+            vecs = apply_trans(als_ras_trans, vecs)
             chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
             self.info['chs'].append(chan_info)
 
@@ -383,9 +384,9 @@ class RawKIT(Raw):
         if isinstance(mrk, basestring):
             mrk = read_mrk(mrk)
 
-        hsp = transform_ALS_to_RAS(hsp)
-        elp = transform_ALS_to_RAS(elp)
-        mrk = transform_ALS_to_RAS(mrk, unit='m')
+        hsp = apply_trans(als_ras_trans_mm, hsp)
+        elp = apply_trans(als_ras_trans_mm, elp)
+        mrk = apply_trans(als_ras_trans, mrk)
 
         nasion, lpa, rpa = elp[:3]
         nmtrans = get_neuromag_transform(nasion, lpa, rpa).T
