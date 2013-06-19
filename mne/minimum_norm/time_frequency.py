@@ -29,7 +29,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               lambda2=1.0 / 9.0, method="dSPM", nave=1,
                               n_cycles=5, df=1, use_fft=False, decim=1,
                               baseline=None, baseline_mode='logratio',
-                              pca=True, n_jobs=1, dSPM=None, verbose=None):
+                              pca=True, n_jobs=1, verbose=None):
     """Compute source space induced power in given frequency bands
 
     Parameters
@@ -78,7 +78,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
 
     frequencies = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
                                  for _, band in bands.iteritems()])
@@ -255,7 +255,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                          lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                          decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
-                         n_jobs=1, dSPM=None, zero_mean=False, verbose=None,
+                         n_jobs=1, zero_mean=False, verbose=None,
                          pick_normal=None):
     """Compute induced power and phase lock
 
@@ -311,7 +311,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
 
     power, plv, vertno = _source_induced_power(epochs,
