@@ -255,8 +255,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                          lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
                          decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
-                         n_jobs=1, pick_normal=None, dSPM=None,
-                         zero_mean=False, verbose=None):
+                         n_jobs=1, dSPM=None, zero_mean=False, verbose=None,
+                         pick_normal=None):
     """Compute induced power and phase lock
 
     Computation can optionaly be restricted in a label.
@@ -333,7 +333,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
 def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
                        NFFT=2048, overlap=0.5, pick_ori=None, label=None,
-                       nave=1, pca=True, pick_normal=None, verbose=None):
+                       nave=1, pca=True, verbose=None, pick_normal=None):
     """Compute source power spectrum density (PSD)
 
     Parameters
@@ -596,7 +596,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True,
                               return_generator=False, n_jobs=1,
-                              pick_normal=None, verbose=None):
+                              verbose=None, pick_normal=None):
     """Compute source power spectrum density (PSD) from Epochs using
        multi-taper method
 
