@@ -90,7 +90,7 @@ def test_source_psd():
     NFFT = 2048
     stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
                              method="dSPM", tmin=tmin, tmax=tmax,
-                             fmin=fmin, fmax=fmax, pick_normal=True,
+                             fmin=fmin, fmax=fmax, pick_ori="normal",
                              NFFT=NFFT, label=label, overlap=0.1)
     assert_true(stc.times[0] >= fmin * 1e-3)
     assert_true(stc.times[-1] <= fmax * 1e-3)
@@ -127,14 +127,14 @@ def test_source_psd_epochs():
     # return list
     stc_psd = compute_source_psd_epochs(one_epochs, inverse_operator,
                                         lambda2=lambda2, method=method,
-                                        pick_normal=True, label=label,
+                                        pick_ori="normal", label=label,
                                         bandwidth=bandwidth,
                                         fmin=fmin, fmax=fmax)[0]
 
     # return generator
     stcs = compute_source_psd_epochs(one_epochs, inverse_operator,
                                      lambda2=lambda2, method=method,
-                                     pick_normal=True, label=label,
+                                     pick_ori="normal", label=label,
                                      bandwidth=bandwidth,
                                      fmin=fmin, fmax=fmax,
                                      return_generator=True)
@@ -147,7 +147,7 @@ def test_source_psd_epochs():
     # compare with direct computation
     stc = apply_inverse_epochs(one_epochs, inverse_operator,
                                lambda2=lambda2, method=method,
-                               pick_normal=True, label=label)[0]
+                               pick_ori="normal", label=label)[0]
 
     sfreq = epochs.info['sfreq']
     psd, freqs = multitaper_psd(stc.data, sfreq=sfreq, bandwidth=bandwidth,

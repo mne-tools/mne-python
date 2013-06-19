@@ -64,11 +64,11 @@ write_inverse_operator('sample_audvis-eeg-oct-6-inv.fif',
 # Compute inverse solution
 stcs = dict()
 stcs['meeg'] = apply_inverse(evoked, inverse_operator_meeg, lambda2, "dSPM",
-                        pick_normal=False)
+                        pick_ori=None)
 stcs['meg'] = apply_inverse(evoked, inverse_operator_meg, lambda2, "dSPM",
-                        pick_normal=False)
+                        pick_ori=None)
 stcs['eeg'] = apply_inverse(evoked, inverse_operator_eeg, lambda2, "dSPM",
-                        pick_normal=False)
+                        pick_ori=None)
 
 # Save result in stc files
 names = ['meeg', 'meg', 'eeg']

@@ -56,7 +56,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # Compute inverse solution and stcs for each epoch
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method, label,
-                            pick_normal=True)
+                            pick_ori="normal")
 
 mean_stc = sum(stcs) / len(stcs)
 

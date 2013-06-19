@@ -37,9 +37,9 @@ inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']
 
 # Compute inverse solution
-pick_normal = True # Get signed values to see the effect of sign filp
+pick_ori = "normal" # Get signed values to see the effect of sign filp
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
-                    pick_normal=pick_normal)
+                    pick_ori=pick_ori)
 
 label = mne.read_label(label_fname)
 

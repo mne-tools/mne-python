@@ -35,7 +35,7 @@ inverse_operator = read_inverse_operator(fname_inv)
 
 # Compute inverse solution
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
-                    pick_normal=False)
+                    pick_ori=None)
 
 # Save result in stc files
 stc.save('mne_%s_inverse' % method)

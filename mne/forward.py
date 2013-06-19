@@ -929,7 +929,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
     if np.all(stc.data > 0):
         warnings.warn('Source estimate only contains currents with positive '
-                      'values. Use pick_normal=True when computing the '
+                      'values. Use pick_ori="normal" when computing the '
                       'inverse to compute currents not current magnitudes.')
 
     max_cur = np.max(np.abs(stc.data))

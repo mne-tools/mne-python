@@ -50,7 +50,7 @@ snr = 1.0  # use lower SNR for single epochs
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
-                            pick_normal=True, return_generator=True)
+                            pick_ori="normal", return_generator=True)
 
 # Read some labels
 names = ['Aud-lh', 'Aud-rh', 'Vis-lh', 'Vis-rh']

@@ -14,7 +14,7 @@ Changelog
 API
 ~~~
 
-   - ...
+   - The pick_normal parameter for minimum norm solvers has been renamed as pick_ori and normal orientation picking is now achieved by passing the value "normal" for the pick_ori parameter.
 
 .. _changes_0_6:
 
@@ -138,7 +138,7 @@ API
    - Depth bias correction in dSPM/MNE/sLORETA make_inverse_operator is now done like in the C code using only gradiometers if present, else magnetometers, and EEG if no MEG channels are present.
 
    - Fixed-orientation inverse solutions need to be made using 'fixed=True' option (using non-surface-oriented forward solutions if no depth weighting is used) to maintain compatibility with MNE C code.
-
+   
    - Raw.save() will only overwrite the destination file, if it exists, if option overwrite=True is set.
 
    - mne.utils.set_config(), get_config(), get_config_path() moved to mne namespace.

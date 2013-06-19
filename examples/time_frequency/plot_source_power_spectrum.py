@@ -41,7 +41,7 @@ label = mne.read_label(fname_label)
 
 stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                          tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
-                         pick_normal=True, NFFT=NFFT, label=label)
+                         pick_ori="normal", NFFT=NFFT, label=label)
 
 stc.save('psd_dSPM')
 

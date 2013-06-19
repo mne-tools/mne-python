@@ -285,17 +285,17 @@ def test_apply_mne_inverse_raw():
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
-    for pick_normal in [False, True]:
+    for pick_ori in [None, "normal"]:
         stc = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
                                 label=label_lh, start=start, stop=stop, nave=1,
-                                pick_normal=pick_normal, buffer_size=None)
+                                pick_ori=pick_ori, buffer_size=None)
 
         stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
                                  label=label_lh, start=start, stop=stop,
-                                 nave=1, pick_normal=pick_normal,
+                                 nave=1, pick_ori=pick_ori,
                                  buffer_size=3)
 
-        if not pick_normal:
+        if pick_ori == None:
             assert_true(np.all(stc.data > 0))
             assert_true(np.all(stc2.data > 0))
 
@@ -320,11 +320,11 @@ def test_apply_mne_inverse_fixed_raw():
 
     stc = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
                             label=label_lh, start=start, stop=stop, nave=1,
-                            pick_normal=False, buffer_size=None)
+                            pick_ori=None, buffer_size=None)
 
     stc2 = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
                              label=label_lh, start=start, stop=stop, nave=1,
-                             pick_normal=False, buffer_size=3)
+                             pick_ori=None, buffer_size=3)
 
     assert_true(stc.subject == 'sample')
     assert_true(stc2.subject == 'sample')
@@ -348,7 +348,7 @@ def test_apply_mne_inverse_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                label=label_lh, pick_normal=True)
+                                label=label_lh, pick_ori="normal")
 
     assert_true(len(stcs) == 4)
     assert_true(3 < stcs[0].data.max() < 10)
@@ -364,9 +364,10 @@ def test_apply_mne_inverse_epochs():
 
     # test extracting a BiHemiLabel
     stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                   label=label_rh, pick_normal=True)
+                                   label=label_rh, pick_ori="normal")
     stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                   label=label_lh + label_rh, pick_normal=True)
+                                   label=label_lh + label_rh,
+                                   pick_ori="normal")
 
     n_lh = len(stcs[0].data)
     assert_array_almost_equal(stcs[0].data, stcs_bh[0].data[:n_lh])
@@ -374,7 +375,7 @@ def test_apply_mne_inverse_epochs():
 
     # test without using a label (so delayed computation is used)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                pick_normal=True)
+                                pick_ori="normal")
     assert_true(stcs[0].subject == 'sample')
     label_stc = stcs[0].in_label(label_rh)
     assert_true(label_stc.subject == 'sample')
