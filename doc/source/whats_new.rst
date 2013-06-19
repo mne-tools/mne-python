@@ -9,7 +9,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - ...
+   - Allow picking normal orientation in LCMV beamformers by `Roman Goj`_, `Alex Gramfort`_, `Denis Engemann`_ and `Martin Luessi`_
 
 API
 ~~~
