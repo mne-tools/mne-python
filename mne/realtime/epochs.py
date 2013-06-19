@@ -252,7 +252,7 @@ class RtEpochs(_BaseEpochs):
         while True:
             if len(self._epoch_queue) >= min_length:
                 if self._consume_epochs:
-                    epoch, event_id = self._pop_epoch(True)
+                    epoch, event_id = self._pop_epoch()
                 else:
                     epoch = self._epoch_queue[self._current]
                     event_id = self.events[self._current][-1]
@@ -290,7 +290,7 @@ class RtEpochs(_BaseEpochs):
         for i in range(n_remove):
             self._pop_epoch()
 
-    def _pop_epoch(self, return_event_id=False):
+    def _pop_epoch(self):
         """Get the oldest epoch and remove it from the queue
 
         The entries in self.events associated with the epoch are also removed
@@ -301,7 +301,7 @@ class RtEpochs(_BaseEpochs):
         epoch = self._epoch_queue.pop(0)
         event_id = self.events.pop(0)
 
-        return epoch if not return_event_id else epoch, event_id
+        return epoch, event_id
 
     def _get_data_from_disk(self):
         """Return the data for n_epochs epochs"""
