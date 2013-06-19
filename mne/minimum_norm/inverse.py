@@ -637,20 +637,7 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     return K, noise_norm, vertno
 
 
-def _check_method(method, dSPM):
-    if dSPM is not None:
-        warnings.warn('DEPRECATION: The dSPM parameter has been changed to '
-                      'method. Please update your code.')
-        method = dSPM
-    if method is True:
-        warnings.warn('DEPRECATION:Inverse method should now be "MNE" or '
-                      '"dSPM" or "sLORETA".')
-        method = "dSPM"
-    if method is False:
-        warnings.warn('DEPRECATION:Inverse method should now be "MNE" or '
-                      '"dSPM" or "sLORETA".')
-        method = "MNE"
-
+def _check_method(method):
     if method not in ["MNE", "dSPM", "sLORETA"]:
         raise ValueError('method parameter should be "MNE" or "dSPM" '
                          'or "sLORETA".')
@@ -684,7 +671,7 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_ori=None, dSPM=None, verbose=None, pick_normal=None):
+                  pick_ori=None, verbose=None, pick_normal=None):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -713,7 +700,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     stc : SourceEstimate
         The source estimates
     """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
     #
     #   Set up the inverse according to the parameters
@@ -758,7 +745,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_ori=None,
-                      buffer_size=None, dSPM=None, verbose=None,
+                      buffer_size=None, verbose=None,
                       pick_normal=None):
     """Apply inverse operator to Raw data
 
@@ -808,7 +795,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     stc : SourceEstimate
         The source estimates.
     """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
 
     _check_ch_names(inverse_operator, raw.info)
@@ -871,10 +858,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
-                              label=None, nave=1, pick_ori=None, dSPM=None,
+                              label=None, nave=1, pick_ori=None,
                               verbose=None, pick_normal=None):
     """ see apply_inverse_epochs """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
 
     _check_ch_names(inverse_operator, epochs.info)
@@ -930,7 +917,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
 
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
-                         label=None, nave=1, pick_ori=None, dSPM=None,
+                         label=None, nave=1, pick_ori=None,
                          return_generator=False, verbose=None,
                          pick_normal=None):
     """Apply inverse operator to Epochs
@@ -969,11 +956,10 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stc : list of SourceEstimate
         The source estimates for all epochs.
     """
-
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
-                                     pick_ori=pick_ori, dSPM=dSPM,
-                                     verbose=verbose, pick_normal=pick_normal)
+                                     pick_ori=pick_ori, verbose=verbose,
+                                     pick_normal=pick_normal)
 
     if not return_generator:
         # return a list
