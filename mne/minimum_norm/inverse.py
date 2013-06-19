@@ -232,7 +232,7 @@ def read_inverse_operator(fname, verbose=None):
             inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
         fid.close()
         raise Exception('Only inverse solutions computed in MRI or '
-                         'head coordinates are acceptable')
+                        'head coordinates are acceptable')
 
     #
     #  Number of averages is initially one
@@ -662,11 +662,11 @@ def _check_ori(pick_ori, pick_normal):
         warnings.warn('DEPRECATION: The pick_normal parameter has been '
                       'changed to pick_ori. Please update your code.')
         pick_ori = pick_normal
-    if pick_ori == True:
+    if pick_ori is True:
         warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
                       'or "normal".')
         pick_ori = "normal"
-    elif pick_ori == False:
+    elif pick_ori is False:
         warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
                       'or "normal".')
         pick_ori = None
@@ -871,7 +871,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
-                              label=None, nave=1, pick_ori=None, dSPM=None, 
+                              label=None, nave=1, pick_ori=None, dSPM=None,
                               verbose=None, pick_normal=None):
     """ see apply_inverse_epochs """
     method = _check_method(method, dSPM)
