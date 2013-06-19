@@ -735,7 +735,6 @@ class Epochs(_BaseEpochs):
                 data.resize((n_out,) + data.shape[1:], refcheck=False)
         return data
 
-<<<<<<< HEAD
     @verbose
     def _is_good_epoch(self, data, verbose=None):
         """Determine if epoch is good"""
@@ -826,8 +825,6 @@ class Epochs(_BaseEpochs):
         self._current = 0
         return self
 
-=======
->>>>>>> Added a keyword argument return_event_id=False to next() in RtEpochs as well as Epochs class.
     def next(self, return_event_id=False):
         """To make iteration over epochs easy.
         """
@@ -852,14 +849,12 @@ class Epochs(_BaseEpochs):
             if self._check_delayed():
                 epoch = self._preprocess(epoch_raw)
 
-<<<<<<< HEAD
         if not return_event_id:
             return epoch
         else:
             return epoch, self.events[self._current - 1][-1]
-=======
+
         return epoch if not return_event_id else epoch, self.event_id
->>>>>>> Added a keyword argument return_event_id=False to next() in RtEpochs as well as Epochs class.
 
     def __repr__(self):
         """ Build string representation
