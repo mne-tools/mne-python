@@ -603,6 +603,32 @@ class SourceEstimate(object):
 
         logger.info('[done]')
 
+    def save_as_volume(self, fname, src, dest='mri', mri_resolution=False):
+        """Save a volume source estimate in a nifti file
+
+        Parameters
+        ----------
+        fname : string
+            The name of the generated nifti file.
+        src : list
+            The list of source spaces (should actually be of length 1)
+        dest : 'mri' | 'surf'
+            If 'mri' the volume is defined in the coordinate system of
+            the original T1 image. If 'surf' the coordinate system
+            of the FreeSurfer surface is used (Surface RAS).
+        mri_resolution: bool
+            It True the image is saved in MRI resolution.
+            WARNING: if you have many time points the file produced can be
+            huge.
+
+        Returns
+        -------
+        img : instance Nifti1Image
+            The image object.
+        """
+        return save_stc_as_volume(fname, self, src, dest=dest,
+                                  mri_resolution=mri_resolution)
+
     def _remove_kernel_sens_data_(self):
         """Remove kernel and sensor space data
 

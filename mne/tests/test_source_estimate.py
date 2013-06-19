@@ -10,7 +10,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal, \
 from scipy.fftpack import fft
 
 from mne.datasets import sample
-from mne import stats, SourceEstimate, Label
+from mne import stats, SourceEstimate, Label, read_source_spaces
 from mne import read_source_estimate, morph_data, extract_label_time_course
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
@@ -28,6 +28,10 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_vol = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-grad-vol-7-fwd-sensmap-vol.w')
+fname_vsrc = op.join(data_path, 'MEG', 'sample',
+                     'sample_audvis-meg-vol-7-fwd.fif')
+fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
+
 tempdir = _TempDir()
 
 
@@ -63,6 +67,23 @@ def test_volume_stc():
         assert_true(stc_new.is_surface() is False)
         assert_array_equal(stc.vertno, stc_new.vertno)
         assert_array_almost_equal(stc.data, stc_new.data)
+
+    # save the stc as a nifti file
+    try:
+        import nibabel as nib
+        src = read_source_spaces(fname_vsrc)
+        img = stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
+                                 dest='surf', mri_resolution=False)
+        assert_true(img.shape == src[0]['shape'] + (len(stc.times),))
+
+        t1_img = nib.load(fname_t1)
+        img = stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
+                                 dest='mri', mri_resolution=True)
+        assert_true(img.shape == t1_img.shape + (len(stc.times),))
+        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
+                                  decimal=5)
+    except ImportError:
+        print 'Save as nifti test skipped, needs NiBabel'
 
 
 def test_expand():

@@ -39,8 +39,8 @@ stc = apply_inverse(evoked, inverse_operator, lambda2, method)
 stc.crop(0.0, 0.2)
 
 # Save result in a 4D nifti file
-img = mne.save_stc_as_volume('mne_%s_inverse.nii.gz' % method, stc,
-        src, mri_resolution=False)  # set to True for full MRI resolution
+img = stc.save_as_volume('mne_%s_inverse.nii.gz' % method, src,
+            mri_resolution=False)  # set to True for full MRI resolution
 data = img.get_data()
 
 # plot result (one slice)
