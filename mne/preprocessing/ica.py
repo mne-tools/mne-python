@@ -888,7 +888,7 @@ class ICA(object):
 
         return epochs
 
-    def plot_topomap(self, source_idx, layout=None):
+    def plot_topomap(self, source_idx, ch_type='mag', res=500, layout=None):
         """ plot topographic map of ICA source
 
         Parameters
@@ -902,7 +902,8 @@ class ICA(object):
         layout : instance of mne.layouts.Layout
             The layout to be used.
         """
-        return plot_ica_topomap(self, source_idx=source_idx, layout=layout)
+        return plot_ica_topomap(self, source_idx=source_idx, ch_type=ch_type,
+                                res=res, layout=layout)
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                 ecg_ch=None, ecg_score_func='pearsonr', ecg_criterion=0.1,

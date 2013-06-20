@@ -822,42 +822,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             raise ValueError('Times should be between %0.3f and %0.3f. (Got '
                              '%0.3f).' % (tmin, tmax, t))
 
-    info = copy.deepcopy(evoked.info)
-
-    if layout is None:
-        from .layouts.layout import find_layout
-        layout = find_layout(info['chs'])
-    elif layout == 'auto':
-        layout = None
-
-    info['ch_names'] = _clean_names(info['ch_names'])
-    for ii, this_ch in enumerate(info['chs']):
-        this_ch['ch_name'] = info['ch_names'][ii]
-
-    if layout is not None:
-        layout = copy.deepcopy(layout)
-        layout.names = _clean_names(layout.names)
-
-    # special case for merging grad channels
-    if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
-                    np.unique([ch['coil_type'] for ch in info['chs']])):
-        from .layouts.layout import _pair_grad_sensors, _merge_grad_data
-        picks, pos = _pair_grad_sensors(info, layout)
-        merge_grads = True
-    else:
-        merge_grads = False
-        picks = pick_types(info, meg=ch_type, exclude='bads')
-        if len(picks) == 0:
-            raise ValueError("No channels of type %r" % ch_type)
-
-        if layout is None:
-            chs = [info['chs'][i] for i in picks]
-            from .layouts.layout import _find_topomap_coords
-            pos = _find_topomap_coords(chs, layout)
-        else:
-            pos = [layout.pos[layout.names.index(info['ch_names'][k])] for k in
-                   picks]
-
+    picks, pos, merge_grads = _prepare_topo_plot(evoked, ch_type, layout)
+    
     n = len(times)
     nax = n + bool(colorbar)
     width = size * nax
@@ -1029,7 +995,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         pl.show()
 
 
-def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
+def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
+                 axis=None):
     """Plot a topographic map as image
 
     Parameters
@@ -1048,6 +1015,8 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
         format string (e.g., 'r+' for red plusses).
     res : int
         The resolution of the topomap image (n pixels along each side).
+    axis : instance of Axes | None
+        The axis to plot to. If None, the current axis will be used.
     """
     import pylab as pl
 
@@ -1071,10 +1040,11 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
 
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
+    ax = axis if axis else pl
     if sensors:
         if sensors == True:
             sensors = 'k,'
-        pl.plot(pos_x, pos_y, sensors)
+        ax.plot(pos_x, pos_y, sensors)
 
     xmin, xmax = pos_x.min(), pos_x.max()
     ymin, ymax = pos_y.min(), pos_y.max()
@@ -1087,9 +1057,8 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100):
     im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
                 xi.min():xi.max():complex(0, xi.shape[1])]
     im = np.ma.masked_array(im, im == np.nan)
-
-    im = pl.imshow(im, cmap=cmap, vmin=-vmax, vmax=vmax, origin='lower',
-                   aspect='equal', extent=(xmin, xmax, ymin, ymax))
+    im = ax.imshow(im, cmap=cmap, vmin=-vmax, vmax=vmax, origin='lower',
+                aspect='equal', extent=(xmin, xmax, ymin, ymax))
     return im
 
 
@@ -1819,31 +1788,138 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     return fig
 
 
-def plot_ica_topomap(ica, source_idx, res=500, layout=None):
+def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
+                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                     scale=None, unit=None, show=True):
     """ Plot topographic map from ICA component.
 
     Parameters
     ----------
     ica : instance of mne.prerocessing.ICA
         The ica object to plot from.
-    source_idx : int
-        The index of the source to be plotted.
+    source_idx : int | array-like
+        The indices of the sources to be plotted.
     res : int
         The resolution of the topographic map
     layout : instance of mne.layouts.Layout
         The layout to be used.
+    vmax : scalar
+        The value specfying the range of the color scale (-vmax to +vmax). If
+        None, the largest absolute value in the data is used.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses).
     """
     import pylab as pl
-    ch_names = _clean_names(ica.ch_names)
-    layout = deepcopy(layout)
-    layout.names = _clean_names(layout.names)
-    pos = layout.pos[[layout.names.index(ch_name) for ch_name in
-                     ch_names]]
+
+    if scale is None:
+        if ch_type.startswith('planar'):
+            key = 'grad'
+        else:
+            key = ch_type
+    scale = DEFAULTS['scalings'][key]
+    unit = DEFAULTS['units'][key]
+
+    # restore PCA + mean
     data = np.dot(ica.mixing_matrix_[source_idx, :],
-                  ica.pca_components_[:ica.n_components_])
-    fig = pl.figure()
-    plot_topomap(data, pos, res=res)
+                  ica.pca_components_[:ica.n_components_]) + ica.pca_mean_
+
+    # restore unit
+    whitener = ica._pre_whitener
+    if ica.noise_cov is None:
+        data /= whitener
+    else:
+        data = np.dot(data, linalg.pinv(whitener))
+
+    if ica.info is None:
+        raise RuntimeError('The ICA\'s measurement info is missing. Please '
+                           'fit the ICA or add the corresponding info object.')
+
+    picks, pos, merge_grads = _prepare_topo_plot(ica, ch_type, layout)
+    data = data[:, picks] * scale
+
+    # prepare data for iteration
+    data = np.atleast_2d(data)
+    if len(data) == 1:
+        nrow = ncol = 1
+    elif len(data) <= 5:
+        nrow, ncol = 1, len(data)
+    else:
+        nrow, ncol = (len(data) / 5) + 1, 5
+
+    fig, axes = pl.subplots(nrow, ncol)
+    axes = [axes] if ncol == nrow == 1 else axes.flatten()
+    if merge_grads:
+        from .layouts.layout import _merge_grad_data
+    
+    for ii, (data_, ax) in enumerate(zip(data, axes), 1):
+        data_ = _merge_grad_data(data_) if merge_grads else data_
+        plot_topomap(data_.flatten(), pos, res=res, axis=ax)
+        ax.set_title('ICA #%03d' % ii)
+        ax.set_yticks([])
+        ax.set_xticks([])
+        ax.set_frame_on(False)
+
+    tight_layout()
+    if show is True:
+        pl.show()
+
+    # if colorbar:
+    #     cax = pl.subplot(1, n + 1, n + 1)
+    #     pl.colorbar(cax=cax, ticks=[-vmax, 0, vmax], format=format)
+    #     # resize the colorbar (by default the color fills the whole axes)
+    #     cpos = cax.get_position()
+    #     cpos.x0 = 1 - (.7 + .1 / size) / nax
+    #     cpos.x1 = cpos.x0 + .1 / nax
+    #     cpos.y0 = .1
+    #     cpos.y1 = .7
+    #     cax.set_position(cpos)
+    #     if unit is not None:
+    #         cax.set_title(unit)
+
     return fig
+
+
+def _prepare_topo_plot(obj, ch_type, layout):
+    """"Aux Function"""
+    info = copy.deepcopy(obj.info)
+    if layout is None:
+        from .layouts.layout import find_layout
+        layout = find_layout(info['chs'])
+    elif layout == 'auto':
+        layout = None
+
+    info['ch_names'] = _clean_names(info['ch_names'])
+    for ii, this_ch in enumerate(info['chs']):
+        this_ch['ch_name'] = info['ch_names'][ii]
+
+    if layout is not None:
+        layout = copy.deepcopy(layout)
+        layout.names = _clean_names(layout.names)
+
+    # special case for merging grad channels
+    if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
+                    np.unique([ch['coil_type'] for ch in info['chs']])):
+        from .layouts.layout import _pair_grad_sensors
+        picks, pos = _pair_grad_sensors(info, layout)
+        merge_grads = True
+    else:
+        merge_grads = False
+        picks = pick_types(info, meg=ch_type, exclude='bads')
+        if len(picks) == 0:
+            raise ValueError("No channels of type %r" % ch_type)
+
+        if layout is None:
+            chs = [info['chs'][i] for i in picks]
+            from .layouts.layout import _find_topomap_coords
+            pos = _find_topomap_coords(chs, layout)
+        else:
+            pos = [layout.pos[layout.names.index(info['ch_names'][k])] for k in
+                   picks]
+
+    return picks, pos, merge_grads
 
 
 def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,

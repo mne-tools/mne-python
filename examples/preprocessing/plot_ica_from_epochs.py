@@ -31,6 +31,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)
+raw.apply_proj()
 
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
                             ecg=True, stim=False, exclude='bads')
@@ -43,13 +44,15 @@ events = mne.find_events(raw, stim_channel='STI 014')
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
-###############################################################################
+random_state = np.random.RandomState(42)
+
+#####################################################################################
 # Setup ICA seed decompose data, then access and plot sources.
 # for more background information visit the plot_ica_from_raw.py example
 
 # fit sources from epochs or from raw (both works for epochs)
 ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
-          noise_cov=None, random_state=0)
+          noise_cov=None, random_state=random_state)
 
 ica.decompose_epochs(epochs)
 print ica
