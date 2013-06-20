@@ -34,7 +34,7 @@ from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag
 from ..fiff.meas_info import write_meas_info, read_meas_info
 from ..fiff.constants import Bunch, FIFF
-from ..viz import plot_ica_panel
+from ..viz import plot_ica_panel, plot_ica_topomap
 from .. import verbose
 from ..fiff.write import start_file, end_file, write_id
 
@@ -887,6 +887,22 @@ class ICA(object):
         epochs.preload = True
 
         return epochs
+
+    def plot_topomap(self, source_idx, layout=None):
+        """ plot topographic map of ICA source
+
+        Parameters
+        ----------
+        ica : instance of mne.prerocessing.ICA
+            The ica object to plot from.
+        source_idx : int
+            The index of the source to be plotted.
+        res : int
+            The resolution of the topographic map
+        layout : instance of mne.layouts.Layout
+            The layout to be used.
+        """
+        return plot_ica_topomap(self, source_idx=source_idx, layout=layout)
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                 ecg_ch=None, ecg_score_func='pearsonr', ecg_criterion=0.1,

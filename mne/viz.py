@@ -1819,6 +1819,33 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     return fig
 
 
+def plot_ica_topomap(ica, source_idx, res=500, layout=None):
+    """ Plot topographic map from ICA component.
+
+    Parameters
+    ----------
+    ica : instance of mne.prerocessing.ICA
+        The ica object to plot from.
+    source_idx : int
+        The index of the source to be plotted.
+    res : int
+        The resolution of the topographic map
+    layout : instance of mne.layouts.Layout
+        The layout to be used.
+    """
+    import pylab as pl
+    ch_names = _clean_names(ica.ch_names)
+    layout = deepcopy(layout)
+    layout.names = _clean_names(layout.names)
+    pos = layout.pos[[layout.names.index(ch_name) for ch_name in
+                     ch_names]]
+    data = np.dot(ica.mixing_matrix_[source_idx, :],
+                  ica.pca_components_[:ica.n_components_])
+    fig = pl.figure()
+    plot_topomap(data, pos, res=res)
+    return fig
+
+
 def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
                       units=None, scalings=None):
