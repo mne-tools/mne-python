@@ -107,9 +107,9 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     n_grad : int
         Number of vectors for gradiometers
     n_mag : int
-        Number of vectors for gradiometers
+        Number of vectors for magnetometers
     n_eeg : int
-        Number of vectors for gradiometers
+        Number of vectors for EEG channels
     n_jobs : int
         Number of jobs to use to compute covariance
     verbose : bool, str, int, or None
@@ -158,9 +158,9 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
     n_grad : int
         Number of vectors for gradiometers
     n_mag : int
-        Number of vectors for gradiometers
+        Number of vectors for magnetometers
     n_eeg : int
-        Number of vectors for gradiometers
+        Number of vectors for EEG channels
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -194,9 +194,9 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     n_grad : int
         Number of vectors for gradiometers
     n_mag : int
-        Number of vectors for gradiometers
+        Number of vectors for magnetometers
     n_eeg : int
-        Number of vectors for gradiometers
+        Number of vectors for EEG channels
     reject : dict
         Epoch rejection configuration (see Epochs)
     flat : dict
