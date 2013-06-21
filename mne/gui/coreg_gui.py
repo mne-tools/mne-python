@@ -425,7 +425,7 @@ class CoregPanel(HasPrivateTraits):
                                 prepare_bem_model, (bem,), {}))
                 self.queue_len += 1
 
-            if mridlg.setup_source_space:
+            if mridlg.prepare_bem_model and mridlg.setup_source_space:
                 if mridlg.ss_subd == 'ico':
                     self.queue.put(('mne_setup_source_space %s' % subject,
                                     setup_source_space, (subject,),
