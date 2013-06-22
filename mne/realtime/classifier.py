@@ -10,7 +10,7 @@ from mne.time_frequency import multitaper_psd
 class RtClassifier:
 
     """
-    TODO: complete docstring ...
+    TODO: complete docstrings ...
 
     Parameters
     ----------
@@ -61,3 +61,26 @@ class PSDEstimator(TransformerMixin):
 
     def transform(self, data):
         return multitaper_psd(data)
+
+
+# how do we import filter?
+class FilterEstimator(TransformerMixin):
+
+    def __init__(self, l_freq, h_freq, picks, filter_length, l_trans_bandwidth,
+                 h_trans_bandwidth, n_jobs, method, iir_params, verbose):
+        self.l_freq = l_freq
+        self.h_freq = h_freq
+        self.picks = picks
+        self.filter_length = filter_length
+        self.l_trans_bandwidth = l_trans_bandwidth
+        self.h_trans_bandwidth = h_trans_bandwidth
+        self.n_jobs = n_jobs
+        self.method = method
+        self.iir_params = iir_params
+        self.verbose = verbose
+
+    def transform(self, data):
+        return filter(self, self.l_freq, self.h_freq, self.picks,
+                      self.filter_length, self.l_trans_bandwidth,
+                      self.h_trans_bandwidth, self.n_jobs, self.method,
+                      self.iir_params, self.verbose)
