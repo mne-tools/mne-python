@@ -32,10 +32,11 @@ from ..fiff.write import write_double_matrix, write_string, \
 from ..fiff.tree import dir_tree_find
 from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag
+from ..fiff.meas_info import write_meas_info, read_meas_info
 from ..fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel
 from .. import verbose
-from ..fiff.write import start_file, end_file
+from ..fiff.write import start_file, end_file, write_id
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -161,7 +162,8 @@ class ICA(object):
         .exclude attribute. When saving the ICA also the indices are restored.
         Hence, artifact components once identified don't have to be added
         again. To dump this 'artifact memory' say: ica.exclude = []
-
+    info : None | instance of mne.fiff.meas_info.Info
+        The measurement info copied from the object fitted.
     """
     @verbose
     def __init__(self, n_components, max_pca_components=100,
@@ -191,6 +193,7 @@ class ICA(object):
         self.fun = fun
         self.fun_args = fun_args
         self.exclude = []
+        self.info = None
 
     def __repr__(self):
         """ICA fit information"""
@@ -257,7 +260,9 @@ class ICA(object):
             self.max_pca_components = len(picks)
             logger.info('Inferring max_pca_components from picks.')
 
-        self.ch_names = [raw.ch_names[k] for k in picks]
+        self.info = deepcopy(raw.info)
+        self.info['chs'] = [raw.info['chs'][k] for k in picks]
+        self.ch_names = self.info['chs']
         start, stop = _check_start_stop(raw, start, stop)
         data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                     raw.info, picks)
@@ -311,7 +316,9 @@ class ICA(object):
         # filter out all the channels the raw wouldn't have initialized
         picks = np.intersect1d(meeg_picks, picks)
 
-        self.ch_names = [epochs.ch_names[k] for k in picks]
+        self.info = deepcopy(epochs.info)
+        self.info['chs'] = [epochs.info['chs'][k] for k in picks]
+        self.ch_names = self.info['chs']
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
@@ -481,6 +488,7 @@ class ICA(object):
         out.first_samp = raw.first_samp + (start if start else 0)
         out.last_samp = out.first_samp + stop if stop else raw.last_samp
 
+        # XXX use self.info later, for now this is better
         self._export_info(out.info, raw, picks)
         out._projector = None
 
@@ -556,8 +564,8 @@ class ICA(object):
         raw : instance of mne.fiff.Raw
             Raw object to plot the sources from.
         order : ndarray | None.
-            Index of length `n_components_`. If None, plot will show the sources
-            in the order as fitted.
+            Index of length `n_components_`. If None, plot will show the
+            sources in the order as fitted.
             Example::
 
                 arg_sort = np.argsort(np.var(sources)).
@@ -1290,6 +1298,15 @@ def _write_ica(fid, ica):
                          fun=ica.fun,
                          fun_args=ica.fun_args)
 
+    if ica.info is not None:
+        start_block(fid, FIFF.FIFFB_MEAS)
+        write_id(fid, FIFF.FIFF_BLOCK_ID)
+        if ica.info['meas_id'] is not None:
+            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, ica.info['meas_id'])
+
+        # Write measurement info
+        write_meas_info(fid, ica.info)
+
     start_block(fid, FIFF.FIFFB_ICA)
 
     #   ICA interface params
@@ -1342,8 +1359,17 @@ def read_ica(fname):
 
     logger.info('Reading %s ...' % fname)
     fid, tree, _ = fiff_open(fname)
-    ica_data = dir_tree_find(tree, FIFF.FIFFB_ICA)
 
+    try:
+        info, meas = read_meas_info(fid, tree)
+        info['filename'] = fname
+    except ValueError:
+        logger.info('Could not find the measurement info. '
+                    'Functionality requiring the info won\'t be'
+                    'available.')
+        info = None
+
+    ica_data = dir_tree_find(tree, FIFF.FIFFB_ICA)
     if len(ica_data) == 0:
         fid.close()
         raise ValueError('Could not find ICA data')
@@ -1396,6 +1422,7 @@ def read_ica(fname):
     ica.unmixing_matrix_ = unmixing_matrix
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_).T
     ica.exclude = [] if exclude is None else list(exclude)
+    ica.info = info
     logger.info('Ready.')
 
     return ica
