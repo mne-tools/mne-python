@@ -42,9 +42,9 @@ class Scaler(TransformerMixin):
 
     def transform(self, epochs_data):
 
-        picks_list = [pick_types(epochs_data.info, meg='mag', exclude='bads'),
-                      pick_types(epochs_data.info, eeg='True', exclude='bads'),
-                      pick_types(epochs_data.info, meg='grad', exclude='bads')]
+        picks_list = [pick_types(self.info, meg='mag', exclude='bads'),
+                      pick_types(self.info, eeg='True', exclude='bads'),
+                      pick_types(self.info, meg='grad', exclude='bads')]
 
         for pick_one in picks_list:
                 ch_mean = epochs_data[:, pick_one, :].mean(axis=1)[:, None, :]
