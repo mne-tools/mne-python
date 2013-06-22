@@ -4,6 +4,7 @@
 
 from sklearn.base import TransformerMixin
 from mne.fiff import pick_types
+from mne.time_frequency import multitaper_psd
 
 
 class RtClassifier:
@@ -51,3 +52,12 @@ class Scaler(TransformerMixin):
                 epochs_data[:, pick_one, :] -= ch_mean
 
         return epochs_data
+
+
+class PSDEstimator(TransformerMixin):
+
+    def __init__(self, info):
+        self.info = info
+
+    def transform(self, data):
+        return multitaper_psd(data)
