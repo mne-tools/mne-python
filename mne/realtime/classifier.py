@@ -2,12 +2,14 @@
 #
 # License: BSD (3-clause)
 
-import numpy as np
+from sklearn.base import TransformerMixin
+from mne.fiff import pick_types
 
 
 class RtClassifier:
 
     """
+    TODO: complete docstring ...
 
     Parameters
     ----------
@@ -21,36 +23,6 @@ class RtClassifier:
 
         self.estimator = estimator
 
-    def split_data(self, epochs, Y, tr_percent):
-        """Split data into training and test set
-
-        Parameters
-        ----------
-        epochs :
-        Y :
-        tr_percent:
-
-        Returns
-        -------
-        Tr_X:
-        Ts_X:
-        Tr_Y:
-        Ts_Y:
-
-        """
-
-        trnum = round(np.shape(epochs)[0]*tr_percent/100)
-        tsnum = np.shape(epochs)[0] - trnum
-
-        Tr_X = np.reshape(epochs[:trnum, :, :],
-                          [trnum, np.shape(epochs)[2]*np.shape(epochs)[1]])
-        Ts_X = np.reshape(epochs[-tsnum:, :, :],
-                          [tsnum, np.shape(epochs)[2]*np.shape(epochs)[1]])
-        Tr_Y = Y[:trnum]
-        Ts_Y = Y[-tsnum:]
-
-        return Tr_X, Ts_X, Tr_Y, Ts_Y
-
     def fit(self, X, y):
 
         self.estimator.fit(X, y)
@@ -61,3 +33,21 @@ class RtClassifier:
         result = self.estimator.predict(X)
 
         return result
+
+
+class Scaler(TransformerMixin):
+
+    def __init__(self, info):
+        self.info = info
+
+    def transform(self, epochs_data):
+
+        picks_list = [pick_types(epochs_data.info, meg='mag', exclude='bads'),
+                      pick_types(epochs_data.info, eeg='True', exclude='bads'),
+                      pick_types(epochs_data.info, meg='grad', exclude='bads')]
+
+        for pick_one in picks_list:
+                ch_mean = epochs_data[:, pick_one, :].mean(axis=1)[:, None, :]
+                epochs_data[:, pick_one, :] -= ch_mean
+
+        return epochs_data
