@@ -262,7 +262,7 @@ class ICA(object):
 
         self.info = deepcopy(raw.info)
         self.info['chs'] = [raw.info['chs'][k] for k in picks]
-        self.ch_names = self.info['chs']
+        self.ch_names = [ch['ch_name'] for ch in self.info['chs']]
         start, stop = _check_start_stop(raw, start, stop)
         data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                     raw.info, picks)
@@ -318,7 +318,7 @@ class ICA(object):
 
         self.info = deepcopy(epochs.info)
         self.info['chs'] = [epochs.info['chs'][k] for k in picks]
-        self.ch_names = self.info['chs']
+        self.ch_names = [ch['ch_name'] for ch in self.info['chs']]
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
@@ -1254,7 +1254,6 @@ def _find_sources(sources, target, score_func):
 
 def _serialize(dict_, outer_sep=';', inner_sep=':'):
     """Aux function"""
-
     s = []
     for k, v in dict_.items():
         if callable(v):
