@@ -11,10 +11,16 @@ Changelog
 
    - Allow picking normal orientation in LCMV beamformers by `Roman Goj`_, `Alex Gramfort`_, `Denis Engemann`_ and `Martin Luessi`_
 
+   - Add printing summary to terminal for measurment info by `Denis Engemann`_ 
+
+   - Add read and write info attribute ICA objects by `Denis Engemann`_ 
+
 API
 ~~~
 
    - The pick_normal parameter for minimum norm solvers has been renamed as pick_ori and normal orientation picking is now achieved by passing the value "normal" for the pick_ori parameter.
+
+   - ICA objects now expose the measurment info of the object fitted.
 
 .. _changes_0_6:
 

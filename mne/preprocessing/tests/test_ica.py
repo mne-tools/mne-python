@@ -5,7 +5,6 @@
 
 import os
 import os.path as op
-import warnings
 
 from nose.tools import assert_true, assert_raises
 from copy import deepcopy
@@ -19,6 +18,7 @@ from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
                               read_ica, run_ica
 from mne.preprocessing.ica import score_funcs
 from mne.utils import _TempDir, requires_sklearn
+from mne.fiff.meas_info import Info
 
 tempdir = _TempDir()
 
@@ -150,7 +150,9 @@ def test_ica_additional():
     test_cov2 = deepcopy(test_cov)
     ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
               n_pca_components=4)
+    assert_true(ica.info is None)
     ica.decompose_raw(raw, picks[:5])
+    assert_true(isinstance(ica.info, Info))
     assert_true(ica.n_components_ < 5)
 
     ica = ICA(n_components=3, max_pca_components=4,
@@ -204,7 +206,7 @@ def test_ica_additional():
         ica_read = read_ica(test_ica_fname)
 
         assert_true(ica.ch_names == ica_read.ch_names)
-
+        assert_true(isinstance(ica_read.info, Info))  # XXX improve later
         assert_true(np.allclose(ica.mixing_matrix_, ica_read.mixing_matrix_,
                                 rtol=1e-16, atol=1e-32))
         assert_array_equal(ica.pca_components_,
