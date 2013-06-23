@@ -206,7 +206,7 @@ def test_ica_additional():
         ica_read = read_ica(test_ica_fname)
 
         assert_true(ica.ch_names == ica_read.ch_names)
-        assert_true(ica.info is not None)  # XXX improve later
+        assert_true(isinstance(ica.info, Info))  # XXX improve later
         assert_true(np.allclose(ica.mixing_matrix_, ica_read.mixing_matrix_,
                                 rtol=1e-16, atol=1e-32))
         assert_array_equal(ica.pca_components_,
