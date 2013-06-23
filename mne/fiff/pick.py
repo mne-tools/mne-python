@@ -131,8 +131,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         The measurement info.
     meg : bool or string
         If True include all MEG channels. If False include None
-        If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select only
-        magnetometers, all gradiometers, or a specific type of gradiometer.
+        If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
+        only magnetometers, all gradiometers, or a specific type of
+        gradiometer.
     eeg : bool
         If True include EEG channels.
     eog : bool
@@ -190,9 +191,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
             elif info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T_M:
                 if meg == 'grad':
                     pick[k] = True
-                elif meg == 'planar1' and  info['ch_names'][k].endswith('2'):
+                elif meg == 'planar1' and info['ch_names'][k].endswith('2'):
                     pick[k] = True
-                elif meg == 'planar2' and  info['ch_names'][k].endswith('3'):
+                elif meg == 'planar2' and info['ch_names'][k].endswith('3'):
                     pick[k] = True
             elif (meg == 'mag'
                     and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T):
