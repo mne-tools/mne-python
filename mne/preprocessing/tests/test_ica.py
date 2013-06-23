@@ -13,12 +13,12 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from scipy import stats
 from itertools import product
 
-from ... import fiff, Epochs, read_events, cov
-from .. import ICA, ica_find_ecg_events, ica_find_eog_events,\
+from mne import fiff, Epochs, read_events, cov
+from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
                               read_ica, run_ica
-from ..ica import score_funcs
-from ...utils import _TempDir, requires_sklearn
-from ...fiff.meas_info import Info
+from mne.preprocessing.ica import score_funcs
+from mne.utils import _TempDir, requires_sklearn
+from mne.fiff.meas_info import Info
 
 tempdir = _TempDir()
 

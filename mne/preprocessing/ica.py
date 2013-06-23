@@ -25,7 +25,7 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from .. import Covariance
-from ..fiff.pick import pick_types, pick_channels
+from ..fiff.pick import pick_types, pick_channels, pick_info
 from ..fiff.write import write_double_matrix, write_string, \
                          write_name_list, write_int, start_block, \
                          end_block
@@ -260,10 +260,8 @@ class ICA(object):
             self.max_pca_components = len(picks)
             logger.info('Inferring max_pca_components from picks.')
 
-        self.info = deepcopy(raw.info)
-        self.info['chs'] = [raw.info['chs'][k] for k in picks]
-        self.ch_names = [ch['ch_name'] for ch in self.info['chs']]
-        self.info['nchan'] = len(self.ch_names)
+        self.info = pick_info(raw.info, picks)
+        self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
         data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                     raw.info, picks)
@@ -317,10 +315,8 @@ class ICA(object):
         # filter out all the channels the raw wouldn't have initialized
         picks = np.intersect1d(meeg_picks, picks)
 
-        self.info = deepcopy(epochs.info)
-        self.info['chs'] = [epochs.info['chs'][k] for k in picks]
-        self.ch_names = [ch['ch_name'] for ch in self.info['chs']]
-        self.info['nchan'] = len(self.ch_names)
+        self.info = pick_info(epochs.info, picks)
+        self.ch_names = self.info['ch_names']
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
