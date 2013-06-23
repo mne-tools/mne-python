@@ -263,6 +263,7 @@ class ICA(object):
         self.info = deepcopy(raw.info)
         self.info['chs'] = [raw.info['chs'][k] for k in picks]
         self.ch_names = [ch['ch_name'] for ch in self.info['chs']]
+        self.info['nchan'] = len(self.ch_names)
         start, stop = _check_start_stop(raw, start, stop)
         data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
                                                     raw.info, picks)
@@ -319,6 +320,7 @@ class ICA(object):
         self.info = deepcopy(epochs.info)
         self.info['chs'] = [epochs.info['chs'][k] for k in picks]
         self.ch_names = [ch['ch_name'] for ch in self.info['chs']]
+        self.info['nchan'] = len(self.ch_names)
 
         if self.max_pca_components is None:
             self.max_pca_components = len(picks)
@@ -1305,6 +1307,7 @@ def _write_ica(fid, ica):
 
         # Write measurement info
         write_meas_info(fid, ica.info)
+        end_block(fid, FIFF.FIFFB_MEAS)
 
     start_block(fid, FIFF.FIFFB_ICA)
 
@@ -1363,9 +1366,9 @@ def read_ica(fname):
         info, meas = read_meas_info(fid, tree)
         info['filename'] = fname
     except ValueError:
-        logger.info('Could not find the measurement info. '
+        logger.info('Could not find the measurement info. \n'
                     'Functionality requiring the info won\'t be'
-                    'available.')
+                    ' available.')
         info = None
 
     ica_data = dir_tree_find(tree, FIFF.FIFFB_ICA)
