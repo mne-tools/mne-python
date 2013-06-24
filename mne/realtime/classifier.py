@@ -41,7 +41,7 @@ class RtClassifier:
 
 class Scaler(TransformerMixin):
     """
-        Standardizes data separately for each channel
+        Standardizes data across channels?
     """
     def __init__(self, info):
         self.info = info
@@ -55,7 +55,7 @@ class Scaler(TransformerMixin):
 
     def transform(self, epochs):
         """
-        Standardizes data for every channel
+        Standardizes data across channels?
         """
 
         X = epochs.get_data()
@@ -76,24 +76,26 @@ class ConcatenateChannels(TransformerMixin):
     def __init__(self, info=None):
         self.info = info
 
-    def fit(self, epochs, y):
+    def fit(self, epochs_data, y):
         """
         Dummy fit method
         """
         return self
 
-    def transform(self, epochs):
+    def transform(self, epochs_data):
         """
         Concatenates data from different channels into a single feature vector
         """
-        n_epochs, n_channels, n_time = epochs.shape
-        Z = np.reshape(np.transpose(epochs, (0, 2, 1)),
+        n_epochs, n_channels, n_time = epochs_data.shape
+        X = np.reshape(np.transpose(epochs_data, (0, 2, 1)),
                        (n_epochs, n_channels*n_time))
-        return Z
+        return X
 
 
 class PSDEstimator(TransformerMixin):
-
+    """
+    TODO: add fit() method
+    """
     def __init__(self, info):
         self.info = info
 
@@ -101,8 +103,10 @@ class PSDEstimator(TransformerMixin):
         return multitaper_psd(data)
 
 
-# how do we import filter?
 class FilterEstimator(TransformerMixin):
+    """
+    TODO: import filters somehow ...
+    """
 
     def __init__(self, l_freq, h_freq, picks, filter_length, l_trans_bandwidth,
                  h_trans_bandwidth, n_jobs, method, iir_params, verbose):
