@@ -598,7 +598,7 @@ def stc_to_label(stc, src=None, smooth=5, subjects_dir=None):
     else:
         subject = stc.subject
 
-    if not stc.is_surface():
+    if not isinstance(stc, SourceEstimate):
         raise ValueError('SourceEstimate should be surface source estimates')
 
     if isinstance(src, basestring):

@@ -166,7 +166,7 @@ def test_plot_sparse_source_estimates():
     stc_data.shape = (n_verts, n_time)
     inds = np.where(np.any(stc_data, axis=1))[0]
     stc_data = stc_data[inds]
-    vertices = vertices[inds]
+    vertices = [vertices[inds], np.empty(0, dtype=np.int)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                  opacity=0.5, high_resolution=True)
