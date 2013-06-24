@@ -18,7 +18,7 @@ from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener
-from ..source_estimate import SourceEstimate
+from ..source_estimate import _make_stc
 from ..source_space import label_src_vertno_sel
 from .. import verbose
 
@@ -60,7 +60,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     Returns
     -------
-    stc : SourceEstimate (or list of SourceEstimate)
+    stc : SourceEstimate | VolSourceEstimate (or list of thereof)
         Source time courses.
     """
 
@@ -210,8 +210,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 sol = np.abs(sol)
 
         tstep = 1.0 / info['sfreq']
-        yield SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                             subject=subject)
+        yield _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                        subject=subject)
 
     logger.info('[done]')
 
@@ -250,7 +250,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
 
     Returns
     -------
-    stc : SourceEstimate
+    stc : SourceEstimate | VolSourceEstimate
         Source time courses
 
     Notes
@@ -313,7 +313,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
 
     Returns
     -------
-    stc: list | generator of SourceEstimate
+    stc: list | generator of (SourceEstimate | VolSourceEstimate)
         The source estimates for all epochs
 
     Notes
@@ -386,7 +386,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 
     Returns
     -------
-    stc : SourceEstimate
+    stc : SourceEstimate | VolSourceEstimate
         Source time courses
 
     Notes

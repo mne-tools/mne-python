@@ -12,7 +12,7 @@ import logging
 logger = logging.getLogger('mne')
 
 from ..fiff.constants import FIFF
-from ..source_estimate import SourceEstimate
+from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
 from ..time_frequency.multitaper import dpss_windows, _psd_from_mt,\
                                         _psd_from_mt_adaptive, _mt_spectra
@@ -77,6 +77,11 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stcs : dict with a SourceEstimate (or VolSourceEstimate) for each band
+        The estimated source space induced power estimates.
     """
     method = _check_method(method)
 
@@ -107,8 +112,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
         tmin = epochs.times[0]
         tstep = float(decim) / Fs
-        stc = SourceEstimate(power, vertices=vertno, tmin=tmin, tstep=tstep,
-                             subject=subject)
+        stc = _make_stc(power, vertices=vertno, tmin=tmin, tstep=tstep,
+                        subject=subject)
         stcs[name] = stc
 
         logger.info('[done]')
@@ -378,7 +383,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     Returns
     -------
-    stc : SourceEstimate
+    stc : SourceEstimate | VolSourceEstimate
         The PSD (in dB) of each of the sources.
     """
     pick_ori = _check_ori(pick_ori, pick_normal)
@@ -457,8 +462,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     psd = 10 * np.log10(psd)
 
     subject = _subject_from_inverse(inverse_operator)
-    stc = SourceEstimate(psd, vertices=vertno, tmin=fmin * 1e-3,
-                         tstep=fstep * 1e-3, subject=subject)
+    stc = _make_stc(psd, vertices=vertno, tmin=fmin * 1e-3,
+                    tstep=fstep * 1e-3, subject=subject)
     return stc
 
 
@@ -582,8 +587,8 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         if method != "MNE":
             psd *= noise_norm ** 2
 
-        stc = SourceEstimate(psd, tmin=fmin, tstep=fstep, vertices=vertno,
-                             subject=subject)
+        stc = _make_stc(psd, tmin=fmin, tstep=fstep, vertices=vertno,
+                        subject=subject)
 
         # we return a generator object for "stream processing"
         yield stc
@@ -646,7 +651,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     Returns
     -------
-    stcs : list (or generator object) of SourceEstimate
+    stcs : list (or generator object) of SourceEstimate | VolSourceEstimate
         The source space PSDs for each epoch.
     """
 

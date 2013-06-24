@@ -10,7 +10,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal, \
 from scipy.fftpack import fft
 
 from mne.datasets import sample
-from mne import stats, SourceEstimate, Label, read_source_spaces
+from mne import stats, SourceEstimate, VolSourceEstimate, Label,\
+                read_source_spaces
 from mne import read_source_estimate, morph_data, extract_label_time_course
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
@@ -36,7 +37,7 @@ tempdir = _TempDir()
 
 
 def test_volume_stc():
-    """Test reading and writing volume STCs
+    """Test volume STCs
     """
     N = 100
     data = np.arange(N)[:, np.newaxis]
@@ -45,18 +46,19 @@ def test_volume_stc():
     vertnos = [vertno, vertno[:, np.newaxis], np.arange(2)[:, np.newaxis]]
     vertno_reads = [vertno, vertno, np.arange(2)]
     for data, vertno, vertno_read in zip(datas, vertnos, vertno_reads):
-        stc = SourceEstimate(data, vertno, 0, 1)
-        assert_true(stc.is_surface() is False)
+        stc = VolSourceEstimate(data, vertno, 0, 1)
         fname_temp = op.join(tempdir, 'temp-vl.stc')
         stc_new = stc
         for _ in xrange(2):
             stc_new.save(fname_temp)
             stc_new = read_source_estimate(fname_temp)
-            assert_true(stc_new.is_surface() is False)
+            assert_true(isinstance(stc_new, VolSourceEstimate))
             assert_array_equal(vertno_read, stc_new.vertno)
             assert_array_almost_equal(stc.data, stc_new.data)
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
+    assert_true(isinstance(stc, VolSourceEstimate))
+
     assert_true('sample' in repr(stc))
     stc_new = stc
     assert_raises(ValueError, stc.save, fname_vol, ftype='whatever')
@@ -64,24 +66,34 @@ def test_volume_stc():
         fname_temp = op.join(tempdir, 'temp-vol.w')
         stc_new.save(fname_temp, ftype='w')
         stc_new = read_source_estimate(fname_temp)
-        assert_true(stc_new.is_surface() is False)
+        assert_true(isinstance(stc_new, VolSourceEstimate))
         assert_array_equal(stc.vertno, stc_new.vertno)
         assert_array_almost_equal(stc.data, stc_new.data)
 
-    # save the stc as a nifti file
+    # save the stc as a nifti file and export
     try:
         import nibabel as nib
         src = read_source_spaces(fname_vsrc)
-        img = stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
-                                 dest='surf', mri_resolution=False)
+        vol_fname = op.join(tempdir, 'stc.nii.gz')
+        stc.save_as_volume(vol_fname, src,
+                           dest='surf', mri_resolution=False)
+        img = nib.load(vol_fname)
         assert_true(img.shape == src[0]['shape'] + (len(stc.times),))
 
         t1_img = nib.load(fname_t1)
-        img = stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
-                                 dest='mri', mri_resolution=True)
+        stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
+                           dest='mri', mri_resolution=True)
+        img = nib.load(vol_fname)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
         assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
                                   decimal=5)
+
+        # export without saving
+        img = stc.as_volume(src, dest='mri', mri_resolution=True)
+        assert_true(img.shape == t1_img.shape + (len(stc.times),))
+        assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
+                                  decimal=5)
+
     except ImportError:
         print 'Save as nifti test skipped, needs NiBabel'
 
@@ -375,8 +387,8 @@ def test_transform_data():
         data_f, _ = _my_trans(data[idx_use, tmin_idx:tmax_idx])
 
         for stc_data in (data, (kernel, sens_data)):
-            stc = SourceEstimate(stc_data, vertices=vertices,
-                                 tmin=0., tstep=1.)
+            stc = VolSourceEstimate(stc_data, vertices=vertices,
+                                    tmin=0., tstep=1.)
             stc_data_t = stc.transform_data(_my_trans, idx=idx,
                                             tmin_idx=tmin_idx,
                                             tmax_idx=tmax_idx)
@@ -391,8 +403,8 @@ def test_notify_array_source_estimate():
     sens_data = np.random.randn(n_sensors, n_times)
     vertices = np.arange(n_vertices)
 
-    stc = SourceEstimate((kernel, sens_data), vertices=vertices,
-                         tmin=0., tstep=1.)
+    stc = VolSourceEstimate((kernel, sens_data), vertices=vertices,
+                            tmin=0., tstep=1.)
 
     assert_true(stc._data is None)
     assert_true(stc._kernel is not None)
