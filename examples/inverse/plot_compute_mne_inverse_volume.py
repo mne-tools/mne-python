@@ -38,12 +38,17 @@ src = inverse_operator['src']
 stc = apply_inverse(evoked, inverse_operator, lambda2, method)
 stc.crop(0.0, 0.2)
 
-# Save result in a 4D nifti file
-img = stc.save_as_volume('mne_%s_inverse.nii.gz' % method, src,
-            mri_resolution=False)  # set to True for full MRI resolution
+# Export result as a 4D nifti object
+img = stc.as_volume(src,
+                    mri_resolution=False)  #set to True for full MRI resolution
+
+# Save it as a nifti file
+import nibabel as nib
+nib.save(img, 'mne_%s_inverse.nii.gz' % method)
+
 data = img.get_data()
 
-# plot result (one slice)
+# Plot result (one slice)
 coronal_slice = data[:, 10, :, 60]
 pl.close('all')
 pl.imshow(np.ma.masked_less(coronal_slice, 8), cmap=pl.cm.Reds,
