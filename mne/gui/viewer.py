@@ -123,7 +123,11 @@ class Object(HasPrivateTraits):
 
     @cached_property
     def _get_rgbcolor(self):
-        return tuple(v / 255. for v in self.color.Get())
+        if hasattr(self.color, 'Get'): # wx
+            color = tuple(v / 255. for v in self.color.Get())
+        else:
+            color = self.color.getRgbF()[:3]
+        return color
 
     @on_trait_change('trans')
     def _update_points(self):
