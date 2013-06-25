@@ -468,12 +468,19 @@ def test_spatio_temporal_src_connectivity():
 @requires_pandas
 def test_as_data_frame():
     """Test stc Pandas exporter"""
-    fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
-    stc = read_source_estimate(fname, subject='sample')
-    assert_raises(ValueError, stc.as_data_frame, index=['foo', 'bar'])
-    for ncat, ind in zip([1, 0], ['time', ['subject', 'time']]):
-        df = stc.as_data_frame(index=ind)
-        assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
-        assert_array_equal(df.values.T[ncat:], stc.data)
-        # test that non-indexed data were present as categorial variables
-        df.reset_index().columns[:3] == ['subject', 'time']
+    n_vert, n_times = 10, 5
+    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
+    data = np.random.randn(n_vert, n_times)
+    stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
+                              subject='sample')
+    stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
+                                subject='sample')
+    for stc in [stc_surf, stc_vol]:
+        assert_raises(ValueError, stc.as_data_frame, index=['foo', 'bar'])
+        for ncat, ind in zip([1, 0], ['time', ['subject', 'time']]):
+            df = stc.as_data_frame(index=ind)
+            assert_true(df.index.names == ind
+                        if isinstance(ind, list) else [ind])
+            assert_array_equal(df.values.T[ncat:], stc.data)
+            # test that non-indexed data were present as categorial variables
+            df.reset_index().columns[:3] == ['subject', 'time']

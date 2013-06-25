@@ -802,8 +802,8 @@ class _BaseSourceEstimate(object):
             data[:, i] = func(self.data[:, idx], axis=1)
 
         tmin = times[0] + width / 2.
-        stc = SourceEstimate(data, vertices=self.vertno,
-                             tmin=tmin, tstep=width, subject=self.subject)
+        stc = _make_stc(data, vertices=self.vertno,
+                        tmin=tmin, tstep=width, subject=self.subject)
         return stc
 
     def transform_data(self, transform_fun, fun_args=None,
@@ -929,10 +929,16 @@ class _BaseSourceEstimate(object):
             data = data.copy()
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
 
-        vert_names = [i for e in [['%s %i' % ('LH' if ii < 1 else 'RH', vert)
-                      for vert in vertno]
-                      for ii, vertno in enumerate(self.vertno)] for i in e]
-        df = pd.DataFrame(data, columns=vert_names)
+        if isinstance(self.vertno, list):
+            # surface source estimates
+            v_names = [i for e in [['%s %i' % ('LH' if ii < 1 else 'RH', vert)
+                       for vert in vertno]
+                       for ii, vertno in enumerate(self.vertno)] for i in e]
+        else:
+            # volume source estimates
+            v_names = ['VOL %d' % vert for vert in self.vertno]
+
+        df = pd.DataFrame(data, columns=v_names)
         [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
 
         if index is not None:
