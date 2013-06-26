@@ -63,15 +63,16 @@ svc = SVC(C=1, kernel='linear')
 csp = CSP(pick_components=pick_components)
 
 # Define a monte-carlo cross-validation generator (reduce variance):
-cv = ShuffleSplit(len(labels), 10, test_size=0.2)
+cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
 scores = []
+epochs_data = epochs.get_data()
 
 for train_idx, test_idx in cv:
 
     y_train, y_test = labels[train_idx], labels[test_idx]
 
-    X_train = csp.fit_transform(epochs[train_idx], y_train)
-    X_test = csp.transform(epochs[test_idx])
+    X_train = csp.fit_transform(epochs_data[train_idx], y_train)
+    X_test = csp.transform(epochs_data[test_idx])
 
     # fit classifier
     svc.fit(X_train, y_train)
@@ -88,12 +89,13 @@ print "Classification accuracy: %f" % np.mean(scores), \
 # a Pipeline
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score
+cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
-scores = cross_val_score(clf, epochs, labels, cv=cv, n_jobs=1)
+scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print scores.mean()  # should match results above
 
 # plot CSP patterns estimated on full data for visualization
-csp.fit_transform(epochs, labels)
+csp.fit_transform(epochs_data, labels)
 evoked.data = csp.patterns_.T
 evoked.times = np.arange(evoked.data.shape[0])
 evoked.plot_topomap(times=[0, 1, 201, 202], ch_type='grad', colorbar=False)

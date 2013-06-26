@@ -47,13 +47,13 @@ class CSP(object):
         self.mean_ = None
         self.std_ = None
 
-    def fit(self, epochs, y):
+    def fit(self, epochs_data, y):
         """Estimate the CSP decomposition on epochs.
 
         Parameters
         ----------
-        epochs : 3d ndarray | instance of Epochs
-            The CSP is estimated on the epochs.
+        epochs : array, shape=(n_epochs, n_channels, n_times)
+            The data to estimate the CSP on.
         y : array
             The classe for each epoch.
 
@@ -62,26 +62,26 @@ class CSP(object):
         self : instance of CSP
             Returns the modified instance.
         """
-        if hasattr(epochs, 'get_data'):
-            epochs = epochs.get_data()
-
-        epochs = np.atleast_3d(epochs)
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+        epochs_data = np.atleast_3d(epochs_data)
         classes = np.unique(y)
         if len(classes) != 2:
             raise ValueError("More than two different classes in the data.")
 
         # concatenate epochs
-        class_1 = np.transpose(epochs[y == classes[0]],
-                               [1, 0, 2]).reshape(epochs.shape[1], -1)
-        class_2 = np.transpose(epochs[y == classes[1]],
-                               [1, 0, 2]).reshape(epochs.shape[1], -1)
+        class_1 = np.transpose(epochs_data[y == classes[0]],
+                               [1, 0, 2]).reshape(epochs_data.shape[1], -1)
+        class_2 = np.transpose(epochs_data[y == classes[1]],
+                               [1, 0, 2]).reshape(epochs_data.shape[1], -1)
 
         # fit on empirical covariance
         self._fit(np.dot(class_1, class_1.T),
                   np.dot(class_2, class_2.T))
 
         pick_filters = self.filters_[self.pick_components]
-        X = np.asarray([np.dot(pick_filters, e) for e in epochs])
+        X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
@@ -93,7 +93,7 @@ class CSP(object):
         return self
 
     def _fit(self, cov_a, cov_b):
-        """ Aux Function (modifies cov_a and cov_b inplace)"""
+        """Aux Function (modifies cov_a and cov_b inplace)"""
 
         cov_a /= np.trace(cov_a)
         cov_b /= np.trace(cov_b)
@@ -120,13 +120,13 @@ class CSP(object):
         self.filters_ = w
         self.patterns_ = linalg.pinv(w).T
 
-    def fit_transform(self, epochs, y):
+    def fit_transform(self, epochs_data, y):
         """Estimate the CSP decomposition on epochs and apply filters
 
         Parameters
         ----------
-        epochs : 3d ndarray | instance of Epochs
-            The CSP is estimated on the concatenated epochs.
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data to estimate the CSP on.
         y : array
             The class for each epoch.
 
@@ -135,29 +135,29 @@ class CSP(object):
         X : array
             Returns the data filtered by CSP
         """
-        return self.fit(epochs, y).transform(epochs)
+        return self.fit(epochs_data, y).transform(epochs_data)
 
-    def transform(self, epochs, y=None):
+    def transform(self, epochs_data, y=None):
         """Estimate epochs sources given the CSP filters
 
         Parameters
         ----------
-        epochs : 3d ndarray | instance of Epochs
-            The data with shape (n_epochs, n_channels, n_times)
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data.
         Returns
         -------
-        epochs_sources : ndarray of shape (n_epochs, n_sources, n_times)
-            The sources for each epoch.
+        X : ndarray of shape (n_epochs, n_sources)
+            The CSP features averaged over time.
         """
-        if hasattr(epochs, 'get_data'):
-            epochs = epochs.get_data()
-
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
         if self.filters_ is None:
             raise RuntimeError('No filters available. Please first fit CSP '
                                'decomposition.')
 
         pick_filters = self.filters_[self.pick_components]
-        X = np.asarray([np.dot(pick_filters, e) for e in epochs])
+        X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)

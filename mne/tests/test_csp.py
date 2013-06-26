@@ -41,21 +41,24 @@ def test_csp():
     """
     pick_components = [[0, -1], np.arange(3), -1 * np.arange(3)]
     n_components = [picks.size]
+    epochs_data = epochs.get_data()
 
     for this_n_comp, this_picks in product(n_components, pick_components):
         csp = CSP(n_components=this_n_comp, pick_components=this_picks)
 
-        csp.fit(epochs, epochs.events[:, -1])
+        csp.fit(epochs_data, epochs.events[:, -1])
         y = epochs.events[:, -1]
-        X = csp.fit_transform(epochs, y)
+        X = csp.fit_transform(epochs_data, y)
         assert_true(csp.filters_.shape == (this_n_comp, this_n_comp))
         assert_true(csp.patterns_.shape == (this_n_comp, this_n_comp))
-        assert_array_equal(csp.fit(epochs, y).transform(epochs), X)
+        assert_array_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
 
         # test init exception
-        assert_raises(ValueError, csp.fit, epochs,
+        assert_raises(ValueError, csp.fit, epochs_data,
                       np.zeros_like(epochs.events))
+        assert_raises(ValueError, csp.fit, epochs, y)
+        assert_raises(ValueError, csp.transform, epochs, y)
 
         csp.pick_components = this_picks
-        sources = csp.transform(epochs)
+        sources = csp.transform(epochs_data)
         assert_true(sources.shape[1] == len(this_picks))
