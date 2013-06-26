@@ -18,7 +18,7 @@ import numpy as np
 import mne
 from mne import fiff
 from mne.datasets import sample
-from mne.realtime.classifier import Scaler, ConcatenateChannels
+from mne.realtime.classifier import ConcatenateChannels
 
 data_path = sample.data_path()
 
@@ -53,7 +53,7 @@ mne.epochs.equalize_epoch_counts(epochs_list)
 # Decoding in sensor space using a linear SVM
 n_times = len(epochs.times)
 # Take only the data channels (here the gradiometers)
-data_picks = fiff.pick_types(epochs.info, meg=True, exclude='bads')
+data_picks = fiff.pick_types(epochs.info, meg='grad', exclude='bads')
 # Make arrays X and y such that :
 # X is 3d with X.shape[0] is the total number of epochs to classify
 # y is filled with integers coding for the class to predict
@@ -63,23 +63,44 @@ y = [k * np.ones(len(this_X)) for k, this_X in enumerate(X)]
 X = np.concatenate(X)
 y = np.concatenate(y)
 
+from sklearn import preprocessing
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import ShuffleSplit
 
 cv = ShuffleSplit(len(y), 10, test_size=0.2)
 
+pipe = True  # use pipeline?
+
 for train_idx, test_idx in cv:
     y_train, y_test = y[train_idx], y[test_idx]
 
-    scaler = Scaler(epochs.info)
+    # define transformer objects
+    scaler = preprocessing.StandardScaler()
     concatenator = ConcatenateChannels()
     clf = SVC(C=1, kernel='linear')
 
-    scaled_classifier = Pipeline([('scl', scaler), ('concat', concatenator),
-                                  ('svm', clf)])
+    if pipe is not True:
 
-    scaled_classifier = scaled_classifier.fit(epochs[train_idx], y_train)
-    score = scaled_classifier.score(epochs[test_idx], y_test)*100
+        # Concatenate channels
+        concatenator = concatenator.fit(X[train_idx, :, :], y_train)
+        X_train = concatenator.transform(X[train_idx, :, :])
+
+        # Scale data across trials
+        X_train = scaler.fit_transform(X_train)
+
+        X_test = concatenator.transform(X[test_idx, :, :])
+        X_test = scaler.fit_transform(X_test)
+
+        clf = clf.fit(X_train, y_train)
+        score = clf.score(X_test, y_test)*100
+
+    else:
+
+        scaled_classifier = Pipeline([('concat', concatenator),
+                                      ('scaler', scaler), ('svm', clf)])
+
+        scaled_classifier = scaled_classifier.fit(X[train_idx], y_train)
+        score = scaled_classifier.score(X[test_idx], y_test)*100
 
     print score
