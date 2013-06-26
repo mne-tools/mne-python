@@ -19,7 +19,6 @@ See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
 # License: BSD (3-clause)
 
 print __doc__
-import pylab as pl
 import numpy as np
 
 import mne
@@ -60,34 +59,41 @@ from mne.csp import CSP
 
 # pick some components (0 is the largest eigen values)
 pick_components = [0, 1, -2, -1]
-clf = SVC(C=1, kernel='linear')
+svc = SVC(C=1, kernel='linear')
 csp = CSP(pick_components=pick_components)
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 cv = ShuffleSplit(len(labels), 10, test_size=0.2)
 scores = []
 
-pl.close('all')
-
 for train_idx, test_idx in cv:
 
     y_train, y_test = labels[train_idx], labels[test_idx]
 
-    X_train = csp.fit_transform(epochs[train_idx].get_data(), y_train)
-    X_test = csp.transform(epochs[test_idx].get_data())
+    X_train = csp.fit_transform(epochs[train_idx], y_train)
+    X_test = csp.transform(epochs[test_idx])
 
     # fit classifier
-    clf.fit(X_train, y_train)
+    svc.fit(X_train, y_train)
 
-    scores.append(clf.score(X_test, y_test))
-
-    # plot csp patterns
-    evoked.data = csp.patterns_.T
-    evoked.times = np.arange(evoked.data.shape[0])
-    evoked.plot_topomap(times=[0, 1, 201, 202], ch_type='grad', colorbar=False)
+    scores.append(svc.score(X_test, y_test))
 
 # Printing the results
 class_balance = np.mean(labels == labels[0])
 class_balance = max(class_balance, 1. - class_balance)
 print "Classification accuracy: %f" % np.mean(scores), \
     " / Chance level: %f" % class_balance
+
+# Or use much more convenient scikit-learn cross_val_score function using
+# a Pipeline
+from sklearn.pipeline import Pipeline
+from sklearn.cross_validation import cross_val_score
+clf = Pipeline([('CSP', csp), ('SVC', svc)])
+scores = cross_val_score(clf, epochs, labels, cv=cv, n_jobs=1)
+print scores.mean()  # should match results above
+
+# plot CSP patterns estimated on full data for visualization
+csp.fit_transform(epochs, labels)
+evoked.data = csp.patterns_.T
+evoked.times = np.arange(evoked.data.shape[0])
+evoked.plot_topomap(times=[0, 1, 201, 202], ch_type='grad', colorbar=False)

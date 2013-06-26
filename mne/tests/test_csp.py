@@ -45,8 +45,6 @@ def test_csp():
     for this_n_comp, this_picks in product(n_components, pick_components):
         csp = CSP(n_components=this_n_comp, pick_components=this_picks)
 
-        print csp  # XXX : to test repr
-
         csp.fit(epochs, epochs.events[:, -1])
         y = epochs.events[:, -1]
         X = csp.fit_transform(epochs, y)
@@ -58,5 +56,6 @@ def test_csp():
         assert_raises(ValueError, csp.fit, epochs,
                       np.zeros_like(epochs.events))
 
-        sources = csp.get_sources_epochs(epochs, pick_components=this_picks)
+        csp.pick_components = this_picks
+        sources = csp.transform(epochs)
         assert_true(sources.shape[1] == len(this_picks))
