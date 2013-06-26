@@ -42,7 +42,7 @@ X = [e.get_data()[:, data_picks, :] for e in epochs_list]
 X = np.concatenate(X)
 
 # X_reshaped = X.transpose((0,1,2)).reshape(X.shape[0], X.shape[1]*X.shape[2])
-X_reshaped = X.transpose((0, 2, 1)).reshape(X.shape[0], X.shape[2]*X.shape[1])
+X_reshaped = X.reshape(X.shape[0], X.shape[2]*X.shape[1])
 
-pl.plot(X[1, 1, 0:106])
-pl.plot(X_reshaped[1, 0:106])
+pl.plot(X[0, 0, 0:106])
+pl.plot(X_reshaped[0, 0:106])
