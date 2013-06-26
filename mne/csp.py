@@ -20,10 +20,20 @@ class CSP(object):
     ----------
     n_components : int
         The maximum number of components.
+    pick_components : None (default) or array of int
+        Indices of components to decompose M/EEG signals
+        (if None, all components are used).
 
     Attributes
     ----------
-    XXX
+    filters_ : ndarray
+        If fit, the CSP components used to decompose the data, else None.
+    patterns_ : ndarray
+        If fit, the CSP patterns used to restore M/EEG signals, else None.
+    mean_ : ndarray
+        If fit, the mean squared power for each component.
+    std_ : ndarray
+        If fit, the std squared power for each component.
 
     [1] Zoltan J. Koles. The quantitative extraction and topographic mapping
     of the abnormal components in the clinical EEG. Electroencephalography
@@ -32,35 +42,46 @@ class CSP(object):
     def __init__(self, n_components=64, pick_components=None):
         self.n_components = n_components
         self.pick_components = pick_components
-
-    def _fit(self, epochs, y):
-        classes = np.unique(y)
-        if len(classes) != 2:
-            raise ValueError("More than two different classes in the data.")
-
-        covariance = [compute_covariance(epochs[y == c]).data for c in classes]
-
-        # call decomposition algorithm
-        self._decompose(*covariance)
+        self.filters_ = None
+        self.patterns_ = None
+        self.mean_ = None
+        self.std_ = None
 
     def fit(self, epochs, y):
         """Estimate the CSP decomposition on epochs.
 
         Parameters
         ----------
-        epochs : list of Epochs
-            The epochs for the 2 classes.
+        epochs : ndarray
             The CSP is estimated on the concatenated epochs.
+        y : array
+            The classe for each epoch.
 
         Returns
         -------
         self : instance of CSP
             Returns the modified instance.
         """
-        self._fit(epochs, y)
+        classes = np.unique(y)
+        if len(classes) != 2:
+            raise ValueError("More than two different classes in the data.")
+
+        # concatenate epochs
+        if len(epochs.shape) == 3:
+            class_1 = np.transpose(epochs[y == classes[0]],
+                                   [1, 0, 2]).reshape(epochs.shape[1], -1)
+            class_2 = np.transpose(epochs[y == classes[1]],
+                                   [1, 0, 2]).reshape(epochs.shape[1], -1)
+        else:
+            class_1 = epochs[:, y == classes[0]].copy()
+            class_2 = epochs[:, y == classes[1]].copy()
+
+        # fit on empirical covariance
+        self._fit(np.dot(class_1, class_1.T),
+                  np.dot(class_2, class_2.T))
 
         # compute sources for train and test data
-        X = self.get_sources_epochs(epochs, self.pick_components)
+        X = self.transform(epochs)
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
@@ -70,13 +91,49 @@ class CSP(object):
         self.std_ = X.std(axis=0)
         return self
 
-    def decompose_covariance(self, cov_list):
+    def fit_epochs(self, epochs, y):
+        """Estimate the CSP decomposition on epochs.
+
+        Parameters
+        ----------
+        epochs : list of Epochs
+            The epochs for the 2 classes.
+            The CSP is estimated on the Epochs objects.
+        y : array
+            The classe for each epoch.
+
+        Returns
+        -------
+        self : instance of CSP
+            Returns the modified instance.
+        """
+        classes = np.unique(y)
+        if len(classes) != 2:
+            raise ValueError("More than two different classes in the data.")
+
+        covariance = [compute_covariance(epochs[y == c]).data for c in classes]
+        # call decomposition algorithm
+        self._fit(*covariance)
+        
+        # compute sources for train and test data
+        X = self.transform_epochs(epochs, self.pick_components)
+        
+        # compute features (mean band power)
+        X = (X ** 2).mean(axis=-1)
+
+        # To standardize features
+        self.mean_ = X.mean(axis=0)
+        self.std_ = X.std(axis=0)
+        return self
+
+    def fit_covariance(self, cov_list):
         """Run the CSP decomposition on covariance matrix.
 
         Parameters
         ----------
         cov_list : list of Covariance
             The Covariance of 2 classes.
+            The CSP is estimated on the Covariance objects.
 
         Returns
         -------
@@ -91,10 +148,10 @@ class CSP(object):
         covariance = [c.data.copy() for c in cov_list]
 
         # call decomposition algorithm
-        self._decompose(*covariance)
+        self._fit(*covariance)
         return self
 
-    def _decompose(self, cov_a, cov_b):
+    def _fit(self, cov_a, cov_b):
         """ Aux Function (modifies cov_a and cov_b inplace)"""
 
         cov_a /= np.trace(cov_a)
@@ -122,7 +179,24 @@ class CSP(object):
         self.filters_ = w
         self.patterns_ = linalg.pinv(w).T
 
-    def get_sources_epochs(self, epochs, pick_components=None):
+    def fit_transform(self, epochs, y):
+        """Estimate the CSP decomposition on epochs and apply filters
+
+        Parameters
+        ----------
+        epochs : ndarray
+            The CSP is estimated on the concatenated epochs.
+        y : array
+            The classe for each epoch.
+
+        Returns
+        -------
+        X : array
+            Returns the data filtered by CSP
+        """
+        return self.fit(epochs, y).transform(epochs)
+
+    def transform_epochs(self, epochs, pick_components=None):
         """Estimate epochs sources given the CSP filters
 
         Parameters
@@ -151,45 +225,32 @@ class CSP(object):
             raise ValueError('picked components must be < n_components')
 
         pick_filters = self.filters_[pick_components]
-        return np.asarray([np.dot(pick_filters, e) for e in epochs])
+        return np.asarray([np.dot(pick_filters, e.get_data()) for e in epochs])
 
-    def fit_transform(self, epochs, y):
-        """Estimate the CSP decomposition on epochs and apply filters
+    def transform(self, epochs, y=None):
+        """Estimate epochs sources given the CSP filters
 
         Parameters
         ----------
-        epochs : list of Epochs
-            The epochs for the 2 classes.
-            The CSP is estimated on the concatenated epochs.
-
+        epochs : ndarray
+            The sources are estimated for each epochs.
+        
         Returns
         -------
         X : array
             Returns the data filtered by CSP
         """
-        self._fit(epochs, y)
-
+        
+        pick_filters = self.filters_[self.pick_components]
         # compute sources for train and test data
-        X = self.get_sources_epochs(epochs, self.pick_components)
-
+        X = np.asarray([np.dot(pick_filters, e) for e in epochs])
+        
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
 
         # Standardize features
         self.mean_ = X.mean(axis=0)
         self.std_ = X.std(axis=0)
-
-        X -= self.mean_
-        X /= self.std_
-        return X
-
-    def transform(self, epochs, y=None):
-        """XXX"""
-        # compute sources for train and test data
-        X = self.get_sources_epochs(epochs, self.pick_components)
-
-        # compute features (mean band power)
-        X = (X ** 2).mean(axis=-1)
 
         X -= self.mean_
         X /= self.std_

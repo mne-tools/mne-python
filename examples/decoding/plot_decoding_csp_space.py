@@ -73,8 +73,8 @@ for train_idx, test_idx in cv:
 
     y_train, y_test = labels[train_idx], labels[test_idx]
 
-    X_train = csp.fit_transform(epochs[train_idx], y_train)
-    X_test = csp.transform(epochs[test_idx])
+    X_train = csp.fit_transform(epochs[train_idx].get_data(), y_train)
+    X_test = csp.transform(epochs[test_idx].get_data())
 
     # fit classifier
     clf.fit(X_train, y_train)
