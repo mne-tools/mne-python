@@ -87,8 +87,7 @@ class ConcatenateChannels(TransformerMixin):
         Concatenates data from different channels into a single feature vector
         """
         n_epochs, n_channels, n_time = epochs_data.shape
-        X = np.reshape(np.transpose(epochs_data, (0, 2, 1)),
-                       (n_epochs, n_channels*n_time))
+        X = epochs_data.reshape(n_epochs, n_channels*n_time)
         return X
 
 
