@@ -16,8 +16,6 @@ class CSP(object):
 
     Parameters
     ----------
-    n_components : int
-        The maximum number of components.
     pick_components : None (default) or array of int
         Indices of components to decompose M/EEG signals
         (if None, all components are used).
@@ -37,8 +35,7 @@ class CSP(object):
     of the abnormal components in the clinical EEG. Electroencephalography
     and Clinical Neurophysiology, 79(6):440--447, December 1991.
     """
-    def __init__(self, n_components=64, pick_components=None):
-        self.n_components = n_components
+    def __init__(self, pick_components=None):
         if pick_components is None:
             pick_components = slice(None, None, None)
         self.pick_components = pick_components
@@ -55,7 +52,7 @@ class CSP(object):
         epochs : array, shape=(n_epochs, n_channels, n_times)
             The data to estimate the CSP on.
         y : array
-            The classe for each epoch.
+            The class for each epoch.
 
         Returns
         -------
@@ -93,7 +90,7 @@ class CSP(object):
         return self
 
     def _fit(self, cov_a, cov_b):
-        """Aux Function (modifies cov_a and cov_b inplace)"""
+        """Aux Function (modifies cov_a and cov_b in-place)"""
 
         cov_a /= np.trace(cov_a)
         cov_b /= np.trace(cov_b)

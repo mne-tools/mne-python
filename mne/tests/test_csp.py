@@ -8,7 +8,6 @@ import os.path as op
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_equal
-from itertools import product
 
 from mne import fiff, Epochs, read_events
 from mne.csp import CSP
@@ -40,17 +39,17 @@ def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """
     pick_components = [[0, -1], np.arange(3), -1 * np.arange(3)]
-    n_components = [picks.size]
     epochs_data = epochs.get_data()
+    n_channels = epochs_data.shape[1]
 
-    for this_n_comp, this_picks in product(n_components, pick_components):
-        csp = CSP(n_components=this_n_comp, pick_components=this_picks)
+    for this_picks in pick_components:
+        csp = CSP(pick_components=this_picks)
 
         csp.fit(epochs_data, epochs.events[:, -1])
         y = epochs.events[:, -1]
         X = csp.fit_transform(epochs_data, y)
-        assert_true(csp.filters_.shape == (this_n_comp, this_n_comp))
-        assert_true(csp.patterns_.shape == (this_n_comp, this_n_comp))
+        assert_true(csp.filters_.shape == (n_channels, n_channels))
+        assert_true(csp.patterns_.shape == (n_channels, n_channels))
         assert_array_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
 
         # test init exception

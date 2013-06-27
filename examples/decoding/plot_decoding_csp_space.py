@@ -68,7 +68,6 @@ scores = []
 epochs_data = epochs.get_data()
 
 for train_idx, test_idx in cv:
-
     y_train, y_test = labels[train_idx], labels[test_idx]
 
     X_train = csp.fit_transform(epochs_data[train_idx], y_train)
@@ -82,8 +81,8 @@ for train_idx, test_idx in cv:
 # Printing the results
 class_balance = np.mean(labels == labels[0])
 class_balance = max(class_balance, 1. - class_balance)
-print "Classification accuracy: %f" % np.mean(scores), \
-    " / Chance level: %f" % class_balance
+print "Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
+                                                          class_balance)
 
 # Or use much more convenient scikit-learn cross_val_score function using
 # a Pipeline
@@ -98,4 +97,5 @@ print scores.mean()  # should match results above
 csp.fit_transform(epochs_data, labels)
 evoked.data = csp.patterns_.T
 evoked.times = np.arange(evoked.data.shape[0])
-evoked.plot_topomap(times=[0, 1, 201, 202], ch_type='grad', colorbar=False)
+evoked.plot_topomap(times=[0, 1, 201, 202], ch_type='grad',
+                    colorbar=False, size=1.5)
