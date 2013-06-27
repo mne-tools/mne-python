@@ -8,10 +8,10 @@ import os
 
 import numpy as np
 from traits.api import HasTraits, HasPrivateTraits, cached_property, \
-                       on_trait_change, Property, Array, Directory, Enum, \
-                       File, List, Str, Event
-from traitsui.api import View, Item, VGroup, error
-from pyface.api import DirectoryDialog, OK, ProgressDialog
+                       on_trait_change, Array, Bool, Button, Directory, Enum, \
+                       Event, File, List, Property, Str
+from traitsui.api import View, Item, VGroup
+from pyface.api import DirectoryDialog, OK, ProgressDialog, error
 
 from ..fiff import Raw, read_fiducials
 from ..surface import read_bem_surfaces
@@ -179,7 +179,13 @@ class RawHspSource(HasPrivateTraits):
 
 class SubjectSelector(HasPrivateTraits):
     """Select a subjects directory and a subject it contains"""
-    refresh = Event
+    refresh = Event(desc="Refresh the subject list based on the directory "
+                    "structure of subjects_dir.")
+
+    can_create_fsaverage = Bool(False)
+    create_fsaverage = Button("Create FsAverage", desc="Create the fsaverage "
+                              "brain in subjects_dir.")
+
     subjects_dir = Directory(exists=True)
     subjects = Property(List(Str), depends_on=['subjects_dir', 'refresh'])
     subject = Enum(values='subjects')
@@ -188,13 +194,20 @@ class SubjectSelector(HasPrivateTraits):
     bem_file = Property(depends_on='mri_dir')
 
     view = View(VGroup(Item('subjects_dir', label='subjects_dir'),
-                       'subject'))
+                       'subject',
+                       Item('create_fsaverage', show_label=False,
+                            enabled_when='can_create_fsaverage')))
 
-    def _create_fsaverage(self):
+    def _create_fsaverage_fired(self):
+        if not self.subjects_dir:
+            error(None, "No subjects diretory is selected. Please specify "
+                  "subjects_dir first.", "No SUBJECTS_DIR")
+            return
+
         if not assert_env_set(mne_root=True, fs_home=True):
-            msg = ("Not all files required for creating the fsaverage brain\n"
-                   "were found. Both mne and freesurfer are required.")
-            error(msg, "Error Creating FsAverage", buttons=['OK'])
+            error(None, "Not all files required for creating the fsaverage brain\n"
+                   "were found. Both mne and freesurfer are required.",
+                   "Error Creating FsAverage")
             return
 
         # progress dialog with indefinite progress bar
@@ -208,7 +221,7 @@ class SubjectSelector(HasPrivateTraits):
             create_default_subject(subjects_dir=self.subjects_dir)
         except Exception as err:
             msg = str(err)
-            error(msg, "Error Creating FsAverage", buttons=['OK'])
+            error(None, msg, "Error Creating FsAverage")
         else:
             self.refresh = True
             self.subject = 'fsaverage'
@@ -234,23 +247,18 @@ class SubjectSelector(HasPrivateTraits):
     @cached_property
     def _get_subjects(self):
         sdir = self.subjects_dir
-        if sdir and os.path.isdir(sdir):
-            subjects = [s for s in os.listdir(sdir) if is_mri_subject(s, sdir)]
+        is_dir = sdir and os.path.isdir(sdir)
+        if is_dir:
+            dir_content = os.listdir(sdir)
+            subjects = [s for s in dir_content if is_mri_subject(s, sdir)]
+            if len(subjects) == 0:
+                subjects.append('')
         else:
-            subjects = []
+            subjects = ['']
 
-        if len(subjects) == 0:
-            subjects.append('')
-        if 'fsaverage' not in subjects:
-            subjects.append('(create fsaverage)')
+        if is_dir and ('fsaverage' not in dir_content):
+            self.can_create_fsaverage = True
+        else:
+            self.can_create_fsaverage = False
 
         return subjects
-
-    def _subject_changed(self, old, new):
-        if new == '(create fsaverage)':
-            if self.subjects_dir:
-                self._create_fsaverage()
-            else:
-                error("No subjects diretory is selected. Please specify "
-                      "subjects_dir first.", "No SUBJECTS_DIR", ['OK'])
-                self.subject = old
