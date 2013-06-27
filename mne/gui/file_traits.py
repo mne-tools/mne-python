@@ -19,13 +19,18 @@ from ..transforms.coreg import is_mri_subject, create_default_subject
 from ..utils import get_config
 
 
+def _expand_path(p):
+    return os.path.abspath(os.path.expandvars(os.path.expanduser(p)))
+
+
 def assert_env_set(mne_root=True, fs_home=False):
     """Make sure that environment variables are correctly set
 
     Parameters
     ----------
     mne_root : bool
-        Make sure the MNE_ROOT environment variable is set correctly.
+        Make sure the MNE_ROOT environment variable is set correctly, and the
+        mne bin directory is in the PATH.
     fs_home : bool
         Make sure the FREESURFER_HOME environment variable is set correctly.
 
@@ -69,6 +74,11 @@ def assert_env_set(mne_root=True, fs_home=False):
             else:
                 return False
         os.environ['MNE_ROOT'] = mne_root
+
+        # add mne bin directory to PATH
+        mne_bin = os.path.realpath(os.path.join(mne_root, 'bin'))
+        if mne_bin not in map(_expand_path, os.environ['PATH'].split(':')):
+            os.environ['PATH'] += ':' + mne_bin
 
     return True
 
