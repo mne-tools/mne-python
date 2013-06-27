@@ -49,7 +49,7 @@ class CSP(object):
 
         Parameters
         ----------
-        epochs : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
             The data to estimate the CSP on.
         y : array
             The class for each epoch.
@@ -130,7 +130,7 @@ class CSP(object):
         Returns
         -------
         X : array
-            Returns the data filtered by CSP
+            Returns the data filtered by CSP.
         """
         return self.fit(epochs_data, y).transform(epochs_data)
 
