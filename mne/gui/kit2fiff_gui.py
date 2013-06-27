@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import cPickle as pickle
 import os
 from Queue import Queue
 from threading import Thread
@@ -34,9 +33,7 @@ from .viewer import HeadViewController, headview_borders, headview_item, \
 
 
 use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in xrange(5)])
-hsp_wildcard = ['Supported Files (*.pickled;*.txt)|*.pickled;*.txt',
-                'Pickled Head Shape (*.pickled)|*.pickled',
-                'Plain Text File (*.txt)|*.txt']
+hsp_wildcard = ['Plain Text Files (*.txt)|*.txt', 'All Files (*.*)|*.*']
 kit_con_wildcard = ['Continuous KIT Files (*.sqd;*.con)|*.sqd;*.con']
 
 
@@ -229,13 +226,7 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
             return
 
         try:
-            _, ext = os.path.splitext(fname)
-            if ext == '.pickled':
-                with open(fname) as fid:
-                    food = pickle.load(fid)
-                pts = food['hsp']
-            else:
-                pts = read_hsp(fname)
+            pts = read_hsp(fname)
 
             if len(pts) > KIT.DIG_POINTS:
                 err = ("Too many points in head shape file (%i). Use the "

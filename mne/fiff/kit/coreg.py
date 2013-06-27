@@ -98,12 +98,13 @@ def read_elp(elp_fname):
 
 
 def read_hsp(hsp_fname):
-    """HSP point extraction in Polhemus head space
+    """Read a Polhemus ascii head shape file
 
     Parameters
     ----------
     hsp_fname : str
-        Absolute path to headshape file acquired from Polhemus system.
+        Path to head shape file acquired from Polhemus system and saved in
+        ascii format.
 
     Returns
     -------
@@ -114,18 +115,10 @@ def read_hsp(hsp_fname):
         Maximum number of points. If max_n is not None and the number of
         points in the file exceeds max_n, only n_max points are returned.
     """
-    ext = path.splitext(hsp_fname)[-1]
-    if ext == '.txt':
-        p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-        hsp_points = p.findall(open(hsp_fname).read())
-        hsp_points = np.array(hsp_points, dtype=float)
-        # downsample the digitizer points
-    elif ext == '.pickled':
-        hsp = pickle.load(open(hsp_fname))
-        hsp_points = hsp['hsp']
-    else:
-        err = ('Polhemus hsp file must be *.txt or *.pickled, not *%s.' % ext)
-        raise ValueError(err)
+    p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    with open(hsp_fname) as fid:
+        hsp_points = p.findall(fid.read())
+    hsp_points = np.array(hsp_points, dtype=float)
     return hsp_points
 
 
