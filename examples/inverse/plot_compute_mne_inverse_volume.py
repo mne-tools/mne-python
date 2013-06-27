@@ -22,6 +22,7 @@ from mne.fiff import Evoked
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 data_path = sample.data_path()
+subjects_dir = data_path + '/subjects'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-vol-7-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
@@ -36,12 +37,70 @@ src = inverse_operator['src']
 
 # Compute inverse solution
 stc = apply_inverse(evoked, inverse_operator, lambda2, method)
-stc.crop(0.0, 0.2)
+
+max_idx = np.unravel_index(np.argmax(stc.data.ravel()), stc.data.shape)
 
 # Export result as a 4D nifti object
-img = stc.as_volume(src,
-                    mri_resolution=False)  #set to True for full MRI resolution
+img = stc.as_volume(src, mri_resolution=True, time_index=max_idx[1])
 
+data = img.get_data()
+
+# Awesome example activation map : take whatever is > .6 max
+data_act = np.ma.MaskedArray(data, mask=(data < .1 * np.max(data)))
+
+import pylab as pl
+display_options = {}
+display_options['interpolation'] = 'nearest'
+display_options['cmap'] = pl.cm.gray
+
+act_display_options = {}
+act_display_options['interpolation'] = 'nearest'
+act_display_options['cmap'] = pl.cm.hot
+
+
+from pynax.view import ImshowView, PlotView
+from pynax.core import Mark
+
+
+mri_fname = subjects_dir + '/sample/mri/T1.mgz'
+import nibabel as nib
+t1_img = nib.load(mri_fname)
+
+t1_data = t1_img.get_data()
+
+fig = pl.figure(figsize=(6, 4), facecolor='k')
+
+# Marks
+mx = Mark(128, {'color': 'r'})
+my = Mark(128, {'color': 'g'})
+mz = Mark(128, {'color': 'b'})
+
+ax_y = fig.add_axes([0.0, 0.2, 0.333, 0.8])
+vy = ImshowView(ax_y, t1_data, [mx, 'v', 'h'], display_options)
+vy.add_hmark(my)
+vy.add_vmark(mz)
+vy.add_layer(data_act, [mx, 'v', 'h'], display_options=act_display_options)
+vy.draw()
+
+ax_x = fig.add_axes([0.333, 0.2, 0.333, 0.8])
+vx = ImshowView(ax_x, t1_data, ['h', 'v', my], display_options)
+vx.add_hmark(mx)
+vx.add_vmark(mz)
+vx.add_layer(data_act, ['h', 'v', my], display_options=act_display_options)
+vx.draw()
+
+ax_z = fig.add_axes([0.666, 0.2, 0.333, 0.8])
+vz = ImshowView(ax_z, t1_data, ['h', mz, 'v'], display_options)
+vz.add_hmark(mx)
+vz.add_vmark(my)
+vz.add_layer(data_act, ['h', mz, 'v'], display_options=act_display_options)
+vz.draw()
+
+
+pl.show()
+
+
+"""
 # Save it as a nifti file
 import nibabel as nib
 nib.save(img, 'mne_%s_inverse.nii.gz' % method)
@@ -58,3 +117,4 @@ pl.contour(coronal_slice != 0, 1, colors=['black'])
 pl.xticks([])
 pl.yticks([])
 pl.show()
+"""
