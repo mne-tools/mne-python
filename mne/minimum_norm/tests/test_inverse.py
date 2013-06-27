@@ -9,7 +9,7 @@ from mne.datasets import sample
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
 from mne.epochs import Epochs
-from mne.source_estimate import read_source_estimate
+from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import fiff, read_cov, read_forward_solution
 from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
     apply_inverse_raw, apply_inverse_epochs, make_inverse_operator, \
@@ -262,6 +262,7 @@ def test_inverse_operator_volume():
     inverse_operator_vol = read_inverse_operator(fname_vol_inv)
     _compare_io(inverse_operator_vol)
     stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
+    assert_true(isinstance(stc, VolSourceEstimate))
     # volume inverses don't have associated subject IDs
     assert_true(stc.subject is None)
     stc.save(op.join(tempdir, 'tmp-vl.stc'))

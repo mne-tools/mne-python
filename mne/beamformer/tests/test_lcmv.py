@@ -7,7 +7,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 import mne
 from mne.datasets import sample
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw
-
+from mne.source_estimate import SourceEstimate, VolSourceEstimate
 
 data_path = sample.data_path()
 fname_data = op.join(data_path, 'MEG', 'sample',
@@ -64,47 +64,55 @@ def test_lcmv():
                                    mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
     data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
-    stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01)
 
-    stc_pow = np.sum(stc.data, axis=1)
-    idx = np.argmax(stc_pow)
-    max_stc = stc.data[idx]
-    tmax = stc.times[np.argmax(max_stc)]
+    for fwd in [forward, forward_vol]:
+        stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01)
 
-    assert_true(0.09 < tmax < 0.1)
-    assert_true(2. < np.max(max_stc) < 3.)
+        if fwd is forward:
+            assert_true(isinstance(stc, SourceEstimate))
+        else:
+            assert_true(isinstance(stc, VolSourceEstimate))
 
-    # Test picking normal orientation
-    stc_normal = lcmv(evoked, forward_surf_ori, noise_cov, data_cov, reg=0.01,
-                      pick_ori="normal")
+        stc_pow = np.sum(stc.data, axis=1)
+        idx = np.argmax(stc_pow)
+        max_stc = stc.data[idx]
+        tmax = stc.times[np.argmax(max_stc)]
 
-    stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
-    idx = np.argmax(stc_pow)
-    max_stc = stc_normal.data[idx]
-    tmax = stc_normal.times[np.argmax(max_stc)]
+        print 'TMAX: %f' % np.max(max_stc)
+        assert_true(0.09 < tmax < 0.105)
+        assert_true(1.9 < np.max(max_stc) < 3.)
 
-    assert_true(0.09 < tmax < 0.11)
-    assert_true(1. < np.max(max_stc) < 2.)
+        if fwd is forward:
+            # Test picking normal orientation (surface source space only)
+            stc_normal = lcmv(evoked, forward_surf_ori, noise_cov, data_cov,
+                              reg=0.01, pick_ori="normal")
 
-    # The amplitude of normal orientation results should always be smaller than
-    # free orientation results
-    assert_true((np.abs(stc_normal.data) <= stc.data).all())
+            stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
+            idx = np.argmax(stc_pow)
+            max_stc = stc_normal.data[idx]
+            tmax = stc_normal.times[np.argmax(max_stc)]
 
-    # Test picking source orientation maximizing output source power
-    stc_max_power = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
-                         pick_ori="max-power")
+            assert_true(0.09 < tmax < 0.11)
+            assert_true(1. < np.max(max_stc) < 2.)
 
-    stc_pow = np.sum(stc_max_power.data, axis=1)
-    idx = np.argmax(stc_pow)
-    max_stc = stc_max_power.data[idx]
-    tmax = stc.times[np.argmax(max_stc)]
+            # The amplitude of normal orientation results should always be
+            # smaller than free orientation results
+            assert_true((np.abs(stc_normal.data) <= stc.data).all())
 
-    assert_true(0.09 < tmax < 0.1)
-    assert_true(2. < np.max(max_stc) < 3.)
+        # Test picking source orientation maximizing output source power
+        stc_max_power = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01,
+                             pick_ori="max-power")
+        stc_pow = np.sum(stc_max_power.data, axis=1)
+        idx = np.argmax(stc_pow)
+        max_stc = stc_max_power.data[idx]
+        tmax = stc.times[np.argmax(max_stc)]
 
-    # Maximum output source power orientation results should be similar to free
-    # orientation results
-    assert_true((stc_max_power.data - stc.data < 0.5).all())
+        assert_true(0.09 < tmax < 0.1)
+        assert_true(2. < np.max(max_stc) < 3.)
+
+        # Maximum output source power orientation results should be similar to
+        # free orientation results
+        assert_true((stc_max_power.data - stc.data < 0.5).all())
 
     # Test if fixed forward operator is detected when picking normal or
     # max-power orientation
@@ -134,7 +142,7 @@ def test_lcmv():
     assert_true(len(epochs.events) == len(stcs))
 
     # average the single trial estimates
-    stc_avg = np.zeros_like(stc.data)
+    stc_avg = np.zeros_like(stcs[0].data)
     for this_stc in stcs:
         stc_avg += this_stc.data
     stc_avg /= len(stcs)

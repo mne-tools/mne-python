@@ -18,7 +18,7 @@ from .forward import read_forward_solution, apply_forward, apply_forward_raw, \
                      write_forward_solution
 from .source_estimate import read_stc, write_stc, read_w, write_w, \
                              read_source_estimate, \
-                             SourceEstimate, morph_data, \
+                             SourceEstimate, VolSourceEstimate, morph_data, \
                              morph_data_precomputed, compute_morph_matrix, \
                              grade_to_tris, grade_to_vertices, \
                              spatial_src_connectivity, \
