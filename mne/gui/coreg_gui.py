@@ -636,6 +636,8 @@ class CoregFrame(HasTraits):
 
         # process parameters
         subjects_dir = get_subjects_dir(subjects_dir)
+        if (subjects_dir is not None) and not os.path.isdir(subjects_dir):
+            subjects_dir = None
 
         # sync mri subject
         self.s_sel.on_trait_change(self._on_bem_file_change, 'bem_file')
