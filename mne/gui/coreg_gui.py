@@ -640,6 +640,9 @@ class CoregFrame(HasTraits):
         # sync mri subject
         self.s_sel.on_trait_change(self._on_bem_file_change, 'bem_file')
         self.s_sel.sync_trait('subjects_dir', self.coreg, mutual=False)
+        self.s_sel.sync_trait('subject', self.coreg, mutual=False)
+        self.s_sel.sync_trait('subjects_dir', self.fid_panel, mutual=False)
+        self.s_sel.sync_trait('subject', self.fid_panel, mutual=False)
 
         # sync data to coreg panel
         self.mri_src.sync_trait('pts', self.coreg, 'mri_pts', mutual=False)
@@ -653,7 +656,6 @@ class CoregFrame(HasTraits):
 
         # sync path source to coreg panel
         self.hsp_src.sync_trait('raw_dir', self.coreg, mutual=False)
-        self.s_sel.sync_trait('subject', self.coreg, mutual=False)
 
         # set initial parameters
         if raw is not None:
@@ -672,10 +674,6 @@ class CoregFrame(HasTraits):
                        "argument." % subject)
                 error(msg, "Subject Not Found")
 
-        # sync path components to fiducials panel
-        self.s_sel.sync_trait('subjects_dir', self.fid_panel, mutual=False)
-        self.s_sel.sync_trait('subject', self.fid_panel, mutual=False)
-
         # lock fiducials if file is found
         if self.fid_panel.fid_file:
             self.lock_fiducials = True
@@ -684,11 +682,6 @@ class CoregFrame(HasTraits):
     def _on_fid_ok_change(self, new):
         # simply using 'fid_panel.fid_ok' resulted in delayed updates
         self.fid_ok = new
-
-    @on_trait_change('s_sel.subject')
-    def _on_subject_changes(self, new):
-        if new:
-            self.fid_panel.subject = new
 
     @on_trait_change('scene.activated')
     def init_plot(self):
