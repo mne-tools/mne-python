@@ -1,10 +1,9 @@
-from ..meas_info import Info
-
 import os.path as op
 
 from nose.tools import assert_true, assert_equal
 
 from mne import fiff, Epochs, read_events
+from mne.fiff.meas_info import Info
 
 base_dir = op.join(op.dirname(__file__), 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
