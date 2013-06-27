@@ -899,8 +899,9 @@ class _BaseSourceEstimate(object):
         ----------
         index : tuple of str | None
             Column to be used as index for the data. Valid string options
-            are 'subject' and 'time'. If None, all three info
+            are 'subject' and 'time'. If None, both info
             columns will be included in the table as categorial data.
+            If stc.subject is None, only time will be included.
         scale_time : float
             Scaling to be applied to time units.
         copy : bool
@@ -918,6 +919,8 @@ class _BaseSourceEstimate(object):
             _check_pandas_index_arguments(index, default_index)
         else:
             index = default_index
+        if self.subject is None:
+            index.remove('subject')
 
         data = self.data.T
         shape = data.shape
