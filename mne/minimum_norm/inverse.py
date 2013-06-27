@@ -33,7 +33,7 @@ from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
                            write_source_spaces_to_fid, label_src_vertno_sel
 from ..transforms import invert_transform, transform_source_space_to
-from ..source_estimate import SourceEstimate
+from ..source_estimate import _make_stc
 from .. import verbose
 
 
@@ -697,7 +697,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : SourceEstimate
+    stc : SourceEstimate | VolSourceEstimate
         The source estimates
     """
     method = _check_method(method)
@@ -734,8 +734,9 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     tmin = float(evoked.first) / evoked.info['sfreq']
     vertno = _get_vertno(inv['src'])
     subject = _subject_from_inverse(inverse_operator)
-    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                         subject=subject)
+
+    stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                    subject=subject)
     logger.info('[done]')
 
     return stc
@@ -792,7 +793,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : SourceEstimate
+    stc : SourceEstimate | VolSourceEstimate
         The source estimates.
     """
     method = _check_method(method)
@@ -850,8 +851,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
     subject = _subject_from_inverse(inverse_operator)
-    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                         subject=subject)
+    stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                    subject=subject)
     logger.info('[done]')
 
     return stc
@@ -907,8 +908,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
             else:
                 sol = np.dot(K, e[sel])
 
-        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                             subject=subject)
+        stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                        subject=subject)
 
         yield stc
 
@@ -953,7 +954,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : list of SourceEstimate
+    stc : list of SourceEstimate or VolSourceEstimate
         The source estimates for all epochs.
     """
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
