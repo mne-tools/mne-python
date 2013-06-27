@@ -15,6 +15,8 @@ Changelog
 
    - Add read and write info attribute ICA objects by `Denis Engemann`_ 
 
+   - Decoding with Common Spatial Patterns (CSP) by `Romain Trachel`_ and `Alex Gramfort`_
+
 API
 ~~~
 
@@ -463,3 +465,5 @@ of commits):
 .. _Roman Goj: http://romanmne.blogspot.co.uk
 
 .. _Andrew Dykstra: https://github.com/adykstra
+
+.. _Romain Trachel: http://www-sop.inria.fr/athena/Site/RomainTrachel
