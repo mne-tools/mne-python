@@ -56,7 +56,7 @@ def test_read_segment():
                         op.join(data_dir, 'test_mrk.sqd'),
                         op.join(data_dir, 'test_elp.txt'),
                         op.join(data_dir, 'test_hsp.txt'),
-                        stim=range(167, 159, -1), preload=False)
+                        stim='<', preload=False)
     raw1_file = op.join(tempdir, 'raw1.fif')
     raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
     raw2 = read_raw_kit(op.join(data_dir, 'test.sqd'),
