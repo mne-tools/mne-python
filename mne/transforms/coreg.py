@@ -202,8 +202,8 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
     elif params == (True, True, 1):
         def error(x):
             rx, ry, rz, tx, ty, tz, s = x
-            trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
-            trans = dot(scaling(s, s, s), trans)
+            trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
+                                 scaling(s, s, s)))
             est = dot(src_pts, trans.T)
             return (tgt_pts - est[:, :3]).ravel()
         if x0 is None:
