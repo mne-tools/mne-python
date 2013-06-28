@@ -117,6 +117,47 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
         shutil.copy(mne_fname % name, dest_bem)
 
 
+def _trans_from_params(param_info, params):
+    """Convert transformation parameters into a transformation matrix
+    
+    Parameters
+    ----------
+    param_info : tuple,  len = 3
+        Tuple describing the parameters in x (do_translate, do_rotate,
+        do_scale).
+    params : tuple
+        The transformation parameters.
+        
+    Returns
+    -------
+    trans : array, shape = (4, 4)
+        Transformation matrix.
+    """
+    do_rotate, do_translate, do_scale = param_info
+    i = 0
+    trans = []
+
+    if do_rotate:
+        x, y, z = params[:3]
+        trans.append(rotation(x, y, z))
+        i += 3
+
+    if do_translate:
+        x, y, z = params[i:i + 3]
+        trans.insert(0, translation(x, y, z))
+        i += 3
+
+    if do_scale == 1:
+        s = params[i]
+        trans.append(scaling(s, s, s))
+    elif do_scale == 3:
+        x, y, z = params[i:i + 3]
+        trans.append(scaling(x, y, z))
+        
+    trans = reduce(dot, trans)
+    return trans
+
+
 def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
                     tol=None, x0=None, out='params'):
     """Find a transform that minimizes the squared distance between two
@@ -174,8 +215,8 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
     if translate:
         src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
 
-    params = (translate, rotate, scale)
-    if params == (False, True, 0):
+    param_info = (rotate, translate, scale)
+    if param_info == (True, False, 0):
         def error(x):
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
@@ -183,7 +224,7 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
             return (tgt_pts - est).ravel()
         if x0 is None:
             x0 = (0, 0, 0)
-    elif params == (False, True, 1):
+    elif param_info == (True, False, 1):
         def error(x):
             rx, ry, rz, s = x
             trans = rotation3d(rx, ry, rz) * s
@@ -191,7 +232,7 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
             return (tgt_pts - est).ravel()
         if x0 is None:
             x0 = (0, 0, 0, 1)
-    elif params == (True, True, 0):
+    elif param_info == (True, True, 0):
         def error(x):
             rx, ry, rz, tx, ty, tz = x
             trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
@@ -199,7 +240,7 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
             return (tgt_pts - est[:, :3]).ravel()
         if x0 is None:
             x0 = (0, 0, 0, 0, 0, 0)
-    elif params == (True, True, 1):
+    elif param_info == (True, True, 1):
         def error(x):
             rx, ry, rz, tx, ty, tz, s = x
             trans = reduce(dot, (translation(tx, ty, tz), rotation(rx, ry, rz),
@@ -210,25 +251,14 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
             x0 = (0, 0, 0, 0, 0, 0, 1)
     else:
         err = ("The specified parameter combination is not implemented: "
-               "%s" % str(params))
+               "rotate=%r, translate=%r, scale=%r" % param_info)
         raise NotImplementedError(err)
 
     x, _, _, _, _ = leastsq(error, x0, full_output=True)
 
     # re-create the final transformation matrix
     if (tol is not None) or (out == 'trans'):
-        if params[:2] == (False, True):
-            trans = rotation(*x[:3])
-            if scale == 1:
-                s = x[3]
-                trans = dot(trans, scaling(s, s, s))
-        elif params[:2] == (True, True):
-            rot = x[:3]
-            transl = x[3:6]
-            trans = dot(translation(*transl), rotation(*rot))
-            if scale == 1:
-                s = x[6]
-                trans = dot(trans, scaling(s, s, s))
+        trans = _trans_from_params(param_info, x)
 
     # assess the error of the solution
     if tol is not None:
@@ -271,7 +301,7 @@ def _point_cloud_error(src_pts, tgt_pts):
 
 
 def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
-                    scale=0, x0=None, lsq_args={}):
+                    scale=0, x0=None, lsq_args={}, out='params'):
     """Find a transform that minimizes the squared distance from each source
     point to its closest target point
 
@@ -295,6 +325,10 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
         Initial values for the fit parameters.
     lsq_args : dict
         Additional parameters to submit to :func:`scipy.optimize.leastsq`.
+    out : 'params' | 'trans'
+        In what format to return the estimate: 'params' returns a tuple with
+        the fit parameters; 'trans' returns a transformation matrix of shape
+        (4, 4).
 
     Returns
     -------
@@ -321,29 +355,33 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
         src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
 
     # for efficiency, define parameter specific error function
-    params = (translate, rotate, scale)
-    if params == (False, True, 0):
+    param_info = (rotate, translate, scale)
+    if param_info == (True, False, 0):
+        x0 = x0 or (0, 0, 0)
         def error(x):
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
             est = dot(src_pts, trans.T)
             err = _point_cloud_error(est, tgt_pts)
             return err
-    elif params == (False, True, 1):
+    elif param_info == (True, False, 1):
+        x0 = x0 or (0, 0, 0, 1)
         def error(x):
             rx, ry, rz, s = x
             trans = rotation3d(rx, ry, rz) * s
             est = dot(src_pts, trans.T)
             err = _point_cloud_error(est, tgt_pts)
             return err
-    elif params == (False, True, 3):
+    elif param_info == (True, False, 3):
+        x0 = x0 or (0, 0, 0, 1, 1, 1)
         def error(x):
             rx, ry, rz, sx, sy, sz = x
             trans = rotation3d(rx, ry, rz) * [sx, sy, sz]
             est = dot(src_pts, trans.T)
             err = _point_cloud_error(est, tgt_pts)
             return err
-    elif params == (True, True, 0):
+    elif param_info == (True, True, 0):
+        x0 = x0 or (0, 0, 0, 0, 0, 0)
         def error(x):
             rx, ry, rz, tx, ty, tz = x
             trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
@@ -352,13 +390,21 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             return err
     else:
         err = ("The specified parameter combination is not implemented: "
-               "%s" % str(params))
+               "rotate=%r, translate=%r, scale=%r" % param_info)
         raise NotImplementedError(err)
 
     est, _, info, msg, _ = leastsq(error, x0, full_output=True, **kwargs)
-    logging.debug("fit_point_cloud leastsq (%r) info: %r", (msg, info))
+    logging.debug("fit_point_cloud leastsq (%i calls) info: %s", info['nfev'],
+                  msg)
 
-    return est
+    if out == 'params':
+        return est
+    elif out == 'trans':
+        return _trans_from_params(param_info, est)
+    else:
+        err = ("Invalid out parameter: %r. Needs to be 'params' or "
+              "'trans'." % out)
+        raise ValueError(err)
 
 
 def find_mri_paths(subject='fsaverage', subjects_dir=None):
