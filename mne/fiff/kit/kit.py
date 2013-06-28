@@ -28,6 +28,7 @@ from ..constants import FIFF
 from ..meas_info import Info
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_elp, read_hsp, read_mrk, get_neuromag_transform
+from mne.transforms.coreg import decimate_points
 
 logger = logging.getLogger('mne')
 
@@ -355,10 +356,11 @@ class RawKIT(Raw):
 
         return data, times
 
-    def set_dig_kit(self, mrk, elp, hsp):
+    def set_dig_kit(self, mrk, elp, hsp, auto_decimate=True):
         """Add landmark points and head shape data to the RawKIT instance
 
-        Digitizer data (elp and hsp) are represented in Polhemus space.
+        Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
+        ALS coordinate system.
 
         Parameters
         ----------
@@ -369,14 +371,23 @@ class RawKIT(Raw):
             Landmark points in head shape space.
         hsp : str | array, (n_points, 3)
             Head shape points.
+        auto_decimate : bool
+            Decimate hsp points for head shape files with more than 10'000
+            points.
         """
         if isinstance(hsp, basestring):
             hsp = read_hsp(hsp)
-            n_pts = len(hsp)
-            if n_pts > KIT.DIG_POINTS:
-                msg = ("The selected head shape contains %i points, which is "
-                       "more than recommended (%i)" % (n_pts, KIT.DIG_POINTS))
-                warnings.warn(msg)
+
+        n_pts = len(hsp)
+        if n_pts > KIT.DIG_POINTS:
+            hsp = decimate_points(hsp, 5)
+            n_new = len(hsp)
+            msg = ("The selected head shape contained {n_in} points, which is "
+                   "more than recommended ({n_rec}), and was automatically "
+                   "downsampled to {n_new} points. The preferred way to "
+                   "downsample is using FastScan.")
+            msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
+            logger.warning(msg)
 
         if isinstance(elp, basestring):
             elp = read_elp(elp)

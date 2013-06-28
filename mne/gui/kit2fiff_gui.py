@@ -24,9 +24,9 @@ from tvtk.pyface.scene_editor import SceneEditor
 
 from ..fiff.kit.coreg import read_hsp, read_elp, get_neuromag_transform
 from ..fiff.kit.kit import RawKIT, KIT
+from ..transforms.coreg import decimate_points, fit_matched_pts
 from ..transforms.transforms import apply_trans, als_ras_trans, \
                                     als_ras_trans_mm
-from ..transforms.coreg import fit_matched_pts
 from .marker_gui import CombineMarkersPanel
 from .viewer import HeadViewController, headview_borders, headview_item, \
                     PointObject
@@ -228,11 +228,16 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
         try:
             pts = read_hsp(fname)
 
-            if len(pts) > KIT.DIG_POINTS:
-                err = ("Too many points in head shape file (%i). Use the "
-                       "headshape GUI to create a head shape with fewer than "
-                       "%i points." % (len(pts), KIT.DIG_POINTS))
-                raise ValueError(err)
+            n_pts = len(pts)
+            if n_pts > KIT.DIG_POINTS:
+                pts = decimate_points(pts, 5)
+                n_new = len(pts)
+                msg = ("The selected head shape contained {n_in} points, which is "
+                       "more than recommended ({n_rec}), and was automatically "
+                       "downsampled to {n_new} points. The preferred way to "
+                       "downsample is using FastScan.")
+                msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
+                information(None, msg, "Head Shape Downsampled")
 
         except Exception as err:
             error(None, str(err), "Error Reading Head Shape")
