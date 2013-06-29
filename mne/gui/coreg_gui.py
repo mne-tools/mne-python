@@ -128,7 +128,6 @@ class CoregPanel(HasPrivateTraits):
     queue_current = Str('')
     queue_len = Int(0)
     queue_len_str = Property(Str, depends_on=['queue_len'])
-    process_repr = Property(Str, depends_on=['queue_len', 'queue_current'])
 
     # View Element
     axis_labels = Str("Right   \t\tAnterior\t\tSuperior")
@@ -193,7 +192,9 @@ class CoregPanel(HasPrivateTraits):
                               Item('reset_params', tooltip="Reset all "
                                    "coregistration parameters"),
                               show_labels=False),
-                       Item('process_repr', style='readonly'),
+                       Item('queue_feedback', style='readonly'),
+                       Item('queue_current', style='readonly'),
+                       Item('queue_len_str', style='readonly'),
                        show_labels=False),
                 kind='panel', buttons=[UndoButton])
 
@@ -292,18 +293,6 @@ class CoregPanel(HasPrivateTraits):
         fid = self.mri_fid * self.scale
         fid -= self.tgt_origin
         return fid
-
-    @cached_property
-    def _get_process_repr(self):
-        if self.queue_current:
-            items = [self.queue_current]
-        else:
-            return ''
-
-        if self.queue_len:
-            items.append("(%i in queue)" % self.queue_len)
-
-        return '  '.join(items)
 
     def _fit_ap_fired(self):
         tgt_fid = self.tgt_fid[1:] - self.translation[0]
