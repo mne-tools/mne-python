@@ -692,7 +692,7 @@ class CoregFrame(HasTraits):
         # MRI scalp
         self.mri_obj = SurfaceObject(points=self.mri_src.pts,
                                      tri=self.mri_src.tri,
-                                     scene=self.scene, color=(255, 255, 255))
+                                     scene=self.scene, color=(252, 227, 191))
         self.coreg.sync_trait('scale', self.mri_obj, 'trans', mutual=False)
         self.fid_panel.hsp_obj = self.mri_obj
 
