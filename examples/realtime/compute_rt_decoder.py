@@ -49,17 +49,18 @@ from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score, ShuffleSplit
 
-from mne.realtime.classifier import ConcatenateChannels
+from mne.realtime.classifier import ConcatenateChannels, FilterEstimator
 
 scores_x, scores, std_scores = [], [], []
 
 pl.ion()
 
+filt = FilterEstimator(rt_epochs.info, 1, 40, verbose=False)
 scaler = preprocessing.StandardScaler()
 concatenator = ConcatenateChannels()
 clf = SVC(C=1, kernel='linear')
 
-concat_classifier = Pipeline([('concat', concatenator),
+concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
                               ('scaler', scaler), ('svm', clf)])
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
