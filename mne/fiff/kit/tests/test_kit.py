@@ -12,7 +12,7 @@ import scipy.io
 from mne.utils import _TempDir
 from mne.fiff import Raw, pick_types
 from mne.fiff.kit import read_raw_kit
-import mne.fiff.kit.coreg as coreg
+from mne.fiff.kit.coreg import read_hsp, write_hsp, read_sns
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -79,7 +79,7 @@ def test_ch_loc():
     ch_py = raw_py._sqd_params['sensor_locs'][:, :5]
     # ch locs stored as m, not mm
     ch_py[:, :3] *= 1e3
-    ch_sns = coreg.read_sns(op.join(data_dir, 'sns.txt'))
+    ch_sns = read_sns(op.join(data_dir, 'sns.txt'))
     assert_array_almost_equal(ch_py, ch_sns, 2)
 
     for py_ch, bin_ch in zip(raw_py.info['chs'], raw_bin.info['chs']):
@@ -97,3 +97,13 @@ def test_stim_ch():
     stim1, _ = raw[stim_pick]
     stim2 = np.array(raw.read_stim_ch(), ndmin=2)
     assert_array_equal(stim1, stim2)
+
+
+def test_hsp_io():
+    """Test reading and writing hsp files"""
+    pts = read_hsp(hsp_path)
+    temp_fname = op.join(tempdir, 'temp_hsp.txt')
+    write_hsp(temp_fname, pts)
+    pts2 = read_hsp(temp_fname)
+    assert_array_equal(pts, pts2, "Hsp points diverged after writing and "
+                       "reading.")

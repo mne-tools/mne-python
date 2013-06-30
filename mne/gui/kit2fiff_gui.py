@@ -22,7 +22,7 @@ from traitsui.api import View, Item, Group, HGroup, VGroup, CheckListEditor, \
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
-from ..fiff.kit.coreg import read_hsp, read_elp, get_neuromag_transform
+from ..fiff.kit.coreg import read_hsp, read_elp, get_head_coord_trans
 from ..fiff.kit.kit import RawKIT, KIT
 from ..transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..transforms.coreg import decimate_points, fit_matched_pts
@@ -75,12 +75,12 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
     # Polhemus Fiducials
     elp_raw = Property(depends_on=['fid_file'])
     hsp_raw = Property(depends_on=['hsp_file'])
-    neuromag_trans = Property(depends_on=['elp_raw'])
+    hsp_to_mne_trans = Property(depends_on=['elp_raw'])
 
     # Polhemus data (in neuromag space)
-    elp_src = Property(depends_on=['neuromag_trans'])
-    fid_src = Property(depends_on=['neuromag_trans'])
-    hsp_src = Property(depends_on=['hsp_raw', 'neuromag_trans'])
+    elp_src = Property(depends_on=['hsp_to_mne_trans'])
+    fid_src = Property(depends_on=['hsp_to_mne_trans'])
+    hsp_src = Property(depends_on=['hsp_raw', 'hsp_to_mne_trans'])
 
     dev_head_trans = Array(shape=(4, 4))
     head_dev_trans = Array(shape=(4, 4))
@@ -246,12 +246,15 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
             return pts
 
     @cached_property
-    def _get_neuromag_trans(self):
+    def _get_hsp_to_mne_trans(self):
         if self.elp_raw is None:
             return
         pts = apply_trans(als_ras_trans_mm, self.elp_raw[:3])
         nasion, lpa, rpa = pts
-        trans = get_neuromag_transform(nasion, lpa, rpa)
+        trans = get_head_coord_trans(nasion, lpa, rpa)
+        als_trans = np.vstack((np.hstack((als_ras_trans_mm, [[0], [0], [0]])),
+                               [0, 0, 0, 1]))
+        trans = np.dot(trans, als_trans)
         return trans
 
     @cached_property
@@ -259,8 +262,7 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
         if self.elp_raw is None:
             return np.empty((0, 3))
         pts = self.elp_raw[:3]
-        pts = apply_trans(als_ras_trans_mm, pts)
-        pts = np.dot(pts, self.neuromag_trans.T)
+        pts = apply_trans(self.hsp_to_mne_trans, pts)
         return pts
 
     # cached_property
@@ -268,17 +270,15 @@ class Kit2FiffCoregPanel(HasPrivateTraits):
         if self.elp_raw is None:
             return np.empty((0, 3))
         pts = self.elp_raw[3:]
-        pts = apply_trans(als_ras_trans_mm, pts)
-        pts = np.dot(pts, self.neuromag_trans.T)
+        pts = apply_trans(self.hsp_to_mne_trans, pts)
         return pts
 
     @cached_property
     def _get_hsp_src(self):
-        if (self.hsp_raw is None) or not np.any(self.neuromag_trans):
+        if (self.hsp_raw is None) or not np.any(self.hsp_to_mne_trans):
             return  np.empty((0, 3))
         else:
-            pts = apply_trans(als_ras_trans_mm, self.hsp_raw)
-            pts = np.dot(pts, self.neuromag_trans.T)
+            pts = apply_trans(self.hsp_to_mne_trans, self.hsp_raw)
             return pts
 
     @on_trait_change('elp_src,use_mrk,mrk')

@@ -26,7 +26,7 @@ from ..raw import Raw
 from ..constants import FIFF
 from ..meas_info import Info
 from .constants import KIT, KIT_NY, KIT_AD
-from .coreg import read_elp, read_hsp, read_mrk, get_neuromag_transform
+from .coreg import read_elp, read_hsp, read_mrk, get_head_coord_trans
 from mne.transforms.coreg import decimate_points
 
 logger = logging.getLogger('mne')
@@ -399,9 +399,9 @@ class RawKIT(Raw):
         mrk = apply_trans(als_ras_trans, mrk)
 
         nasion, lpa, rpa = elp[:3]
-        nmtrans = get_neuromag_transform(nasion, lpa, rpa).T
-        elp = np.dot(elp, nmtrans)
-        hsp = np.dot(hsp, nmtrans)
+        nmtrans = get_head_coord_trans(nasion, lpa, rpa)
+        elp = apply_trans(nmtrans, elp)
+        hsp = apply_trans(nmtrans, hsp)
 
         # device head transform
         trans = fit_matched_pts(tgt_pts=elp[3:], src_pts=mrk, out='trans')
