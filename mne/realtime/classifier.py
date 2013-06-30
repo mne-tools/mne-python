@@ -157,9 +157,10 @@ class FilterEstimator(TransformerMixin):
     TODO: docstrings, check if this works ...
     """
 
-    def __init__(self, info, l_freq, h_freq, picks, filter_length,
-                 l_trans_bandwidth, h_trans_bandwidth, n_jobs, method,
-                 iir_params, verbose):
+    def __init__(self, info, l_freq, h_freq, picks=None, filter_length='10s',
+                 l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
+                 method='fft', iir_params=dict(order=4, ftype='butter'),
+                 verbose=None):
 
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -175,9 +176,12 @@ class FilterEstimator(TransformerMixin):
 
     def fit(self, epochs_data, y):
 
+        if self.picks is None:
+            self.picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+
         if self.l_freq == 0:
             self.l_freq = None
-        if self.h_freq > (self.info['sreq'] / 2.):
+        if self.h_freq > (self.info['sfreq'] / 2.):
             self.h_freq = None
 
         if self.h_freq is not None and \
@@ -190,6 +194,8 @@ class FilterEstimator(TransformerMixin):
                 self.l_freq > self.info['highpass']:
             self.info['highpass'] = self.l_freq
 
+        return self
+
     def transform(self, epochs_data, y=None):
 
         if self.l_freq is None and self.h_freq is not None:
@@ -199,7 +205,7 @@ class FilterEstimator(TransformerMixin):
                                 filter_length=self.filter_length,
                                 trans_bandwidth=self.l_trans_bandwidth,
                                 method=self.method, iir_params=self.iir_params,
-                                picks=self.info['picks'], n_jobs=self.n_jobs,
+                                picks=self.picks, n_jobs=self.n_jobs,
                                 copy=False)
 
         if self.l_freq is not None and self.h_freq is None:
@@ -242,3 +248,6 @@ class FilterEstimator(TransformerMixin):
                                      picks=self.picks, n_jobs=self.n_jobs,
                                      copy=False)
         return epochs_data
+
+    def fit_transform(self, epochs_data, y):
+        return self.fit(epochs_data, y).transform(epochs_data)
