@@ -78,17 +78,62 @@ class ConcatenateChannels(TransformerMixin):
 
     def fit(self, epochs_data, y):
         """
-        Dummy fit method
+        Parameters
+        ----------
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data to concatenate channels
+        y : array
+            The label for each epoch
+
+        Returns
+        -------
+        self : instance of ConcatenateChannels
+            returns the modified instance
         """
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+        epochs_data = np.atleast_3d(epochs_data)
+
         return self
 
-    def transform(self, epochs_data):
+    def transform(self, epochs_data, y=None):
         """
         Concatenates data from different channels into a single feature vector
+
+        Parameters
+        ----------
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data.
+
+        Returns
+        -------
+        X : ndarray of shape (n_epochs, n_channels*n_times)
+            The data concatenated over channels
         """
         n_epochs, n_channels, n_time = epochs_data.shape
         X = epochs_data.reshape(n_epochs, n_channels*n_time)
+
         return X
+
+    def fit_transform(self, epochs_data, y):
+        """
+        Concatenates data from different channels into single feature vector
+
+        Parameters
+        ----------
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data.
+
+        y : array
+            The label for each epoch
+
+        Returns
+        -------
+        X : ndarray of shape (n_epochs, n_channels*n_times)
+            The data concatenated over channels
+        """
+        return self.fit(epochs_data, y).transform(epochs_data)
 
 
 class PSDEstimator(TransformerMixin):

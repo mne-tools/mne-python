@@ -47,10 +47,11 @@ n_times = len(rt_epochs.times)
 from sklearn import preprocessing
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
+from sklearn.cross_validation import cross_val_score, ShuffleSplit
 
 from mne.realtime.classifier import ConcatenateChannels
 
-scores_x, scores = [], []
+scores_x, scores, std_scores = [], [], []
 
 pl.ion()
 
@@ -58,7 +59,7 @@ scaler = preprocessing.StandardScaler()
 concatenator = ConcatenateChannels()
 clf = SVC(C=1, kernel='linear')
 
-scaled_classifier = Pipeline([('concat', concatenator),
+concat_classifier = Pipeline([('concat', concatenator),
                               ('scaler', scaler), ('svm', clf)])
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
@@ -76,19 +77,25 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
         trnum = round(np.shape(X)[0]*tr_percent/100)
         tsnum = np.shape(X)[0] - trnum
 
-        scaled_classifier = scaled_classifier.fit(X[:trnum], y[:trnum])
-        scores.append(scaled_classifier.score(X[-tsnum:], y[-tsnum:])*100)
+        cv = ShuffleSplit(len(y), 5, test_size=0.2, random_state=42)
+        scores_t = cross_val_score(concat_classifier, X, y, cv=cv,
+                                   n_jobs=1)*100
 
+        std_scores.append(scores_t.std())
+        scores.append(scores_t.mean())
         scores_x.append(ev_num)
 
         # Plot accuracy
         pl.clf()
 
-        pl.plot(scores_x[-5:], scores[-5:], '+',
-                label="Classif. score")
+        pl.plot(scores_x[-5:], scores[-5:], '+', label="Classif. score")
         pl.hold(True)
         pl.plot(scores_x[-5:], scores[-5:])
         pl.axhline(50, color='k', linestyle='--', label="Chance level")
+        hyp_limits = (np.asarray(scores[-5:]) - np.asarray(std_scores[-5:]),
+                      np.asarray(scores[-5:]) + np.asarray(std_scores[-5:]))
+        pl.fill_between(scores_x[-5:], hyp_limits[0], y2=hyp_limits[1],
+                        color='b', alpha=0.5)
         pl.xlabel('Trials')
         pl.ylabel('Classification score (% correct)')
         pl.ylim([30, 105])
