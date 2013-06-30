@@ -17,18 +17,20 @@ import mne.fiff.kit.coreg as coreg
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
 data_dir = op.join(parent_dir, 'data')
+sqd_path = op.join(data_dir, 'test.sqd')
+mrk_path = op.join(data_dir, 'test_mrk.sqd')
+elp_path = op.join(data_dir, 'test_elp.txt')
+hsp_path = op.join(data_dir, 'test_hsp.txt')
+
 tempdir = _TempDir()
 
 
 def test_data():
     """Test reading raw kit files
     """
-    raw_py = read_raw_kit(op.join(data_dir, 'test.sqd'),
-                          op.join(data_dir, 'test_mrk.sqd'),
-                          op.join(data_dir, 'test_elp.txt'),
-                          op.join(data_dir, 'test_hsp.txt'),
-                          stim=range(167, 159, -1), slope='+',
-                          stimthresh=1, preload=True)
+    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
+                          stim=range(167, 159, -1), slope='+', stimthresh=1,
+                          preload=True)
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
     raw_bin = op.join(data_dir, 'test_bin.fif')
@@ -52,39 +54,26 @@ def test_data():
 def test_read_segment():
     """Test writing raw kit files when preload is False
     """
-    raw1 = read_raw_kit(op.join(data_dir, 'test.sqd'),
-                        op.join(data_dir, 'test_mrk.sqd'),
-                        op.join(data_dir, 'test_elp.txt'),
-                        op.join(data_dir, 'test_hsp.txt'),
-                        stim='<', preload=False)
+    raw1 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
+                        preload=False)
     raw1_file = op.join(tempdir, 'raw1.fif')
     raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
-    raw2 = read_raw_kit(op.join(data_dir, 'test.sqd'),
-                        op.join(data_dir, 'test_mrk.sqd'),
-                        op.join(data_dir, 'test_elp.txt'),
-                        op.join(data_dir, 'test_hsp.txt'),
-                        stim=range(167, 159, -1), preload=True)
+    raw2 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
+                        preload=True)
     raw2_file = op.join(tempdir, 'raw2.fif')
     raw2.save(raw2_file, buffer_size_sec=.1, overwrite=True)
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)
     assert_array_equal(raw1._data, raw2._data)
-    raw3 = read_raw_kit(op.join(data_dir, 'test.sqd'),
-                        op.join(data_dir, 'test_mrk.sqd'),
-                        op.join(data_dir, 'test_elp.txt'),
-                        op.join(data_dir, 'test_hsp.txt'),
-                        stim=range(167, 159, -1), preload=True)
+    raw3 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
+                        preload=True)
     assert_array_almost_equal(raw1._data, raw3._data)
 
 
 def test_ch_loc():
     """Test raw kit loc
     """
-    raw_py = read_raw_kit(op.join(data_dir, 'test.sqd'),
-                          op.join(data_dir, 'test_mrk.sqd'),
-                          op.join(data_dir, 'test_elp.txt'),
-                          op.join(data_dir, 'test_hsp.txt'),
-                          stim=range(167, 159, -1))
+    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<')
     raw_bin = Raw(op.join(data_dir, 'test_bin.fif'))
 
     ch_py = raw_py._sqd_params['sensor_locs'][:, :5]
@@ -102,12 +91,8 @@ def test_ch_loc():
 def test_stim_ch():
     """Test raw kit stim ch
     """
-    raw = read_raw_kit(op.join(data_dir, 'test.sqd'),
-                       op.join(data_dir, 'test_mrk.sqd'),
-                       op.join(data_dir, 'test_elp.txt'),
-                       op.join(data_dir, 'test_hsp.txt'),
-                       stim=range(167, 159, -1), slope='+',
-                       preload=True)
+    raw = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
+                       slope='+', preload=True)
     stim_pick = pick_types(raw.info, meg=False, stim=True, exclude='bads')
     stim1, _ = raw[stim_pick]
     stim2 = np.array(raw.read_stim_ch(), ndmin=2)
