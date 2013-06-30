@@ -6,8 +6,13 @@ import numpy as np
 
 from sklearn.base import TransformerMixin
 
+from mne.filter import low_pass_filter, high_pass_filter, band_pass_filter, \
+                       band_stop_filter
 from mne.time_frequency import multitaper_psd
 from mne.fiff import pick_types
+
+import logging
+logger = logging.getLogger('mne')
 
 
 class RtClassifier:
@@ -149,11 +154,13 @@ class PSDEstimator(TransformerMixin):
 
 class FilterEstimator(TransformerMixin):
     """
-    TODO: import filters somehow ...
+    TODO: docstrings, check if this works ...
     """
 
-    def __init__(self, l_freq, h_freq, picks, filter_length, l_trans_bandwidth,
-                 h_trans_bandwidth, n_jobs, method, iir_params, verbose):
+    def __init__(self, info, l_freq, h_freq, picks, filter_length,
+                 l_trans_bandwidth, h_trans_bandwidth, n_jobs, method,
+                 iir_params, verbose):
+
         self.l_freq = l_freq
         self.h_freq = h_freq
         self.picks = picks
@@ -164,9 +171,74 @@ class FilterEstimator(TransformerMixin):
         self.method = method
         self.iir_params = iir_params
         self.verbose = verbose
+        self.info = info
 
-    def transform(self, data):
-        return filter(self, self.l_freq, self.h_freq, self.picks,
-                      self.filter_length, self.l_trans_bandwidth,
-                      self.h_trans_bandwidth, self.n_jobs, self.method,
-                      self.iir_params, self.verbose)
+    def fit(self, epochs_data, y):
+
+        if self.l_freq == 0:
+            self.l_freq = None
+        if self.h_freq > (self.info['sreq'] / 2.):
+            self.h_freq = None
+
+        if self.h_freq is not None and \
+                (self.l_freq is None or self.l_freq < self.h_freq) and \
+                self.h_freq < self.info['lowpass']:
+            self.info['lowpass'] = self.h_freq
+
+        if self.l_freq is not None and \
+                (self.h_freq is None or self.l_freq < self.h_freq) and \
+                self.l_freq > self.info['highpass']:
+            self.info['highpass'] = self.l_freq
+
+    def transform(self, epochs_data, y=None):
+
+        if self.l_freq is None and self.h_freq is not None:
+            logger.info('Low-pass filtering at %0.2g Hz' % self.h_freq)
+            epochs_data = \
+                low_pass_filter(epochs_data, self.fs, self.h_freq,
+                                filter_length=self.filter_length,
+                                trans_bandwidth=self.l_trans_bandwidth,
+                                method=self.method, iir_params=self.iir_params,
+                                picks=self.info['picks'], n_jobs=self.n_jobs,
+                                copy=False)
+
+        if self.l_freq is not None and self.h_freq is None:
+            logger.info('High-pass filtering at %0.2g Hz' % self.l_freq)
+
+            epochs_data = \
+                high_pass_filter(epochs_data, self.info['sfreq'], self.l_freq,
+                                 filter_length=self.filter_length,
+                                 trans_bandwidth=self.h_trans_bandwidth,
+                                 method=self.method,
+                                 iir_params=self.iir_params,
+                                 picks=self.picks, n_jobs=self.n_jobs,
+                                 copy=False)
+
+        if self.l_freq is not None and self.h_freq is not None:
+            if self.l_freq < self.h_freq:
+                logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
+                            % (self.l_freq, self.h_freq))
+                epochs_data = \
+                    band_pass_filter(epochs_data, self.info['sfreq'],
+                                     self.l_freq, self.h_freq,
+                                     filter_length=self.filter_length,
+                                     l_trans_bandwidth=self.l_trans_bandwidth,
+                                     h_trans_bandwidth=self.h_trans_bandwidth,
+                                     method=self.method,
+                                     iir_params=self.iir_params,
+                                     picks=self.picks, n_jobs=self.n_jobs,
+                                     copy=False)
+            else:
+                logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
+                            % (self.h_freq, self.l_freq))
+                epochs_data = \
+                    band_stop_filter(epochs_data, self.info['sfreq'],
+                                     self.h_freq, self.l_freq,
+                                     filter_length=self.filter_length,
+                                     l_trans_bandwidth=self.h_trans_bandwidth,
+                                     h_trans_bandwidth=self.l_trans_bandwidth,
+                                     method=self.method,
+                                     iir_params=self.iir_params,
+                                     picks=self.picks, n_jobs=self.n_jobs,
+                                     copy=False)
+        return epochs_data
