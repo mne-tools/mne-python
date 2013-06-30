@@ -73,10 +73,6 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
     if ev_num >= min_trials:
 
-        # Find number of trials in training and test set
-        trnum = round(np.shape(X)[0]*tr_percent/100)
-        tsnum = np.shape(X)[0] - trnum
-
         cv = ShuffleSplit(len(y), 5, test_size=0.2, random_state=42)
         scores_t = cross_val_score(concat_classifier, X, y, cv=cv,
                                    n_jobs=1)*100
