@@ -311,3 +311,5 @@ def test_plot_ica_topomap():
     """
     for components in [[0], [0, 1], [0, 1] * 7]:
         ica.plot_topomap(components)
+    ica.info = None
+    assert_raises(RuntimeError, ica.plot_topomap, 1)

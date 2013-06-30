@@ -823,7 +823,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                              '%0.3f).' % (tmin, tmax, t))
 
     picks, pos, merge_grads = _prepare_topo_plot(evoked, ch_type, layout)
-    
+
     n = len(times)
     nax = n + bool(colorbar)
     width = size * nax
@@ -841,6 +841,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     data = data[np.ix_(picks, time_idx)] * scale
     if merge_grads:
+        from .layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)
     vmax = vmax or np.max(np.abs(data))
     images = []
@@ -1799,10 +1800,13 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
         The ica object to plot from.
     source_idx : int | array-like
         The indices of the sources to be plotted.
-    res : int
-        The resolution of the topographic map
-    layout : instance of mne.layouts.Layout
-        The layout to be used.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        The channel type to plot. For 'grad', the gradiometers are collected in
+        pairs and the RMS for each pair is plotted.
+    layout : None | Layout
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
     vmax : scalar
         The value specfying the range of the color scale (-vmax to +vmax). If
         None, the largest absolute value in the data is used.
@@ -1811,6 +1815,18 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses).
+    colorbar : bool
+        Plot a colorbar.
+    scale : float | None
+        Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
+        for grad and 1e15 for mag.
+    units : str | None
+        The units of the channel types used for colorbar lables. If
+        scale == None the unit is automatically determined.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    show : bool
+        Call pylab.show() at the end.
     """
     import pylab as pl
 
@@ -1847,37 +1863,41 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     elif len(data) <= 5:
         nrow, ncol = 1, len(data)
     else:
-        nrow, ncol = (len(data) / 5) + 1, 5
+        nrow, ncol = int(math.ceil(len(data) / 5.)), 5
 
     fig, axes = pl.subplots(nrow, ncol)
-    axes = [axes] if ncol == nrow == 1 else axes.flatten()
+    axes = [axes] if ncol == nrow == 1 else axes.flat
+    for ax in axes[len(data):]:  # hide unused axes
+        ax.set_visible(False)
+    
+    if vmax is None:
+        vrange = np.array([f(data) for f in np.min, np.max])
+        vmax = max(abs(vrange))
+    vmin = -vmax
+
     if merge_grads:
         from .layouts.layout import _merge_grad_data
-    
-    for ii, (data_, ax) in enumerate(zip(data, axes), 1):
+    for ii, (data_, ax) in enumerate(zip(data, axes)):
         data_ = _merge_grad_data(data_) if merge_grads else data_
-        plot_topomap(data_.flatten(), pos, res=res, axis=ax)
-        ax.set_title('ICA #%03d' % ii)
+        plot_topomap(data_.flatten(), pos, vmax=vmax, res=res, axis=ax)
+        ax.set_title('ICA #%03d' % (source_idx[ii] + 1))
         ax.set_yticks([])
         ax.set_xticks([])
         ax.set_frame_on(False)
 
     tight_layout()
+    if colorbar:
+        vmax_ = pl.normalize(vmin=-vmax, vmax=vmax)
+        sm = pl.cm.ScalarMappable(cmap=cmap, norm=vmax_)
+        sm.set_array(np.linspace(-vmax, vmax))
+        fig.subplots_adjust(right=0.8)
+        cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        fig.colorbar(sm, cax=cax)
+        if unit is not None:
+            cax.set_title(unit)
+
     if show is True:
         pl.show()
-
-    # if colorbar:
-    #     cax = pl.subplot(1, n + 1, n + 1)
-    #     pl.colorbar(cax=cax, ticks=[-vmax, 0, vmax], format=format)
-    #     # resize the colorbar (by default the color fills the whole axes)
-    #     cpos = cax.get_position()
-    #     cpos.x0 = 1 - (.7 + .1 / size) / nax
-    #     cpos.x1 = cpos.x0 + .1 / nax
-    #     cpos.y0 = .1
-    #     cpos.y1 = .7
-    #     cax.set_position(cpos)
-    #     if unit is not None:
-    #         cax.set_title(unit)
 
     return fig
 

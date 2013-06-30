@@ -888,22 +888,48 @@ class ICA(object):
 
         return epochs
 
-    def plot_topomap(self, source_idx, ch_type='mag', res=500, layout=None):
+    def plot_topomap(self, source_idx, ch_type='mag', res=500, layout=None,
+                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                     scale=None, unit=None, show=True):
         """ plot topographic map of ICA source
 
         Parameters
         ----------
-        ica : instance of mne.prerocessing.ICA
-            The ica object to plot from.
-        source_idx : int
-            The index of the source to be plotted.
+        The ica object to plot from.
+        source_idx : int | array-like
+            The indices of the sources to be plotted.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+            The channel type to plot. For 'grad', the gradiometers are collected in
+            pairs and the RMS for each pair is plotted.
+        layout : None | Layout
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct layout is
+            inferred from the data.
+        vmax : scalar
+            The value specfying the range of the color scale (-vmax to +vmax). If
+            None, the largest absolute value in the data is used.
+        cmap : matplotlib colormap
+            Colormap.
+        sensors : bool | str
+            Add markers for sensor locations to the plot. Accepts matplotlib plot
+            format string (e.g., 'r+' for red plusses).
+        colorbar : bool
+            Plot a colorbar.
+        scale : float | None
+            Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
+            for grad and 1e15 for mag.
+        units : str | None
+            The units of the channel types used for colorbar lables. If
+            scale == None the unit is automatically determined.
         res : int
-            The resolution of the topographic map
-        layout : instance of mne.layouts.Layout
-            The layout to be used.
+            The resolution of the topomap image (n pixels along each side).
+        show : bool
+            Call pylab.show() at the end.
         """
         return plot_ica_topomap(self, source_idx=source_idx, ch_type=ch_type,
-                                res=res, layout=layout)
+                                res=res, layout=layout, vmax=vmax, cmap=cmap,
+                                sensors=sensors, colorbar=colorbar,
+                                scale=scale, unit=unit, show=show)
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                 ecg_ch=None, ecg_score_func='pearsonr', ecg_criterion=0.1,

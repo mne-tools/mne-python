@@ -57,6 +57,13 @@ ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
 ica.decompose_epochs(epochs)
 print ica
 
+# plot spatial sensitivities of a few ICA components
+title = 'Spatial patterns of ICA components (Magnetometers)'
+source_idx = range(15)
+ica.plot_topomap(source_idx, ch_type='mag')
+pl.suptitle(title, fontsize=12)
+
+
 ###############################################################################
 # Automatically find ECG and EOG component using correlation coefficient.
 
@@ -108,14 +115,16 @@ pl.ylabel('AU')
 pl.xlim(times[[0, -1]])
 pl.show()
 
+
 ###############################################################################
 # Reject artifact sources and compare results
 
-# Add the detected artifact indices to ica.exclude
+# add detected sources to exclusion list
 ica.exclude += [ecg_source_idx, eog_source_idx]
 
 # Restore sensor space data
 epochs_ica = ica.pick_sources_epochs(epochs)
+
 
 # First show unprocessed, then cleaned epochs
 for e in epochs, epochs_ica:
