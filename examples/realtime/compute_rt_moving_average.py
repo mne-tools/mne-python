@@ -13,7 +13,8 @@ has to be running on the same computer.
 
 print __doc__
 
-# Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+# Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
 
