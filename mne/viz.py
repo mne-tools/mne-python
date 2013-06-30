@@ -1877,10 +1877,10 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
 
     if merge_grads:
         from .layouts.layout import _merge_grad_data
-    for ii, (data_, ax) in enumerate(zip(data, axes)):
+    for ii, data_, ax in zip(source_idx, data, axes):
         data_ = _merge_grad_data(data_) if merge_grads else data_
         plot_topomap(data_.flatten(), pos, vmax=vmax, res=res, axis=ax)
-        ax.set_title('ICA #%03d' % (source_idx[ii] + 1))
+        ax.set_title('ICA #%03d' % (ii + 1))
         ax.set_yticks([])
         ax.set_xticks([])
         ax.set_frame_on(False)
