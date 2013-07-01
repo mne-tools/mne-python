@@ -48,6 +48,7 @@ class RtClassifier:
 class Scaler(TransformerMixin):
     """
         Standardizes data across channels?
+        TODO: Probably not required, delete it
     """
     def __init__(self, info):
         self.info = info
@@ -166,10 +167,7 @@ class FilterEstimator(TransformerMixin):
         Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
-        filter to the channels selected by "picks". The data of the Raw
-        object is modified inplace.
-
-        The Raw object has to be constructed using preload=True (or string).
+        filter to the channels selected by "picks".
 
         l_freq and h_freq are the frequencies below which and above which,
         respectively, to filter out of the data. Thus the uses are:
@@ -181,12 +179,10 @@ class FilterEstimator(TransformerMixin):
         Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
               additional time points need to be temporarily stored in memory.
 
-        Note: self.info['lowpass'] and self.info['highpass'] are only updated
-              with picks=None.
-
         Parameters
         ----------
-        info :
+        info: dict
+            Measurement info.
         l_freq : float | None
             Low cut-off frequency in Hz. If None the data are only low-passed.
         h_freq : float | None
