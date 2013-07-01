@@ -116,9 +116,9 @@ def read_hsp(hsp_fname):
         Maximum number of points. If max_n is not None and the number of
         points in the file exceeds max_n, only n_max points are returned.
     """
-    p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     with open(hsp_fname) as fid:
-        hsp_points = p.findall(fid.read())
+        hsp_points = pattern.findall(fid.read())
     hsp_points = np.array(hsp_points, dtype=float)
     return hsp_points
 
