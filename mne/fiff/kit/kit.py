@@ -20,8 +20,7 @@ from scipy.linalg import norm
 
 from ...fiff import pick_types
 from ...transforms.coreg import fit_matched_pts
-from ...transforms.transforms import apply_trans, als_ras_trans, \
-                                     als_ras_trans_mm
+from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ...utils import verbose
 from ..raw import Raw
 from ..constants import FIFF

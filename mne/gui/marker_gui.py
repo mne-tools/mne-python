@@ -18,8 +18,8 @@ from traitsui.api import View, Item, HGroup, VGroup, CheckListEditor
 from traitsui.menu import NoButtons
 from tvtk.pyface.scene_editor import SceneEditor
 
+from ..transforms import apply_trans, rotation, translation
 from ..transforms.coreg import fit_matched_pts
-from ..transforms.transforms import apply_trans, rotation, translation
 from .viewer import HeadViewController, headview_borders, PointObject
 from ..fiff.kit.coreg import read_mrk
 

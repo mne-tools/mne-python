@@ -26,8 +26,7 @@ from tvtk.pyface.scene_editor import SceneEditor
 
 from ..fiff import FIFF
 from ..source_space import prepare_bem_model, setup_source_space
-from ..transforms import write_trans
-from ..transforms.transforms import rotation, translation, apply_trans
+from ..transforms import write_trans, rotation, translation, apply_trans
 from ..transforms.coreg import trans_fname, fit_matched_pts, fit_point_cloud, \
                                scale_mri
 from ..utils import get_subjects_dir

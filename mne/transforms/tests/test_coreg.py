@@ -2,10 +2,9 @@ from nose.tools import assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_less
 
+from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.transforms.coreg import fit_matched_pts, fit_point_cloud, \
                                  _point_cloud_error, decimate_points
-from mne.transforms.transforms import apply_trans, rotation, translation, \
-                                      scaling
 
 
 def test_fit_matched_pts():

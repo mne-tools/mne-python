@@ -16,7 +16,7 @@ from traits.api import HasTraits, HasPrivateTraits, on_trait_change, \
                        Button, Color, Enum, Float, Int, List, Range, Str
 from traitsui.api import View, Item, Group, HGroup, VGroup
 
-from ..transforms.transforms import apply_trans
+from ..transforms import apply_trans
 
 
 headview_item = Item('headview', style='custom', show_label=False)

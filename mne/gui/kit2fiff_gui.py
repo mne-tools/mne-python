@@ -24,9 +24,8 @@ from tvtk.pyface.scene_editor import SceneEditor
 
 from ..fiff.kit.coreg import read_hsp, read_elp, get_neuromag_transform
 from ..fiff.kit.kit import RawKIT, KIT
+from ..transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..transforms.coreg import decimate_points, fit_matched_pts
-from ..transforms.transforms import apply_trans, als_ras_trans, \
-                                    als_ras_trans_mm
 from .marker_gui import CombineMarkersPanel
 from .viewer import HeadViewController, headview_borders, headview_item, \
                     PointObject
