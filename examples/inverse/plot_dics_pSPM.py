@@ -100,9 +100,8 @@ csd_pl, frequencies_pl = pl.csd(raw_ts.data[channel_2, :],
 pl.title('Matplotlib version for comparison')
 
 # Averaging CSD across frequency range of interest
-freq_range = [8, 12]
-freq_ids = [i for i in frequencies if i >= freq_range[0] and i < freq_range[1]]
-csd = np.mean(csds[:, :, freq_ids], 2)
+freq_mask = (frequencies > 8) & (frequencies < 12)
+csd = np.mean(csds[:, :, freq_mask], 2)
 
 
 # What follows is mostly beamforming code that could be refactored into a
