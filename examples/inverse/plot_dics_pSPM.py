@@ -98,6 +98,7 @@ csd_pl, frequencies_pl = pl.csd(raw_ts.data[channel_2, :],
                                 csd_method['Fs'],
                                 noverlap=csd_method['n_overlap'])
 pl.title('Matplotlib version for comparison')
+pl.show()
 
 # Averaging CSD across frequency range of interest
 freq_mask = (frequencies > 8) & (frequencies < 12)
