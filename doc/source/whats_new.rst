@@ -11,7 +11,7 @@ Changelog
 
    - Allow picking normal orientation in LCMV beamformers by `Roman Goj`_, `Alex Gramfort`_, `Denis Engemann`_ and `Martin Luessi`_
 
-   - Add printing summary to terminal for measurment info by `Denis Engemann`_ 
+   - Add printing summary to terminal for measurement info by `Denis Engemann`_ 
 
    - Add read and write info attribute ICA objects by `Denis Engemann`_ 
 
