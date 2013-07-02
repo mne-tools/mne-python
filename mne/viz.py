@@ -1791,7 +1791,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
 
 def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                     scale=None, unit=None, show=True):
+                     show=True):
     """ Plot topographic map from ICA component.
 
     Parameters
@@ -1817,12 +1817,6 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
         format string (e.g., 'r+' for red plusses).
     colorbar : bool
         Plot a colorbar.
-    scale : float | None
-        Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-        for grad and 1e15 for mag.
-    units : str | None
-        The units of the channel types used for colorbar lables. If
-        scale == None the unit is automatically determined.
     res : int
         The resolution of the topomap image (n pixels along each side).
     show : bool
@@ -1830,34 +1824,20 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     """
     import pylab as pl
 
-    if scale is None:
-        if ch_type.startswith('planar'):
-            key = 'grad'
-        else:
-            key = ch_type
-    scale = DEFAULTS['scalings'][key]
-    unit = DEFAULTS['units'][key]
-
-    # restore PCA + mean
+    if np.isscalar(source_idx):
+        source_idx = [source_idx]
     data = np.dot(ica.mixing_matrix_[source_idx, :],
-                  ica.pca_components_[:ica.n_components_]) + ica.pca_mean_
-
-    # restore unit
-    whitener = ica._pre_whitener
-    if ica.noise_cov is None:
-        data /= whitener
-    else:
-        data = np.dot(data, linalg.pinv(whitener))
+                  ica.pca_components_[:ica.n_components_])
 
     if ica.info is None:
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
 
     picks, pos, merge_grads = _prepare_topo_plot(ica, ch_type, layout)
-    data = data[:, picks] * scale
+    data = np.atleast_2d(data)
+    data = data[:, picks]
 
     # prepare data for iteration
-    data = np.atleast_2d(data)
     if len(data) == 1:
         nrow = ncol = 1
     elif len(data) <= 5:
@@ -1893,8 +1873,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
         fig.subplots_adjust(right=0.8)
         cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         fig.colorbar(sm, cax=cax)
-        if unit is not None:
-            cax.set_title(unit)
+        cax.set_title('AU')
 
     if show is True:
         pl.show()

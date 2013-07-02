@@ -890,7 +890,7 @@ class ICA(object):
 
     def plot_topomap(self, source_idx, ch_type='mag', res=500, layout=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                     scale=None, unit=None, show=True):
+                     show=True):
         """ plot topographic map of ICA source
 
         Parameters
@@ -915,12 +915,6 @@ class ICA(object):
             format string (e.g., 'r+' for red plusses).
         colorbar : bool
             Plot a colorbar.
-        scale : float | None
-            Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-            for grad and 1e15 for mag.
-        units : str | None
-            The units of the channel types used for colorbar lables. If
-            scale == None the unit is automatically determined.
         res : int
             The resolution of the topomap image (n pixels along each side).
         show : bool
@@ -928,8 +922,7 @@ class ICA(object):
         """
         return plot_ica_topomap(self, source_idx=source_idx, ch_type=ch_type,
                                 res=res, layout=layout, vmax=vmax, cmap=cmap,
-                                sensors=sensors, colorbar=colorbar,
-                                scale=scale, unit=unit, show=show)
+                                sensors=sensors, colorbar=colorbar, show=show)
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                 ecg_ch=None, ecg_score_func='pearsonr', ecg_criterion=0.1,
