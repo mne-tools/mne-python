@@ -17,6 +17,9 @@ Changelog
 
    - Decoding with Common Spatial Patterns (CSP) by `Romain Trachel`_ and `Alex Gramfort`_
 
+   - Add ICA plot_topomap function and method for displaying the spatial
+   sensitivity of ICA sources by `Denis Engemann`_
+
 API
 ~~~
 
