@@ -15,7 +15,7 @@ from scipy.spatial.distance import cdist
 from mayavi.core.ui.mayavi_scene import MayaviScene
 from mayavi.tools.mlab_scene_model import MlabSceneModel
 from pyface.api import error, confirm, warning, OK, YES, information, \
-                       FileDialog
+                       FileDialog, GUI
 from traits.api import HasTraits, HasPrivateTraits, cached_property, \
                        on_trait_change, Instance, Property, Any, Array, Bool, \
                        Button, Directory, Enum, Float, Int, List, Str
@@ -295,26 +295,33 @@ class CoregPanel(HasPrivateTraits):
         return fid
 
     def _fit_ap_fired(self):
+        GUI.set_busy()
         tgt_fid = self.tgt_fid[1:] - self.translation[0]
         x0 = tuple(self.rotation[0])
         rot = fit_matched_pts(self.src_fid[1:], tgt_fid, rotate=True,
                               translate=False, x0=x0)
         self.rotation = [rot]
+        GUI.set_busy(False)
 
     def _fit_fid_fired(self):
+        GUI.set_busy()
         x0 = tuple(self.rotation[0]) + tuple(self.translation[0])
         est = fit_matched_pts(self.src_fid, self.tgt_fid, x0=x0)
         self.rotation = [est[:3]]
         self.translation = [est[3:]]
+        GUI.set_busy(False)
 
     def _fit_rot_fired(self):
+        GUI.set_busy()
         tgt_pts = self.tgt_pts - self.translation[0]
         x0 = tuple(self.rotation[0])
         rot = fit_point_cloud(self.src_pts, tgt_pts, rotate=True,
                               translate=False, x0=x0)
         self.rotation = [rot]
+        GUI.set_busy(False)
 
     def _fits_ap_fired(self):
+        GUI.set_busy()
         tgt_fid = self.mri_fid[1:] - self.mri_fid[0]
         tgt_fid -= self.translation[0]
         x0 = tuple(self.rotation[0]) + (1 / self.scale1,)
@@ -322,8 +329,10 @@ class CoregPanel(HasPrivateTraits):
                             translate=False, scale=1, x0=x0)
         self.scale1 = 1 / x[3]
         self.rotation = [x[:3]]
+        GUI.set_busy(False)
 
     def _fits_fid_fired(self):
+        GUI.set_busy()
         tgt_fid = self.mri_fid - self.mri_fid[0]
         x0 = tuple(self.rotation[0]) + tuple(self.translation[0]) \
              + (1 / self.scale1,)
@@ -332,8 +341,10 @@ class CoregPanel(HasPrivateTraits):
         self.scale1 = 1 / x[6]
         self.rotation = [x[:3]]
         self.translation = [x[3:6]]
+        GUI.set_busy(False)
 
     def _fits_rot_fired(self):
+        GUI.set_busy()
         if self.n_scale_params == 1:
             tgt_pts = self.mri_pts - self.tgt_origin
             x0 = tuple(self.rotation[0]) + (1 / self.scale1,)
@@ -346,6 +357,7 @@ class CoregPanel(HasPrivateTraits):
                                   translate=False, scale=3, x0=x0)
             self.scale3 = [1 / est[3:]]
         self.rotation = [est[:3]]
+        GUI.set_busy(False)
 
     def _n_scale_params_changed(self, new):
         if not new:
