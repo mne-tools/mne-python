@@ -31,6 +31,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)
+raw.apply_proj()
 
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
                             ecg=True, stim=False, exclude='bads')
@@ -43,16 +44,25 @@ events = mne.find_events(raw, stim_channel='STI 014')
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
-###############################################################################
+random_state = np.random.RandomState(42)
+
+#####################################################################################
 # Setup ICA seed decompose data, then access and plot sources.
 # for more background information visit the plot_ica_from_raw.py example
 
 # fit sources from epochs or from raw (both works for epochs)
 ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
-          noise_cov=None, random_state=0)
+          noise_cov=None, random_state=random_state)
 
 ica.decompose_epochs(epochs)
 print ica
+
+# plot spatial sensitivities of a few ICA components
+title = 'Spatial patterns of ICA components (Magnetometers)'
+source_idx = range(15)
+ica.plot_topomap(source_idx, ch_type='mag')
+pl.suptitle(title, fontsize=12)
+
 
 ###############################################################################
 # Automatically find ECG and EOG component using correlation coefficient.
@@ -105,14 +115,16 @@ pl.ylabel('AU')
 pl.xlim(times[[0, -1]])
 pl.show()
 
+
 ###############################################################################
 # Reject artifact sources and compare results
 
-# Add the detected artifact indices to ica.exclude
+# Add detected artifact sources to exclusion list
 ica.exclude += [ecg_source_idx, eog_source_idx]
 
 # Restore sensor space data
 epochs_ica = ica.pick_sources_epochs(epochs)
+
 
 # First show unprocessed, then cleaned epochs
 for e in epochs, epochs_ica:

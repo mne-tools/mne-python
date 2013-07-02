@@ -34,7 +34,7 @@ from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag
 from ..fiff.meas_info import write_meas_info, read_meas_info
 from ..fiff.constants import Bunch, FIFF
-from ..viz import plot_ica_panel
+from ..viz import plot_ica_panel, plot_ica_topomap
 from .. import verbose
 from ..fiff.write import start_file, end_file, write_id
 
@@ -887,6 +887,42 @@ class ICA(object):
         epochs.preload = True
 
         return epochs
+
+    def plot_topomap(self, source_idx, ch_type='mag', res=500, layout=None,
+                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                     show=True):
+        """ plot topographic map of ICA source
+
+        Parameters
+        ----------
+        The ica object to plot from.
+        source_idx : int | array-like
+            The indices of the sources to be plotted.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+            The channel type to plot. For 'grad', the gradiometers are collected in
+            pairs and the RMS for each pair is plotted.
+        layout : None | Layout
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct layout is
+            inferred from the data.
+        vmax : scalar
+            The value specfying the range of the color scale (-vmax to +vmax). If
+            None, the largest absolute value in the data is used.
+        cmap : matplotlib colormap
+            Colormap.
+        sensors : bool | str
+            Add markers for sensor locations to the plot. Accepts matplotlib plot
+            format string (e.g., 'r+' for red plusses).
+        colorbar : bool
+            Plot a colorbar.
+        res : int
+            The resolution of the topomap image (n pixels along each side).
+        show : bool
+            Call pylab.show() at the end.
+        """
+        return plot_ica_topomap(self, source_idx=source_idx, ch_type=ch_type,
+                                res=res, layout=layout, vmax=vmax, cmap=cmap,
+                                sensors=sensors, colorbar=colorbar, show=show)
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                 ecg_ch=None, ecg_score_func='pearsonr', ecg_criterion=0.1,
