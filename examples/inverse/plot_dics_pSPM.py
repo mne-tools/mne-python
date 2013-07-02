@@ -25,6 +25,8 @@ import mne
 from mne.fiff import Raw
 from mne.fiff.constants import FIFF
 from mne.fiff.pick import pick_channels_forward
+from mne.fiff.proj import make_projector
+from mne.cov import compute_whitener
 from mne.minimum_norm.inverse import _get_vertno
 from mne.datasets import sample
 
@@ -35,6 +37,9 @@ fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 # Read raw data
 raw = Raw(raw_fname)
+
+# Applying SSPs
+raw.apply_proj()
 
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
@@ -53,6 +58,10 @@ start, stop = raw.time_as_index([100, 115], use_first_samp=False)
 
 # Export to nitime using a copy of the data
 raw_ts = raw.to_nitime(start=start, stop=stop, picks=picks, copy=True)
+
+# Apply whitening
+whitener, _ = compute_whitener(noise_cov, raw.info, picks)
+raw_ts.data = np.dot(whitener, raw_ts.data)
 
 # Prepare specification of cross spectral density computation
 csd_method = {}
@@ -151,24 +160,10 @@ else:
     vertno = _get_vertno(forward['src'])
     G = forward['sol']['data']
 
-# TODO: I don't know what to do about SSPs and whitening, SSP should probably
-# be applied to data before calculating CSD
-
-# Handle SSPs
-#proj, ncomp, _ = make_projector(info['projs'], ch_names)
-#G = np.dot(proj, G)
-
-# Handle whitening + data covariance
-#whitener, _ = compute_whitener(noise_cov, info, picks)
-
-# whiten the leadfield
-#G = np.dot(whitener, G)
-
-# Apply SSPs + whitener to data covariance
-#data_cov = pick_channels_cov(data_cov, include=ch_names)
-#Cm = data_cov['data']
-#Cm = np.dot(proj, np.dot(Cm, proj.T))
-#Cm = np.dot(whitener, np.dot(Cm, whitener.T))
+# Apply SSPs and whiten the lead field
+proj, ncomp, _ = make_projector(raw.info['projs'], ch_names)
+G = np.dot(proj, G)
+G = np.dot(whitener, G)
 
 Cm = csd
 
