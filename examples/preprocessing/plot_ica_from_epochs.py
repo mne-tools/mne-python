@@ -119,7 +119,7 @@ pl.show()
 ###############################################################################
 # Reject artifact sources and compare results
 
-# add detected sources to exclusion list
+# Add detected artifact sources to exclusion list
 ica.exclude += [ecg_source_idx, eog_source_idx]
 
 # Restore sensor space data

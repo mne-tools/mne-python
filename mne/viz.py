@@ -1059,7 +1059,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
                 xi.min():xi.max():complex(0, xi.shape[1])]
     im = np.ma.masked_array(im, im == np.nan)
     im = ax.imshow(im, cmap=cmap, vmin=-vmax, vmax=vmax, origin='lower',
-                aspect='equal', extent=(xmin, xmax, ymin, ymax))
+                   aspect='equal', extent=(xmin, xmax, ymin, ymax))
     return im
 
 
@@ -1880,7 +1880,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     for ii, data_, ax in zip(source_idx, data, axes):
         data_ = _merge_grad_data(data_) if merge_grads else data_
         plot_topomap(data_.flatten(), pos, vmax=vmax, res=res, axis=ax)
-        ax.set_title('ICA #%03d' % (ii + 1))
+        ax.set_title('IC #%03d' % (ii + 1), fontsize=12)
         ax.set_yticks([])
         ax.set_xticks([])
         ax.set_frame_on(False)
