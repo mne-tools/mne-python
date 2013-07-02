@@ -6,11 +6,11 @@ import numpy as np
 
 from sklearn.base import TransformerMixin
 
-from mne import verbose
-from mne.filter import low_pass_filter, high_pass_filter, band_pass_filter, \
-                       band_stop_filter
-from mne.time_frequency import multitaper_psd
-from mne.fiff import pick_types
+from .. import verbose
+from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
+    band_stop_filter
+from ..time_frequency import multitaper_psd
+from ..fiff import pick_types
 
 import logging
 logger = logging.getLogger('mne')
@@ -100,7 +100,7 @@ class ConcatenateChannels(TransformerMixin):
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
-        epochs_data = np.atleast_3d(epochs_data)
+        np.atleast_3d(epochs_data)
 
         return self
 
@@ -137,8 +137,8 @@ class ConcatenateChannels(TransformerMixin):
 
         Returns
         -------
-        X : ndarray of shape (n_epochs, n_channels*n_times)
-            The data concatenated over channels
+        ndarray of shape (n_epochs, n_channels*n_times)
+        The data concatenated over channels
         """
         return self.fit(epochs_data, y).transform(epochs_data)
 
@@ -343,7 +343,7 @@ class FilterEstimator(TransformerMixin):
 
         Returns
         -------
-        X : array, shape=(n_epochs, n_channels, n_times)
-            The data after filtering
+        array, shape=(n_epochs, n_channels, n_times)
+        The data after filtering
         """
         return self.fit(epochs_data, y).transform(epochs_data)
