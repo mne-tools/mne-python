@@ -103,7 +103,7 @@ class Scaler(TransformerMixin):
 
     def transform(self, epochs_data):
         """
-        Concatenates data from different channels into a single feature vector
+        Standardizes data across channels
 
         Parameters
         ----------
@@ -130,6 +130,25 @@ class Scaler(TransformerMixin):
 
         return X
 
+    def fit_transform(self, epochs_data, y):
+        """
+        Standardizes data across channels
+
+        Parameters
+        ----------
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data.
+
+        y : array
+            The label for each epoch
+
+        Returns
+        -------
+        ndarray : shape (n_epochs, n_channels*n_times)
+            The data concatenated over channels
+        """
+        return self.fit(epochs_data, y).transform(epochs_data)
+
 
 class ConcatenateChannels(TransformerMixin):
 
@@ -153,7 +172,6 @@ class ConcatenateChannels(TransformerMixin):
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
-        np.atleast_3d(epochs_data)
 
         return self
 
@@ -190,21 +208,105 @@ class ConcatenateChannels(TransformerMixin):
 
         Returns
         -------
-        ndarray of shape (n_epochs, n_channels*n_times)
-        The data concatenated over channels
+        ndarray : shape (n_epochs, n_channels*n_times)
+            The data concatenated over channels
         """
         return self.fit(epochs_data, y).transform(epochs_data)
 
 
 class PSDEstimator(TransformerMixin):
     """
-    TODO: todo, todo, todo ...
-    """
-    def __init__(self, info):
-        self.info = info
+    Compute power spectrum density (PSD) using a multi-taper method
 
-    def transform(self, data):
-        return multitaper_psd(data)
+    Parameters
+    ----------
+    sfreq : float
+        The sampling frequency.
+    fmin : float
+        The lower frequency of interest.
+    fmax : float
+        The upper frequency of interest.
+    bandwidth : float
+        The bandwidth of the multi taper windowing function in Hz.
+    adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD
+        (slow, use n_jobs >> 1 to speed up computation).
+    low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth.
+    n_jobs : int
+        Number of parallel jobs to use (only used if adaptive=True).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
+                 adaptive=False, low_bias=True, n_jobs=1, verbose=None):
+        self.sfreq = sfreq
+        self.fmin = fmin
+        self.fmax = fmax
+        self.bandwidth = bandwidth
+        self.adaptive = adaptive
+        self.low_bias = low_bias
+        self.j_jobs = n_jobs
+        self.verbose = verbose
+
+    def fit(self, epochs_data, y):
+        """
+        Compute power spectrum density (PSD) using a multi-taper method
+
+        Parameters
+        ----------
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data.
+        y : array
+            The label for each epoch
+
+        Returns
+        -------
+        self : instance of ConcatenateChannels
+            returns the modified instance
+
+        """
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+
+        return self
+
+    def transform(self, epochs_data, y=None):
+        """
+        Parameters
+        ----------
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data
+
+        Returns
+        -------
+        psd : array, shape=(n_signals, len(freqs)) or (len(freqs),)
+            The computed PSD.
+        """
+        return multitaper_psd(epochs_data, self.sfreq, self.fmin, self.fmax,
+                              self.bandwidth, self.adaptive, self.low_bias,
+                              self.n_jobs, self.verbose)
+
+    def fit_transform(self, epochs_data, y):
+        """
+        Compute power spectrum density (PSD) using a multi-taper method
+
+        Parameters
+        ----------
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data.
+
+        y : array
+            The label for each epoch
+
+        Returns
+        -------
+        psd : array, shape=(n_signals, len(freqs)) or (len(freqs),)
+            The computed PSD.
+        """
+        return self.fit(epochs_data, y).transform(epochs_data)
 
 
 class FilterEstimator(TransformerMixin):
