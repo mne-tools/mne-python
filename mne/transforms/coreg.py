@@ -460,13 +460,15 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
         raise ValueError(err)
 
 
-def find_mri_paths(subject='fsaverage', subjects_dir=None):
+def find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
     """Find all files of an mri relevant for source transformation
 
     Parameters
     ----------
     subject : str
         Name of the mri subject.
+    src : bool
+        Include source spaces.
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
@@ -518,21 +520,22 @@ def find_mri_paths(subject='fsaverage', subjects_dir=None):
     # check presence of required files
     for ftype in ['surf', 'bem', 'fid']:
         for fname in paths[ftype]:
-            src = os.path.realpath(fname.format(sub=subject))
-            if not os.path.exists(src):
-                raise IOError("Required file not found: %r" % src)
+            path = os.path.realpath(fname.format(sub=subject))
+            if not os.path.exists(path):
+                raise IOError("Required file not found: %r" % path)
 
-    # src
-    paths['src'] = src = []
-    basename = '{sub}-{kind}-src.fif'
-    path = os.path.join(bem_dir, basename)
-    p = re.compile('\A' + basename.format(sub=subject, kind='(.+)'))
-    for name in os.listdir(bem_dir.format(sub=subject)):
-        match = p.match(name)
-        if match:
-            kind = match.group(1)
-            fname = path.format(sub='{sub}', kind=kind)
-            src.append(fname)
+    # source spaces
+    if src:
+        paths['src'] = src = []
+        basename = '{sub}-{kind}-src.fif'
+        path = os.path.join(bem_dir, basename)
+        p = re.compile('\A' + basename.format(sub=subject, kind='(.+)'))
+        for name in os.listdir(bem_dir.format(sub=subject)):
+            match = p.match(name)
+            if match:
+                kind = match.group(1)
+                fname = path.format(sub='{sub}', kind=kind)
+                src.append(fname)
 
     # labels
     paths['lbl'] = lbls = []
@@ -666,7 +669,7 @@ def scale_labels(s_to, s_from='fsaverage', fname=None, overwrite=False,
         l_new.save(dst)
 
 
-def scale_mri(s_from, s_to, scale, overwrite=False, subjects_dir=None):
+def scale_mri(s_from, s_to, scale, src=False, overwrite=False, subjects_dir=None):
     """Create a scaled copy of an MRI subject
 
     Parameters
@@ -677,13 +680,15 @@ def scale_mri(s_from, s_to, scale, overwrite=False, subjects_dir=None):
         New subject name for which to save the scaled MRI.
     scale : array, shape = () | (3,)
         The scaling factor (one or 3 parameters).
+    src : bool
+        Also scale source spaces.
     overwrite : bool
         If an MRI already exists for s_to, overwrite it.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    paths = find_mri_paths(s_from, subjects_dir)
+    paths = find_mri_paths(s_from, src, subjects_dir=subjects_dir)
     scale = np.asarray(scale)
 
     # make sure we have an empty target directory
@@ -745,7 +750,7 @@ def scale_mri(s_from, s_to, scale, overwrite=False, subjects_dir=None):
         write_fiducials(dest, pts, cframe)
 
     # src [in m]
-    for fname in paths['src']:
+    for fname in paths.get('src', ()):
         src = fname.format(sub=s_from)
         sss = read_source_spaces(src)
         for ss in sss:
