@@ -172,7 +172,7 @@ def decimate_points(pts, res=10):
 
 def _trans_from_params(param_info, params):
     """Convert transformation parameters into a transformation matrix
-    
+
     Parameters
     ----------
     param_info : tuple,  len = 3
@@ -180,7 +180,7 @@ def _trans_from_params(param_info, params):
         do_scale).
     params : tuple
         The transformation parameters.
-        
+
     Returns
     -------
     trans : array, shape = (4, 4)
@@ -206,7 +206,7 @@ def _trans_from_params(param_info, params):
     elif do_scale == 3:
         x, y, z = params[i:i + 3]
         trans.append(scaling(x, y, z))
-        
+
     trans = reduce(dot, trans)
     return trans
 
@@ -599,6 +599,11 @@ def read_mri_scale(subject, subjects_dir=None):
     fname = os.path.join(subjects_dir, subject,
                          'MRI scaling parameters.pickled')
 
+    if not os.path.exists(fname):
+        err = ("%r does not seem to be a scaled mri subject: %r does not "
+               "exist." % (subject, fname))
+        raise IOError(err)
+
     with open(fname) as fid:
         info = pickle.load(fid)
 
@@ -606,7 +611,7 @@ def read_mri_scale(subject, subjects_dir=None):
     return scaling
 
 
-def scale_labels(s_to, s_from='fsaverage', fname='aparc/*.label',
+def scale_labels(s_to, s_from='fsaverage', fname=None, overwrite=False,
                  subjects_dir=None):
     """Scale labels to match a brain that was previously created by scaling
 
@@ -617,10 +622,13 @@ def scale_labels(s_to, s_from='fsaverage', fname='aparc/*.label',
     s_from : str
         Name of the original MRI subject (the brain that was scaled to create
         s_to, usually "fsaverage").
-    fname : str
-        Name of the label relative to the label directory in the MRI subject
-        directory (is expanded using glob, so it can contain "*"). For example,
-        "lh.BA3a.label" will scale "fsaverage/label/lh.BA3a.label".
+    fname : str | None
+        Pattern for finding the labels relative to the label directory in the
+        MRI subject directory (e.g., "lh.BA3a.label" will scale
+        "fsaverage/label/lh.BA3a.label"; "aparc/*.label" will find all labels
+        in the "fsaverage/label/aparc" directory). With None, scale all labels.
+    overwrite : bool
+        Overwrite any label file that already exists for s_to.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
@@ -631,16 +639,26 @@ def scale_labels(s_to, s_from='fsaverage', fname='aparc/*.label',
     dst_dir = os.path.join(subjects_dir, s_to, 'label')
 
     os.chdir(src_dir)
-    fnames = glob(fname)
+    if fname is None:
+        fnames = []
+        for dirpath, _, filenames in os.walk('.'):
+            filenames = fnmatch.filter(filenames, '*.label')
+            fmt = os.path.join(dirpath, '{}')
+            filepaths = map(fmt.format, filenames)
+            fnames.extend(filepaths)
+    else:
+        fnames = glob(fname)
 
     for fname in fnames:
-        src = os.path.join(src_dir, fname)
         dst = os.path.join(dst_dir, fname)
+        if not overwrite and os.path.exists(dst):
+            continue
 
         dirname = os.path.dirname(dst)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
+        src = os.path.join(src_dir, fname)
         l_old = read_label(src)
         pos = l_old.pos * scale
         l_new = Label(l_old.vertices, pos, l_old.values, l_old.hemi,
