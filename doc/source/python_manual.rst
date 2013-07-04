@@ -128,5 +128,8 @@ comes with Freesurfer_, however, any valid MRI subject can be used.
    #. While the MRI is processed in the background you can keep working with 
       the GUI, you can coregister another subject in the same Window.
 
+If new labels are added to the fsaverage brain after scaling it, these labels 
+can be transferred to scaled copies using :func:`mne.transforms.scale_labels`.  
+
 
 .. _Freesurfer: http://surfer.nmr.mgh.harvard.edu
