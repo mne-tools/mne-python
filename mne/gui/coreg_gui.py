@@ -128,6 +128,7 @@ class CoregPanel(HasPrivateTraits):
     queue_current = Str('')
     queue_len = Int(0)
     queue_len_str = Property(Str, depends_on=['queue_len'])
+    error = Str('')
 
     view = View(VGroup(Item('n_scale_params', label='MRI Scaling',
                             style='custom', show_label=True,
@@ -212,8 +213,7 @@ class CoregPanel(HasPrivateTraits):
                 try:
                     cmd(*args, **kwargs)
                 except Exception as err:
-                    msg = str(err)
-                    error(None, msg, "Error Scaling MRI")
+                    self.error = str(err)
                     res = "Error in %s"
                 else:
                     res = "Done: %s"
