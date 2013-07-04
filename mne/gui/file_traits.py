@@ -11,7 +11,7 @@ from traits.api import HasTraits, HasPrivateTraits, cached_property, \
                        on_trait_change, Array, Bool, Button, Directory, Enum, \
                        Event, File, List, Property, Str
 from traitsui.api import View, Item, VGroup
-from pyface.api import DirectoryDialog, OK, ProgressDialog, error
+from pyface.api import DirectoryDialog, OK, ProgressDialog, error, information
 
 from ..fiff import Raw, read_fiducials
 from ..surface import read_bem_surfaces
@@ -52,7 +52,11 @@ def assert_env_set(mne_root=True, fs_home=False):
             msg = ("Please select the FREESURFER_HOME directory. This is the "
                    "root directory of the freesurfer installation. In order "
                    "to avoid this prompt in the future, set the "
-                   "FREESURFER_HOME environment variable.")
+                   "FREESURFER_HOME environment variable. "
+                   "In Python, this can be done with:\n"
+                   ">>> os.environ['FREESURFER_HOME'] = path")
+            information(None, msg, "Select FREESURFER_HOME Directory")
+            msg = "Please select the FREESURFER_HOME Directory"
             dlg = DirectoryDialog(message=msg, new_directory=False)
             if dlg.open() == OK:
                 fs_home = dlg.path
@@ -67,7 +71,11 @@ def assert_env_set(mne_root=True, fs_home=False):
             msg = ("Please select the MNE_ROOT directory. This is the root "
                    "directory of the MNE installation. In order to "
                    "avoid this prompt in the future, set the MNE_ROOT "
-                   "environment variable.")
+                   "environment variable. "
+                   "In Python, this can be done with:\n"
+                   ">>> os.environ['MNE_ROOT'] = path")
+            information(None, msg, "Select MNE_ROOT Directory")
+            msg = "Please select the MNE_ROOT Directory"
             dlg = DirectoryDialog(message=msg, new_directory=False)
             if dlg.open() == OK:
                 mne_root = dlg.path
