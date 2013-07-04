@@ -20,7 +20,7 @@ from traits.api import HasTraits, HasPrivateTraits, cached_property, \
                        on_trait_change, Instance, Property, Any, Array, Bool, \
                        Button, Directory, Enum, Float, Int, List, Str
 from traitsui.api import View, Item, HGroup, VGroup, EnumEditor, TextEditor, \
-                         Handler
+                         Handler, Label, Spring
 from traitsui.menu import Action, UndoButton, CancelButton
 from tvtk.pyface.scene_editor import SceneEditor
 
@@ -129,9 +129,6 @@ class CoregPanel(HasPrivateTraits):
     queue_len = Int(0)
     queue_len_str = Property(Str, depends_on=['queue_len'])
 
-    # View Element
-    axis_labels = Str("Right   \t\tAnterior\t\tSuperior")
-
     view = View(VGroup(Item('n_scale_params', label='MRI Scaling',
                             style='custom', show_label=True,
                             editor=EnumEditor(values={0: '1:No Scaling',
@@ -165,7 +162,9 @@ class CoregPanel(HasPrivateTraits):
                                    "fiducials."),
                               show_labels=False),
                        '_',
-                       Item('axis_labels', show_label=False, style='readonly'),
+                       HGroup(Label("Axis:"), Spring(), Spring(),
+                              Label("Right"), Spring(), Label("Anterior"),
+                              Spring(), Label("Superior"), Spring()),
                        Item('translation', show_label=True,
                             tooltip="Movement into x (right), y (anterior) "
                             "and z (superior) direction"),
