@@ -47,33 +47,86 @@ class RtClassifier:
 
 class Scaler(TransformerMixin):
     """
-        Standardizes data across channels?
-        TODO: Probably not required, delete it
-    """
-    def __init__(self, info):
+    Standardizes data across channels
+
+    Parameters
+    ----------
+    info : dict
+        measurement info
+    with_mean : boolean, True by default
+        If True, center the data before scaling.
+    with_std : boolean, True by default
+        If True, scale the data to unit variance (or equivalently,
+            unit standard deviation).
+
+    Attributes
+    ----------
+    `ch_mean_` : array
+        The mean value for each channel type
+    `ch_std_` : array
+        The standard deviation for each channel type
+     """
+
+    def __init__(self, info, with_mean=True, with_std=True):
         self.info = info
+        self.with_mean = with_mean
+        self.with_std = with_std
 
-    def fit(self, epochs, y):
+    def fit(self, epochs_data, y):
         """
-        Dummy fit method
+        Parameters
+        ----------
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data to concatenate channels
+        y : array
+            The label for each epoch
+
+        Returns
+        -------
+        self : instance of Scaler
+            returns the modified instance
         """
 
-        return self
-
-    def transform(self, epochs):
-        """
-        Standardizes data across channels?
-        """
-
-        X = epochs.get_data()
+        X = epochs_data
 
         picks_list = [pick_types(self.info, meg='mag', exclude='bads'),
                       pick_types(self.info, eeg='True', exclude='bads'),
                       pick_types(self.info, meg='grad', exclude='bads')]
 
         for pick_one in picks_list:
-            ch_mean = X[:, pick_one, :].mean(axis=1)[:, None, :]
-            X[:, pick_one, :] -= ch_mean
+            if self.with_mean:
+                self.ch_mean_ = X[:, pick_one, :].mean(axis=1)[:, None, :]
+            if self.with_std:
+                self.ch_std_ = X[:, pick_one, :].mean(axis=1)[:, None, :]
+
+        return self
+
+    def transform(self, epochs_data):
+        """
+        Concatenates data from different channels into a single feature vector
+
+        Parameters
+        ----------
+        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+            The data.
+
+        Returns
+        -------
+        X : ndarray of shape (n_epochs, n_channels*n_times)
+            The data concatenated over channels
+        """
+
+        X = epochs_data
+
+        picks_list = [pick_types(self.info, meg='mag', exclude='bads'),
+                      pick_types(self.info, eeg='True', exclude='bads'),
+                      pick_types(self.info, meg='grad', exclude='bads')]
+
+        for pick_one in picks_list:
+            if self.with_mean:
+                X[:, pick_one, :] -= self.ch_mean_
+            if self.with_std:
+                X[:, pick_one, :] /= self.ch_std_
 
         return X
 
