@@ -1,10 +1,33 @@
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_less
 
 from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.transforms.coreg import fit_matched_pts, fit_point_cloud, \
-                                 _point_cloud_error, decimate_points
+                                 _point_cloud_error, decimate_points, \
+                                 create_default_subject, scale_mri, \
+                                 is_mri_subject, scale_labels
+from mne.utils import requires_mne_fs_in_env, _TempDir
+
+
+tempdir = _TempDir()
+
+
+@requires_mne_fs_in_env
+def test_scale_mri():
+    """Test creating fsaverage and scaling it"""
+    # create fsaverage
+    create_default_subject(subjects_dir=tempdir)
+    is_mri = is_mri_subject('fsaverage', tempdir)
+    assert_true(is_mri, "Creating fsaverage failed")
+
+    # scale fsaverage
+    scale_mri('fsaverage', 'kleinkopf', .8, subjects_dir=tempdir)
+    is_mri = is_mri_subject('kleinkopf', tempdir)
+    assert_true(is_mri, "Scaling fsaverage failed")
+
+    # scale labels
+    scale_labels('kleinkopf', 'fsaverage', subjects_dir=tempdir)
 
 
 def test_fit_matched_pts():
@@ -104,4 +127,3 @@ def test_fit_point_cloud():
     err = _point_cloud_error(est_pts, tgt_pts)
     assert_array_less(err, .1, "fit_point_cloud with rotation and 3 scaling "
                       "parameters.")
-

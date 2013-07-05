@@ -558,21 +558,22 @@ def find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
     return paths
 
 
-def is_mri_subject(subject, subjects_dir):
+def is_mri_subject(subject, subjects_dir=None):
     """Check whether a directory in subjects_dir is an mri subject directory
 
     Parameters
     ----------
     subject : str
         Name of the potential subject/directory.
-    subjects_dir : str
-        Path to subjects_dir.
+    subjects_dir : None | path
+        Override the SUBJECTS_DIR environment variable.
 
     Returns
     -------
     is_mri_subject : bool
         Whether ``subject`` is an mri subject.
     """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     sdir = os.path.join(subjects_dir, subject)
     for name in ('head',):
         fname = os.path.join(sdir, 'bem', '%s-%s.fif' % (subject, name))
