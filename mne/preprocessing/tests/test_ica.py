@@ -16,7 +16,7 @@ from itertools import product
 from mne import fiff, Epochs, read_events, cov
 from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
                               read_ica, run_ica
-from mne.preprocessing.ica import score_funcs
+from mne.preprocessing.ica import score_funcs, _check_n_pca_components
 from mne.utils import _TempDir, requires_sklearn
 from mne.fiff.meas_info import Info
 
@@ -307,6 +307,12 @@ def test_ica_additional():
                   order=np.arange(50))
     assert_raises(ValueError, ica.plot_sources_epochs, epochs,
                   order=np.arange(50))
+
+    # test float n pca components
+    ica.pca_explained_variance_ = np.array([0.2] * 5)
+    for ncomps, expected in [[0.3, 1], [0.9, 4], [1, 1]]:
+        ncomps_ = _check_n_pca_components(ica, ncomps)
+        assert_true(ncomps_ == expected)
 
 
 def test_run_ica():
