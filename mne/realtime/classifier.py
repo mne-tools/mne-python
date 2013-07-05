@@ -46,8 +46,7 @@ class RtClassifier:
 
 
 class Scaler(TransformerMixin):
-    """
-    Standardizes data across channels
+    """Standardizes data across channels
 
     Parameters
     ----------
@@ -61,7 +60,7 @@ class Scaler(TransformerMixin):
 
     Attributes
     ----------
-    `ch_mean_` : array
+    `scale_` : dict
         The mean value for each channel type
     `ch_std_` : array
         The standard deviation for each channel type
@@ -93,11 +92,15 @@ class Scaler(TransformerMixin):
                       pick_types(self.info, eeg='True', exclude='bads'),
                       pick_types(self.info, meg='grad', exclude='bads')]
 
-        for pick_one in picks_list:
+        self.scale_['picks_list'] = picks_list
+
+        for this_pick in picks_list:
             if self.with_mean:
-                self.ch_mean_ = X[:, pick_one, :].mean(axis=1)[:, None, :]
+                ch_mean = X[:, this_pick, :].mean(axis=1)[:, None, :]
+                self.scale_['ch_mean'] = ch_mean
             if self.with_std:
-                self.ch_std_ = X[:, pick_one, :].mean(axis=1)[:, None, :]
+                ch_std = X[:, this_pick, :].mean(axis=1)[:, None, :]
+                self.scale_['ch_std'] = ch_std
 
         return self
 
@@ -112,21 +115,17 @@ class Scaler(TransformerMixin):
 
         Returns
         -------
-        X : ndarray of shape (n_epochs, n_channels*n_times)
+        X : array of shape (n_epochs, n_channels*n_times)
             The data concatenated over channels
         """
 
         X = epochs_data
 
-        picks_list = [pick_types(self.info, meg='mag', exclude='bads'),
-                      pick_types(self.info, eeg='True', exclude='bads'),
-                      pick_types(self.info, meg='grad', exclude='bads')]
-
-        for pick_one in picks_list:
+        for this_pick in self.scale['picks_list']:
             if self.with_mean:
-                X[:, pick_one, :] -= self.ch_mean_
+                X[:, this_pick, :] -= self.scale_['ch_mean']
             if self.with_std:
-                X[:, pick_one, :] /= self.ch_std_
+                X[:, this_pick, :] /= self.scale_['ch_std']
 
         return X
 
@@ -144,19 +143,27 @@ class Scaler(TransformerMixin):
 
         Returns
         -------
-        ndarray : shape (n_epochs, n_channels*n_times)
+        X: array, shape (n_epochs, n_channels*n_times)
             The data concatenated over channels
         """
         return self.fit(epochs_data, y).transform(epochs_data)
 
 
 class ConcatenateChannels(TransformerMixin):
+    """Concatenates data from different channels into a single feature vector
 
+    Parameters
+    ----------
+    info : dict
+        measurement info
+    """
     def __init__(self, info=None):
         self.info = info
 
     def fit(self, epochs_data, y):
         """
+        Concatenates data from different channels into a single feature vector
+
         Parameters
         ----------
         epochs_data : array, shape=(n_epochs, n_channels, n_times)
@@ -186,7 +193,7 @@ class ConcatenateChannels(TransformerMixin):
 
         Returns
         -------
-        X : ndarray of shape (n_epochs, n_channels*n_times)
+        X : array, shape (n_epochs, n_channels*n_times)
             The data concatenated over channels
         """
         n_epochs, n_channels, n_time = epochs_data.shape
@@ -208,7 +215,7 @@ class ConcatenateChannels(TransformerMixin):
 
         Returns
         -------
-        ndarray : shape (n_epochs, n_channels*n_times)
+        X : array, shape (n_epochs, n_channels*n_times)
             The data concatenated over channels
         """
         return self.fit(epochs_data, y).transform(epochs_data)
@@ -263,7 +270,7 @@ class PSDEstimator(TransformerMixin):
 
         Returns
         -------
-        self : instance of ConcatenateChannels
+        self : instance of PSDEstimator
             returns the modified instance
 
         """
@@ -275,6 +282,8 @@ class PSDEstimator(TransformerMixin):
 
     def transform(self, epochs_data, y=None):
         """
+        Compute power spectrum density (PSD) using a multi-taper method
+
         Parameters
         ----------
         epochs_data : array, shape=(n_epochs, n_channels, n_times)
@@ -310,8 +319,7 @@ class PSDEstimator(TransformerMixin):
 
 
 class FilterEstimator(TransformerMixin):
-    """
-    Estimator to filter Rt_Epochs
+    """Estimator to filter Rt_Epochs
     """
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='10s',
