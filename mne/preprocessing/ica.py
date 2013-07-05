@@ -97,7 +97,7 @@ class ICA(object):
         The number of components used for PCA decomposition. If None, no
         dimension reduction will be applied and max_pca_components will equal
         the number of channels supplied on decomposing data.
-    n_pca_components : int
+    n_pca_components : int | float
         The number of PCA components used after ICA recomposition. The ensuing
         attribute allows to balance noise reduction against potential loss of
         features due to dimensionality reduction. If greater than
@@ -105,6 +105,9 @@ class ICA(object):
         `n_components_` PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
+        If float, the number of components selected matches the number of
+        components with a cumulative explained variance below
+        `n_pca_components`.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.
@@ -775,13 +778,15 @@ class ICA(object):
             The source indices to use. If None all are used.
         exclude : list-like | None
             The source indices to remove. If None all are used.
-        n_pca_components : int
+        n_pca_components : int | float
             The number of PCA components to be unwhitened, where
             `n_components_` is the lower bound and max_pca_components
             the upper bound. If greater than `self.n_components_`, the next
             `n_pca_components` minus 'n_components' PCA components will
             be added before restoring the sensor space data. This can be used
-            to take back the PCA dimension reduction.
+            to take back the PCA dimension reduction. If float, the number of
+            components selected matches the number of components with a
+            cumulative explained variance below `n_pca_components`.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -840,13 +845,15 @@ class ICA(object):
             The source indices to use. If None all are used.
         exclude : list-like | None
             The source indices to remove. If None  all are used.
-        n_pca_components : int
+        n_pca_components : int | float
             The number of PCA components to be unwhitened, where
             `n_components_` is the lower bound and max_pca_components
             the upper bound. If greater than `self.n_components_`, the next
             `n_pca_components` minus `n_components_` PCA components will
             be added before restoring the sensor space data. This can be used
-            to take back the PCA dimension reduction.
+            to take back the PCA dimension reduction. If float, the number of
+            components selected matches the number of components with a
+            cumulative explained variance below `n_pca_components`.
         copy : bool
             Modify Epochs instance in place or return modified copy.
 
@@ -1118,10 +1125,11 @@ class ICA(object):
     def _pick_sources(self, sources, pca_data, include, exclude):
         """Aux function"""
 
-        _n_pca_comp = self.n_pca_components
+        _n_pca_comp = _check_n_pca_components(self, self.n_pca_components,
+                                              self.verbose)
         if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components):
-            raise ValueError('n_pca_components must be between n_comp'
-                             'onents and max_pca_components.')
+            raise ValueError('n_pca_components must be between '
+                             'n_components and max_pca_components.')
 
         if include not in (None, []):
             mute = [i for i in xrange(len(sources)) if i not in include]
@@ -1172,6 +1180,18 @@ class ICA(object):
             X_orig += self.pca_mean_
 
         return X_orig
+
+
+@verbose
+def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
+    """Aux function"""
+    if isinstance(_n_pca_comp, float):
+        _n_pca_comp = ((ica.pca_explained_variance_ /
+                        ica.pca_explained_variance_.sum()).cumsum()
+                        <= _n_pca_comp).sum()
+        logger.info('Selected %i PCA components by explained '
+                    'variance' % _n_pca_comp)
+    return _n_pca_comp
 
 
 def _check_start_stop(raw, start, stop):
@@ -1310,6 +1330,7 @@ def _deserialize(str_, outer_sep=';', inner_sep=':'):
         out[k] = vv if not isinstance(vv, unicode) else str(vv)
 
     return out
+
 
 
 def _write_ica(fid, ica):
