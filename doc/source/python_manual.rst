@@ -1,13 +1,19 @@
-======
-Manual
-======
+=============
+Python Manual
+=============
 
 .. _mne-coreg-info:
 
-MRI-Head Coregistration
-=======================
+MRI-Head Coregistration in Python
+=================================
 
-The coregistration GUI is invoked with::
+MRI-Head coregistration is traditionally done in mne_analyze (see 
+:ref:`CHDBEHDC`). An alternative is a GUI in Python, which is described below. 
+The Python GUI uses a less sophisticated algorithm for matching the head shape 
+to the MRI, but it allows scaling the fsaverage brain to match an individual
+subject's head shape.
+
+The Python coregistration GUI is invoked with::
 
     >>> mne.gui.coregistration()
 
