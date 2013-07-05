@@ -6,7 +6,8 @@
 
 from datetime import datetime
 import cPickle as pickle
-from os import SEEK_CUR, path
+import os
+from os import SEEK_CUR
 import re
 from struct import unpack
 
@@ -33,7 +34,7 @@ def read_mrk(fname):
     mrk_points : numpy.array, shape = (n_points, 3)
         Marker points in MEG space [m].
     """
-    ext = path.splitext(fname)[-1]
+    ext = os.path.splitext(fname)[-1]
     if ext in ('.sqd', '.mrk'):
         with open(fname, 'r') as fid:
             fid.seek(KIT.MRK_INFO)
@@ -70,6 +71,35 @@ def read_mrk(fname):
                "%s" % (fname, mrk_points.shape))
         raise ValueError(err)
     return mrk_points
+
+
+def write_mrk(path, points):
+    """Save KIT marker coordinates
+
+    Parameters
+    ----------
+    path : str
+        Path to the file to write. The kind of file to write is determined
+        based on the extension: '.txt' for tab separated text file, '.pickled'
+        for pickled file.
+    points : array_like, shape = (5, 3)
+        The marker point coordinates.
+    """
+    mrk = np.asarray(points)
+    _, ext = os.path.splitext(path)
+    if mrk.shape != (5, 3):
+        err = ("KIT marker points array needs to have shape (5, 3), got "
+               "%s." % str(mrk.shape))
+        raise ValueError(err)
+
+    if ext == '.pickled':
+        with open(path, 'w') as fid:
+            pickle.dump({'mrk': mrk}, fid, pickle.HIGHEST_PROTOCOL)
+    elif ext == '.txt':
+        np.savetxt(path, mrk, fmt='%.18e', delimiter='\t', newline='\n')
+    else:
+        err = "Unrecognized extension: %r. Need '.txt' or '.pickled'." % ext
+        raise ValueError(err)
 
 
 def read_elp(elp_fname):

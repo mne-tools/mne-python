@@ -21,7 +21,7 @@ from tvtk.pyface.scene_editor import SceneEditor
 from ..transforms import apply_trans, rotation, translation
 from ..transforms.coreg import fit_matched_pts
 from .viewer import HeadViewController, headview_borders, PointObject
-from ..fiff.kit.coreg import read_mrk
+from ..fiff.kit.coreg import read_mrk, write_mrk
 
 
 out_wildcard = ("Pickled KIT parameters (*.pickled)|*.pickled|"
@@ -90,12 +90,7 @@ class MarkerPoints(HasPrivateTraits):
                 if answer != YES:
                     return
 
-        mrk = np.array(self.points)
-        if ext == '.pickled':
-            with open(path, 'w') as fid:
-                pickle.dump({'mrk': mrk}, fid)
-        elif ext == '.txt':
-            np.savetxt(path, mrk, fmt='%.18e', delimiter='\t', newline='\n')
+        write_mrk(path, self.points)
 
 
 class MarkerPointSource(MarkerPoints):
