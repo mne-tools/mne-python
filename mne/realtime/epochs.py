@@ -16,6 +16,7 @@ from ..baseline import rescale
 from ..epochs import _BaseEpochs
 from ..event import _find_events
 from ..filter import detrend
+from ..fiff.proj import setup_proj
 
 
 class RtEpochs(_BaseEpochs):
@@ -156,10 +157,12 @@ class RtEpochs(_BaseEpochs):
         # call _BaseEpochs constructor
         super(RtEpochs, self).__init__(info, event_id, tmin, tmax,
                 baseline=baseline, picks=picks, name=name, keep_comp=keep_comp,
-                dest_comp=dest_comp, reject=reject, flat=flat, proj=proj,
+                dest_comp=dest_comp, reject=reject, flat=flat,
                 decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
                 detrend=detrend, add_eeg_ref=add_eeg_ref, verbose=verbose)
 
+        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
+                                                activate=self.proj)
         # FIXME: comp problem (?)
 
         self._client = client
