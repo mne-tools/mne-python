@@ -142,7 +142,7 @@ class RtEpochs(_BaseEpochs):
     def __init__(self, client, event_id, tmin, tmax, n_epochs,
                  consume_epochs=True, stim_channel='STI 014',
                  sleep_time=0.1, baseline=(None, 0), picks=None,
-                 name='Unknown', keep_comp=False, dest_comp=0, reject=None,
+                 name='Unknown', keep_comp=None, dest_comp=None, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=True,
                  verbose=None):
