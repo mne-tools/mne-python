@@ -161,10 +161,10 @@ class RtEpochs(_BaseEpochs):
                 decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
                 detrend=detrend, add_eeg_ref=add_eeg_ref, verbose=verbose)
 
-        proj = proj or client.proj
+        
+        self.proj = proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
-                                                activate=proj)
-        # FIXME: comp problem (?)
+                                                activate=self.proj)
 
         self._client = client
         self._n_epochs = n_epochs
