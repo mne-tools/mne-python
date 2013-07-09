@@ -1,0 +1,85 @@
+# Authors: Mainak Jas <mainak@neuro.hut.fi>
+#          Denis Engemann <d.engemann@fz-juelich.de>
+#
+# License: BSD (3-clause)
+
+import copy
+
+
+class MockRtClient(object):
+    """Mock Realtime Client
+
+       Attributes
+       ----------
+       raw : instance of Raw object
+           The raw object which simulates the rtClient
+       info : dict
+           Measurement info
+       verbose : bool, str, int, or None
+           If not None, override default verbose level (see mne.verbose).
+
+    """
+    def __init__(self, raw, verbose=None):
+        self.raw = raw
+        self.info = copy.deepcopy(self.raw.info)
+        self.verbose = verbose
+
+    def get_measurement_info(self):
+        """
+        Returns measurement info
+
+        Returns
+        -------
+        self.info : dict
+            Measurement info
+        """
+        return self.info
+
+    def send_raw_buffers(self, epochs, iter_times, n_buffers=None):
+        """ Read from raw object and send them to RtEpochs for further
+        processing
+
+        Parameters
+        ----------
+        epochs : instance of mne.realtime.RtEpochs
+            The epochs object
+        iter_times : list of (start, stop)
+            list of start and stop times for buffer segments
+        n_buffers :
+            Number of buffers to iterate
+        """
+    # this is important to emulate a thread, instead of automatically
+    # or constantly sending data, we will invoke this explicitly to send
+    # the next buffer
+
+        # Iterate over the entire iter_times list if n_buffers is not given
+        if n_buffers is None:
+            n_buffers = float("inf")
+
+        for ii, (start, stop) in enumerate(iter_times):
+            # channels are picked in _append_epoch_to_queue. No need to pick
+            # here
+            data, times = self.raw[:, start:stop]
+            epochs._process_raw_buffer(data)
+            if ii >= n_buffers:
+                break
+
+# The following methods do not seem to be important for this use case,
+# but they need to be present for the emulation to work because
+# realtime.RtEpochs expects them to be there.
+
+    def register_receive_callback(self, x):
+        """API boilerplate"""
+        pass
+
+    def start_receive_thread(self, x):
+        """API boilerplate"""
+        pass
+
+    def unregister_receive_callback(self, x):
+        """API boilerplate"""
+        pass
+
+    def _stop_receive_thread(self):
+        """API boilerplate"""
+        pass
