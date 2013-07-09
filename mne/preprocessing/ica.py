@@ -1057,7 +1057,8 @@ class ICA(object):
         from sklearn.decomposition import RandomizedPCA
 
         # sklearn < 0.11 does not support random_state argument
-        kwargs = {'n_components': max_pca_components, 'whiten': False}
+        kwargs = {'n_components': max_pca_components, 'whiten': False,
+                  'copy': False}
 
         aspec = inspect.getargspec(RandomizedPCA.__init__)
         if 'random_state' not in aspec.args:
@@ -1074,22 +1075,22 @@ class ICA(object):
             logger.info('Selecting PCA components by explained variance.')
             n_components_ = np.sum(pca.explained_variance_ratio_.cumsum()
                                    < self.n_components)
-            data = data[:, :n_components_]
+            data_slice = slice(n_components_)
         else:
             logger.info('Selecting PCA components by number.')
             if self.n_components is not None:  # normal n case
-                data = data[:, :self.n_components]
+                data_slice = slice(self.n_components)
             else:  # None case
                 logger.info('Using all PCA components.')
+                data_slice = None
 
         # the things to store for PCA
         self.pca_components_ = pca.components_
         self.pca_mean_ = pca.mean_
         self.pca_explained_variance_ = pca.explained_variance_
-        # and store number of components as it may be smaller than
-        # pca.components_.shape[1]
-        self.n_components_ = data.shape[1]
         del pca
+        # update number of components
+        self.n_components_ = data_slice.stop
 
         # Take care of ICA
         try:
@@ -1111,7 +1112,7 @@ class ICA(object):
                 kwargs['random_state'] = self.random_state
 
         ica = FastICA(**kwargs)
-        ica.fit(data)
+        ica.fit(data[:, data_slice])
 
         # For ICA the only thing to store is the unmixing matrix
         if not hasattr(ica, 'sources_'):
