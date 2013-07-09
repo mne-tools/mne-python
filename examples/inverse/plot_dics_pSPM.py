@@ -18,100 +18,46 @@ import matplotlib.pylab as pl
 from matplotlib import mlab
 from scipy import linalg
 
-import nitime.algorithms as tsa
-
 import mne
 
 from mne.fiff import Raw
 from mne.fiff.constants import FIFF
 from mne.fiff.pick import pick_channels_forward
 from mne.fiff.proj import make_projector
-from mne.cov import compute_whitener
 from mne.minimum_norm.inverse import _get_vertno
 from mne.datasets import sample
+from mne.time_frequency import compute_csd
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
+###############################################################################
 # Read raw data
 raw = Raw(raw_fname)
-
-# Applying SSPs
-raw.apply_proj()
-
-# Read forward operator
-forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
-
-# Read noise covariance
-noise_cov = mne.read_cov(fname_cov)
-noise_cov = mne.cov.regularize(noise_cov, raw.info,
-                               mag=0.05, grad=0.05, eeg=0.1, proj=True)
+raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
 # Set picks
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
-# Pick times relative to the onset of the MEG measurement.
-start, stop = raw.time_as_index([100, 115], use_first_samp=False)
+# Read epochs
+event_id, tmin, tmax = 1, -0.2, 0.5
+events = mne.read_events(event_fname)
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                    picks=picks, baseline=(None, 0), preload=True,
+                    reject=dict(grad=4000e-13, mag=4e-12))
+evoked = epochs.average()
 
-# Export to nitime using a copy of the data
-raw_ts = raw.to_nitime(start=start, stop=stop, picks=picks, copy=True)
+# Read forward operator
+forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 
-# Apply whitening
-whitener, _ = compute_whitener(noise_cov, raw.info, picks)
-raw_ts.data = np.dot(whitener, raw_ts.data)
+# TODO: Time and frequency windows should be selected on the basis of e.g. a
+# spectrogram
 
-# Prepare specification of cross spectral density computation
-csd_method = {}
-csd_method['Fs'] = raw_ts.sampling_rate
-
-# Using Welch's method as in the original DICS publication
-csd_method['this_method'] = 'welch'
-
-# Time window length of 1s and overlap of 0.5s
-csd_method['NFFT'] = int(np.round(raw_ts.sampling_rate/2))
-csd_method['n_overlap'] = int(np.round(raw_ts.sampling_rate/4))
-
-# Calculate cross spectral density using three different methods for
-# comparison.
-# Comparing the three methods using PSD or CSD.
-channel_1 = 121
-channel_2 = channel_1  # Set to something else to obtain CSD
-
-# Using nitime
-frequencies, csds = tsa.get_spectra(raw_ts.data, method=csd_method)
-pl.figure()
-
-# Making the CSD matrix symmetrical
-for i in range(csds.shape[2]):
-    csds[:, :, i] = csds[:, :, i] + csds[:, :, i].conj().T -\
-                    np.diag(csds[:, :, i].diagonal())
-
-# Converting to dB
-csd = 10 * np.log10(abs(csds[channel_1, channel_2, :]))
-pl.plot(frequencies, csd)
-pl.ylabel('Power or Cross Spectral Density (dB)')
-pl.xlabel('Frequency (Hz)')
-pl.title('Nitime version')
-
-# Using matplotlib.pylab's csd function for comparison
-# Note the matplotlib version only computes the psd/csd for a pair of channels,
-# whereas the nitime version calculates the entire csd matrix for each
-# frequency (actually using matplotlib.mlab.csd when Welch's method is
-# selected)
-pl.figure()
-csd_pl, frequencies_pl = pl.csd(raw_ts.data[channel_2, :],
-                                raw_ts.data[channel_1, :], csd_method['NFFT'],
-                                csd_method['Fs'],
-                                noverlap=csd_method['n_overlap'])
-pl.title('Matplotlib version for comparison')
-pl.show()
-
-# Averaging CSD across frequency range of interest
-freq_mask = (frequencies > 8) & (frequencies < 12)
-csd = np.mean(csds[:, :, freq_mask], 2)
+# Computing the cross-spectral density matrix
+data_csd = compute_csd(epochs, tmin=0.04, tmax=0.15, fmin=8, fmax=12)
 
 
 # What follows is mostly beamforming code that could be refactored into a
@@ -141,7 +87,11 @@ if pick_ori == 'normal' and not forward['src'][0]['type'] == 'surf':
                      'forward operator with a surface-based source space '
                      'is used.')
 
-ch_names = [raw.info['ch_names'][k] for k in picks]
+# Set picks again for epochs
+picks = mne.fiff.pick_types(epochs.info, meg=True, eeg=False, eog=False,
+                            stim=False, exclude='bads')
+
+ch_names = [epochs.info['ch_names'][k] for k in picks]
 
 # Restrict forward solution to selected channels
 forward = pick_channels_forward(forward, include=ch_names)
@@ -160,12 +110,11 @@ else:
     vertno = _get_vertno(forward['src'])
     G = forward['sol']['data']
 
-# Apply SSPs and whiten the lead field
-proj, ncomp, _ = make_projector(raw.info['projs'], ch_names)
+# Apply SSPs
+proj, ncomp, _ = make_projector(epochs.info['projs'], ch_names)
 G = np.dot(proj, G)
-G = np.dot(whitener, G)
 
-Cm = csd
+Cm = data_csd.data
 
 # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
 Cm_inv = linalg.pinv(Cm, reg)
@@ -210,12 +159,11 @@ for k in range(n_sources):
         Wk /= Ck
 
     # TODO: Vectorize outside of the loop?
-    source_power[k] = np.real_if_close(np.dot(Wk, np.dot(csd,
+    source_power[k] = np.real_if_close(np.dot(Wk, np.dot(data_csd.data,
                                                          Wk.conj().T)).trace())
 
 # Preparing noise normalization
-# TODO: Noise normalization in DICS takes into account noise CSD, but maybe
-# this isn't necessary if whitening is applied to data before calculating
+# TODO: Noise normalization in DICS should takes into account noise CSD
 noise_norm = np.sum((W * W.conj()), axis=1)
 noise_norm = np.real_if_close(noise_norm)
 if is_free_ori:
