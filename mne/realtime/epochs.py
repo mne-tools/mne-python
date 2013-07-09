@@ -339,7 +339,7 @@ class RtEpochs(_BaseEpochs):
 
         last_samp = self._first_samp + raw_buffer.shape[1] - 1
 
-        # apply callibration
+        # apply calibration
         raw_buffer = self._cals * raw_buffer
 
         # detect events

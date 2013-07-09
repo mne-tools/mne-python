@@ -10,3 +10,4 @@
 from .client import RtClient
 from .epochs import RtEpochs
 from .classifier import RtClassifier
+from .mockclient import MockRtClient

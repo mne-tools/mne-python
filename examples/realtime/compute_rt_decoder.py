@@ -14,13 +14,16 @@ accuracy is plotted
 print __doc__
 
 import mne
-from mne.realtime import RtClient, RtEpochs
+from mne.realtime import MockRtClient, RtEpochs
+from mne.datasets import sample
 
 import numpy as np
 import pylab as pl
 
-client = RtClient('localhost')
-info = client.get_measurement_info()
+# Fiff file to simulate the realtime client
+data_path = sample.data_path()
+raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+raw = mne.fiff.Raw(raw_fname, preload=True)
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -30,13 +33,26 @@ tr_percent = 60  # Training %
 min_trials = 10  # minimum trials after which decoding should start
 
 # select gradiometers
-picks = mne.fiff.pick_types(info, meg='grad', eeg=False, eog=True,
-                            stim=True, exclude=info['bads'])
+picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                            stim=True, exclude=raw.info['bads'])
+
+# size of buffer
+buffer_size = 1000
+
+# start and stop times for iterating through buffers
+iter_times = zip(range(0, 50000, buffer_size),
+                 range(buffer_size + 1, 50000, buffer_size))
+
+# create the mock-client object
+rt_mock = MockRtClient(raw)
 
 # create the real-time epochs object
-rt_epochs = RtEpochs(client, event_id, tmin, tmax, total_trials,
+rt_epochs = RtEpochs(rt_mock, event_id, tmin, tmax, total_trials,
                      consume_epochs=False, picks=picks, decim=1,
                      reject=dict(grad=4000e-13, eog=150e-6))
+
+# send raw buffers
+rt_mock.send_raw_buffers(rt_epochs, iter_times)
 
 # start the acquisition
 rt_epochs.start()
@@ -64,6 +80,8 @@ concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
                               ('scaler', scaler), ('svm', clf)])
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
+
+    print "Waiting for epochs.. (%d/%d)" % (ev_num+1, total_trials)
 
     if ev_num == 0:
         X = ev.data[None, ...]
