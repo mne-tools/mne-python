@@ -1082,7 +1082,7 @@ class ICA(object):
                 data_slice = slice(self.n_components)
             else:  # None case
                 logger.info('Using all PCA components.')
-                data_slice = None
+                data_slice = slice(len(pca.components_))
 
         # the things to store for PCA
         self.pca_components_ = pca.components_
