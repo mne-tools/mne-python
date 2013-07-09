@@ -906,20 +906,20 @@ class ICA(object):
         source_idx : int | array-like
             The indices of the sources to be plotted.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
-            The channel type to plot. For 'grad', the gradiometers are collected in
-            pairs and the RMS for each pair is plotted.
+            The channel type to plot. For 'grad', the gradiometers are
+            collected in pairs and the RMS for each pair is plotted.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout is
             inferred from the data.
         vmax : scalar
-            The value specfying the range of the color scale (-vmax to +vmax). If
-            None, the largest absolute value in the data is used.
+            The value specfying the range of the color scale (-vmax to +vmax).
+            If None, the largest absolute value in the data is used.
         cmap : matplotlib colormap
             Colormap.
         sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib plot
-            format string (e.g., 'r+' for red plusses).
+            Add markers for sensor locations to the plot. Accepts matplotlib
+            plot format string (e.g., 'r+' for red plusses).
         colorbar : bool
             Plot a colorbar.
         res : int
@@ -1057,7 +1057,8 @@ class ICA(object):
         from sklearn.decomposition import RandomizedPCA
 
         # sklearn < 0.11 does not support random_state argument
-        kwargs = {'n_components': max_pca_components, 'whiten': False}
+        kwargs = {'n_components': max_pca_components, 'whiten': False,
+                  'copy': False}
 
         aspec = inspect.getargspec(RandomizedPCA.__init__)
         if 'random_state' not in aspec.args:
@@ -1068,28 +1069,28 @@ class ICA(object):
             kwargs['random_state'] = 0
 
         pca = RandomizedPCA(**kwargs)
-        pca_data = pca.fit_transform(data.T)
+        data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
             logger.info('Selecting PCA components by explained variance.')
             n_components_ = np.sum(pca.explained_variance_ratio_.cumsum()
                                    < self.n_components)
-            to_ica = pca_data[:, :n_components_]
+            sel = slice(n_components_)
         else:
             logger.info('Selecting PCA components by number.')
             if self.n_components is not None:  # normal n case
-                to_ica = pca_data[:, :self.n_components]
+                sel = slice(self.n_components)
             else:  # None case
                 logger.info('Using all PCA components.')
-                to_ica = pca_data
+                sel = slice(len(pca.components_))
 
         # the things to store for PCA
         self.pca_components_ = pca.components_
         self.pca_mean_ = pca.mean_
         self.pca_explained_variance_ = pca.explained_variance_
-        # and store number of components as it may be smaller than
-        # pca.components_.shape[1]
-        self.n_components_ = to_ica.shape[1]
+        del pca
+        # update number of components
+        self.n_components_ = sel.stop
 
         # Take care of ICA
         try:
@@ -1111,7 +1112,7 @@ class ICA(object):
                 kwargs['random_state'] = self.random_state
 
         ica = FastICA(**kwargs)
-        ica.fit(to_ica)
+        ica.fit(data[:, sel])
 
         # For ICA the only thing to store is the unmixing matrix
         if not hasattr(ica, 'sources_'):
@@ -1702,5 +1703,4 @@ def run_ica(raw, n_components, max_pca_components=100,
                       kurt_criterion=kurt_criterion,
                       var_criterion=var_criterion,
                       add_nodes=add_nodes)
-
     return ica
