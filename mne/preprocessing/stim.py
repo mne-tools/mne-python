@@ -23,9 +23,9 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
     event_id : int
         The id of the events generating the stimulation artifacts.
     tmin : float
-        Start time before event in seconds.
+        Start time of the interpolation window in seconds.
     tmax : float
-        End time after event in seconds.
+        End time of the interpolation window in seconds.
     mode : 'linear' | 'window'
         way to fill the artifacted time interval.
         'linear' does linear interpolation
@@ -42,17 +42,18 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
                            '(or string) in the constructor.')
     events_sel = (events[:, 2] == event_id)
     event_start = events[events_sel, 0]
-    s_start = int(np.ceil(raw.info['sfreq'] * np.abs(tmin)))
+    s_start = int(np.ceil(raw.info['sfreq'] * tmin))
     s_end = int(np.ceil(raw.info['sfreq'] * tmax))
 
     picks = pick_types(raw.info, meg=True, eeg=True, exclude='bads')
 
     if mode == 'window':
-        window = 1 - np.r_[signal.hann(4)[:2], np.ones(s_end + s_start - 4),
+        window = 1 - np.r_[signal.hann(4)[:2],
+                           np.ones(np.abs(s_end - s_start) - 4),
                            signal.hann(4)[-2:]].T
 
     for k in range(len(event_start)):
-        first_samp = int(event_start[k]) - raw.first_samp - s_start
+        first_samp = int(event_start[k]) - raw.first_samp + s_start
         last_samp = int(event_start[k]) - raw.first_samp + s_end
         data, _ = raw[picks, first_samp:last_samp]
         if mode == 'linear':
