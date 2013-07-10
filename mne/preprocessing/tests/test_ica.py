@@ -47,13 +47,13 @@ flat = dict(grad=1e-15, mag=1e-15)
 
 test_cov = cov.read_cov(test_cov_name)
 epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                baseline=(None, 0), preload=True)
+                baseline=(None, 0), preload=True, proj=False)
 
 epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
-                    baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True, proj=False)
 
 epochs_lazy = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                     baseline=(None, 0), preload=False)
+                     baseline=(None, 0), preload=False, proj=False)
 
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
 
@@ -98,10 +98,6 @@ def test_ica_core():
         sources = ica.get_sources_raw(raw)
         assert_true(sources.shape[0] == ica.n_components_)
 
-        # test preload
-        raw_lazy_ = ica.pick_sources_raw(raw_lazy, include=[1, 2])
-        assert_true(raw_lazy_.ch_names == raw_lazy.ch_names)
-
         for excl, incl in (([], []), ([], [1, 2]), ([1, 2], [])):
             raw2 = ica.pick_sources_raw(raw, exclude=excl, include=incl,
                                         copy=True)
@@ -128,11 +124,6 @@ def test_ica_core():
         assert_raises(ValueError, ica.find_sources_epochs, epochs,
                       target=np.arange(1))
 
-        # test preload
-        epochs_lazy_ = ica.pick_sources_epochs(epochs_lazy,
-                                               include=[1, 2])
-        assert_true(epochs_lazy.ch_names == epochs_lazy_.ch_names)
-
         # test source picking
         for excl, incl in (([], []), ([], [1, 2]), ([1, 2], [])):
             epochs2 = ica.pick_sources_epochs(epochs, exclude=excl,
@@ -140,6 +131,22 @@ def test_ica_core():
 
             assert_array_almost_equal(epochs2.get_data(),
                                       epochs.get_data())
+    # test preload
+    n_channels = raw_lazy.info['nchan']
+    ica = ICA(noise_cov=None, n_components=1,
+              max_pca_components=n_channels, n_pca_components=n_channels,
+              random_state=0)
+
+    ica.decompose_raw(raw, start=0.0, stop=2.0)
+    take_all = range(n_channels)
+    raw_lazy_ = ica.pick_sources_raw(raw_lazy, include=take_all)
+    data = raw_lazy[:, :][0]
+    assert_array_almost_equal(data, raw_lazy_._data)
+
+    epochs_lazy_ = ica.pick_sources_epochs(epochs_lazy, include=take_all)
+    data = epochs_lazy.get_data()
+
+    assert_array_almost_equal(data, epochs_lazy_._data)
 
 
 @requires_sklearn

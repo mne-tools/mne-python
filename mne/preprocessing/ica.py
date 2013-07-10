@@ -833,7 +833,7 @@ class ICA(object):
             picks_ = np.array([ii for ii in xrange(raw.info['nchan'])
                                if ii not in picks])
             data = np.concatenate([raw[picks_, start:stop][0], recomposed])
-            raw._data = data[np.concatenate([picks, picks_]).argsort()]
+            raw._data = data[np.concatenate([picks_, picks]).argsort()]
             raw._preloaded = True
 
         return raw
