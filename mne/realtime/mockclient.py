@@ -43,19 +43,23 @@ class MockRtClient(object):
         ----------
         epochs : instance of mne.realtime.RtEpochs
             The epochs object
-        tmin : int | float
+        tmin : float
             Time instant to start receiving buffers
-        tmax : int | float
+        tmax : float
             Time instant to stop receiving buffers
-        buffer_size : int | float
-            Size of each buffer
+        buffer_size : int
+            Size of each buffer in terms of number of samples
         """
     # this is important to emulate a thread, instead of automatically
     # or constantly sending data, we will invoke this explicitly to send
     # the next buffer
 
-        iter_times = zip(range(tmin, tmax, buffer_size),
-                         range(buffer_size + 1, tmax, buffer_size))
+        sfreq = self.info['sfreq']
+        tmin_samp = int(round(sfreq * tmin))
+        tmax_samp = int(round(sfreq * tmax))
+
+        iter_times = zip(range(tmin_samp, tmax_samp, buffer_size),
+                         range(buffer_size + 1, tmax_samp, buffer_size))
 
         for ii, (start, stop) in enumerate(iter_times):
             # channels are picked in _append_epoch_to_queue. No need to pick

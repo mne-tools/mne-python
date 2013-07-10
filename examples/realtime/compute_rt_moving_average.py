@@ -51,7 +51,7 @@ rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, n_epochs,
 rt_epochs.start()
 
 # send raw buffers
-rt_client.send_data(rt_epochs, tmin=0, tmax=50000, buffer_size=1000)
+rt_client.send_data(rt_epochs, tmin=0, tmax=150, buffer_size=1000)
 
 # make the plot interactive
 pl.ion()
