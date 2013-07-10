@@ -47,7 +47,7 @@ labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
 
 ###############################################################################
 # Generate source time courses and the correspond evoked data
-snr = 6  # dB
+snr = 20  # dB
 tmin = -0.1
 sfreq = 1000.  # Hz
 tstep = 1. / sfreq

@@ -32,6 +32,7 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 start, stop = 0, 8  # if stop is too small pca may fail in some cases, but
                     # we're okay on this file
 raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False)
+raw_lazy = fiff.Raw(raw_fname, preload=False).crop(0, stop, False)
 
 events = read_events(event_name)
 picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False, eog=False,
@@ -49,7 +50,10 @@ epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                 baseline=(None, 0), preload=True)
 
 epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
-                baseline=(None, 0), preload=True)
+                    baseline=(None, 0), preload=True)
+
+epochs_lazy = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), preload=False)
 
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
 
@@ -94,11 +98,9 @@ def test_ica_core():
         sources = ica.get_sources_raw(raw)
         assert_true(sources.shape[0] == ica.n_components_)
 
-        # test preload filter
-        raw3 = raw.copy()
-        raw3._preloaded = False
-        assert_raises(ValueError, ica.pick_sources_raw, raw3,
-                      include=[1, 2])
+        # test preload
+        raw_lazy_ = ica.pick_sources_raw(raw_lazy, include=[1, 2])
+        assert_true(raw_lazy_.ch_names == raw_lazy.ch_names)
 
         for excl, incl in (([], []), ([], [1, 2]), ([1, 2], [])):
             raw2 = ica.pick_sources_raw(raw, exclude=excl, include=incl,
@@ -126,11 +128,10 @@ def test_ica_core():
         assert_raises(ValueError, ica.find_sources_epochs, epochs,
                       target=np.arange(1))
 
-        # test preload filter
-        epochs3 = epochs.copy()
-        epochs3.preload = False
-        assert_raises(ValueError, ica.pick_sources_epochs, epochs3,
-                      include=[1, 2])
+        # test preload
+        epochs_lazy_ = ica.pick_sources_epochs(epochs_lazy,
+                                               include=[1, 2])
+        assert_true(epochs_lazy.ch_names == epochs_lazy_.ch_names)
 
         # test source picking
         for excl, incl in (([], []), ([], [1, 2]), ([1, 2], [])):

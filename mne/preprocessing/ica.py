@@ -801,10 +801,6 @@ class ICA(object):
         raw : instance of Raw
             raw instance with selected ICA components removed
         """
-        if not raw._preloaded:
-            raise ValueError('raw data should be preloaded to have this '
-                             'working. Please read raw data with '
-                             'preload=True.')
 
         if self.current_fit != 'raw':
             raise ValueError('Currently no raw data fitted.'
@@ -823,13 +819,21 @@ class ICA(object):
         start, stop = _check_start_stop(raw, start, stop)
         sources, pca_data = self._get_sources_raw(raw, start=start, stop=stop)
         recomposed = self._pick_sources(sources, pca_data, include,
-                                        self.exclude)
+                                    self.exclude)
 
         if copy is True:
             raw = raw.copy()
 
         picks = [raw.ch_names.index(k) for k in self.ch_names]
-        raw[picks, start:stop] = recomposed
+        if raw._preloaded is True:
+            raw[picks, start:stop] = recomposed
+        else:
+            picks_ = np.array([ii for ii in xrange(raw.info['nchan'])
+                               if ii not in picks])
+            data = np.concatenate([raw[picks_, start:stop][0], recomposed])
+            raw._data = data[np.concatenate([picks, picks_]).argsort()]
+            raw._preloaded = True
+
         return raw
 
     def pick_sources_epochs(self, epochs, include=None, exclude=None,
@@ -862,10 +866,6 @@ class ICA(object):
         epochs : instance of Epochs
             Epochs with selected ICA components removed.
         """
-        if not epochs.preload:
-            raise ValueError('epochs should be preloaded to have this '
-                             'working. Please read raw data with '
-                             'preload=True.')
 
         sources, pca_data = self._get_sources_epochs(epochs, True)
         picks = pick_types(epochs.info, include=self.ch_names,
@@ -889,9 +889,13 @@ class ICA(object):
                                         self.exclude)
 
         # restore epochs, channels, tsl order
-        epochs._data[:, picks] = np.array(np.split(recomposed,
-                                          len(epochs.events), 1))
-        epochs.preload = True
+        recomposed = np.array(np.split(recomposed, len(epochs.events), 1))
+        if epochs.preload is True:
+            epochs._data[:, picks] = recomposed
+        else:
+            epochs._data = epochs.get_data()
+            epochs._data[:, picks] = recomposed
+            epochs.preload = True
 
         return epochs
 
