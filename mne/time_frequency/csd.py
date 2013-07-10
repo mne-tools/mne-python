@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+import warnings
 import copy as cp
 
 import numpy as np
@@ -11,8 +12,6 @@ import nitime.algorithms as tsa
 import logging
 logger = logging.getLogger('mne')
 
-from ..parallel import parallel_func
-from ..fiff.proj import make_projector_info
 from ..fiff.pick import pick_types
 from .. import verbose
 
@@ -23,7 +22,7 @@ class CrossSpectralDensity(dict):
     Attributes
     ----------
     data : array of shape (n_channels, n_channels)
-        The covariance.
+        The cross-spectral density.
     ch_names : list of string
         List of channels' names.
     """
@@ -76,7 +75,6 @@ def compute_csd(epochs, tmin=None, tmax=None, fmin=0, fmax=np.inf, projs=None,
         warnings.warn('Epochs are not baseline corrected, cross-spectral '
                       'density may be inaccurate')
 
-    bads = epochs.info['bads']
     if projs is None:
         projs = cp.deepcopy(epochs.info['projs'])
     else:
@@ -96,13 +94,14 @@ def compute_csd(epochs, tmin=None, tmax=None, fmin=0, fmax=np.inf, projs=None,
     csd_mean = np.zeros((len(ch_names), len(ch_names)), dtype=complex)
 
     # Compute CSD for each epoch
+    n_epochs = 0
     for epoch in epochs:
         epoch = epoch[picks_meeg][:, tslice]
 
         # TODO: This should be reimplemented
         csd_method = {}
         csd_method['Fs'] = epochs.info['sfreq']
-        csd_method['this_method'] = 'welch' # see comment below
+        csd_method['this_method'] = 'welch'  # see comment below
         csd_method['NFFT'] = tend - tstart
         frequencies, csds_epoch = tsa.get_spectra(epoch, method=csd_method)
 
@@ -121,13 +120,14 @@ def compute_csd(epochs, tmin=None, tmax=None, fmin=0, fmax=np.inf, projs=None,
 
         # Making the CSD matrix symmetrical
         csd_epoch = csd_epoch + csd_epoch.conj().T -\
-                   np.diag(csd_epoch.diagonal())
+                    np.diag(csd_epoch.diagonal())
         csd_mean += csd_epoch
+        n_epochs += 1
 
-    csd_mean /= len(epochs)
+    csd_mean /= n_epochs
 
     csd = CrossSpectralDensity()
-    csd.update(dim=len(csd_mean), names=ch_names, data=csd_mean, projs=projs,
-               bads=epochs.info['bads'])
+    csd.update(dim=len(csd_mean), names=cp.deepcopy(ch_names), data=csd_mean,
+               projs=cp.deepcopy(projs), bads=cp.deepcopy(epochs.info['bads']))
 
     return csd
