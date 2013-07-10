@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from sklearn.base import TransformerMixin
+from .mixin import TransformerMixin
 
 from .. import verbose
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
