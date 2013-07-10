@@ -105,8 +105,7 @@ class Scaler(TransformerMixin):
         return self
 
     def transform(self, epochs_data):
-        """
-        Standardizes data across channels
+        """Standardizes data across channels
 
         Parameters
         ----------
@@ -130,8 +129,7 @@ class Scaler(TransformerMixin):
         return X
 
     def fit_transform(self, epochs_data, y):
-        """
-        Standardizes data across channels
+        """Standardizes data across channels
 
         Parameters
         ----------
@@ -161,8 +159,8 @@ class ConcatenateChannels(TransformerMixin):
         self.info = info
 
     def fit(self, epochs_data, y):
-        """
-        Concatenates data from different channels into a single feature vector
+        """Concatenates data from different channels into a single feature
+        vector
 
         Parameters
         ----------
@@ -183,8 +181,8 @@ class ConcatenateChannels(TransformerMixin):
         return self
 
     def transform(self, epochs_data, y=None):
-        """
-        Concatenates data from different channels into a single feature vector
+        """Concatenates data from different channels into a single feature
+        vector
 
         Parameters
         ----------
@@ -202,8 +200,8 @@ class ConcatenateChannels(TransformerMixin):
         return X
 
     def fit_transform(self, epochs_data, y):
-        """
-        Concatenates data from different channels into single feature vector
+        """Concatenates data from different channels into single feature
+        vector
 
         Parameters
         ----------
@@ -258,8 +256,7 @@ class PSDEstimator(TransformerMixin):
         self.verbose = verbose
 
     def fit(self, epochs_data, y):
-        """
-        Compute power spectrum density (PSD) using a multi-taper method
+        """Compute power spectrum density (PSD) using a multi-taper method
 
         Parameters
         ----------
@@ -281,8 +278,7 @@ class PSDEstimator(TransformerMixin):
         return self
 
     def transform(self, epochs_data, y=None):
-        """
-        Compute power spectrum density (PSD) using a multi-taper method
+        """Compute power spectrum density (PSD) using a multi-taper method
 
         Parameters
         ----------
@@ -299,8 +295,7 @@ class PSDEstimator(TransformerMixin):
                               self.n_jobs, self.verbose)
 
     def fit_transform(self, epochs_data, y):
-        """
-        Compute power spectrum density (PSD) using a multi-taper method
+        """Compute power spectrum density (PSD) using a multi-taper method
 
         Parameters
         ----------
@@ -326,8 +321,7 @@ class FilterEstimator(TransformerMixin):
                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
                  method='fft', iir_params=dict(order=4, ftype='butter'),
                  verbose=None):
-        """
-        Filter a subset of channels.
+        """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
         filter to the channels selected by "picks".
@@ -392,8 +386,7 @@ class FilterEstimator(TransformerMixin):
         self.verbose = verbose
 
     def fit(self, epochs_data, y):
-        """
-        Filters data
+        """Filters data
 
         Parameters
         ----------
@@ -428,8 +421,7 @@ class FilterEstimator(TransformerMixin):
 
     @verbose
     def transform(self, epochs_data, y=None):
-        """
-        Filters data
+        """Filters data
 
         Parameters
         ----------
@@ -493,8 +485,7 @@ class FilterEstimator(TransformerMixin):
         return epochs_data
 
     def fit_transform(self, epochs_data, y):
-        """
-        Filters data
+        """Filters data
 
         Parameters
         ----------

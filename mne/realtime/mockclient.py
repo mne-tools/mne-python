@@ -35,7 +35,7 @@ class MockRtClient(object):
         """
         return self.info
 
-    def send_raw_buffers(self, epochs, iter_times, n_buffers=None):
+    def send_data(self, epochs, tmin, tmax, buffer_size):
         """ Read from raw object and send them to RtEpochs for further
         processing
 
@@ -43,26 +43,25 @@ class MockRtClient(object):
         ----------
         epochs : instance of mne.realtime.RtEpochs
             The epochs object
-        iter_times : list of (start, stop)
-            list of start and stop times for buffer segments
-        n_buffers :
-            Number of buffers to iterate
+        tmin : int | float
+            Time instant to start receiving buffers
+        tmax : int | float
+            Time instant to stop receiving buffers
+        buffer_size : int | float
+            Size of each buffer
         """
     # this is important to emulate a thread, instead of automatically
     # or constantly sending data, we will invoke this explicitly to send
     # the next buffer
 
-        # Iterate over the entire iter_times list if n_buffers is not given
-        if n_buffers is None:
-            n_buffers = float("inf")
+        iter_times = zip(range(tmin, tmax, buffer_size),
+                         range(buffer_size + 1, tmax, buffer_size))
 
         for ii, (start, stop) in enumerate(iter_times):
             # channels are picked in _append_epoch_to_queue. No need to pick
             # here
             data, times = self.raw[:, start:stop]
             epochs._process_raw_buffer(data)
-            if ii >= n_buffers:
-                break
 
 # The following methods do not seem to be important for this use case,
 # but they need to be present for the emulation to work because

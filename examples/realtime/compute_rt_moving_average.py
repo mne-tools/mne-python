@@ -39,26 +39,19 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 # the number of epochs to average
 n_epochs = 50
 
-# size of buffer
-buffer_size = 1000
-
-# start and stop times for iterating through buffers
-iter_times = zip(range(0, 50000, buffer_size),
-                 range(buffer_size + 1, 50000, buffer_size))
-
 # create the mock-client object
-rt_mock = MockRtClient(raw)
+rt_client = MockRtClient(raw)
 
 # create the real-time epochs object
-rt_epochs = RtEpochs(rt_mock, event_id, tmin, tmax, n_epochs,
+rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, n_epochs,
                      consume_epochs=False, picks=picks, decim=1,
                      reject=dict(grad=4000e-13, eog=150e-6))
 
-# send raw buffers
-rt_mock.send_raw_buffers(rt_epochs, iter_times)
-
 # start the acquisition
 rt_epochs.start()
+
+# send raw buffers
+rt_client.send_data(rt_epochs, tmin=0, tmax=50000, buffer_size=1000)
 
 # make the plot interactive
 pl.ion()
