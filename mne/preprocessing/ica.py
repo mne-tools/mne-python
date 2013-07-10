@@ -828,6 +828,8 @@ class ICA(object):
         if raw._preloaded is True:
             raw[picks, start:stop] = recomposed
         else:
+            # make sure we create a complete raw object with all channels
+            # present in the right order
             picks_ = np.array([ii for ii in xrange(raw.info['nchan'])
                                if ii not in picks])
             data = np.concatenate([raw[picks_, start:stop][0], recomposed])
