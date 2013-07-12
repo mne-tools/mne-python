@@ -193,19 +193,19 @@ def test_find_events():
     raw._data[stim_channel, 11:20] = 5
     assert_array_equal(find_stim_steps(raw._data[stim_channel, :], raw.first_samp,
                                        pad_start=0, merge=0),
-                       [[ 0, 0, 1],
-                        [ 1, 1, 0],
+                       [[0, 0, 1],
+                        [1, 1, 0],
                         [10, 0, 4],
                         [11, 4, 5],
                         [20, 5, 0]])
     assert_array_equal(find_stim_steps(raw._data[stim_channel, :], raw.first_samp,
-                                       merge= -1),
-                       [[ 1, 1, 0],
+                                       merge=-1),
+                       [[1, 1, 0],
                         [10, 0, 5],
                         [20, 5, 0]])
     assert_array_equal(find_stim_steps(raw._data[stim_channel, :], raw.first_samp,
                                        merge=1),
-                       [[ 1, 1, 0],
+                       [[1, 1, 0],
                         [11, 0, 5],
                         [20, 5, 0]])
 
