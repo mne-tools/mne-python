@@ -12,7 +12,8 @@ logger = logging.getLogger('mne')
 
 from ..fiff.pick import pick_types
 from .. import verbose
-from ..time_frequency.multitaper import _mt_spectra
+from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
+                                        _csd_from_mt, _psd_from_mt_adaptive
 
 
 class CrossSpectralDensity(dict):
@@ -42,8 +43,9 @@ class CrossSpectralDensity(dict):
 
 
 @verbose
-def compute_csd(epochs, tmin=None, tmax=None, fmin=0, fmax=np.inf, projs=None,
-                verbose=None):
+def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
+                tmax=None, mt_bandwidth=None, mt_adaptive=False,
+                mt_low_bias=True, projs=None, verbose=None):
     """Estimate cross-spectral density from epochs
 
     Note: Baseline correction should be used when creating the Epochs.
@@ -53,10 +55,25 @@ def compute_csd(epochs, tmin=None, tmax=None, fmin=0, fmax=np.inf, projs=None,
     ----------
     epochs : instance of Epochs
         The epochs
+    mode : str
+        Spectrum estimation mode can be either: 'multitaper' or 'fourier'
+    fmin : float
+        Min frequency of interest.
+    fmax : float | np.inf
+        Max frequency of interest.
     tmin : float | None
         Min time instant to consider. If None start at first sample.
     tmax : float | None
         Max time instant to consider. If None end at last sample.
+    mt_bandwidth : float | None
+        The bandwidth of the multitaper windowing function in Hz.
+        Only used in 'multitaper' mode.
+    mt_adaptive : bool
+        Use adaptive weights to combine the tapered spectra into PSD.
+        Only used in 'multitaper' mode.
+    mt_low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth. Only used in 'multitaper' mode.
     projs : list of Projection | None
         List of projectors to use in CSD calculation, or None to indicate that
         the projectors from the epochs should be inherited.
@@ -68,8 +85,9 @@ def compute_csd(epochs, tmin=None, tmax=None, fmin=0, fmax=np.inf, projs=None,
     csd : instance of CrossSpectralDensity
         The computed cross-spectral density.
     """
+    # Portions of this code adapted from mne/connectivity/spectral.py
 
-    # check for baseline correction
+    # Check for baseline correction
     if epochs.baseline is None:
         warnings.warn('Epochs are not baseline corrected, cross-spectral '
                       'density may be inaccurate')
@@ -83,14 +101,47 @@ def compute_csd(epochs, tmin=None, tmax=None, fmin=0, fmax=np.inf, projs=None,
                             exclude=[])
     ch_names = [epochs.ch_names[k] for k in picks_meeg]
 
+    # Preparing time window slice
     tstart, tend = None, None
     if tmin is not None:
         tstart = np.where(epochs.times >= tmin)[0][0]
     if tmax is not None:
         tend = np.where(epochs.times <= tmax)[0][-1] + 1
     tslice = slice(tstart, tend, None)
+    n_times = tend - tstart
 
     csd_mean = np.zeros((len(ch_names), len(ch_names)), dtype=complex)
+
+    # Preparing for computing CSD
+    logger.info('Computing cross-spectral density from epochs...')
+    if mode == 'multitaper':
+        # Compute standardized half-bandwidth
+        if mt_bandwidth is not None:
+            half_nbw = float(mt_bandwidth) * n_times /\
+                       (2 * epochs.info['sfreq'])
+        else:
+            half_nbw = 4
+
+        # Compute DPSS windows
+        n_tapers_max = int(2 * half_nbw)
+        window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                           low_bias=mt_low_bias)
+        n_tapers = len(eigvals)
+        logger.info('    using multitaper spectrum estimation with %d DPSS '
+                    'windows' % n_tapers)
+
+        if mt_adaptive and len(eigvals) < 3:
+            warnings.warn('Not adaptively combining the spectral estimators '
+                          'due to a low number of tapers.')
+            mt_adaptive = False
+    elif mode == 'fourier':
+        logger.info('    using FFT with a Hanning window to estimate spectra')
+        window_fun = np.hanning(n_times)
+        mt_adaptive = False
+        eigvals = 1.
+        n_tapers = None
+    else:
+        raise ValueError('Mode has an invalid value.')
 
     # Compute CSD for each epoch
     n_epochs = 0
@@ -98,18 +149,38 @@ def compute_csd(epochs, tmin=None, tmax=None, fmin=0, fmax=np.inf, projs=None,
         epoch = epoch[picks_meeg][:, tslice]
 
         # Calculating Fourier transform using multitaper module
-        window_fun = np.hanning(epoch.shape[1])
         x_mt, frequencies = _mt_spectra(epoch, window_fun,
                                         epochs.info['sfreq'])
 
-        # Picking frequencies of interest
+        # Preparing frequencies of interest
         freq_mask = (frequencies > fmin) & (frequencies < fmax)
+
+        if mt_adaptive:
+            # Compute adaptive weights
+            _, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask,
+                                               return_weights=True)
+            # Tiling weights so that we can easily use _csd_from_mt()
+            weights = weights[:, np.newaxis, :, :]
+            weights = np.tile(weights, [1, x_mt.shape[0], 1, 1])
+        else:
+            # Do not use adaptive weights
+            if mode == 'multitaper':
+                weights = np.sqrt(eigvals)[np.newaxis, np.newaxis, :,
+                                           np.newaxis]
+            else:
+                # Hack so we can sum over axis=-2
+                weights = np.array([1.])[:, None, None, None]
+
+        # Picking frequencies of interest
         x_mt = x_mt[:, :, freq_mask]
 
         # Calculating CSD
-        x_mt = np.tile(x_mt, [1, x_mt.shape[0], 1])
-        y_mt = np.transpose(x_mt, axes=[1, 0, 2])
-        csds_epoch = 2 * x_mt * y_mt.conj()
+        # Tiling x_mt so that we can easily use _csd_from_mt()
+        x_mt = x_mt[:, np.newaxis, :, :]
+        x_mt = np.tile(x_mt, [1, x_mt.shape[0], 1, 1])
+        y_mt = np.transpose(x_mt, axes=[1, 0, 2, 3])
+        weights_y = np.transpose(weights, axes=[1, 0, 2, 3])
+        csds_epoch = _csd_from_mt(x_mt, y_mt, weights, weights_y)
 
         # Averaging over frequencies of interest
         csd_epoch = np.mean(csds_epoch, 2)

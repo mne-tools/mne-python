@@ -57,7 +57,8 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # spectrogram
 
 # Computing the cross-spectral density matrix
-data_csd = compute_csd(epochs, tmin=0.04, tmax=0.15, fmin=8, fmax=12)
+data_csd = compute_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15, fmin=8,
+                       fmax=12)
 
 
 # What follows is mostly beamforming code that could be refactored into a
