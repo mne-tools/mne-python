@@ -64,7 +64,7 @@ scores_x, scores, std_scores = [], [], []
 
 pl.ion()
 
-filt = FilterEstimator(rt_epochs.info, 1, 40, verbose=False)
+filt = FilterEstimator(rt_epochs.info, 1, 40)
 scaler = preprocessing.StandardScaler()
 concatenator = ConcatenateChannels()
 clf = SVC(C=1, kernel='linear')

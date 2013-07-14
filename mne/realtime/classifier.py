@@ -130,7 +130,7 @@ class Scaler(TransformerMixin):
 
         X = np.atleast_3d(epochs_data)
 
-        for key, this_pick in self.picks_list_.items():
+        for key, this_pick in self.picks_list_.iteritems():
             if self.with_mean:
                 X[:, this_pick, :] -= self.ch_mean_[key]
             if self.with_std:
@@ -204,8 +204,15 @@ class ConcatenateChannels(TransformerMixin):
         X : array, shape (n_epochs, n_channels*n_times)
             The data concatenated over channels
         """
+
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+
+        epochs_data = np.atleast_3d(epochs_data)
+
         n_epochs, n_channels, n_times = epochs_data.shape
-        X = epochs_data.reshape(n_epochs, n_channels*n_times)
+        X = epochs_data.reshape(n_epochs, n_channels * n_times)
 
         return X
 
@@ -262,7 +269,7 @@ class PSDEstimator(TransformerMixin):
         self.bandwidth = bandwidth
         self.adaptive = adaptive
         self.low_bias = low_bias
-        self.j_jobs = n_jobs
+        self.n_jobs = n_jobs
         self.verbose = verbose
 
     def fit(self, epochs_data, y):
@@ -300,9 +307,24 @@ class PSDEstimator(TransformerMixin):
         psd : array, shape=(n_signals, len(freqs)) or (len(freqs),)
             The computed PSD.
         """
-        return multitaper_psd(epochs_data, self.sfreq, self.fmin, self.fmax,
-                              self.bandwidth, self.adaptive, self.low_bias,
-                              self.n_jobs, self.verbose)
+
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+
+        epochs_data = np.atleast_3d(epochs_data)
+
+        n_epochs, n_channels, n_times = epochs_data.shape
+        X = epochs_data.reshape(n_epochs * n_channels, n_times)
+
+        psd = multitaper_psd(X, self.sfreq, self.fmin, self.fmax,
+                             self.bandwidth, self.adaptive, self.low_bias,
+                             self.n_jobs, self.verbose)
+
+        _, n_freqs = psd.shape
+        psd = psd.reshape(n_epochs, n_channels, n_freqs)
+
+        return psd
 
     def fit_transform(self, epochs_data, y):
         """Compute power spectrum density (PSD) using a multi-taper method
@@ -378,8 +400,7 @@ class FilterEstimator(TransformerMixin):
 
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='10s',
                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-                 method='fft', iir_params=dict(order=4, ftype='butter'),
-                 verbose=None):
+                 method='fft', iir_params=dict(order=4, ftype='butter')):
 
         self.info = info
         self.l_freq = l_freq
@@ -391,7 +412,6 @@ class FilterEstimator(TransformerMixin):
         self.n_jobs = n_jobs
         self.method = method
         self.iir_params = iir_params
-        self.verbose = verbose
 
     def fit(self, epochs_data, y):
         """Filters data
@@ -406,6 +426,9 @@ class FilterEstimator(TransformerMixin):
         self : instance of FilterEstimator
             returns the modified instance
         """
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
 
         if self.picks is None:
             self.picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
@@ -427,7 +450,6 @@ class FilterEstimator(TransformerMixin):
 
         return self
 
-    @verbose
     def transform(self, epochs_data, y=None):
         """Filters data
 
@@ -441,19 +463,23 @@ class FilterEstimator(TransformerMixin):
         X : array, shape=(n_epochs, n_channels, n_times)
             The data after filtering
         """
+
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+
+        epochs_data = np.atleast_3d(epochs_data)
+
         if self.l_freq is None and self.h_freq is not None:
-            logger.info('Low-pass filtering at %0.2g Hz' % self.h_freq)
             epochs_data = \
                 low_pass_filter(epochs_data, self.fs, self.h_freq,
                                 filter_length=self.filter_length,
                                 trans_bandwidth=self.l_trans_bandwidth,
                                 method=self.method, iir_params=self.iir_params,
                                 picks=self.picks, n_jobs=self.n_jobs,
-                                copy=False)
+                                copy=False, verbose=False)
 
         if self.l_freq is not None and self.h_freq is None:
-            logger.info('High-pass filtering at %0.2g Hz' % self.l_freq)
-
             epochs_data = \
                 high_pass_filter(epochs_data, self.info['sfreq'], self.l_freq,
                                  filter_length=self.filter_length,
@@ -461,12 +487,10 @@ class FilterEstimator(TransformerMixin):
                                  method=self.method,
                                  iir_params=self.iir_params,
                                  picks=self.picks, n_jobs=self.n_jobs,
-                                 copy=False)
+                                 copy=False, verbose=False)
 
         if self.l_freq is not None and self.h_freq is not None:
             if self.l_freq < self.h_freq:
-                logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
-                            % (self.l_freq, self.h_freq))
                 epochs_data = \
                     band_pass_filter(epochs_data, self.info['sfreq'],
                                      self.l_freq, self.h_freq,
@@ -476,10 +500,8 @@ class FilterEstimator(TransformerMixin):
                                      method=self.method,
                                      iir_params=self.iir_params,
                                      picks=self.picks, n_jobs=self.n_jobs,
-                                     copy=False)
+                                     copy=False, verbose=False)
             else:
-                logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
-                            % (self.h_freq, self.l_freq))
                 epochs_data = \
                     band_stop_filter(epochs_data, self.info['sfreq'],
                                      self.h_freq, self.l_freq,
@@ -489,7 +511,7 @@ class FilterEstimator(TransformerMixin):
                                      method=self.method,
                                      iir_params=self.iir_params,
                                      picks=self.picks, n_jobs=self.n_jobs,
-                                     copy=False)
+                                     copy=False, verbose=False)
         return epochs_data
 
     def fit_transform(self, epochs_data, y):
