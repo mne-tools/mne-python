@@ -86,25 +86,31 @@ class Scaler(TransformerMixin):
             returns the modified instance
         """
 
-        X = epochs_data
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
 
-        picks_list = [pick_types(self.info, meg='mag', exclude='bads'),
-                      pick_types(self.info, eeg='True', exclude='bads'),
-                      pick_types(self.info, meg='grad', exclude='bads')]
+        X = np.atleast_3d(epochs_data)
 
-        self.scale_['picks_list'] = picks_list
+        picks_list = dict()
+        picks_list['mag'] = pick_types(self.info, meg='mag', exclude='bads')
+        picks_list['grad'] = pick_types(self.info, meg='grad', exclude='bads')
+        picks_list['eeg'] = pick_types(self.info, eeg='grad', exclude='bads')
 
-        for this_pick in picks_list:
+        self.picks_list_ = picks_list
+
+        self.ch_mean_, self.std_ = dict(), dict()
+        for key, this_pick in picks_list.items():
             if self.with_mean:
                 ch_mean = X[:, this_pick, :].mean(axis=1)[:, None, :]
-                self.scale_['ch_mean'] = ch_mean
+                self.ch_mean_[key] = ch_mean
             if self.with_std:
                 ch_std = X[:, this_pick, :].mean(axis=1)[:, None, :]
-                self.scale_['ch_std'] = ch_std
+                self.std_[key] = ch_std
 
         return self
 
-    def transform(self, epochs_data):
+    def transform(self, epochs_data, y=None):
         """Standardizes data across channels
 
         Parameters
@@ -118,13 +124,17 @@ class Scaler(TransformerMixin):
             The data concatenated over channels
         """
 
-        X = epochs_data
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
 
-        for this_pick in self.scale['picks_list']:
+        X = np.atleast_3d(epochs_data)
+
+        for key, this_pick in self.picks_list_.items():
             if self.with_mean:
-                X[:, this_pick, :] -= self.scale_['ch_mean']
+                X[:, this_pick, :] -= self.ch_mean_[key]
             if self.with_std:
-                X[:, this_pick, :] /= self.scale_['ch_std']
+                X[:, this_pick, :] /= self.std_[key]
 
         return X
 
@@ -194,8 +204,8 @@ class ConcatenateChannels(TransformerMixin):
         X : array, shape (n_epochs, n_channels*n_times)
             The data concatenated over channels
         """
-        n_epochs, n_channels, n_time = epochs_data.shape
-        X = epochs_data.reshape(n_epochs, n_channels*n_time)
+        n_epochs, n_channels, n_times = epochs_data.shape
+        X = epochs_data.reshape(n_epochs, n_channels*n_times)
 
         return X
 
@@ -314,14 +324,7 @@ class PSDEstimator(TransformerMixin):
 
 
 class FilterEstimator(TransformerMixin):
-    """Estimator to filter Rt_Epochs
-    """
-
-    def __init__(self, info, l_freq, h_freq, picks=None, filter_length='10s',
-                 l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-                 method='fft', iir_params=dict(order=4, ftype='butter'),
-                 verbose=None):
-        """Filter a subset of channels.
+    """Estimator to filter RtEpochs
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
         filter to the channels selected by "picks".
@@ -371,7 +374,12 @@ class FilterEstimator(TransformerMixin):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
-        """
+    """
+
+    def __init__(self, info, l_freq, h_freq, picks=None, filter_length='10s',
+                 l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
+                 method='fft', iir_params=dict(order=4, ftype='butter'),
+                 verbose=None):
 
         self.info = info
         self.l_freq = l_freq

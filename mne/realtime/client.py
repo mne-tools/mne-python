@@ -36,7 +36,7 @@ def _recv_tag_raw(sock):
 
     Returns
     -------
-    tag : mne.fiff.tag.Tag
+    tag : instance of Tag
         The tag
     buff : str
         The raw data of the tag (including header).
