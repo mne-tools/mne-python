@@ -9,14 +9,14 @@ import copy
 class MockRtClient(object):
     """Mock Realtime Client
 
-       Attributes
-       ----------
-       raw : instance of Raw object
-           The raw object which simulates the rtClient
-       info : dict
-           Measurement info
-       verbose : bool, str, int, or None
-           If not None, override default verbose level (see mne.verbose).
+    Attributes
+    ----------
+    raw : instance of Raw object
+        The raw object which simulates the rtClient
+    info : dict
+        Measurement info
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     """
     def __init__(self, raw, verbose=None):
@@ -25,8 +25,7 @@ class MockRtClient(object):
         self.verbose = verbose
 
     def get_measurement_info(self):
-        """
-        Returns measurement info
+        """Returns measurement info
 
         Returns
         -------
