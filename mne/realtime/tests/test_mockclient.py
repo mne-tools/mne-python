@@ -20,6 +20,8 @@ picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 
 
 def test_mockclient():
+    """Test the RtMockClient
+    """
 
     n_epochs, event_id, tmin, tmax = 2, 1, -0.2, 0.5
 

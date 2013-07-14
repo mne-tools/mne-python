@@ -12,7 +12,7 @@ class MockRtClient(object):
     Attributes
     ----------
     raw : instance of Raw object
-        The raw object which simulates the rtClient
+        The raw object which simulates the RtClient
     info : dict
         Measurement info
     verbose : bool, str, int, or None
