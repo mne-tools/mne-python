@@ -60,7 +60,7 @@ evoked = None
 
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
 
-    print "Waiting for epochs.. (%d/%d)" % (ii+1, n_epochs)
+    print "Waiting for epochs.. (%d/%d)" % (ii + 1, n_epochs)
 
     if evoked is None:
         evoked = ev

@@ -35,8 +35,8 @@ def test_mockclient():
     rt_epochs.start()
     rt_client.send_data(rt_epochs, tmin=0, tmax=10, buffer_size=1000)
 
-    for ii, ev in enumerate(rt_epochs.iter_evoked()):
-        x_mock = ev.data
+    for ii in range(1, 3):
+        x_mock = rt_epochs.get_data()[ii, :, :]
         x_real = epochs.get_data()[ii, :, :]
         assert_true(x_mock.shape == x_real.shape)
-#       assert_array_almost_equal(x_mock, x_real, decimal=6)
+        assert_array_almost_equal(x_mock, x_real, decimal=6)
