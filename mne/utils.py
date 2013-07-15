@@ -181,14 +181,18 @@ def run_subprocess(command, *args, **kwargs):
     p = subprocess.Popen(command, *args, **kwargs)
     stdout, stderr = p.communicate()
 
+    output = (stdout, stderr)
+    if p.returncode:
+        if stdout.strip():
+            logger.error("======\nstdout\n======\n%s" % stdout)
+        if stderr.strip():
+            logger.error("======\nstderr\n======\n%s" % stderr)
+        raise subprocess.CalledProcessError(p.returncode, command, output)
+
     if stdout.strip():
         logger.info("======\nstdout\n======\n%s" % stdout)
     if stderr.strip():
         logger.info("======\nstderr\n======\n%s" % stderr)
-
-    output = (stdout, stderr)
-    if p.returncode:
-        raise subprocess.CalledProcessError(p.returncode, command, output)
 
     return output
 
