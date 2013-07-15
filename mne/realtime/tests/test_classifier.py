@@ -3,6 +3,8 @@
 # License: BSD (3-clause)
 
 import os.path as op
+import numpy as np
+
 from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_equal
 
@@ -41,7 +43,7 @@ def test_scaler():
 
     # Test init exception
     assert_raises(ValueError, scaler.fit, epochs, y)
-    assert_raises(ValueError, scaler.fit, epochs, y)
+    assert_raises(ValueError, scaler.transform, epochs, y)
 
 
 def test_filterestimator():
@@ -57,14 +59,14 @@ def test_filterestimator():
 
     # Test init exception
     assert_raises(ValueError, filt.fit, epochs, y)
-    assert_raises(ValueError, filt.fit, epochs, y)
+    assert_raises(ValueError, filt.transform, epochs, y)
 
 
-def test_psdstimator():
+def test_psdestimator():
     """Test methods of PSDEstimator
     """
     epochs_data = epochs.get_data()
-    psd = PSDEstimator(epochs.info)
+    psd = PSDEstimator(2 * np.pi, 0, np.inf)
     y = epochs.events[:, -1]
     X = psd.fit_transform(epochs_data, y)
 
@@ -73,7 +75,7 @@ def test_psdstimator():
 
     # Test init exception
     assert_raises(ValueError, psd.fit, epochs, y)
-    assert_raises(ValueError, psd.fit, epochs, y)
+    assert_raises(ValueError, psd.transform, epochs, y)
 
 
 def test_concatenatechannels():
@@ -96,4 +98,4 @@ def test_concatenatechannels():
 
     # Test init exception
     assert_raises(ValueError, concat.fit, epochs, y)
-    assert_raises(ValueError, concat.fit, epochs, y)
+    assert_raises(ValueError, concat.transform, epochs, y)
