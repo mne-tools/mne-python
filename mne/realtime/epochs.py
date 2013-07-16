@@ -3,8 +3,8 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
-import copy
 import time
+import copy
 
 import numpy as np
 
@@ -22,7 +22,7 @@ from ..fiff.proj import setup_proj
 class RtEpochs(_BaseEpochs):
     """Realtime Epochs
 
-    Can receive epochs in real time from an RtClient.
+    Can receive epochs in real time from a RtClient.
 
     For example, to get some epochs from a running mne_rt_server on
     'localhost', you could use:
@@ -30,23 +30,11 @@ class RtEpochs(_BaseEpochs):
     client = mne.realtime.RtClient('localhost')
     event_id, tmin, tmax = 1, -0.2, 0.5
 
-    epochs = mne.realtime.RtEpochs(client, event_id, tmin, tmax, 5)
+    epochs = mne.realtime.RtEpochs(client, event_id, tmin, tmax)
     epochs.start()  # start the measurement and start receiving epochs
 
-    evoked_1 = epochs.average()  # computed over epoch 1..5
-    evoked_2 = epochs.average()  # computed over epoch 6..10
-
-    By default, every epoch is only returned once. This behavior can be changed
-    by using "consume_epochs=False", which means that epochs will be returned
-    until they have manually been removed using "remove_old_epochs", e.g.:
-
-    epochs = mne.realtime.RtEpochs(client, event_id, tmin, tmax, 5,
-                                   consume_epochs=False)
-    epochs.start()  # start the measurement and start receiving epochs
-
-    evoked_1 = epochs.average()  # computed over epochs 1..5
-    epochs.remove_old_epochs(1)  # remove the oldest epoch
-    evoked_2 = epochs.average()  # computed over epochs 2..6
+    evoked_1 = epochs.average()  # computed over all epochs
+    evoked_2 = epochs[-5:].average()  # computed over the last 5 epochs
 
     Parameters
     ----------
@@ -60,12 +48,6 @@ class RtEpochs(_BaseEpochs):
         Start time before event.
     tmax : float
         End time after event.
-    n_epochs : int
-        Number of epochs to return before iteration over epochs stops.
-    consume_epochs : bool
-        If True, the received epochs are only returned once (i.e., they
-        are "consumed") when iterating over epochs etc. If False, old
-        epochs can be removed using remove_old_epochs.
     stim_channel : string or list of string
         Name of the stim channel or all the stim channels affected by
         the trigger.
@@ -127,7 +109,7 @@ class RtEpochs(_BaseEpochs):
 
     Attributes
     ----------
-    info: dict
+    info : dict
         Measurement info.
     event_id : dict
         Names of  of conditions corresponding to event_ids.
@@ -139,8 +121,7 @@ class RtEpochs(_BaseEpochs):
         See above.
     """
     @verbose
-    def __init__(self, client, event_id, tmin, tmax, n_epochs,
-                 consume_epochs=True, stim_channel='STI 014',
+    def __init__(self, client, event_id, tmin, tmax, stim_channel='STI 014',
                  sleep_time=0.1, baseline=(None, 0), picks=None,
                  name='Unknown', keep_comp=None, dest_comp=None, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
@@ -161,14 +142,11 @@ class RtEpochs(_BaseEpochs):
                 decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
                 detrend=detrend, add_eeg_ref=add_eeg_ref, verbose=verbose)
 
-        
         self.proj = proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=self.proj)
 
         self._client = client
-        self._n_epochs = n_epochs
-        self._consume_epochs = consume_epochs
 
         if not isinstance(stim_channel, list):
             stim_channel = [stim_channel]
@@ -177,7 +155,8 @@ class RtEpochs(_BaseEpochs):
                                         include=stim_channel, exclude=[])
 
         if len(stim_picks) == 0:
-            raise ValueError('No stim channel found to extract event triggers.')
+            raise ValueError('No stim channel found to extract event '
+                             'triggers.')
 
         self._stim_picks = stim_picks
 
@@ -204,6 +183,9 @@ class RtEpochs(_BaseEpochs):
         self._n_bad = 0
 
         self._started = False
+        self._last_time = time.time()
+
+        self.isi_max = 2.  # 2 seconds XXX fix me
 
     def start(self):
         """Start receiving epochs
@@ -217,8 +199,9 @@ class RtEpochs(_BaseEpochs):
             # start the measurement and the receive thread
             nchan = self._client_info['nchan']
             self._client.start_receive_thread(nchan)
-
             self._started = True
+
+            self._last_time = np.inf  # init delay counter. Will stop iterations
 
     def stop(self, stop_receive_thread=False, stop_measurement=False):
         """Stop receiving epochs
@@ -244,68 +227,29 @@ class RtEpochs(_BaseEpochs):
     def next(self, return_event_id=False):
         """To make iteration over epochs easy.
         """
-        if self._current >= self._n_epochs:
-            raise StopIteration
-
-        if self._consume_epochs:
-            min_length = 1
-        else:
-            min_length = self._current + 1
-
         first = True
         while True:
-            if len(self._epoch_queue) >= min_length:
-                if self._consume_epochs:
-                    epoch, event_id = self._pop_epoch()
-                else:
-                    epoch = self._epoch_queue[self._current]
-                    event_id = self.events[self._current][-1]
+            current_time = time.time()
+            if current_time > (self._last_time + self.isi_max):
+                logger.info('Time of %s seconds exceeded.' % self.isi_max)
+                raise StopIteration
+            if len(self._epoch_queue) > self._current:
+                epoch = self._epoch_queue[self._current]
+                event_id = self.events[self._current][-1]
                 self._current += 1
-                return epoch if not return_event_id else epoch, event_id
+                self._last_time = current_time
+                if return_event_id:
+                    return epoch, event_id
+                else:
+                    return epoch
             if self._started:
                 if first:
-                    logger.info('Waiting for epochs.. (%d / %d)' %
-                                (self._current + 1, self._n_epochs))
+                    logger.info('Waiting for epoch %d' % (self._current + 1))
                     first = False
                 time.sleep(self._sleep_time)
             else:
                 raise RuntimeError('Not enough epochs in queue and currently '
                                    'not receiving epochs, cannot get epochs!')
-
-    def remove_old_epochs(self, n_remove):
-        """Remove the n_remove oldest epochs
-
-        The entries in self.events associated with the epochs are also removed
-
-        Note: An exception will be raised if there are fewer than n_remove
-        epochs are in the queue. This function is mostly useful when
-        consume_epochs is False.
-
-        Parameters
-        ----------
-        n_remove : int
-            The number of epochs to remove.
-        """
-        if len(self._epoch_queue) < n_remove:
-            raise ValueError('There are only %d epochs in the queue, cannot '
-                             'remove %d epochs.'
-                             % (len(self._epoch_queue), n_remove))
-
-        for i in range(n_remove):
-            self._pop_epoch()
-
-    def _pop_epoch(self):
-        """Get the oldest epoch and remove it from the queue
-
-        The entries in self.events associated with the epoch are also removed
-        """
-        if len(self._epoch_queue) == 0:
-            raise ValueError('The epoch queue is empty, cannot pop epoch!')
-
-        epoch = self._epoch_queue.pop(0)
-        event_id = self.events.pop(0)
-
-        return epoch, event_id
 
     def _get_data_from_disk(self):
         """Return the data for n_epochs epochs"""
@@ -339,7 +283,7 @@ class RtEpochs(_BaseEpochs):
 
         last_samp = self._first_samp + raw_buffer.shape[1] - 1
 
-        # apply calibration
+        # apply calibration without inplace modification
         raw_buffer = self._cals * raw_buffer
 
         # detect events
@@ -407,7 +351,6 @@ class RtEpochs(_BaseEpochs):
         event_id : int
             The event ID of the epoch.
         """
-
         # select the channels
         epoch = epoch[self.picks, :]
 
