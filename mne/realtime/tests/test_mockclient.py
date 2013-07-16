@@ -22,21 +22,19 @@ picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 def test_mockclient():
     """Test the RtMockClient
     """
+    event_id, tmin, tmax = 1, -0.2, 0.5
 
-    n_epochs, event_id, tmin, tmax = 2, 1, -0.2, 0.5
+    epochs = Epochs(raw, events[:7], event_id=event_id, tmin=tmin, tmax=tmax,
+                    picks=picks, baseline=(None, 0), preload=True)
+    data = epochs.get_data()
 
     rt_client = MockRtClient(raw)
-    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, n_epochs,
-                         consume_epochs=False, picks=picks)
-
-    epochs = Epochs(raw, events, event_id=event_id, tmin=tmin, tmax=tmax,
-                    picks=picks, baseline=(None, 0))
+    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks)
 
     rt_epochs.start()
     rt_client.send_data(rt_epochs, picks, tmin=0, tmax=10, buffer_size=1000)
 
-    for ii in range(n_epochs):
-        x_mock = rt_epochs.get_data()[ii][0]
-        x_real = epochs.get_data()[ii, :, :]
-        assert_true(x_mock.shape == x_real.shape)
-        assert_array_equal(x_mock, x_real)
+    rt_data = rt_epochs.get_data()
+
+    assert_true(rt_data.shape == data.shape)
+    assert_array_equal(rt_data, data)
