@@ -19,7 +19,6 @@ class TransformerMixin(object):
         -------
         X_new : numpy array of shape [n_samples, n_features_new]
             Transformed array.
-
         """
         # non-optimized default implementation; override when a better
         # method is possible for a given clustering algorithm

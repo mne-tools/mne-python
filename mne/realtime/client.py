@@ -37,7 +37,7 @@ def _recv_tag_raw(sock):
     Returns
     -------
     tag : instance of Tag
-        The tag
+        The tag.
     buff : str
         The raw data of the tag (including header).
     """
