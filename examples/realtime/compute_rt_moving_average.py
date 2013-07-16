@@ -37,7 +37,7 @@ picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # the number of epochs to average
-n_epochs = 50
+n_epochs = 30
 
 # create the mock-client object
 rt_client = MockRtClient(raw)
@@ -51,7 +51,7 @@ rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, n_epochs,
 rt_epochs.start()
 
 # send raw buffers
-rt_client.send_data(rt_epochs, tmin=0, tmax=150, buffer_size=1000)
+rt_client.send_data(rt_epochs, picks, tmin=0, tmax=150, buffer_size=1000)
 
 # make the plot interactive
 pl.ion()

@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import copy
+import numpy as np
 
 
 class MockRtClient(object):
@@ -34,7 +35,7 @@ class MockRtClient(object):
         """
         return self.info
 
-    def send_data(self, epochs, tmin, tmax, buffer_size):
+    def send_data(self, epochs, picks, tmin, tmax, buffer_size):
         """ Read from raw object and send them to RtEpochs for further
         processing
 
@@ -42,6 +43,8 @@ class MockRtClient(object):
         ----------
         epochs : instance of mne.realtime.RtEpochs
             The epochs object
+        picks : array of int
+            Indices of channels
         tmin : float
             Time instant to start receiving buffers
         tmax : float
@@ -64,6 +67,16 @@ class MockRtClient(object):
             # channels are picked in _append_epoch_to_queue. No need to pick
             # here
             data, times = self.raw[:, start:stop]
+
+            # to undo the calibration done in _process_raw_buffer
+            cals = np.zeros(self.info['nchan'])
+            for k in range(self.info['nchan']):
+                cals[k] = (self.info['chs'][k]['range']
+                           * self.info['chs'][k]['cal'])
+
+            self._cals = cals[:, None]
+            data[picks, :] = data[picks, :] / self._cals
+
             epochs._process_raw_buffer(data)
 
 # The following methods do not seem to be important for this use case,
