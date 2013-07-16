@@ -22,7 +22,7 @@ from ..fiff.proj import setup_proj
 class RtEpochs(_BaseEpochs):
     """Realtime Epochs
 
-    Can receive epochs in real time from a RtClient.
+    Can receive epochs in real time from an RtClient.
 
     For example, to get some epochs from a running mne_rt_server on
     'localhost', you could use:
@@ -103,6 +103,9 @@ class RtEpochs(_BaseEpochs):
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
+    isi_max : float
+        The maximmum time in seconds between epochs. If no epoch
+        arrives in the next isi_max seconds the RtEpochs stops.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to client.verbose.
@@ -126,7 +129,7 @@ class RtEpochs(_BaseEpochs):
                  name='Unknown', keep_comp=None, dest_comp=None, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=True,
-                 verbose=None):
+                 isi_max=2., verbose=None):
 
         info = client.get_measurement_info()
 
@@ -185,7 +188,7 @@ class RtEpochs(_BaseEpochs):
         self._started = False
         self._last_time = time.time()
 
-        self.isi_max = 2.  # 2 seconds XXX fix me
+        self.isi_max = isi_max
 
     def start(self):
         """Start receiving epochs
