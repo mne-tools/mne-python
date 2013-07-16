@@ -108,7 +108,7 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
     if tmax is not None:
         tend = np.where(epochs.times <= tmax)[0][-1] + 1
     tslice = slice(tstart, tend, None)
-    n_times = tend - tstart
+    n_times = len(epochs.times[tslice])
 
     csd_mean = np.zeros((len(ch_names), len(ch_names)), dtype=complex)
 
