@@ -5,7 +5,7 @@ from mne import Epochs, read_events
 from mne.realtime import MockRtClient, RtEpochs
 
 from nose.tools import assert_true
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_equal
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -39,4 +39,4 @@ def test_mockclient():
         x_mock = rt_epochs.get_data()[ii][0]
         x_real = epochs.get_data()[ii, :, :]
         assert_true(x_mock.shape == x_real.shape)
-        assert_array_almost_equal(x_mock, x_real, decimal=6)
+        assert_array_equal(x_mock, x_real)
