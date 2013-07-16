@@ -48,7 +48,7 @@ rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, total_trials,
 rt_epochs.start()
 
 # send raw buffers
-rt_client.send_data(rt_epochs, tmin=0, tmax=90, buffer_size=1000)
+rt_client.send_data(rt_epochs, picks, tmin=0, tmax=90, buffer_size=1000)
 
 # Decoding in sensor space using a linear SVM
 n_times = len(rt_epochs.times)
