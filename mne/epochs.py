@@ -4,6 +4,7 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Denis Engemann <d.engemann@fz-juelich.de>
+#          Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
 
@@ -494,10 +495,10 @@ class Epochs(_BaseEpochs):
         info = cp.deepcopy(raw.info)
         # make sure projs are really copied.
         info['projs'] = [cp.deepcopy(p) for p in info['projs']]
-        
+
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
-        
+
 
         proj = proj or raw.proj # proj is on when applied in Raw
 
