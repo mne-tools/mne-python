@@ -56,7 +56,7 @@ from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score, ShuffleSplit
 
-from mne.realtime.classifier import ConcatenateChannels, FilterEstimator
+from mne.decoding.classifier import ConcatenateChannels, FilterEstimator
 
 scores_x, scores, std_scores = [], [], []
 

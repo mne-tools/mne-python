@@ -55,7 +55,7 @@ evoked = epochs.average()
 
 from sklearn.svm import SVC
 from sklearn.cross_validation import ShuffleSplit
-from mne.csp import CSP
+from mne.decoding.csp import CSP
 
 # pick some components (0 is the largest eigen values)
 pick_components = [0, 1, -2, -1]

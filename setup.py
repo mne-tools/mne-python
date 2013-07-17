@@ -66,7 +66,7 @@ if __name__ == "__main__":
                     'mne.transforms',
                     'mne.stats', 'mne.stats.tests',
                     'mne.time_frequency', 'mne.time_frequency.tests',
-                    'mne.realtime'],
+                    'mne.realtime', 'mne.decoding'],
           package_data={'mne': ['data/*.sel',
                                 'data/icos.fif.gz',
                                 'layouts/*.lout']},
