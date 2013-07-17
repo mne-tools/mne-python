@@ -36,9 +36,6 @@ picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
 
-# the number of epochs to average
-n_epochs = 30
-
 # create the mock-client object
 rt_client = MockRtClient(raw)
 
