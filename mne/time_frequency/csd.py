@@ -87,7 +87,17 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
     """
     # Portions of this code adapted from mne/connectivity/spectral.py
 
-    # Check for baseline correction
+    # Check correctness of input data and parameters
+    if fmax < fmin:
+        raise ValueError('fmax must be larger than fmin')
+    if tmin is not None and tmin < epochs.times[0]:
+        raise ValueError('tmin should be larger than the smallest data time '
+                         'point')
+    if tmax is not None and tmax > epochs.times[-1]:
+        raise ValueError('tmax should be smaller than the largest data time '
+                         'point')
+    if tmax < tmin:
+        raise ValueError('tmax must be larger than tmin')
     if epochs.baseline is None:
         warnings.warn('Epochs are not baseline corrected, cross-spectral '
                       'density may be inaccurate')
