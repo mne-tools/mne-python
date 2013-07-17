@@ -28,8 +28,7 @@ raw = mne.fiff.Raw(raw_fname, preload=True)
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
-total_trials = 50  # 25 trials per event condition
-tr_percent = 60  # Training %
+tr_percent = 60  # Training percentage
 min_trials = 10  # minimum trials after which decoding should start
 
 # select gradiometers
@@ -40,8 +39,7 @@ picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 rt_client = MockRtClient(raw)
 
 # create the real-time epochs object
-rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, total_trials,
-                     consume_epochs=False, picks=picks, decim=1,
+rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks, decim=1,
                      reject=dict(grad=4000e-13, eog=150e-6))
 
 # start the acquisition
@@ -74,7 +72,7 @@ concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
-    print "Waiting for epochs.. (%d/%d)" % (ev_num+1, total_trials)
+    print "Just got epoch %d" % (ev_num + 1)
 
     if ev_num == 0:
         X = ev.data[None, ...]
@@ -87,7 +85,7 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
         cv = ShuffleSplit(len(y), 5, test_size=0.2, random_state=42)
         scores_t = cross_val_score(concat_classifier, X, y, cv=cv,
-                                   n_jobs=1)*100
+                                   n_jobs=1) * 100
 
         std_scores.append(scores_t.std())
         scores.append(scores_t.mean())

@@ -43,9 +43,8 @@ n_epochs = 30
 rt_client = MockRtClient(raw)
 
 # create the real-time epochs object
-rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, n_epochs,
-                     consume_epochs=False, picks=picks, decim=1,
-                     reject=dict(grad=4000e-13, eog=150e-6))
+rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
+                     decim=1, reject=dict(grad=4000e-13, eog=150e-6))
 
 # start the acquisition
 rt_epochs.start()
@@ -60,7 +59,7 @@ evoked = None
 
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
 
-    print "Waiting for epochs.. (%d/%d)" % (ii + 1, n_epochs)
+    print "Just got epoch %d" % (ii + 1)
 
     if evoked is None:
         evoked = ev
