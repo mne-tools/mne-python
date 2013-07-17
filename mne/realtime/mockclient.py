@@ -1,5 +1,6 @@
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
 #          Denis Engemann <d.engemann@fz-juelich.de>
+#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 

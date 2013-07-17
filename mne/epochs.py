@@ -4,6 +4,7 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Denis Engemann <d.engemann@fz-juelich.de>
+#          Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
 
