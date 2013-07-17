@@ -9,7 +9,8 @@ from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_equal
 
 from mne import fiff, read_events, Epochs
-from mne.realtime import Scaler, FilterEstimator, PSDEstimator, ConcatenateChannels
+from mne.decoding.classifier import Scaler, FilterEstimator
+from mne.decoding.classifier import PSDEstimator, ConcatenateChannels
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)

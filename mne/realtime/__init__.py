@@ -9,6 +9,4 @@
 
 from .client import RtClient
 from .epochs import RtEpochs
-from .classifier import Scaler, FilterEstimator, PSDEstimator, ConcatenateChannels
 from .mockclient import MockRtClient
-from .mixin import TransformerMixin
