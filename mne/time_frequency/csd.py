@@ -96,8 +96,9 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
     if tmax is not None and tmax > epochs.times[-1]:
         raise ValueError('tmax should be smaller than the largest data time '
                          'point')
-    if tmax < tmin:
-        raise ValueError('tmax must be larger than tmin')
+    if tmax is not None and tmin is not None:
+        if tmax < tmin:
+            raise ValueError('tmax must be larger than tmin')
     if epochs.baseline is None:
         warnings.warn('Epochs are not baseline corrected, cross-spectral '
                       'density may be inaccurate')
