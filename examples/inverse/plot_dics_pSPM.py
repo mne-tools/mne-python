@@ -14,8 +14,7 @@ Work in progress.
 print __doc__
 
 import numpy as np
-import matplotlib.pylab as pl
-from matplotlib import mlab
+import pylab as pl
 from scipy import linalg
 
 import mne
