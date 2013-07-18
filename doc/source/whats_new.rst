@@ -9,11 +9,15 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - New decoding module for MEG analysis containing sklearn compatible transformers by `Mainak Jas`_ and `Alex Gramfort`_
+
+   - New realtime module containing RtEpochs, RtClient and MockRtClient class by `Martin Luessi`_, Christopher Dinh, `Alex Gramfort`_, `Denis Engemann`_ and `Mainak Jas`_
+
    - Allow picking normal orientation in LCMV beamformers by `Roman Goj`_, `Alex Gramfort`_, `Denis Engemann`_ and `Martin Luessi`_
 
-   - Add printing summary to terminal for measurement info by `Denis Engemann`_ 
+   - Add printing summary to terminal for measurement info by `Denis Engemann`_
 
-   - Add read and write info attribute ICA objects by `Denis Engemann`_ 
+   - Add read and write info attribute ICA objects by `Denis Engemann`_
 
    - Decoding with Common Spatial Patterns (CSP) by `Romain Trachel`_ and `Alex Gramfort`_
 
@@ -149,7 +153,7 @@ API
    - Depth bias correction in dSPM/MNE/sLORETA make_inverse_operator is now done like in the C code using only gradiometers if present, else magnetometers, and EEG if no MEG channels are present.
 
    - Fixed-orientation inverse solutions need to be made using 'fixed=True' option (using non-surface-oriented forward solutions if no depth weighting is used) to maintain compatibility with MNE C code.
-   
+
    - Raw.save() will only overwrite the destination file, if it exists, if option overwrite=True is set.
 
    - mne.utils.set_config(), get_config(), get_config_path() moved to mne namespace.
