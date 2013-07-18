@@ -18,11 +18,11 @@ print __doc__
 #
 # License: BSD (3-clause)
 
+import time
+
 import mne
 from mne.datasets import sample
 from mne.realtime import RtEpochs, MockRtClient
-
-import pylab as pl
 
 # Fiff file to simulate the realtime client
 data_path = sample.data_path()
@@ -49,9 +49,6 @@ rt_epochs.start()
 # send raw buffers
 rt_client.send_data(rt_epochs, picks, tmin=0, tmax=150, buffer_size=1000)
 
-# make the plot interactive
-pl.ion()
-
 evoked = None
 
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
@@ -63,8 +60,5 @@ for ii, ev in enumerate(rt_epochs.iter_evoked()):
     else:
         evoked += ev
 
-    pl.figure(1)
-
     evoked.plot()
-    pl.show()
-    pl.waitforbuttonpress(0.1)
+    time.sleep(0.1)
