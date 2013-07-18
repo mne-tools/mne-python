@@ -14,6 +14,23 @@ of the users who use the package.
 page as the maintainers about changes or enhancements before too much
 coding is done saves everyone time and effort!
 
+What you will need
+------------------
+
+#. A Linux box
+
+#. A good python IDE: Spyder or Enthought
+
+#. Basic scientific tools in python: numpy_, scipy_, matplotlib_
+
+#. Development related tools: nosetests_, coverage_, mayavi_, sphinx_,
+   pep8_, and pyflakes_
+
+#. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
+   joblib_, nibabel_, and scikit-learn_
+
+#. External tools: MNE command line utilities, Freesurfer_
+
 General code guidelines
 -----------------------
 
@@ -131,8 +148,8 @@ in principle also fork a different one, such as ``mne-matlab```):
    Now, after a short pause and some 'Hardcore forking action', you should
    find yourself at the home page for your own forked copy of mne-python_.
 
-Setting up the fork to work on
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Setting up the fork and the working directory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Briefly, this is done using::
 
@@ -145,6 +162,37 @@ These steps can be broken out to be more explicit as:
 #. Clone your fork to the local computer::
 
     git clone git@github.com:your-user-name/mne-python.git
+
+#. Create a symbolic link to your mne directory::
+
+   If you install MNE-Python using setup.py like a regular user, the
+   package by default is installed in::
+
+    /usr/lib/python2.7/site-packages/
+
+   When you write examples and import the mne modules, this is where they
+   get imported from. If you want to avoid installing the package again when
+   you make changes in your source code, it is better to create a symbolic link
+   from the installation directory to the ``mne/`` folder containing your
+   source code.
+
+   First, check if there are any ``mne`` or ``mne-*.egg-info`` files in
+   ``/usr/lib/python2.7/site-packages/`` directory and delete them. Then::
+
+    cd ~/.local/lib/python2.7/site-packages/
+
+   This is where python looks for packages installed in the users home
+   directory. Look for mne related directories and egg files and delete
+   them. Then, make a symlink to your working directory::
+
+    ln -s /github/mne-python/mne
+
+   To verify, it works go to another directory, run ipython, and run
+   ``import mne; print mne.__path__``. This will show you from where
+   it imported MNE-Python.
+
+   Now, whenever you make any changes to the code, type ``make clean``
+   in the terminal and restart the IPython kernel. That's it!
 
 #. Change directory to your new repo::
 
@@ -186,7 +234,18 @@ These steps can be broken out to be more explicit as:
     origin     git@github.com:your-user-name/mne-python.git (fetch)
     origin     git@github.com:your-user-name/mne-python.git (push)
 
-   Your fork is now set up correctly, and you are ready to hack away.
+   Your fork is now set up correctly.
+
+#. Ensure unit tests pass and htmls can be compiled
+
+   Make sure before starting to code that all unit tests pass and the
+   htmls in the ``doc/`` directory can be built without errors. To build
+   the htmls, first go the ``doc/`` directory and then type::
+
+    make html
+
+   Once it is compiled for the first time, subsequent compiles will only
+   recompile what has changed. Thats it! You are now ready to hack away.
 
 Workflow summary
 ----------------
@@ -645,5 +704,12 @@ and the history looks now like this::
 
 If it went wrong, recovery is again possible as explained :ref:`above
 <recovering-from-mess-up>`.
+
+Pulling a Pull Request
+^^^^^^^^^^^^^^^^^^^^^^
+
+To pull a pull request and play around with it, just do::
+
+ git fetch upstream pull/<pull request number>/head:<local-branch>
 
 .. include:: links.inc
