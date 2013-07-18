@@ -29,7 +29,15 @@ Classes
    Label
    BiHemiLabel
    preprocessing.ICA
-
+   decoding.TransformerMixin
+   decoding.CSP
+   decoding.Scaler
+   decoding.ConcatenateChannels
+   decoding.FilterEstimator
+   decoding.PSDEstimator
+   realtime.RtEpochs
+   realtime.RtClient
+   realtime.MockRtClient
 
 Logging and Configuration
 =========================
@@ -545,3 +553,20 @@ Simulation
    generate_evoked
    generate_sparse_stc
    select_source_in_label
+
+Decoding
+========
+
+:py:mod:`mne.decoding`:
+
+.. automodule:: mne.decoding
+   :no-members:
+
+
+Realtime
+========
+
+:py:mod:`mne.realtime`:
+
+.. automodule:: mne.realtime
+   :no-members:
