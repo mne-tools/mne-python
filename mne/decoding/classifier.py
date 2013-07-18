@@ -1,4 +1,5 @@
-# Author: Mainak Jas <mainak@neuro.hut.fi>
+# Authors: Mainak Jas <mainak@neuro.hut.fi>
+#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
