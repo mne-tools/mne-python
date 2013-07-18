@@ -13,6 +13,8 @@ accuracy is plotted
 
 print __doc__
 
+import time
+
 import mne
 from mne.realtime import MockRtClient, RtEpochs
 from mne.datasets import sample
@@ -60,8 +62,6 @@ from mne.decoding.classifier import ConcatenateChannels, FilterEstimator
 
 scores_x, scores, std_scores = [], [], []
 
-pl.ion()
-
 filt = FilterEstimator(rt_epochs.info, 1, 40)
 scaler = preprocessing.StandardScaler()
 concatenator = ConcatenateChannels()
@@ -108,5 +108,4 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
         pl.title('Real-time decoding')
         pl.show()
 
-        # time.sleep() isn't used because of known issues with the Spyder
-        pl.waitforbuttonpress(0.1)
+        time.sleep(0.1)
