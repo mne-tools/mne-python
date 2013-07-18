@@ -19,7 +19,7 @@ What you will need
 
 #. A Linux box
 
-#. A good python IDE: Spyder or Enthought
+#. A good python IDE: Spyder or Enthought are good choices
 
 #. Basic scientific tools in python: numpy_, scipy_, matplotlib_
 
@@ -29,7 +29,7 @@ What you will need
 #. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
    joblib_, nibabel_, and scikit-learn_
 
-#. External tools: MNE command line utilities, Freesurfer_
+#. External tools: MNE command line utilities, Freesurfer_, and `mne-scripts`_
 
 General code guidelines
 -----------------------
@@ -235,6 +235,12 @@ These steps can be broken out to be more explicit as:
     origin     git@github.com:your-user-name/mne-python.git (push)
 
    Your fork is now set up correctly.
+
+#. Run mne-scripts on the sample dataset
+
+   Make sure that the `mne-python sample dataset`_ has been downloaded.
+   Download `mne-scripts`_. Go to ``bash`` if you are using some other shell.
+   Then, execute all three shell scripts in the ``sample-data`` directory.
 
 #. Ensure unit tests pass and htmls can be compiled
 

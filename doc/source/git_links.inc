@@ -72,6 +72,8 @@
 .. _PIL: https://pypi.python.org/pypi/PIL
 .. _Freesurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
 
+.. _mne-scripts: https://github.com/mne-tools/mne-scripts/
+
 .. |emdash| unicode:: U+02014
 
 .. vim: ft=rst
