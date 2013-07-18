@@ -148,6 +148,8 @@ def test_read_write_epochs():
     # test copying loaded one (raw property)
     epochs_read4 = epochs_read3.copy()
     assert_array_almost_equal(epochs_read4.get_data(), data)
+    # test equalizing loaded one (drop_log property)
+    epochs_read4.equalize_event_counts(epochs.event_id)
 
 
 def test_epochs_proj():
