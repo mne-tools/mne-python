@@ -55,7 +55,8 @@
 
 .. other stuff
 .. _python: http://www.python.org
-.. _spyder: http://spyder-ide.blogspot.com/
+
+.. python packages
 .. _pep8: http://pypi.python.org/pypi/pep8
 .. _pyflakes: http://pypi.python.org/pypi/pyflakes
 .. _coverage: https://pypi.python.org/pypi/coverage
@@ -70,9 +71,17 @@
 .. _sphinx: http://sphinx-doc.org/
 .. _pandas: http://pandas.pydata.org/
 .. _PIL: https://pypi.python.org/pypi/PIL
-.. _Freesurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
 
+.. python editors
+.. _spyder: http://spyder-ide.blogspot.com/
+.. _anaconda: http://www.continuum.io/downloads
+.. _EPD: https://www.enthought.com/products/epd/
+
+.. mne stuff
+.. _mne: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
 .. _mne-scripts: https://github.com/mne-tools/mne-scripts/
+
+.. _Freesurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
 
 .. |emdash| unicode:: U+02014
 

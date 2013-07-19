@@ -17,9 +17,11 @@ coding is done saves everyone time and effort!
 What you will need
 ------------------
 
-#. A Linux box
+#. A Unix (Linux or Mac OS) box: MNE command line utilities and Freesurfer
+   that are required to make the best out of this toolbox require a Unix platform.
 
-#. A good python IDE: Spyder or Enthought are good choices
+#. A good python editor: Spyder_ IDE is suitable for those migrating from
+   Matlab. EPD_ and Anaconda_ are also good choices.
 
 #. Basic scientific tools in python: numpy_, scipy_, matplotlib_
 
@@ -29,7 +31,7 @@ What you will need
 #. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
    joblib_, nibabel_, and scikit-learn_
 
-#. External tools: MNE command line utilities, Freesurfer_, and `mne-scripts`_
+#. External tools: MNE_ command line utilities, Freesurfer_, and `mne-scripts`_
 
 General code guidelines
 -----------------------
@@ -166,7 +168,7 @@ These steps can be broken out to be more explicit as:
 #. Create a symbolic link to your mne directory::
 
    If you install MNE-Python using setup.py like a regular user, the
-   package by default is installed in::
+   package by default is installed for example in::
 
     /usr/lib/python2.7/site-packages/
 
@@ -187,7 +189,7 @@ These steps can be broken out to be more explicit as:
 
     ln -s /github/mne-python/mne
 
-   To verify, it works go to another directory, run ipython, and run
+   To verify, it works go to another directory, run ipython, and then type
    ``import mne; print mne.__path__``. This will show you from where
    it imported MNE-Python.
 
@@ -235,12 +237,6 @@ These steps can be broken out to be more explicit as:
     origin     git@github.com:your-user-name/mne-python.git (push)
 
    Your fork is now set up correctly.
-
-#. Run mne-scripts on the sample dataset
-
-   Make sure that the `mne-python sample dataset`_ has been downloaded.
-   Download `mne-scripts`_. Go to ``bash`` if you are using some other shell.
-   Then, execute all three shell scripts in the ``sample-data`` directory.
 
 #. Ensure unit tests pass and htmls can be compiled
 
@@ -711,11 +707,52 @@ and the history looks now like this::
 If it went wrong, recovery is again possible as explained :ref:`above
 <recovering-from-mess-up>`.
 
-Pulling a Pull Request
-^^^^^^^^^^^^^^^^^^^^^^
+Fetching a Pull Request
+^^^^^^^^^^^^^^^^^^^^^^^
 
-To pull a pull request and play around with it, just do::
+To fetch a pull request on the main repository to your local working
+directory as a new branch, just do::
 
  git fetch upstream pull/<pull request number>/head:<local-branch>
+
+As an example, to pull the realtime pull request which has a url
+``https://github.com/mne-tools/mne-python/pull/615/``, do::
+
+ git fetch upstream pull/615/head:realtime
+
+If you want to fetch a pull request to your own fork, replace
+``upstream`` with ``origin``. That's it!
+
+Adding example to example gallery
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Add the example to the correct subfolder in the ``examples/`` directory and
+prefix the file with ``plot_``. To make sure that the example renders correctly,
+run ``make html`` in the ``doc/`` folder
+
+Editing \*.rst files
+^^^^^^^^^^^^^^^^^^^^
+
+These are reStructuredText files. Consult the Sphinx documentation to learn
+more about editing them.
+
+Troubleshooting
+---------------
+
+Listed below are miscellaneous issues that you might face:
+
+Missing files in examples or unit tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the unit tests fail due to missing files, you may need to run
+`mne-scripts`_ on the sample dataset. Go to ``bash`` if you are using some
+other shell. Then, execute all three shell scripts in the
+``sample-data/`` directory within ``mne-scripts/``.
+
+Cannot import class from a new \*.py file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Update the corresponding ``__init__.py`` file and recompile the files using
+``make html``.
 
 .. include:: links.inc
