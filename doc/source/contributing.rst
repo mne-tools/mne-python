@@ -249,7 +249,7 @@ These steps can be broken out to be more explicit as:
     make html
 
    Once it is compiled for the first time, subsequent compiles will only
-   recompile what has changed. Thats it! You are now ready to hack away.
+   recompile what has changed. That's it! You are now ready to hack away.
 
 Workflow summary
 ----------------
@@ -723,7 +723,7 @@ As an example, to pull the realtime pull request which has a url
  git fetch upstream pull/615/head:realtime
 
 If you want to fetch a pull request to your own fork, replace
-``upstream`` with ``origin``. That's it.
+``upstream`` with ``origin``. That's it!
 
 Adding example to example gallery
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
