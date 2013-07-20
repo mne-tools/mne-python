@@ -76,6 +76,8 @@
 .. _spyder: http://spyder-ide.blogspot.com/
 .. _anaconda: http://www.continuum.io/downloads
 .. _EPD: https://www.enthought.com/products/epd/
+.. _textmate: http://macromates.com/
+.. _sublime text: http://www.sublimetext.com/
 
 .. mne stuff
 .. _mne: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/

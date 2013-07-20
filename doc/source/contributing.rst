@@ -21,7 +21,9 @@ What you will need
    that are required to make the best out of this toolbox require a Unix platform.
 
 #. A good python editor: Spyder_ IDE is suitable for those migrating from
-   Matlab. EPD_ and Anaconda_ are also good choices.
+   Matlab. EPD_ and Anaconda_ both ship Spyder and all its dependencies. For
+   Mac users, TextMate_ and `Sublime Text`_ are good choices. Sublime Text
+   is available in all three major platforms.
 
 #. Basic scientific tools in python: numpy_, scipy_, matplotlib_
 
@@ -172,7 +174,7 @@ These steps can be broken out to be more explicit as:
 
     /usr/lib/python2.7/site-packages/
 
-   When you write examples and import the mne modules, this is where they
+   When you write examples and import the MNE modules, this is where they
    get imported from. If you want to avoid installing the package again when
    you make changes in your source code, it is better to create a symbolic link
    from the installation directory to the ``mne/`` folder containing your
@@ -187,14 +189,14 @@ These steps can be broken out to be more explicit as:
    directory. Look for mne related directories and egg files and delete
    them. Then, make a symlink to your working directory::
 
-    ln -s /github/mne-python/mne
+    ln -s <path to mne-python>/mne ~/.local/lib/python2.7/site-packages/mne
 
    To verify, it works go to another directory, run ipython, and then type
    ``import mne; print mne.__path__``. This will show you from where
    it imported MNE-Python.
 
-   Now, whenever you make any changes to the code, type ``make clean``
-   in the terminal and restart the IPython kernel. That's it!
+   Now, whenever you make any changes to the code, just restart the
+   IPython kernel for the changes to take effect.
 
 #. Change directory to your new repo::
 
@@ -707,7 +709,7 @@ and the history looks now like this::
 If it went wrong, recovery is again possible as explained :ref:`above
 <recovering-from-mess-up>`.
 
-Fetching a Pull Request
+Fetching a pull request
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 To fetch a pull request on the main repository to your local working
@@ -721,7 +723,7 @@ As an example, to pull the realtime pull request which has a url
  git fetch upstream pull/615/head:realtime
 
 If you want to fetch a pull request to your own fork, replace
-``upstream`` with ``origin``. That's it!
+``upstream`` with ``origin``. That's it.
 
 Adding example to example gallery
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
