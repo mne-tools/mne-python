@@ -2,3 +2,4 @@
 """
 
 from ._lcmv import lcmv, lcmv_epochs, lcmv_raw
+from ._dics import dics_epochs
