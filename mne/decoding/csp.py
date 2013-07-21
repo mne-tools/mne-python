@@ -16,9 +16,9 @@ class CSP(object):
 
     Parameters
     ----------
-    pick_components : None (default) or array of int
-        Indices of components to decompose M/EEG signals
-        (if None, all components are used).
+    n_components : int, default 4
+        The number of components to decompose M/EEG signals.
+        This number should be set by cross-validation.
 
     Attributes
     ----------
@@ -35,10 +35,8 @@ class CSP(object):
     of the abnormal components in the clinical EEG. Electroencephalography
     and Clinical Neurophysiology, 79(6):440--447, December 1991.
     """
-    def __init__(self, pick_components=None):
-        if pick_components is None:
-            pick_components = slice(None, None, None)
-        self.pick_components = pick_components
+    def __init__(self, n_components=4):
+        self.n_components = n_components
         self.filters_ = None
         self.patterns_ = None
         self.mean_ = None
@@ -77,7 +75,7 @@ class CSP(object):
         self._fit(np.dot(class_1, class_1.T),
                   np.dot(class_2, class_2.T))
 
-        pick_filters = self.filters_[self.pick_components]
+        pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
 
         # compute features (mean band power)
@@ -107,12 +105,12 @@ class CSP(object):
         w_a = np.dot(np.dot(p, cov_a), p.T)
         w_b = np.dot(np.dot(p, cov_b), p.T)
         # and solve it
-        g, b = linalg.eigh(w_a, w_b)
-        # sort eigen values
-        ind = np.argsort(g)
-        b = b[:, ind]
+        vals, vecs = linalg.eigh(w_a, w_b)
+        # sort vectors by discriminative power using eigen values
+        ind = np.argsort(np.maximum(vals, 1. / vals))[::-1]
+        vecs = vecs[:, ind]
         # and project
-        w = np.dot(b.T, p)
+        w = np.dot(vecs.T, p)
 
         self.filters_ = w
         self.patterns_ = linalg.pinv(w).T
@@ -153,7 +151,7 @@ class CSP(object):
             raise RuntimeError('No filters available. Please first fit CSP '
                                'decomposition.')
 
-        pick_filters = self.filters_[self.pick_components]
+        pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
 
         # compute features (mean band power)

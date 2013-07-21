@@ -57,10 +57,9 @@ from sklearn.svm import SVC
 from sklearn.cross_validation import ShuffleSplit
 from mne.decoding import CSP
 
-# pick some components (0 is the largest eigen values)
-pick_components = [0, 1, -2, -1]
+n_components = 3  # pick some components
 svc = SVC(C=1, kernel='linear')
-csp = CSP(pick_components=pick_components)
+csp = CSP(n_components=n_components)
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
