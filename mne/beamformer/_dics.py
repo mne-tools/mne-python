@@ -14,7 +14,9 @@ logger = logging.getLogger('mne')
 from ..fiff.constants import FIFF
 from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward
-from ..minimum_norm.inverse import _get_vertno
+from ..forward import _subject_from_forward
+from ..minimum_norm.inverse import _get_vertno, combine_xyz
+from ..source_estimate import SourceEstimate
 from ..source_space import label_src_vertno_sel
 from .. import verbose
 
@@ -22,8 +24,8 @@ from .. import verbose
 @verbose
 def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
                 label=None, picks=None, pick_ori=None, verbose=None):
-    """ Calculate the DICS spatial filter based on a given cross-spectral density
-    object and return estimates of source activity based on given data.
+    """Calculate the DICS spatial filter based on a given cross-spectral
+    density object and return estimates of source activity based on given data.
 
     Parameters
     ----------
@@ -59,17 +61,16 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
     stc : SourceEstimate (or list of SourceEstimate)
         Source time courses.
     """
-    # TODO: DICS, in the original 2001 paper, used a free orientation beamformer,
-    # however selection of the max-power orientation was also employed depending on
-    # whether a dominant component was present
-    pick_ori = None
+    # TODO: DICS, in the original 2001 paper, used a free orientation
+    # beamformer, however selection of the max-power orientation was also
+    # employed depending on whether a dominant component was present
 
     is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
 
-    if pick_ori in ['normal', 'max-power'] and not is_free_ori:
-        raise ValueError('Normal or max-power orientation can only be picked '
-                         'when a forward operator with free orientation is '
-                         'used.')
+    # DIFF: LCMV has 'max-power' here in addition to 'normal'
+    if pick_ori == 'normal' and not is_free_ori:
+        raise ValueError('Normal orientation can only be picked when a '
+                         'forward operator with free orientation is used.')
     if pick_ori == 'normal' and not forward['surf_ori']:
         raise ValueError('Normal orientation can only be picked when a '
                          'forward operator oriented in surface coordinates is '
@@ -79,8 +80,9 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
                          'forward operator with a surface-based source space '
                          'is used.')
 
-    picks = pick_types(info, meg=True, eeg=False, eog=False, stim=False,
-                       exclude='bads')
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, exclude='bads')
+
     ch_names = [info['ch_names'][k] for k in picks]
 
     # Restrict forward solution to selected channels
@@ -104,6 +106,10 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
     G = np.dot(proj, G)
 
+    # DIFF: LCMV applies SSPs and whitener to data covariance at this point,
+    # here we only read in the cross-spectral density matrix - the data used in
+    # it's calculation already had SSPs applied and we will use the noise CSD
+    # matrix in noise normalization instead of whitening the data
     Cm = data_csd.data
 
     # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
@@ -113,33 +119,15 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
     W = np.dot(G.T, Cm_inv)
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
-    source_power = np.zeros(n_sources)
     for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         Ck = np.dot(Wk, Gk)
 
-        # Find source orientation maximizing output source power
+        # DIFF: LCMV calculates 'max-power' orientation here
         # TODO: max-power is not used in this example, however DICS does employ
-        # orientation picking when one eigen value is much larger than the other
-        if pick_ori == 'max-power':
-            eig_vals, eig_vecs = linalg.eigh(Ck)
-
-            # Choosing the eigenvector associated with the middle eigenvalue.
-            # The middle and not the minimal eigenvalue is used because MEG is
-            # insensitive to one (radial) of the three dipole orientations and
-            # therefore the smallest eigenvalue reflects mostly noise.
-            for i in range(3):
-                if i != eig_vals.argmax() and i != eig_vals.argmin():
-                    idx_middle = i
-
-            # TODO: The eigenvector associated with the smallest eigenvalue
-            # should probably be used when using combined EEG and MEG data
-            max_ori = eig_vecs[:, idx_middle]
-
-            Wk[:] = np.dot(max_ori, Wk)
-            Ck = np.dot(max_ori, np.dot(Ck, max_ori))
-            is_free_ori = False
+        # orientation picking when one eigen value is much larger than the
+        # other
 
         if is_free_ori:
             # Free source orientation
@@ -148,22 +136,65 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
             # Fixed source orientation
             Wk /= Ck
 
-        # TODO: Vectorize outside of the loop?
-        source_power[k] = np.real_if_close(np.dot(Wk, np.dot(data_csd.data,
-                                                             Wk.conj().T)).trace())
+    # DIFF: LCMV picks 'max-power' orientation here
 
     # Preparing noise normalization
-    # TODO: Noise normalization in DICS should takes into account noise CSD
+    # TODO: Noise normalization in DICS should take into account noise CSD
+    # DIFF: noise_norm is not complex in LCMV
     noise_norm = np.sum((W * W.conj()), axis=1)
     noise_norm = np.real_if_close(noise_norm)
     if is_free_ori:
         noise_norm = np.sum(np.reshape(noise_norm, (-1, 3)), axis=1)
     noise_norm = np.sqrt(noise_norm)
 
-    # Applying noise normalization
-    source_power /= noise_norm
+    # Pick source orientation normal to cortical surface
+    if pick_ori == 'normal':
+        W = W[2::3]
+        is_free_ori = False
 
-    return source_power
+    # Applying noise normalization
+    if not is_free_ori:
+        W /= noise_norm[:, None]
+
+    if isinstance(data, np.ndarray) and data.ndim == 2:
+        data = [data]
+        return_single = True
+    else:
+        return_single = False
+
+    subject = _subject_from_forward(forward)
+    for i, M in enumerate(data):
+        if len(M) != len(picks):
+            raise ValueError('data and picks must have the same length')
+
+        if not return_single:
+            logger.info("Processing epoch : %d" % (i + 1))
+
+        # DIFF: LCMV applies data whitening here
+        # Apply SSPs
+        M = np.dot(proj, M)
+
+        # project to source space using beamformer weights
+
+        if is_free_ori:
+            sol = np.dot(W, M)
+            logger.info('combining the current components...')
+            sol = combine_xyz(sol)
+            sol /= noise_norm[:, None]
+        else:
+            # Linear inverse: do computation here or delayed
+            if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
+                sol = (W, M)
+            else:
+                sol = np.dot(W, M)
+            if pick_ori == 'max-power':
+                sol = np.abs(sol)
+
+        tstep = 1.0 / info['sfreq']
+        yield SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                             subject=subject)
+
+    logger.info('[done]')
 
 
 @verbose
@@ -211,7 +242,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     Gross et al. Dynamic imaging of coherent sources: Studying neural
     interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
-    
+
     info = epochs.info
     tmin = epochs.times[0]
 
@@ -221,7 +252,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
 
     stcs = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
                        label=label, pick_ori=pick_ori)
-    
+
     if not return_generator:
         stcs = [s for s in stcs]
 

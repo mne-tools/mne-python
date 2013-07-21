@@ -56,12 +56,10 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # TODO: Time and frequency windows should be selected on the basis of e.g. a
 # spectrogram
 
-# Computing the cross-spectral density matrix
+# Computing the data and noise cross-spectral density matrices
 data_csd = compute_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15, fmin=8,
                        fmax=12)
-
 noise_csd = compute_csd(epochs, mode='multitaper', tmin=-0.11, tmax=0.0, fmin=8,
                         fmax=12)
 
-source_power = dics_epochs(epochs, epochs.info, 0.04, forward, noise_csd,
-                           data_csd)
+stcs = dics_epochs(epochs, forward, noise_csd, data_csd)
