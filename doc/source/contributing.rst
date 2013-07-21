@@ -754,7 +754,7 @@ other shell. Then, execute all three shell scripts in the
 Cannot import class from a new \*.py file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Update the corresponding ``__init__.py`` file and recompile the files using
-``make html``.
+You need to update the corresponding ``__init__.py`` file and then
+restart the IPython kernel.
 
 .. include:: links.inc
