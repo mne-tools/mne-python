@@ -37,9 +37,9 @@ class CrossSpectralDensity(dict):
     def __repr__(self):
         # TODO: This will have to be updated when the CSD object will be
         # expected to hold CSDs for different frequencies
-        s = "size : %s x %s" % self.data.shape
-        s += ", data : %s" % self.data
-        return "<CrossSpectralDensity  |  %s>" % s
+        s = 'size : %s x %s' % self.data.shape
+        s += ', data : %s' % self.data
+        return '<CrossSpectralDensity  |  %s>' % s
 
 
 @verbose
@@ -54,17 +54,17 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
     Parameters
     ----------
     epochs : instance of Epochs
-        The epochs
+        The epochs.
     mode : str
-        Spectrum estimation mode can be either: 'multitaper' or 'fourier'
+        Spectrum estimation mode can be either: 'multitaper' or 'fourier'.
     fmin : float
-        Min frequency of interest.
+        Minimum frequency of interest.
     fmax : float | np.inf
-        Max frequency of interest.
+        Maximum frequency of interest.
     tmin : float | None
-        Min time instant to consider. If None start at first sample.
+        Minimum time instant to consider. If None start at first sample.
     tmax : float | None
-        Max time instant to consider. If None end at last sample.
+        Maximum time instant to consider. If None end at last sample.
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'multitaper' mode.
@@ -109,7 +109,7 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
         projs = cp.deepcopy(projs)
 
     picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
-                            exclude=[])
+                            exclude='bads')
     ch_names = [epochs.ch_names[k] for k in picks_meeg]
 
     # Preparing time window slice
