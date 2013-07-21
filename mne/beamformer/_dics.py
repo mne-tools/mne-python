@@ -20,9 +20,10 @@ from .. import verbose
 
 
 @verbose
-def dics_epochs(epochs, info, tmin, forward, noise_csd, data_csd, reg=0.1,
+def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
                 label=None, picks=None, pick_ori=None, verbose=None):
-    """ DICS
+    """ Calculate the DICS spatial filter based on a given cross-spectral density
+    object and return estimates of source activity based on given data.
 
     Parameters
     ----------
@@ -36,21 +37,20 @@ def dics_epochs(epochs, info, tmin, forward, noise_csd, data_csd, reg=0.1,
         Time of first sample.
     forward : dict
         Forward operator.
-    noise_cov : Covariance
-        The noise covariance.
-    data_cov : Covariance
-        The data covariance.
+    noise_csd : CrossSpectralDensity
+        The noise cross-spectral density.
+    data_csd : CrossSpectralDensity
+        The data cross-spectral density.
     reg : float
-        The regularization for the whitened data covariance.
+        The regularization for the cross-spectral density.
     label : Label | None
-        Restricts the LCMV solution to a given label.
+        Restricts the solution to a given label.
     picks : array of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    pick_ori : None | 'normal' | 'max-power'
+    pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
+        only the radial component is kept.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -79,11 +79,9 @@ def dics_epochs(epochs, info, tmin, forward, noise_csd, data_csd, reg=0.1,
                          'forward operator with a surface-based source space '
                          'is used.')
 
-    # Set picks again for epochs
-    picks = pick_types(epochs.info, meg=True, eeg=False, eog=False, stim=False,
+    picks = pick_types(info, meg=True, eeg=False, eog=False, stim=False,
                        exclude='bads')
-
-    ch_names = [epochs.info['ch_names'][k] for k in picks]
+    ch_names = [info['ch_names'][k] for k in picks]
 
     # Restrict forward solution to selected channels
     forward = pick_channels_forward(forward, include=ch_names)
@@ -103,7 +101,7 @@ def dics_epochs(epochs, info, tmin, forward, noise_csd, data_csd, reg=0.1,
         G = forward['sol']['data']
 
     # Apply SSPs
-    proj, ncomp, _ = make_projector(epochs.info['projs'], ch_names)
+    proj, ncomp, _ = make_projector(info['projs'], ch_names)
     G = np.dot(proj, G)
 
     Cm = data_csd.data
@@ -166,3 +164,65 @@ def dics_epochs(epochs, info, tmin, forward, noise_csd, data_csd, reg=0.1,
     source_power /= noise_norm
 
     return source_power
+
+
+@verbose
+def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
+                pick_ori=None, return_generator=False, verbose=None):
+    """Dynamic Imaging of Coherent Sources (DICS).
+
+    Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
+    on single trial data and return estimates of source time courses.
+
+    NOTE : This implementation has not been heavilly tested so please
+    report any issues or suggestions.
+
+    Parameters
+    ----------
+    epochs : Epochs
+        Single trial epochs.
+    forward : dict
+        Forward operator.
+    noise_csd : CrossSpectralDensity
+        The noise cross-spectral density.
+    data_csd : CrossSpectralDensity
+        The data cross-spectral density.
+    reg : float
+        The regularization for the cross-spectral density.
+    label : Label | None
+        Restricts the solution to a given label.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
+    return_generator : bool
+        Return a generator object instead of a list. This allows iterating
+        over the stcs without having to keep them all in memory.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stc: list | generator of SourceEstimate
+        The source estimates for all epochs
+
+    Notes
+    -----
+    The original reference is:
+    Gross et al. Dynamic imaging of coherent sources: Studying neural
+    interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+    """
+
+    info = epochs.info
+    tmin = epochs.times[0]
+
+    # use only the good data channels
+    picks = pick_types(info, meg=True, eeg=True, exclude='bads')
+    data = epochs.get_data()[:, picks, :]
+
+    stcs = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
+                       label=label, pick_ori=pick_ori)
+
+    if not return_generator:
+        stcs = [s for s in stcs]
+
+    return stcs
