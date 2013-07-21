@@ -38,26 +38,25 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """
-    pick_components = [[0, -1], np.arange(3), -1 * np.arange(3)]
     epochs_data = epochs.get_data()
     n_channels = epochs_data.shape[1]
 
-    for this_picks in pick_components:
-        csp = CSP(pick_components=this_picks)
+    n_components = 3
+    csp = CSP(n_components=n_components)
 
-        csp.fit(epochs_data, epochs.events[:, -1])
-        y = epochs.events[:, -1]
-        X = csp.fit_transform(epochs_data, y)
-        assert_true(csp.filters_.shape == (n_channels, n_channels))
-        assert_true(csp.patterns_.shape == (n_channels, n_channels))
-        assert_array_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
+    csp.fit(epochs_data, epochs.events[:, -1])
+    y = epochs.events[:, -1]
+    X = csp.fit_transform(epochs_data, y)
+    assert_true(csp.filters_.shape == (n_channels, n_channels))
+    assert_true(csp.patterns_.shape == (n_channels, n_channels))
+    assert_array_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
 
-        # test init exception
-        assert_raises(ValueError, csp.fit, epochs_data,
-                      np.zeros_like(epochs.events))
-        assert_raises(ValueError, csp.fit, epochs, y)
-        assert_raises(ValueError, csp.transform, epochs, y)
+    # test init exception
+    assert_raises(ValueError, csp.fit, epochs_data,
+                  np.zeros_like(epochs.events))
+    assert_raises(ValueError, csp.fit, epochs, y)
+    assert_raises(ValueError, csp.transform, epochs, y)
 
-        csp.pick_components = this_picks
-        sources = csp.transform(epochs_data)
-        assert_true(sources.shape[1] == len(this_picks))
+    csp.n_components = n_components
+    sources = csp.transform(epochs_data)
+    assert_true(sources.shape[1] == n_components)
