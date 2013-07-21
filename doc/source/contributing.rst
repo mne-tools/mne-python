@@ -196,7 +196,7 @@ These steps can be broken out to be more explicit as:
    it imported MNE-Python.
 
    Now, whenever you make any changes to the code, just restart the
-   IPython kernel for the changes to take effect.
+   ipython kernel for the changes to take effect.
 
 #. Change directory to your new repo::
 
@@ -755,6 +755,6 @@ Cannot import class from a new \*.py file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You need to update the corresponding ``__init__.py`` file and then
-restart the IPython kernel.
+restart the ipython kernel.
 
 .. include:: links.inc
