@@ -148,6 +148,8 @@ def test_read_write_epochs():
     # test copying loaded one (raw property)
     epochs_read4 = epochs_read3.copy()
     assert_array_almost_equal(epochs_read4.get_data(), data)
+    # test equalizing loaded one (drop_log property)
+    epochs_read4.equalize_event_counts(epochs.event_id)
 
 
 def test_epochs_proj():
@@ -518,6 +520,18 @@ def test_epochs_copy():
     data = epochs.get_data()
     copied_data = copied.get_data()
     assert_array_equal(data, copied_data)
+
+
+def test_iter_evoked():
+    """Test the iterator for epochs -> evoked
+    """
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+
+    for ii, ev in enumerate(epochs.iter_evoked()):
+        x = ev.data
+        y = epochs.get_data()[ii, :, :]
+        assert_array_equal(x, y)
 
 
 @requires_nitime

@@ -10,12 +10,12 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import fiff, Epochs, read_events
-from mne.csp import CSP
+from mne.decoding.csp import CSP
 from mne.utils import _TempDir, requires_sklearn
 
 tempdir = _TempDir()
 
-data_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
