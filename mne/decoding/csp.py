@@ -5,7 +5,8 @@
 
 import numpy as np
 from scipy import linalg
-from mne import cov, compute_covariance
+
+from . import cov, compute_covariance, Covariance
 
 class CSP(object):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
