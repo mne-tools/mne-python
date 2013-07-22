@@ -5,7 +5,7 @@
 
 import numpy as np
 from scipy import linalg
-
+from mne import cov, compute_covariance
 
 class CSP(object):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
@@ -19,11 +19,13 @@ class CSP(object):
     n_components : int, default 4
         The number of components to decompose M/EEG signals.
         This number should be set by cross-validation.
+    info : dict (optional)
+        The measurement info used to regularize covariance.
     reg : float, dict, str, None
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage 'lws' 
-                or Oracle Approximating Shrinkage 'oas'
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or 
+                Oracle Approximating Shrinkage ('oas')
         if dict, regularization factor for each sensor type used in 
                  mne.regularize (e.g. mag, grad, eeg)
 
@@ -42,8 +44,9 @@ class CSP(object):
     of the abnormal components in the clinical EEG. Electroencephalography
     and Clinical Neurophysiology, 79(6):440--447, December 1991.
     """
-    def __init__(self, n_components=4, reg=None):
+    def __init__(self, n_components=4, info=None, reg=None):
         self.n_components = n_components
+        self.info = info
         self.reg = reg
         self.filters_ = None
         self.patterns_ = None
@@ -83,9 +86,29 @@ class CSP(object):
             # compute empirical covariance
             cov_1 = np.dot(class_1, class_1.T)
             cov_2 = np.dot(class_2, class_2.T)
+        elif isinstance(self.reg, dict):
+            if self.info == None
+                raise ValueError("info is needed to regularize covariance")
+            # look for mne.regularize_covariance scaling factors
+            reg_param = []
+            for s in ['eeg','grad','mag']:
+                if s in self.reg.keys():
+                    reg_param.append(self.reg[s])
+                else:
+                    reg_param.append(0.1)
+            # compute empirical covariance
+            cov_tmp = Covariance(None)
+            cov_tmp.update(data=np.dot(class_1, class_1.T),bads=info['bads'],
+                           names=info['ch_names'],projs=info['projs'])
+            # and regularize using mne.cov.regularize
+            cov_1 = mne.cov.regularize(cov_tmp, info, eeg=reg_param[0],
+                                       grad=reg_param[1],mag=reg_param[2])
+            cov_tmp.update(data=np.dot(class_2, class_2.T))
+            cov_2 = mne.cov.regularize(cov_tmp, info, eeg=reg_param[0],
+                                       grad=reg_param[1],mag=reg_param[2])
         else:
+            # use sklearn covariance estimators
             if isinstance(self.reg, float):
-                # use shrinkage covariance regularization
                 if (self.reg < 0) or (self.reg > 1):
                     raise ValueError('0 <= shrinkage <= 1 for '
                                      'covariance regularization.')
@@ -109,7 +132,7 @@ class CSP(object):
                     # init sklearn.covariance.LedoitWolf estimator
                     skl_cov = LedoitWolf(store_precision=False,
                                          assume_centered=True,
-                                         block_size=1000)  # can create errors
+                                         block_size=1000) # can create errors
                 elif self.reg is 'oas':
                     try:
                         from sklearn.covariance import OAS
@@ -120,16 +143,16 @@ class CSP(object):
                     skl_cov = OAS(store_precision=False,
                                   assume_centered=True)
                 else:
-                    raise ValueError('reg parameter must be lws or oas.')
+                    raise ValueError('reg parameter must be "lws" or "oas".')
             else:
-                raise ValueError('reg parameter must be lws or oas.')
+                raise ValueError('reg parameter must be "lws" or "oas".')
 
             # compute regularized covariance using sklearn
             cov_1 = skl_cov.fit(class_1.T).covariance_
             cov_2 = skl_cov.fit(class_2.T).covariance_
         
         # then fit on covariance
-        self._fit(cov_1, cov_2)
+        self._fit(cov_1,cov_2)
         
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
