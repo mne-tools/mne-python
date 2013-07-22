@@ -178,8 +178,8 @@ These steps can be broken out to be more explicit as:
 
     ['/usr/local/lib/python2.7/dist-packages', '/usr/lib/python2.7/dist-packages']
 
-   When you write examples and import the MNE modules, this is where they
-   python searches and imported them from. If you want to avoid installing the
+   When you write examples and import the MNE modules, this is where python
+   searches and imports them from. If you want to avoid installing the
    package again when you make changes in your source code, it is better to
    create a symbolic link from the installation directory to the ``mne/``
    folder containing your source code.
@@ -188,7 +188,7 @@ These steps can be broken out to be more explicit as:
    these directories and delete them. Then, find the user directory for
    installing python packages::
 
-    import site; site.getsitepackages()
+    import site; site.getusersitepackages()
 
    This might give for instance::
 
