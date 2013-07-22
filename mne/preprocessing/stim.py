@@ -45,7 +45,9 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
     s_start = int(np.ceil(raw.info['sfreq'] * tmin))
     s_end = int(np.ceil(raw.info['sfreq'] * tmax))
 
-    picks = pick_types(raw.info, meg=True, eeg=True, exclude='bads')
+    picks = pick_types(raw.info, meg=True, eeg=True, eog=True, ecg=True,
+                       emg=True, ref_meg=True, misc=True, chpi=True,
+                       exclude='bads', stim=False, resp=False)
 
     if mode == 'window':
         window = 1 - np.r_[signal.hann(4)[:2],
