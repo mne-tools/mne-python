@@ -5,7 +5,8 @@
 
 import numpy as np
 from scipy import linalg
-
+from . import compute_covariance
+from . import cov
 
 class CSP(object):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
@@ -42,7 +43,7 @@ class CSP(object):
         self.mean_ = None
         self.std_ = None
 
-    def fit(self, epochs_data, y):
+    def fit(self, epochs_data, y, reg_cov=False):
         """Estimate the CSP decomposition on epochs.
 
         Parameters
@@ -51,6 +52,8 @@ class CSP(object):
             The data to estimate the CSP on.
         y : array
             The class for each epoch.
+        reg_cov : boolean
+            Allow regularized covariance
 
         Returns
         -------
@@ -64,16 +67,24 @@ class CSP(object):
         classes = np.unique(y)
         if len(classes) != 2:
             raise ValueError("More than two different classes in the data.")
+        
+        if reg_cov:
+            # concatenate epochs
+            class_1 = np.transpose(epochs_data[y == classes[0]],
+                                   [1, 0, 2]).reshape(epochs_data.shape[1], -1)
+            class_2 = np.transpose(epochs_data[y == classes[1]],
+                                   [1, 0, 2]).reshape(epochs_data.shape[1], -1)
 
-        # concatenate epochs
-        class_1 = np.transpose(epochs_data[y == classes[0]],
-                               [1, 0, 2]).reshape(epochs_data.shape[1], -1)
-        class_2 = np.transpose(epochs_data[y == classes[1]],
-                               [1, 0, 2]).reshape(epochs_data.shape[1], -1)
-
-        # fit on empirical covariance
-        self._fit(np.dot(class_1, class_1.T),
-                  np.dot(class_2, class_2.T))
+            # fit on empirical covariance
+            self._fit(np.dot(class_1, class_1.T),
+                      np.dot(class_2, class_2.T))
+        else:
+            # compute covariance on epochs
+            cov_1 = compute_covariance(epochs_data[y == classes[0]])
+            cov_2 = compute_covariance(epochs_data[y == classes[1]])
+            # fit on regularized covariance
+            self._fit(cov.regularize(cov_1).data,
+                      cov.regularize(cov_2).data)
 
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
