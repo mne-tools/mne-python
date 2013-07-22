@@ -80,7 +80,7 @@
 .. _sublime text: http://www.sublimetext.com/
 
 .. mne stuff
-.. _mne: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
+.. _mne command line utilities: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
 .. _mne-scripts: https://github.com/mne-tools/mne-scripts/
 
 .. _Freesurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/

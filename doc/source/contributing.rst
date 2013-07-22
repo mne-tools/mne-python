@@ -17,13 +17,13 @@ coding is done saves everyone time and effort!
 What you will need
 ------------------
 
-#. A Unix (Linux or Mac OS) box: MNE command line utilities and Freesurfer
+#. A Unix (Linux or Mac OS) box: `MNE command line utilities`_ and Freesurfer_
    that are required to make the best out of this toolbox require a Unix platform.
 
 #. A good python editor: Spyder_ IDE is suitable for those migrating from
    Matlab. EPD_ and Anaconda_ both ship Spyder and all its dependencies. For
-   Mac users, TextMate_ and `Sublime Text`_ are good choices. Sublime Text
-   is available in all three major platforms.
+   Mac users, TextMate_ and `Sublime Text`_ are good choices. `Sublime Text`_
+   is available on all three major platforms.
 
 #. Basic scientific tools in python: numpy_, scipy_, matplotlib_
 
@@ -33,7 +33,7 @@ What you will need
 #. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
    joblib_, nibabel_, and scikit-learn_
 
-#. External tools: MNE_ command line utilities, Freesurfer_, and `mne-scripts`_
+#. External tools: `MNE command line utilities`_, Freesurfer_, and `mne-scripts`_
 
 General code guidelines
 -----------------------
@@ -169,31 +169,41 @@ These steps can be broken out to be more explicit as:
 
 #. Create a symbolic link to your mne directory::
 
-   If you install MNE-Python using setup.py like a regular user, the
-   package by default is installed for example in::
+   To find the directory in which python packages are installed, go to python
+   and type::
 
-    /usr/lib/python2.7/site-packages/
+    import site; site.getsitepackages()
+
+   This gives two directories::
+
+    ['/usr/local/lib/python2.7/dist-packages', '/usr/lib/python2.7/dist-packages']
 
    When you write examples and import the MNE modules, this is where they
-   get imported from. If you want to avoid installing the package again when
-   you make changes in your source code, it is better to create a symbolic link
-   from the installation directory to the ``mne/`` folder containing your
-   source code.
+   python searches and imported them from. If you want to avoid installing the
+   package again when you make changes in your source code, it is better to
+   create a symbolic link from the installation directory to the ``mne/``
+   folder containing your source code.
 
    First, check if there are any ``mne`` or ``mne-*.egg-info`` files in
-   ``/usr/lib/python2.7/site-packages/`` directory and delete them. Then::
+   these directories and delete them. Then, find the user directory for
+   installing python packages::
 
-    cd ~/.local/lib/python2.7/site-packages/
+    import site; site.getsitepackages()
 
-   This is where python looks for packages installed in the users home
-   directory. Look for mne related directories and egg files and delete
-   them. Then, make a symlink to your working directory::
+   This might give for instance::
+
+    '~/.local/lib/python2.7/site-packages'
+
+   Then, make a symbolic link to your working directory::
 
     ln -s <path to mne-python>/mne ~/.local/lib/python2.7/site-packages/mne
 
-   To verify, it works go to another directory, run ipython, and then type
-   ``import mne; print mne.__path__``. This will show you from where
-   it imported MNE-Python.
+   Since you make a symbolic link to the local directory, you won't require
+   root access while editing the files and the changes in your working
+   directory are automatically reflected in the installation directory. To
+   verify that it works, go to a directory other than the installation
+   directory, run ipython, and then type ``import mne; print mne.__path__``.
+   This will show you from where it imported MNE-Python.
 
    Now, whenever you make any changes to the code, just restart the
    ipython kernel for the changes to take effect.
@@ -240,11 +250,11 @@ These steps can be broken out to be more explicit as:
 
    Your fork is now set up correctly.
 
-#. Ensure unit tests pass and htmls can be compiled
+#. Ensure unit tests pass and html files can be compiled
 
    Make sure before starting to code that all unit tests pass and the
-   htmls in the ``doc/`` directory can be built without errors. To build
-   the htmls, first go the ``doc/`` directory and then type::
+   html files in the ``doc/`` directory can be built without errors. To build
+   the html files, first go the ``doc/`` directory and then type::
 
     make html
 
