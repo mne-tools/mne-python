@@ -20,9 +20,9 @@ raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
-# Read epochs
+# Read several epochs
 event_id, tmin, tmax = 1, -0.2, 0.5
-events = mne.read_events(event_fname)
+events = mne.read_events(event_fname)[0:100]
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12))
