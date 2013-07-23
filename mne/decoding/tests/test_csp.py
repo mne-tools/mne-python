@@ -68,7 +68,7 @@ def test_regularized_csp():
     n_channels = epochs_data.shape[1]
 
     n_components = 3
-    reg_cov = [None, 0.05, 'lws', 'oas', dict(eeg=0, grad=0.8)]
+    reg_cov = [None, 0.05, 'lws', 'oas']
     for reg in reg_cov:
         csp = CSP(n_components=n_components, reg=reg)
         csp.fit(epochs_data, epochs.events[:, -1])
@@ -87,4 +87,4 @@ def test_regularized_csp():
         csp.n_components = n_components
         sources = csp.transform(epochs_data)
         assert_true(sources.shape[1] == n_components)
-    
+
