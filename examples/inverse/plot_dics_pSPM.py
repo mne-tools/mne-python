@@ -13,17 +13,9 @@ Work in progress.
 
 print __doc__
 
-import numpy as np
-import pylab as pl
-from scipy import linalg
-
 import mne
 
 from mne.fiff import Raw
-from mne.fiff.constants import FIFF
-from mne.fiff.pick import pick_channels_forward
-from mne.fiff.proj import make_projector
-from mne.minimum_norm.inverse import _get_vertno
 from mne.datasets import sample
 from mne.time_frequency import compute_csd
 from mne.beamformer import dics_epochs
@@ -59,7 +51,7 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # Computing the data and noise cross-spectral density matrices
 data_csd = compute_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15, fmin=8,
                        fmax=12)
-noise_csd = compute_csd(epochs, mode='multitaper', tmin=-0.11, tmax=0.0, fmin=8,
-                        fmax=12)
+noise_csd = compute_csd(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
+                        fmin=8, fmax=12)
 
 stcs = dics_epochs(epochs, forward, noise_csd, data_csd)
