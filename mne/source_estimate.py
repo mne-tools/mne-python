@@ -1317,7 +1317,8 @@ class SourceEstimate(_BaseSourceEstimate):
              colormap='hot', time_label='time=%0.2f ms',
              smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
              transparent=True, alpha=1.0, time_viewer=False,
-             config_opts={}, subjects_dir=None, figure=None):
+             config_opts={}, subjects_dir=None, figure=None,
+             views='lat'):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1368,6 +1369,8 @@ class SourceEstimate(_BaseSourceEstimate):
         figure : instance of mayavi.core.scene.Scene | None
             If None, the last figure will be cleaned and a new figure will
             be created.
+        views : str | list
+            View to use. See surfer.Brain().
 
         Returns
         -------
@@ -1381,7 +1384,7 @@ class SourceEstimate(_BaseSourceEstimate):
                         smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
                         fmax=fmax, transparent=transparent, alpha=alpha,
                         time_viewer=time_viewer, config_opts=config_opts,
-                        subjects_dir=subjects_dir, figure=figure)
+                        subjects_dir=subjects_dir, figure=figure, views=views)
         return brain
 
     @verbose

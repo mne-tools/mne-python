@@ -1533,7 +1533,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
                           smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
                           transparent=True, alpha=1.0, time_viewer=False,
-                          config_opts={}, subjects_dir=None, figure=None):
+                          config_opts={}, subjects_dir=None, figure=None,
+                          views='lat'):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1554,7 +1555,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         is None, the environment will be used.
     surface : str
         The type of surface (inflated, white etc.).
-    hemi : str, 'lh' | 'rh' | 'both'
+    hemi : str, 'lh' | 'rh' | 'split' | 'both'
         The hemisphere to display. Using 'both' opens two separate figures,
         one for each hemisphere.
     colormap : str
@@ -1584,6 +1585,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     figure : instance of mayavi.core.scene.Scene | None
         If None, the last figure will be cleaned and a new figure will
         be created.
+    views : str | list
+        View to use. See surfer.Brain().
 
     Returns
     -------
@@ -1600,12 +1603,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     if not isinstance(stc, SourceEstimate):
         raise ValueError('stc has to be a surface source estimate')
 
-    if hemi not in ['lh', 'rh', 'both']:
-        raise ValueError('hemi has to be either "lh", "rh", or "both"')
+    if hemi not in ['lh', 'rh', 'split', 'both']:
+        raise ValueError('hemi has to be either "lh", "rh", "split", '
+                         'or "both"')
 
-    if hemi == 'both' and figure is not None:
-        raise RuntimeError('`hemi` can\'t be `both` if the figure parameter'
-                           ' is supplied.')
+    if hemi in ['both', 'split'] and figure is not None:
+        raise RuntimeError('`hemi` can\'t be `both` or `split` if the figure '
+                           'parameter is supplied.')
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
 
     subject = _check_subject(stc.subject, subject, False)
@@ -1615,52 +1619,44 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         else:
             raise ValueError('SUBJECT environment variable not set')
 
-    if hemi == 'both':
+    if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
     else:
         hemis = [hemi]
 
-    brains = list()
+    title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
+    args = inspect.getargspec(Brain.__init__)[0]
+    if 'subjects_dir' in args:
+        brain = Brain(subject, hemi, surface, title=title, figure=figure,
+                      config_opts=config_opts, subjects_dir=subjects_dir,
+                      views=views)
+    else:
+        # Current PySurfer versions need the SUBJECTS_DIR env. var.
+        # so we set it here. This is a hack as it can break other things
+        # XXX reminder to remove this once upstream pysurfer is changed
+        os.environ['SUBJECTS_DIR'] = subjects_dir
+        brain = Brain(subject, hemi, surface, config_opts=config_opts,
+                      title=title, figure=figure)
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
-
-        title = '%s-%s' % (subject, hemi)
-        args = inspect.getargspec(Brain.__init__)[0]
-        if 'subjects_dir' in args:
-            brain = Brain(subject, hemi, surface, title=title, figure=figure,
-                          config_opts=config_opts, subjects_dir=subjects_dir)
-        else:
-            # Current PySurfer versions need the SUBJECTS_DIR env. var.
-            # so we set it here. This is a hack as it can break other things
-            # XXX reminder to remove this once upstream pysurfer is changed
-            os.environ['SUBJECTS_DIR'] = subjects_dir
-            brain = Brain(subject, hemi, surface, config_opts=config_opts,
-                          title=title, figure=figure)
-
         if hemi_idx == 0:
             data = stc.data[:len(stc.vertno[0])]
         else:
             data = stc.data[len(stc.vertno[0]):]
-
         vertices = stc.vertno[hemi_idx]
-
         time = 1e3 * stc.times
         brain.add_data(data, colormap=colormap, vertices=vertices,
                        smoothing_steps=smoothing_steps, time=time,
-                       time_label=time_label, alpha=alpha)
+                       time_label=time_label, alpha=alpha, hemi=hemi)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
                                   transparent=transparent)
-        brains.append(brain)
 
     if time_viewer:
-        viewer = TimeViewer(brains)
+        viewer = TimeViewer(brain)
 
-    if len(brains) == 1:
-        return brains[0]
-    else:
-        return brains
+    return brain
 
 
 def _plot_ica_panel_onpick(event, sources=None, ylims=None):
@@ -1858,7 +1854,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     axes = [axes] if ncol == nrow == 1 else axes.flat
     for ax in axes[len(data):]:  # hide unused axes
         ax.set_visible(False)
-    
+
     if vmax is None:
         vrange = np.array([f(data) for f in np.min, np.max])
         vmax = max(abs(vrange))

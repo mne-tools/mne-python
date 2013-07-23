@@ -22,13 +22,13 @@ def test_stim_elim():
     raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
     event_idx = np.where(events[:, 2] == 1)[0][0]
-    tidx = events[event_idx, 0] - raw.first_samp
+    tidx = int(events[event_idx, 0] - raw.first_samp)
 
-    # use window around stimulus 
+    # use window around stimulus
     tmin = -0.02
     tmax = 0.02
-    test_tminidx = -0.01 * raw.info['sfreq']
-    test_tmaxidx = 0.01 * raw.info['sfreq']
+    test_tminidx = int(-0.01 * raw.info['sfreq'])
+    test_tmaxidx = int(0.01 * raw.info['sfreq'])
 
     raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=tmin,
                                   tmax=tmax, mode='linear')
@@ -44,8 +44,8 @@ def test_stim_elim():
     # use window before stimulus
     tmin = -0.045
     tmax = 0.015
-    test_tminidx = -0.035 * raw.info['sfreq']
-    test_tmaxidx = -0.015 * raw.info['sfreq']
+    test_tminidx = int(-0.035 * raw.info['sfreq'])
+    test_tmaxidx = int(-0.015 * raw.info['sfreq'])
 
     raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=tmin,
                                   tmax=tmax, mode='linear')
@@ -61,8 +61,8 @@ def test_stim_elim():
     # use window after stimulus
     tmin = 0.005
     tmax = 0.045
-    test_tminidx = 0.015 * raw.info['sfreq']
-    test_tmaxidx = 0.035 * raw.info['sfreq']
+    test_tminidx = int(0.015 * raw.info['sfreq'])
+    test_tmaxidx = int(0.035 * raw.info['sfreq'])
 
     raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=tmin,
                                   tmax=tmax, mode='linear')
