@@ -108,7 +108,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
 
     # DIFF: LCMV applies SSPs and whitener to data covariance at this point,
     # here we only read in the cross-spectral density matrix - the data used in
-    # it's calculation already had SSPs applied and we will use the noise CSD
+    # its calculation already had SSPs applied and we will use the noise CSD
     # matrix in noise normalization instead of whitening the data
     Cm = data_csd.data
 
