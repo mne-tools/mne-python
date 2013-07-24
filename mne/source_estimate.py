@@ -774,19 +774,21 @@ class _BaseSourceEstimate(object):
         ----------
         width : scalar
             Width of the individual bins in seconds.
-
         func : callable
             Function that is applied to summarize the data. Needs to accept a
             numpy.array as first input and an ``axis`` keyword argument.
-
         tstart : scalar | None
             Time point where the first bin starts. The default is the first
             time point of the stc.
-
         tstop : scalar | None
             Last possible time point contained in a bin (if the last bin would
             be shorter than width it is dropped). The default is the last time
             point of the stc.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The binned SourceEstimate.
         """
         if tstart is None:
             tstart = self.tmin
