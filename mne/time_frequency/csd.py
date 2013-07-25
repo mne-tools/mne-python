@@ -193,8 +193,8 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
         weights_y = np.transpose(weights, axes=[1, 0, 2, 3])
         csds_epoch = _csd_from_mt(x_mt, y_mt, weights, weights_y)
 
-        # Averaging over frequencies of interest
-        csd_epoch = np.mean(csds_epoch, 2)
+        # Summing over frequencies of interest
+        csd_epoch = np.sum(csds_epoch, 2)
 
         csd_mean += csd_epoch
         n_epochs += 1
