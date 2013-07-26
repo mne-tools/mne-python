@@ -86,15 +86,20 @@ class CSP(object):
                     raise ValueError('0 <= shrinkage <= 1 for '
                                      'covariance regularization.')
                 try:
+                    import sklearn
+                    sklearn_version = int(sklearn.__version__.split('.')[1])
                     from sklearn.covariance import ShrunkCovariance
                 except ImportError:
                     raise Exception('the scikit-learn package is missing and '
                                     'required for covariance regularization.')
-                
-                # init sklearn.covariance.ShrunkCovariance estimator
-                skl_cov = ShrunkCovariance(shrinkage=self.reg,
-                                           store_precision=False,
-                                           assume_centered=True)
+                if sklearn_version < 12:
+                    skl_cov = ShrunkCovariance(shrinkage=self.reg,
+                                               store_precision=False)
+                else:
+                    # init sklearn.covariance.ShrunkCovariance estimator
+                    skl_cov = ShrunkCovariance(shrinkage=self.reg,
+                                               store_precision=False,
+                                               assume_centered=True)
             elif isinstance(self.reg, str):
                 if self.reg == 'lws':
                     try:
@@ -104,8 +109,7 @@ class CSP(object):
                                         'and required for regularization.')
                     # init sklearn.covariance.LedoitWolf estimator
                     skl_cov = LedoitWolf(store_precision=False,
-                                         assume_centered=True,
-                                         block_size=1000) # can create errors
+                                         assume_centered=True)
                 elif self.reg == 'oas':
                     try:
                         from sklearn.covariance import OAS
