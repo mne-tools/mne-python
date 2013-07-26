@@ -313,7 +313,7 @@ class RawKIT(Raw):
                     (start, stop - 1, start / float(self.info['sfreq']),
                                (stop - 1) / float(self.info['sfreq'])))
 
-        with open(self._sqd_params['fname'], 'r') as fid:
+        with open(self._sqd_params['fname'], 'rb') as fid:
             # extract data
             fid.seek(KIT.DATA_OFFSET)
             # data offset info
@@ -510,7 +510,7 @@ def get_sqd_params(rawfile):
     """
     sqd = dict()
     sqd['rawfile'] = rawfile
-    with open(rawfile, 'r') as fid:
+    with open(rawfile, 'rb') as fid:
         fid.seek(KIT.BASIC_INFO)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(basic_offset)
