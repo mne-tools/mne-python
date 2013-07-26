@@ -37,6 +37,7 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 # Setup for reading the raw data
 raw = Raw(raw_fname)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
+raw.info['projs'] = []
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
