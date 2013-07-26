@@ -57,10 +57,9 @@ from sklearn.svm import SVC
 from sklearn.cross_validation import ShuffleSplit
 from mne.decoding import CSP
 
-# pick some components (0 is the largest eigen values)
-pick_components = [0, 1, -2, -1]
+n_components = 3  # pick some components
 svc = SVC(C=1, kernel='linear')
-csp = CSP(pick_components=pick_components)
+csp = CSP(n_components=n_components)
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
@@ -92,6 +91,12 @@ cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print scores.mean()  # should match results above
+
+# And using reuglarized csp with Ledoit-Wolf estimator
+csp = CSP(n_components=n_components, reg='lws')
+clf = Pipeline([('CSP', csp), ('SVC', svc)])
+scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
+print scores.mean()  # should get better results than above
 
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)

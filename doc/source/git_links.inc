@@ -55,9 +55,35 @@
 
 .. other stuff
 .. _python: http://www.python.org
-.. _spyder: http://spyder-ide.blogspot.com/
+
+.. python packages
 .. _pep8: http://pypi.python.org/pypi/pep8
 .. _pyflakes: http://pypi.python.org/pypi/pyflakes
+.. _coverage: https://pypi.python.org/pypi/coverage
+.. _nosetests: https://nose.readthedocs.org/en/latest/
+.. _mayavi: http://mayavi.sourceforge.net/
+.. _nitime: http://nipy.org/nitime/
+.. _joblib: https://pypi.python.org/pypi/joblib
+.. _scikit-learn: http://scikit-learn.org/stable/
+.. _pysurfer: http://pysurfer.github.io/
+.. _pyDICOM: https://pypi.python.org/pypi/pydicom/ 
+.. _matplotlib: http://matplotlib.org/
+.. _sphinx: http://sphinx-doc.org/
+.. _pandas: http://pandas.pydata.org/
+.. _PIL: https://pypi.python.org/pypi/PIL
+
+.. python editors
+.. _spyder: http://spyder-ide.blogspot.com/
+.. _anaconda: http://www.continuum.io/downloads
+.. _EPD: https://www.enthought.com/products/epd/
+.. _textmate: http://macromates.com/
+.. _sublime text: http://www.sublimetext.com/
+
+.. mne stuff
+.. _mne command line utilities: http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/
+.. _mne-scripts: https://github.com/mne-tools/mne-scripts/
+
+.. _Freesurfer: http://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall/
 
 .. |emdash| unicode:: U+02014
 

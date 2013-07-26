@@ -14,6 +14,27 @@ of the users who use the package.
 page as the maintainers about changes or enhancements before too much
 coding is done saves everyone time and effort!
 
+What you will need
+------------------
+
+#. A Unix (Linux or Mac OS) box: `MNE command line utilities`_ and Freesurfer_
+   that are required to make the best out of this toolbox require a Unix platform.
+
+#. A good python editor: Spyder_ IDE is suitable for those migrating from
+   Matlab. EPD_ and Anaconda_ both ship Spyder and all its dependencies. For
+   Mac users, TextMate_ and `Sublime Text`_ are good choices. `Sublime Text`_
+   is available on all three major platforms.
+
+#. Basic scientific tools in python: numpy_, scipy_, matplotlib_
+
+#. Development related tools: nosetests_, coverage_, mayavi_, sphinx_,
+   pep8_, and pyflakes_
+
+#. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
+   joblib_, nibabel_, and scikit-learn_
+
+#. External tools: `MNE command line utilities`_, Freesurfer_, and `mne-scripts`_
+
 General code guidelines
 -----------------------
 
@@ -131,8 +152,8 @@ in principle also fork a different one, such as ``mne-matlab```):
    Now, after a short pause and some 'Hardcore forking action', you should
    find yourself at the home page for your own forked copy of mne-python_.
 
-Setting up the fork to work on
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Setting up the fork and the working directory
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Briefly, this is done using::
 
@@ -145,6 +166,47 @@ These steps can be broken out to be more explicit as:
 #. Clone your fork to the local computer::
 
     git clone git@github.com:your-user-name/mne-python.git
+
+#. Create a symbolic link to your mne directory::
+
+   To find the directory in which python packages are installed, go to python
+   and type::
+
+    import site; site.getsitepackages()
+
+   This gives two directories::
+
+    ['/usr/local/lib/python2.7/dist-packages', '/usr/lib/python2.7/dist-packages']
+
+   When you write examples and import the MNE modules, this is where python
+   searches and imports them from. If you want to avoid installing the
+   package again when you make changes in your source code, it is better to
+   create a symbolic link from the installation directory to the ``mne/``
+   folder containing your source code.
+
+   First, check if there are any ``mne`` or ``mne-*.egg-info`` files in
+   these directories and delete them. Then, find the user directory for
+   installing python packages::
+
+    import site; site.getusersitepackages()
+
+   This might give for instance::
+
+    '~/.local/lib/python2.7/site-packages'
+
+   Then, make a symbolic link to your working directory::
+
+    ln -s <path to mne-python>/mne ~/.local/lib/python2.7/site-packages/mne
+
+   Since you make a symbolic link to the local directory, you won't require
+   root access while editing the files and the changes in your working
+   directory are automatically reflected in the installation directory. To
+   verify that it works, go to a directory other than the installation
+   directory, run ipython, and then type ``import mne; print mne.__path__``.
+   This will show you from where it imported MNE-Python.
+
+   Now, whenever you make any changes to the code, just restart the
+   ipython kernel for the changes to take effect.
 
 #. Change directory to your new repo::
 
@@ -186,7 +248,18 @@ These steps can be broken out to be more explicit as:
     origin     git@github.com:your-user-name/mne-python.git (fetch)
     origin     git@github.com:your-user-name/mne-python.git (push)
 
-   Your fork is now set up correctly, and you are ready to hack away.
+   Your fork is now set up correctly.
+
+#. Ensure unit tests pass and html files can be compiled
+
+   Make sure before starting to code that all unit tests pass and the
+   html files in the ``doc/`` directory can be built without errors. To build
+   the html files, first go the ``doc/`` directory and then type::
+
+    make html
+
+   Once it is compiled for the first time, subsequent compiles will only
+   recompile what has changed. That's it! You are now ready to hack away.
 
 Workflow summary
 ----------------
@@ -645,5 +718,53 @@ and the history looks now like this::
 
 If it went wrong, recovery is again possible as explained :ref:`above
 <recovering-from-mess-up>`.
+
+Fetching a pull request
+^^^^^^^^^^^^^^^^^^^^^^^
+
+To fetch a pull request on the main repository to your local working
+directory as a new branch, just do::
+
+ git fetch upstream pull/<pull request number>/head:<local-branch>
+
+As an example, to pull the realtime pull request which has a url
+``https://github.com/mne-tools/mne-python/pull/615/``, do::
+
+ git fetch upstream pull/615/head:realtime
+
+If you want to fetch a pull request to your own fork, replace
+``upstream`` with ``origin``. That's it!
+
+Adding example to example gallery
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Add the example to the correct subfolder in the ``examples/`` directory and
+prefix the file with ``plot_``. To make sure that the example renders correctly,
+run ``make html`` in the ``doc/`` folder
+
+Editing \*.rst files
+^^^^^^^^^^^^^^^^^^^^
+
+These are reStructuredText files. Consult the Sphinx documentation to learn
+more about editing them.
+
+Troubleshooting
+---------------
+
+Listed below are miscellaneous issues that you might face:
+
+Missing files in examples or unit tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the unit tests fail due to missing files, you may need to run
+`mne-scripts`_ on the sample dataset. Go to ``bash`` if you are using some
+other shell. Then, execute all three shell scripts in the
+``sample-data/`` directory within ``mne-scripts/``.
+
+Cannot import class from a new \*.py file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You need to update the corresponding ``__init__.py`` file and then
+restart the ipython kernel.
 
 .. include:: links.inc

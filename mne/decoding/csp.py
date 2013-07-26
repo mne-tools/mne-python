@@ -16,9 +16,14 @@ class CSP(object):
 
     Parameters
     ----------
-    pick_components : None (default) or array of int
-        Indices of components to decompose M/EEG signals
-        (if None, all components are used).
+    n_components : int, default 4
+        The number of components to decompose M/EEG signals.
+        This number should be set by cross-validation.
+    reg : float, str, None
+        if not None, allow regularization for covariance estimation
+        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or 
+                Oracle Approximating Shrinkage ('oas')
 
     Attributes
     ----------
@@ -35,10 +40,9 @@ class CSP(object):
     of the abnormal components in the clinical EEG. Electroencephalography
     and Clinical Neurophysiology, 79(6):440--447, December 1991.
     """
-    def __init__(self, pick_components=None):
-        if pick_components is None:
-            pick_components = slice(None, None, None)
-        self.pick_components = pick_components
+    def __init__(self, n_components=4, reg=None):
+        self.n_components = n_components
+        self.reg = reg
         self.filters_ = None
         self.patterns_ = None
         self.mean_ = None
@@ -66,18 +70,70 @@ class CSP(object):
         classes = np.unique(y)
         if len(classes) != 2:
             raise ValueError("More than two different classes in the data.")
-
         # concatenate epochs
         class_1 = np.transpose(epochs_data[y == classes[0]],
                                [1, 0, 2]).reshape(epochs_data.shape[1], -1)
         class_2 = np.transpose(epochs_data[y == classes[1]],
                                [1, 0, 2]).reshape(epochs_data.shape[1], -1)
+        if self.reg is None:
+            # compute empirical covariance
+            cov_1 = np.dot(class_1, class_1.T)
+            cov_2 = np.dot(class_2, class_2.T)
+        else:
+            # use sklearn covariance estimators
+            if isinstance(self.reg, float):
+                if (self.reg < 0) or (self.reg > 1):
+                    raise ValueError('0 <= shrinkage <= 1 for '
+                                     'covariance regularization.')
+                try:
+                    import sklearn
+                    sklearn_version = int(sklearn.__version__.split('.')[1])
+                    from sklearn.covariance import ShrunkCovariance
+                except ImportError:
+                    raise Exception('the scikit-learn package is missing and '
+                                    'required for covariance regularization.')
+                if sklearn_version < 12:
+                    skl_cov = ShrunkCovariance(shrinkage=self.reg,
+                                               store_precision=False)
+                else:
+                    # init sklearn.covariance.ShrunkCovariance estimator
+                    skl_cov = ShrunkCovariance(shrinkage=self.reg,
+                                               store_precision=False,
+                                               assume_centered=True)
+            elif isinstance(self.reg, str):
+                if self.reg == 'lws':
+                    try:
+                        from sklearn.covariance import LedoitWolf
+                    except ImportError:
+                        raise Exception('the scikit-learn package is missing '
+                                        'and required for regularization.')
+                    # init sklearn.covariance.LedoitWolf estimator
+                    skl_cov = LedoitWolf(store_precision=False,
+                                         assume_centered=True)
+                elif self.reg == 'oas':
+                    try:
+                        from sklearn.covariance import OAS
+                    except ImportError:
+                        raise Exception('the scikit-learn package is missing '
+                                        'and required for regularization.')
+                    # init sklearn.covariance.OAS estimator
+                    skl_cov = OAS(store_precision=False,
+                                  assume_centered=True)
+                else:
+                    raise ValueError("regularization parameter should be "
+                                     "of type str (got %s)." % type(self.reg))
+            else:
+                raise ValueError("regularization parameter should be "
+                                 "of type str (got %s)." % type(self.reg))
 
-        # fit on empirical covariance
-        self._fit(np.dot(class_1, class_1.T),
-                  np.dot(class_2, class_2.T))
-
-        pick_filters = self.filters_[self.pick_components]
+            # compute regularized covariance using sklearn
+            cov_1 = skl_cov.fit(class_1.T).covariance_
+            cov_2 = skl_cov.fit(class_2.T).covariance_
+        
+        # then fit on covariance
+        self._fit(cov_1, cov_2)
+        
+        pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
 
         # compute features (mean band power)
@@ -107,12 +163,12 @@ class CSP(object):
         w_a = np.dot(np.dot(p, cov_a), p.T)
         w_b = np.dot(np.dot(p, cov_b), p.T)
         # and solve it
-        g, b = linalg.eigh(w_a, w_b)
-        # sort eigen values
-        ind = np.argsort(g)
-        b = b[:, ind]
+        vals, vecs = linalg.eigh(w_a, w_b)
+        # sort vectors by discriminative power using eigen values
+        ind = np.argsort(np.maximum(vals, 1. / vals))[::-1]
+        vecs = vecs[:, ind]
         # and project
-        w = np.dot(b.T, p)
+        w = np.dot(vecs.T, p)
 
         self.filters_ = w
         self.patterns_ = linalg.pinv(w).T
@@ -153,7 +209,7 @@ class CSP(object):
             raise RuntimeError('No filters available. Please first fit CSP '
                                'decomposition.')
 
-        pick_filters = self.filters_[self.pick_components]
+        pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
 
         # compute features (mean band power)
