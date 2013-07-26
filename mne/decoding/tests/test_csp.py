@@ -34,7 +34,6 @@ epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                 baseline=(None, 0), preload=True)
 
 
-@requires_sklearn
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """
@@ -60,3 +59,32 @@ def test_csp():
     csp.n_components = n_components
     sources = csp.transform(epochs_data)
     assert_true(sources.shape[1] == n_components)
+
+@requires_sklearn
+def test_regularized_csp():
+    """Test Common Spatial Patterns algorithm using regularized covariance
+    """
+    epochs_data = epochs.get_data()
+    n_channels = epochs_data.shape[1]
+
+    n_components = 3
+    reg_cov = [None, 0.05, 'lws', 'oas']
+    for reg in reg_cov:
+        csp = CSP(n_components=n_components, reg=reg)
+        csp.fit(epochs_data, epochs.events[:, -1])
+        y = epochs.events[:, -1]
+        X = csp.fit_transform(epochs_data, y)
+        assert_true(csp.filters_.shape == (n_channels, n_channels))
+        assert_true(csp.patterns_.shape == (n_channels, n_channels))
+        assert_array_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
+    
+        # test init exception
+        assert_raises(ValueError, csp.fit, epochs_data,
+                      np.zeros_like(epochs.events))
+        assert_raises(ValueError, csp.fit, epochs, y)
+        assert_raises(ValueError, csp.transform, epochs, y)
+    
+        csp.n_components = n_components
+        sources = csp.transform(epochs_data)
+        assert_true(sources.shape[1] == n_components)
+
