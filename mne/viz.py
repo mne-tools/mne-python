@@ -1849,7 +1849,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     axes = [axes] if ncol == nrow == 1 else axes.flat
     for ax in axes[len(data):]:  # hide unused axes
         ax.set_visible(False)
-    
+
     if vmax is None:
         vrange = np.array([f(data) for f in np.min, np.max])
         vmax = max(abs(vrange))
