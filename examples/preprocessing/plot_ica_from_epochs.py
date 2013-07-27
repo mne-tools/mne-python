@@ -46,13 +46,14 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
 
 random_state = np.random.RandomState(42)
 
-#####################################################################################
+
+###############################################################################
 # Setup ICA seed decompose data, then access and plot sources.
 # for more background information visit the plot_ica_from_raw.py example
 
 # fit sources from epochs or from raw (both works for epochs)
-ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
-          noise_cov=None, random_state=random_state)
+ica = ICA(n_components=0.90, n_pca_components=None,
+          max_pca_components=100, random_state=random_state)
 
 ica.decompose_epochs(epochs)
 print ica
