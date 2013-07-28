@@ -1117,7 +1117,7 @@ class ICA(object):
 
         # get unmixing and add scaling
         self.unmixing_matrix_ = getattr(ica, 'components_', 'unmixing_matrix_')
-        self.unmixing_matrix_ *= np.sqrt(exp_var[sel])[:, None]
+        self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[:, None]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_).T
         self.current_fit = fit_type
 
