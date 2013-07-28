@@ -466,21 +466,19 @@ class ICA(object):
                                ecg=True, eog=True, stim=True, exclude='bads')
 
         # merge copied instance and picked data with sources
-
         start, stop = _check_start_stop(raw, start, stop)
         sources = self.get_sources_raw(raw, start=start, stop=stop)
-        if raw._preloaded:
+        if raw._preloaded:  # get data and temporarily delete
             data, times = raw._data, raw._times
-            del raw._data
-            del raw._times
+            del raw._data, raw._times
 
-        out = raw.copy()
+        out = raw.copy()  # copy and reappend
         if raw._preloaded:
             raw._data, raw._times = data, times
 
+        # populate copied raw.
         out.fids = []
         data_, times_ = raw[picks, start:stop]
-
         out._data = np.r_[sources, data_]
         out._times = times_
         out._preloaded = True

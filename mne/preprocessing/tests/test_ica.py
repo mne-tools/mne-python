@@ -204,19 +204,24 @@ def test_ica_additional():
         ica.exclude = []
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
+        get = getattr
+        for attr in ['mixing_matrix_', 'unmixing_matrix_', 'pca_components_',
+                     'pca_mean_', 'pca_explained_variance_',
+                     '_pre_whitener']:
+            assert_array_almost_equal(get(ica, attr), get(ica_read, attr))
 
         assert_true(ica.ch_names == ica_read.ch_names)
         assert_true(isinstance(ica_read.info, Info))  # XXX improve later
-        assert_true(np.allclose(ica.mixing_matrix_, ica_read.mixing_matrix_,
-                                rtol=1e-16, atol=1e-32))
-        assert_array_equal(ica.pca_components_,
-                           ica_read.pca_components_)
-        assert_array_equal(ica.pca_mean_, ica_read.pca_mean_)
-        assert_array_equal(ica.pca_explained_variance_,
-                           ica_read.pca_explained_variance_)
-        assert_array_equal(ica._pre_whitener, ica_read._pre_whitener)
+        # assert_true(np.allclose(ica.mixing_matrix_, ica_read.mixing_matrix_,
+        #                         rtol=1e-16, atol=1e-32))
+        # assert_array_equal(ica.pca_components_,
+        #                    ica_read.pca_components_)
+        # assert_array_equal(ica.pca_mean_, ica_read.pca_mean_)
+        # assert_array_equal(ica.pca_explained_variance_,
+        #                    ica_read.pca_explained_variance_)
+        # assert_array_equal(ica._pre_whitener, ica_read._pre_whitener)
 
-        # assert_raises(RuntimeError, ica_read.decompose_raw, raw)
+        assert_raises(RuntimeError, ica_read.decompose_raw, raw)
         sources = ica.get_sources_raw(raw)
         sources2 = ica_read.get_sources_raw(raw)
         assert_array_almost_equal(sources, sources2)
@@ -285,7 +290,7 @@ def test_ica_additional():
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
     test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
-    ica_raw.save(test_ica_fname)
+    ica_raw.save(test_ica_fname, overwrite=True)
     ica_raw2 = fiff.Raw(test_ica_fname, preload=True)
     assert_array_almost_equal(ica_raw._data, ica_raw2._data)
     ica_raw2.close()
