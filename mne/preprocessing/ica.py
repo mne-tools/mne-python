@@ -1085,9 +1085,9 @@ class ICA(object):
 
         # the things to store for PCA
         self.pca_mean_ = pca.mean_
-        self.pca_explained_variance_ = exp_var = pca.explained_variance_
         self.pca_components_ = pca.components_
         # unwhiten pca components and put scaling in unmixintg matrix later.
+        self.pca_explained_variance_ = exp_var = pca.explained_variance_
         self.pca_components_ *= np.sqrt(exp_var[:, None])
         del pca
         # update number of components

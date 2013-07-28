@@ -58,7 +58,16 @@ score_funcs_unsuited = ['pointbiserialr', 'ansari']
 def test_ica_core():
     """Test ICA on raw and epochs
     """
-    # setup parameter
+    # Most basic recovery
+    raw_ = raw.crop(5.0)
+    ica = ICA(n_components=5, max_pca_components=5,
+              n_pca_components=5)
+    ica.decompose_raw(raw_, picks=np.arange(ica.n_components))
+    raw3 = ica.pick_sources_raw(raw_, exclude=[])
+    assert_array_almost_equal(raw_._data[:ica.n_components_],
+                              raw3._data[:ica.n_components_])
+    del raw3, raw_
+
     # XXX. The None cases helped revealing bugs but are time consuming.
     noise_cov = [None, test_cov]
     # removed None cases to speed up...
@@ -162,7 +171,6 @@ def test_ica_additional():
 
     # epochs extraction from raw fit
     assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
-
     # test reading and writing
     test_ica_fname = op.join(op.dirname(tempdir), 'ica_test.fif')
     for cov in (None, test_cov):
