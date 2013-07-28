@@ -1057,8 +1057,9 @@ class ICA(object):
         from sklearn.decomposition import RandomizedPCA
 
         # sklearn < 0.11 does not support random_state argument
-        kwargs = {'n_components': max_pca_components, 'whiten': False,
-                  'copy': False}
+        kwargs = {'n_components': max_pca_components, 'whiten': True,
+                  'copy': True}
+                  # XXX fix this later. Bug in sklearn, see PR #2273
 
         aspec = inspect.getargspec(RandomizedPCA.__init__)
         if 'random_state' not in aspec.args:
@@ -1085,9 +1086,11 @@ class ICA(object):
                 sel = slice(len(pca.components_))
 
         # the things to store for PCA
-        self.pca_components_ = pca.components_
         self.pca_mean_ = pca.mean_
-        self.pca_explained_variance_ = pca.explained_variance_
+        self.pca_explained_variance_ = exp_var = pca.explained_variance_
+        self.pca_components_ = pca.components_
+        # unwhiten pca components and put scaling in unmixintg matrix later.
+        self.pca_components_ *= np.sqrt(exp_var[:, None])
         del pca
         # update number of components
         self.n_components_ = sel.stop
@@ -1101,7 +1104,7 @@ class ICA(object):
 
         # sklearn < 0.11 does not support random_state argument for FastICA
         kwargs = {'algorithm': self.algorithm, 'fun': self.fun,
-                  'fun_args': self.fun_args}
+                  'fun_args': self.fun_args, 'whiten': False}
 
         if self.random_state is not None:
             aspec = inspect.getargspec(FastICA.__init__)
@@ -1114,12 +1117,9 @@ class ICA(object):
         ica = FastICA(**kwargs)
         ica.fit(data[:, sel])
 
-        # For ICA the only thing to store is the unmixing matrix
-        if not hasattr(ica, 'sources_'):
-            self.unmixing_matrix_ = ica.unmixing_matrix_
-        else:
-            self.unmixing_matrix_ = ica.components_
-
+        # get unmixing and add scaling
+        self.unmixing_matrix_ = getattr(ica, 'components_', 'unmixing_matrix_')
+        self.unmixing_matrix_ *= np.sqrt(exp_var[sel])[:, None]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_).T
         self.current_fit = fit_type
 
@@ -1128,6 +1128,7 @@ class ICA(object):
 
         _n_pca_comp = _check_n_pca_components(self, self.n_pca_components,
                                               self.verbose)
+
         if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components):
             raise ValueError('n_pca_components must be between '
                              'n_components and max_pca_components.')
@@ -1192,6 +1193,8 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
                         <= _n_pca_comp).sum()
         logger.info('Selected %i PCA components by explained '
                     'variance' % _n_pca_comp)
+    elif _n_pca_comp is None:
+        _n_pca_comp = ica.n_components_
     return _n_pca_comp
 
 
@@ -1331,7 +1334,6 @@ def _deserialize(str_, outer_sep=';', inner_sep=':'):
         out[k] = vv if not isinstance(vv, unicode) else str(vv)
 
     return out
-
 
 
 def _write_ica(fid, ica):
