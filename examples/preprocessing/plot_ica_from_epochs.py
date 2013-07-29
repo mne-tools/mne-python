@@ -59,7 +59,7 @@ print ica
 
 # plot spatial sensitivities of a few ICA components
 title = 'Spatial patterns of ICA components (Magnetometers)'
-source_idx = range(15)
+source_idx = range(35, 50)
 ica.plot_topomap(source_idx, ch_type='mag')
 pl.suptitle(title, fontsize=12)
 

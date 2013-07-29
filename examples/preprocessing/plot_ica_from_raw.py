@@ -133,6 +133,12 @@ pl.xlabel('Time (s)')
 pl.ylabel('AU')
 pl.show()
 
+# plot spatial sensitivities of EOG and ECG ICA components
+title = 'Spatial patterns of ICA components for ECG+EOG (Magnetometers)'
+source_idx = range(15)
+ica.plot_topomap([ecg_source_idx, eog_source_idx], ch_type='mag')
+pl.suptitle(title, fontsize=12)
+
 ###############################################################################
 # Show MEG data before and after ICA cleaning.
 
