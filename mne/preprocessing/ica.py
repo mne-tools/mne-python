@@ -1139,19 +1139,20 @@ class ICA(object):
         n_components = self.n_components_
         n_pca_components = self.n_pca_components
 
-        if include not in (None, []):
-            mask = np.ones(len(data), dtype=np.bool)
-            mask[np.unique(include)] = False
-            data[mask] = 0.
-        elif exclude not in (None, []):
-            data[np.unique(exclude)] = 0.
+        # Apply first PCA
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
-        # Apply first PCA
         pca_data = np.dot(self.pca_components_, data)
         # Apply unmixing to low dimension PCA
         sources = np.dot(self.unmixing_matrix_, pca_data[:n_components])
+
+        if include not in (None, []):
+            mask = np.ones(len(data), dtype=np.bool)
+            mask[np.unique(include)] = False
+            sources[mask] = 0.
+        elif exclude not in (None, []):
+            sources[np.unique(exclude)] = 0.
 
         pca_data[:n_components] = np.dot(self.mixing_matrix_, sources)
         data = np.dot(self.pca_components_[:n_components].T,
