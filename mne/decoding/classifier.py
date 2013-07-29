@@ -107,24 +107,6 @@ class Scaler(TransformerMixin):
 
         return X
 
-    def fit_transform(self, epochs_data, y):
-        """Standardizes data across channels
-
-        Parameters
-        ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
-            The data.
-
-        y : array
-            The label for each epoch.
-
-        Returns
-        -------
-        X: array, shape (n_epochs, n_channels * n_times)
-            The data concatenated over channels.
-        """
-        return self.fit(epochs_data, y).transform(epochs_data)
-
 
 class ConcatenateChannels(TransformerMixin):
     """Concatenates data from different channels into a single feature vector
@@ -183,25 +165,6 @@ class ConcatenateChannels(TransformerMixin):
         X = epochs_data.reshape(n_epochs, n_channels * n_times)
 
         return X
-
-    def fit_transform(self, epochs_data, y):
-        """Concatenates data from different channels into single feature
-        vector
-
-        Parameters
-        ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
-            The data.
-
-        y : array
-            The label for each epoch
-
-        Returns
-        -------
-        X : array, shape (n_epochs, n_channels*n_times)
-            The data concatenated over channels
-        """
-        return self.transform(epochs_data)
 
 
 class PSDEstimator(TransformerMixin):
@@ -292,24 +255,6 @@ class PSDEstimator(TransformerMixin):
         psd = psd.reshape(n_epochs, n_channels, n_freqs)
 
         return psd
-
-    def fit_transform(self, epochs_data, y):
-        """Compute power spectrum density (PSD) using a multi-taper method
-
-        Parameters
-        ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
-            The data.
-
-        y : array
-            The label for each epoch
-
-        Returns
-        -------
-        psd : array, shape=(n_signals, len(freqs)) or (len(freqs),)
-            The computed PSD.
-        """
-        return self.transform(epochs_data)
 
 
 class FilterEstimator(TransformerMixin):
@@ -477,21 +422,3 @@ class FilterEstimator(TransformerMixin):
                                      picks=self.picks, n_jobs=self.n_jobs,
                                      copy=False, verbose=False)
         return epochs_data
-
-    def fit_transform(self, epochs_data, y):
-        """Filters data
-
-        Parameters
-        ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
-            The data.
-
-        y : array
-            The label for each epoch
-
-        Returns
-        -------
-        X : array, shape=(n_epochs, n_channels, n_times)
-            The data after filtering
-        """
-        return self.fit(epochs_data, y).transform(epochs_data)
