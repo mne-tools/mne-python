@@ -140,6 +140,7 @@ pl.xlabel('Time (s)')
 pl.ylabel('AU')
 pl.xlim(times[[0, -1]])
 pl.show()
+ylim = pl.ylim()
 
 
 pl.figure()
@@ -147,6 +148,7 @@ pl.title('Cleaned epochs, ECG-like channel')
 pl.plot(epochs_ica._data[0, ecg_ch].T, color='r')
 pl.xlabel('Time (s)')
 pl.ylabel('AU')
+pl.ylim(*ylim)
 pl.xlim(times[[0, -1]])
 pl.show()
 
