@@ -9,7 +9,8 @@ import os.path as op
 from nose.tools import assert_true, assert_raises
 from copy import deepcopy
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_allclose)
 from scipy import stats
 from itertools import product
 
@@ -55,19 +56,45 @@ score_funcs_unsuited = ['pointbiserialr', 'ansari']
 
 
 @requires_sklearn
+def test_ica_full_data_recovery():
+    """Test recovery of full data when no source is rejected"""
+    # Most basic recovery
+    raw_ = raw.crop(5.0)
+    data = raw_._data.copy()
+    data_epochs = epochs.get_data()
+    n_channels = 5
+    for n_components, n_pca_components, ok in [(2, n_channels, True),
+                                               (2, n_channels // 2, False)]:
+        ica = ICA(n_components=n_components,
+                  max_pca_components=n_pca_components,
+                  n_pca_components=n_pca_components)
+        ica.decompose_raw(raw_, picks=range(n_channels))
+        raw2 = ica.pick_sources_raw(raw_, exclude=[])
+        if ok:
+            assert_allclose(data[:n_channels], raw2._data[:n_channels],
+                            rtol=1e-10, atol=1e-15)
+        else:
+            diff = np.abs(data[:n_channels] - raw2._data[:n_channels])
+            assert_true(np.max(diff) > 1e-14)
+
+        ica = ICA(n_components=n_components,
+                  max_pca_components=n_pca_components,
+                  n_pca_components=n_pca_components)
+        ica.decompose_epochs(epochs, picks=range(n_channels))
+        epochs2 = ica.pick_sources_epochs(epochs, exclude=[])
+        data2 = epochs2.get_data()[:, :n_channels]
+        if ok:
+            assert_allclose(data_epochs[:, :n_channels], data2,
+                            rtol=1e-10, atol=1e-15)
+        else:
+            diff = np.abs(data_epochs[:, :n_channels] - data2)
+            assert_true(np.max(diff) > 1e-14)
+
+
+@requires_sklearn
 def test_ica_core():
     """Test ICA on raw and epochs
     """
-    # Most basic recovery
-    raw_ = raw.crop(5.0)
-    ica = ICA(n_components=5, max_pca_components=5,
-              n_pca_components=5)
-    ica.decompose_raw(raw_, picks=np.arange(ica.n_components))
-    raw3 = ica.pick_sources_raw(raw_, exclude=[])
-    assert_array_almost_equal(raw_._data[:ica.n_components_],
-                              raw3._data[:ica.n_components_])
-    del raw3, raw_
-
     # XXX. The None cases helped revealing bugs but are time consuming.
     noise_cov = [None, test_cov]
     # removed None cases to speed up...
@@ -109,12 +136,6 @@ def test_ica_core():
         assert_raises(ValueError, ica.pick_sources_raw, raw3,
                       include=[1, 2])
 
-        for excl, incl in (([], []), ([], [1, 2]), ([1, 2], [])):
-            raw2 = ica.pick_sources_raw(raw, exclude=excl, include=incl,
-                                        copy=True)
-
-            assert_array_almost_equal(raw2[:, :][1], raw[:, :][1])
-
         #######################################################################
         # test epochs decomposition
 
@@ -140,14 +161,6 @@ def test_ica_core():
         epochs3.preload = False
         assert_raises(ValueError, ica.pick_sources_epochs, epochs3,
                       include=[1, 2])
-
-        # test source picking
-        for excl, incl in (([], []), ([], [1, 2]), ([1, 2], [])):
-            epochs2 = ica.pick_sources_epochs(epochs, exclude=excl,
-                                      include=incl, copy=True)
-
-            assert_array_almost_equal(epochs2.get_data(),
-                                      epochs.get_data())
 
 
 @requires_sklearn
@@ -178,6 +191,9 @@ def test_ica_additional():
                   n_pca_components=4)
         ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
         sources = ica.get_sources_epochs(epochs)
+        assert_true(ica.mixing_matrix_.shape == (3, 3))
+        assert_true(ica.unmixing_matrix_.shape == (3, 3))
+        assert_true(ica.pca_components_.shape == (4, len(picks)))
         assert_true(sources.shape[1] == ica.n_components_)
 
         for exclude in [[], [0]]:
@@ -204,30 +220,21 @@ def test_ica_additional():
         ica.n_pca_components = 2
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
-        assert_true(ica.n_pca_components ==
-                    ica_read.n_pca_components)
+        assert_true(ica.n_pca_components == ica_read.n_pca_components)
         ica.n_pca_components = 4
         ica_read.n_pca_components = 4
 
         ica.exclude = []
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
-        get = getattr
         for attr in ['mixing_matrix_', 'unmixing_matrix_', 'pca_components_',
                      'pca_mean_', 'pca_explained_variance_',
                      '_pre_whitener']:
-            assert_array_almost_equal(get(ica, attr), get(ica_read, attr))
+            assert_array_almost_equal(getattr(ica, attr),
+                                      getattr(ica_read, attr))
 
         assert_true(ica.ch_names == ica_read.ch_names)
-        assert_true(isinstance(ica_read.info, Info))  # XXX improve later
-        # assert_true(np.allclose(ica.mixing_matrix_, ica_read.mixing_matrix_,
-        #                         rtol=1e-16, atol=1e-32))
-        # assert_array_equal(ica.pca_components_,
-        #                    ica_read.pca_components_)
-        # assert_array_equal(ica.pca_mean_, ica_read.pca_mean_)
-        # assert_array_equal(ica.pca_explained_variance_,
-        #                    ica_read.pca_explained_variance_)
-        # assert_array_equal(ica._pre_whitener, ica_read._pre_whitener)
+        assert_true(isinstance(ica_read.info, Info))
 
         assert_raises(RuntimeError, ica_read.decompose_raw, raw)
         sources = ica.get_sources_raw(raw)
@@ -300,7 +307,7 @@ def test_ica_additional():
     test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
     ica_raw.save(test_ica_fname, overwrite=True)
     ica_raw2 = fiff.Raw(test_ica_fname, preload=True)
-    assert_array_almost_equal(ica_raw._data, ica_raw2._data)
+    assert_allclose(ica_raw._data, ica_raw2._data, rtol=1e-5, atol=1e-4)
     ica_raw2.close()
     os.remove(test_ica_fname)
 
