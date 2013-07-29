@@ -5,9 +5,11 @@
 
 import numpy as np
 from scipy import linalg
+from distutils.version import LooseVersion
 
+from .mixin import TransformerMixin
 
-class CSP(object):
+class CSP(TransformerMixin):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
 
     This object can be used as a supervised decomposition to estimate
@@ -87,12 +89,12 @@ class CSP(object):
                                      'covariance regularization.')
                 try:
                     import sklearn
-                    sklearn_version = int(sklearn.__version__.split('.')[1])
+                    sklearn_version = LooseVersion(sklearn.__version__)
                     from sklearn.covariance import ShrunkCovariance
                 except ImportError:
                     raise Exception('the scikit-learn package is missing and '
                                     'required for covariance regularization.')
-                if sklearn_version < 12:
+                if sklearn_version < '12.0':
                     skl_cov = ShrunkCovariance(shrinkage=self.reg,
                                                store_precision=False)
                 else:
@@ -129,10 +131,10 @@ class CSP(object):
             # compute regularized covariance using sklearn
             cov_1 = skl_cov.fit(class_1.T).covariance_
             cov_2 = skl_cov.fit(class_2.T).covariance_
-        
+
         # then fit on covariance
         self._fit(cov_1, cov_2)
-        
+
         pick_filters = self.filters_[:self.n_components]
         X = np.asarray([np.dot(pick_filters, e) for e in epochs_data])
 
@@ -172,23 +174,6 @@ class CSP(object):
 
         self.filters_ = w
         self.patterns_ = linalg.pinv(w).T
-
-    def fit_transform(self, epochs_data, y):
-        """Estimate the CSP decomposition on epochs and apply filters
-
-        Parameters
-        ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
-            The data to estimate the CSP on.
-        y : array
-            The class for each epoch.
-
-        Returns
-        -------
-        X : array
-            Returns the data filtered by CSP.
-        """
-        return self.fit(epochs_data, y).transform(epochs_data)
 
     def transform(self, epochs_data, y=None):
         """Estimate epochs sources given the CSP filters
