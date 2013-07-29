@@ -193,6 +193,12 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
         weights_y = np.transpose(weights, axes=[1, 0, 2, 3])
         csds_epoch = _csd_from_mt(x_mt, y_mt, weights, weights_y)
 
+        # Scaling by number of samples and compensating for loss of power due
+        # to windowing (see section 11.5.2 in Bendat & Piersol).
+        if mode == 'fourier':
+            csds_epoch /= n_times
+            csds_epoch *= 8 / 3.
+
         # Summing over frequencies of interest
         csd_epoch = np.sum(csds_epoch, 2)
 
