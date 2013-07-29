@@ -132,6 +132,24 @@ for e in epochs, epochs_ica:
     e.average().plot()
     pl.show()
 
+ecg_ch = epochs.ch_names.index('MEG 1531')
+pl.figure()
+pl.title('Raw epochs, ECG-like channel')
+pl.plot(epochs._data[0, ecg_ch].T, color='r')
+pl.xlabel('Time (s)')
+pl.ylabel('AU')
+pl.xlim(times[[0, -1]])
+pl.show()
+
+
+pl.figure()
+pl.title('Cleaned epochs, ECG-like channel')
+pl.plot(epochs_ica._data[0, ecg_ch].T, color='r')
+pl.xlabel('Time (s)')
+pl.ylabel('AU')
+pl.xlim(times[[0, -1]])
+pl.show()
+
 ###############################################################################
 # Inspect evoked ICA sources
 

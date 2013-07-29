@@ -880,8 +880,8 @@ class ICA(object):
 
         data = np.hstack(epochs.get_data()[:, picks])
         data, _ = self._pre_whiten(data, epochs.info, picks)
-
-        data = self._pick_sources(data, include, exclude)
+        data = self._pick_sources(data, include=include,
+                                  exclude=exclude)
 
         if copy is True:
             epochs = epochs.copy()
@@ -1122,6 +1122,13 @@ class ICA(object):
     def _pick_sources(self, data, include, exclude):
         """Aux function"""
 
+        if exclude is None:
+            exclude = self.exclude
+        elif not isinstance(exclude, list):
+            raise ValueError('Exclude mut be a list')
+        else:
+            exclude = self.exclude + exclude
+
         _n_pca_comp = _check_n_pca_components(self, self.n_pca_components,
                                               self.verbose)
 
@@ -1132,6 +1139,12 @@ class ICA(object):
         n_components = self.n_components_
         n_pca_components = self.n_pca_components
 
+        if include not in (None, []):
+            mask = np.ones(len(data), dtype=np.bool)
+            mask[np.unique(include)] = False
+            data[mask] = 0.
+        elif exclude not in (None, []):
+            data[np.unique(exclude)] = 0.
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
@@ -1139,13 +1152,6 @@ class ICA(object):
         pca_data = np.dot(self.pca_components_, data)
         # Apply unmixing to low dimension PCA
         sources = np.dot(self.unmixing_matrix_, pca_data[:n_components])
-
-        if include not in (None, []):
-            mask = np.ones(len(sources), dtype=np.bool)
-            mask[include] = False
-            sources[mask] = 0.
-        elif exclude not in (None, []):
-            sources[exclude] = 0.
 
         pca_data[:n_components] = np.dot(self.mixing_matrix_, sources)
         data = np.dot(self.pca_components_[:n_components].T,
