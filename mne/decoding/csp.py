@@ -94,7 +94,7 @@ class CSP(TransformerMixin):
                 except ImportError:
                     raise Exception('the scikit-learn package is missing and '
                                     'required for covariance regularization.')
-                if sklearn_version < '12.0':
+                if sklearn_version < '0.12':
                     skl_cov = ShrunkCovariance(shrinkage=self.reg,
                                                store_precision=False)
                 else:
