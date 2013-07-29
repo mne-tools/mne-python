@@ -1,5 +1,5 @@
 import numpy as np
-from nose.tools import assert_raises, assert_equal
+from nose.tools import assert_raises, assert_equal, assert_almost_equal
 from numpy.testing import assert_array_equal
 
 import mne
@@ -23,9 +23,18 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # Read several epochs
 event_id, tmin, tmax = 1, -0.2, 0.5
 events = mne.read_events(event_fname)[0:100]
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), preload=True,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+                    baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12))
+
+# Create an epochs object with one epoch and one channel of artificial data
+event_id, tmin, tmax = 1, 0.0, 1.0
+epochs_sin = mne.Epochs(raw, events[0:5], event_id, tmin, tmax, proj=True,
+                        picks=picks, baseline=(None, 0), preload=True,
+                        reject=dict(grad=4000e-13, mag=4e-12))
+epochs_sin.drop_picks(range(1, 306))
+freq = 10
+epochs_sin._data = np.sin(2 * np.pi * freq * epochs_sin.times)[None, None, :]
 
 
 def test_compute_csd():
@@ -75,3 +84,34 @@ def test_compute_csd():
                       if i != max_ch_power else 0 for i in range(n_chan)]
     max_ch_csd_fourier = np.argmax(ch_csd_fourier)
     assert_equal(max_ch_csd_mt, max_ch_csd_fourier)
+
+
+def test_compute_csd_on_artificial_data():
+    # Computing signal power in the time domain
+    signal_power = np.sum(epochs_sin._data ** 2)
+    signal_power_per_sample = signal_power / len(epochs_sin.times)
+
+    # Computing signal power in the frequency domain
+    data_csd_fourier = compute_csd(epochs_sin, mode='fourier', tmin=None,
+                                   tmax=None)
+    fourier_power = np.abs(data_csd_fourier.data[0, 0])
+    assert_almost_equal(fourier_power, signal_power, delta=0.5)
+
+    #data_csd_mt = compute_csd(epochs_sin, mode='multitaper', tmin=None,
+    #                          tmax=None, fmin=8, fmax=12)
+    #mt_power = np.abs(data_csd_mt.data[0, 0])
+    #assert_almost_equal(fourier_power, mt_power, delta=0.5)
+
+    # Power per sample should not depend on time window length
+    for tmax in [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]:
+        t_mask = (epochs_sin.times >= 0) & (epochs_sin.times <= tmax)
+        n_samples = sum(t_mask)
+
+        data_csd_fourier = compute_csd(epochs_sin, mode='fourier', tmin=None,
+                                       tmax=tmax, fmin=0, fmax=np.inf)
+
+        fourier_power = np.abs(data_csd_fourier.data[0, 0])
+        fourier_power_per_sample = fourier_power / n_samples
+
+        assert_almost_equal(signal_power_per_sample, fourier_power_per_sample,
+                            2)
