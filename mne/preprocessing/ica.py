@@ -337,7 +337,7 @@ class ICA(object):
 
         data = epochs.get_data()[:, picks]
         if decim is not None:
-            data = data[::decim].copy()
+            data = data[:, :, ::decim].copy()
 
         data, self._pre_whitener = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
