@@ -44,12 +44,12 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
 
 DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                     emg='k', ref_meg='steelblue', misc='k', stim='k',
-                    resp='k', chpi='k'),
+                    resp='k', chpi='k', exci='k', ias='k', syst='k'),
                 units=dict(eeg='uV', grad='fT/cm', mag='fT', misc='AU'),
                 scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0),
                 scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6,
                     eog=150e-6, ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
-                    stim=1, resp=1, chpi=1e-4),
+                    stim=1, resp=1, chpi=1e-4, exci=1, ias=1, syst=1),
                 ylim=dict(mag=(-600., 600.), grad=(-200., 200.),
                           eeg=(-200., 200.), misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
@@ -2548,7 +2548,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         types += [t] * len(inds[-1])
     pick_args = dict(meg=False, exclude=[])
     for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
-              'misc', 'chpi']:
+              'misc', 'chpi', 'syst', 'ias', 'exci']:
         pick_args[t] = True
         inds += [pick_types(raw.info, **pick_args)]
         types += [t] * len(inds[-1])
