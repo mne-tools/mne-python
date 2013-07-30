@@ -199,6 +199,9 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
             csds_epoch /= n_times
             csds_epoch *= 8 / 3.
 
+        # Scaling by sampling frequency for compatibility with Matlab
+        csds_epoch /= epochs.info['sfreq']
+
         # Summing over frequencies of interest
         csd_epoch = np.sum(csds_epoch, 2)
 

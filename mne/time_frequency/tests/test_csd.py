@@ -87,6 +87,8 @@ def test_compute_csd():
 
 
 def test_compute_csd_on_artificial_data():
+    sfreq = epochs_sin.info['sfreq']
+
     # Computing signal power in the time domain
     signal_power = np.sum(epochs_sin._data ** 2)
     signal_power_per_sample = signal_power / len(epochs_sin.times)
@@ -94,8 +96,8 @@ def test_compute_csd_on_artificial_data():
     # Computing signal power in the frequency domain
     data_csd_fourier = compute_csd(epochs_sin, mode='fourier')
     data_csd_mt = compute_csd(epochs_sin, mode='multitaper')
-    fourier_power = np.abs(data_csd_fourier.data[0, 0])
-    mt_power = np.abs(data_csd_mt.data[0, 0])
+    fourier_power = np.abs(data_csd_fourier.data[0, 0]) * sfreq
+    mt_power = np.abs(data_csd_mt.data[0, 0]) * sfreq
     assert_almost_equal(fourier_power, signal_power, delta=0.5)
     assert_almost_equal(mt_power, signal_power, delta=1)
 
@@ -106,19 +108,18 @@ def test_compute_csd_on_artificial_data():
 
         data_csd_fourier = compute_csd(epochs_sin, mode='fourier', tmin=None,
                                        tmax=tmax, fmin=0, fmax=np.inf)
-        fourier_power = np.abs(data_csd_fourier.data[0, 0])
+        fourier_power = np.abs(data_csd_fourier.data[0, 0]) * sfreq
         fourier_power_per_sample = fourier_power / n_samples
         assert_almost_equal(signal_power_per_sample, fourier_power_per_sample,
                             2)
 
         # Power per sample should not depend on number of tapers
         for n_tapers in [1, 2, 3, 5]:
-            mt_bandwidth = epochs_sin.info['sfreq'] / float(n_samples) *\
-                (n_tapers + 1)
+            mt_bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
             data_csd_mt = compute_csd(epochs_sin, mode='multitaper', tmin=None,
                                       tmax=tmax, fmin=0, fmax=np.inf,
                                       mt_bandwidth=mt_bandwidth)
-            mt_power = np.abs(data_csd_mt.data[0, 0])
+            mt_power = np.abs(data_csd_mt.data[0, 0]) * sfreq
             mt_power_per_sample = mt_power / n_samples
             assert_almost_equal(signal_power_per_sample, mt_power_per_sample,
                                 delta=0.09)
