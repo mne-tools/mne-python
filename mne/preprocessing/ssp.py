@@ -210,12 +210,13 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
 @verbose
 def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
-                     average=False, filter_length='10s', n_jobs=1, ch_name=None,
-                     reject=dict(grad=2000e-13, mag=3000e-15, eeg=50e-6,
-                     eog=250e-6), flat=None, bads=[], avg_ref=False,
+                     average=False, filter_length='10s', n_jobs=1,
+                     ch_name=None, reject=dict(grad=2000e-13, mag=3000e-15,
+                     eeg=50e-6, eog=250e-6), flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
                      tstart=0., qrs_threshold=0.6, filter_method='fft',
-                     iir_params=dict(order=4, ftype='butter'), verbose=None):
+                     iir_params=dict(order=4, ftype='butter'),
+                     copy=True, verbose=None):
     """Compute SSP/PCA projections for ECG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -274,6 +275,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     iir_params : dict
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details.
+    copy : bool
+        If False, filtering raw data is done in place. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -284,6 +287,8 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
     ecg_events : ndarray
         Detected ECG events.
     """
+    if copy is True:
+        raw = raw.copy()
 
     projs, ecg_events = _compute_exg_proj('ECG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
@@ -304,7 +309,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      no_proj=False, event_id=998, eog_l_freq=1, eog_h_freq=10,
                      tstart=0., filter_method='fft',
                      iir_params=dict(order=4, ftype='butter'), ch_name=None,
-                     verbose=None):
+                     copy=True, verbose=None):
     """Compute SSP/PCA projections for EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -358,10 +363,12 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Start artifact detection after tstart seconds.
     filter_method : str
         Method for filtering ('iir' or 'fft').
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
+    copy : bool
+        If False, filtering raw data is done in place. Defaults to True.
     ch_name: str | None
         If not None, specify EOG channel name.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -370,7 +377,8 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     eog_events: ndarray
         Detected EOG events.
     """
-
+    if copy is True:
+        raw = raw.copy()
     projs, eog_events = _compute_exg_proj('EOG', raw, raw_event, tmin, tmax,
                         n_grad, n_mag, n_eeg, l_freq, h_freq,
                         average, filter_length, n_jobs, ch_name,
