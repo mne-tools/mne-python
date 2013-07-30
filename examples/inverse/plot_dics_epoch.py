@@ -22,7 +22,6 @@ print __doc__
 import mne
 
 import pylab as pl
-import numpy as np
 
 from mne.fiff import Raw
 from mne.datasets import sample
@@ -71,14 +70,13 @@ stcs = dics_epochs(epochs, forward, noise_csd, data_csd, return_generator=True)
 
 # Take a single epoch
 stc = stcs.next()
-stc.save('dics-epoch')
 
 # Extract time courses from a specific label and average across them
-data, times, _ = mne.label_time_courses(fname_label, 'dics-epoch-lh.stc')
-data = np.mean(data, 0)
+label = mne.read_label(fname_label)
+data = stc.extract_label_time_course(label, forward['src'], mode='mean')
 
 pl.figure()
-pl.plot(1e3 * times, data)
+pl.plot(1e3 * stc.times, data.T)
 pl.xlabel('Time [ms]')
 pl.ylabel('DICS value')
 pl.title('Single epoch estimated source activity')
