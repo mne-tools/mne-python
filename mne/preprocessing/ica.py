@@ -269,10 +269,10 @@ class ICA(object):
         self.info = pick_info(raw.info, picks)
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
+        data = raw[picks, start:stop][0]
         if decim is not None:
-            data = raw[picks, start:stop][0].copy()[:, ::decim]
-        else:
-            data = raw[picks, start:stop][0]
+            data = data[:, ::decim].copy()
+
         data, self._pre_whitener = self._pre_whiten(data,
                                                     raw.info, picks)
 
@@ -335,10 +335,9 @@ class ICA(object):
             self.max_pca_components = len(picks)
             logger.info('Inferring max_pca_components from picks.')
 
+        data = epochs.get_data()[:, picks]
         if decim is not None:
-            data = epochs.get_data()[:, picks, ::decim].copy()
-        else:
-            data = epochs.get_data()[:, picks, ::decim]
+            data = data[::decim].copy()
 
         data, self._pre_whitener = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
