@@ -105,8 +105,9 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
         G = forward['sol']['data']
 
     # Apply SSPs
-    proj, ncomp, _ = make_projector(info['projs'], ch_names)
-    G = np.dot(proj, G)
+    if 'projs' in info:
+        proj, ncomp, _ = make_projector(info['projs'], ch_names)
+        G = np.dot(proj, G)
 
     # DIFF: LCMV applies SSPs and whitener to data covariance at this point,
     # here we only read in the cross-spectral density matrix - the data used in
