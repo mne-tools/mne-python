@@ -25,6 +25,7 @@ import mne
 from mne.fiff import Raw
 from mne.preprocessing.ica import ICA
 from mne.datasets import sample
+from mne.filter import band_pass_filter
 
 ###############################################################################
 # Setup paths and prepare raw data
@@ -47,20 +48,16 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # additional PCA components up to rank 64 of the MEG data.
 # This allows to control the trade-off between denoising and preserving signal.
 
-ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
-          noise_cov=None, random_state=0)
+ica = ICA(n_components=0.90, n_pca_components=None, max_pca_components=100,
+          random_state=0)
 
 # 1 minute exposure should be sufficient for artifact detection.
 # However, rejection performance may significantly improve when using
 # the entire data range
 
-start, stop = 100., 160.  # floats, otherwise it will be interpreted as index
-
-# decompose sources for raw data
-ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
+# decompose sources for raw data using each third sample.
+ica.decompose_raw(raw, picks=picks, decim=3)
 print ica
-
-sources = ica.get_sources_raw(raw, start=start, stop=stop)
 
 # plot reasonable time window for inspection
 start_plot, stop_plot = 100., 103.
@@ -75,15 +72,18 @@ ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
 # the default score_func.
 
 from scipy.stats import pearsonr
-
 corr = lambda x, y: np.array([pearsonr(a, y.ravel()) for a in x])[:, 0]
 
 # As we don't have an ECG channel we use one that correlates a lot with heart
-# beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
-# In our example, the find_sources method returns and array of correlation
+# beats: 'MEG 1531'. To improve detection, we filter the the channel and pass
+# it directly to find sources. The method then returns an array of correlation
 # scores for each ICA source.
 
-ecg_scores = ica.find_sources_raw(raw, target='MEG 1531', score_func=corr)
+ecg_ch_name = 'MEG 1531'
+l_freq, h_freq = 8, 16
+ecg = raw[[raw.ch_names.index(ecg_ch_name)], :][0]
+ecg = band_pass_filter(ecg, raw.info['sfreq'], l_freq, h_freq)
+ecg_scores = ica.find_sources_raw(raw, target=ecg, score_func=corr)
 
 # get sources
 sources = ica.get_sources_raw(raw, start=start_plot, stop=stop_plot)
@@ -171,7 +171,7 @@ pl.show()
 ###############################################################################
 # Compare the affected channel before and after ICA cleaning.
 
-affected_idx = raw.ch_names.index('MEG 1531')
+affected_idx = raw.ch_names.index(ecg_ch_name)
 
 # plot the component that correlates most with the ECG
 pl.figure()
@@ -191,7 +191,7 @@ pl.show()
 
 from mne.layouts import make_grid_layout
 
-ica_raw = ica.sources_as_raw(raw, start=start, stop=stop, picks=None)
+ica_raw = ica.sources_as_raw(raw, start=100., stop=160., picks=None)
 
 print ica_raw.ch_names[:5]  # just a few
 
