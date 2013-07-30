@@ -1121,13 +1121,10 @@ class ICA(object):
 
     def _pick_sources(self, data, include, exclude):
         """Aux function"""
-
         if exclude is None:
             exclude = self.exclude
-        elif not isinstance(exclude, list):
-            raise ValueError('Exclude mut be a list')
         else:
-            exclude = self.exclude + exclude
+            exclude = self.exclude = list(set(self.exclude + list(exclude)))
 
         _n_pca_comp = _check_n_pca_components(self, self.n_pca_components,
                                               self.verbose)
