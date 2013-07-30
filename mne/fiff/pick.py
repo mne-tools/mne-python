@@ -29,7 +29,7 @@ def channel_type(info, idx):
     Returns
     -------
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
-           'ref_meg' | 'resp'
+           'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst'
         Type of channel
     """
     kind = info['chs'][idx]['kind']
@@ -54,6 +54,12 @@ def channel_type(info, idx):
         return 'resp'
     elif kind == FIFF.FIFFV_MISC_CH:
         return 'misc'
+    elif kind == FIFF.FIFFV_EXCI_CH:
+        return 'exci'
+    elif kind == FIFF.FIFFV_IAS_CH:
+        return 'ias'
+    elif kind == FIFF.FIFFV_SYST_CH:
+        return 'syst'
     elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                   FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
                   FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
@@ -122,6 +128,7 @@ def pick_channels_regexp(ch_names, regexp):
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg=False, misc=False, resp=False, chpi=False,
+               exci=False, ias=False, syst=False,
                include=[], exclude=None, selection=None):
     """Pick channels by type and names
 
@@ -153,6 +160,12 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         is separate from the stim channel.
     chpi : bool
         If True include continuous HPI coil channels.
+    exci : bool
+        Flux excitation channel used to be a stimulus channel.
+    ias : bool
+        Internal Active Shielding data (maybe on Triux only).
+    syst : bool
+        System status channel information (on Triux systems only).
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -213,6 +226,12 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_REF_MEG_CH and ref_meg:
             pick[k] = True
         elif kind == FIFF.FIFFV_RESP_CH and resp:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_SYST_CH and syst:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_IAS_CH and ias:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_EXCI_CH and exci:
             pick[k] = True
         elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                       FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
@@ -310,7 +329,8 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
 
 def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=False, misc=False,
-                      resp=False, chpi=False, include=[], exclude=None):
+                      resp=False, chpi=False, exci=False, ias=False,
+                      syst=False, include=[], exclude=None):
     """Pick by channel type and names from evoked data
 
     Parameters
@@ -340,6 +360,12 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         is separate from the stim channel.
     chpi : bool
         If True include continuous HPI coil channels.
+    exci : bool
+        Flux excitation channel used to be a stimulus channel.
+    ias : bool
+        Internal Active Shielding data (maybe on Triux only).
+    syst : bool
+        System status channel information (on Triux systems only).
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -354,7 +380,8 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     """
     sel = pick_types(info=orig.info, meg=meg, eeg=eeg, stim=stim, eog=eog,
                      ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
-                     resp=resp, chpi=chpi, include=include, exclude=exclude)
+                     resp=resp, chpi=chpi, exci=exci, ias=ias, syst=syst,
+                     include=include, exclude=exclude)
     include_ch_names = [orig.ch_names[k] for k in sel]
     return pick_channels_evoked(orig, include_ch_names)
 
