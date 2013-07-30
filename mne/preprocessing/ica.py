@@ -333,6 +333,17 @@ class ICA(object):
 
         return self
 
+    def _get_sources(self, data):
+        """Compute sources from data (operates inplace)"""
+        if self.pca_mean_ is not None:
+            data -= self.pca_mean_[:, None]
+
+        # Apply first PCA
+        pca_data = np.dot(self.pca_components_[:self.n_components_], data)
+        # Apply unmixing to low dimension PCA
+        sources = np.dot(self.unmixing_matrix_, pca_data)
+        return sources
+
     def get_sources_raw(self, raw, start=None, stop=None):
         """Estimate raw sources given the unmixing matrix
 
@@ -356,17 +367,10 @@ class ICA(object):
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
         start, stop = _check_start_stop(raw, start, stop)
-        return self._get_sources_raw(raw, start, stop)[0]
-
-    def _get_sources_raw(self, raw, start, stop):
-        """Aux function"""
 
         picks = [raw.ch_names.index(k) for k in self.ch_names]
         data, _ = self._pre_whiten(raw[picks, start:stop][0], raw.info, picks)
-        pca_data = self._transform_pca(data.T)
-        n_components = self.n_components_
-        raw_sources = self._transform_ica(pca_data[:, :n_components]).T
-        return raw_sources, pca_data
+        return self._get_sources(data)
 
     def get_sources_epochs(self, epochs, concatenate=False):
         """Estimate epochs sources given the unmixing matrix
@@ -387,10 +391,6 @@ class ICA(object):
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
 
-        return self._get_sources_epochs(epochs, concatenate)[0]
-
-    def _get_sources_epochs(self, epochs, concatenate):
-
         picks = pick_types(epochs.info, include=self.ch_names, exclude=[])
 
         # special case where epochs come picked but fit was 'unpicked'.
@@ -401,17 +401,15 @@ class ICA(object):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
-        data, _ = self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
-                                   epochs.info, picks)
+        data = np.hstack(epochs.get_data()[:, picks])
+        data, _ = self._pre_whiten(data, epochs.info, picks)
+        sources = self._get_sources(data)
 
-        pca_data = self._transform_pca(data.T)
-        sources = self._transform_ica(pca_data[:, :self.n_components_]).T
-        sources = np.array(np.split(sources, len(epochs.events), 1))
+        if not concatenate:
+            # Put the data back in 3D
+            sources = np.array(np.split(sources, len(epochs.events), 1))
 
-        if concatenate:
-            sources = np.hstack(sources)
-
-        return sources, pca_data
+        return sources
 
     @verbose
     def save(self, fname):
@@ -466,21 +464,19 @@ class ICA(object):
                                ecg=True, eog=True, stim=True, exclude='bads')
 
         # merge copied instance and picked data with sources
-
         start, stop = _check_start_stop(raw, start, stop)
         sources = self.get_sources_raw(raw, start=start, stop=stop)
-        if raw._preloaded:
+        if raw._preloaded:  # get data and temporarily delete
             data, times = raw._data, raw._times
-            del raw._data
-            del raw._times
+            del raw._data, raw._times
 
-        out = raw.copy()
+        out = raw.copy()  # copy and reappend
         if raw._preloaded:
             raw._data, raw._times = data, times
 
+        # populate copied raw.
         out.fids = []
         data_, times_ = raw[picks, start:stop]
-
         out._data = np.r_[sources, data_]
         out._times = times_
         out._preloaded = True
@@ -607,7 +603,7 @@ class ICA(object):
                              n_components=n_components, source_idx=source_idx,
                              ncol=ncol, nrow=nrow, title=title)
         if show:
-            import matplotlib.pylab as pl
+            import pylab as pl
             pl.show()
 
         return fig
@@ -821,15 +817,19 @@ class ICA(object):
             self.n_pca_components = n_pca_components
 
         start, stop = _check_start_stop(raw, start, stop)
-        sources, pca_data = self._get_sources_raw(raw, start=start, stop=stop)
-        recomposed = self._pick_sources(sources, pca_data, include,
-                                        self.exclude)
+
+        picks = pick_types(raw.info, meg=False, include=self.ch_names,
+                           exclude='bads')
+
+        data = raw[picks, start:stop][0]
+        data, _ = self._pre_whiten(data, raw.info, picks)
+
+        data = self._pick_sources(data, include, self.exclude)
 
         if copy is True:
             raw = raw.copy()
 
-        picks = [raw.ch_names.index(k) for k in self.ch_names]
-        raw[picks, start:stop] = recomposed
+        raw[picks, start:stop] = data
         return raw
 
     def pick_sources_epochs(self, epochs, include=None, exclude=None,
@@ -867,29 +867,27 @@ class ICA(object):
                              'working. Please read raw data with '
                              'preload=True.')
 
-        sources, pca_data = self._get_sources_epochs(epochs, True)
-        picks = pick_types(epochs.info, include=self.ch_names,
+        picks = pick_types(epochs.info, meg=False, include=self.ch_names,
                            exclude='bads')
+
+        # special case where epochs come picked but fit was 'unpicked'.
+        if len(picks) != len(self.ch_names):
+            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
+                               'fitted but %i channels supplied. \nPlease '
+                               'provide Epochs compatible with '
+                               'ica.ch_names' % (len(self.ch_names),
+                                                 len(picks)))
+
+        data = np.hstack(epochs.get_data()[:, picks])
+        data, _ = self._pre_whiten(data, epochs.info, picks)
+        data = self._pick_sources(data, include=include,
+                                  exclude=exclude)
 
         if copy is True:
             epochs = epochs.copy()
 
-        if exclude is None:
-            self.exclude = list(set(self.exclude))
-        else:
-            self.exclude = list(set(self.exclude + exclude))
-            logger.info('Adding sources %s to .exclude' % ', '.join(
-                        [str(i) for i in exclude if i not in self.exclude]))
-
-        if n_pca_components is not None:
-            self.n_pca_components = n_pca_components
-
-        # put sources-dimension first for selection
-        recomposed = self._pick_sources(sources, pca_data, include,
-                                        self.exclude)
-
         # restore epochs, channels, tsl order
-        epochs._data[:, picks] = np.array(np.split(recomposed,
+        epochs._data[:, picks] = np.array(np.split(data,
                                           len(epochs.events), 1))
         epochs.preload = True
 
@@ -898,11 +896,10 @@ class ICA(object):
     def plot_topomap(self, source_idx, ch_type='mag', res=500, layout=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
                      show=True):
-        """ plot topographic map of ICA source
+        """Plot topographic map of ICA source
 
         Parameters
         ----------
-        The ica object to plot from.
         source_idx : int | array-like
             The indices of the sources to be plotted.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
@@ -1021,7 +1018,6 @@ class ICA(object):
             The ica object with the detected artifact indices marked for
             exclusion
         """
-
         logger.info('    Searching for artifacts...')
         _detect_artifacts(self, raw=raw, start_find=start_find,
                     stop_find=stop_find, ecg_ch=ecg_ch,
@@ -1057,8 +1053,9 @@ class ICA(object):
         from sklearn.decomposition import RandomizedPCA
 
         # sklearn < 0.11 does not support random_state argument
-        kwargs = {'n_components': max_pca_components, 'whiten': False,
-                  'copy': False}
+        kwargs = {'n_components': max_pca_components, 'whiten': True,
+                  'copy': True}
+                  # XXX fix this later. Bug in sklearn, see PR #2273
 
         aspec = inspect.getargspec(RandomizedPCA.__init__)
         if 'random_state' not in aspec.args:
@@ -1085,9 +1082,11 @@ class ICA(object):
                 sel = slice(len(pca.components_))
 
         # the things to store for PCA
-        self.pca_components_ = pca.components_
         self.pca_mean_ = pca.mean_
-        self.pca_explained_variance_ = pca.explained_variance_
+        self.pca_components_ = pca.components_
+        # unwhiten pca components and put scaling in unmixintg matrix later.
+        self.pca_explained_variance_ = exp_var = pca.explained_variance_
+        self.pca_components_ *= np.sqrt(exp_var[:, None])
         del pca
         # update number of components
         self.n_components_ = sel.stop
@@ -1101,7 +1100,7 @@ class ICA(object):
 
         # sklearn < 0.11 does not support random_state argument for FastICA
         kwargs = {'algorithm': self.algorithm, 'fun': self.fun,
-                  'fun_args': self.fun_args}
+                  'fun_args': self.fun_args, 'whiten': False}
 
         if self.random_state is not None:
             aspec = inspect.getargspec(FastICA.__init__)
@@ -1114,73 +1113,61 @@ class ICA(object):
         ica = FastICA(**kwargs)
         ica.fit(data[:, sel])
 
-        # For ICA the only thing to store is the unmixing matrix
-        if not hasattr(ica, 'sources_'):
-            self.unmixing_matrix_ = ica.unmixing_matrix_
-        else:
-            self.unmixing_matrix_ = ica.components_
-
-        self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_).T
+        # get unmixing and add scaling
+        self.unmixing_matrix_ = getattr(ica, 'components_', 'unmixing_matrix_')
+        self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
+        self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
 
-    def _pick_sources(self, sources, pca_data, include, exclude):
+    def _pick_sources(self, data, include, exclude):
         """Aux function"""
+        if exclude is None:
+            exclude = self.exclude
+        else:
+            exclude = self.exclude = list(set(self.exclude + list(exclude)))
 
         _n_pca_comp = _check_n_pca_components(self, self.n_pca_components,
                                               self.verbose)
+
         if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components):
             raise ValueError('n_pca_components must be between '
                              'n_components and max_pca_components.')
 
+        n_components = self.n_components_
+        n_pca_components = self.n_pca_components
+
+        # Apply first PCA
+        if self.pca_mean_ is not None:
+            data -= self.pca_mean_[:, None]
+
+        pca_data = np.dot(self.pca_components_, data)
+        # Apply unmixing to low dimension PCA
+        sources = np.dot(self.unmixing_matrix_, pca_data[:n_components])
+
         if include not in (None, []):
-            mute = [i for i in xrange(len(sources)) if i not in include]
-            sources[mute, :] = 0.  # include via exclusion
+            mask = np.ones(len(data), dtype=np.bool)
+            mask[np.unique(include)] = False
+            sources[mask] = 0.
         elif exclude not in (None, []):
-            sources[exclude, :] = 0.  # just exclude
+            sources[np.unique(exclude)] = 0.
 
-        # restore pca data
-        pca_restored = np.dot(sources.T, self.mixing_matrix_)
+        pca_data[:n_components] = np.dot(self.mixing_matrix_, sources)
+        data = np.dot(self.pca_components_[:n_components].T,
+                      pca_data[:n_components])
+        if n_pca_components > n_components:
+            data += np.dot(self.pca_components_[n_components:_n_pca_comp].T,
+                          pca_data[n_components:_n_pca_comp])
 
-        # re-append deselected pca dimension if desired
-        if _n_pca_comp > self.n_components_:
-            pca_reappend = pca_data[:, self.n_components_:_n_pca_comp]
-            pca_restored = np.c_[pca_restored, pca_reappend]
-
-        # restore sensor space data
-        out = self._inverse_transform_pca(pca_restored)
+        if self.pca_mean_ is not None:
+            data += self.pca_mean_[:, None]
 
         # restore scaling
         if self.noise_cov is None:  # revert standardization
-            out /= self._pre_whitener
+            data /= self._pre_whitener[:, None]
         else:
-            out = np.dot(out, linalg.pinv(self._pre_whitener))
+            data = np.dot(linalg.pinv(self._pre_whitener), data)
 
-        return out.T
-
-    def _transform_pca(self, data):
-        """Apply decorrelation / dimensionality reduction on MEEG data.
-        """
-        X = np.atleast_2d(data)
-        if self.pca_mean_ is not None:
-            X = X - self.pca_mean_
-
-        X = np.dot(X, self.pca_components_.T)
-        return X
-
-    def _transform_ica(self, data):
-        """Apply ICA unmixing matrix to recover the latent sources.
-        """
-        return np.dot(np.atleast_2d(data), self.unmixing_matrix_.T)
-
-    def _inverse_transform_pca(self, X):
-        """Aux function"""
-        components = self.pca_components_[:X.shape[1]]
-        X_orig = np.dot(X, components)
-
-        if self.pca_mean_ is not None:
-            X_orig += self.pca_mean_
-
-        return X_orig
+        return data
 
 
 @verbose
@@ -1192,6 +1179,8 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
                         <= _n_pca_comp).sum()
         logger.info('Selected %i PCA components by explained '
                     'variance' % _n_pca_comp)
+    elif _n_pca_comp is None:
+        _n_pca_comp = ica.n_components_
     return _n_pca_comp
 
 
@@ -1331,7 +1320,6 @@ def _deserialize(str_, outer_sep=';', inner_sep=':'):
         out[k] = vv if not isinstance(vv, unicode) else str(vv)
 
     return out
-
 
 
 def _write_ica(fid, ica):
@@ -1476,7 +1464,7 @@ def read_ica(fname):
     ica.n_components_ = unmixing_matrix.shape[0]
     ica.pca_explained_variance_ = pca_explained_variance
     ica.unmixing_matrix_ = unmixing_matrix
-    ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_).T
+    ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_)
     ica.exclude = [] if exclude is None else list(exclude)
     ica.info = info
     logger.info('Ready.')

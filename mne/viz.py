@@ -1826,7 +1826,8 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
 
     if np.isscalar(source_idx):
         source_idx = [source_idx]
-    data = np.dot(ica.mixing_matrix_[source_idx, :],
+    exp_var = ica.pca_explained_variance_[:ica.n_components_]
+    data = np.dot(ica.mixing_matrix_[:, source_idx].T,
                   ica.pca_components_[:ica.n_components_])
 
     if ica.info is None:
@@ -1860,7 +1861,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     for ii, data_, ax in zip(source_idx, data, axes):
         data_ = _merge_grad_data(data_) if merge_grads else data_
         plot_topomap(data_.flatten(), pos, vmax=vmax, res=res, axis=ax)
-        ax.set_title('IC #%03d' % (ii + 1), fontsize=12)
+        ax.set_title('IC #%03d' % ii, fontsize=12)
         ax.set_yticks([])
         ax.set_xticks([])
         ax.set_frame_on(False)
