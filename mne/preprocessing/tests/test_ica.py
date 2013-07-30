@@ -29,10 +29,10 @@ event_name = op.join(data_dir, 'test-eve.fif')
 evoked_nf_name = op.join(data_dir, 'test-nf-ave.fif')
 test_cov_name = op.join(data_dir, 'test-cov.fif')
 
-event_id, tmin, tmax = 1, -0.2, 0.5
-start, stop = 0, 8  # if stop is too small pca may fail in some cases, but
+event_id, tmin, tmax = 1, -0.2, 0.2
+start, stop = 0, 6  # if stop is too small pca may fail in some cases, but
                     # we're okay on this file
-raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False)
+raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
 
 events = read_events(event_name)
 picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False, eog=False,
@@ -59,17 +59,16 @@ score_funcs_unsuited = ['pointbiserialr', 'ansari']
 def test_ica_full_data_recovery():
     """Test recovery of full data when no source is rejected"""
     # Most basic recovery
-    raw_ = raw.crop(5.0)
-    data = raw_._data.copy()
-    data_epochs = epochs.get_data()
     n_channels = 5
+    data = raw._data[:n_channels].copy()
+    data_epochs = epochs.get_data()
     for n_components, n_pca_components, ok in [(2, n_channels, True),
                                                (2, n_channels // 2, False)]:
         ica = ICA(n_components=n_components,
                   max_pca_components=n_pca_components,
                   n_pca_components=n_pca_components)
-        ica.decompose_raw(raw_, picks=range(n_channels))
-        raw2 = ica.pick_sources_raw(raw_, exclude=[])
+        ica.decompose_raw(raw, picks=range(n_channels))
+        raw2 = ica.pick_sources_raw(raw, exclude=[])
         if ok:
             assert_allclose(data[:n_channels], raw2._data[:n_channels],
                             rtol=1e-10, atol=1e-15)
@@ -98,8 +97,8 @@ def test_ica_core():
     # XXX. The None cases helped revealing bugs but are time consuming.
     noise_cov = [None, test_cov]
     # removed None cases to speed up...
-    n_components = [3, 1.0]  # for future dbg add cases
-    max_pca_components = [4]
+    n_components = [2, 1.0]  # for future dbg add cases
+    max_pca_components = [3]
     picks_ = [picks]
     iter_ica_params = product(noise_cov, n_components, max_pca_components,
                               picks_)
@@ -341,6 +340,6 @@ def test_run_ica():
     params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
     for idx, ch_name in product(*params):
-        run_ica(raw, n_components=.9, start=0, stop=100, start_find=0,
-                stop_find=50, ecg_ch=ch_name, eog_ch=ch_name,
+        run_ica(raw, n_components=2, start=0, stop=6, start_find=0,
+                stop_find=5, ecg_ch=ch_name, eog_ch=ch_name,
                 skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
