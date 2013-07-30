@@ -167,7 +167,7 @@ if __name__ == '__main__':
                     n_jobs=n_jobs, reject=reject, flat=flat, bads=bads,
                     avg_ref=avg_ref, no_proj=no_proj, event_id=event_id,
                     eog_l_freq=eog_l_freq, eog_h_freq=eog_h_freq, 
-                    tstart=tstart, ch_name=ch_name)
+                    tstart=tstart, ch_name=ch_name, copy=False)
 
     raw.close()
 

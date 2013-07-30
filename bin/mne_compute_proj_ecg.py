@@ -162,7 +162,8 @@ if __name__ == '__main__':
                             l_freq, h_freq, average, filter_length,
                             n_jobs, ch_name, reject, flat,
                             bads, avg_ref, no_proj, event_id,
-                            ecg_l_freq, ecg_h_freq, tstart, qrs_threshold)
+                            ecg_l_freq, ecg_h_freq, tstart, qrs_threshold,
+                            copy=False)
 
     raw.close()
 
