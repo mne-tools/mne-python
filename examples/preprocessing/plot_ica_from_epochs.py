@@ -46,7 +46,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
 
 random_state = np.random.RandomState(42)
 
-#####################################################################################
+###############################################################################
 # Setup ICA seed decompose data, then access and plot sources.
 # for more background information visit the plot_ica_from_raw.py example
 
@@ -71,23 +71,22 @@ pl.suptitle(title, fontsize=12)
 # beats: 'MEG 1531'. We can directly pass the name to the find_sources method.
 # In our example, the find_sources method returns and array of correlation
 # scores for each ICA source.
-
-ecg_scores = ica.find_sources_epochs(epochs, target='MEG 1531',
+ecg_ch_name = 'MEG 1531'
+ecg_scores = ica.find_sources_epochs(epochs, target=ecg_ch_name,
                                      score_func='pearsonr')
 
-# get maximum correlation index for ECG
-ecg_source_idx = np.abs(ecg_scores).argmax()
+# get the source most correlated with the ECG.
+ecg_source_idx = np.argsort(np.abs(ecg_scores))[-1]
 
-# get sources from concatenated epochs
-sources = ica.get_sources_epochs(epochs, concatenate=True)
+# get sources as epochs object and inspect some trial
+some_trial = 10
+sources = ica.sources_as_epochs(epochs)
+ecg_artifact = sources.get_data()[some_trial, ecg_source_idx]
 
-# plot first epoch
-times = epochs.times
-first_trial = np.arange(len(times))
-
+# plot first epoch in ICA space
 pl.figure()
 pl.title('Source most correlated with the ECG channel')
-pl.plot(times, sources[ecg_source_idx, first_trial].T, color='r')
+pl.plot(sources.times, ecg_artifact, color='r')
 pl.xlabel('Time (s)')
 pl.ylabel('AU')
 pl.show()
@@ -99,8 +98,11 @@ eog_scores = ica.find_sources_epochs(epochs, target='EOG 061',
 # get maximum correlation index for EOG
 eog_source_idx = np.abs(eog_scores).argmax()
 
+# get sources as timeseries of concatenated epochs
+sources = ica.get_sources_epochs(epochs, concatenate=True)
 # compute times for concatenated epochs
-times = np.linspace(times[0], times[-1] * len(epochs), sources.shape[1])
+times = np.linspace(epochs.times[0], epochs.times[-1] * len(epochs),
+                    len(sources.T))
 
 # As the subject did not constantly move her eyes, the movement artifacts
 # may remain hidden when plotting single epochs.
@@ -127,30 +129,21 @@ epochs_ica = ica.pick_sources_epochs(epochs)
 
 
 # First show unprocessed, then cleaned epochs
-for e in epochs, epochs_ica:
-    pl.figure()
-    e.average().plot()
-    pl.show()
-
-ecg_ch = epochs.ch_names.index('MEG 1531')
-pl.figure()
-pl.title('Raw epochs, ECG-like channel')
-pl.plot(epochs._data[0, ecg_ch].T, color='r')
-pl.xlabel('Time (s)')
-pl.ylabel('AU')
-pl.xlim(times[[0, -1]])
-pl.show()
-ylim = pl.ylim()
-
-
-pl.figure()
-pl.title('Cleaned epochs, ECG-like channel')
-pl.plot(epochs_ica._data[0, ecg_ch].T, color='r')
-pl.xlabel('Time (s)')
-pl.ylabel('AU')
-pl.ylim(*ylim)
-pl.xlim(times[[0, -1]])
-pl.show()
+mags = mne.fiff.pick_types(epochs.info, meg='mag', exclude=[])
+fig, axes = pl.subplots(2, 2, sharex=True, sharey=True)
+times = epochs.times * 1e3
+scale = 1e15
+titles = ['raw - ', 'cleaned - ']
+ecg_ch = epochs.ch_names.index(ecg_ch_name)
+for e, (ax1, ax2), title in zip([epochs, epochs_ica], axes.T, titles):
+    ax1.plot(times, e.average(mags).data.T * scale, color='k')
+    ax1.set_title(title + 'evoked')
+    ax2.plot(times, e._data[some_trial, ecg_ch].T * scale, color='r')
+    ax2.set_title(title + 'single trial')
+    if title == 'raw':
+        ax1.set_ylabel('data (fT)')
+    else:
+        ax2.set_xlabel('Time (ms)')
 
 ###############################################################################
 # Inspect evoked ICA sources

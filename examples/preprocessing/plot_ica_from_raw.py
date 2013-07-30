@@ -54,9 +54,10 @@ ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
 # However, rejection performance may significantly improve when using
 # the entire data range
 
-start, stop = 100., 160.  # floats, otherwise it will be interpreted as index
+start, stop = None, None  # floats, otherwise it will be interpreted as index
 
 # decompose sources for raw data
+raw._data = raw._data[:, ::3]
 ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
 print ica
 
