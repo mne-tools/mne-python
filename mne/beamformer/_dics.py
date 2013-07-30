@@ -24,7 +24,9 @@ from .. import verbose
 @verbose
 def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
                 label=None, picks=None, pick_ori=None, verbose=None):
-    """Calculate the DICS spatial filter based on a given cross-spectral
+    """Dynamic Imaging of Coherent Sources (DICS).
+
+    Calculate the DICS spatial filter based on a given cross-spectral
     density object and return estimates of source activity based on given data.
 
     Parameters
