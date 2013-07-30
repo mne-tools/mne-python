@@ -181,6 +181,16 @@ def test_ica_additional():
     assert_raises(RuntimeError, ica.save, '')
     ica.decompose_raw(raw, picks=None, start=start, stop=stop2)
 
+    # test decim
+    ica = ICA(n_components=3, max_pca_components=4,
+              n_pca_components=4)
+    raw_ = raw.copy()
+    for _ in range(3):
+        raw_.append(raw_)
+    n_samples = raw_._data.shape[1]
+    ica.decompose_raw(raw, picks=None, decim=3)
+    assert_true(raw_._data.shape[1], n_samples)
+
     # epochs extraction from raw fit
     assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
     # test reading and writing
