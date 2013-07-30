@@ -30,9 +30,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 # Create an epochs object with one epoch and one channel of artificial data
 event_id, tmin, tmax = 1, 0.0, 1.0
 epochs_sin = mne.Epochs(raw, events[0:5], event_id, tmin, tmax, proj=True,
-                        picks=picks, baseline=(None, 0), preload=True,
-                        reject=dict(grad=4000e-13, mag=4e-12))
-epochs_sin.drop_picks(range(1, 306))
+                        picks=[0], baseline=(None, 0), preload=True,
+                        reject=dict(grad=4000e-13))
 freq = 10
 epochs_sin._data = np.sin(2 * np.pi * freq * epochs_sin.times)[None, None, :]
 
