@@ -217,7 +217,7 @@ class ICA(object):
 
     @verbose
     def decompose_raw(self, raw, picks=None, start=None, stop=None,
-                      verbose=None):
+                      decim=None, verbose=None):
         """Run the ICA decomposition on raw data
 
         Caveat! If supplying a noise covariance keep track of the projections
@@ -238,6 +238,9 @@ class ICA(object):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, data will be used to the last sample.
+        decim : int | None
+            Increment for selecting each nth time slice. If None, all samples
+            within ``start`` and ``stop`` are used.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -266,7 +269,11 @@ class ICA(object):
         self.info = pick_info(raw.info, picks)
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
-        data, self._pre_whitener = self._pre_whiten(raw[picks, start:stop][0],
+        if decim is not None:
+            data = raw[picks, start:stop][0].copy()[:, ::decim]
+        else:
+            data = raw[picks, start:stop][0]
+        data, self._pre_whitener = self._pre_whiten(data,
                                                     raw.info, picks)
 
         self._decompose(data, self.max_pca_components, 'raw')
@@ -274,7 +281,7 @@ class ICA(object):
         return self
 
     @verbose
-    def decompose_epochs(self, epochs, picks=None, verbose=None):
+    def decompose_epochs(self, epochs, picks=None, decim=None, verbose=None):
         """Run the ICA decomposition on epochs
 
         Caveat! If supplying a noise covariance keep track of the projections
@@ -290,6 +297,9 @@ class ICA(object):
             Channels to be included relative to the channels already picked on
             epochs-initialization. This selection remains throughout the
             initialized ICA session.
+        decim : int | None
+            Increment for selecting each nth time slice. If None, all samples
+            within ``start`` and ``stop`` are used.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -325,9 +335,13 @@ class ICA(object):
             self.max_pca_components = len(picks)
             logger.info('Inferring max_pca_components from picks.')
 
+        if decim is not None:
+            data = epochs.get_data()[:, picks, ::decim].copy()
+        else:
+            data = epochs.get_data()[:, picks, ::decim]
+
         data, self._pre_whitener = \
-            self._pre_whiten(np.hstack(epochs.get_data()[:, picks]),
-                             epochs.info, picks)
+            self._pre_whiten(np.hstack(data), epochs.info, picks)
 
         self._decompose(data, self.max_pca_components, 'epochs')
 

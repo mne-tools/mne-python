@@ -54,7 +54,7 @@ random_state = np.random.RandomState(42)
 ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
           noise_cov=None, random_state=random_state)
 
-ica.decompose_epochs(epochs)
+ica.decompose_epochs(epochs, decim=2)
 print ica
 
 # plot spatial sensitivities of a few ICA components
