@@ -535,6 +535,25 @@ def get_config_path():
     return val
 
 
+def set_cache_dir(cache_dir):
+    """Set the directory to be used for temporary file storage.
+
+    This directory is used by joblib to store memmapped arrays,
+    which reduces memory requirements and speeds up parallel
+    computation.
+
+    Parameters
+    ----------
+    cache_dir: str or None
+        Directory to use for temporary file storage. None disables
+        temporary file storage.
+    """
+    if cache_dir is not None and not op.exists(cache_dir):
+        raise ValueError('Directory %s does not exist' % cache_dir)
+
+    set_config('MNE_CACHE_DIR', cache_dir)
+
+
 # List the known configuration values
 known_config_types = [
     'MNE_BROWSE_RAW_SIZE',
@@ -544,7 +563,9 @@ known_config_types = [
     'MNE_LOGGING_LEVEL',
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
+    'MNE_CACHE_DIR',
     ]
+
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 known_config_wildcards = [
     'MNE_STIM_CHANNEL',

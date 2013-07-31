@@ -39,19 +39,22 @@ def test_cluster_permutation_test():
                                       (condition2_1d, condition2_2d)):
         T_obs, clusters, cluster_p_values, hist = permutation_cluster_test(
                                     [condition1, condition2],
-                                    n_permutations=100, tail=1, seed=1)
+                                    n_permutations=100, tail=1, seed=1,
+                                    buffer_size=None)
         assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
         T_obs, clusters, cluster_p_values, hist = permutation_cluster_test(
                                     [condition1, condition2],
-                                    n_permutations=100, tail=0, seed=1)
+                                    n_permutations=100, tail=0, seed=1,
+                                    buffer_size=None)
         assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
-        # test with 2 jobs
+        # test with 2 jobs and buffer_size enabled
+        buffer_size = condition1.shape[1] // 10
         T_obs, clusters, cluster_p_values_buff, hist =\
             permutation_cluster_test([condition1, condition2],
                                     n_permutations=100, tail=0, seed=1,
-                                    n_jobs=2)
+                                    n_jobs=2, buffer_size=buffer_size)
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
 
@@ -61,25 +64,28 @@ def test_cluster_permutation_t_test():
         # these are so significant we can get away with fewer perms
         T_obs, clusters, cluster_p_values, hist =\
             permutation_cluster_1samp_test(condition1, n_permutations=100,
-                                           tail=0, seed=1)
+                                           tail=0, seed=1, buffer_size=None)
         assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
         T_obs_pos, c_1, cluster_p_values_pos, _ =\
             permutation_cluster_1samp_test(condition1, n_permutations=100,
-                                    tail=1, threshold=1.67, seed=1)
+                                    tail=1, threshold=1.67, seed=1,
+                                    buffer_size=None)
 
         T_obs_neg, _, cluster_p_values_neg, _ =\
             permutation_cluster_1samp_test(-condition1, n_permutations=100,
-                                    tail=-1, threshold=-1.67, seed=1)
+                                    tail=-1, threshold=-1.67, seed=1,
+                                    buffer_size=None)
         assert_array_equal(T_obs_pos, -T_obs_neg)
         assert_array_equal(cluster_p_values_pos < 0.05,
                            cluster_p_values_neg < 0.05)
 
-        # test with 2 jobs
+        # test with 2 jobs and buffer_size enabled
+        buffer_size = condition1.shape[1] // 10
         T_obs_neg, _, cluster_p_values_neg_buff, _ = \
             permutation_cluster_1samp_test(-condition1, n_permutations=100,
                                             tail=-1, threshold=-1.67, seed=1,
-                                            n_jobs=2)
+                                            n_jobs=2, buffer_size=buffer_size)
 
         assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
 
@@ -320,7 +326,7 @@ def spatio_temporal_cluster_test_connectivity():
     rng = np.random.RandomState(0)
     noise1_2d = rng.randn(condition1_2d.shape[0], condition1_2d.shape[1], 10)
     data1_2d  = np.transpose(np.dstack((condition1_2d, noise1_2d)), [0, 2, 1])
-    
+
     noise2_d2 = rng.randn(condition2_2d.shape[0], condition2_2d.shape[1], 10)
     data2_2d  = np.transpose(np.dstack((condition2_2d, noise2_d2)), [0, 2, 1])
 
@@ -330,12 +336,14 @@ def spatio_temporal_cluster_test_connectivity():
     T_obs, clusters, p_values_conn, hist = \
         spatio_temporal_cluster_test([data1_2d, data2_2d], connectivity=conn,
                                      n_permutations=50, tail=1, seed=1,
-                                     threshold=threshold)
+                                     threshold=threshold, buffer_size=None)
 
+    buffer_size = data1_2d.size // 10
     T_obs, clusters, p_values_no_conn, hist = \
         spatio_temporal_cluster_test([data1_2d, data2_2d],
                                      n_permutations=50, tail=1, seed=1,
-                                     threshold=threshold)
+                                     threshold=threshold, n_jobs=2,
+                                     buffer_size=buffer_size)
 
     assert_equal(np.sum(p_values_conn < 0.05), np.sum(p_values_no_conn < 0.05))
 
