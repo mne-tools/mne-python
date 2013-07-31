@@ -201,7 +201,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     tmax : float
         End of time interval in seconds
     tstep : float
-        Size of data chunks for artefact rejection.
+        Length of data chunks for artefact rejection in seconds.
     reject : dict
         Rejection parameters based on peak to peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.

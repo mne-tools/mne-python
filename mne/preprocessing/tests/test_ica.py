@@ -356,15 +356,14 @@ def test_run_ica():
                 skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
 
 
+@requires_sklearn
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
-    ica = ICA(n_components=3,
-              max_pca_components=4,
-              n_pca_components=4)
-    raw._data[2, 1000:1005] = 3e-12
+    ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4)
+    raw._data[2, 1000:1005] = 5e-12
     drop_log = op.join(op.dirname(tempdir), 'ica_drop.log')
     set_log_file(drop_log, overwrite=True)
-    ica.decompose_raw(raw, picks[:5], reject=dict(mag=2.5e-12), decim=3,
-                     tstep=0.005)
+    ica.decompose_raw(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
+                      tstep=0.01)
     log = [l for l in open(drop_log) if 'detected' in l]
     assert_true(len(log) == 1)
