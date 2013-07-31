@@ -5,7 +5,6 @@
 
 import os
 import os.path as op
-import warnings
 
 from nose.tools import assert_true, assert_raises
 from copy import deepcopy
@@ -21,6 +20,7 @@ from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
 from mne.preprocessing.ica import score_funcs, _check_n_pca_components
 from mne.utils import _TempDir, requires_sklearn
 from mne.fiff.meas_info import Info
+from mne.utils import set_log_file
 
 tempdir = _TempDir()
 
@@ -361,12 +361,9 @@ def test_ica_reject_buffer():
     ica = ICA(n_components=3,
               max_pca_components=4,
               n_pca_components=4)
-    for _ in range(3):
-        raw.append(raw)
-    raw._data[2, 7000:7500] = 3e-12
-    ica.decompose_raw(raw, picks[:5], reject=dict(mag=2e-12))
-    # with warnings.catch_warnings(record=True) as w:
-    #     ica.decompose_raw(raw, picks[:5], reject=dict(mag=2e-12))
-    #     warnings.simplefilter("always")
-    #     # Trigger a warning.
-    #     assert len(w) == 1
+    raw._data[2, 1000:1005] = 3e-12
+    drop_log = op.join(op.dirname(tempdir), 'ica_drop.log')
+    set_log_file(drop_log, overwrite=True)
+    ica.decompose_raw(raw, picks[:5], reject=dict(mag=2.5e-12), decim=3)
+    log = [l for l in open(drop_log) if 'detected' in l]
+    assert_true(len(log) == 1)
