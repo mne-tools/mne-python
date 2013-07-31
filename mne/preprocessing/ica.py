@@ -272,10 +272,6 @@ class ICA(object):
         self.info = pick_info(raw.info, picks)
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
-        # data = raw[picks, start:stop][0]
-        # if decim is not None:
-        #     data = data[:, ::decim].copy()
-        # Read data in chuncks
         info = self.info
         step = 1 if decim is None else decim
         data = np.empty([len(picks), stop - start])[:, ::step]
