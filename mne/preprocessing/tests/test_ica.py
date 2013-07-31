@@ -5,6 +5,7 @@
 
 import os
 import os.path as op
+import warnings
 
 from nose.tools import assert_true, assert_raises
 from copy import deepcopy
@@ -353,3 +354,19 @@ def test_run_ica():
         run_ica(raw, n_components=2, start=0, stop=6, start_find=0,
                 stop_find=5, ecg_ch=ch_name, eog_ch=ch_name,
                 skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
+
+
+def test_ica_reject_buffer():
+    """Test ICA data raw buffer rejection"""
+    ica = ICA(n_components=3,
+              max_pca_components=4,
+              n_pca_components=4)
+    for _ in range(3):
+        raw.append(raw)
+    raw._data[2, 7000:7500] = 3e-12
+    ica.decompose_raw(raw, picks[:5], reject=dict(mag=2e-12))
+    # with warnings.catch_warnings(record=True) as w:
+    #     ica.decompose_raw(raw, picks[:5], reject=dict(mag=2e-12))
+    #     warnings.simplefilter("always")
+    #     # Trigger a warning.
+    #     assert len(w) == 1

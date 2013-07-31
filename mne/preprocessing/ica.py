@@ -25,7 +25,8 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from .. import Covariance
-from ..fiff.pick import pick_types, pick_channels, pick_info
+from ..fiff.pick import pick_types, pick_channels, pick_info, \
+                        channel_indices_by_type
 from ..fiff.write import write_double_matrix, write_string, \
                          write_name_list, write_int, start_block, \
                          end_block
@@ -37,6 +38,7 @@ from ..fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel, plot_ica_topomap
 from .. import verbose
 from ..fiff.write import start_file, end_file, write_id
+from ..epochs import _is_good
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -217,7 +219,7 @@ class ICA(object):
 
     @verbose
     def decompose_raw(self, raw, picks=None, start=None, stop=None,
-                      decim=None, verbose=None):
+                      decim=None, reject=None, flat=None, verbose=None):
         """Run the ICA decomposition on raw data
 
         Caveat! If supplying a noise covariance keep track of the projections
@@ -241,6 +243,7 @@ class ICA(object):
         decim : int | None
             Increment for selecting each nth time slice. If None, all samples
             within ``start`` and ``stop`` are used.
+        reject : dict
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -269,9 +272,26 @@ class ICA(object):
         self.info = pick_info(raw.info, picks)
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
-        data = raw[picks, start:stop][0]
-        if decim is not None:
-            data = data[:, ::decim].copy()
+        # data = raw[picks, start:stop][0]
+        # if decim is not None:
+        #     data = data[:, ::decim].copy()
+        # Read data in chuncks
+        info = self.info
+        step = 1 if decim is None else decim
+        data = np.empty([len(picks), stop - start])[:, ::step]
+        idx_by_type = channel_indices_by_type(info)
+        for first in xrange(start, stop, step):
+            last = first + step
+            if last >= stop:
+                last = stop
+            raw_segment, times = raw[picks, first:last]
+            if not raw_segment.any():
+                break
+            if _is_good(raw_segment, info['ch_names'], idx_by_type, reject,
+                       flat, ignore_chs=info['bads']):
+                data[:, first:last] = raw_segment[:, ::decim]
+            else:
+                logger.info("Artefact detected in [%d, %d]" % (first, last))
 
         data, self._pre_whitener = self._pre_whiten(data,
                                                     raw.info, picks)
@@ -1199,8 +1219,14 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
 
 def _check_start_stop(raw, start, stop):
     """Aux function"""
-    return [c if (isinstance(c, int) or c is None) else
-            raw.time_as_index(c)[0] for c in start, stop]
+
+    start, stop = [c if (isinstance(c, int) or c is None) else
+                   raw.time_as_index(c)[0] for c in start, stop]
+    if start is None:
+        start = 0
+    if stop is None:
+        stop = raw.last_samp
+    return start, stop
 
 
 @verbose
