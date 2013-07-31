@@ -175,7 +175,8 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
 
         # DIFF: LCMV applies data whitening here
         # Apply SSPs
-        M = np.dot(proj, M)
+        if 'projs' in info:
+            M = np.dot(proj, M)
 
         # project to source space using beamformer weights
 
