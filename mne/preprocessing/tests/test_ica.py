@@ -20,6 +20,7 @@ from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
 from mne.preprocessing.ica import score_funcs, _check_n_pca_components
 from mne.utils import _TempDir, requires_sklearn
 from mne.fiff.meas_info import Info
+from mne.utils import set_log_file
 
 tempdir = _TempDir()
 
@@ -353,3 +354,17 @@ def test_run_ica():
         run_ica(raw, n_components=2, start=0, stop=6, start_find=0,
                 stop_find=5, ecg_ch=ch_name, eog_ch=ch_name,
                 skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
+
+
+def test_ica_reject_buffer():
+    """Test ICA data raw buffer rejection"""
+    ica = ICA(n_components=3,
+              max_pca_components=4,
+              n_pca_components=4)
+    raw._data[2, 1000:1005] = 3e-12
+    drop_log = op.join(op.dirname(tempdir), 'ica_drop.log')
+    set_log_file(drop_log, overwrite=True)
+    ica.decompose_raw(raw, picks[:5], reject=dict(mag=2.5e-12), decim=3,
+                     tstep=0.005)
+    log = [l for l in open(drop_log) if 'detected' in l]
+    assert_true(len(log) == 1)

@@ -56,7 +56,7 @@ ica = ICA(n_components=0.90, n_pca_components=None, max_pca_components=100,
 # the entire data range
 
 # decompose sources for raw data using each third sample.
-ica.decompose_raw(raw, picks=picks, decim=3)
+ica.decompose_raw(raw, picks=picks, decim=3, reject=dict(mag=4e-12))
 print ica
 
 # plot reasonable time window for inspection

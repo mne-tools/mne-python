@@ -9,6 +9,7 @@ import inspect
 import warnings
 from inspect import getargspec, isfunction
 from collections import namedtuple
+from math import ceil
 
 import os
 import json
@@ -25,7 +26,8 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from .. import Covariance
-from ..fiff.pick import pick_types, pick_channels, pick_info
+from ..fiff.pick import pick_types, pick_channels, pick_info, \
+                        channel_indices_by_type
 from ..fiff.write import write_double_matrix, write_string, \
                          write_name_list, write_int, start_block, \
                          end_block
@@ -37,6 +39,7 @@ from ..fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel, plot_ica_topomap
 from .. import verbose
 from ..fiff.write import start_file, end_file, write_id
+from ..epochs import _is_good
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -217,7 +220,8 @@ class ICA(object):
 
     @verbose
     def decompose_raw(self, raw, picks=None, start=None, stop=None,
-                      decim=None, verbose=None):
+                      decim=None, reject=None, flat=None, tstep=2.0,
+                      verbose=None):
         """Run the ICA decomposition on raw data
 
         Caveat! If supplying a noise covariance keep track of the projections
@@ -241,6 +245,22 @@ class ICA(object):
         decim : int | None
             Increment for selecting each nth time slice. If None, all samples
             within ``start`` and ``stop`` are used.
+        reject : dict
+            Rejection parameters based on peak to peak amplitude.
+            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+            If reject is None then no rejection is done. Example::
+
+                reject = dict(grad=4000e-13, # T / m (gradiometers)
+                              mag=4e-12, # T (magnetometers)
+                              eeg=40e-6, # uV (EEG channels)
+                              eog=250e-6 # uV (EOG channels)
+                              )
+        flat : dict
+            Rejection parameters based on flatness of signal
+            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+            If flat is None then no rejection is done.
+        tstep : float
+            Size of data chunks for artefact rejection.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -269,9 +289,32 @@ class ICA(object):
         self.info = pick_info(raw.info, picks)
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
-        data = raw[picks, start:stop][0]
-        if decim is not None:
-            data = data[:, ::decim].copy()
+        info = self.info
+        data = np.empty((len(picks), len(np.arange(stop - start)[::decim])))
+        idx_by_type = channel_indices_by_type(info)
+        step = int(ceil(tstep * raw.info['sfreq']))
+        this_start = 0
+        this_stop = 0
+        for first in xrange(start, stop, step):
+            last = first + step
+            if last > stop:
+                last = stop
+            raw_segment, times = raw[picks, first:last]
+            if raw_segment.shape[1] < (last - first):
+                break
+            if _is_good(raw_segment, info['ch_names'], idx_by_type, reject,
+                       flat, ignore_chs=info['bads']):
+                raw_segment = raw_segment[:, ::decim]
+                this_stop = this_start + raw_segment.shape[1]
+                data[:, this_start:this_stop] = raw_segment
+                this_start += raw_segment.shape[1]
+            else:
+                logger.info("Artifact detected in [%d, %d]" % (first, last))
+        data = data[:, :this_stop]
+        if not data.any():
+            raise RuntimeError('No clean segment found. Please '
+                               'consider updating your rejection '
+                               'thresholds.')
 
         data, self._pre_whitener = self._pre_whiten(data,
                                                     raw.info, picks)
@@ -1199,8 +1242,14 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
 
 def _check_start_stop(raw, start, stop):
     """Aux function"""
-    return [c if (isinstance(c, int) or c is None) else
-            raw.time_as_index(c)[0] for c in start, stop]
+ 
+    start, stop = [c if (isinstance(c, int) or c is None) else
+                   raw.time_as_index(c)[0] for c in start, stop]
+    if start is None:
+        start = 0
+    if stop is None:
+        stop = raw.last_samp
+    return start, stop
 
 
 @verbose
