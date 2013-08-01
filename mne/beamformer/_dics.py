@@ -139,25 +139,24 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
             # Fixed source orientation
             Wk /= Ck
 
+        # Noise normalization
+        # DIFF: LCMV prepares noise normalization outside of the loop
+        # DIFF: noise_norm is not complex in LCMV
+        noise_norm = np.dot(np.dot(Wk.conj(), noise_csd.data), Wk.T)
+        noise_norm = np.abs(noise_norm).trace()
+        Wk /= np.sqrt(noise_norm)
+
     # DIFF: LCMV picks 'max-power' orientation here
 
-    # Preparing noise normalization
-    # TODO: Noise normalization in DICS should take into account noise CSD
-    # DIFF: noise_norm is not complex in LCMV
-    noise_norm = np.sum((W * W.conj()), axis=1)
-    noise_norm = np.real_if_close(noise_norm)
-    if is_free_ori:
-        noise_norm = np.sum(np.reshape(noise_norm, (-1, 3)), axis=1)
-    noise_norm = np.sqrt(noise_norm)
+    # DIFF: LCMV prepares noise normalization here and it doesn't involve the
+    # noise covariance
 
     # Pick source orientation normal to cortical surface
     if pick_ori == 'normal':
         W = W[2::3]
         is_free_ori = False
 
-    # Applying noise normalization
-    if not is_free_ori:
-        W /= noise_norm[:, None]
+    # DIFF: LCMV applies noise normalization for fixed orientation here
 
     if isinstance(data, np.ndarray) and data.ndim == 2:
         data = [data]
@@ -184,7 +183,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
             sol = np.dot(W, M)
             logger.info('combining the current components...')
             sol = combine_xyz(sol)
-            sol /= noise_norm[:, None]
+            # DIFF: LCMV applies noise normalization for free orientation here
         else:
             # Linear inverse: do computation here or delayed
             if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
