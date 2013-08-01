@@ -22,6 +22,7 @@ print __doc__
 import mne
 
 import pylab as pl
+import numpy as np
 
 from mne.fiff import Raw
 from mne.datasets import sample
@@ -55,29 +56,25 @@ evoked = epochs.average()
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 
-# TODO: Time and frequency windows should be selected on the basis of e.g. a
-# spectrogram
-
 # Computing the data and noise cross-spectral density matrices
-data_csd = compute_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15, fmin=8,
-                       fmax=12)
+# The time-frequency window was chosen on the basis of spectrograms from
+# example time_frequency/plot_time_frequency.py
+data_csd = compute_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15, fmin=6,
+                       fmax=10)
 noise_csd = compute_csd(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
-                        fmin=8, fmax=12)
+                        fmin=6, fmax=10)
 
 # Compute DICS spatial filter and estimate source time courses for single
-# epochs
+# trials
 stcs = dics_epochs(epochs, forward, noise_csd, data_csd, return_generator=True)
 
 # Take a single epoch
 stc = stcs.next()
 
-# Extract time courses from a specific label and average across them
-label = mne.read_label(fname_label)
-data = stc.extract_label_time_course(label, forward['src'], mode='mean')
-
 pl.figure()
-pl.plot(1e3 * stc.times, data.T)
+pl.plot(1e3 * stc.times,
+        stc.data[np.argsort(np.max(stc.data, axis=1))[-40:]].T)
 pl.xlabel('Time [ms]')
 pl.ylabel('DICS value')
-pl.title('Single epoch estimated source activity')
+pl.title('Single epoch estimated source activity for several sources')
 pl.show()
