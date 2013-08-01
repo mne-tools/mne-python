@@ -347,6 +347,14 @@ def spatio_temporal_cluster_test_connectivity():
 
     assert_equal(np.sum(p_values_conn < 0.05), np.sum(p_values_no_conn < 0.05))
 
+    # make sure results are the same without buffer_size
+    T_obs, clusters, p_values2, hist2 = \
+        spatio_temporal_cluster_test([data1_2d, data2_2d],
+                                     n_permutations=50, tail=1, seed=1,
+                                     threshold=threshold, n_jobs=2,
+                                     buffer_size=None)
+    assert_array_equal(p_values_no_conn, p_values2)
+
 
 def ttest_1samp(X):
     """Returns T-values

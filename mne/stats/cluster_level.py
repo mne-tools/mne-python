@@ -551,7 +551,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
             T_obs_surr = stat_fun(*X_shuffle_list)
         else:
             # only shuffle a small data buffer, so we need less memory
-            T_obs_surr = np.empty(n_vars, dtype=np.double)
+            T_obs_surr = np.empty(n_vars, dtype=X_full.dtype)
 
             for pos in xrange(0, n_vars, buffer_size):
                 # number of variables for this loop
@@ -623,7 +623,7 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
             X *= signs
         else:
             # only sign-flip a small data buffer, so we need less memory
-            T_obs_surr = np.empty(n_vars, dtype=np.double)
+            T_obs_surr = np.empty(n_vars, dtype=X.dtype)
 
             for pos in xrange(0, n_vars, buffer_size):
                 # number of variables for this loop
@@ -942,7 +942,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         can lead to faster clustering, but results should be identical.
     buffer_size: int or None
         The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option signifficantly reduces the
+        "buffer_size" at a time. This is option significantly reduces the
         memory requirements when n_jobs > 1 and memory sharing between
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
@@ -1073,7 +1073,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         can lead to faster clustering, but results should be identical.
     buffer_size: int or None
         The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option signifficantly reduces the
+        "buffer_size" at a time. This is option significantly reduces the
         memory requirements when n_jobs > 1 and memory sharing between
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
@@ -1196,7 +1196,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         can lead to faster clustering, but results should be identical.
     buffer_size: int or None
         The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option signifficantly reduces the
+        "buffer_size" at a time. This is option significantly reduces the
         memory requirements when n_jobs > 1 and memory sharing between
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space
@@ -1314,7 +1314,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
         can lead to faster clustering, but results should be identical.
     buffer_size: int or None
         The statistics will be computed for blocks of variables of size
-        "buffer_size" at a time. This is option signifficantly reduces the
+        "buffer_size" at a time. This is option significantly reduces the
         memory requirements when n_jobs > 1 and memory sharing between
         processes is enabled (see set_cache_dir()), as X will be shared
         between processes and each process only needs to allocate space

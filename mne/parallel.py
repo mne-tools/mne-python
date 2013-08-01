@@ -31,7 +31,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes=None):
     max_nbytes int or None, optional
         Threshold on the size in Bytes of arrays passed to the workers that
         triggers automated memmory mapping. If None, memory sharing
-        is diabled.
+        is disabled.
     Returns
     -------
     parallel: instance of joblib.Parallel or list
