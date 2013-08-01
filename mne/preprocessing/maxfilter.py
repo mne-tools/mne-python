@@ -97,7 +97,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
                     st=False, st_buflen=16.0, st_corr=0.96, mv_trans=None,
                     mv_comp=False, mv_headpos=False, mv_hp=None,
                     mv_hpistep=None, mv_hpisubt=None, mv_hpicons=True,
-                    linefreq=None, mx_args='', overwrite=True,
+                    linefreq=None, cal=None, ctc=None, mx_args='', overwrite=True,
                     verbose=None):
 
     """ Apply NeuroMag MaxFilter to raw data.
@@ -170,7 +170,13 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     linefreq : int (50, 60) (or None)
         Sets the basic line interference frequency (50 or 60 Hz)
         (None: do not use line filter)
-
+    
+    cal : string
+        Path to calibration file
+    
+    ctc : string
+        Path to Cross-talk compensation file
+        
     mx_args : string
         Additional command line arguments to pass to MaxFilter
 
@@ -180,6 +186,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
+    
     Returns
     -------
     origin: string
@@ -256,7 +263,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
             cmd += '-headpos '
 
         if mv_hp is not None:
-            cmd += '-hp %s' % mv_hp
+            cmd += '-hp %s ' % mv_hp
 
         if mv_hpisubt is not None:
             cmd += 'hpisubt %s ' % mv_hpisubt
@@ -266,6 +273,12 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
 
     if linefreq is not None:
         cmd += '-linefreq %d ' % linefreq
+
+    if cal is not None:
+        cmd += '-cal %s ' % cal
+
+    if ctc is not None:
+        cmd += '-ctc %s ' % ctc
 
     cmd += mx_args
 
