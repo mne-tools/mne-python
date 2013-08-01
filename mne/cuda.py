@@ -8,7 +8,8 @@ try:
     import pycuda.gpuarray as gpuarray
     from pycuda.driver import mem_get_info
     from scikits.cuda import fft as cudafft
-except ImportError:
+except (ImportError, OSError):
+    # need OSError because scikits.cuda throws it if cufft not found
     pass
 
 import logging
