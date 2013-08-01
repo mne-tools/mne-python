@@ -98,7 +98,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
                     mv_comp=False, mv_headpos=False, mv_hp=None,
                     mv_hpistep=None, mv_hpisubt=None, mv_hpicons=True,
                     linefreq=None, mx_args='', overwrite=True,
-                    verbose=None):
+                    verbose=None, cal=None, ctc=None):
 
     """ Apply NeuroMag MaxFilter to raw data.
 
@@ -180,6 +180,13 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
+    cal : string
+        Path to calibration file
+    
+    ctc : string
+        Path to Cross-talk compensation file
+
+
     Returns
     -------
     origin: string
@@ -256,7 +263,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
             cmd += '-headpos '
 
         if mv_hp is not None:
-            cmd += '-hp %s' % mv_hp
+            cmd += '-hp %s ' % mv_hp
 
         if mv_hpisubt is not None:
             cmd += 'hpisubt %s ' % mv_hpisubt
@@ -266,6 +273,12 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
 
     if linefreq is not None:
         cmd += '-linefreq %d ' % linefreq
+
+    if cal is not None:
+        cmd += '-cal %s ' % cal
+
+    if ctc is not None:
+        cmd += '-ctc %s ' % ctc
 
     cmd += mx_args
 
