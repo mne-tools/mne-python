@@ -371,7 +371,7 @@ class Epochs(_BaseEpochs):
         End time after event.
     name : string
         Comment that describes the Evoked data created.
-    baseline : None (default) or tuple of length 2
+    baseline : None or tuple of length 2 (default (None, 0))
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
