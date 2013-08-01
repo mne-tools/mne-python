@@ -60,7 +60,7 @@ def test_dics_epochs():
                             fmin=8, fmax=12)
 
     # TODO: This should be done on evoked
-    stcs = dics_epochs(epochs, forward, noise_csd=None, data_csd=data_csd,
+    stcs = dics_epochs(epochs, forward, noise_csd=noise_csd, data_csd=data_csd,
                        return_generator=True)
     stc = stcs.next()
 
