@@ -28,10 +28,12 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         INFO or DEBUG will print parallel status, others will not.
-    max_nbytes int or None, optional
-        Threshold on the size in Bytes of arrays passed to the workers that
-        triggers automated memmory mapping. If None, memory sharing
-        is disabled.
+    max_nbytes int, str, or None
+        Threshold on the size of arrays passed to the workers that
+        triggers automated memmory mapping. Can be an int in Bytes,
+        or a human-readable string, e.g., '1M' for 1 megabyte.
+        Use None to disable memmaping of large arrays.
+
     Returns
     -------
     parallel: instance of joblib.Parallel or list
