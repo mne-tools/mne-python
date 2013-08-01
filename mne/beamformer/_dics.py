@@ -253,7 +253,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     picks = pick_types(info, meg=True, eeg=True, exclude='bads')
     data = epochs.get_data()[:, picks, :]
 
-    stcs = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
+    stcs = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
                        label=label, pick_ori=pick_ori)
 
     if not return_generator:
