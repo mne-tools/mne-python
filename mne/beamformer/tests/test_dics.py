@@ -69,9 +69,9 @@ def test_dics_epochs():
     max_stc = stc.data[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    # TODO: These should be made reasonable once normalization is implemented
-    assert_true(-1 < tmax < 1)
-    assert_true(0. < np.max(max_stc) < 20.)
+    # TODO: The values seem too large, are they reasonable?
+    assert_true(0.09 < tmax < 0.13)
+    assert_true(25. < np.max(max_stc) < 26.)
 
     # Test picking normal orientation
     # TODO: This should be done on evoked
