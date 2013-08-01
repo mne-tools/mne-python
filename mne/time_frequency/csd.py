@@ -16,23 +16,26 @@ from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
                                         _csd_from_mt, _psd_from_mt_adaptive
 
 
-class CrossSpectralDensity(dict):
+class CrossSpectralDensity():
     """Cross-spectral density
 
-    Attributes
+    Parameters
     ----------
     data : array of shape (n_channels, n_channels)
         The cross-spectral density.
     ch_names : list of string
         List of channels' names.
+    projs:
+        List of projectors used in CSD calculation.
+    bads:
+        List of bad channels.
     """
-    @property
-    def data(self):
-        return self['data']
-
-    @property
-    def ch_names(self):
-        return self['names']
+    def __init__(self, data, ch_names, projs, bads):
+        self.data = data
+        self.dim = len(data)
+        self.ch_names = cp.deepcopy(ch_names)
+        self.projs = cp.deepcopy(projs)
+        self.bads = cp.deepcopy(bads)
 
     def __repr__(self):
         # TODO: This will have to be updated when the CSD object will be
@@ -210,8 +213,6 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
 
     csd_mean /= n_epochs
 
-    csd = CrossSpectralDensity()
-    csd.update(dim=len(csd_mean), names=cp.deepcopy(ch_names), data=csd_mean,
-               projs=cp.deepcopy(projs), bads=cp.deepcopy(epochs.info['bads']))
+    csd = CrossSpectralDensity(csd_mean, ch_names, projs, epochs.info['bads'])
 
     return csd
