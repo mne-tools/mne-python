@@ -70,11 +70,12 @@ evoked = epochs.average()
 stc = dics(evoked, forward, noise_csd, data_csd)
 
 pl.figure()
+ts_show = -30  # show the 40 largest responses
 pl.plot(1e3 * stc.times,
-        stc.data[np.argsort(np.max(stc.data, axis=1))[-40:]].T)
-pl.xlabel('Time [ms]')
+        stc.data[np.argsort(stc.data.max(axis=1))[ts_show:]].T)
+pl.xlabel('Time (ms)')
 pl.ylabel('DICS value')
-pl.title('DICS time course over several sources')
+pl.title('DICS time course of the 30 largest sources.')
 pl.show()
 
 # Plot brain in 3D with PySurfer if available. Note that the subject name
