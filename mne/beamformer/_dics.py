@@ -105,7 +105,8 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
         G = forward['sol']['data']
 
     # Apply SSPs
-    if 'projs' in info:
+    proj = None
+    if 'projs' in info and len(info['projs']) > 0:
         proj, ncomp, _ = make_projector(info['projs'], ch_names)
         G = np.dot(proj, G)
 
@@ -122,7 +123,8 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
     W = np.dot(G.T, Cm_inv)
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
-    for k in range(n_sources):
+
+    for k in xrange(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         Ck = np.dot(Wk, Gk)
@@ -174,7 +176,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
 
         # DIFF: LCMV applies data whitening here
         # Apply SSPs
-        if 'projs' in info:
+        if proj is not None:
             M = np.dot(proj, M)
 
         # project to source space using beamformer weights
@@ -242,16 +244,13 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
     Gross et al. Dynamic imaging of coherent sources: Studying neural
     interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
-
     info = evoked.info
     data = evoked.data
     tmin = evoked.times[0]
 
     stc = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
                       label=label, pick_ori=pick_ori)
-    stc = stc.next()
-
-    return stc
+    return stc.next()
 
 
 @verbose
@@ -311,6 +310,6 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
                        label=label, pick_ori=pick_ori)
 
     if not return_generator:
-        stcs = [s for s in stcs]
+        stcs = list(stcs)
 
     return stcs
