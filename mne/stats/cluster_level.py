@@ -748,8 +748,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         slices = [slice(splits_idx[k], splits_idx[k + 1])
                                                     for k in range(len(X))]
 
-    parallel, my_do_perm_func, _ = parallel_func(do_perm_func, n_jobs,
-                                                 max_nbytes=1e6)
+    parallel, my_do_perm_func, _ = parallel_func(do_perm_func, n_jobs)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------

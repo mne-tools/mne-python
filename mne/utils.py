@@ -549,9 +549,29 @@ def set_cache_dir(cache_dir):
         temporary file storage.
     """
     if cache_dir is not None and not op.exists(cache_dir):
-        raise ValueError('Directory %s does not exist' % cache_dir)
+        raise IOError('Directory %s does not exist' % cache_dir)
 
     set_config('MNE_CACHE_DIR', cache_dir)
+
+
+def set_memmap_min_size(memmap_min_size):
+    """Set the minimum size for memmaping of arrays for parallel processing
+
+    Parameters
+    ----------
+    memmap_min_size: str or None
+        Threshold on the minimum size of arrays that triggers automated memmory
+        mapping for parallel processing, e.g., '1M' for 1 megabyte.
+        Use None to disable memmaping of large arrays.
+    """
+    if memmap_min_size is not None:
+        if not isinstance(memmap_min_size, basestring):
+            raise ValueError('\'memmap_min_size\' has to be a string.')
+        if memmap_min_size[-1] not in ['K', 'M', 'G']:
+            raise ValueError('The size has to be given in kilo-, mega-, or '
+                             'gigabytes, e.g., 100K, 500M, 1G.')
+
+    set_config('MNE_MEMMAP_MIN_SIZE', memmap_min_size)
 
 
 # List the known configuration values
@@ -564,6 +584,7 @@ known_config_types = [
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
     'MNE_CACHE_DIR',
+    'MNE_MEMMAP_MIN_SIZE'
     ]
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
