@@ -207,6 +207,10 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
     Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
     on evoked data and return estimates of source time courses.
 
+    NOTE : Fixed orientation forward operators will result in complex time
+    courses in which case absolute values will be  returned. Therefore the
+    orientation will no longer be fixed.
+
     NOTE : This implementation has not been heavilly tested so please
     report any issues or suggestions.
 
@@ -257,6 +261,10 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
 
     Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
     on single trial data and return estimates of source time courses.
+
+    NOTE : Fixed orientation forward operators will result in complex time
+    courses in which case absolute values will be  returned. Therefore the
+    orientation will no longer be fixed.
 
     NOTE : This implementation has not been heavilly tested so please
     report any issues or suggestions.
