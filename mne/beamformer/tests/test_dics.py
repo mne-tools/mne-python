@@ -107,15 +107,17 @@ def test_dics():
     assert_true(len(epochs.events) == len(stcs))
 
     # Average the single trial estimates
-    #stc_avg = np.zeros_like(stc.data, dtype='complex')
     stc_avg = np.zeros_like(stc.data)
     for this_stc in stcs:
         stc_avg += this_stc.data
     stc_avg /= len(stcs)
 
-    # Compare it to the solution using evoked with fixed orientation
-    stc_fixed = dics(evoked, forward_fixed, noise_csd, data_csd, reg=0.01)
-    assert_array_almost_equal(stc_avg, stc_fixed.data)
+    idx = np.argmax(np.max(stc_avg, axis=1))
+    max_stc = stc_avg[idx]
+    tmax = stc.times[np.argmax(max_stc)]
+
+    assert_true(0.09 < tmax < 0.11)
+    assert_true(15 < np.max(max_stc) < 16)
 
     # Use a label so we have few source vertices and delayed computation is
     # not used

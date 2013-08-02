@@ -187,15 +187,12 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
             sol = combine_xyz(sol)
             # DIFF: LCMV applies noise normalization for free orientation here
         else:
-            # Linear inverse: do computation here or delayed
-            if M.shape[0] < W.shape[0] and pick_ori != 'max-power':
-                sol = (W, M)
-            else:
-                sol = np.dot(W, M)
-            if pick_ori == 'max-power':
-                sol = np.abs(sol)
+            # Linear inverse: do not delay compuation due to non-linear abs
+            sol = np.dot(W, M)
 
         tstep = 1.0 / info['sfreq']
+        if np.iscomplexobj(sol):
+            sol = np.abs(sol)  # XXX : STC cannot contain (yet?) complex values
         yield SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
                              subject=subject)
 
