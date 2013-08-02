@@ -92,3 +92,34 @@ def test_dics():
     # orientation
     assert_raises(ValueError, dics_epochs, epochs, forward_vol, noise_csd,
                   data_csd, pick_ori="normal")
+
+    # Now test single trial using fixed orientation forward solution
+    # so we can compare it to the evoked solution
+    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01)
+
+    # Testing returning of generator
+    stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
+                        return_generator=True)
+    assert_array_equal(stcs[0].data, stcs_.next().data)
+
+    # Test whether correct number of trials was returned
+    epochs.drop_bad_epochs()
+    assert_true(len(epochs.events) == len(stcs))
+
+    # Average the single trial estimates
+    #stc_avg = np.zeros_like(stc.data, dtype='complex')
+    stc_avg = np.zeros_like(stc.data)
+    for this_stc in stcs:
+        stc_avg += this_stc.data
+    stc_avg /= len(stcs)
+
+    # Compare it to the solution using evoked with fixed orientation
+    stc_fixed = dics(evoked, forward_fixed, noise_csd, data_csd, reg=0.01)
+    assert_array_almost_equal(stc_avg, stc_fixed.data)
+
+    # Use a label so we have few source vertices and delayed computation is
+    # not used
+    stcs_label = dics_epochs(epochs, forward_fixed, noise_csd, data_csd,
+                             reg=0.01, label=label)
+
+    assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
