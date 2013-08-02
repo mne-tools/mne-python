@@ -201,6 +201,60 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
 
 
 @verbose
+def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
+         pick_ori=None, verbose=None):
+    """Dynamic Imaging of Coherent Sources (DICS).
+
+    Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer
+    on evoked data and return estimates of source time courses.
+
+    NOTE : This implementation has not been heavilly tested so please
+    report any issues or suggestions.
+
+    Parameters
+    ----------
+    evoked : Evooked
+        Evoked data.
+    forward : dict
+        Forward operator.
+    noise_csd : CrossSpectralDensity
+        The noise cross-spectral density.
+    data_csd : CrossSpectralDensity
+        The data cross-spectral density.
+    reg : float
+        The regularization for the cross-spectral density.
+    label : Label | None
+        Restricts the solution to a given label.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stc: SourceEstimate
+        Source time courses
+
+    Notes
+    -----
+    The original reference is:
+    Gross et al. Dynamic imaging of coherent sources: Studying neural
+    interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
+    """
+
+    info = evoked.info
+    data = evoked.data
+    tmin = evoked.times[0]
+
+    stc = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
+                      label=label, pick_ori=pick_ori)
+    stc = stc.next()
+
+    return stc
+
+
+@verbose
 def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
                 pick_ori=None, return_generator=False, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
