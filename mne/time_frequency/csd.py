@@ -16,7 +16,7 @@ from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
                                         _csd_from_mt, _psd_from_mt_adaptive
 
 
-class CrossSpectralDensity():
+class CrossSpectralDensity(object):
     """Cross-spectral density
 
     Parameters
