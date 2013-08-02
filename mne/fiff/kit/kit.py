@@ -614,19 +614,19 @@ def get_sqd_params(rawfile):
     return sqd
 
 
-def read_raw_kit(input_fname, mrk, elp, hsp, stim='>', slope='-', stimthresh=1,
-                 verbose=None, preload=False):
+def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
+                 slope='-', stimthresh=1, verbose=None, preload=False):
     """Reader function for KIT conversion to FIF
 
     Parameters
     ----------
     input_fname : str
         Absolute path to the sqd file.
-    mrk : str | array, shape = (5, 3)
+    mrk : None | str | array, shape = (5, 3)
         Absolute path to marker coils file, or array of points.
-    elp : str | array, shape = (8, 3)
+    elp : None | str | array, shape = (8, 3)
         Absolute path to elp digitizer laser points file, or array with points.
-    hsp : str | array, shape = (n_pts, 3)
+    hsp : None | str | array, shape = (n_pts, 3)
         Absolute path to elp digitizer head shape points file, or array with
         points.
     stim : list of int | '<' | '>'
