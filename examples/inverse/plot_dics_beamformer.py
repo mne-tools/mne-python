@@ -1,16 +1,15 @@
 """
-========================================
-Compute DICS solution for a single eopch
-========================================
+=====================================
+Compute DICS beamfomer on evoked data
+=====================================
 
 Compute a Dynamic Imaging of Coherent Sources (DICS) filter from single trial
-activity at frequencies between 8 and 12 Hz and estimate source time course for
-a single epoch.
+activity at frequencies between 8 and 12 Hz and estimate source time course on
+evoked data.
 
 The original reference for DICS is:
 Gross et al. Dynamic imaging of coherent sources: Studying neural interactions
 in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
-
 """
 
 # Author: Roman Goj <roman.goj@gmail.com>
@@ -27,7 +26,7 @@ import numpy as np
 from mne.fiff import Raw
 from mne.datasets import sample
 from mne.time_frequency import compute_csd
-from mne.beamformer import dics_epochs
+from mne.beamformer import dics
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -35,6 +34,7 @@ event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 label_name = 'Aud-lh'
 fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
+subjects_dir = data_path + '/subjects'
 
 ###############################################################################
 # Read raw data
@@ -64,17 +64,23 @@ data_csd = compute_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15, fmin=6,
 noise_csd = compute_csd(epochs, mode='multitaper', tmin=-0.11, tmax=0.0,
                         fmin=6, fmax=10)
 
-# Compute DICS spatial filter and estimate source time courses for single
-# trials
-stcs = dics_epochs(epochs, forward, noise_csd, data_csd, return_generator=True)
+evoked = epochs.average()
 
-# Take a single epoch
-stc = stcs.next()
+# Compute DICS spatial filter and estimate source time courses on evoked data
+stc = dics(evoked, forward, noise_csd, data_csd)
 
 pl.figure()
 pl.plot(1e3 * stc.times,
         stc.data[np.argsort(np.max(stc.data, axis=1))[-40:]].T)
 pl.xlabel('Time [ms]')
 pl.ylabel('DICS value')
-pl.title('Single epoch estimated source activity for several sources')
+pl.title('DICS time course over several sources')
 pl.show()
+
+# Plot brain in 3D with PySurfer if available. Note that the subject name
+# is already known by the SourceEstimate stc object.
+brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir)
+brain.set_data_time_index(180)
+brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
+brain.show_view('lateral')
+brain.save_image('dSPM_map.png')
