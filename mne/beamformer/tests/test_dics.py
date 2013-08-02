@@ -2,10 +2,11 @@ import os.path as op
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import mne
 from mne.datasets import sample
-from mne.beamformer import dics_epochs
+from mne.beamformer import dics, dics_epochs
 from mne.time_frequency import compute_csd
 
 
@@ -32,8 +33,8 @@ forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
 events = mne.read_events(fname_event)
 
 
-def test_dics_epochs():
-    """Test DICS with single trials
+def test_dics():
+    """Test DICS with evoked data and single trials
     """
     event_id, tmin, tmax = 1, -0.11, 0.15
 
@@ -51,7 +52,7 @@ def test_dics_epochs():
                         picks=picks, baseline=(None, 0), preload=True,
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
     epochs.resample(200, npad=0, n_jobs=2)
-    #evoked = epochs.average()
+    evoked = epochs.average()
 
     # Computing the data and noise cross-spectral density matrices
     data_csd = compute_csd(epochs, mode='multitaper', tmin=0.04, tmax=None,
@@ -59,32 +60,23 @@ def test_dics_epochs():
     noise_csd = compute_csd(epochs, mode='multitaper', tmin=None, tmax=0.0,
                             fmin=8, fmax=12)
 
-    # TODO: This should be done on evoked
-    stcs = dics_epochs(epochs, forward, noise_csd=noise_csd, data_csd=data_csd,
-                       return_generator=True)
-    stc = stcs.next()
+    stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd)
 
     stc_pow = np.sum(stc.data, axis=1)
     idx = np.argmax(stc_pow)
     max_stc = stc.data[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    # TODO: The values seem too large, are they reasonable?
-    assert_true(0.09 < tmax < 0.13)
-    assert_true(25. < np.max(max_stc) < 26.)
+    assert_true(0.09 < tmax < 0.11)
+    assert_true(12 < np.max(max_stc) < 13)  # TODO: Too large?
 
     # Test picking normal orientation
-    # TODO: This should be done on evoked
-    stcs = dics_epochs(epochs, forward_surf_ori, noise_csd, data_csd,
-                       pick_ori="normal", return_generator=True)
-    stc_normal = stcs.next()
+    stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
+                      pick_ori="normal")
 
     # The amplitude of normal orientation results should always be smaller than
     # free orientation results
     assert_true((np.abs(stc_normal.data) <= stc.data).all())
-
-    # TODO: dics_epochs would best be tested by comparing to dics done on
-    # evoked data
 
     # Test if fixed forward operator is detected when picking normal
     # orientation
