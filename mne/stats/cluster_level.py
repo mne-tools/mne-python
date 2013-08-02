@@ -871,7 +871,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
                              connectivity=None, verbose=None, n_jobs=1,
                              seed=None, max_step=1, exclude=None,
                              step_down_p=0, t_power=1, out_type='mask',
-                             check_disjoint=False, buffer_size=500):
+                             check_disjoint=False, buffer_size=1000):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -995,7 +995,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
                                    connectivity=None, verbose=None, n_jobs=1,
                                    seed=None, max_step=1, exclude=None,
                                    step_down_p=0, t_power=1, out_type='mask',
-                                   check_disjoint=False, buffer_size=500):
+                                   check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -1125,7 +1125,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         n_permutations=1024, tail=0, stat_fun=ttest_1samp_no_p,
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
         spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
-        check_disjoint=False, buffer_size=500):
+        check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -1254,7 +1254,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
         n_permutations=1024, tail=0, stat_fun=f_oneway,
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
         spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
-        check_disjoint=False, buffer_size=500):
+        check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
