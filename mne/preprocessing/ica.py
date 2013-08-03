@@ -316,7 +316,7 @@ class ICA(object):
                     logger.info("Artifact detected in [%d, %d]" % (first,
                                                                    last))
             data = data_clean[:, :this_stop]
-        self.n_samples_ = data.shape[0]
+        self.n_samples_ = data.shape[1]
         if not data.any():
             raise RuntimeError('No clean segment found. Please '
                                'consider updating your rejection '
