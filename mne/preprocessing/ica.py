@@ -170,6 +170,8 @@ class ICA(object):
         again. To dump this 'artifact memory' say: ica.exclude = []
     info : None | instance of mne.fiff.meas_info.Info
         The measurement info copied from the object fitted.
+    `n_samples_` : int
+        the number of samples used on fit.
     """
     @verbose
     def __init__(self, n_components, max_pca_components=100,
@@ -210,6 +212,7 @@ class ICA(object):
         else:
             s = 'epochs'
         s += ' decomposition, '
+        s += 'fit: %s samples, ' % str(getattr(self, 'n_samples_', ''))  
         s += ('%s components' % str(self.n_components_) if
               hasattr(self, 'n_components_') else
               'no dimension reduction')
@@ -313,7 +316,7 @@ class ICA(object):
                     logger.info("Artifact detected in [%d, %d]" % (first,
                                                                    last))
             data = data_clean[:, :this_stop]
-
+        self.n_samples_ = data.shape[0]
         if not data.any():
             raise RuntimeError('No clean segment found. Please '
                                'consider updating your rejection '
@@ -384,6 +387,7 @@ class ICA(object):
         data = epochs.get_data()[:, picks]
         if decim is not None:
             data = data[:, :, ::decim].copy()
+        self.n_samples_ = data.shape[0]
 
         data, self._pre_whitener = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
@@ -1391,7 +1395,7 @@ def _write_ica(fid, ica):
     ica:
         The instance of ICA to write
     """
-    ica_interface = dict(noise_cov=ica.noise_cov,
+    ica_init = dict(noise_cov=ica.noise_cov,
                          n_components=ica.n_components,
                          n_pca_components=ica.n_pca_components,
                          max_pca_components=ica.max_pca_components,
@@ -1414,11 +1418,17 @@ def _write_ica(fid, ica):
 
     #   ICA interface params
     write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
-                 _serialize(ica_interface))
+                 _serialize(ica_init))
 
     #   Channel names
     if ica.ch_names is not None:
         write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, ica.ch_names)
+
+    # samples on fit
+    n_samples_ = {'n_samples_': getattr(ica, 'n_samples_', None)}
+    #   ICA interface params
+    write_string(fid, FIFF.FIFF_MNE_ICA_MISC_PARAMS,
+                 _serialize(ica_init))
 
     #   Whitener
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
@@ -1483,7 +1493,7 @@ def read_ica(fname):
         pos = d.pos
         if kind == FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS:
             tag = read_tag(fid, pos)
-            ica_interface = tag.data
+            ica_init = tag.data
         elif kind == FIFF.FIFF_MNE_ROW_NAMES:
             tag = read_tag(fid, pos)
             ch_names = tag.data
@@ -1505,10 +1515,13 @@ def read_ica(fname):
         elif kind == FIFF.FIFF_MNE_ICA_BADS:
             tag = read_tag(fid, pos)
             exclude = tag.data
+        elif kind == FIFF.FIFF_MNE_ICA_MISC_PARAMS:
+            tag = read_tag(fid, pos)
+            ica_misc = tag.data
 
     fid.close()
 
-    interface = _deserialize(ica_interface)
+    interface, misc = [_deserialize(k) for k in ica_init, ica_misc]
     current_fit = interface.pop('current_fit')
     if interface['noise_cov'] == Covariance.__name__:
         logger.info('Reading whitener drawn from noise covariance ...')
@@ -1526,6 +1539,9 @@ def read_ica(fname):
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_)
     ica.exclude = [] if exclude is None else list(exclude)
     ica.info = info
+    if 'n_samples_' in ica_misc:
+        self.n_samples_ = ica_misc['n_samples_']
+
     logger.info('Ready.')
 
     return ica
