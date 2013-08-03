@@ -1398,13 +1398,13 @@ def _write_ica(fid, ica):
         The instance of ICA to write
     """
     ica_init = dict(noise_cov=ica.noise_cov,
-                         n_components=ica.n_components,
-                         n_pca_components=ica.n_pca_components,
-                         max_pca_components=ica.max_pca_components,
-                         current_fit=ica.current_fit,
-                         algorithm=ica.algorithm,
-                         fun=ica.fun,
-                         fun_args=ica.fun_args)
+                    n_components=ica.n_components,
+                    n_pca_components=ica.n_pca_components,
+                    max_pca_components=ica.max_pca_components,
+                    current_fit=ica.current_fit,
+                    algorithm=ica.algorithm,
+                    fun=ica.fun,
+                    fun_args=ica.fun_args)
 
     if ica.info is not None:
         start_block(fid, FIFF.FIFFB_MEAS)
