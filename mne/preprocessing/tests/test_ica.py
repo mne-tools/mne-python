@@ -315,6 +315,7 @@ def test_ica_additional():
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
     test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
+    ica.n_components = np.int32(ica.n_components)
     ica_raw.save(test_ica_fname, overwrite=True)
     ica_raw2 = fiff.Raw(test_ica_fname, preload=True)
     assert_allclose(ica_raw._data, ica_raw2._data, rtol=1e-5, atol=1e-4)
@@ -365,5 +366,6 @@ def test_ica_reject_buffer():
     set_log_file(drop_log, overwrite=True)
     ica.decompose_raw(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
                       tstep=0.01)
+    assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in open(drop_log) if 'detected' in l]
     assert_true(len(log) == 1)
