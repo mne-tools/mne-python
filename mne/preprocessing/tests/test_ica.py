@@ -315,6 +315,7 @@ def test_ica_additional():
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
     test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
+    ica.n_components = np.int32(ica.n_components)
     ica_raw.save(test_ica_fname, overwrite=True)
     ica_raw2 = fiff.Raw(test_ica_fname, preload=True)
     assert_allclose(ica_raw._data, ica_raw2._data, rtol=1e-5, atol=1e-4)

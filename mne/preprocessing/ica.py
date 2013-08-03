@@ -387,7 +387,7 @@ class ICA(object):
         data = epochs.get_data()[:, picks]
         if decim is not None:
             data = data[:, :, ::decim].copy()
-        self.n_samples_ = data.shape[0]
+        self.n_samples_ = np.prod(data.shape[1:])
 
         data, self._pre_whitener = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
@@ -1365,6 +1365,8 @@ def _serialize(dict_, outer_sep=';', inner_sep=':'):
     for k, v in dict_.items():
         if callable(v):
             v = v.__name__
+        elif isinstance(v, int):
+            v = int(v)
         for cls in (np.random.RandomState, Covariance):
             if isinstance(v, cls):
                 v = cls.__name__
