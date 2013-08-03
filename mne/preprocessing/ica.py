@@ -1427,10 +1427,14 @@ def _write_ica(fid, ica):
         write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, ica.ch_names)
 
     # samples on fit
-    n_samples_ = {'n_samples_': getattr(ica, 'n_samples_', None)}
-    #   ICA interface params
-    write_string(fid, FIFF.FIFF_MNE_ICA_MISC_PARAMS,
+    ica_misc = {'n_samples_': getattr(ica, 'n_samples_', None)}
+    #   ICA init params
+    write_string(fid, FIFF.FIFF_MNE_ICA_INTERFACE_PARAMS,
                  _serialize(ica_init))
+
+    #   ICA misct params
+    write_string(fid, FIFF.FIFF_MNE_ICA_MISC_PARAMS,
+                 _serialize(ica_misc))
 
     #   Whitener
     write_double_matrix(fid, FIFF.FIFF_MNE_ICA_WHITENER, ica._pre_whitener)
@@ -1523,13 +1527,13 @@ def read_ica(fname):
 
     fid.close()
 
-    interface, misc = [_deserialize(k) for k in ica_init, ica_misc]
-    current_fit = interface.pop('current_fit')
-    if interface['noise_cov'] == Covariance.__name__:
+    ica_init, ica_misc = [_deserialize(k) for k in ica_init, ica_misc]
+    current_fit = ica_init.pop('current_fit')
+    if ica_init['noise_cov'] == Covariance.__name__:
         logger.info('Reading whitener drawn from noise covariance ...')
 
     logger.info('Now restoring ICA session ...')
-    ica = ICA(**interface)
+    ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
     ica._pre_whitener = pre_whitener
@@ -1542,7 +1546,7 @@ def read_ica(fname):
     ica.exclude = [] if exclude is None else list(exclude)
     ica.info = info
     if 'n_samples_' in ica_misc:
-        self.n_samples_ = ica_misc['n_samples_']
+        ica.n_samples_ = ica_misc['n_samples_']
 
     logger.info('Ready.')
 
