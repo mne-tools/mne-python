@@ -217,7 +217,7 @@ def _get_components(x_in, connectivity, return_list=True):
                 # _get_clusters_spatial if we transform connectivity into
                 # a neighbor list, and it might end up being faster anyway,
                 # but for now:
-                raise ValueError('scikit-learn must be installed')
+                raise ImportError('scikit-learn must be installed')
 
     mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
     data = connectivity.data[mask]
