@@ -180,8 +180,8 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
         keepers = [np.array([], dtype=int)] * n_times
         row, col = unravel_index(cl_goods, (n_times, n_src))
         if isinstance(row, int):
-            row  = [row]
-            col  = [col]
+            row = [row]
+            col = [col]
             lims = [0]
         else:
             order = np.argsort(row)
@@ -189,7 +189,7 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
             col = col[order]
             lims = [0] + (np.where(np.diff(row) > 0)[0]
                           + 1).tolist() + [len(row)]
-        
+
         for start, end in zip(lims[:-1], lims[1:]):
             keepers[row[start]] = np.sort(col[start:end])
         if max_step == 1:
@@ -205,15 +205,19 @@ def _get_components(x_in, connectivity, return_list=True):
     """get connected components from a mask and a connectivity matrix"""
     try:
         from sklearn.utils._csgraph import cs_graph_components
-    except:
+    except ImportError:
         try:
             from scikits.learn.utils._csgraph import cs_graph_components
-        except:
-            # in theory we might be able to shoehorn this into using
-            # _get_clusters_spatial if we transform connectivity into
-            # a neighbor list, and it might end up being faster anyway,
-            # but for now:
-            raise ValueError('scikits-learn must be installed')
+        except ImportError:
+            try:
+                from sklearn.utils.sparsetools import connected_components
+                cs_graph_components = connected_components
+            except ImportError:
+                # in theory we might be able to shoehorn this into using
+                # _get_clusters_spatial if we transform connectivity into
+                # a neighbor list, and it might end up being faster anyway,
+                # but for now:
+                raise ValueError('scikit-learn must be installed')
 
     mask = np.logical_and(x_in[connectivity.row], x_in[connectivity.col])
     data = connectivity.data[mask]
