@@ -18,6 +18,7 @@ from .utils import get_subjects_dir, _check_subject
 from .source_estimate import _read_stc, mesh_edges, mesh_dist, morph_data, \
                              SourceEstimate
 from .surface import read_surface
+from .parallel import parallel_func
 from . import verbose
 
 
@@ -696,7 +697,26 @@ def _verts_within_dist(graph, source, max_dist):
     return verts, dist
 
 
-def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
+def _grow_labels(seeds, extents, hemis, dist, vert):
+    """Helper for parallelization of grow_labels
+    """
+    labels = []
+    for seed, extent, hemi in zip(seeds, extents, hemis):
+        label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
+
+        # create a label
+        comment = 'Circular label: seed=%d, extent=%0.1fmm' % (seed, extent)
+        label = Label(vertices=label_verts,
+                      pos=vert[hemi][label_verts],
+                      values=label_dist,
+                      hemi=hemi,
+                      comment=comment)
+        labels.append(label)
+    return labels
+
+
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
+                n_jobs=1):
     """Generate circular labels in source space with region growing
 
     This function generates a number of labels in source space by growing
@@ -712,15 +732,18 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
     Parameters
     ----------
     subject : string
-        Name of the subject as in SUBJECTS_DIR
+        Name of the subject as in SUBJECTS_DIR.
     seeds : array or int
-        Seed vertex numbers
+        Seed vertex numbers.
     extents : array or float
-        Extents (radius in mm) of the labels
+        Extents (radius in mm) of the labels.
     hemis : array or int
-        Hemispheres to use for the labels (0: left, 1: right)
+        Hemispheres to use for the labels (0: left, 1: right).
     subjects_dir : string
-        Path to SUBJECTS_DIR if not set in the environment
+        Path to SUBJECTS_DIR if not set in the environment.
+    n_jobs : int
+        Number of jobs to run in parallel. Likely only useful if tens
+        or hundreds of labels are being expanded simultaneously.
 
     Returns
     -------
@@ -763,19 +786,12 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
     # create the patches
-    labels = []
-    for seed, extent, hemi in zip(seeds, extents, hemis):
-        label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
-
-        # create a label
-        comment = 'Circular label: seed=%d, extent=%0.1fmm' % (seed, extent)
-        label = Label(vertices=label_verts,
-                      pos=vert[hemi][label_verts],
-                      values=label_dist,
-                      hemi=hemi,
-                      comment=comment)
-        labels.append(label)
-
+    parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
+    seeds = np.array_split(seeds, n_jobs)
+    extents = np.array_split(extents, n_jobs)
+    hemis = np.array_split(hemis, n_jobs)
+    labels = sum(parallel(my_grow_labels(s, e, h, dist, vert)
+                          for s, e, h in zip(seeds, extents, hemis)), [])
     return labels
 
 
