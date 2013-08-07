@@ -251,7 +251,7 @@ def test_morph():
     # make sure label smoothing can run
     label.morph(label.subject, 'fsaverage', 5,
                 [np.arange(10242), np.arange(10242)], subjects_dir, 2,
-                 copy=False)
+                copy=False)
     # subject name should be inferred now
     label.smooth(subjects_dir=subjects_dir)
 
@@ -259,11 +259,14 @@ def test_morph():
 def test_grow_labels():
     """Test generation of circular source labels"""
     seeds = [0, 50000]
+    # these were chosen manually in mne_analyze
+    should_be_in = [[49, 227], [51207, 48794]]
     hemis = [0, 1]
-    labels = grow_labels('sample', seeds, 3, hemis)
+    labels = grow_labels('sample', seeds, 3, hemis, n_jobs=2)
 
-    for label, seed, hemi in zip(labels, seeds, hemis):
+    for label, seed, hemi, sh in zip(labels, seeds, hemis, should_be_in):
         assert(np.any(label.vertices == seed))
+        assert np.all(np.in1d(sh, label.vertices))
         if hemi == 0:
             assert(label.hemi == 'lh')
         else:
