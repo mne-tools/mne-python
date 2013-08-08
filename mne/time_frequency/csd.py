@@ -169,6 +169,11 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
         # Preparing frequencies of interest
         freq_mask = (frequencies > fmin) & (frequencies < fmax)
 
+        if not freq_mask.any():
+            raise ValueError('No discrete fourier transform results within '
+                             'the given frequency window. Please widen either '
+                             'the frequency window or the time window')
+
         if mt_adaptive:
             # Compute adaptive weights
             _, weights = _psd_from_mt_adaptive(x_mt, eigvals, freq_mask,
