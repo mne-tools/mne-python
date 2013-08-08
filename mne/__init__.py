@@ -5,7 +5,8 @@ __version__ = '0.7.git'
 
 # have to import verbose first since it's needed by many things
 from .utils import set_log_level, set_log_file, verbose, set_config, \
-                   get_config, get_config_path
+                   get_config, get_config_path, set_cache_dir,\
+                   set_memmap_min_size
 
 from .cov import read_cov, write_cov, Covariance, \
                  compute_covariance, compute_raw_data_covariance, \
