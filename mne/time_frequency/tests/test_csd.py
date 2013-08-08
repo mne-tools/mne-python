@@ -42,6 +42,7 @@ def test_compute_csd():
     # Check that wrong parameters are recognized
     assert_raises(ValueError, compute_csd, epochs, mode='notamode')
     assert_raises(ValueError, compute_csd, epochs, fmin=20, fmax=10)
+    assert_raises(ValueError, compute_csd, epochs, fmin=20, fmax=20.1)
     assert_raises(ValueError, compute_csd, epochs, tmin=0.15, tmax=0.1)
     assert_raises(ValueError, compute_csd, epochs, tmin=0, tmax=10)
     assert_raises(ValueError, compute_csd, epochs, tmin=10, tmax=11)
