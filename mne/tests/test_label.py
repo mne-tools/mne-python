@@ -266,7 +266,7 @@ def test_grow_labels():
 
     for label, seed, hemi, sh in zip(labels, seeds, hemis, should_be_in):
         assert(np.any(label.vertices == seed))
-        assert np.all(np.in1d(sh, label.vertices))
+        assert np.all(in1d(sh, label.vertices))
         if hemi == 0:
             assert(label.hemi == 'lh')
         else:

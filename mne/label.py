@@ -18,7 +18,7 @@ from .utils import get_subjects_dir, _check_subject
 from .source_estimate import _read_stc, mesh_edges, mesh_dist, morph_data, \
                              SourceEstimate
 from .surface import read_surface
-from .parallel import parallel_func
+from .parallel import parallel_func, check_n_jobs
 from . import verbose
 
 
@@ -753,6 +753,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
 
     """
     subjects_dir = get_subjects_dir(subjects_dir)
+    n_jobs = check_n_jobs(n_jobs)
 
     # make sure the inputs are arrays
     seeds = np.atleast_1d(seeds)
