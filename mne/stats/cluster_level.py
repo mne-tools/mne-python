@@ -527,12 +527,20 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
 
 def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                      max_step, include, partitions, t_power, seeds,
-                     sample_shape):
+                     sample_shape, buffer_size):
 
-    n_samp = X_full.shape[0]
+    n_samp, n_vars = X_full.shape
+
+    if buffer_size is not None and n_vars <= buffer_size:
+        buffer_size = None  # don't use buffer for few variables
 
     # allocate space for output
     max_cluster_sums = np.empty(len(seeds), dtype=np.double)
+
+    if buffer_size is not None:
+        # allocate buffer, so we don't need to allocate memory during loop
+        X_buffer = [np.empty((len(X_full[s]), buffer_size), dtype=X_full.dtype)
+                    for s in slices]
 
     for seed_idx, seed in enumerate(seeds):
         # shuffle sample indices
@@ -541,9 +549,26 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         rng.shuffle(idx_shuffled)
         idx_shuffle_list = [idx_shuffled[s] for s in slices]
 
-        # shuffle all data at once
-        X_shuffle_list = [X_full[idx, :] for idx in idx_shuffle_list]
-        T_obs_surr = stat_fun(*X_shuffle_list)
+        if buffer_size is None:
+            # shuffle all data at once
+            X_shuffle_list = [X_full[idx, :] for idx in idx_shuffle_list]
+            T_obs_surr = stat_fun(*X_shuffle_list)
+        else:
+            # only shuffle a small data buffer, so we need less memory
+            T_obs_surr = np.empty(n_vars, dtype=X_full.dtype)
+
+            for pos in xrange(0, n_vars, buffer_size):
+                # number of variables for this loop
+                n_var_loop = min(pos + buffer_size, n_vars) - pos
+
+                # fill buffer
+                for i, idx in enumerate(idx_shuffle_list):
+                    X_buffer[i][:, :n_var_loop] =\
+                        X_full[idx, pos: pos + n_var_loop]
+
+                # apply stat_fun and store result
+                tmp = stat_fun(*X_buffer)
+                T_obs_surr[pos: pos + n_var_loop] = tmp[:n_var_loop]
 
         # The stat should have the same shape as the samples for no conn.
         if connectivity is None:
@@ -566,12 +591,19 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
 
 def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
                            max_step, include, partitions, t_power, seeds,
-                           sample_shape):
-    n_samp = X.shape[0]
+                           sample_shape, buffer_size):
+    n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
+
+    if buffer_size is not None and n_vars <= buffer_size:
+        buffer_size = None  # don't use buffer for few variables
 
     # allocate space for output
     max_cluster_sums = np.empty(len(seeds), dtype=np.double)
+
+    if buffer_size is not None:
+        # allocate a buffer so we don't need to allocate memory in loop
+        X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
     for seed_idx, seed in enumerate(seeds):
         if isinstance(seed, np.ndarray):
@@ -587,13 +619,26 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
             signs = np.sign(0.5 - rng.rand(n_samp))
             signs = signs[:, np.newaxis]
 
-        X *= signs
+        if buffer_size is None:
+            X *= signs
+            # Recompute statistic on randomized data
+            T_obs_surr = stat_fun(X)
+            # Set X back to previous state (trade memory eff. for CPU use)
+            X *= signs
+        else:
+            # only sign-flip a small data buffer, so we need less memory
+            T_obs_surr = np.empty(n_vars, dtype=X.dtype)
 
-        # Recompute statistic on randomized data
-        T_obs_surr = stat_fun(X)
+            for pos in xrange(0, n_vars, buffer_size):
+                # number of variables for this loop
+                n_var_loop = min(pos + buffer_size, n_vars) - pos
 
-        # Set X back to previous state (trade memory efficiency for CPU use)
-        X *= signs
+                X_flip_buffer[:, :n_var_loop] =\
+                    signs * X[:, pos: pos + n_var_loop]
+
+                # apply stat_fun and store result
+                tmp = stat_fun(X_flip_buffer)
+                T_obs_surr[pos: pos + n_var_loop] = tmp[:n_var_loop]
 
         # The stat should have the same shape as the samples for no conn.
         if connectivity is None:
@@ -619,7 +664,7 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
 def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                               connectivity, verbose, n_jobs, seed, max_step,
                               exclude, step_down_p, t_power, out_type,
-                              check_disjoint):
+                              check_disjoint, buffer_size):
     n_jobs = check_n_jobs(n_jobs)
     """ Aux Function
 
@@ -745,7 +790,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                 this_include = step_down_include
             H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
                           connectivity, stat_fun, max_step, this_include,
-                          partitions, t_power, s, sample_shape)
+                          partitions, t_power, s, sample_shape, buffer_size)
                           for s in split_list(seeds, n_jobs))
             H0 = np.concatenate(H0)
             cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
@@ -829,7 +874,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
                              connectivity=None, verbose=None, n_jobs=1,
                              seed=None, max_step=1, exclude=None,
                              step_down_p=0, t_power=1, out_type='mask',
-                             check_disjoint=False):
+                             check_disjoint=False, buffer_size=1000):
     """Cluster-level statistical permutation test
 
     For a list of 2d-arrays of data, e.g. power values, calculate some
@@ -898,6 +943,13 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
         determine of it can be separated into disjoint sets. In some cases
         (usually with connectivity as a list and many "time" points), this
         can lead to faster clustering, but results should be identical.
+    buffer_size: int or None
+        The statistics will be computed for blocks of variables of size
+        "buffer_size" at a time. This is option significantly reduces the
+        memory requirements when n_jobs > 1 and memory sharing between
+        processes is enabled (see set_cache_dir()), as X will be shared
+        between processes and each process only needs to allocate space
+        for a small block of variables.
 
     Returns
     -------
@@ -934,7 +986,7 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
                         n_jobs=n_jobs, seed=seed, max_step=max_step,
                         exclude=exclude, step_down_p=step_down_p,
                         t_power=t_power, out_type=out_type,
-                        check_disjoint=check_disjoint)
+                        check_disjoint=check_disjoint, buffer_size=buffer_size)
 
 
 permutation_cluster_test.__test__ = False
@@ -946,7 +998,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
                                    connectivity=None, verbose=None, n_jobs=1,
                                    seed=None, max_step=1, exclude=None,
                                    step_down_p=0, t_power=1, out_type='mask',
-                                   check_disjoint=False):
+                                   check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level 1 sample T-test
 
     From a array of observations, e.g. signal amplitudes or power spectrum
@@ -1022,6 +1074,13 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
         determine of it can be separated into disjoint sets. In some cases
         (usually with connectivity as a list and many "time" points), this
         can lead to faster clustering, but results should be identical.
+    buffer_size: int or None
+        The statistics will be computed for blocks of variables of size
+        "buffer_size" at a time. This is option significantly reduces the
+        memory requirements when n_jobs > 1 and memory sharing between
+        processes is enabled (see set_cache_dir()), as X will be shared
+        between processes and each process only needs to allocate space
+        for a small block of variables.
 
     Returns
     -------
@@ -1058,7 +1117,7 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
                         n_jobs=n_jobs, seed=seed, max_step=max_step,
                         exclude=exclude, step_down_p=step_down_p,
                         t_power=t_power, out_type=out_type,
-                        check_disjoint=check_disjoint)
+                        check_disjoint=check_disjoint, buffer_size=buffer_size)
 
 
 permutation_cluster_1samp_test.__test__ = False
@@ -1069,7 +1128,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         n_permutations=1024, tail=0, stat_fun=ttest_1samp_no_p,
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
         spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
-        check_disjoint=False):
+        check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -1138,6 +1197,13 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
         determine of it can be separated into disjoint sets. In some cases
         (usually with connectivity as a list and many "time" points), this
         can lead to faster clustering, but results should be identical.
+    buffer_size: int or None
+        The statistics will be computed for blocks of variables of size
+        "buffer_size" at a time. This is option significantly reduces the
+        memory requirements when n_jobs > 1 and memory sharing between
+        processes is enabled (see set_cache_dir()), as X will be shared
+        between processes and each process only needs to allocate space
+        for a small block of variables.
 
     Returns
     -------
@@ -1179,7 +1245,7 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
               connectivity=connectivity, n_jobs=n_jobs, seed=seed,
               max_step=max_step, exclude=exclude, step_down_p=step_down_p,
               t_power=t_power, out_type=out_type,
-              check_disjoint=check_disjoint)
+              check_disjoint=check_disjoint, buffer_size=buffer_size)
     return out
 
 
@@ -1191,7 +1257,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
         n_permutations=1024, tail=0, stat_fun=f_oneway,
         connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
         spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
-        check_disjoint=False):
+        check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -1249,6 +1315,13 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
         determine of it can be separated into disjoint sets. In some cases
         (usually with connectivity as a list and many "time" points), this
         can lead to faster clustering, but results should be identical.
+    buffer_size: int or None
+        The statistics will be computed for blocks of variables of size
+        "buffer_size" at a time. This is option significantly reduces the
+        memory requirements when n_jobs > 1 and memory sharing between
+        processes is enabled (see set_cache_dir()), as X will be shared
+        between processes and each process only needs to allocate space
+        for a small block of variables.
 
     Returns
     -------
@@ -1285,7 +1358,7 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
               connectivity=connectivity, n_jobs=n_jobs, seed=seed,
               max_step=max_step, exclude=exclude, step_down_p=step_down_p,
               t_power=t_power, out_type=out_type,
-              check_disjoint=check_disjoint)
+              check_disjoint=check_disjoint, buffer_size=buffer_size)
     return out
 
 
@@ -1412,7 +1485,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         data_summary[:, 0] = np.sum(data_summary, axis=1)
 
         return SourceEstimate(data_summary, vertno, tmin=tmin, tstep=tstep,
-                             subject=subject)
+                              subject=subject)
     else:
         raise RuntimeError('No significant clusters available. Please adjust '
                            'your threshold or check your statistical analysis.')
