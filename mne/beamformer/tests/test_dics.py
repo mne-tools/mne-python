@@ -151,7 +151,7 @@ def test_dics_source_power():
     # TODO: The results still have to be tested for whether they make sense,
     # how they compare to dics() on evoked, etc. So these tests are really just
     # provisional. Maybe they could be more directly compared to dics()?
-    assert_true(max_source_idx == 2642)
+    assert_true(max_source_idx == 1321)
     assert_true(1.8 < max_source_power < 1.9)
 
     # Test picking normal orientation

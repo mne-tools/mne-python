@@ -443,11 +443,7 @@ def dics_source_power(info, forward, noise_csd, data_csd, reg=0.01, label=None,
     subject = _subject_from_forward(forward)
     tstep = 1000  # TODO: For multiple frequencies this should be set correctly
     fmin = 0  # TODO: Ditto
-
-    # TODO: Remove, if possible, this ugly hack that adds another dimension to
-    # create an sts object
-    source_power = np.repeat(source_power[:, np.newaxis], 2, axis=1)
-    return SourceEstimate(source_power, vertices=vertno, tmin=fmin,
-                          tstep=tstep, subject=subject)
+    return SourceEstimate(source_power[:, np.newaxis], vertices=vertno,
+                          tmin=fmin, tstep=tstep, subject=subject)
 
     logger.info('[done]')
