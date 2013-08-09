@@ -6,7 +6,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import mne
 from mne.datasets import sample
-from mne.beamformer import dics, dics_epochs
+from mne.beamformer import dics, dics_epochs, dics_source_power
 from mne.time_frequency import compute_csd
 
 
@@ -25,8 +25,8 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 # that include this file's parent directory :(
 
 
-def test_dics():
-    """Test DICS with evoked data and single trials
+def read_data():
+    """Read in data used in tests
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
@@ -62,6 +62,14 @@ def test_dics():
     noise_csd = compute_csd(epochs, mode='multitaper', tmin=None, tmax=0.0,
                             fmin=8, fmax=12)
 
+    return epochs, evoked, data_csd, noise_csd
+
+
+def test_dics():
+    """Test DICS with evoked data and single trials
+    """
+    epochs, evoked, data_csd, noise_csd = read_data()
+
     stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd)
 
     stc_pow = np.sum(stc.data, axis=1)
@@ -70,7 +78,7 @@ def test_dics():
     tmax = stc.times[np.argmax(max_stc)]
 
     assert_true(0.09 < tmax < 0.11)
-    assert_true(12 < np.max(max_stc) < 13)  # TODO: Too large?
+    assert_true(12 < np.max(max_stc) < 13)
 
     # Test picking normal orientation
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
@@ -127,3 +135,44 @@ def test_dics():
                              reg=0.01, label=label)
 
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
+
+
+def test_dics_source_power():
+    """Test DICS source power computation
+    """
+    epochs, evoked, data_csd, noise_csd = read_data()
+
+    stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
+                                         data_csd)
+
+    max_source_idx = np.argmax(stc_source_power.data)
+    max_source_power = np.max(stc_source_power.data)
+
+    # TODO: The results still have to be tested for whether they make sense,
+    # how they compare to dics() on evoked, etc. So these tests are really just
+    # provisional. Maybe they could be more directly compared to dics()?
+    assert_true(max_source_idx == 2642)
+    assert_true(1.8 < max_source_power < 1.9)
+
+    # Test picking normal orientation
+    stc_normal = dics_source_power(epochs.info, forward_surf_ori, noise_csd,
+                                   data_csd, pick_ori="normal")
+
+    # The normal orientation results should always be smaller than free
+    # orientation results
+    assert_true((np.abs(stc_normal.data) <= stc_source_power.data).all())
+
+    # Test if fixed forward operator is detected when picking normal
+    # orientation
+    assert_raises(ValueError, dics_source_power, raw.info, forward_fixed,
+                  noise_csd, data_csd, pick_ori="normal")
+
+    # Test if non-surface oriented forward operator is detected when picking
+    # normal orientation
+    assert_raises(ValueError, dics_source_power, raw.info, forward, noise_csd,
+                  data_csd, pick_ori="normal")
+
+    # Test if volume forward operator is detected when picking normal
+    # orientation
+    assert_raises(ValueError, dics_epochs, epochs, forward_vol, noise_csd,
+                  data_csd, pick_ori="normal")
