@@ -18,6 +18,7 @@ from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..source_estimate import SourceEstimate
 from ..source_space import label_src_vertno_sel
+from ..time_frequency import CrossSpectralDensity
 from .. import verbose
 
 
@@ -321,13 +322,13 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
 
 
 @verbose
-def dics_source_power(info, forward, noise_csd, data_csd, reg=0.01, label=None,
-                      pick_ori=None, verbose=None):
+def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
+                      label=None, pick_ori=None, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
     Calculate source power in time and frequency windows specified in the
-    calculation of the data cross-spectral density. Source power is normalized
-    by noise power.
+    calculation of the data cross-spectral density matrix or matrices. Source
+    power is normalized by noise power.
 
     NOTE : This implementation has not been heavilly tested so please
     report any issues or suggestions.
@@ -338,10 +339,12 @@ def dics_source_power(info, forward, noise_csd, data_csd, reg=0.01, label=None,
         Measurement info, e.g. epochs.info.
     forward : dict
         Forward operator.
-    noise_csd : CrossSpectralDensity
-        The noise cross-spectral density.
-    data_csd : CrossSpectralDensity
-        The data cross-spectral density.
+    noise_csds : CrossSpectralDensity or list of CrossSpectralDensity
+        The noise cross-spectral density matrix for a single frequency or a
+        list of matrices for multiple frequencies.
+    data_csds : CrossSpectralDensity or list of CrossSpectralDensity
+        The data cross-spectral density matrix for a single frequecy or a list
+        of matrices for multiple frequencies.
     reg : float
         The regularization for the cross-spectral density.
     label : Label | None
@@ -377,7 +380,11 @@ def dics_source_power(info, forward, noise_csd, data_csd, reg=0.01, label=None,
                          'forward operator with a surface-based source space '
                          'is used.')
 
-    # Use only the good data channels
+    if np.array(data_csds).shape != np.array(noise_csds).shape:
+        raise ValueError('One noise CSD matrix should be provided for each '
+                         'data CSD matrix and vice versa. The CSD matrices '
+                         'should have identical shape.')
+
     picks = pick_types(info, meg=True, eeg=True, exclude='bads')
     ch_names = [info['ch_names'][k] for k in picks]
 
@@ -404,46 +411,51 @@ def dics_source_power(info, forward, noise_csd, data_csd, reg=0.01, label=None,
         proj, ncomp, _ = make_projector(info['projs'], ch_names)
         G = np.dot(proj, G)
 
-    Cm = data_csd.data
+    if isinstance(data_csds, CrossSpectralDensity) and\
+            data_csds.data.ndim == 2:
+        data_csds = [data_csds]
+        noise_csds = [noise_csds]
 
-    # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
-    Cm_inv = linalg.pinv(Cm, reg)
-
-    # Compute spatial filters
-    W = np.dot(G.T, Cm_inv)
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
+    source_power = np.zeros((n_sources, len(data_csds)))
 
-    source_power = np.zeros(n_sources)
+    for i, (data_csd, noise_csd) in enumerate(zip(data_csds, noise_csds)):
+        Cm = data_csd.data
 
-    for k in xrange(n_sources):
-        Wk = W[n_orient * k: n_orient * k + n_orient]
-        Gk = G[:, n_orient * k: n_orient * k + n_orient]
-        Ck = np.dot(Wk, Gk)
+        # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
+        Cm_inv = linalg.pinv(Cm, reg)
 
-        if is_free_ori:
-            # Free source orientation
-            Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
-        else:
-            # Fixed source orientation
-            Wk /= Ck
+        # Compute spatial filters
+        W = np.dot(G.T, Cm_inv)
+        for k in xrange(n_sources):
+            Wk = W[n_orient * k: n_orient * k + n_orient]
+            Gk = G[:, n_orient * k: n_orient * k + n_orient]
+            Ck = np.dot(Wk, Gk)
 
-        # Noise normalization
-        noise_norm = np.dot(np.dot(Wk.conj(), noise_csd.data), Wk.T)
-        noise_norm = np.abs(noise_norm).trace()
+            if is_free_ori:
+                # Free source orientation
+                Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+            else:
+                # Fixed source orientation
+                Wk /= Ck
 
-        # Calculating source power
-        sp_temp = np.dot(np.dot(Wk.conj(), data_csd.data), Wk.T)
-        sp_temp /= noise_norm
-        if pick_ori == 'normal':
-            source_power[k] = np.abs(sp_temp)[2, 2]
-        else:
-            source_power[k] = np.abs(sp_temp).trace()
+            # Noise normalization
+            noise_norm = np.dot(np.dot(Wk.conj(), noise_csd.data), Wk.T)
+            noise_norm = np.abs(noise_norm).trace()
+
+            # Calculating source power
+            sp_temp = np.dot(np.dot(Wk.conj(), data_csd.data), Wk.T)
+            sp_temp /= noise_norm
+            if pick_ori == 'normal':
+                source_power[k, i] = np.abs(sp_temp)[2, 2]
+            else:
+                source_power[k, i] = np.abs(sp_temp).trace()
 
     subject = _subject_from_forward(forward)
     tstep = 1000  # TODO: For multiple frequencies this should be set correctly
     fmin = 0  # TODO: Ditto
-    return SourceEstimate(source_power[:, np.newaxis], vertices=vertno,
-                          tmin=fmin, tstep=tstep, subject=subject)
+    return SourceEstimate(source_power, vertices=vertno, tmin=fmin,
+                          tstep=tstep, subject=subject)
 
     logger.info('[done]')

@@ -154,13 +154,17 @@ def test_dics_source_power():
     assert_true(max_source_idx == 1321)
     assert_true(1.8 < max_source_power < 1.9)
 
-    # Test picking normal orientation
-    stc_normal = dics_source_power(epochs.info, forward_surf_ori, noise_csd,
-                                   data_csd, pick_ori="normal")
+    # Test picking normal orientation and using a list of CSD matrices
+    stc_normal = dics_source_power(epochs.info, forward_surf_ori,
+                                   [noise_csd] * 2, [data_csd] * 2,
+                                   pick_ori="normal")
+
+    assert_true(stc_normal.data.shape == (stc_source_power.data.shape[0], 2))
 
     # The normal orientation results should always be smaller than free
     # orientation results
-    assert_true((np.abs(stc_normal.data) <= stc_source_power.data).all())
+    assert_true((np.abs(stc_normal.data[:, 0]) <=
+                 stc_source_power.data[:, 0]).all())
 
     # Test if fixed forward operator is detected when picking normal
     # orientation
@@ -174,5 +178,9 @@ def test_dics_source_power():
 
     # Test if volume forward operator is detected when picking normal
     # orientation
-    assert_raises(ValueError, dics_epochs, epochs, forward_vol, noise_csd,
-                  data_csd, pick_ori="normal")
+    assert_raises(ValueError, dics_source_power, epochs.info, forward_vol,
+                  noise_csd, data_csd, pick_ori="normal")
+
+    # Test detection of different number of CSD matrices provided
+    assert_raises(ValueError, dics_source_power, epochs.info, forward,
+                  [noise_csd] * 2, [data_csd] * 3)
