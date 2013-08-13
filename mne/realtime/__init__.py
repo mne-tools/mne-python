@@ -10,4 +10,4 @@
 from .client import RtClient
 from .epochs import RtEpochs
 from .mockclient import MockRtClient
-from .stim_server_client import StimServer, StimClient, send_trigger_worker, recv_trigger_worker
+from .stim_server_client import StimServer, StimClient

@@ -1,6 +1,7 @@
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 # License: BSD (3-clause)
 
+import Queue
 import time
 import socket
 import SocketServer
@@ -24,12 +25,10 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     stim_server : instance of StimServer
         object of StimServer class
 
-    bind_and_activate : bool (default=True)
-        If true, bind the socket to the desired address and activate the server
     """
 
     def __init__(self, server_address, request_handler_class,
-                 stim_server, bind_and_activate=True):
+                 stim_server):
 
     # Basically, this server is the same as a normal TCPServer class
     # except that it has an additional attribute stim_server
@@ -37,7 +36,7 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         # Create the server and bind it to the desired server address
         SocketServer.TCPServer.__init__(self, server_address,
                                         request_handler_class,
-                                        bind_and_activate)
+                                        False)
 
         self.stim_server = stim_server
 
@@ -66,39 +65,27 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
 
         # Add stim_server._client as a dictionary
         self.server.stim_server.add_client(self.client_address[0], self)
+        self.request.settimeout(None)
 
-        data = self.request.recv(1024)  # clip input at 1Kb
+        while True:
 
-        print "Request received:: " + data
+            data = self.request.recv(1024)  # clip input at 1Kb
 
-        # If the method self has trigger queue, create it
-        if not hasattr(self, '_tx_queue'):
-            self._tx_queue = []
+            if data == 'Give me a trigger':
+                print "Request received:: " + data
 
-        # Pop triggers and send them
-        if len(self._tx_queue) > 0:
-            trigger = self._tx_queue.pop(0)
-            print "Trigger " + str(trigger) + " popped and sent"
-            self.request.sendall(str(trigger))
-        elif len(self._tx_queue) == 0:
-            print "Queue is empty"
-        #elif len(self._tx_queue) == 1:
-            # pop but append it back because otherwise there won't
-            # be anything else to send when a request comes
-            #trigger = self._tx_queue.pop(0)
-            #self._tx_queue.append(trigger)
+                # If the method self has trigger queue, create it
+                if not hasattr(self, '_tx_queue'):
+                    self._tx_queue = []
 
-            #print "Trigger " + str(trigger) + " popped and sent"
-            #self.request.sendall(str(trigger))
-
-        # self.request.settimeout(0.1)
-
-        #while self._client['running']:
-            #print "receiving triggers"
-            #self.request.sendall(20)  # test if sending is possible
-            # 20 must be replaced with trigger
-            #self._recv_trigger_worker(self._client)
-        # logger.info('RtServer: send thread stopping')
+                # Pop triggers and send them
+                if len(self._tx_queue) > 0:
+                    trigger = self._tx_queue.pop(0)
+                    print "Trigger " + str(trigger) + " popped and sent"
+                    self.request.sendall(str(trigger))
+                else:
+                    print "Queue is empty"
+                    self.request.sendall("Empty")
 
 
 class StimServer(object):
@@ -111,16 +98,13 @@ class StimServer(object):
     port : int
         The port to which the stimulation server must bind to
 
-    buffer_size : int (preferably power of 2)
-        Buffer size (in bytes) for sending triggers
     """
 
-    def __init__(self, port=4218, buffer_size=1024):
+    def __init__(self, port=4218):
 
         # Start a threaded TCP server, binding to localhost on specified port
         self._data = ThreadedTCPServer(('localhost', port),
-                                       TriggerHandler, self,
-                                       False)
+                                       TriggerHandler, self)
 
         # This is done to avoid "[Errno 98] Address already in use"
         self._data.allow_reuse_address = True
@@ -136,12 +120,15 @@ class StimServer(object):
         self._thread.start()
 
         self._running = False
-        self._buffer_size = buffer_size
         self._client = dict()
 
-    def start(self, ip, stim_client, q, isi):
+    def start(self, ip, stim_client):
         """Method to start the client
         """
+
+        # Instantiate queue for communication between threads
+        if not hasattr(self, '_tx_queue'):
+            self._tx_queue = Queue.Queue()
 
         # Start server and a separate thread to send data
         if not self._running:
@@ -154,7 +141,7 @@ class StimServer(object):
 
             # start the send thread
             self._send_thread = threading.Thread(target=send_trigger_worker,
-                                                 args=(self, q, isi))
+                                                 args=(self, self._tx_queue))
             self._send_thread.start()
 
     def add_client(self, ip, sock):
@@ -179,8 +166,13 @@ class StimServer(object):
         self._data.server_close()
         self._data.socket.close()
 
+    def add_trigger(self, trigger):
+        """Method to add a trigger
+        """
+        self._tx_queue.put(trigger)
 
-def send_trigger_worker(stim_server, trig, isi):
+
+def send_trigger_worker(stim_server, tx_queue):
     """Worker thread that sends the data to the client
     stim_server : Instance of StimServer
 
@@ -188,35 +180,11 @@ def send_trigger_worker(stim_server, trig, isi):
         The queue which contains the triggers to be sent
     """
 
-    while stim_server._running and stim_server._client['running'] and not trig.empty():
+    while stim_server._running and stim_server._client['running']:
 
-        trigger = trig.get()
+        trigger = tx_queue.get()
         stim_server._client['socket'].send_trigger(trigger)
         print "stim server sending trigger %d" % trigger
-        time.sleep(isi.get())
-
-
-def recv_trigger_worker(stim_client):
-    """Worker thread that constantly receives trigger IDs"""
-
-    while True:
-        try:
-
-            print "StimClient requesting data"
-
-            # Request for a trigger
-            stim_client._sock.send("Give me a trigger")
-
-            # Get the trigger
-            trigger = stim_client._sock.recv(1024)
-
-            print "received trigger" + trigger
-
-            # time.sleep(0.1)
-            # return trig
-        except RuntimeError as err:
-            stim_client._recv_thread = None
-            print 'Trigger receive thread stopped: %s' % err
 
 
 class StimClient(object):
@@ -236,7 +204,7 @@ class StimClient(object):
         Communication timeout in seconds.
     """
 
-    def __init__(self, host, port=4218, timeout=1.0):
+    def __init__(self, host, port=4218, timeout=5.0):
         self._host = host
         self._timeout = timeout
         self._port = port
@@ -252,22 +220,17 @@ class StimClient(object):
                                'port: %d) failed. Make sure StimServer '
                                'is running.' % (host, port))
 
-        self._recv_thread = None
-
-    def start_receive_thread(self):
-        """Start the receive thread
+    def get_trigger(self):
+        """Method to get triggers from StimServer
         """
+        while True:
+            try:
+                self._sock.send("Give me a trigger")
+                trigger = self._sock.recv(1024)
 
-        if self._recv_thread is None:
-            self._recv_thread = threading.Thread(target=recv_trigger_worker,
-                                                 args=(self,))
+                if trigger != 'Empty':
+                    print "received trigger " + trigger
+                    return int(trigger)
 
-        self._recv_thread.start()
-
-    def stop_receive_thread(self):
-        """Stop the receive thread
-        """
-
-        if self._recv_thread is not None:
-            self._recv_thread.join()
-            self._recv_thread = None
+            except RuntimeError as err:
+                print 'Cannot receive triggers: %s' % err
