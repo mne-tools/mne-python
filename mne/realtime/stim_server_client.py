@@ -7,6 +7,7 @@ import socket
 import SocketServer
 import threading
 import logging
+import numpy as np
 logger = logging.getLogger('mne')
 
 
@@ -97,7 +98,6 @@ class StimServer(object):
     ----------
     port : int
         The port to which the stimulation server must bind to
-
     """
 
     def __init__(self, port=4218):
@@ -174,9 +174,12 @@ class StimServer(object):
 
 def send_trigger_worker(stim_server, tx_queue):
     """Worker thread that sends the data to the client
-    stim_server : Instance of StimServer
 
-    trig : instance of Queue
+    Parameters
+    ----------
+    stim_server : Instance of StimServer
+        The server which delivers the triggers
+    tx_queue : instance of Queue
         The queue which contains the triggers to be sent
     """
 
@@ -208,6 +211,7 @@ class StimClient(object):
         self._host = host
         self._timeout = timeout
         self._port = port
+        self._last_time = np.inf  # init delay counter. Will stop iterations
 
         try:
             print "Setting up client socket"
@@ -220,15 +224,30 @@ class StimClient(object):
                                'port: %d) failed. Make sure StimServer '
                                'is running.' % (host, port))
 
-    def get_trigger(self):
+    def get_trigger(self, timeout=5.0):
         """Method to get triggers from StimServer
+
+        Parameters
+        ----------
+        timeout : float
+            maximum time to wait for a valid trigger from the server
         """
         while True:
             try:
+                current_time = time.time()
+
+                # Raise timeout error
+                if current_time > (self._last_time + timeout):
+                        logger.info('Time of %s seconds exceeded.' % timeout)
+                        raise StopIteration
+
                 self._sock.send("Give me a trigger")
                 trigger = self._sock.recv(1024)
 
                 if trigger != 'Empty':
+                    # when was the last time you got a valid trigger?
+                    self._last_time = current_time
+
                     print "received trigger " + trigger
                     return int(trigger)
 

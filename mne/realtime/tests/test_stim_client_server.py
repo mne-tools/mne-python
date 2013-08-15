@@ -18,4 +18,7 @@ stim_server.add_trigger(100)
 trig2 = stim_client.get_trigger()
 trig3 = stim_client.get_trigger()
 
+# Should give timeout error
+trig4 = stim_client.get_trigger()
+
 stim_server.shutdown()
