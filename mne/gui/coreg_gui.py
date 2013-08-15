@@ -98,13 +98,42 @@ class CoregPanel(HasPrivateTraits):
     n_scale_params = Enum(0, 1, 3, desc="Scale the MRI to better fit the "
                           "subject's head shape (a new MRI subject will be "
                           "created with a name specified upon saving)")
-    scale3 = Array(float, (1, 3), [[1, 1, 1]], label='Scale by 3')
-    scale1 = Float(1, label='Scale by 1')
-    rotation = Array(float, (1, 3))
-    translation = Array(float, (1, 3))
+    scale_step = Float(1.01)
+    scale_x = Float(1, label="Right")
+    scale_x_dec = Button('-')
+    scale_x_inc = Button('+')
+    scale_y = Float(1, label="Anterior")
+    scale_y_dec = Button('-')
+    scale_y_inc = Button('+')
+    scale_z = Float(1, label="Superior")
+    scale_z_dec = Button('-')
+    scale_z_inc = Button('+')
+    scale = Property(depends_on=['n_scale_params', 'scale_x', 'scale_y',
+                                 'scale_z'])
+    rot_step = Float(0.01)
+    rot_x = Float(0, label="Right")
+    rot_x_dec = Button('-')
+    rot_x_inc = Button('+')
+    rot_y = Float(0, label="Anterior")
+    rot_y_dec = Button('-')
+    rot_y_inc = Button('+')
+    rot_z = Float(0, label="Superior")
+    rot_z_dec = Button('-')
+    rot_z_inc = Button('+')
+    rotation = Property(depends_on=('rot_x', 'rot_y', 'rot_z'))
+    trans_step = Float(0.001)
+    trans_x = Float(0, label="Right")
+    trans_x_dec = Button('-')
+    trans_x_inc = Button('+')
+    trans_y = Float(0, label="Anterior")
+    trans_y_dec = Button('-')
+    trans_y_inc = Button('+')
+    trans_z = Float(0, label="Superior")
+    trans_z_dec = Button('-')
+    trans_z_inc = Button('+')
+    translation = Property(depends_on=('trans_x', 'trans_y', 'trans_z'))
 
     # transforms
-    scale = Property(depends_on=['n_scale_params', 'scale3', 'scale1'])
     head_mri_trans = Property(depends_on=['tgt_origin', 'hsp_fid',
                                           'translation', 'rotation', 'scale'])
 
@@ -136,14 +165,43 @@ class CoregPanel(HasPrivateTraits):
                                                       1: '2:1 Param',
                                                       3: '3:3 Params'},
                                               cols=3)),
-                       Item('scale1', enabled_when='n_scale_params == 1',
-                            label="Scale (x1)", show_label=True,
-                            editor=laggy_float_editor,
-                            tooltip="Scale along all axes with this factor"),
-                       Item('scale3', enabled_when='n_scale_params == 3',
-                            label="Scale (x3)", show_label=True,
-                            tooltip="Scaling along x (right), y (anterior) "
-                            "and z (superior) axes"),
+                       HGroup(Item('scale_x', editor=laggy_float_editor,
+                                   show_label=True, tooltip="Scale along "
+                                   "right-left axis"),
+                              'scale_x_dec', 'scale_x_inc', Spring(),
+                              Item('scale_step', tooltip="Scaling step"),
+                              show_labels=False,
+                              enabled_when='n_scale_params > 0'),
+                       HGroup(Item('scale_y', editor=laggy_float_editor,
+                                   show_label=True, tooltip="Scale along "
+                                   "anterior-posterior axis"),
+                              'scale_y_dec', 'scale_y_inc', Spring(), Label('(Step)'),
+                              show_labels=False,
+                              enabled_when='n_scale_params > 1'),
+                       HGroup(Item('scale_z', editor=laggy_float_editor,
+                                   show_label=True, tooltip="Scale along "
+                                   "anterior-posterior axis"),
+                              'scale_z_dec', 'scale_z_inc',
+                              show_labels=False,
+                              enabled_when='n_scale_params > 1'),
+# traitsui does not seem to come with a grid sizer -- the following view
+# produces buttons that are vertically misaligned with the text fields:
+#                        HGroup(VGroup(Item('scale_x', editor=laggy_float_editor,
+#                                           tooltip="Scale along right-left axis",
+#                                           enabled_when='n_scale_params > 0'),
+#                                      Item('scale_y', editor=laggy_float_editor,
+#                                           tooltip="Scale along "
+#                                           "anterior-posterior axis",
+#                                           enabled_when='n_scale_params > 1'),
+#                                      Item('scale_z', editor=laggy_float_editor,
+#                                           tooltip="Scale along "
+#                                           "anterior-posterior axis",
+#                                           enabled_when='n_scale_params > 1')),
+#                               VGroup('scale_x_dec', 'scale_y_dec', 'scale_z_dec', show_labels=False),
+#                               VGroup('scale_x_inc', 'scale_y_inc', 'scale_z_inc', show_labels=False),
+#                               VGroup(Label("Step:"),
+#                                      Item('scale_step', tooltip="Scaling step", show_label=False),
+#                                      Label(""))),
                        HGroup(Item('fits_rot', enabled_when='n_scale_params',
                                    tooltip="Rotate the digitizer head shape "
                                    "and scale the MRI so as to minimize the "
@@ -163,15 +221,39 @@ class CoregPanel(HasPrivateTraits):
                                    "fiducials."),
                               show_labels=False),
                        '_',
-                       HGroup(Label("Axis:"), Spring(), Spring(),
-                              Label("Right"), Spring(), Label("Anterior"),
-                              Spring(), Label("Superior"), Spring()),
-                       Item('translation', show_label=True,
-                            tooltip="Movement into x (right), y (anterior) "
-                            "and z (superior) direction"),
-                       Item('rotation', show_label=True,
-                            tooltip="Rotation around the right, anterior "
-                            "and superior axes"),
+                       Label("Translation:"),
+                       HGroup(Item('trans_x', editor=laggy_float_editor,
+                                   show_label=True, tooltip="Move along "
+                                   "right-left axis"),
+                              'trans_x_dec', 'trans_x_inc', Spring(),
+                              Item('trans_step', tooltip="Movement step"),
+                              show_labels=False),
+                       HGroup(Item('trans_y', editor=laggy_float_editor,
+                                   show_label=True, tooltip="Move along "
+                                   "anterior-posterior axis"),
+                              'trans_y_dec', 'trans_y_inc', Spring(),
+                              Label('(Step)'), show_labels=False),
+                       HGroup(Item('trans_z', editor=laggy_float_editor,
+                                   show_label=True, tooltip="Move along "
+                                   "anterior-posterior axis"),
+                              'trans_z_dec', 'trans_z_inc', show_labels=False),
+                       Label("Rotation:"),
+                       HGroup(Item('rot_x', editor=laggy_float_editor,
+                                   show_label=True, tooltip="Rotate along "
+                                   "right-left axis"),
+                              'rot_x_dec', 'rot_x_inc', Spring(),
+                              Item('rot_step', tooltip="Rotation step"),
+                              show_labels=False),
+                       HGroup(Item('rot_y', editor=laggy_float_editor,
+                                   show_label=True, tooltip="Rotate along "
+                                   "anterior-posterior axis"),
+                              'rot_y_dec', 'rot_y_inc', Spring(),
+                              Label('(Step)'), show_labels=False),
+                       HGroup(Item('rot_z', editor=laggy_float_editor,
+                                   show_label=True, tooltip="Rotate along "
+                                   "anterior-posterior axis"),
+                              'rot_z_dec', 'rot_z_inc', show_labels=False),
+                       # buttons
                        HGroup(Item('fit_rot', enabled_when='has_pts_data',
                                    tooltip="Rotate the head shape (around the "
                                    "nasion) so as to minimize the distance "
@@ -247,9 +329,9 @@ class CoregPanel(HasPrivateTraits):
             return np.eye(3)
         x, y, z = -self.hsp_fid[0]
         trans = translation(x, y, z)
-        x, y, z = self.rotation[0]
+        x, y, z = self.rotation
         trans = dot(rotation(x, y, z), trans)
-        x, y, z = self.translation[0] + self.tgt_origin
+        x, y, z = self.translation + self.tgt_origin
         trans = dot(translation(x, y, z), trans)
         return trans
 
@@ -261,13 +343,18 @@ class CoregPanel(HasPrivateTraits):
             return ''
 
     @cached_property
+    def _get_rotation(self):
+        rot = np.array([self.rot_x, self.rot_y, self.rot_z])
+        return rot
+
+    @cached_property
     def _get_scale(self):
         if self.n_scale_params == 0:
             return np.array(1)
         elif self.n_scale_params == 1:
-            return np.array(self.scale1)
+            return np.array(self.scale_x)
         else:
-            return self.scale3[0]
+            return np.array([self.scale_x, self.scale_y, self.scale_z])
 
     @cached_property
     def _get_src_pts(self):
@@ -293,69 +380,74 @@ class CoregPanel(HasPrivateTraits):
         fid -= self.tgt_origin
         return fid
 
+    @cached_property
+    def _get_translation(self):
+        trans = np.array([self.trans_x, self.trans_y, self.trans_z])
+        return trans
+
     def _fit_ap_fired(self):
         GUI.set_busy()
-        tgt_fid = self.tgt_fid[1:] - self.translation[0]
-        x0 = tuple(self.rotation[0])
+        tgt_fid = self.tgt_fid[1:] - self.translation
+        x0 = tuple(self.rotation)
         rot = fit_matched_pts(self.src_fid[1:], tgt_fid, rotate=True,
                               translate=False, x0=x0)
-        self.rotation = [rot]
+        self.rot_x, self.rot_y, self.rot_z = rot
         GUI.set_busy(False)
 
     def _fit_fid_fired(self):
         GUI.set_busy()
-        x0 = tuple(self.rotation[0]) + tuple(self.translation[0])
+        x0 = tuple(self.rotation) + tuple(self.translation)
         est = fit_matched_pts(self.src_fid, self.tgt_fid, x0=x0)
-        self.rotation = [est[:3]]
-        self.translation = [est[3:]]
+        self.rot_x, self.rot_y, self.rot_z = est[:3]
+        self.trans_x, self.trans_y, self.trans_z = est[3:]
         GUI.set_busy(False)
 
     def _fit_rot_fired(self):
         GUI.set_busy()
-        tgt_pts = self.tgt_pts - self.translation[0]
-        x0 = tuple(self.rotation[0])
+        tgt_pts = self.tgt_pts - self.translation
+        x0 = tuple(self.rotation)
         rot = fit_point_cloud(self.src_pts, tgt_pts, rotate=True,
                               translate=False, x0=x0)
-        self.rotation = [rot]
+        self.rot_x, self.rot_y, self.rot_z = rot
         GUI.set_busy(False)
 
     def _fits_ap_fired(self):
         GUI.set_busy()
         tgt_fid = self.mri_fid[1:] - self.mri_fid[0]
-        tgt_fid -= self.translation[0]
-        x0 = tuple(self.rotation[0]) + (1 / self.scale1,)
+        tgt_fid -= self.translation
+        x0 = tuple(self.rotation) + (1 / self.scale_x,)
         x = fit_matched_pts(self.src_fid[1:], tgt_fid, rotate=True,
                             translate=False, scale=1, x0=x0)
-        self.scale1 = 1 / x[3]
-        self.rotation = [x[:3]]
+        self.scale_x = 1 / x[3]
+        self.rot_x, self.rot_y, self.rot_z = x[:3]
         GUI.set_busy(False)
 
     def _fits_fid_fired(self):
         GUI.set_busy()
         tgt_fid = self.mri_fid - self.mri_fid[0]
-        x0 = tuple(self.rotation[0]) + tuple(self.translation[0]) \
-             + (1 / self.scale1,)
+        x0 = tuple(self.rotation) + tuple(self.translation) \
+             + (1 / self.scale_x,)
         x = fit_matched_pts(self.src_fid, tgt_fid, rotate=True,
                             translate=True, scale=1, x0=x0)
-        self.scale1 = 1 / x[6]
-        self.rotation = [x[:3]]
-        self.translation = [x[3:6]]
+        self.scale_x = 1 / x[6]
+        self.rot_x, self.rot_y, self.rot_z = x[:3]
+        self.trans_x, self.trans_y, self.trans_z = x[3:6]
         GUI.set_busy(False)
 
     def _fits_rot_fired(self):
         GUI.set_busy()
         if self.n_scale_params == 1:
             tgt_pts = self.mri_pts - self.tgt_origin
-            x0 = tuple(self.rotation[0]) + (1 / self.scale1,)
+            x0 = tuple(self.rotation) + (1 / self.scale_x,)
             est = fit_point_cloud(self.src_pts, tgt_pts, rotate=True,
                                   translate=False, scale=1, x0=x0)
-            self.scale1 = 1 / est[3]
+            self.scale_x = 1 / est[3]
         else:
-            x0 = tuple(self.rotation[0]) + tuple(1 / self.scale)
+            x0 = tuple(self.rotation) + tuple(1 / self.scale)
             est = fit_point_cloud(self.src_pts, self.tgt_pts, rotate=True,
                                   translate=False, scale=3, x0=x0)
-            self.scale3 = [1 / est[3:]]
-        self.rotation = [est[:3]]
+            self.scale_x, self.scale_y, self.scale_z = 1 / est[3:]
+        self.rot_x, self.rot_y, self.rot_z = est[:3]
         GUI.set_busy(False)
 
     def _n_scale_params_changed(self, new):
@@ -372,8 +464,27 @@ class CoregPanel(HasPrivateTraits):
             warning(None, err, "MNE_ROOT Not Set")
 
     def _reset_params_fired(self):
-        self.reset_traits(('n_scaling_params', 'scale1', 'scale3',
-                           'translation', 'rotation'))
+        self.reset_traits(('n_scaling_params', 'scale_x', 'scale_y', 'scale_z',
+                           'rot_x', 'rot_y', 'rot_z', 'trans_x', 'trans_y',
+                           'trans_z'))
+
+    def _rot_x_dec_fired(self):
+        self.rot_x -= self.rot_step
+
+    def _rot_x_inc_fired(self):
+        self.rot_x += self.rot_step
+
+    def _rot_y_dec_fired(self):
+        self.rot_y -= self.rot_step
+
+    def _rot_y_inc_fired(self):
+        self.rot_y += self.rot_step
+
+    def _rot_z_dec_fired(self):
+        self.rot_z -= self.rot_step
+
+    def _rot_z_inc_fired(self):
+        self.rot_z += self.rot_step
 
     def _save_fired(self):
         # find target subject and MRI options
@@ -452,6 +563,51 @@ class CoregPanel(HasPrivateTraits):
                     err = ("ss_param needs to be 'ico' or 'spacing', can "
                            "not be %s" % mridlg.ss_subd)
                     raise ValueError(err)
+
+    def _scale_x_dec_fired(self):
+        step = 1 / self.scale_step
+        self.scale_x *= step
+
+    def _scale_x_inc_fired(self):
+        self.scale_x *= self.scale_step
+
+    def _scale_x_changed(self, old, new):
+        if self.n_scale_params == 1:
+            self.scale_y = new
+            self.scale_z = new
+
+    def _scale_y_dec_fired(self):
+        step = 1 / self.scale_step
+        self.scale_y *= step
+
+    def _scale_y_inc_fired(self):
+        self.scale_y *= self.scale_step
+
+    def _scale_z_dec_fired(self):
+        step = 1 / self.scale_step
+        self.scale_x *= step
+
+    def _scale_z_inc_fired(self):
+        self.scale_x *= self.scale_step
+
+    def _trans_x_dec_fired(self):
+        self.trans_x -= self.trans_step
+
+    def _trans_x_inc_fired(self):
+        self.trans_x += self.trans_step
+
+    def _trans_y_dec_fired(self):
+        self.trans_y -= self.trans_step
+
+    def _trans_y_inc_fired(self):
+        self.trans_y += self.trans_step
+
+    def _trans_z_dec_fired(self):
+        self.trans_z -= self.trans_step
+
+    def _trans_z_inc_fired(self):
+        self.trans_z += self.trans_step
+
 
 
 class NewMriDialog(HasPrivateTraits):
