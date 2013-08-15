@@ -90,6 +90,18 @@ def test_compute_csd():
     max_ch_csd_fourier = np.argmax(ch_csd_fourier)
     assert_equal(max_ch_csd_mt, max_ch_csd_fourier)
 
+    # Check a list of CSD matrices is returned for multiple frequencies within
+    # a given range when fsum=False
+    csd_fsum = compute_csd(epochs, mode='fourier', fmin=8, fmax=20, fsum=True)
+    csds = compute_csd(epochs, mode='fourier', fmin=8, fmax=20, fsum=False)
+
+    csd_sum = np.zeros_like(csd_fsum.data)
+    for csd in csds:
+        csd_sum += csd.data
+
+    assert(len(csds) == 2)
+    assert_array_equal(csd_fsum.data, csd_sum)
+
 
 def test_compute_csd_on_artificial_data():
     epochs, epochs_sin = _get_data()

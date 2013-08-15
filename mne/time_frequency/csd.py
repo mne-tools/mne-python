@@ -6,6 +6,7 @@ import warnings
 import copy as cp
 
 import numpy as np
+from scipy.fftpack import fftfreq
 
 import logging
 logger = logging.getLogger('mne')
@@ -46,8 +47,8 @@ class CrossSpectralDensity(object):
 
 
 @verbose
-def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
-                tmax=None, mt_bandwidth=None, mt_adaptive=False,
+def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, fsum=True,
+                tmin=None, tmax=None, mt_bandwidth=None, mt_adaptive=False,
                 mt_low_bias=True, projs=None, verbose=None):
     """Estimate cross-spectral density from epochs
 
@@ -64,6 +65,10 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
         Minimum frequency of interest.
     fmax : float | np.inf
         Maximum frequency of interest.
+    fsum : bool
+        Sum CSD values for the frequencies of interest. If True, a single CSD
+        matrix will be returned. If False, the output will be a list of CSD
+        matrices.
     tmin : float | None
         Minimum time instant to consider. If None start at first sample.
     tmax : float | None
@@ -124,7 +129,15 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
     tslice = slice(tstart, tend, None)
     n_times = len(epochs.times[tslice])
 
-    csd_mean = np.zeros((len(ch_names), len(ch_names)), dtype=complex)
+    # Preparing frequencies of interest
+    frequencies = fftfreq(n_times, 1. / epochs.info['sfreq'])
+    freq_mask = (frequencies > fmin) & (frequencies < fmax)
+    n_freqs = sum(freq_mask)
+
+    if n_freqs == 0:
+        raise ValueError('No discrete fourier transform results within '
+                         'the given frequency window. Please widen either '
+                         'the frequency window or the time window')
 
     # Preparing for computing CSD
     logger.info('Computing cross-spectral density from epochs...')
@@ -157,22 +170,16 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
     else:
         raise ValueError('Mode has an invalid value.')
 
+    csds_mean = np.zeros((len(ch_names), len(ch_names), n_freqs),
+                         dtype=complex)
+
     # Compute CSD for each epoch
     n_epochs = 0
     for epoch in epochs:
         epoch = epoch[picks_meeg][:, tslice]
 
         # Calculating Fourier transform using multitaper module
-        x_mt, frequencies = _mt_spectra(epoch, window_fun,
-                                        epochs.info['sfreq'])
-
-        # Preparing frequencies of interest
-        freq_mask = (frequencies > fmin) & (frequencies < fmax)
-
-        if not freq_mask.any():
-            raise ValueError('No discrete fourier transform results within '
-                             'the given frequency window. Please widen either '
-                             'the frequency window or the time window')
+        x_mt, _ = _mt_spectra(epoch, window_fun, epochs.info['sfreq'])
 
         if mt_adaptive:
             # Compute adaptive weights
@@ -210,14 +217,21 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, tmin=None,
         # Scaling by sampling frequency for compatibility with Matlab
         csds_epoch /= epochs.info['sfreq']
 
-        # Summing over frequencies of interest
-        csd_epoch = np.sum(csds_epoch, 2)
-
-        csd_mean += csd_epoch
+        csds_mean += csds_epoch
         n_epochs += 1
 
-    csd_mean /= n_epochs
+    csds_mean /= n_epochs
 
-    csd = CrossSpectralDensity(csd_mean, ch_names, projs, epochs.info['bads'])
-
-    return csd
+    # Summing over frequencies of interest or returning a list of separate CSD
+    # matrices for each frequency
+    if fsum is True:
+        csd_mean = np.sum(csds_mean, 2)
+        csd = CrossSpectralDensity(csd_mean, ch_names, projs,
+                                   epochs.info['bads'])
+        return csd
+    else:
+        csds = []
+        for i in range(n_freqs):
+            csds.append(CrossSpectralDensity(csds_mean[:, :, i], ch_names,
+                                             projs, epochs.info['bads']))
+        return csds
