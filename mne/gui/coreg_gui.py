@@ -627,7 +627,7 @@ class CoregFrame(HasTraits):
 
     @on_trait_change('hsp_obj.src.data.points', True)
     def _update_fit_eval_pts(self):
-        if np.all(self.hsp_obj.points == 0):
+        if np.all(self.hsp_obj.points == 0) or (self.mri_obj.src is None):
             self.fit_eval_pts = '-'
             return
 
