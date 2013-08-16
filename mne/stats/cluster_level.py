@@ -701,6 +701,14 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     T_obs = stat_fun(*X)
     logger.info('stat_fun(H1): min=%f max=%f' % (np.min(T_obs), np.max(T_obs)))
 
+    # test if stat_fun treats variables independently
+    if buffer_size is not None:
+        T_obs_buffer = stat_fun(*[x[:, :buffer_size] for x in X])
+        if not np.alltrue(T_obs[:buffer_size] == T_obs_buffer):
+            logger.warn('Provided stat_fun does not treat variables '
+                        'independently. Setting buffer_size to None.')
+            buffer_size = None
+
     # The stat should have the same shape as the samples for no conn.
     if connectivity is None:
         T_obs.shape = sample_shape
