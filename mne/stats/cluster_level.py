@@ -703,8 +703,12 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
 
     # test if stat_fun treats variables independently
     if buffer_size is not None:
-        T_obs_buffer = stat_fun(*[x[:, :buffer_size] for x in X])
-        if not np.alltrue(T_obs[:buffer_size] == T_obs_buffer):
+        T_obs_buffer = np.zeros_like(T_obs)
+        for pos in xrange(0, n_tests, buffer_size):
+            T_obs_buffer[pos: pos + buffer_size] =\
+                stat_fun(*[x[:, pos: pos + buffer_size] for x in X])
+
+        if not np.alltrue(T_obs == T_obs_buffer):
             logger.warn('Provided stat_fun does not treat variables '
                         'independently. Setting buffer_size to None.')
             buffer_size = None
