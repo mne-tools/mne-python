@@ -467,5 +467,5 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
     else:
         fstep = 1  # dummy value
     fmin = freqs[0]
-    return SourceEstimate(source_power, vertices=vertno, tmin=fmin,
-                          tstep=fstep, subject=subject)
+    return SourceEstimate(source_power, vertices=vertno, tmin=fmin / 1000,
+                          tstep=fstep / 1000, subject=subject)
