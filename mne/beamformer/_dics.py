@@ -322,7 +322,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
 
 
 @verbose
-def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
+def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
                       label=None, pick_ori=None, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
@@ -345,6 +345,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
     data_csds : CrossSpectralDensity or list of CrossSpectralDensity
         The data cross-spectral density matrix for a single frequecy or a list
         of matrices for multiple frequencies.
+    freqs : array of float
+        Frequencies of interest for which the CSD matrices have been computed.
     reg : float
         The regularization for the cross-spectral density.
     label : Label | None
@@ -453,9 +455,12 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
                 source_power[k, i] = np.abs(sp_temp).trace()
 
     subject = _subject_from_forward(forward)
-    tstep = 1000  # TODO: For multiple frequencies this should be set correctly
-    fmin = 0  # TODO: Ditto
+    if len(freqs) > 1:
+        fstep = freqs[1] - freqs[0]
+    else:
+        fstep = 1  # dummy value
+    fmin = freqs[0]
     return SourceEstimate(source_power, vertices=vertno, tmin=fmin,
-                          tstep=tstep, subject=subject)
+                          tstep=fstep, subject=subject)
 
     logger.info('[done]')

@@ -143,7 +143,7 @@ def test_dics_source_power():
     epochs, evoked, data_csd, noise_csd, freqs = read_data()
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
-                                         data_csd)
+                                         data_csd, freqs)
 
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
@@ -156,7 +156,7 @@ def test_dics_source_power():
 
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = dics_source_power(epochs.info, forward_surf_ori,
-                                   [noise_csd] * 2, [data_csd] * 2,
+                                   [noise_csd] * 2, [data_csd] * 2, freqs,
                                    pick_ori="normal")
 
     assert_true(stc_normal.data.shape == (stc_source_power.data.shape[0], 2))
@@ -169,18 +169,18 @@ def test_dics_source_power():
     # Test if fixed forward operator is detected when picking normal
     # orientation
     assert_raises(ValueError, dics_source_power, raw.info, forward_fixed,
-                  noise_csd, data_csd, pick_ori="normal")
+                  noise_csd, data_csd, freqs, pick_ori="normal")
 
     # Test if non-surface oriented forward operator is detected when picking
     # normal orientation
     assert_raises(ValueError, dics_source_power, raw.info, forward, noise_csd,
-                  data_csd, pick_ori="normal")
+                  data_csd, freqs, pick_ori="normal")
 
     # Test if volume forward operator is detected when picking normal
     # orientation
     assert_raises(ValueError, dics_source_power, epochs.info, forward_vol,
-                  noise_csd, data_csd, pick_ori="normal")
+                  noise_csd, data_csd, freqs, pick_ori="normal")
 
     # Test detection of different number of CSD matrices provided
     assert_raises(ValueError, dics_source_power, epochs.info, forward,
-                  [noise_csd] * 2, [data_csd] * 3)
+                  [noise_csd] * 2, [data_csd] * 3, freqs)
