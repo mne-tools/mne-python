@@ -111,23 +111,26 @@ def test_find_events():
     # Reset some data for ease of comparison
     raw.first_samp = 0
     raw.info['sfreq'] = 1000
-    stim_channel = fiff.pick_channels(raw.info['ch_names'], include='STI 014')
+
+    stim_channel = 'STI 014'
+    stim_channel_idx = fiff.pick_channels(raw.info['ch_names'],
+                                      include=stim_channel)
 
     # test empty events channel
-    raw._data[stim_channel, :] = 0
+    raw._data[stim_channel_idx, :] = 0
     assert_array_equal(find_events(raw), np.empty((0, 3), dtype='int32'))
 
-    raw._data[stim_channel, :4] = 1
+    raw._data[stim_channel_idx, :4] = 1
     assert_array_equal(find_events(raw), np.empty((0, 3), dtype='int32'))
 
-    raw._data[stim_channel, -1:] = 9
+    raw._data[stim_channel_idx, -1:] = 9
     assert_array_equal(find_events(raw), [[14399, 0, 9]])
 
     # Test that we can handle consecutive events with no gap
-    raw._data[stim_channel, 10:20] = 5
-    raw._data[stim_channel, 20:30] = 6
-    raw._data[stim_channel, 30:32] = 5
-    raw._data[stim_channel, 40] = 6
+    raw._data[stim_channel_idx, 10:20] = 5
+    raw._data[stim_channel_idx, 20:30] = 6
+    raw._data[stim_channel_idx, 30:32] = 5
+    raw._data[stim_channel_idx, 40] = 6
 
     assert_array_equal(find_events(raw, consecutive=False),
                        [[10, 0, 5],
@@ -187,24 +190,24 @@ def test_find_events():
                         [20, 5, 6]])
 
     # test find_stim_steps merge parameter
-    raw._data[stim_channel, :] = 0
-    raw._data[stim_channel, 0] = 1
-    raw._data[stim_channel, 10] = 4
-    raw._data[stim_channel, 11:20] = 5
-    assert_array_equal(find_stim_steps(raw._data[stim_channel, :], raw.first_samp,
-                                       pad_start=0, merge=0),
+    raw._data[stim_channel_idx, :] = 0
+    raw._data[stim_channel_idx, 0] = 1
+    raw._data[stim_channel_idx, 10] = 4
+    raw._data[stim_channel_idx, 11:20] = 5
+    assert_array_equal(find_stim_steps(raw, pad_start=0, merge=0,
+                                       stim_channel=stim_channel),
                        [[0, 0, 1],
                         [1, 1, 0],
                         [10, 0, 4],
                         [11, 4, 5],
                         [20, 5, 0]])
-    assert_array_equal(find_stim_steps(raw._data[stim_channel, :], raw.first_samp,
-                                       merge=-1),
+    assert_array_equal(find_stim_steps(raw, merge=-1,
+                                       stim_channel=stim_channel),
                        [[1, 1, 0],
                         [10, 0, 5],
                         [20, 5, 0]])
-    assert_array_equal(find_stim_steps(raw._data[stim_channel, :], raw.first_samp,
-                                       merge=1),
+    assert_array_equal(find_stim_steps(raw, merge=1,
+                                       stim_channel=stim_channel),
                        [[1, 1, 0],
                         [11, 0, 5],
                         [20, 5, 0]])
