@@ -1,24 +1,21 @@
 from mne.realtime import StimServer, StimClient
+from nose.tools import assert_equal, assert_raises
 
-#def test_connection():
 
-stim_server = StimServer(port=4218)
-stim_client = StimClient('localhost', port=4218)
+def test_connection():
+    """Test TCP/IP connection for StimServer<-> StimClient
+    """
+    stim_server = StimServer(port=4218)
+    stim_client = StimClient('localhost', port=4218)
 
-# start the server
-stim_server.start('localhost', stim_client)
+    # start the server
+    stim_server.start('localhost', stim_client)
 
-stim_server.add_trigger(20)
-stim_server.add_trigger(50)
+    # Check if data is ok
+    stim_server.add_trigger(20)
+    assert_equal(stim_client.get_trigger(), 20)
 
-trig1 = stim_client.get_trigger()
+    # Check if timeout works
+    assert_raises(StopIteration, stim_client.get_trigger, 2.0)
 
-stim_server.add_trigger(100)
-
-trig2 = stim_client.get_trigger()
-trig3 = stim_client.get_trigger()
-
-# Should give timeout error
-trig4 = stim_client.get_trigger()
-
-stim_server.shutdown()
+    stim_server.shutdown()
