@@ -92,6 +92,8 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, fsum=True,
     -------
     csd : instance of CrossSpectralDensity
         The computed cross-spectral density.
+    frequencies : array of float
+        The frequencies of interest
     """
     # Portions of this code adapted from mne/connectivity/spectral.py
 
@@ -132,7 +134,8 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, fsum=True,
     # Preparing frequencies of interest
     frequencies = fftfreq(n_times, 1. / epochs.info['sfreq'])
     freq_mask = (frequencies > fmin) & (frequencies < fmax)
-    n_freqs = sum(freq_mask)
+    frequencies = frequencies[freq_mask]
+    n_freqs = len(frequencies)
 
     if n_freqs == 0:
         raise ValueError('No discrete fourier transform results within '
@@ -228,10 +231,10 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, fsum=True,
         csd_mean = np.sum(csds_mean, 2)
         csd = CrossSpectralDensity(csd_mean, ch_names, projs,
                                    epochs.info['bads'])
-        return csd
+        return csd, frequencies
     else:
         csds = []
         for i in range(n_freqs):
             csds.append(CrossSpectralDensity(csds_mean[:, :, i], ch_names,
                                              projs, epochs.info['bads']))
-        return csds
+        return csds, frequencies

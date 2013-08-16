@@ -57,18 +57,18 @@ def read_data():
     evoked = epochs.average()
 
     # Computing the data and noise cross-spectral density matrices
-    data_csd = compute_csd(epochs, mode='multitaper', tmin=0.04, tmax=None,
-                           fmin=8, fmax=12)
-    noise_csd = compute_csd(epochs, mode='multitaper', tmin=None, tmax=0.0,
-                            fmin=8, fmax=12)
+    data_csd, freqs = compute_csd(epochs, mode='multitaper', tmin=0.04,
+                                  tmax=None, fmin=8, fmax=12)
+    noise_csd, _ = compute_csd(epochs, mode='multitaper', tmin=None, tmax=0.0,
+                               fmin=8, fmax=12)
 
-    return epochs, evoked, data_csd, noise_csd
+    return epochs, evoked, data_csd, noise_csd, freqs
 
 
 def test_dics():
     """Test DICS with evoked data and single trials
     """
-    epochs, evoked, data_csd, noise_csd = read_data()
+    epochs, evoked, data_csd, noise_csd, freqs = read_data()
 
     stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd)
 
@@ -140,7 +140,7 @@ def test_dics():
 def test_dics_source_power():
     """Test DICS source power computation
     """
-    epochs, evoked, data_csd, noise_csd = read_data()
+    epochs, evoked, data_csd, noise_csd, freqs = read_data()
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
                                          data_csd)
