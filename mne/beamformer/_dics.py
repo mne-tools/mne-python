@@ -422,7 +422,12 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
     n_sources = G.shape[1] // n_orient
     source_power = np.zeros((n_sources, len(data_csds)))
 
+    logger.info('Computing DICS source power...')
     for i, (data_csd, noise_csd) in enumerate(zip(data_csds, noise_csds)):
+        if len(data_csds) > 1:
+            logger.info('    computing DICS spatial filter %d out of %d' %
+                        (i + 1, len(data_csds)))
+
         Cm = data_csd.data
 
         # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
@@ -454,6 +459,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
             else:
                 source_power[k, i] = np.abs(sp_temp).trace()
 
+    logger.info('[done]')
+
     subject = _subject_from_forward(forward)
     if len(freqs) > 1:
         fstep = freqs[1] - freqs[0]
@@ -462,5 +469,3 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
     fmin = freqs[0]
     return SourceEstimate(source_power, vertices=vertno, tmin=fmin,
                           tstep=fstep, subject=subject)
-
-    logger.info('[done]')

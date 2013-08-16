@@ -225,6 +225,8 @@ def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, fsum=True,
 
     csds_mean /= n_epochs
 
+    logger.info('[done]')
+
     # Summing over frequencies of interest or returning a list of separate CSD
     # matrices for each frequency
     if fsum is True:
