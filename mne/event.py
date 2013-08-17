@@ -269,41 +269,7 @@ def write_events(filename, event_list):
         f.close()
 
 
-def find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
-    """Find all steps in data from a stim channel
-
-    Parameters
-    ----------
-    raw : Raw object
-        The raw data.
-    pad_start, pad_stop : None | int
-        Values to assume outside of the stim channel (e.g., if pad_start=0 and
-        the stim channel starts with value 5, an event of [0, 0, 5] will be
-        inserted at the beginning). With None, no steps will be inserted.
-    merge : int
-        Merge steps occurring in neighboring samples. The integer value
-        indicates over how many samples events should be merged, and the sign
-        indicates in which direction they should be merged (negative means
-        towards the earlier event, positive towards the later event).
-    stim_channel : None | string | list of string
-        Name of the stim channel or all the stim channels
-        affected by the trigger. If None, the config variables
-        'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
-        etc. are read. If these are not found, it will default to
-        'STI 014'.
-
-    Returns
-    -------
-    steps : array, shape = (n_samples, 3)
-        For each step in the stim channel the values [sample, v_from, v_to].
-        The first column contains the event time in samples (the first sample
-        with the new value). The second column contains the stim channel value
-        before the step, and the third column contains value after the step.
-
-    See Also
-    --------
-    find_events : More sophisticated options for finding events in a Raw file.
-    """
+def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
     changed = np.diff(data, axis=1) != 0
     idx = np.where(np.all(changed, axis=0))[0]
     if len(idx) == 0:
@@ -348,6 +314,60 @@ def find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
     return steps
 
 
+def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
+                    stim_channel=None):
+    """Find all steps in data from a stim channel
+
+    Parameters
+    ----------
+    raw : Raw object
+        The raw data.
+    pad_start, pad_stop : None | int
+        Values to assume outside of the stim channel (e.g., if pad_start=0 and
+        the stim channel starts with value 5, an event of [0, 0, 5] will be
+        inserted at the beginning). With None, no steps will be inserted.
+    merge : int
+        Merge steps occurring in neighboring samples. The integer value
+        indicates over how many samples events should be merged, and the sign
+        indicates in which direction they should be merged (negative means
+        towards the earlier event, positive towards the later event).
+    stim_channel : None | string | list of string
+        Name of the stim channel or all the stim channels
+        affected by the trigger. If None, the config variables
+        'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
+        etc. are read. If these are not found, it will default to
+        'STI 014'.
+
+    Returns
+    -------
+    steps : array, shape = (n_samples, 3)
+        For each step in the stim channel the values [sample, v_from, v_to].
+        The first column contains the event time in samples (the first sample
+        with the new value). The second column contains the stim channel value
+        before the step, and the third column contains value after the step.
+
+    See Also
+    --------
+    find_events : More sophisticated options for finding events in a Raw file.
+    """
+
+    # pull stim channel from config if necessary
+    stim_channel = _get_stim_channel(stim_channel)
+
+    picks = pick_channels(raw.info['ch_names'], include=stim_channel)
+    if len(picks) == 0:
+        raise ValueError('No stim channel found to extract event triggers.')
+    data, _ = raw[picks, :]
+    if np.any(data < 0):
+        logger.warn('Trigger channel contains negative values. '
+                    'Taking absolute value.')
+        data = np.abs(data)  # make sure trig channel is positive
+    data = data.astype(np.int)
+
+    return _find_stim_steps(data, raw.first_samp, pad_start=pad_start,
+                            pad_stop=pad_stop, merge=merge)
+
+
 @verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
                  consecutive='increasing', min_samples=0):
@@ -365,7 +385,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
         data = np.abs(data)  # make sure trig channel is positive
     data = data.astype(np.int)
 
-    events = find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
+    events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
 
     # Determine event onsets and offsets
     if consecutive == 'increasing':
