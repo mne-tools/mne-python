@@ -20,17 +20,16 @@ data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
-raw = fiff.Raw(raw_fname, preload=False)
-events = read_events(event_name)
-
-picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False, eog=False,
-                        exclude='bads')
-picks = picks[1:13:3]
-
 
 def test_scaler():
     """Test methods of Scaler
     """
+    raw = fiff.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+                            eog=False, exclude='bads')
+    picks = picks[1:13:3]
+
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
@@ -49,6 +48,11 @@ def test_scaler():
 def test_filterestimator():
     """Test methods of FilterEstimator
     """
+    raw = fiff.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+                            eog=False, exclude='bads')
+    picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
@@ -67,6 +71,11 @@ def test_filterestimator():
 def test_psdestimator():
     """Test methods of PSDEstimator
     """
+    raw = fiff.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+                            eog=False, exclude='bads')
+    picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
@@ -85,6 +94,11 @@ def test_psdestimator():
 def test_concatenatechannels():
     """Test methods of ConcatenateChannels
     """
+    raw = fiff.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+                            eog=False, exclude='bads')
+    picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()

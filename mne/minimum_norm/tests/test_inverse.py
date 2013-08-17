@@ -31,7 +31,6 @@ fname_raw = op.join(s_path, 'sample_audvis_filt-0-40_raw.fif')
 fname_event = op.join(s_path, 'sample_audvis_filt-0-40_raw-eve.fif')
 fname_label = op.join(s_path, 'labels', '%s.label')
 
-inverse_operator = read_inverse_operator(fname_inv)
 label_lh = read_label(fname_label % 'Aud-lh')
 label_rh = read_label(fname_label % 'Aud-rh')
 noise_cov = read_cov(fname_cov)
@@ -132,6 +131,7 @@ def _compare_io(inv_op, out_file_ext='.fif'):
 def test_apply_inverse_operator():
     """Test MNE inverse computation (precomputed and non-precomputed)
     """
+    inverse_operator = read_inverse_operator(fname_inv)
 
     # Test old version of inverse computation starting from forward operator
     fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
@@ -276,6 +276,7 @@ def test_inverse_operator_volume():
 def test_io_inverse_operator():
     """Test IO of inverse_operator with GZip
     """
+    inverse_operator = read_inverse_operator(fname_inv)
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
 
@@ -286,6 +287,7 @@ def test_apply_mne_inverse_raw():
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
+    inverse_operator = read_inverse_operator(fname_inv)
     for pick_ori in [None, "normal"]:
         stc = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
                                 label=label_lh, start=start, stop=stop, nave=1,
@@ -296,7 +298,7 @@ def test_apply_mne_inverse_raw():
                                  nave=1, pick_ori=pick_ori,
                                  buffer_size=3)
 
-        if pick_ori == None:
+        if pick_ori is None:
             assert_true(np.all(stc.data > 0))
             assert_true(np.all(stc2.data > 0))
 
@@ -337,6 +339,7 @@ def test_apply_mne_inverse_fixed_raw():
 def test_apply_mne_inverse_epochs():
     """Test MNE with precomputed inverse operator on Epochs
     """
+    inverse_operator = read_inverse_operator(fname_inv)
     event_id, tmin, tmax = 1, -0.2, 0.5
 
     picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
