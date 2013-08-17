@@ -20,20 +20,21 @@ data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
-raw = fiff.Raw(raw_fname, preload=True)
+raw = fiff.Raw(raw_fname, preload=False)
 events = read_events(event_name)
 
 picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False, eog=False,
                         exclude='bads')
 picks = picks[1:13:3]
 
-epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                baseline=(None, 0), preload=True)
-
 
 def test_scaler():
     """Test methods of Scaler
     """
+    # It is not computationally efficient to create epochs in each test,
+    # but we need to save the memory :(
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
     scaler = Scaler(epochs.info)
     y = epochs.events[:, -1]
@@ -50,6 +51,8 @@ def test_scaler():
 def test_filterestimator():
     """Test methods of FilterEstimator
     """
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
     filt = FilterEstimator(epochs.info, 1, 40)
     y = epochs.events[:, -1]
@@ -66,6 +69,8 @@ def test_filterestimator():
 def test_psdestimator():
     """Test methods of PSDEstimator
     """
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
     psd = PSDEstimator(2 * np.pi, 0, np.inf)
     y = epochs.events[:, -1]
@@ -82,6 +87,8 @@ def test_psdestimator():
 def test_concatenatechannels():
     """Test methods of ConcatenateChannels
     """
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
     concat = ConcatenateChannels(epochs.info)
     y = epochs.events[:, -1]

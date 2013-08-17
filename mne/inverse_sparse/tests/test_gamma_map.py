@@ -19,16 +19,15 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6-fwd.fif')
 
 
-forward = read_forward_solution(fname_fwd, force_fixed=False, surf_ori=True)
-evoked = fiff.Evoked(fname_evoked, setno=0, baseline=(None, 0))
-evoked.crop(tmin=0, tmax=0.3)
-
-cov = read_cov(fname_cov)
-cov = mne.cov.regularize(cov, evoked.info)
-
-
 def test_gamma_map():
     """Test Gamma MAP inverse"""
+    forward = read_forward_solution(fname_fwd, force_fixed=False,
+                                    surf_ori=True)
+    evoked = fiff.Evoked(fname_evoked, setno=0, baseline=(None, 0))
+    evoked.crop(tmin=0, tmax=0.3)
+
+    cov = read_cov(fname_cov)
+    cov = mne.cov.regularize(cov, evoked.info)
 
     alpha = 0.2
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,

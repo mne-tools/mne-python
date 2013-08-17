@@ -11,36 +11,36 @@ from mne.source_estimate import SourceEstimate, VolSourceEstimate
 
 data_path = sample.data_path()
 fname_data = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-ave.fif')
+                     'sample_audvis-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis_raw.fif')
+                    'sample_audvis_raw.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-cov.fif')
+                    'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-meg-oct-6-fwd.fif')
+                    'sample_audvis-meg-oct-6-fwd.fif')
 fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis-meg-vol-7-fwd.fif')
+                        'sample_audvis-meg-vol-7-fwd.fif')
 fname_event = op.join(data_path, 'MEG', 'sample',
-                            'sample_audvis_raw-eve.fif')
+                      'sample_audvis_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 label = mne.read_label(fname_label)
 noise_cov = mne.read_cov(fname_cov)
-# preloading raw here increases mem requirements by 400 mb for all nosetests
-# that include this file's parent directory :(
 raw = mne.fiff.Raw(fname_raw, preload=False)
-forward = mne.read_forward_solution(fname_fwd)
-forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
-forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
-                                          surf_ori=True)
-forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
 events = mne.read_events(fname_event)
 
 
 def test_lcmv():
     """Test LCMV with evoked data and single trials
     """
+    # load forwards here to save memory
+    forward = mne.read_forward_solution(fname_fwd)
+    forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
+    forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
+                                              surf_ori=True)
+    forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
+
     event_id, tmin, tmax = 1, -0.1, 0.15
 
     # Setup for reading the raw data
@@ -162,6 +162,8 @@ def test_lcmv():
 def test_lcmv_raw():
     """Test LCMV with raw data
     """
+    forward = mne.read_forward_solution(fname_fwd)
+
     tmin, tmax = 0, 20
     # Setup for reading the raw data
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
