@@ -31,8 +31,6 @@ picks = picks[1:13:3]
 def test_scaler():
     """Test methods of Scaler
     """
-    # It is not computationally efficient to create epochs in each test,
-    # but we need to save the memory :(
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()

@@ -241,7 +241,7 @@ def test_average_forward_solution():
     fname_copy = op.join(temp_dir, 'fwd.fif')
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
     cmd = ('mne_average_forward_solutions', '--fwd', fname, '--fwd',
-           fname_copy, '--out' , fname_copy)
+           fname_copy, '--out', fname_copy)
     run_subprocess(cmd)
 
     # now let's actually do it, with one filename and one fwd

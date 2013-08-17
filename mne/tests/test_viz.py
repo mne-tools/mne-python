@@ -63,10 +63,7 @@ epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
 evoked_delayed_ssp = epochs_delayed_ssp.average()
 layout = read_layout('Vectorview-all')
 ica_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
-                                ecg=False, eog=False, exclude='bads')
-ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-          max_pca_components=3, n_pca_components=3)
-ica.decompose_raw(raw, picks=ica_picks)
+                            ecg=False, eog=False, exclude='bads')
 
 
 def test_plot_topo():
@@ -187,6 +184,9 @@ def test_plot_cov():
 def test_plot_ica_panel():
     """Test plotting of ICA panel
     """
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica.decompose_raw(raw, picks=ica_picks)
     ica.plot_sources_raw(raw)
 
 
@@ -309,6 +309,9 @@ def test_compare_fiff():
 def test_plot_ica_topomap():
     """Test plotting of ica solutions
     """
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica.decompose_raw(raw, picks=ica_picks)
     for components in [0, [0], [0, 1], [0, 1] * 7]:
         ica.plot_topomap(components)
     ica.info = None
