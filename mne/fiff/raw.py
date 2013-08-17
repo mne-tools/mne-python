@@ -837,10 +837,11 @@ class Raw(ProjMixin):
         raw.fids = [f for fi, f in enumerate(raw.fids) if fi in keepers]
         raw.rawdirs = [r for ri, r in enumerate(raw.rawdirs)
                        if ri in keepers]
-        if raw._preloaded:
-            raw._data = raw._data[:, smin:smax + 1]
         raw.first_samp = raw._first_samps[0]
         raw.last_samp = raw.first_samp + (smax - smin)
+        if raw._preloaded:
+            raw._data = raw._data[:, smin:smax + 1]
+            raw._times = np.arange(raw.n_times) / raw.info['sfreq']
         return raw
 
     @verbose
