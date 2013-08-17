@@ -92,7 +92,16 @@ def _clean_names(names):
             # prepare plot
 
     """
-    return [n.replace(' ', '') if ' ' in n else n for n in names]
+    cleaned = []
+    [n.replace(' ', '') if ' ' in n else n for n in names]
+    for name in names:
+        if ' ' in name:
+            name = name.replace(' ', '')
+        if '-' in name:
+            name = name.split('-')[0]
+        cleaned.append(name)
+
+    return cleaned
 
 
 def _check_delayed_ssp(container):
@@ -100,7 +109,7 @@ def _check_delayed_ssp(container):
     """
     if container.proj is True:
         raise RuntimeError('Projs are already applied. Please initialize'
-                ' the data with proj set to False.')
+                           ' the data with proj set to False.')
     elif len(container.info['projs']) < 1:
         raise RuntimeError('No projs found in evoked.')
 
