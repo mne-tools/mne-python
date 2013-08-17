@@ -93,7 +93,6 @@ def _clean_names(names):
 
     """
     cleaned = []
-    [n.replace(' ', '') if ' ' in n else n for n in names]
     for name in names:
         if ' ' in name:
             name = name.replace(' ', '')
