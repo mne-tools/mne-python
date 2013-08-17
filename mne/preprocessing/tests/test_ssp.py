@@ -13,14 +13,12 @@ data_path = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
 dur_use = 5.0
 eog_times = np.array([0.5, 2.3, 3.6, 14.5])
-raw_0 = Raw(raw_fname, preload=True).crop(0, 10, False)
-raw_0.close()
 
 
 def test_compute_proj_ecg():
     """Test computation of ECG SSP projectors"""
     for average in [False, True]:
-        raw = raw_0.copy()
+        raw = Raw(raw_fname, preload=True).crop(0, 10, False)
         # For speed, let's not filter here (must also not reject then)
         projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
                                     ch_name='MEG 1531', bads=['MEG 2443'],
@@ -49,7 +47,7 @@ def test_compute_proj_ecg():
 def test_compute_proj_eog():
     """Test computation of EOG SSP projectors"""
     for average in [False, True]:
-        raw = raw_0.copy()
+        raw_0 = Raw(raw_fname, preload=True).crop(0, 10, False)
         n_projs_init = len(raw.info['projs'])
         projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                      bads=['MEG 2443'], average=average,
@@ -73,6 +71,7 @@ def test_compute_proj_eog():
 
 def test_compute_proj_parallel():
     """Test computation of ExG projectors using parallelization"""
+    raw_0 = Raw(raw_fname, preload=True).crop(0, 10, False)
     raw = raw_0.copy()
     projs, _ = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                 bads=['MEG 2443'], average=False,

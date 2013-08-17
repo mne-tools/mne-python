@@ -25,11 +25,6 @@ fname_event = op.join(data_path, 'MEG', 'sample',
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
-label = mne.read_label(fname_label)
-noise_cov = mne.read_cov(fname_cov)
-raw = mne.fiff.Raw(fname_raw, preload=False)
-events = mne.read_events(fname_event)
-
 
 def test_lcmv():
     """Test LCMV with evoked data and single trials
@@ -42,6 +37,10 @@ def test_lcmv():
     forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
 
     event_id, tmin, tmax = 1, -0.1, 0.15
+    label = mne.read_label(fname_label)
+    noise_cov = mne.read_cov(fname_cov)
+    raw = mne.fiff.Raw(fname_raw, preload=False)
+    events = mne.read_events(fname_event)
 
     # Setup for reading the raw data
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
@@ -163,6 +162,9 @@ def test_lcmv_raw():
     """Test LCMV with raw data
     """
     forward = mne.read_forward_solution(fname_fwd)
+    label = mne.read_label(fname_label)
+    noise_cov = mne.read_cov(fname_cov)
+    raw = mne.fiff.Raw(fname_raw, preload=False)
 
     tmin, tmax = 0, 20
     # Setup for reading the raw data

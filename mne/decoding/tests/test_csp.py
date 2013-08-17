@@ -23,17 +23,16 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 start, stop = 0, 8  # if stop is too small pca may fail in some cases, but
                     # we're okay on this file
-raw = fiff.Raw(raw_fname, preload=False)
-
-events = read_events(event_name)
-picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False, eog=False,
-                        exclude='bads')
-picks = picks[1:13:3]
 
 
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """
+    raw = fiff.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+                            eog=False, exclude='bads')
+    picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
@@ -64,6 +63,11 @@ def test_csp():
 def test_regularized_csp():
     """Test Common Spatial Patterns algorithm using regularized covariance
     """
+    raw = fiff.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+                            eog=False, exclude='bads')
+    picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()

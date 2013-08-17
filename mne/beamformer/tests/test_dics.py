@@ -21,16 +21,16 @@ fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
-label = mne.read_label(fname_label)
 # preloading raw here increases mem requirements by 400 mb for all nosetests
 # that include this file's parent directory :(
-events = mne.read_events(fname_event)
-raw = mne.fiff.Raw(fname_raw, preload=False)
 
 
 def test_dics():
     """Test DICS with evoked data and single trials
     """
+    label = mne.read_label(fname_label)
+    events = mne.read_events(fname_event)
+    raw = mne.fiff.Raw(fname_raw, preload=False)
     # move reading these into test to save memory
     forward = mne.read_forward_solution(fname_fwd)
     forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
