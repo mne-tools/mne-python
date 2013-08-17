@@ -50,6 +50,9 @@ test-profile: sample_data
 	$(NOSETESTS) --with-profile --profile-stats-file stats.pf mne
 	hotshot2dot stats.pf | dot -Tpng -o profile.png
 
+test-mem: in sample_data
+    ulimit -v 1097152 && $(NOSETESTS)
+
 trailing-spaces:
 	find . -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
 
