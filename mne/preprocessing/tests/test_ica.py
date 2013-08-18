@@ -39,12 +39,12 @@ score_funcs_unsuited = ['pointbiserialr', 'ansari']
 
 
 def requires_sklearn(function):
-    """Decorator to skip test if pandas is not available"""
+    """Decorator to skip test if scikit-learn >= 0.12 is not available"""
     @wraps(function)
     def dec(*args, **kwargs):
         if not check_sklearn_version(min_version='0.12'):
             from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires sklearn >= 0.12'
+            raise SkipTest('Test %s skipped, requires scikit-learn >= 0.12'
                            % function.__name__)
         ret = function(*args, **kwargs)
         return ret
