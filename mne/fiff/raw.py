@@ -1430,22 +1430,15 @@ class Raw(ProjMixin):
 
         return raw_ts
 
-    def get_chpi_positions(self, t_step=None):
+    def get_chpi_positions(self, t_step=1.0):
         """Extract head positions from log file or Raw instance
 
         Note that the raw instance must have CHPI channels recorded.
 
         Parameters
         ----------
-        raw : instance of Raw | str
-            Raw instance to extract the head positions from. Can also be a
-            path to a raw file (str) or to a Maxfilter log file (str).
-        t_step : float | None
-            Sampling interval to use when converting data. If None, it will
-            be automatically determined. By default, a sampling interval of
-            1 second is used if processing a raw data. If processing a
-            Maxfilter log file, this must be None because the log file
-            itself will determine the sampling interval.
+        t_step : float
+            Sampling interval to use when converting data.
 
         Returns
         -------
@@ -1461,10 +1454,6 @@ class Raw(ProjMixin):
         The digitized HPI head frame y is related to the frame position X as:
 
             Y = np.dot(rotation, X) + translation
-
-        Note that if a Maxfilter log file is being processed, the start time
-        may not use the same reference point as the rest of mne-python (i.e.,
-        it could be referenced relative to raw.first_samp or something else).
         """
         return get_chpi_positions(self, t_step)
 
@@ -1938,7 +1927,7 @@ def get_chpi_positions(raw, t_step=None):
     ----------
     raw : instance of Raw | str
         Raw instance to extract the head positions from. Can also be a
-        path to a raw file (str) or to a Maxfilter log file (str).
+        path to a Maxfilter log file (str).
     t_step : float | None
         Sampling interval to use when converting data. If None, it will
         be automatically determined. By default, a sampling interval of
@@ -1965,10 +1954,6 @@ def get_chpi_positions(raw, t_step=None):
     may not use the same reference point as the rest of mne-python (i.e.,
     it could be referenced relative to raw.first_samp or something else).
     """
-    # see if data needs to be extracted from FIF file
-    if isinstance(raw, basestring):
-        if op.splitext(raw)[1].lower() in ['.fif', '.fif.gz']:
-            raw = Raw(raw, allow_maxshield=True, preload=False)
     if isinstance(raw, Raw):
         # for simplicity, we'll sample at 1 sec intervals like maxfilter
         if t_step is None:
