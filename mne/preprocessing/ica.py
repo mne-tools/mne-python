@@ -40,6 +40,7 @@ from ..viz import plot_ica_panel, plot_ica_topomap
 from .. import verbose
 from ..fiff.write import start_file, end_file, write_id
 from ..epochs import _is_good
+from ..utils import check_sklearn_version
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -178,6 +179,11 @@ class ICA(object):
                  n_pca_components=64, noise_cov=None, random_state=None,
                  algorithm='parallel', fun='logcosh', fun_args=None,
                  verbose=None):
+
+        if not check_sklearn_version(min_version='0.12'):
+            raise RuntimeError('the scikit-learn package (version >= 0.12)'
+                               'is required for ICA')
+
         self.noise_cov = noise_cov
 
         if max_pca_components is not None and \
@@ -212,7 +218,7 @@ class ICA(object):
         else:
             s = 'epochs'
         s += ' decomposition, '
-        s += 'fit: %s samples, ' % str(getattr(self, 'n_samples_', ''))  
+        s += 'fit: %s samples, ' % str(getattr(self, 'n_samples_', ''))
         s += ('%s components' % str(self.n_components_) if
               hasattr(self, 'n_components_') else
               'no dimension reduction')
@@ -564,11 +570,13 @@ class ICA(object):
             this_source = 'ICA %03d' % (ii + 1)
             ch_names.append(this_source)
             ch_info.append(dict(ch_name=this_source, cal=1,
-                logno=ii + 1, coil_type=FIFF.FIFFV_COIL_NONE,
-                kind=FIFF.FIFFV_MISC_CH, coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
-                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
-                unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None, range=1.0,
-                scanno=ii + 1, unit_mul=0, coil_trans=None))
+                                logno=ii + 1, coil_type=FIFF.FIFFV_COIL_NONE,
+                                kind=FIFF.FIFFV_MISC_CH,
+                                coord_Frame=FIFF.FIFFV_COORD_UNKNOWN,
+                                loc=np.array([0., 0., 0., 1.] * 3, dtype='f4'),
+                                unit=FIFF.FIFF_UNIT_NONE, eeg_loc=None,
+                                range=1.0, scanno=ii + 1, unit_mul=0,
+                                coil_trans=None))
 
         # re-append additionally picked ch_names
         ch_names += [container.ch_names[k] for k in picks]
@@ -605,7 +613,7 @@ class ICA(object):
                                ecg=True, eog=True, stim=True, exclude='bads')
 
         out._data = np.concatenate([sources, epochs.get_data()[:, picks]],
-                                    axis=1) if len(picks) > 0 else sources
+                                   axis=1) if len(picks) > 0 else sources
 
         self._export_info(out.info, epochs, picks)
         out.preload = True
@@ -992,10 +1000,12 @@ class ICA(object):
                                 sensors=sensors, colorbar=colorbar, show=show)
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
-                ecg_ch=None, ecg_score_func='pearsonr', ecg_criterion=0.1,
-                eog_ch=None, eog_score_func='pearsonr', eog_criterion=0.1,
-                skew_criterion=-1, kurt_criterion=-1, var_criterion=0,
-                add_nodes=None):
+                         ecg_ch=None, ecg_score_func='pearsonr',
+                         ecg_criterion=0.1, eog_ch=None,
+                         eog_score_func='pearsonr',
+                         eog_criterion=0.1, skew_criterion=-1,
+                         kurt_criterion=-1, var_criterion=0,
+                         add_nodes=None):
         """Run ICA artifacts detection workflow.
 
         Hints and caveats:
@@ -1083,12 +1093,15 @@ class ICA(object):
         """
         logger.info('    Searching for artifacts...')
         _detect_artifacts(self, raw=raw, start_find=start_find,
-                    stop_find=stop_find, ecg_ch=ecg_ch,
-                    ecg_score_func=ecg_score_func, ecg_criterion=ecg_criterion,
-                    eog_ch=eog_ch, eog_score_func=eog_score_func,
-                    eog_criterion=eog_criterion, skew_criterion=skew_criterion,
-                    kurt_criterion=kurt_criterion, var_criterion=var_criterion,
-                    add_nodes=add_nodes)
+                          stop_find=stop_find, ecg_ch=ecg_ch,
+                          ecg_score_func=ecg_score_func,
+                          ecg_criterion=ecg_criterion,
+                          eog_ch=eog_ch, eog_score_func=eog_score_func,
+                          eog_criterion=eog_criterion,
+                          skew_criterion=skew_criterion,
+                          kurt_criterion=kurt_criterion,
+                          var_criterion=var_criterion,
+                          add_nodes=add_nodes)
 
         return self
 
@@ -1115,20 +1128,9 @@ class ICA(object):
         """Aux function """
         from sklearn.decomposition import RandomizedPCA
 
-        # sklearn < 0.11 does not support random_state argument
-        kwargs = {'n_components': max_pca_components, 'whiten': True,
-                  'copy': True}
-                  # XXX fix this later. Bug in sklearn, see PR #2273
-
-        aspec = inspect.getargspec(RandomizedPCA.__init__)
-        if 'random_state' not in aspec.args:
-            warnings.warn('RandomizedPCA does not support random_state '
-                          'argument. Use scikit-learn to version 0.11 '
-                          'or newer to get reproducible results.')
-        else:
-            kwargs['random_state'] = 0
-
-        pca = RandomizedPCA(**kwargs)
+        # XXX fix copy==True later. Bug in sklearn, see PR #2273
+        pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
+                            copy=True)
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
@@ -1155,25 +1157,9 @@ class ICA(object):
         self.n_components_ = sel.stop
 
         # Take care of ICA
-        try:
-            from sklearn.decomposition import FastICA  # to avoid strong dep.
-        except ImportError:
-            raise Exception('the scikit-learn package is missing and '
-                            'required for ICA')
-
-        # sklearn < 0.11 does not support random_state argument for FastICA
-        kwargs = {'algorithm': self.algorithm, 'fun': self.fun,
-                  'fun_args': self.fun_args, 'whiten': False}
-
-        if self.random_state is not None:
-            aspec = inspect.getargspec(FastICA.__init__)
-            if 'random_state' not in aspec.args:
-                warnings.warn('random_state argument ignored, update '
-                              'scikit-learn to version 0.11 or newer')
-            else:
-                kwargs['random_state'] = self.random_state
-
-        ica = FastICA(**kwargs)
+        from sklearn.decomposition import FastICA  # to avoid strong dep.
+        ica = FastICA(algorithm=self.algorithm, fun=self.fun,
+                      fun_args=self.fun_args, whiten=False)
         ica.fit(data[:, sel])
 
         # get unmixing and add scaling
