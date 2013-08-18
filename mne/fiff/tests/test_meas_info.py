@@ -10,20 +10,19 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
-raw = fiff.Raw(raw_fname)
-event_id, tmin, tmax = 1, -0.2, 0.5
-events = read_events(event_name)
-event_id = int(events[0, 2])
-epochs = Epochs(raw, events[:1], event_id, tmin, tmax, picks=None,
-                baseline=(None, 0))
-
-evoked = epochs.average()
-
-events = read_events(event_name)
-
 
 def test_info():
     """Test info object"""
+    raw = fiff.Raw(raw_fname)
+    event_id, tmin, tmax = 1, -0.2, 0.5
+    events = read_events(event_name)
+    event_id = int(events[0, 2])
+    epochs = Epochs(raw, events[:1], event_id, tmin, tmax, picks=None,
+                    baseline=(None, 0))
+
+    evoked = epochs.average()
+
+    events = read_events(event_name)
 
     # Test subclassing was successful.
     info = Info(a=7, b='aaaaa')

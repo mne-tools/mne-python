@@ -26,8 +26,6 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
 erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 
-raw = Raw(raw_fname, preload=False)
-
 tempdir = _TempDir()
 
 
@@ -61,6 +59,7 @@ def test_io_cov():
 def test_cov_estimation_on_raw_segment():
     """Test estimation from raw on continuous recordings (typically empty room)
     """
+    raw = Raw(raw_fname, preload=False)
     cov = compute_raw_data_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
@@ -90,6 +89,7 @@ def test_cov_estimation_on_raw_segment():
 def test_cov_estimation_with_triggers():
     """Test estimation from raw with triggers
     """
+    raw = Raw(raw_fname, preload=False)
     events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
     reject = dict(grad=10000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
@@ -174,6 +174,7 @@ def test_arithmetic_cov():
 def test_regularize_cov():
     """Test cov regularization
     """
+    raw = Raw(raw_fname, preload=False)
     noise_cov = read_cov(cov_fname)
     # Regularize noise cov
     reg_noise_cov = regularize(noise_cov, raw.info,

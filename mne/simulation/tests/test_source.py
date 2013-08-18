@@ -15,16 +15,14 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-fwd.fif')
 fwd = read_forward_solution(fname_fwd, force_fixed=True)
 label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']
-labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
-                    '%s.label' % label)) for label in label_names]
 
 label_names_single_hemi = ['Aud-rh', 'Vis-rh']
-labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
-                    '%s.label' % label)) for label in label_names_single_hemi]
 
 
 def test_generate_stc():
     """ Test generation of source estimate """
+    labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
+                         '%s.label' % label)) for label in label_names]
     mylabels = []
     for i, label in enumerate(labels):
         new_label = Label(vertices=label.vertices,
@@ -80,6 +78,8 @@ def test_generate_stc():
 
 def test_generate_sparse_stc():
     """ Test generation of sparse source estimate """
+    labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
+                         '%s.label' % label)) for label in label_names]
 
     n_times = 10
     tmin = 0
@@ -115,6 +115,9 @@ def test_generate_sparse_stc():
 
 def test_generate_stc_single_hemi():
     """ Test generation of source estimate """
+    labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample',
+                                             'labels', '%s.label' % label))
+                          for label in label_names_single_hemi]
     mylabels = []
     for i, label in enumerate(labels_single_hemi):
         new_label = Label(vertices=label.vertices,
@@ -174,6 +177,9 @@ def test_generate_sparse_stc_single_hemi():
     n_times = 10
     tmin = 0
     tstep = 1e-3
+    labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample',
+                                             'labels', '%s.label' % label))
+                          for label in label_names_single_hemi]
 
     stc_data = np.ones((len(labels_single_hemi), n_times))\
                      * np.arange(len(labels_single_hemi))[:, None]

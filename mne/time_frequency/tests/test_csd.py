@@ -12,33 +12,38 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
-# Read raw data
-raw = Raw(raw_fname)
-raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
-# Set picks
-picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                            stim=False, exclude='bads')
+def _get_data():
+    # Read raw data
+    raw = Raw(raw_fname)
+    raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
-# Read several epochs
-event_id, tmin, tmax = 1, -0.2, 0.5
-events = mne.read_events(event_fname)[0:100]
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                    baseline=(None, 0), preload=True,
-                    reject=dict(grad=4000e-13, mag=4e-12))
+    # Set picks
+    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
+                                stim=False, exclude='bads')
 
-# Create an epochs object with one epoch and one channel of artificial data
-event_id, tmin, tmax = 1, 0.0, 1.0
-epochs_sin = mne.Epochs(raw, events[0:5], event_id, tmin, tmax, proj=True,
-                        picks=[0], baseline=(None, 0), preload=True,
-                        reject=dict(grad=4000e-13))
-freq = 10
-epochs_sin._data = np.sin(2 * np.pi * freq * epochs_sin.times)[None, None, :]
+    # Read several epochs
+    event_id, tmin, tmax = 1, -0.2, 0.5
+    events = mne.read_events(event_fname)[0:100]
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                        picks=picks, baseline=(None, 0), preload=True,
+                        reject=dict(grad=4000e-13, mag=4e-12))
+
+    # Create an epochs object with one epoch and one channel of artificial data
+    event_id, tmin, tmax = 1, 0.0, 1.0
+    epochs_sin = mne.Epochs(raw, events[0:5], event_id, tmin, tmax, proj=True,
+                            picks=[0], baseline=(None, 0), preload=True,
+                            reject=dict(grad=4000e-13))
+    freq = 10
+    epochs_sin._data = np.sin(2 * np.pi * freq
+                              * epochs_sin.times)[None, None, :]
+    return epochs, epochs_sin
 
 
 def test_compute_csd():
     """Test computing cross-spectral density from epochs
     """
+    epochs, epochs_sin = _get_data()
     # Check that wrong parameters are recognized
     assert_raises(ValueError, compute_csd, epochs, mode='notamode')
     assert_raises(ValueError, compute_csd, epochs, fmin=20, fmax=10)
@@ -87,6 +92,7 @@ def test_compute_csd():
 
 
 def test_compute_csd_on_artificial_data():
+    epochs, epochs_sin = _get_data()
     sfreq = epochs_sin.info['sfreq']
 
     # Computing signal power in the time domain

@@ -69,6 +69,7 @@ def test_read_epochs_bad_events():
     epochs = Epochs(raw, np.array([[raw.last_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
     evoked = epochs.average()
+    assert evoked
 
 
 def test_read_write_epochs():
@@ -160,9 +161,9 @@ def test_epochs_proj():
                                  eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True)
-    assert_true(all(p['active'] == True for p in epochs.info['projs']))
+    assert_true(all(p['active'] is True for p in epochs.info['projs']))
     evoked = epochs.average()
-    assert_true(all(p['active'] == True for p in evoked.info['projs']))
+    assert_true(all(p['active'] is True for p in evoked.info['projs']))
     data = epochs.get_data()
 
     raw_proj = fiff.Raw(raw_fname, proj=True)
@@ -170,10 +171,10 @@ def test_epochs_proj():
                             picks=this_picks, baseline=(None, 0), proj=False)
 
     data_no_proj = epochs_no_proj.get_data()
-    assert_true(all(p['active'] == True for p in epochs_no_proj.info['projs']))
+    assert_true(all(p['active'] is True for p in epochs_no_proj.info['projs']))
     evoked_no_proj = epochs_no_proj.average()
-    assert_true(all(p['active'] == True for p in evoked_no_proj.info['projs']))
-    assert_true(epochs_no_proj.proj == True)  # as projs are active from Raw
+    assert_true(all(p['active'] is True for p in evoked_no_proj.info['projs']))
+    assert_true(epochs_no_proj.proj is True)  # as projs are active from Raw
 
     assert_array_almost_equal(data, data_no_proj, decimal=8)
 
@@ -742,8 +743,8 @@ def test_epochs_proj_mixin():
                         baseline=(None, 0), proj='delayed', preload=preload,
                         add_eeg_ref=True, verbose=True, reject=reject)
         epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
-                        baseline=(None, 0), proj=True, preload=preload,
-                        add_eeg_ref=True, reject=reject)
+                         baseline=(None, 0), proj=True, preload=preload,
+                         add_eeg_ref=True, reject=reject)
         assert_allclose(epochs.copy().apply_proj().get_data()[0],
                         epochs2.get_data()[0])
 
