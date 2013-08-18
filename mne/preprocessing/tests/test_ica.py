@@ -5,6 +5,7 @@
 
 import os
 import os.path as op
+from functools import wraps
 
 from nose.tools import assert_true, assert_raises
 from copy import deepcopy
@@ -19,9 +20,8 @@ from mne.cov import read_cov
 from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
                               read_ica, run_ica
 from mne.preprocessing.ica import score_funcs, _check_n_pca_components
-from mne.utils import _TempDir, requires_sklearn
 from mne.fiff.meas_info import Info
-from mne.utils import set_log_file
+from mne.utils import set_log_file, check_sklearn_version, _TempDir
 
 tempdir = _TempDir()
 
@@ -36,6 +36,19 @@ start, stop = 0, 6  # if stop is too small pca may fail in some cases, but
                     # we're okay on this file
 
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
+
+
+def requires_sklearn(function):
+    """Decorator to skip test if pandas is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        if not check_sklearn_version(min_version='0.12'):
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires sklearn >= 0.12'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+        return ret
+    return dec
 
 
 @requires_sklearn
@@ -357,6 +370,7 @@ def test_ica_additional():
         assert_true(ncomps_ == expected)
 
 
+@requires_sklearn
 def test_run_ica():
     """Test run_ica function"""
     raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
