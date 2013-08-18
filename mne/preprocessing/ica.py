@@ -290,6 +290,8 @@ class ICA(object):
             logger.info('Inferring max_pca_components from picks.')
 
         self.info = pick_info(raw.info, picks)
+        if self.info['comps']:
+            self.info['comps'] = []
         self.ch_names = self.info['ch_names']
         start, stop = _check_start_stop(raw, start, stop)
 
@@ -382,6 +384,8 @@ class ICA(object):
         picks = np.intersect1d(meeg_picks, picks)
 
         self.info = pick_info(epochs.info, picks)
+        if self.info['comps']:
+            self.info['comps'] = []
         self.ch_names = self.info['ch_names']
 
         if self.max_pca_components is None:
