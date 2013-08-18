@@ -1,4 +1,5 @@
 import os.path as op
+from functools import wraps
 import numpy as np
 from numpy.testing import assert_raises
 
@@ -15,6 +16,8 @@ from mne.viz import plot_topo, plot_topo_tfr, plot_topo_power, \
 from mne.datasets.sample import data_path
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
+from mne.utils import check_sklearn_version
+
 
 # Set our plotters to test mode
 import matplotlib
@@ -29,6 +32,20 @@ except ImportError:
     except ImportError:
         lacks_mayavi = True
 requires_mayavi = np.testing.dec.skipif(lacks_mayavi, 'Requires mayavi')
+
+
+def requires_sklearn(function):
+    """Decorator to skip test if scikit-learn >= 0.12 is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        if not check_sklearn_version(min_version='0.12'):
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires scikit-learn >= 0.12'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+        return ret
+    return dec
+
 
 if not lacks_mayavi:
     mlab.options.backend = 'test'
@@ -181,6 +198,7 @@ def test_plot_cov():
     plot_cov(cov, raw.info, proj=True)
 
 
+@requires_sklearn
 def test_plot_ica_panel():
     """Test plotting of ICA panel
     """
@@ -306,6 +324,7 @@ def test_compare_fiff():
     compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)
 
 
+@requires_sklearn
 def test_plot_ica_topomap():
     """Test plotting of ica solutions
     """
