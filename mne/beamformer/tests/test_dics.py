@@ -7,7 +7,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 import mne
 from mne.datasets import sample
 from mne.beamformer import dics, dics_epochs, dics_source_power
-from mne.time_frequency import compute_csd
+from mne.time_frequency import compute_epochs_csd
 
 
 data_path = sample.data_path()
@@ -57,10 +57,10 @@ def read_data():
     evoked = epochs.average()
 
     # Computing the data and noise cross-spectral density matrices
-    data_csd, freqs = compute_csd(epochs, mode='multitaper', tmin=0.04,
-                                  tmax=None, fmin=8, fmax=12)
-    noise_csd, _ = compute_csd(epochs, mode='multitaper', tmin=None, tmax=0.0,
-                               fmin=8, fmax=12)
+    data_csd, freqs = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04,
+                                         tmax=None, fmin=8, fmax=12)
+    noise_csd, _ = compute_epochs_csd(epochs, mode='multitaper', tmin=None,
+                                      tmax=0.0, fmin=8, fmax=12)
 
     return epochs, evoked, data_csd, noise_csd, freqs
 

@@ -47,9 +47,10 @@ class CrossSpectralDensity(object):
 
 
 @verbose
-def compute_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf, fsum=True,
-                tmin=None, tmax=None, mt_bandwidth=None, mt_adaptive=False,
-                mt_low_bias=True, projs=None, verbose=None):
+def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
+                       fsum=True, tmin=None, tmax=None, mt_bandwidth=None,
+                       mt_adaptive=False, mt_low_bias=True, projs=None,
+                       verbose=None):
     """Estimate cross-spectral density from epochs
 
     Note: Baseline correction should be used when creating the Epochs.
