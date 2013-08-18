@@ -140,6 +140,26 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         return rank
 
 
+def check_sklearn_version(min_version):
+    """ Check minimum sklearn version required
+
+    Parameters
+    ----------
+    min_version : str
+        The version string. Anything that matches
+        ``'(\\d+ | [a-z]+ | \\.)'``
+    """
+    ok = True
+    try:
+        import sklearn
+        this_version = LooseVersion(sklearn.__version__)
+        if this_version < min_version:
+            ok = False
+    except ImportError:
+        ok = False
+    return ok
+
+
 def run_subprocess(command, *args, **kwargs):
     """Run command using subprocess.Popen
 
