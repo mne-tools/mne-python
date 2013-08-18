@@ -51,7 +51,7 @@ test-profile: sample_data
 	hotshot2dot stats.pf | dot -Tpng -o profile.png
 
 test-mem: in sample_data
-    ulimit -v 1097152 && $(NOSETESTS)
+	ulimit -v 1097152 && $(NOSETESTS)
 
 trailing-spaces:
 	find . -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
