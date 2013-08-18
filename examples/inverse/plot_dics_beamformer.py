@@ -3,9 +3,9 @@
 Compute DICS beamfomer on evoked data
 =====================================
 
-Compute a Dynamic Imaging of Coherent Sources (DICS) filter from single trial
-activity at frequencies between 8 and 12 Hz and estimate source time course on
-evoked data.
+Compute a Dynamic Imaging of Coherent Sources (DICS) beamformer from single
+trial activity in a time-frequency window to estimate source time courses based
+on evoked data.
 
 The original reference for DICS is:
 Gross et al. Dynamic imaging of coherent sources: Studying neural interactions

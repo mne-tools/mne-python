@@ -1,10 +1,10 @@
 """
-=====================================
-Compute DICS beamfomer on evoked data
-=====================================
+=========================================
+Compute source power using DICS beamfomer
+=========================================
 
 Compute a Dynamic Imaging of Coherent Sources (DICS) filter from single trial
-activity and estimate source power for two frequencies of interest.
+activity to estimate source power for two frequencies of interest.
 
 The original reference for DICS is:
 Gross et al. Dynamic imaging of coherent sources: Studying neural interactions
