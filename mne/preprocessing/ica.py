@@ -5,8 +5,6 @@
 # License: BSD (3-clause)
 
 from copy import deepcopy
-import inspect
-import warnings
 from inspect import getargspec, isfunction
 from collections import namedtuple
 from math import ceil
