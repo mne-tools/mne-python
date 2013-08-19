@@ -774,19 +774,21 @@ class _BaseSourceEstimate(object):
         ----------
         width : scalar
             Width of the individual bins in seconds.
-
         func : callable
             Function that is applied to summarize the data. Needs to accept a
             numpy.array as first input and an ``axis`` keyword argument.
-
         tstart : scalar | None
             Time point where the first bin starts. The default is the first
             time point of the stc.
-
         tstop : scalar | None
             Last possible time point contained in a bin (if the last bin would
             be shorter than width it is dropped). The default is the last time
             point of the stc.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The binned SourceEstimate.
         """
         if tstart is None:
             tstart = self.tmin
@@ -1317,7 +1319,8 @@ class SourceEstimate(_BaseSourceEstimate):
              colormap='hot', time_label='time=%0.2f ms',
              smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
              transparent=True, alpha=1.0, time_viewer=False,
-             config_opts={}, subjects_dir=None, figure=None):
+             config_opts={}, subjects_dir=None, figure=None,
+             views='lat'):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1338,9 +1341,9 @@ class SourceEstimate(_BaseSourceEstimate):
             is None, the environment will be used.
         surface : str
             The type of surface (inflated, white etc.).
-        hemi : str, 'lh' | 'rh' | 'both'
-            The hemisphere to display. Using 'both' opens two separate figures,
-            one for each hemisphere.
+        hemi : str, 'lh' | 'rh' | 'split' | 'both'
+            The hemisphere to display. Using 'both' or 'split' requires
+            PySurfer version 0.4 or above.
         colormap : str
             The type of colormap to use.
         time_label : str
@@ -1368,6 +1371,8 @@ class SourceEstimate(_BaseSourceEstimate):
         figure : instance of mayavi.core.scene.Scene | None
             If None, the last figure will be cleaned and a new figure will
             be created.
+        views : str | list
+            View to use. See surfer.Brain().
 
         Returns
         -------
@@ -1381,7 +1386,7 @@ class SourceEstimate(_BaseSourceEstimate):
                         smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
                         fmax=fmax, transparent=transparent, alpha=alpha,
                         time_viewer=time_viewer, config_opts=config_opts,
-                        subjects_dir=subjects_dir, figure=figure)
+                        subjects_dir=subjects_dir, figure=figure, views=views)
         return brain
 
     @verbose

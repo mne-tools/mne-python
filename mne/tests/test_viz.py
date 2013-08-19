@@ -174,7 +174,7 @@ def test_plot_sparse_source_estimates():
     plot_source_estimates(stc, 'sample', colormap=colormap,
                           config_opts={'background': (1, 1, 0)},
                           subjects_dir=subjects_dir)
-    assert_raises(RuntimeError, plot_source_estimates, stc, 'sample',
+    assert_raises(TypeError, plot_source_estimates, stc, 'sample',
                   figure='foo', hemi='both')
 
     # now do sparse version
