@@ -382,10 +382,17 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
                          'forward operator with a surface-based source space '
                          'is used.')
 
-    # XXX : factorize/better check
-    if np.array(data_csds).shape != np.array(noise_csds).shape:
+    if isinstance(data_csds, CrossSpectralDensity):
+        data_csds = [data_csds]
+
+    if isinstance(noise_csds, CrossSpectralDensity):
+        noise_csds = [noise_csds]
+
+    csd_shapes = lambda x: tuple(c.data.shape for c in x)
+    if (csd_shapes(data_csds) != csd_shapes(noise_csds) or
+       any([len(set(csd_shapes(c))) > 1 for c in [data_csds, noise_csds]])):
         raise ValueError('One noise CSD matrix should be provided for each '
-                         'data CSD matrix and vice versa. The CSD matrices '
+                         'data CSD matrix and vice versa. All CSD matrices '
                          'should have identical shape.')
 
     picks = pick_types(info, meg=True, eeg=True, exclude='bads')
@@ -414,9 +421,6 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
         proj, ncomp, _ = make_projector(info['projs'], ch_names)
         G = np.dot(proj, G)
 
-    if isinstance(data_csds, CrossSpectralDensity):
-        data_csds = [data_csds]
-        noise_csds = [noise_csds]
 
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient

@@ -184,3 +184,4 @@ def test_dics_source_power():
     # Test detection of different number of CSD matrices provided
     assert_raises(ValueError, dics_source_power, epochs.info, forward,
                   [noise_csd] * 2, [data_csd] * 3, freqs)
+    
