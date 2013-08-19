@@ -19,8 +19,6 @@ print __doc__
 
 import mne
 
-import numpy as np
-
 from mne.fiff import Raw
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
@@ -66,14 +64,13 @@ noise_csds, _ = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds, freqs)
 
 # Plot source power separately for each frequency of interest
-
 for i, freq in enumerate(freqs):
     message = 'DICS source power at %0.1f Hz' % freq
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                      time_label=message, figure=i)
     data = stc.data[:, i]
-    amp_max = np.max(data)
-    amp_min = (amp_max + np.min(data)) / 2.
+    amp_max = data.max()
+    amp_min = (amp_max + data.min()) / 2.
     amp_mid = (amp_min + amp_max) / 2.
     brain.set_data_time_index(i)
     brain.scale_data_colormap(fmin=amp_min, fmid=amp_mid, fmax=amp_max,
