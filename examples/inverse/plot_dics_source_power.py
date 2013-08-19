@@ -30,14 +30,12 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-label_name = 'Aud-lh'
-fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 subjects_dir = data_path + '/subjects'
 
 ###############################################################################
 # Read raw data
 raw = Raw(raw_fname)
-raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
+raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Set picks
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
@@ -57,22 +55,26 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # Computing the data and noise cross-spectral density matrices
 # The time-frequency window was chosen on the basis of spectrograms from
 # example time_frequency/plot_time_frequency.py
-data_csd, freqs = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04,
+# As fsum is False compute_epochs_csd returns a list of CrossSpectralDensity
+# instances than can then be passed to dics_source_power
+data_csds, freqs = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04,
                                      tmax=0.15, fmin=30, fmax=50, fsum=False)
-noise_csd, _ = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
+noise_csds, _ = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
                                   tmax=-0.001, fmin=30, fmax=50, fsum=False)
 
 # Compute DICS spatial filter and estimate source time courses on evoked data
-stc = dics_source_power(epochs.info, forward, noise_csd, data_csd, freqs)
+stc = dics_source_power(epochs.info, forward, noise_csds, data_csds, freqs)
 
 # Plot source power separately for each frequency of interest
-brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                 time_label='frequency = %0.1f Hz')
+
 for i, freq in enumerate(freqs):
+    message = 'DICS %0.1f Hz' % freq
+    brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
+                     time_label='frequency = %0.1f Hz', figure=i)
     data = stc.data[:, i]
     amp_max = np.max(data)
-    amp_min = np.mean([amp_max, min(data)])
-    amp_mid = np.mean([amp_max, amp_min])
+    amp_min = (amp_max + np.min(data)) / 2.
+    amp_mid = (amp_min + amp_max) / 2.
     brain.set_data_time_index(i)
     brain.scale_data_colormap(fmin=amp_min, fmid=amp_mid, fmax=amp_max,
                               transparent=True)

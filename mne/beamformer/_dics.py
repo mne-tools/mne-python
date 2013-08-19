@@ -42,9 +42,9 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
         Time of first sample.
     forward : dict
         Forward operator.
-    noise_csd : CrossSpectralDensity
+    noise_csd : instance of CrossSpectralDensity
         The noise cross-spectral density.
-    data_csd : CrossSpectralDensity
+    data_csd : instance of CrossSpectralDensity
         The data cross-spectral density.
     reg : float
         The regularization for the cross-spectral density.
@@ -221,9 +221,9 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
         Evoked data.
     forward : dict
         Forward operator.
-    noise_csd : CrossSpectralDensity
+    noise_csd : instance of CrossSpectralDensity
         The noise cross-spectral density.
-    data_csd : CrossSpectralDensity
+    data_csd : instance of CrossSpectralDensity
         The data cross-spectral density.
     reg : float
         The regularization for the cross-spectral density.
@@ -276,9 +276,9 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
         Single trial epochs.
     forward : dict
         Forward operator.
-    noise_csd : CrossSpectralDensity
+    noise_csd : instance of CrossSpectralDensity
         The noise cross-spectral density.
-    data_csd : CrossSpectralDensity
+    data_csd : instance of CrossSpectralDensity
         The data cross-spectral density.
     reg : float
         The regularization for the cross-spectral density.
@@ -339,10 +339,10 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
         Measurement info, e.g. epochs.info.
     forward : dict
         Forward operator.
-    noise_csds : CrossSpectralDensity or list of CrossSpectralDensity
+    noise_csds : instance or list of instances of CrossSpectralDensity
         The noise cross-spectral density matrix for a single frequency or a
         list of matrices for multiple frequencies.
-    data_csds : CrossSpectralDensity or list of CrossSpectralDensity
+    data_csds : instance or list of instances of CrossSpectralDensity
         The data cross-spectral density matrix for a single frequecy or a list
         of matrices for multiple frequencies.
     freqs : array of float
@@ -382,6 +382,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
                          'forward operator with a surface-based source space '
                          'is used.')
 
+    # XXX : factorize/better check
     if np.array(data_csds).shape != np.array(noise_csds).shape:
         raise ValueError('One noise CSD matrix should be provided for each '
                          'data CSD matrix and vice versa. The CSD matrices '
@@ -409,24 +410,24 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
 
     # Apply SSPs
     proj = None
-    if 'projs' in info and len(info['projs']) > 0:
+    if len(info['projs']) > 0:
         proj, ncomp, _ = make_projector(info['projs'], ch_names)
         G = np.dot(proj, G)
 
-    if isinstance(data_csds, CrossSpectralDensity) and\
-            data_csds.data.ndim == 2:
+    if isinstance(data_csds, CrossSpectralDensity):
         data_csds = [data_csds]
         noise_csds = [noise_csds]
 
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
     source_power = np.zeros((n_sources, len(data_csds)))
+    n_csds = len(data_csds)
 
     logger.info('Computing DICS source power...')
     for i, (data_csd, noise_csd) in enumerate(zip(data_csds, noise_csds)):
-        if len(data_csds) > 1:
+        if n_csds > 1:
             logger.info('    computing DICS spatial filter %d out of %d' %
-                        (i + 1, len(data_csds)))
+                        (i + 1, n_csds))
 
         Cm = data_csd.data
 
@@ -467,5 +468,5 @@ def dics_source_power(info, forward, noise_csds, data_csds, freqs, reg=0.01,
     else:
         fstep = 1  # dummy value
     fmin = freqs[0]
-    return SourceEstimate(source_power, vertices=vertno, tmin=fmin / 1000,
-                          tstep=fstep / 1000, subject=subject)
+    return SourceEstimate(source_power, vertices=vertno, tmin=fmin / 1000.,
+                          tstep=fstep / 1000., subject=subject)
