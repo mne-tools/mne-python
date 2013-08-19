@@ -69,11 +69,11 @@ for i, freq in enumerate(freqs):
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                      time_label=message, figure=i)
     data = stc.data[:, i]
-    amp_max = data.max()
-    amp_min = (amp_max + data.min()) / 2.
-    amp_mid = (amp_min + amp_max) / 2.
+    pow_max = data.max()
+    pow_min = (pow_max + data.min()) / 2.
+    pow_mid = (pow_min + pow_max) / 2.
     brain.set_data_time_index(i)
-    brain.scale_data_colormap(fmin=amp_min, fmid=amp_mid, fmax=amp_max,
+    brain.scale_data_colormap(fmin=pow_min, fmid=pow_mid, fmax=pow_max,
                               transparent=True)
     brain.show_view('lateral')
     # Uncomment line below to save images
