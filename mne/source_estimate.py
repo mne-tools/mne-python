@@ -1341,9 +1341,9 @@ class SourceEstimate(_BaseSourceEstimate):
             is None, the environment will be used.
         surface : str
             The type of surface (inflated, white etc.).
-        hemi : str, 'lh' | 'rh' | 'both'
-            The hemisphere to display. Using 'both' opens two separate figures,
-            one for each hemisphere.
+        hemi : str, 'lh' | 'rh' | 'split' | 'both'
+            The hemisphere to display. Using 'both' or 'split' requires
+            PySurfer version 0.4 or above.
         colormap : str
             The type of colormap to use.
         time_label : str

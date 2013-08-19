@@ -1556,8 +1556,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
-        The hemisphere to display. Using 'both' opens two separate figures,
-        one for each hemisphere.
+        The hemisphere to display. Using 'both' or 'split' requires
+        PySurfer version 0.4 or above.
     colormap : str
         The type of colormap to use.
     time_label : str
