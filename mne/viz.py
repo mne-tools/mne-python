@@ -176,9 +176,10 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                 ax.__dict__['_mne_ch_idx'] = ch_idx
 
                 if layout.kind == 'Vectorview-all' and ylim is not None:
-                    this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
+                    this_type = {'mag': 0, 'grad': 1}[channel_type(info,
+                                                                   ch_idx)]
                     ylim_ = [v[this_type] if _check_vlim(v) else
-                                    v for v in ylim]
+                             v for v in ylim]
                 else:
                     ylim_ = ylim
 
@@ -363,7 +364,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     is_meg = any(types_used == set(k) for k in meg_types)
     if is_meg:
         types_used = list(types_used)[::-1]  # -> restore kwarg order
-        picks = [pick_types(info, meg=k, exclude=[]) for k in types_used]
+        picks = [pick_types(info, meg=kk, exclude=[]) for kk in types_used]
     else:
         types_used_kwargs = dict((t, True) for t in types_used)
         picks = [pick_types(info, meg=False, **types_used_kwargs)]
@@ -391,7 +392,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         ylim_ = (-ymax, ymax)
     elif isinstance(ylim, dict):
         ylim_ = _mutable_defaults(('ylim', ylim))[0]
-        ylim_ = [ylim_[k] for k in types_used]
+        ylim_ = [ylim_[kk] for kk in types_used]
         ylim_ = zip(*[np.array(yl) for yl in ylim_])
     else:
         raise ValueError('ylim must be None ore a dict')
@@ -750,9 +751,10 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
                          data=data, epochs=epochs, sigma=sigma)
 
-    fig = _plot_topo(info=epochs.info, times=epochs.times, show_func=erf_imshow,
-                     layout=layout, decim=1, colorbar=colorbar, vmin=vmin,
-                     vmax=vmax, cmap=cmap, layout_scale=layout_scale, title=title,
+    fig = _plot_topo(info=epochs.info, times=epochs.times,
+                     show_func=erf_imshow, layout=layout, decim=1,
+                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+                     layout_scale=layout_scale, title=title,
                      border='w', x_label='Time (s)', y_label='Epoch')
 
     return fig
@@ -839,7 +841,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     fig = pl.figure(figsize=(width, height))
     w_frame = pl.rcParams['figure.subplot.wspace'] / (2 * nax)
     top_frame = max(.05, .2 / size)
-    fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0, top=1 - top_frame)
+    fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
+                        top=1 - top_frame)
     time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
 
     if proj is True and evoked.proj is not True:
@@ -897,8 +900,8 @@ def _plot_update_evoked_topomap(params, bools):
     new_evoked.add_proj(projs)
     new_evoked.apply_proj()
 
-    data = new_evoked.data[np.ix_(params['picks'], params['time_idx'])] \
-                            * params['scale']
+    data = new_evoked.data[np.ix_(params['picks'],
+                                  params['time_idx'])] * params['scale']
     if params['merge_grads']:
         from .layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)
@@ -1051,7 +1054,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
     pos_y = pos[:, 1]
     ax = axis if axis else pl
     if sensors:
-        if sensors == True:
+        if sensors is True:
             sensors = 'k,'
         ax.plot(pos_x, pos_y, sensors)
 
@@ -1229,7 +1232,7 @@ def _plot_update_evoked(params, bools):
     picks, evoked = [params[k] for k in 'picks', 'evoked']
     times = evoked.times * 1e3
     projs = [proj for ii, proj in enumerate(params['projs'])
-        if ii in np.where(bools)[0]]
+             if ii in np.where(bools)[0]]
     params['proj_bools'] = bools
     new_evoked = evoked.copy()
     new_evoked.info['projs'] = []
@@ -1391,7 +1394,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 
     if labels is not None:
         colors = [colors.next() for _ in
-                        range(np.unique(np.concatenate(labels).ravel()).size)]
+                  range(np.unique(np.concatenate(labels).ravel()).size)]
 
     for idx, v in enumerate(unique_vertnos):
         # get indices of stcs it belongs to
@@ -1582,9 +1585,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    figure : instance of mayavi.core.scene.Scene | None
-        If None, the last figure will be cleaned and a new figure will
-        be created.
+    figure : instance of mayavi.core.scene.Scene | list | None
+        If None, a new figure will be created. If multiple views or a
+        split view is requested, this must be a list of the appropriate
+        length.
     views : str | list
         View to use. See surfer.Brain().
 
@@ -1596,6 +1600,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         returned.
     """
     from surfer import Brain, TimeViewer
+    try:
+        import mayavi
+    except ImportError:
+        from enthought import mayavi
 
     # import here to avoid circular import problem
     from .source_estimate import SourceEstimate
@@ -1607,9 +1615,21 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         raise ValueError('hemi has to be either "lh", "rh", "split", '
                          'or "both"')
 
-    if hemi in ['both', 'split'] and figure is not None:
-        raise RuntimeError('`hemi` can\'t be `both` or `split` if the figure '
-                           'parameter is supplied.')
+    n_split = 2 if hemi == 'split' else 1
+    n_views = 1 if isinstance(views, basestring) else len(views)
+    if figure is not None:
+        # make sure it is of the correct type
+        if not isinstance(figure, list):
+            figure = [figure]
+        if not all([isinstance(f, mayavi.core.scene.Scene) for f in figure]):
+            raise TypeError('figure must be a mayavi scene or list of scenes')
+        # make sure we have the right number of figures
+        n_fig = len(figure)
+        if not n_fig == n_split * n_views:
+            raise RuntimeError('`figure` must be a list with the same '
+                               'number of elements as PySurfer plots that '
+                               'will be created (%s)' % n_split * n_views)
+
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
 
     subject = _check_subject(stc.subject, subject, False)
@@ -1631,12 +1651,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       config_opts=config_opts, subjects_dir=subjects_dir,
                       views=views)
     else:
-        # Current PySurfer versions need the SUBJECTS_DIR env. var.
-        # so we set it here. This is a hack as it can break other things
-        # XXX reminder to remove this once upstream pysurfer is changed
-        os.environ['SUBJECTS_DIR'] = subjects_dir
         brain = Brain(subject, hemi, surface, config_opts=config_opts,
-                      title=title, figure=figure)
+                      title=title, figure=figure, subjects_dir=subjects_dir)
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         if hemi_idx == 0:
@@ -1654,7 +1670,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                   transparent=transparent)
 
     if time_viewer:
-        viewer = TimeViewer(brain)
+        TimeViewer(brain)
 
     return brain
 
@@ -1830,7 +1846,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
 
     if np.isscalar(source_idx):
         source_idx = [source_idx]
-    exp_var = ica.pca_explained_variance_[:ica.n_components_]
+    _ = ica.pca_explained_variance_[:ica.n_components_]
     data = np.dot(ica.mixing_matrix_[:, source_idx].T,
                   ica.pca_components_[:ica.n_components_])
 
@@ -1872,9 +1888,9 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
 
     tight_layout()
     if colorbar:
-        vmax_ = pl.normalize(vmin=-vmax, vmax=vmax)
+        vmax_ = pl.normalize(vmin=vmin, vmax=vmax)
         sm = pl.cm.ScalarMappable(cmap=cmap, norm=vmax_)
-        sm.set_array(np.linspace(-vmax, vmax))
+        sm.set_array(np.linspace(vmin, vmax))
         fig.subplots_adjust(right=0.8)
         cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         fig.colorbar(sm, cax=cax)
@@ -2593,8 +2609,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # populate vertical and horizontal scrollbars
     for ci in xrange(len(info['ch_names'])):
-        this_color = bad_color if info['ch_names'][inds[ci]] in info['bads'] \
-                else color
+        this_color = (bad_color if info['ch_names'][inds[ci]] in info['bads']
+                      else color)
         if isinstance(this_color, dict):
             this_color = this_color[types[inds[ci]]]
         ax_vscroll.add_patch(pl.mpl.patches.Rectangle((0, ci), 1, 1,
@@ -2910,7 +2926,7 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
             event_line.set_ydata([])
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
-                params['times'][0] + params['duration'], False)
+                          params['times'][0] + params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
     params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
