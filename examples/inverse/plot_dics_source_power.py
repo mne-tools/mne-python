@@ -79,4 +79,5 @@ for i, freq in enumerate(freqs):
     brain.scale_data_colormap(fmin=amp_min, fmid=amp_mid, fmax=amp_max,
                               transparent=True)
     brain.show_view('lateral')
-    brain.save_image('DICS_source_power_freq_%d.png' % freq)
+    # Uncomment line below to save images
+    # brain.save_image('DICS_source_power_freq_%d.png' % freq)
