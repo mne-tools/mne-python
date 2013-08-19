@@ -1970,6 +1970,8 @@ def get_chpi_positions(raw, t_step=None):
         data = np.array([d[0][:, 0] for d in data])
         data = np.c_[t, data]
     else:
+        if not isinstance(raw, basestring):
+            raise TypeError('raw must be an instance of fiff.Raw or string')
         if not op.isfile(raw):
             raise IOError('File "%s" does not exist' % raw)
         if t_step is not None:
