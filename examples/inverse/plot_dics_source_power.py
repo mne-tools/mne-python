@@ -68,9 +68,9 @@ stc = dics_source_power(epochs.info, forward, noise_csds, data_csds, freqs)
 # Plot source power separately for each frequency of interest
 
 for i, freq in enumerate(freqs):
-    message = 'DICS %0.1f Hz' % freq
+    message = 'DICS source power at %0.1f Hz' % freq
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                     time_label='frequency = %0.1f Hz', figure=i)
+                     time_label=message, figure=i)
     data = stc.data[:, i]
     amp_max = np.max(data)
     amp_min = (amp_max + np.min(data)) / 2.
