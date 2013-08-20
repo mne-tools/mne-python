@@ -23,6 +23,10 @@ Changelog
 
    - Add ICA plot_topomap function and method for displaying the spatial sensitivity of ICA sources by `Denis Engemann`_
 
+   - Plotting multiple brain views at once by `Eric Larson`_
+
+   - Reading head positions from raw FIFF files by `Eric Larson`_
+
 API
 ~~~
 
