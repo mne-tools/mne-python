@@ -37,14 +37,13 @@ def test_get_chpi():
     """
     trans0, rot0, _ = get_chpi_positions(hp_fname)
     raw = Raw(hp_fif_fname)
-    for out in (get_chpi_positions(raw),
-                raw.get_chpi_positions()):
-        trans1, rot1, t1 = out
-        trans1 = trans1[2:]
-        rot1 = rot1[2:]
-        # these will not be exact because they don't use equiv. time points
-        assert_allclose(trans0, trans1, atol=1e-6, rtol=1e-1)
-        assert_allclose(rot0, rot1, atol=1e-6, rtol=1e-1)
+    out = get_chpi_positions(raw)
+    trans1, rot1, t1 = out
+    trans1 = trans1[2:]
+    rot1 = rot1[2:]
+    # these will not be exact because they don't use equiv. time points
+    assert_allclose(trans0, trans1, atol=1e-6, rtol=1e-1)
+    assert_allclose(rot0, rot1, atol=1e-6, rtol=1e-1)
     # run through input checking
     assert_raises(TypeError, get_chpi_positions, 1)
     assert_raises(ValueError, get_chpi_positions, hp_fname, [1])

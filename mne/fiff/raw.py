@@ -1430,33 +1430,6 @@ class Raw(ProjMixin):
 
         return raw_ts
 
-    def get_chpi_positions(self, t_step=1.0):
-        """Extract head positions from log file or Raw instance
-
-        Note that the raw instance must have CHPI channels recorded.
-
-        Parameters
-        ----------
-        t_step : float
-            Sampling interval to use when converting data.
-
-        Returns
-        -------
-        translation : array
-            A 2-dimensional array of head position vectors.
-        rotation : array
-            A 3-dimensional array of rotation matrices.
-        t : array
-            The time points associated with each position.
-
-        Notes
-        -----
-        The digitized HPI head frame y is related to the frame position X as:
-
-            Y = np.dot(rotation, X) + translation
-        """
-        return get_chpi_positions(self, t_step)
-
     @verbose
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
                       verbose=None, projector=None):
@@ -1919,7 +1892,7 @@ def concatenate_raws(raws, preload=None):
 
 
 def get_chpi_positions(raw, t_step=None):
-    """Extract head positions from log file or Raw instance
+    """Extract head positions
 
     Note that the raw instance must have CHPI channels recorded.
 
