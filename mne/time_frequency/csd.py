@@ -231,8 +231,8 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     # Summing over frequencies of interest or returning a list of separate CSD
     # matrices for each frequency
     if fsum is True:
-        csd_mean = np.sum(csds_mean, 2)
-        csd = CrossSpectralDensity(csd_mean, ch_names, projs,
+        csd_mean_fsum = np.sum(csds_mean, 2)
+        csd = CrossSpectralDensity(csd_mean_fsum, ch_names, projs,
                                    epochs.info['bads'],
                                    frequencies=frequencies)
         return csd
