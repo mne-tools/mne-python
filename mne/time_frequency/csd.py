@@ -23,24 +23,26 @@ class CrossSpectralDensity(object):
     Parameters
     ----------
     data : array of shape (n_channels, n_channels)
-        The cross-spectral density.
+        The cross-spectral density matrix.
     ch_names : list of string
         List of channels' names.
     projs:
         List of projectors used in CSD calculation.
     bads:
         List of bad channels.
+    frequencies: array of float
+        Frequencies for which CSD was calculated. If the array contains more
+        than value, data is a sum across CSD matrices for all frequencies.
     """
-    def __init__(self, data, ch_names, projs, bads):
+    def __init__(self, data, ch_names, projs, bads, frequencies):
         self.data = data
         self.dim = len(data)
         self.ch_names = cp.deepcopy(ch_names)
         self.projs = cp.deepcopy(projs)
         self.bads = cp.deepcopy(bads)
+        self.frequencies = frequencies
 
     def __repr__(self):
-        # TODO: This will have to be updated when the CSD object will be
-        # expected to hold CSDs for different frequencies
         s = 'size : %s x %s' % self.data.shape
         s += ', data : %s' % self.data
         return '<CrossSpectralDensity  |  %s>' % s
@@ -93,8 +95,6 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     -------
     csd : instance of CrossSpectralDensity
         The computed cross-spectral density.
-    frequencies : array of float
-        The frequencies of interest
     """
     # Portions of this code adapted from mne/connectivity/spectral.py
 
@@ -233,11 +233,14 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     if fsum is True:
         csd_mean = np.sum(csds_mean, 2)
         csd = CrossSpectralDensity(csd_mean, ch_names, projs,
-                                   epochs.info['bads'])
-        return csd, frequencies
+                                   epochs.info['bads'],
+                                   frequencies=frequencies)
+        return csd
     else:
         csds = []
         for i in range(n_freqs):
+            frequency = np.array([frequencies[i]])
             csds.append(CrossSpectralDensity(csds_mean[:, :, i], ch_names,
-                                             projs, epochs.info['bads']))
-        return csds, frequencies
+                                             projs, epochs.info['bads'],
+                                             frequencies=frequency))
+        return csds

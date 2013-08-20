@@ -55,19 +55,19 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # example time_frequency/plot_time_frequency.py
 # As fsum is False compute_epochs_csd returns a list of CrossSpectralDensity
 # instances than can then be passed to dics_source_power
-data_csds, freqs = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04,
-                                      tmax=0.15, fmin=30, fmax=50, fsum=False)
-noise_csds, _ = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
-                                   tmax=-0.001, fmin=30, fmax=50, fsum=False)
+data_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
+                               fmin=30, fmax=50, fsum=False)
+noise_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
+                                tmax=-0.001, fmin=30, fmax=50, fsum=False)
 
 # Compute DICS spatial filter and estimate source time courses on evoked data
-stc = dics_source_power(epochs.info, forward, noise_csds, data_csds, freqs)
+stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
 
 # Plot source power separately for each frequency of interest
 pow_lim = [[1.88, 2.41, 2.94],   # limits for source power at 36.4 Hz
            [1.41, 1.65, 1.89]]   # limits for source power at 45.5 Hz
-for i, freq in enumerate(freqs):
-    message = 'DICS source power at %0.1f Hz' % freq
+for i, csd in enumerate(data_csds):
+    message = 'DICS source power at %0.1f Hz' % csd.frequencies[0]
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                      time_label=message, figure=i)
     data = stc.data[:, i]
