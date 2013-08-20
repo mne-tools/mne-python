@@ -86,4 +86,4 @@ brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
 brain.show_view('lateral')
 
 # Uncomment to save image
-#brain.save_image('DICS_source_power_map.png')
+#brain.save_image('DICS_map.png')
