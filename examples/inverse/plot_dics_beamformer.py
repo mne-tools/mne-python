@@ -84,4 +84,6 @@ brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir)
 brain.set_data_time_index(180)
 brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
 brain.show_view('lateral')
-brain.save_image('dSPM_map.png')
+
+# Uncomment to save image
+#brain.save_image('DICS_source_power_map.png')
