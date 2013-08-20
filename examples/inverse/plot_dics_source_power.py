@@ -64,17 +64,16 @@ noise_csds, _ = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds, freqs)
 
 # Plot source power separately for each frequency of interest
+pow_lim = [[1.88, 2.41, 2.94],   # limits for source power at 36.4 Hz
+           [1.41, 1.65, 1.89]]   # limits for source power at 45.5 Hz
 for i, freq in enumerate(freqs):
     message = 'DICS source power at %0.1f Hz' % freq
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                      time_label=message, figure=i)
     data = stc.data[:, i]
-    pow_max = data.max()
-    pow_min = (pow_max + data.min()) / 2.
-    pow_mid = (pow_min + pow_max) / 2.
     brain.set_data_time_index(i)
-    brain.scale_data_colormap(fmin=pow_min, fmid=pow_mid, fmax=pow_max,
-                              transparent=True)
+    brain.scale_data_colormap(fmin=pow_lim[i][0], fmid=pow_lim[i][1],
+                              fmax=pow_lim[i][2], transparent=True)
     brain.show_view('lateral')
     # Uncomment line below to save images
     # brain.save_image('DICS_source_power_freq_%d.png' % freq)
