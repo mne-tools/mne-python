@@ -9,7 +9,7 @@ def test_connection():
     stim_client = StimClient('localhost', port=4218)
 
     # start the server
-    stim_server.start('localhost', stim_client)
+    stim_server.start('localhost')
 
     # Check if data is ok
     stim_server.add_trigger(20)

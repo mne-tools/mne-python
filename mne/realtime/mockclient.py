@@ -111,6 +111,11 @@ class MockRtClient(object):
         min_duration : float
             The minimum duration of a change in the events channel required
             to consider it as an event (in seconds).
+
+        Returns
+        -------
+        data : 3D array (1 x )
+            The epoch that is being faked
         """
 
         # Get the list of all events

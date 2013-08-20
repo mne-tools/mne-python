@@ -65,15 +65,17 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
         """
 
         # Add stim_server._client as a dictionary
+
         self.server.stim_server.add_client(self.client_address[0], self)
         self.request.settimeout(None)
 
-        while True:
+        # while True:
+
+        while self.server.stim_server._running:
 
             data = self.request.recv(1024)  # clip input at 1Kb
 
             if data == 'Give me a trigger':
-                print "Request received:: " + data
 
                 # If the method self has trigger queue, create it
                 if not hasattr(self, '_tx_queue'):
@@ -85,7 +87,6 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
                     print "Trigger " + str(trigger) + " popped and sent"
                     self.request.sendall(str(trigger))
                 else:
-                    print "Queue is empty"
                     self.request.sendall("Empty")
 
 
@@ -122,7 +123,7 @@ class StimServer(object):
         self._running = False
         self._client = dict()
 
-    def start(self, ip, stim_client):
+    def start(self, ip):
         """Method to start the client
         """
 
@@ -169,6 +170,7 @@ class StimServer(object):
     def add_trigger(self, trigger):
         """Method to add a trigger
         """
+        print "Adding trigger %d" % trigger
         self._tx_queue.put(trigger)
 
 
@@ -183,7 +185,7 @@ def send_trigger_worker(stim_server, tx_queue):
         The queue which contains the triggers to be sent
     """
 
-    while stim_server._running and stim_server._client['running']:
+    while stim_server._running:
 
         trigger = tx_queue.get()
         stim_server._client['socket'].send_trigger(trigger)
