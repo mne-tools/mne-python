@@ -1846,7 +1846,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
 
     if np.isscalar(source_idx):
         source_idx = [source_idx]
-    _ = ica.pca_explained_variance_[:ica.n_components_]
+
     data = np.dot(ica.mixing_matrix_[:, source_idx].T,
                   ica.pca_components_[:ica.n_components_])
 
