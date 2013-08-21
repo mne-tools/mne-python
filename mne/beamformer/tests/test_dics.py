@@ -62,13 +62,15 @@ def read_data():
     noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=None,
                                    tmax=0.0, fmin=8, fmax=12)
 
-    return epochs, evoked, data_csd, noise_csd
+    return raw, epochs, evoked, data_csd, noise_csd, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol
 
 
 def test_dics():
     """Test DICS with evoked data and single trials
     """
-    epochs, evoked, data_csd, noise_csd = read_data()
+    raw, epochs, evoked, data_csd, noise_csd, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol = read_data()
 
     stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd)
 
@@ -140,7 +142,8 @@ def test_dics():
 def test_dics_source_power():
     """Test DICS source power computation
     """
-    epochs, evoked, data_csd, noise_csd = read_data()
+    raw, epochs, evoked, data_csd, noise_csd, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol = read_data()
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
                                          data_csd)
