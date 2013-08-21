@@ -13,7 +13,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal, \
                           assert_allclose
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws, FIFF
+from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws, FIFF, \
+                     get_chpi_positions
 from mne import concatenate_events, find_events
 from mne.utils import _TempDir, requires_nitime, requires_pandas
 
@@ -25,8 +26,27 @@ ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 fif_bad_marked_fname = op.join(base_dir, 'test_withbads_raw.fif')
 bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
+hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
+hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 tempdir = _TempDir()
+
+
+def test_get_chpi():
+    """Test CHPI position computation
+    """
+    trans0, rot0, _ = get_chpi_positions(hp_fname)
+    raw = Raw(hp_fif_fname)
+    out = get_chpi_positions(raw)
+    trans1, rot1, t1 = out
+    trans1 = trans1[2:]
+    rot1 = rot1[2:]
+    # these will not be exact because they don't use equiv. time points
+    assert_allclose(trans0, trans1, atol=1e-6, rtol=1e-1)
+    assert_allclose(rot0, rot1, atol=1e-6, rtol=1e-1)
+    # run through input checking
+    assert_raises(TypeError, get_chpi_positions, 1)
+    assert_raises(ValueError, get_chpi_positions, hp_fname, [1])
 
 
 def test_copy_append():
