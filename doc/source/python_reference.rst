@@ -301,6 +301,8 @@ Sensor Space Data
    :toctree: generated/
    :template: function.rst
 
+   fiff.concatenate_raws
+   fiff.get_chpi_positions
    fiff.pick_channels
    fiff.pick_channels_cov
    fiff.pick_channels_forward
