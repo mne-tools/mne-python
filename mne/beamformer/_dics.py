@@ -106,10 +106,8 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
         G = forward['sol']['data']
 
     # Apply SSPs
-    proj = None
-    if 'projs' in info and len(info['projs']) > 0:
-        proj, ncomp, _ = make_projector(info['projs'], ch_names)
-        G = np.dot(proj, G)
+    proj, ncomp, _ = make_projector(info['projs'], ch_names)
+    G = np.dot(proj, G)
 
     # DIFF: LCMV applies SSPs and whitener to data covariance at this point,
     # here we only read in the cross-spectral density matrix - the data used in
@@ -177,11 +175,9 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
 
         # DIFF: LCMV applies data whitening here
         # Apply SSPs
-        if proj is not None:
-            M = np.dot(proj, M)
+        M = np.dot(proj, M)
 
         # project to source space using beamformer weights
-
         if is_free_ori:
             sol = np.dot(W, M)
             logger.info('combining the current components...')
@@ -414,10 +410,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         G = forward['sol']['data']
 
     # Apply SSPs
-    proj = None
-    if len(info['projs']) > 0:
-        proj, ncomp, _ = make_projector(info['projs'], ch_names)
-        G = np.dot(proj, G)
+    proj, ncomp, _ = make_projector(info['projs'], ch_names)
+    G = np.dot(proj, G)
 
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
