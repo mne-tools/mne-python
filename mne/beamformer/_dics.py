@@ -115,6 +115,8 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=0.1,
     # matrix in noise normalization instead of whitening the data
     Cm = data_csd.data
 
+    # Calculating regularized inverse, equivalent to an inverse operation after
+    # the following regularization:
     # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
     Cm_inv = linalg.pinv(Cm, reg)
 
@@ -426,6 +428,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
         Cm = data_csd.data
 
+        # Calculating regularized inverse, equivalent to an inverse operation
+        # after the following regularization:
         # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
         Cm_inv = linalg.pinv(Cm, reg)
 

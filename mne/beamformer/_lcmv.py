@@ -117,6 +117,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     Cm = np.dot(proj, np.dot(Cm, proj.T))
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
+    # Calculating regularized inverse, equivalent to an inverse operation after
+    # the following regularization:
     # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
     Cm_inv = linalg.pinv(Cm, reg)
 
