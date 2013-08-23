@@ -69,9 +69,10 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     fmax : float | np.inf
         Maximum frequency of interest.
     fsum : bool
-        Sum CSD values for the frequencies of interest. If True, a single CSD
-        matrix will be returned. If False, the output will be a list of CSD
-        matrices.
+        Sum CSD values for the frequencies of interest. Summing is performed
+        instead of averaging so that accumulated power is comparable to power
+        in the time domain. If True, a single CSD matrix will be returned. If
+        False, the output will be a list of CSD matrices.
     tmin : float | None
         Minimum time instant to consider. If None start at first sample.
     tmax : float | None
