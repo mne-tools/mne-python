@@ -47,7 +47,7 @@ for ii in range(50):
 
     trig = stim_client.get_trigger()
 
-    if trig == 1:
+    if trig == 4:
         right_cb.draw()
     else:
         left_cb.draw()

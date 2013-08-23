@@ -62,7 +62,7 @@ concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
 
 # Just some initially decided events to be "faked"
 # Rest will decided on the fly
-ev_list = [1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1]
+ev_list = [4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4]
 
 score_c1, score_c2, score_x = [], [], []
 
@@ -96,16 +96,16 @@ for ii in range(50):
 
         cm = confusion_matrix(y_test, y_pred)
 
-        score_c1.append(float(cm[0, 0]) / sum(sum(cm)) * 100)
-        score_c2.append(float(cm[1, 1]) / sum(sum(cm)) * 100)
+        score_c1.append(float(cm[0, 0]) / sum(cm, 1)[0] * 100)
+        score_c2.append(float(cm[1, 1]) / sum(cm, 1)[1] * 100)
 
         # do something if one class is decoded better than the other
-        if score_c1[-1] > score_c2[-1]:
-            print "We decoded class 1 better than class 3"
-            ev_list.append(3)  # modifying future "faked data"
+        if score_c1[-1] < score_c2[-1]:
+            print "We decoded class RV better than class LV"
+            ev_list.append(3)  # adding more LV to future "faked data"
         else:
-            print "We decoded class 3 better than class 1"
-            ev_list.append(1)  # modifying future "faked data"
+            print "We decoded class LV better than class RV"
+            ev_list.append(4)  # adding more RV to future "faked data"
 
         # Clear the figure
         pl.clf()
