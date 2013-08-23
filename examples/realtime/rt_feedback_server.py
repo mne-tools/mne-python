@@ -18,6 +18,7 @@ import time
 import mne
 
 import numpy as np
+import pylab as pl
 
 from mne.datasets import sample
 from mne.realtime import StimServer
@@ -63,7 +64,7 @@ concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
 # Rest will decided on the fly
 ev_list = [1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1]
 
-scores, scores_x = [], []
+score_c1, score_c2, score_x = [], [], []
 
 for ii in range(50):
 
@@ -95,12 +96,30 @@ for ii in range(50):
 
         cm = confusion_matrix(y_test, y_pred)
 
+        score_c1.append(float(cm[0, 0]) / sum(sum(cm)) * 100)
+        score_c2.append(float(cm[1, 1]) / sum(sum(cm)) * 100)
+
         # do something if one class is decoded better than the other
-        if cm[0, 0] > cm[1, 1]:
+        if score_c1[-1] > score_c2[-1]:
             print "We decoded class 1 better than class 3"
             ev_list.append(3)  # modifying future "faked data"
         else:
             print "We decoded class 3 better than class 1"
             ev_list.append(1)  # modifying future "faked data"
+
+        # Clear the figure
+        pl.clf()
+
+        # The x-axis for the plot
+        score_x.append(ii)
+
+        # Now plot the accuracy
+        pl.plot(score_x[-5:], score_c1[-5:])
+        pl.hold(True)
+        pl.plot(score_x[-5:], score_c2[-5:])
+        pl.xlabel('Trials')
+        pl.ylabel('Classification score (% correct)')
+        pl.title('Real-time feedback')
+        pl.show()
 
 stim_server.shutdown()
