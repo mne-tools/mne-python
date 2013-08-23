@@ -76,4 +76,4 @@ for i, csd in enumerate(data_csds):
                               fmax=pow_lim[i][2], transparent=True)
     brain.show_view('lateral')
     # Uncomment line below to save images
-    # brain.save_image('DICS_source_power_freq_%d.png' % freq)
+    #brain.save_image('DICS_source_power_freq_%d.png' % csd.frequencies[0])
