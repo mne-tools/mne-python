@@ -67,8 +67,10 @@ scores, scores_x = [], []
 
 for ii in range(50):
 
-    # Collecting data
+    # Tell the stim_client about the next stimuli
+    stim_server.add_trigger(ev_list[ii])
 
+    # Collecting data
     if ii == 0:
         X = rt_client.fake_data(event_id=ev_list[ii], tmin=-0.2,
                                 tmax=0.5, picks=picks)[None, ...]
@@ -97,10 +99,8 @@ for ii in range(50):
         if cm[0, 0] > cm[1, 1]:
             print "We decoded class 1 better than class 3"
             ev_list.append(3)  # modifying future "faked data"
-            stim_server.add_trigger(3)
         else:
             print "We decoded class 3 better than class 1"
             ev_list.append(1)  # modifying future "faked data"
-            stim_server.add_trigger(1)
 
 stim_server.shutdown()

@@ -40,19 +40,12 @@ fixation = visual.PatchStim(mywin, color=-1, colorSpace='rgb', tex=None,
 timer1 = core.Clock()
 timer2 = core.Clock()
 
-# The event-id list for first 10 stimuli
-# The rest will be decided on the fly
-ev_list = [1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1]
-
 for ii in range(50):
 
     timer2.reset()
     timer2.add(1.0)  # time between stimuli
 
-    if ii > 10:
-        trig = stim_client.get_trigger()
-    else:
-        trig = ev_list[ii]
+    trig = stim_client.get_trigger()
 
     if trig == 1:
         right_cb.draw()
