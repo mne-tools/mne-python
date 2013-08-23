@@ -34,11 +34,20 @@ left_cb = visual.RadialStim(mywin, tex='sqrXsqr', color=1, size=5,
                             angularCycles=8, interpolate=False,
                             autoLog=False)
 
+fixation = visual.PatchStim(mywin, color=-1, colorSpace='rgb', tex=None,
+                            mask='circle', size=0.2)
+
+timer1 = core.Clock()
+timer2 = core.Clock()
+
 # The event-id list for first 10 stimuli
 # The rest will be decided on the fly
 ev_list = [1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1]
 
 for ii in range(50):
+
+    timer2.reset()
+    timer2.add(1.0)  # time between stimuli
 
     if ii > 10:
         trig = stim_client.get_trigger()
@@ -52,8 +61,17 @@ for ii in range(50):
 
     mywin.update()
 
-    #pause, so you get a chance to see it!
-    core.wait(1.0)
+    timer1.reset()
+    timer1.add(0.75)  # display stimuli for 0.75 sec
+
+    while timer1.getTime() < 0:
+        pass
+
+    fixation.draw()
+    mywin.update()
+
+    while timer2.getTime() < 0:
+        pass
 
 core.quit()
 mywin.close()
