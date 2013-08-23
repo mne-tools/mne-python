@@ -114,13 +114,14 @@ class MockRtClient(object):
 
         Returns
         -------
-        data : 3D array (1 x )
-            The epoch that is being faked
+        data : 2D array (channels x time)
+            The epoch data that is being faked
         """
 
         # Get the list of all events
-        events = find_events(self.raw, stim_channel=stim_channel, verbose=None,
-                             output='onset', consecutive='increasing',
+        events = find_events(self.raw, stim_channel=stim_channel,
+                             verbose=False, output='onset',
+                             consecutive='increasing',
                              min_duration=min_duration)
 
         # Get the list of only the specified event

@@ -69,8 +69,6 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
         self.server.stim_server.add_client(self.client_address[0], self)
         self.request.settimeout(None)
 
-        # while True:
-
         while self.server.stim_server._running:
 
             data = self.request.recv(1024)  # clip input at 1Kb
@@ -153,16 +151,12 @@ class StimServer(object):
         self._client['running'] = True
         self._client['socket'] = sock
 
-    def stop(self):
-        """Method to stop the client and server
+    def shutdown(self):
+        """Method to shutdown the client and server
         """
-        print "Stopping server and client ..."
+        print "Shutting down ..."
         self._client['running'] = False
         self._running = False
-
-    def shutdown(self):
-        self.stop()
-        print "Shutting down ..."
         self._data.shutdown()
         self._data.server_close()
         self._data.socket.close()
