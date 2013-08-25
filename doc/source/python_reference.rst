@@ -89,6 +89,7 @@ Functions:
    :template: function.rst
 
    parse_config
+   decimate_surfaces
    read_bem_surfaces
    read_cov
    read_dip

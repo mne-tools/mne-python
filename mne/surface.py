@@ -425,6 +425,9 @@ def decimate_surface(points, triangles, reduction):
     except ImportError:
         raise ValueError('This function requires the TVTK package to be '
                          'installed')
+    if triangles.max() > len(points) -1:
+        raise ValueError('The triangles refer to undefined points. '
+                         'Please chek your mesh.')
 
     src = tvtk.PolyData(points=points, polys=triangles)
     decimate = tvtk.DecimatePro(input=src, target_reduction=reduction)
