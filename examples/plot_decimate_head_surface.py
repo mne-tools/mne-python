@@ -3,6 +3,12 @@
 #
 # License: BSD (3-clause)
 
+"""
+=======================
+Decimating BEM surfaces
+=======================
+"""
+
 import mne
 from mne.surface import decimate_surface
 

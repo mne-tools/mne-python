@@ -418,10 +418,11 @@ def decimate_surface(surf, reduction):
         raise ValueError('This function requires the VTK package to be '
                          'installed')
 
-    # Setup four points
     vtk_points = vtk.vtkPoints()
-    for point in surf:
-        vtk_points.InsertNextPoint(*point)
+    vtk_array = vtk.vtkDoubleArray()
+    vtk_array.SetVoidArray(surf, len(surf), 1)
+    vtk_array.SetNumberOfComponents(3)
+    vtk_points.SetData(vtk_array)
 
     vtk_faces = vtk.vtkCellArray()
     for face in surf.astype(np.int):
@@ -442,15 +443,20 @@ def decimate_surface(surf, reduction):
     decimator.SetTargetReduction(reduction)
     decimator.Update()
     decimated = decimator.GetOutput()
-
-    points = [list(decimated.GetPoint(point_id))
-                    for point_id in range(decimated.GetNumberOfPoints())]
-    points = np.array(points)
+    decimated_data = decimated.GetPoints().GetData()
+    shape = (decimated_data.GetSize() / 3, 3)
+    points = np.empty(shape, dtype='i8')
+    decimated_data.ExportToVoidPointer(points)
+    # points = [list(decimated.GetPoint(point_id))
+    #                for point_id in range(decimated.GetNumberOfPoints())]
+    # points = np.array(points)
 
     polys = decimated.GetPolys()
     pt_data = decimated.GetPointData()
+    import pdb; pdb.set_trace()
     faces = np.array([[int(polys.GetData().GetValue(j))
                        for j in range(i * 4 + 1, i * 4 + 4)]
                        for i in range(polys.GetNumberOfCells())])
+
 
     return points, faces
