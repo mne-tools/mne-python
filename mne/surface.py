@@ -1,10 +1,13 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Denis A. Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
-import numpy as np
+import os
+import sys
 from struct import pack
+import numpy as np
 
 import logging
 logger = logging.getLogger('mne')
@@ -394,14 +397,16 @@ def write_bem_surface(fname, surf):
     end_file(fid)
 
 
-def decimate_surface(surf, reduction):
+def decimate_surface(points, triangles, reduction):
     """ Decimate surface data
 
     Note. Requires vtk to be installed
 
     Parameters
     ----------
-    surf : ndarray
+    points : ndarray
+        The surface to be decimated, a 3 x number of points array.
+    triangles : ndarray
         The surface to be decimated, a 3 x number of points array.
     reduction : float
         The amount of reduction > 0 and < 1. Smaller means
@@ -412,51 +417,20 @@ def decimate_surface(surf, reduction):
     decimated : ndarray 
 
     """
+
+    if 'DISPLAY' not in os.environ and sys.platform != 'win32':
+        os.environ['ETS_TOOLKIT'] = 'null'
     try:
-        import vtk
+        from tvtk.api import tvtk
     except ImportError:
-        raise ValueError('This function requires the VTK package to be '
+        raise ValueError('This function requires the TVTK package to be '
                          'installed')
 
-    vtk_points = vtk.vtkPoints()
-    vtk_array = vtk.vtkDoubleArray()
-    vtk_array.SetVoidArray(surf, len(surf), 1)
-    vtk_array.SetNumberOfComponents(3)
-    vtk_points.SetData(vtk_array)
-
-    vtk_faces = vtk.vtkCellArray()
-    for face in surf.astype(np.int):
-        vtk_face = vtk.vtkPolygon()
-        vtk_face.GetPointIds().SetNumberOfIds(3)
-        vtk_face.GetPointIds().SetId(0, face[0])
-        vtk_face.GetPointIds().SetId(1, face[1])
-        vtk_face.GetPointIds().SetId(2, face[2])
-        vtk_faces.InsertNextCell(vtk_face)
-
-    # Create a PolyData
-    poly_data = vtk.vtkPolyData()
-    poly_data.SetPoints(vtk_points)
-    poly_data.SetPolys(vtk_faces)
-
-    decimator = vtk.vtkDecimatePro()
-    decimator.SetInput(poly_data)
-    decimator.SetTargetReduction(reduction)
-    decimator.Update()
-    decimated = decimator.GetOutput()
-    decimated_data = decimated.GetPoints().GetData()
-    shape = (decimated_data.GetSize() / 3, 3)
-    points = np.empty(shape, dtype='i8')
-    decimated_data.ExportToVoidPointer(points)
-    # points = [list(decimated.GetPoint(point_id))
-    #                for point_id in range(decimated.GetNumberOfPoints())]
-    # points = np.array(points)
-
-    polys = decimated.GetPolys()
-    pt_data = decimated.GetPointData()
-    import pdb; pdb.set_trace()
-    faces = np.array([[int(polys.GetData().GetValue(j))
-                       for j in range(i * 4 + 1, i * 4 + 4)]
-                       for i in range(polys.GetNumberOfCells())])
-
-
-    return points, faces
+    src = tvtk.PolyData(points=points, polys=triangles)
+    decimate = tvtk.DecimatePro(input=src, target_reduction=reduction)
+    decimate.update()
+    out = decimate.output
+    # n-tuples + interleaved n-next
+    tris = out.polys.to_array()  
+    return out.points.to_array(), tris.reshape(tris.size / 4, 4)[:, 1:]
+  
