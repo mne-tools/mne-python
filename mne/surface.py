@@ -392,3 +392,65 @@ def write_bem_surface(fname, surf):
     end_block(fid, FIFFB_BEM)
 
     end_file(fid)
+
+
+def decimate_surface(surf, reduction):
+    """ Decimate surface data
+
+    Note. Requires vtk to be installed
+
+    Parameters
+    ----------
+    surf : ndarray
+        The surface to be decimated, a 3 x number of points array.
+    reduction : float
+        The amount of reduction > 0 and < 1. Smaller means
+        more reduction.
+
+    Returns
+    -------
+    decimated : ndarray 
+
+    """
+    try:
+        import vtk
+    except ImportError:
+        raise ValueError('This function requires the VTK package to be '
+                         'installed')
+
+    # Setup four points
+    vtk_points = vtk.vtkPoints()
+    for point in surf:
+        vtk_points.InsertNextPoint(*point)
+
+    vtk_faces = vtk.vtkCellArray()
+    for face in surf.astype(np.int):
+        vtk_face = vtk.vtkPolygon()
+        vtk_face.GetPointIds().SetNumberOfIds(3)
+        vtk_face.GetPointIds().SetId(0, face[0])
+        vtk_face.GetPointIds().SetId(1, face[1])
+        vtk_face.GetPointIds().SetId(2, face[2])
+        vtk_faces.InsertNextCell(vtk_face)
+
+    # Create a PolyData
+    poly_data = vtk.vtkPolyData()
+    poly_data.SetPoints(vtk_points)
+    poly_data.SetPolys(vtk_faces)
+
+    decimator = vtk.vtkDecimatePro()
+    decimator.SetInput(poly_data)
+    decimator.SetTargetReduction(reduction)
+    decimator.Update()
+    decimated = decimator.GetOutput()
+
+    points = [list(decimated.GetPoint(point_id))
+                    for point_id in range(decimated.GetNumberOfPoints())]
+    points = np.array(points)
+
+    polys = decimated.GetPolys()
+    pt_data = decimated.GetPointData()
+    faces = np.array([[int(polys.GetData().GetValue(j))
+                       for j in range(i * 4 + 1, i * 4 + 4)]
+                       for i in range(polys.GetNumberOfCells())])
+
+    return points, faces
