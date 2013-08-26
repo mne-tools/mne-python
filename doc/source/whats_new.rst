@@ -28,10 +28,10 @@ Changelog
    - Reading head positions from raw FIFF files by `Eric Larson`_
 
    - Add decimation parameter to ICA.decompose*  methods by `Denis Engemann`_
-     and `Alexandre Gramfort`_
+     and `Alex Gramfort`_
 
    - Add rejection buffer to ICA.decompose* methods by `Denis Engemann`_ and
-   `Alexandre Gramfort`_
+   `Alex Gramfort`_
 
    - Add polygonal surface decimation function by `Denis Engemann`_ and
    `Alex Gramfort`_

@@ -75,4 +75,4 @@ if __name__ == "__main__":
                    'bin/mne_surf2bem.py', 'bin/mne_compute_proj_ecg.py',
                    'bin/mne_compute_proj_eog.py', 'bin/mne_maxfilter.py',
                    'bin/mne_bti2fiff.py', 'bin/mne_kit2fiff.py',
-                   'bin/mne_browse_raw.py'])
+                   'bin/mne_browse_raw.py', 'bin/mne_make_scalp_surfaces.py'])

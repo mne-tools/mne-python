@@ -100,8 +100,6 @@ if __name__ == '__main__':
         points, tris = mne.decimate_surface(points=my_surf['rr'],
                                             triangles=my_surf['tris'],
                                             reduction=reduction)
-        print 'reduction: %f' % reduction
-        print 'ntri: %i' % len(tris)
         out_fif = fif.replace('dense', level)
         print '%i.2 Creating %s' % (ii, out_fif)
         surf_fname = '/tmp/tmp-surf.fif'

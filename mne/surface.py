@@ -400,14 +400,14 @@ def write_bem_surface(fname, surf):
 def decimate_surface(points, triangles, reduction):
     """ Decimate surface data
 
-    Note. Requires vtk to be installed
+    Note. Requires tvtk to be installed for this to function.
 
     Parameters
     ----------
     points : ndarray
         The surface to be decimated, a 3 x number of points array.
     triangles : ndarray
-        The surface to be decimated, a 3 x number of points array.
+        The surface to be decimated, a 3 x number of triangles array.
     reduction : float
         The amount of reduction > 0 and < 1. Smaller means
         more reduction.
