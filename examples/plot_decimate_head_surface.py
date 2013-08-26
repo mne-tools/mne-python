@@ -18,12 +18,15 @@ import mne
 from mne.surface import decimate_surface
 
 path = mne.datasets.sample.data_path()
-surf = mne.read_bem_surfaces(path + '/subjects/sample/bem/sample-head.fif')[0]
+# surf = mne.read_bem_surfaces(path + '/subjects/sample/bem/sample-head.fif')[0]
+
+surf = mne.read_bem_surfaces('/Users/dengemann/meg-social-gaze/200447/bem/200447-head.fif')[0]
+
 points = surf['rr']
 tris = surf['tris']
 
-target_ntri = 30000  # reduce to 30000 meshes.
-reduction = (target_ntri / surf['ntri'])
+target_ntri = 300000  # reduce to 300000 meshes.
+reduction = 1 - (float(target_ntri) / surf['ntri'])
 points_dec, tris_dec = decimate_surface(points, tris, reduction=reduction)
 
 try:
