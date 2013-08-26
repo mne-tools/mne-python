@@ -1646,13 +1646,14 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     title = subject if len(hemis) > 1 else '%s - %s' % (subject, hemis[0])
     args = inspect.getargspec(Brain.__init__)[0]
-    if 'subjects_dir' in args:
-        brain = Brain(subject, hemi, surface, title=title, figure=figure,
-                      config_opts=config_opts, subjects_dir=subjects_dir,
-                      views=views)
+    kwargs = dict(title=title, figure=figure, config_opts=config_opts,
+                  subjects_dir=subjects_dir)
+    if 'views' in args:
+        kwargs['views'] = views
     else:
-        brain = Brain(subject, hemi, surface, config_opts=config_opts,
-                      title=title, figure=figure, subjects_dir=subjects_dir)
+        logger.info('PySurfer does not support "views" argument, please '
+                    'consider updating to a newer version (0.4 or later)')
+    brain = Brain(subject, hemi, surface, **kwargs)
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         if hemi_idx == 0:
