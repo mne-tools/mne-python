@@ -5,6 +5,8 @@
 #
 # License: BSD (3-clause)
 
+import warnings
+
 import numpy as np
 from scipy import linalg
 
@@ -322,6 +324,34 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
                          'data CSD matrix and vice versa. All CSD matrices '
                          'should have identical shape.')
 
+    frequencies = []
+    for data_csd, noise_csd in zip(data_csds, noise_csds):
+        if data_csd.frequencies != noise_csd.frequencies:
+            raise ValueError('Data and noise CSDs should be calculated at '
+                             'identical frequencies')
+
+        # If CSD is summed over multiple frequencies, take the average
+        # frequency
+        if(len(data_csd.frequencies) > 1):
+            frequencies.append(np.mean(data_csd.frequencies))
+        else:
+            frequencies.append(data_csd.frequencies[0])
+    fmin = frequencies[0]
+
+    if len(frequencies) > 2:
+        fstep = []
+        for i in range(len(frequencies) - 1):
+            fstep.append(frequencies[i+1] - frequencies[i])
+        if len(set(fstep)) > 1:
+            warnings.warn('Uneven frequency spacing in CSD object, '
+                          'frequencies in the resulting stc file will be '
+                          'inaccurate.')
+        fstep = fstep[0]
+    elif len(frequencies) > 1:
+        fstep = frequencies[1] - frequencies[0]
+    else:
+        fstep = 1  # dummy value
+
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
     source_power = np.zeros((n_sources, len(data_csds)))
@@ -369,11 +399,5 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
     logger.info('[done]')
 
     subject = _subject_from_forward(forward)
-    frequencies = data_csd.frequencies
-    if len(frequencies) > 1:
-        fstep = frequencies[1] - frequencies[0]
-    else:
-        fstep = 1  # dummy value
-    fmin = frequencies[0]
     return SourceEstimate(source_power, vertices=vertno, tmin=fmin / 1000.,
                           tstep=fstep / 1000., subject=subject)
