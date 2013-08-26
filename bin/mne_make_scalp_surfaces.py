@@ -7,17 +7,14 @@
 #          simplified bsd-3 license
 
 """
-
 Create high-resulution head surfaces for coordinate alignment.
 
 example usage: mne_make_scalp_surfaces.py --overwrite --subject sample
-
 """
 import os
 import os.path as op
 import sys
 from commands import getstatusoutput
-
 import mne
 
 if __name__ == '__main__':
@@ -38,8 +35,7 @@ if __name__ == '__main__':
     env['SUBJECT'] = subject
 
     def my_run_cmd(cmd, err_msg):
-        ret, out = getstatusoutput(cmd)
-        if ret != 0:
+        if getstatusoutput(cmd)[0] != 0:
             print err_msg
             sys.exit(1)
 
@@ -95,22 +91,21 @@ if __name__ == '__main__':
     print '2. Creating $fif...'
     cmd = 'mne_surf2bem --surf %s --id 4 --check --fif %s' % (surf, fif)
     my_run_cmd(cmd, 'Failed to create %s, see above' % fif)
-
     levels = 'medium', 'sparse'
     for ii, (ntri, level) in enumerate(zip([30000, 2500], levels), 3):
         my_surf = mne.read_bem_surfaces(fif)[0]
         print '%i. Creating medium grade tessellation...' % ii
         print '%i.1 Decimating the dense tessellation...' % ii
-        reduction = {30000: 0.87, 2500: 0.992}[ntri]
+        reduction = 1 - (float(ntri) / my_surf['ntri'])
         points, tris = mne.decimate_surface(points=my_surf['rr'],
                                             triangles=my_surf['tris'],
                                             reduction=reduction)
+        print 'reduction: %f' % reduction
+        print 'ntri: %i' % len(tris)
         out_fif = fif.replace('dense', level)
         print '%i.2 Creating %s' % (ii, out_fif)
-        my_surf.update({'rr': points, 'tris': tris, 'np': len(points),
-                        'ntri': len(tris)})
         surf_fname = '/tmp/tmp-surf.fif'
-        mne.write_bem_surface(surf_fname, my_surf)
+        mne.write_surface(surf_fname, points, tris)
         cmd = 'mne_surf2bem --surf %s --id 4 --check --fif %s'
         cmd %= (surf_fname, out_fif)
         my_run_cmd(cmd, 'Failed to create %s, see above' % out_fif)
