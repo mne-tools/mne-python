@@ -40,6 +40,11 @@ from ..fiff.write import start_file, end_file, write_id
 from ..epochs import _is_good
 from ..utils import check_sklearn_version
 
+try:
+    from sklearn.utils.extmath import fast_dot
+except ImportError:
+    fast_dot = np.dot
+
 
 def _make_xy_sfunc(func, ndim_output=False):
     """Aux function"""
@@ -410,9 +415,9 @@ class ICA(object):
             data -= self.pca_mean_[:, None]
 
         # Apply first PCA
-        pca_data = np.dot(self.pca_components_[:self.n_components_], data)
+        pca_data = fast_dot(self.pca_components_[:self.n_components_], data)
         # Apply unmixing to low dimension PCA
-        sources = np.dot(self.unmixing_matrix_, pca_data)
+        sources = fast_dot(self.unmixing_matrix_, pca_data)
         return sources
 
     def get_sources_raw(self, raw, start=None, stop=None):
@@ -1119,9 +1124,9 @@ class ICA(object):
                 assert data.shape[0] == ncov['data'].shape[0]
 
             pre_whitener, _ = compute_whitener(ncov, info, picks)
-            data = np.dot(pre_whitener, data)
+            data = fast_dot(pre_whitener, data)
         else:
-            data = np.dot(self._pre_whitener, data)
+            data = fast_dot(self._pre_whitener, data)
             pre_whitener = self._pre_whitener
 
         return data, pre_whitener
@@ -1191,9 +1196,9 @@ class ICA(object):
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
-        pca_data = np.dot(self.pca_components_, data)
+        pca_data = fast_dot(self.pca_components_, data)
         # Apply unmixing to low dimension PCA
-        sources = np.dot(self.unmixing_matrix_, pca_data[:n_components])
+        sources = fast_dot(self.unmixing_matrix_, pca_data[:n_components])
 
         if include not in (None, []):
             mask = np.ones(len(data), dtype=np.bool)
@@ -1202,12 +1207,12 @@ class ICA(object):
         elif exclude not in (None, []):
             sources[np.unique(exclude)] = 0.
 
-        pca_data[:n_components] = np.dot(self.mixing_matrix_, sources)
-        data = np.dot(self.pca_components_[:n_components].T,
-                      pca_data[:n_components])
+        pca_data[:n_components] = fast_dot(self.mixing_matrix_, sources)
+        data = fast_dot(self.pca_components_[:n_components].T,
+                        pca_data[:n_components])
         if n_pca_components > n_components:
-            data += np.dot(self.pca_components_[n_components:_n_pca_comp].T,
-                          pca_data[n_components:_n_pca_comp])
+            data += fast_dot(self.pca_components_[n_components:_n_pca_comp].T,
+                             pca_data[n_components:_n_pca_comp])
 
         if self.pca_mean_ is not None:
             data += self.pca_mean_[:, None]
@@ -1216,7 +1221,7 @@ class ICA(object):
         if self.noise_cov is None:  # revert standardization
             data /= self._pre_whitener[:, None]
         else:
-            data = np.dot(linalg.pinv(self._pre_whitener), data)
+            data = fast_dot(linalg.pinv(self._pre_whitener), data)
 
         return data
 
