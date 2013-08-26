@@ -11,7 +11,7 @@ from scipy import linalg
 import logging
 logger = logging.getLogger('mne')
 
-from _lcmv import _prepare_beamformer_input
+from ._lcmv import _prepare_beamformer_input
 from ..fiff.pick import pick_types
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz
