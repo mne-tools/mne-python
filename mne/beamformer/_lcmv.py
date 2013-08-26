@@ -76,7 +76,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     # Apply SSPs + whitener to data covariance
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
-    Cm = np.dot(proj, np.dot(Cm, proj.T))
+    if info['projs'] != []:
+        Cm = np.dot(proj, np.dot(Cm, proj.T))
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
     # Calculating regularized inverse, equivalent to an inverse operation after
@@ -154,7 +155,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             logger.info("Processing epoch : %d" % (i + 1))
 
         # SSP and whitening
-        M = np.dot(proj, M)
+        if info['projs']:
+            M = np.dot(proj, M)
         M = np.dot(whitener, M)
 
         # project to source space using beamformer weights
@@ -225,8 +227,9 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
         G = forward['sol']['data']
 
     # Apply SSPs
-    proj, ncomp, _ = make_projector(info['projs'], ch_names)
-    G = np.dot(proj, G)
+    if info['projs']:
+        proj, ncomp, _ = make_projector(info['projs'], ch_names)
+        G = np.dot(proj, G)
 
     return is_free_ori, picks, ch_names, proj, vertno, G
 
