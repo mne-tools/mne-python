@@ -36,6 +36,13 @@ if __name__ == '__main__':
     overwrite = options.overwrite
     subject = options.subject
     env = os.environ
+
+    def my_run_cmd(cmd, err_msg):
+        ret, out = getstatusoutput(cmd)
+        if ret != 0:
+            print err_msg
+            sys.exit(-1)
+
     if not 'SUBJECTS_DIR' in env:
         print 'The environment variable SUBJECTS_DIR should be set'
         sys.exit(1)
@@ -65,10 +72,7 @@ if __name__ == '__main__':
         my_seghead = 'lh.smseghead'
     if my_seghead is None:
         cmd = 'mkheadsurf -subjid %s -srcvol $mri >/dev/null' % subject
-        ret, msg = getstatusoutput(cmd)
-        if ret != 0:
-            print 'mkheadsurf failed'
-            sys.exit(1)
+        my_run_cmd(cmd, 'mkheadsurf failed')
     else:
         print '%s/%s/surf/%s already there' % (subj_dir, subject, my_seghead)
 
@@ -86,10 +90,7 @@ if __name__ == '__main__':
     fif = '{0}/{1}/bem/${1}-head-dense.fif'.format(subj_dir, subject)
     print '2. Creating $fif...'
     cmd = 'mne_surf2bem --surf %s --id 4 --check --fif %s' % (surf, fif)
-    ret, msg = getstatusoutput(cmd)
-    if ret != 0:
-        print 'Failed to create %s, see above' % fif
-        sys.exit(1)
+    my_run_cmd(cmd, 'Failed to create %s, see above' % fif)
 
     levels = 'medium', 'sparse'
     for ii, (ntri, level) in enumerate(zip([30000, 2500], levels), 3):
@@ -102,17 +103,13 @@ if __name__ == '__main__':
                                             reduction=reduction)
         out_fif = fif.replace('dense', level)
         print '%i.2 Creating %s' % (ii, out_fif)
-        my_surf['rr'] = points
-        my_surf['tris'] = tris
-        my_surf['np'] = len(points)
-        my_surf['ntri'] = len(tris)
+        my_surf.update({'rr': points, 'tris': tris, 'np': len(points),
+                        'ntri': len(tris)})
         surf_fname = '/tmp/tmp-surf.fif'
         mne.write_bem_surface(surf_fname, my_surf)
         cmd = 'mne_surf2bem --surf %s --id 4 --check --fif %s'
         cmd %= (surf_fname, out_fif)
-        msg, ret = getstatusoutput(cmd)
-        if ret != 0:
-            print 'Failed to create %s, see above' % out_fif
+        my_run_cmd(cmd, 'Failed to create %s, see above' % out_fif)
         os.remove(surf_fname)
 
     sys.exit(0)
