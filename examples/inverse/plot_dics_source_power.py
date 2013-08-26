@@ -60,7 +60,7 @@ data_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
 noise_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
                                 tmax=-0.001, fmin=30, fmax=50, fsum=False)
 
-# Compute DICS spatial filter and estimate source time courses on evoked data
+# Compute DICS spatial filter and estimate source power
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
 
 # Plot source power separately for each frequency of interest

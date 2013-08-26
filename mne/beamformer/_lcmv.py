@@ -180,7 +180,6 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     logger.info('[done]')
 
 
-@verbose
 def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
     """Input preparation common for all beamformer functions.
 
