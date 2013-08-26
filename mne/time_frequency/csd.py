@@ -40,7 +40,7 @@ class CrossSpectralDensity(object):
         self.ch_names = cp.deepcopy(ch_names)
         self.projs = cp.deepcopy(projs)
         self.bads = cp.deepcopy(bads)
-        self.frequencies = cp.deepcopy(frequencies)
+        self.frequencies = np.copy(frequencies)
 
     def __repr__(self):
         s = 'frequencies : %s' % self.frequencies
