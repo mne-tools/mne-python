@@ -414,8 +414,10 @@ def decimate_surface(points, triangles, reduction):
 
     Returns
     -------
-    decimated : ndarray 
-
+    points : ndarray
+        The decimated points.
+    triangles : ndarray
+        The decimated triangles.
     """
 
     if 'DISPLAY' not in os.environ and sys.platform != 'win32':
@@ -425,7 +427,7 @@ def decimate_surface(points, triangles, reduction):
     except ImportError:
         raise ValueError('This function requires the TVTK package to be '
                          'installed')
-    if triangles.max() > len(points) -1:
+    if triangles.max() > len(points) - 1:
         raise ValueError('The triangles refer to undefined points. '
                          'Please chek your mesh.')
 
@@ -433,7 +435,6 @@ def decimate_surface(points, triangles, reduction):
     decimate = tvtk.DecimatePro(input=src, target_reduction=reduction)
     decimate.update()
     out = decimate.output
-    # n-tuples + interleaved n-next
-    tris = out.polys.to_array()  
+    tris = out.polys.to_array()
+    # n-tuples + interleaved n-next -- reshape trick
     return out.points.to_array(), tris.reshape(tris.size / 4, 4)[:, 1:]
-  

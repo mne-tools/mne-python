@@ -13,10 +13,11 @@ import mne
 from mne.surface import decimate_surface
 
 path = mne.datasets.sample.data_path()
-surf = mne.read_bem_surfaces(path + '/subjects/sample/bem/sample-head.fif')
-points = surf[0]['rr']
+surf = mne.read_bem_surfaces(path + '/subjects/sample/bem/sample-head.fif')[0]
+points = surf['rr']
+triangles = surf['tris']
 
-points_dec, faces_dec = decimate_surface(points, reduction=0.5)
+points_dec, faces_dec = decimate_surface(points, triangles, reduction=0.5)
 
 # viz to check
 # 3D source space

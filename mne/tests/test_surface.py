@@ -42,14 +42,15 @@ def test_io_surface():
     assert_array_equal(pts, c_pts)
     assert_array_equal(tri, c_tri)
 
+
 @requires_tvtk
 def test_decimate_surface():
     """Test triangular surface decimation
     """
-    points = np.array([[-0.00686118, -0.1036986 ,  0.0261517 ],
-                       [-0.00713948, -0.10370162,  0.02614874],
-                       [-0.00686208, -0.10368247,  0.02588313],
-                       [-0.00713987, -0.10368724,  0.02587745]])
+    points = np.array([[-0.00686118, -0.10369860, 0.02615170],
+                       [-0.00713948, -0.10370162, 0.02614874],
+                       [-0.00686208, -0.10368247, 0.02588313],
+                       [-0.00713987, -0.10368724, 0.02587745]])
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, 0]])
     for reduction, expected in zip([0.25, 0.5, 0.75], [3, 2, 1]):
         _, this_tris = decimate_surface(points, tris, reduction)
