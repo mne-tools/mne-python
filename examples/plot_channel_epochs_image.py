@@ -57,11 +57,13 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 # and order with spectral reordering
 # If you don't have scikit-learn installed set order_func to None
 from sklearn.cluster.spectral import spectral_embedding
+from sklearn.metrics.pairwise import rbf_kernel
 
 
 def order_func(times, data):
     this_data = data[:, (times > 0.0) & (times < 0.350)]
-    return np.argsort(spectral_embedding(np.corrcoef(this_data),
+    this_data /= np.sqrt(np.sum(this_data ** 2, axis=1))[:, np.newaxis]
+    return np.argsort(spectral_embedding(rbf_kernel(this_data, gamma=1.),
                       n_components=1, random_state=0).ravel())
 
 good_pick = 97  # channel with a clear evoked response
