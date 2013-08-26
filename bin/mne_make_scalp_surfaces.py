@@ -71,7 +71,6 @@ if __name__ == '__main__':
         my_seghead = 'lh.smseghead'
     if my_seghead is None:
         cmd = 'mkheadsurf -subjid %s -srcvol %s >/dev/null' % (subject, mri)
-        print cmd
         my_run_cmd(cmd, 'mkheadsurf failed')
     else:
         print '%s/%s/surf/%s already there' % (subj_dir, subject, my_seghead)
@@ -96,7 +95,7 @@ if __name__ == '__main__':
         my_surf = mne.read_bem_surfaces(fif)[0]
         print '%i. Creating medium grade tessellation...' % ii
         print '%i.1 Decimating the dense tessellation...' % ii
-        reduction = 1 - (float(ntri) / my_surf['ntri'])
+        reduction = {30000: 0.87, 2500: 0.992}[ntri]
         points, tris = mne.decimate_surface(points=my_surf['rr'],
                                             triangles=my_surf['tris'],
                                             reduction=reduction)
@@ -104,7 +103,7 @@ if __name__ == '__main__':
         print '%i.2 Creating %s' % (ii, out_fif)
         surf_fname = '/tmp/tmp-surf.fif'
         mne.write_surface(surf_fname, points, tris)
-        cmd = 'mne_surf2bem --surf %s --id 4 --check --fif %s'
+        cmd = 'mne_surf2bem --surf %s --id 4 --force --fif %s'
         cmd %= (surf_fname, out_fif)
         my_run_cmd(cmd, 'Failed to create %s, see above' % out_fif)
         os.remove(surf_fname)
