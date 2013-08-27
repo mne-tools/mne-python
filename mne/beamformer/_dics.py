@@ -13,13 +13,13 @@ from scipy import linalg
 import logging
 logger = logging.getLogger('mne')
 
-from ._lcmv import _prepare_beamformer_input
+from .. import verbose
 from ..fiff.pick import pick_types
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz
 from ..source_estimate import SourceEstimate
 from ..time_frequency import CrossSpectralDensity
-from .. import verbose
+from ._lcmv import _prepare_beamformer_input
 
 
 @verbose
