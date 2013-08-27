@@ -26,13 +26,13 @@ if __name__ == '__main__':
     parser.add_option('-s', '--subject', dest='subject',
                       help='The name of the subject', type='str')
     options, args = parser.parse_args()
-    if not options.subject:
+    env = os.environ
+    subject = vars(options).get('subject', env.get('SUBJECT'))
+    if subject is None:
         parser.print_help()
         sys.exit(-1)
+
     overwrite = options.overwrite
-    subject = options.subject
-    env = os.environ
-    env['SUBJECT'] = subject
 
     def my_run_cmd(cmd, err_msg):
         if getstatusoutput(cmd)[0] != 0:
@@ -103,7 +103,8 @@ if __name__ == '__main__':
         print '%i.2 Creating %s' % (ii, out_fif)
         surf_fname = '/tmp/tmp-surf.fif'
         mne.write_surface(surf_fname, points, tris)
-        cmd = 'mne_surf2bem --surf %s --id 4 --check --fif %s'
+        # XXX for some reason --check does not work here.
+        cmd = 'mne_surf2bem --surf %s --id 4 --force --fif %s'
         cmd %= (surf_fname, out_fif)
         my_run_cmd(cmd, 'Failed to create %s, see above' % out_fif)
         os.remove(surf_fname)
