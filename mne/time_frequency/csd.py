@@ -26,13 +26,13 @@ class CrossSpectralDensity(object):
         The cross-spectral density matrix.
     ch_names : list of string
         List of channels' names.
-    projs:
+    projs :
         List of projectors used in CSD calculation.
-    bads:
+    bads :
         List of bad channels.
-    frequencies: array of float
-        Frequencies for which CSD was calculated. If the array contains more
-        than value, data is a sum across CSD matrices for all frequencies.
+    frequencies : float | list of float
+        Frequency or frequencies for which the CSD matrix was calculated. If a
+        list is passed, data is a sum across CSD matrices for all frequencies.
     """
     def __init__(self, data, ch_names, projs, bads, frequencies):
         self.data = data
@@ -40,7 +40,7 @@ class CrossSpectralDensity(object):
         self.ch_names = cp.deepcopy(ch_names)
         self.projs = cp.deepcopy(projs)
         self.bads = cp.deepcopy(bads)
-        self.frequencies = np.copy(frequencies)
+        self.frequencies = np.atleast_1d(np.copy(frequencies))
 
     def __repr__(self):
         s = 'frequencies : %s' % self.frequencies
@@ -241,8 +241,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     else:
         csds = []
         for i in range(n_freqs):
-            frequency = np.array([frequencies[i]])
             csds.append(CrossSpectralDensity(csds_mean[:, :, i], ch_names,
                                              projs, epochs.info['bads'],
-                                             frequencies=frequency))
+                                             frequencies=frequencies[i]))
         return csds
