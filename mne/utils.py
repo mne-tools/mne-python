@@ -412,6 +412,27 @@ def requires_pandas(function):
     return dec
 
 
+def requires_tvtk(function):
+    """Decorator to skip test if TVTK is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        skip = False
+        try:
+            from tvtk.api import tvtk
+        except ImportError:
+            skip = True
+
+        if skip is True:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires TVTK'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+
 def make_skipper_dec(module, skip_str):
     """Helper to make skipping decorators"""
     skip = False
