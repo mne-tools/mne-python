@@ -432,7 +432,7 @@ def decimate_surface(points, triangles, reduction):
                          'Please chek your mesh.')
 
     src = tvtk.PolyData(points=points, polys=triangles)
-    decimate = tvtk.DecimatePro(input=src, target_reduction=reduction)
+    decimate = tvtk.QuadricDecimation(input=src, target_reduction=reduction)
     decimate.update()
     out = decimate.output
     tris = out.polys.to_array()
