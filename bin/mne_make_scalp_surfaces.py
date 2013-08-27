@@ -101,7 +101,7 @@ if __name__ == '__main__':
         print '%i.1 Decimating the dense tessellation...' % ii
         points, tris = mne.decimate_surface(points=my_surf['rr'],
                                             triangles=my_surf['tris'],
-                                            target_ntri=n_tri)
+                                            n_triangles=n_tri)
         out_fif = fif.replace('dense', level)
         print '%i.2 Creating %s' % (ii, out_fif)
         surf_fname = '/tmp/tmp-surf.fif'

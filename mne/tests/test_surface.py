@@ -52,7 +52,7 @@ def test_decimate_surface():
                        [-0.00686208, -0.10368247, 0.02588313],
                        [-0.00713987, -0.10368724, 0.02587745]])
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, 0]])
-    for n_tri in [4, 3, 2]:  # quadric decimation creates even numberd output.
+    for n_tri in [4, 3, 2]:  # quadric decimation creates even numbered output.
         _, this_tris = decimate_surface(points, tris, n_tri)
         assert_true(len(this_tris) == n_tri if not n_tri % 2 else 2)
     nirvana = 5

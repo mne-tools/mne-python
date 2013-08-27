@@ -418,7 +418,7 @@ def _decimate_surface(points, triangles, reduction):
     return out.points.to_array(), tris.reshape(tris.size / 4, 4)[:, 1:]
 
 
-def decimate_surface(points, triangles, target_ntri):
+def decimate_surface(points, triangles, n_triangles):
     """ Decimate surface data
 
     Note. Requires TVTK to be installed for this to function.
@@ -434,7 +434,7 @@ def decimate_surface(points, triangles, target_ntri):
         The surface to be decimated, a 3 x number of points array.
     triangles : ndarray
         The surface to be decimated, a 3 x number of triangles array.
-    target_ntri : int
+    n_triangles : int
         The desired number of triangles.
 
     Returns
@@ -445,5 +445,5 @@ def decimate_surface(points, triangles, target_ntri):
         The decimated triangles.
     """
 
-    reduction = 1 - (float(target_ntri) / len(triangles))
+    reduction = 1 - (float(n_triangles) / len(triangles))
     return _decimate_surface(points, triangles, reduction)
