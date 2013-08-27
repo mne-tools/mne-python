@@ -408,7 +408,7 @@ def _decimate_surface(points, triangles, reduction):
                          'installed')
     if triangles.max() > len(points) - 1:
         raise ValueError('The triangles refer to undefined points. '
-                         'Please chek your mesh.')
+                         'Please check your mesh.')
     src = tvtk.PolyData(points=points, polys=triangles)
     decimate = tvtk.QuadricDecimation(input=src, target_reduction=reduction)
     decimate.update()
@@ -421,7 +421,8 @@ def _decimate_surface(points, triangles, reduction):
 def decimate_surface(points, triangles, target_ntri):
     """ Decimate surface data
 
-    Note. Requires tvtk to be installed for this to function.
+    Note. Requires TVTK to be installed for this to function.
+
     Note. If an if an odd target number was requested,
     the ``quadric decimation`` algorithm used results in the
     next even number of triangles. For example a reduction request to 30001

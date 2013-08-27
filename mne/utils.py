@@ -412,15 +412,13 @@ def requires_pandas(function):
     return dec
 
 
-
-
 def requires_tvtk(function):
-    """Decorator to skip test if pandas is not available"""
+    """Decorator to skip test if TVTK is not available"""
     @wraps(function)
     def dec(*args, **kwargs):
         skip = False
         try:
-            from tvtk.api import tvtk 
+            from tvtk.api import tvtk
         except ImportError:
             skip = True
 
