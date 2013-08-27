@@ -53,7 +53,7 @@ DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                 ylim=dict(mag=(-600., 600.), grad=(-200., 200.),
                           eeg=(-200., 200.), misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
-                    mag='Magnetometers', misc='misc'))
+                            mag='Magnetometers', misc='misc'))
 
 
 def _mutable_defaults(*mappings):
@@ -1585,10 +1585,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    figure : instance of mayavi.core.scene.Scene | list | None
+    figure : instance of mayavi.core.scene.Scene | list | int | None
         If None, a new figure will be created. If multiple views or a
         split view is requested, this must be a list of the appropriate
-        length.
+        length. If int is provided it will be used to identify the Mayavi
+        figure by it's id or create a new figure with the given id.
     views : str | list
         View to use. See surfer.Brain().
 
@@ -1602,8 +1603,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     from surfer import Brain, TimeViewer
     try:
         import mayavi
+        from mayavi import mlab
     except ImportError:
         from enthought import mayavi
+        from enthought.mayavi import mlab
 
     # import here to avoid circular import problem
     from .source_estimate import SourceEstimate
@@ -1618,6 +1621,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     n_split = 2 if hemi == 'split' else 1
     n_views = 1 if isinstance(views, basestring) else len(views)
     if figure is not None:
+        # use figure with specified id or create new figure
+        if isinstance(figure, int):
+            figure = mlab.figure(figure, size=(600, 600))
         # make sure it is of the correct type
         if not isinstance(figure, list):
             figure = [figure]
@@ -1875,7 +1881,6 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     if vmax is None:
         vrange = np.array([f(data) for f in np.min, np.max])
         vmax = max(abs(vrange))
-    vmin = -vmax
 
     if merge_grads:
         from .layouts.layout import _merge_grad_data
@@ -1889,9 +1894,9 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
 
     tight_layout()
     if colorbar:
-        vmax_ = pl.normalize(vmin=vmin, vmax=vmax)
+        vmax_ = pl.normalize(vmin=-vmax, vmax=vmax)
         sm = pl.cm.ScalarMappable(cmap=cmap, norm=vmax_)
-        sm.set_array(np.linspace(vmin, vmax))
+        sm.set_array(np.linspace(-vmax, vmax))
         fig.subplots_adjust(right=0.8)
         cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         fig.colorbar(sm, cax=cax)

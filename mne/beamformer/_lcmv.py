@@ -64,46 +64,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         Source time courses.
     """
 
-    is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-
-    if pick_ori in ['normal', 'max-power'] and not is_free_ori:
-        raise ValueError('Normal or max-power orientation can only be picked '
-                         'when a forward operator with free orientation is '
-                         'used.')
-    if pick_ori == 'normal' and not forward['surf_ori']:
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator oriented in surface coordinates is '
-                         'used.')
-    if pick_ori == 'normal' and not forward['src'][0]['type'] == 'surf':
-        raise ValueError('Normal orientation can only be picked when a '
-                         'forward operator with a surface-based source space '
-                         'is used.')
-
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, exclude='bads')
-
-    ch_names = [info['ch_names'][k] for k in picks]
-
-    # restrict forward solution to selected channels
-    forward = pick_channels_forward(forward, include=ch_names)
-
-    # get gain matrix (forward operator)
-    if label is not None:
-        vertno, src_sel = label_src_vertno_sel(label, forward['src'])
-
-        if is_free_ori:
-            src_sel = 3 * src_sel
-            src_sel = np.c_[src_sel, src_sel + 1, src_sel + 2]
-            src_sel = src_sel.ravel()
-
-        G = forward['sol']['data'][:, src_sel]
-    else:
-        vertno = _get_vertno(forward['src'])
-        G = forward['sol']['data']
-
-    # Handle SSPs
-    proj, ncomp, _ = make_projector(info['projs'], ch_names)
-    G = np.dot(proj, G)
+    is_free_ori, picks, ch_names, proj, vertno, G =\
+        _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     # Handle whitening + data covariance
     whitener, _ = compute_whitener(noise_cov, info, picks)
@@ -114,9 +76,12 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     # Apply SSPs + whitener to data covariance
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
-    Cm = np.dot(proj, np.dot(Cm, proj.T))
+    if info['projs']:
+        Cm = np.dot(proj, np.dot(Cm, proj.T))
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
+    # Calculating regularized inverse, equivalent to an inverse operation after
+    # the following regularization:
     # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
     Cm_inv = linalg.pinv(Cm, reg)
 
@@ -190,7 +155,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
             logger.info("Processing epoch : %d" % (i + 1))
 
         # SSP and whitening
-        M = np.dot(proj, M)
+        if info['projs']:
+            M = np.dot(proj, M)
         M = np.dot(whitener, M)
 
         # project to source space using beamformer weights
@@ -214,6 +180,58 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                         subject=subject)
 
     logger.info('[done]')
+
+
+def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
+    """Input preparation common for all beamformer functions.
+
+    Check input values, prepare channel list and gain matrix. For documentation
+    of parameters, please refer to _apply_lcmv.
+    """
+
+    is_free_ori = forward['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
+
+    if pick_ori in ['normal', 'max-power'] and not is_free_ori:
+        raise ValueError('Normal or max-power orientation can only be picked '
+                         'when a forward operator with free orientation is '
+                         'used.')
+    if pick_ori == 'normal' and not forward['surf_ori']:
+        raise ValueError('Normal orientation can only be picked when a '
+                         'forward operator oriented in surface coordinates is '
+                         'used.')
+    if pick_ori == 'normal' and not forward['src'][0]['type'] == 'surf':
+        raise ValueError('Normal orientation can only be picked when a '
+                         'forward operator with a surface-based source space '
+                         'is used.')
+
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, exclude='bads')
+
+    ch_names = [info['ch_names'][k] for k in picks]
+
+    # Restrict forward solution to selected channels
+    forward = pick_channels_forward(forward, include=ch_names)
+
+    # Get gain matrix (forward operator)
+    if label is not None:
+        vertno, src_sel = label_src_vertno_sel(label, forward['src'])
+
+        if is_free_ori:
+            src_sel = 3 * src_sel
+            src_sel = np.c_[src_sel, src_sel + 1, src_sel + 2]
+            src_sel = src_sel.ravel()
+
+        G = forward['sol']['data'][:, src_sel]
+    else:
+        vertno = _get_vertno(forward['src'])
+        G = forward['sol']['data']
+
+    # Apply SSPs
+    if info['projs']:
+        proj, ncomp, _ = make_projector(info['projs'], ch_names)
+        G = np.dot(proj, G)
+
+    return is_free_ori, picks, ch_names, proj, vertno, G
 
 
 @verbose

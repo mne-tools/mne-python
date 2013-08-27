@@ -6,7 +6,7 @@ import mne
 
 from mne.fiff import Raw
 from mne.datasets import sample
-from mne.time_frequency import compute_csd, induced_power
+from mne.time_frequency import compute_epochs_csd, induced_power
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -40,22 +40,22 @@ def _get_data():
     return epochs, epochs_sin
 
 
-def test_compute_csd():
+def test_compute_epochs_csd():
     """Test computing cross-spectral density from epochs
     """
     epochs, epochs_sin = _get_data()
     # Check that wrong parameters are recognized
-    assert_raises(ValueError, compute_csd, epochs, mode='notamode')
-    assert_raises(ValueError, compute_csd, epochs, fmin=20, fmax=10)
-    assert_raises(ValueError, compute_csd, epochs, fmin=20, fmax=20.1)
-    assert_raises(ValueError, compute_csd, epochs, tmin=0.15, tmax=0.1)
-    assert_raises(ValueError, compute_csd, epochs, tmin=0, tmax=10)
-    assert_raises(ValueError, compute_csd, epochs, tmin=10, tmax=11)
+    assert_raises(ValueError, compute_epochs_csd, epochs, mode='notamode')
+    assert_raises(ValueError, compute_epochs_csd, epochs, fmin=20, fmax=10)
+    assert_raises(ValueError, compute_epochs_csd, epochs, fmin=20, fmax=20.1)
+    assert_raises(ValueError, compute_epochs_csd, epochs, tmin=0.15, tmax=0.1)
+    assert_raises(ValueError, compute_epochs_csd, epochs, tmin=0, tmax=10)
+    assert_raises(ValueError, compute_epochs_csd, epochs, tmin=10, tmax=11)
 
-    data_csd_mt = compute_csd(epochs, mode='multitaper', fmin=8, fmax=12,
-                              tmin=0.04, tmax=0.15)
-    data_csd_fourier = compute_csd(epochs, mode='fourier', fmin=8, fmax=12,
-                                   tmin=0.04, tmax=0.15)
+    data_csd_mt = compute_epochs_csd(epochs, mode='multitaper', fmin=8,
+                                     fmax=12, tmin=0.04, tmax=0.15)
+    data_csd_fourier = compute_epochs_csd(epochs, mode='fourier', fmin=8,
+                                          fmax=12, tmin=0.04, tmax=0.15)
 
     # Check shape of the CSD matrix
     n_chan = len(data_csd_mt.ch_names)
@@ -90,8 +90,25 @@ def test_compute_csd():
     max_ch_csd_fourier = np.argmax(ch_csd_fourier)
     assert_equal(max_ch_csd_mt, max_ch_csd_fourier)
 
+    # Check a list of CSD matrices is returned for multiple frequencies within
+    # a given range when fsum=False
+    csd_fsum = compute_epochs_csd(epochs, mode='fourier', fmin=8, fmax=20,
+                                  fsum=True)
+    csds = compute_epochs_csd(epochs, mode='fourier', fmin=8, fmax=20,
+                              fsum=False)
+    freqs = [csd.frequencies[0] for csd in csds]
 
-def test_compute_csd_on_artificial_data():
+    csd_sum = np.zeros_like(csd_fsum.data)
+    for csd in csds:
+        csd_sum += csd.data
+
+    assert(len(csds) == 2)
+    assert(len(csd_fsum.frequencies) == 2)
+    assert_array_equal(csd_fsum.frequencies, freqs)
+    assert_array_equal(csd_fsum.data, csd_sum)
+
+
+def test_compute_epochs_csd_on_artificial_data():
     epochs, epochs_sin = _get_data()
     sfreq = epochs_sin.info['sfreq']
 
@@ -100,8 +117,8 @@ def test_compute_csd_on_artificial_data():
     signal_power_per_sample = signal_power / len(epochs_sin.times)
 
     # Computing signal power in the frequency domain
-    data_csd_fourier = compute_csd(epochs_sin, mode='fourier')
-    data_csd_mt = compute_csd(epochs_sin, mode='multitaper')
+    data_csd_fourier = compute_epochs_csd(epochs_sin, mode='fourier')
+    data_csd_mt = compute_epochs_csd(epochs_sin, mode='multitaper')
     fourier_power = np.abs(data_csd_fourier.data[0, 0]) * sfreq
     mt_power = np.abs(data_csd_mt.data[0, 0]) * sfreq
     assert_almost_equal(fourier_power, signal_power, delta=0.5)
@@ -112,8 +129,9 @@ def test_compute_csd_on_artificial_data():
         t_mask = (epochs_sin.times >= 0) & (epochs_sin.times <= tmax)
         n_samples = sum(t_mask)
 
-        data_csd_fourier = compute_csd(epochs_sin, mode='fourier', tmin=None,
-                                       tmax=tmax, fmin=0, fmax=np.inf)
+        data_csd_fourier = compute_epochs_csd(epochs_sin, mode='fourier',
+                                              tmin=None, tmax=tmax, fmin=0,
+                                              fmax=np.inf)
         fourier_power = np.abs(data_csd_fourier.data[0, 0]) * sfreq
         fourier_power_per_sample = fourier_power / n_samples
         assert_almost_equal(signal_power_per_sample, fourier_power_per_sample,
@@ -122,9 +140,10 @@ def test_compute_csd_on_artificial_data():
         # Power per sample should not depend on number of tapers
         for n_tapers in [1, 2, 3, 5]:
             mt_bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
-            data_csd_mt = compute_csd(epochs_sin, mode='multitaper', tmin=None,
-                                      tmax=tmax, fmin=0, fmax=np.inf,
-                                      mt_bandwidth=mt_bandwidth)
+            data_csd_mt = compute_epochs_csd(epochs_sin, mode='multitaper',
+                                             tmin=None, tmax=tmax, fmin=0,
+                                             fmax=np.inf,
+                                             mt_bandwidth=mt_bandwidth)
             mt_power = np.abs(data_csd_mt.data[0, 0]) * sfreq
             mt_power_per_sample = mt_power / n_samples
             assert_almost_equal(signal_power_per_sample, mt_power_per_sample,
