@@ -25,6 +25,8 @@ if __name__ == '__main__':
                       help='Overwrite previously computed surface')
     parser.add_option('-s', '--subject', dest='subject',
                       help='The name of the subject', type='str')
+    parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
+                      help='Print the debug messages.')
     options, args = parser.parse_args()
     env = os.environ
     subject = vars(options).get('subject', env.get('SUBJECT'))
@@ -33,9 +35,13 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     overwrite = options.overwrite
+    verbose = options.verbose
 
     def my_run_cmd(cmd, err_msg):
-        if getstatusoutput(cmd)[0] != 0:
+        sig, out = getstatusoutput(cmd)
+        if verbose:
+            print out
+        if sig != 0:
             print err_msg
             sys.exit(1)
 
