@@ -95,13 +95,13 @@ if __name__ == '__main__':
     cmd = 'mne_surf2bem --surf %s --id 4 --check --fif %s' % (surf, fif)
     my_run_cmd(cmd, 'Failed to create %s, see above' % fif)
     levels = 'medium', 'sparse'
-    for ii, (ntri, level) in enumerate(zip([30000, 2500], levels), 3):
+    for ii, (n_tri, level) in enumerate(zip([30000, 2500], levels), 3):
         my_surf = mne.read_bem_surfaces(fif)[0]
         print '%i. Creating medium grade tessellation...' % ii
         print '%i.1 Decimating the dense tessellation...' % ii
         points, tris = mne.decimate_surface(points=my_surf['rr'],
                                             triangles=my_surf['tris'],
-                                            target_ntri=ntri)
+                                            target_ntri=n_tri)
         out_fif = fif.replace('dense', level)
         print '%i.2 Creating %s' % (ii, out_fif)
         surf_fname = '/tmp/tmp-surf.fif'
