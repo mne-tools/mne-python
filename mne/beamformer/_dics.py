@@ -284,7 +284,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         The noise cross-spectral density matrix for a single frequency or a
         list of matrices for multiple frequencies.
     data_csds : instance or list of instances of CrossSpectralDensity
-        The data cross-spectral density matrix for a single frequecy or a list
+        The data cross-spectral density matrix for a single frequency or a list
         of matrices for multiple frequencies.
     reg : float
         The regularization for the cross-spectral density.
@@ -308,10 +308,6 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
     interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
 
-    is_free_ori, picks, _, proj, vertno, G =\
-        _prepare_beamformer_input(info, forward, label, picks=None,
-                                  pick_ori=pick_ori)
-
     if isinstance(data_csds, CrossSpectralDensity):
         data_csds = [data_csds]
 
@@ -324,6 +320,10 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         raise ValueError('One noise CSD matrix should be provided for each '
                          'data CSD matrix and vice versa. All CSD matrices '
                          'should have identical shape.')
+
+    is_free_ori, picks, _, proj, vertno, G =\
+        _prepare_beamformer_input(info, forward, label, picks=None,
+                                  pick_ori=pick_ori)
 
     frequencies = []
     for data_csd, noise_csd in zip(data_csds, noise_csds):
