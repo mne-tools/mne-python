@@ -11,6 +11,8 @@ from mne.datasets import sample
 from mne.beamformer import dics, dics_epochs, dics_source_power
 from mne.time_frequency import compute_epochs_csd
 
+# warnings.simplefilter("error")  # raise an exception on warning
+
 
 data_path = sample.data_path()
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
@@ -194,6 +196,6 @@ def test_dics_source_power():
     for freq, data_csd in zip(frequencies, data_csds):
         data_csd.frequencies = [freq]
     noise_csds = data_csds
-    warnings.simplefilter("error")  # raise an exception on warning
-    assert_raises(UserWarning, dics_source_power, epochs.info, forward,
-                  noise_csds, data_csds)
+    with warnings.catch_warnings(True) as w:
+        dics_source_power(epochs.info, forward, noise_csds, data_csds)
+    assert len(w) == 1
