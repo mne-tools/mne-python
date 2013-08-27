@@ -37,32 +37,47 @@ left_cb = visual.RadialStim(mywin, tex='sqrXsqr', color=1, size=5,
 fixation = visual.PatchStim(mywin, color=-1, colorSpace='rgb', tex=None,
                             mask='circle', size=0.2)
 
+# the most accurate method is using frame refresh periods
+# however, since the actual refresh rate is not known
+# we use the Clock
 timer1 = core.Clock()
 timer2 = core.Clock()
 
+ev_list = list()
+trig = 4
+
+# iterating over 50 epochs
 for ii in range(50):
 
-    timer2.reset()
-    timer2.add(1.0)  # time between stimuli
-
-    trig = stim_client.get_trigger()
-
-    if trig == 4:
-        right_cb.draw()
+    if trig is not None:
+        ev_list.append(trig)
     else:
-        left_cb.draw()
+        ev_list.append(ev_list[-1])  # use the last stimuli
 
-    mywin.update()
+    if ev_list[ii] == 3:
+        left_cb.draw()
+    else:
+        right_cb.draw()
+
+    mywin.flip()
 
     timer1.reset()
     timer1.add(0.75)  # display stimuli for 0.75 sec
 
+    # return within 0.2 seconds (< 0.75 seconds) to ensure good timing
+    trig = stim_client.get_trigger(timeout=0.2)
+
+    # wait till 0.75 sec elapses
     while timer1.getTime() < 0:
         pass
 
     fixation.draw()
-    mywin.update()
+    mywin.flip()
 
+    timer2.reset()
+    timer2.add(0.25)
+
+    # display fixation cross for 0.25 seconds
     while timer2.getTime() < 0:
         pass
 

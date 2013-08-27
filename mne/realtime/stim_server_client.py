@@ -7,7 +7,6 @@ import socket
 import SocketServer
 import threading
 import logging
-import numpy as np
 logger = logging.getLogger('mne')
 
 
@@ -64,14 +63,15 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
         Method to handle requests on the server side
         """
 
-        # Add stim_server._client as a dictionary
-
-        self.server.stim_server.add_client(self.client_address[0], self)
-        self.request.settimeout(None)
-
         while self.server.stim_server._running:
 
             data = self.request.recv(1024)  # clip input at 1Kb
+
+            if data == 'Add me':
+                # Add stim_server._client
+                self.server.stim_server.add_client(self.client_address[0],
+                                                   self)
+                self.request.settimeout(None)
 
             if data == 'Give me a trigger':
 
@@ -131,12 +131,8 @@ class StimServer(object):
 
         # Start server and a separate thread to send data
         if not self._running:
-            logger.info('RtServer: start')
+            logger.info('RtServer: Start')
             self._running = True
-
-            # ugly hack but otherwise we get key error for
-            # stim_server._client['running']
-            time.sleep(1)
 
             # start the send thread
             self._send_thread = threading.Thread(target=send_trigger_worker,
@@ -207,13 +203,13 @@ class StimClient(object):
         self._host = host
         self._timeout = timeout
         self._port = port
-        self._last_time = np.inf  # init delay counter. Will stop iterations
-
         try:
             print "Setting up client socket"
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._sock.settimeout(timeout)
             self._sock.connect((host, port))
+            print "Establishing connection with server"
+            self._sock.send("Add me")
         except Exception:
             raise RuntimeError('Setting up acquisition <-> stimulation '
                                'computer connection (host: %s '
@@ -228,22 +224,21 @@ class StimClient(object):
         timeout : float
             maximum time to wait for a valid trigger from the server
         """
+        start_time = time.time()  # init delay counter. Will stop iterations
+
         while True:
             try:
                 current_time = time.time()
 
                 # Raise timeout error
-                if current_time > (self._last_time + timeout):
-                        logger.info('Time of %s seconds exceeded.' % timeout)
-                        raise StopIteration
+                if current_time > (start_time + timeout):
+                        print "received nothing"
+                        return None
 
                 self._sock.send("Give me a trigger")
                 trigger = self._sock.recv(1024)
 
                 if trigger != 'Empty':
-                    # when was the last time you got a valid trigger?
-                    self._last_time = current_time
-
                     print "received trigger " + trigger
                     return int(trigger)
 
