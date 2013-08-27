@@ -1,10 +1,11 @@
 import os.path as op
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose
 
 from mne.datasets import sample
-from mne import read_source_spaces, vertex_to_mni, write_source_spaces
+from mne import read_source_spaces, vertex_to_mni, write_source_spaces, \
+                setup_source_space
 from mne.utils import _TempDir, requires_fs_or_nibabel, requires_nibabel, \
                       requires_freesurfer
 
@@ -12,8 +13,21 @@ data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
 fname_nodist = op.join(data_path, 'subjects', 'sample', 'bem',
                        'sample-oct-6-orig-src.fif')
+subjects_dir = op.join(data_path, 'subjects')
 
 tempdir = _TempDir()
+
+
+def test_setup_source_space():
+    """Test setting up a source space
+    """
+    # first lets test some input params
+    assert_raises(ValueError, setup_source_space, 'sample', oct=6, ico=6)
+
+    # now let's see if we get an equivalent source space
+    src = read_source_spaces(fname)
+    src_new = setup_source_space('sample', oct=6, subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new)
 
 
 def test_read_source_spaces():
@@ -43,29 +57,31 @@ def test_write_source_space():
     """Test writing and reading of source spaces
     """
     src0 = read_source_spaces(fname, add_geom=False)
-    src0_old = read_source_spaces(fname, add_geom=False)
     write_source_spaces(op.join(tempdir, 'tmp.fif'), src0)
     src1 = read_source_spaces(op.join(tempdir, 'tmp.fif'), add_geom=False)
-    for orig in [src0, src0_old]:
-        for s0, s1 in zip(src0, src1):
-            for name in ['nuse', 'dist_limit', 'ntri', 'np', 'type', 'id',
-                         'subject_his_id']:
-                assert_true(s0[name] == s1[name])
-            for name in ['nn', 'rr', 'inuse', 'vertno', 'nuse_tri',
-                         'coord_frame', 'use_tris', 'tris', 'nearest',
-                         'nearest_dist']:
-                assert_array_equal(s0[name], s1[name])
-            for name in ['dist']:
-                if s0[name] is not None:
-                    assert_true(s1[name].shape == s0[name].shape)
-                    assert_true(len((s0['dist'] - s1['dist']).data) == 0)
-            for name in ['pinfo']:
-                if s0[name] is not None:
-                    assert_true(len(s0[name]) == len(s1[name]))
-                    for p1, p2 in zip(s0[name], s1[name]):
-                        assert_true(all(p1 == p2))
-        # The above "if s0[name] is not None" can be removed once the sample
-        # dataset is updated to have a source space with distance info
+    _compare_source_spaces(src0, src1)
+
+
+def _compare_source_spaces(src0, src1):
+    for s0, s1 in zip(src0, src1):
+        for name in ['nuse', 'dist_limit', 'ntri', 'np', 'type', 'id',
+                     'subject_his_id']:
+            assert_true(s0[name] == s1[name])
+        for name in ['nn', 'rr', 'inuse', 'vertno', 'nuse_tri',
+                     'coord_frame', 'use_tris', 'tris', 'nearest',
+                     'nearest_dist']:
+            assert_array_equal(s0[name], s1[name])
+        for name in ['dist']:
+            if s0[name] is not None:
+                assert_true(s1[name].shape == s0[name].shape)
+                assert_true(len((s0['dist'] - s1['dist']).data) == 0)
+        for name in ['pinfo']:
+            if s0[name] is not None:
+                assert_true(len(s0[name]) == len(s1[name]))
+                for p1, p2 in zip(s0[name], s1[name]):
+                    assert_true(all(p1 == p2))
+    # The above "if s0[name] is not None" can be removed once the sample
+    # dataset is updated to have a source space with distance info
     for name in ['working_dir', 'command_line']:
         assert_true(src0.info[name] == src1.info[name])
 

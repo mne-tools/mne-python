@@ -583,7 +583,7 @@ def _write_one_source_space(fid, this, verbose=None):
         write_coord_trans(fid, this['mri_ras_t'])
 
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_INTERPOLATOR,
-                            this['interpolator'])
+                               this['interpolator'])
 
         if 'mri_file' in this and this['mri_file'] is not None:
             write_string(fid, FIFF.FIFF_MNE_SOURCE_SPACE_MRI_FILE,
@@ -618,7 +618,7 @@ def _write_one_source_space(fid, this, verbose=None):
     if this['nearest'] is not None:
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST, this['nearest'])
         write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NEAREST_DIST,
-                  this['nearest_dist'])
+                           this['nearest_dist'])
 
     #   Distances
     if this['dist'] is not None:
@@ -763,3 +763,185 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
             nt_orig.append(stdout.reshape(4, 4))
     xfm = np.dot(xfm, np.dot(nt_orig[0], linalg.inv(nt_orig[1])))
     return xfm
+
+
+@verbose
+def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
+                       use_all=False, surface='white', overwrite=False,
+                       subjects_dir=None, verbose=None):
+    """Setup a source space with decimation
+
+    Parameters
+    ----------
+    subject : str
+        Subject to process.
+    fname : str | bool
+        Filename to use. If True, a default name will be used. If False,
+        the source space will not be saved (only returned).
+    spacing : float | None
+        The spacing to use (in mm). Should be None if ``ico``, ``oct``,
+        or ``all`` are used. If all are None, a spacing of 7 will be used.
+    ico : float | None
+        Use a recursively subdivided icosahedron. Should be None if
+        ``spacing``, ``oct``, or ``all`` are used.
+    oct : float | None
+        Use a recursively subdiveded octahedron. Should be None if
+        ``spacing``, ``ico``, or ``all`` are used.
+    use_all : bool
+        If True, include all vertices in the source space. Should be
+        False if ``spacing``, ``ico``, or ``oct`` are used.
+    surface : str
+        The surface to use.
+    overwrite: bool
+        If True, overwrite file (if it exists).
+    morph : str | None
+        Morph source space to this subject. If None, uses subject
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    src : list
+        The source space for each hemisphere.
+    """
+    # check to make sure our parameters are good
+    use_all = None if use_all is False else use_all
+    opts = [ico, oct, spacing, use_all]
+    n_chosen = sum([x is not None for x in opts])
+    if n_chosen == 0:
+        spacing = 7
+        n_chosen = 1
+    if not n_chosen == 1:
+        raise ValueError('Exactly one of "ico", "oct", "spacing", and "all"'
+                         'must be defined')
+    if morph is None:
+        morph = subject
+        dest_subject = subject
+    else:
+        dest_subject = morph + '-' + subject
+    subjects_dir = get_subjects_dir(subjects_dir)
+
+    subj_dir = op.join(subjects_dir, subject)
+    surf_dir = op.join(subj_dir, 'surf')
+    bem_dir = op.join(subjects_dir, morph, 'bem')
+    lh_surf = op.join(surf_dir, 'lh.' + surface)
+    rh_surf = op.join(surf_dir, 'rh.' + surface)
+
+    if not op.isdir(subj_dir):
+        raise IOError('Could not find the MRI data directory %s' % subj_dir)
+
+    if not op.isdir(surf_dir):
+        raise IOError('Could not find the surface reconstruction directory '
+                      '%s' % surf_dir)
+    if not op.isdir(bem_dir):
+        raise IOError('Could not create the model directory %s' % bem_dir)
+    for surf, hemi in zip([lh_surf, rh_surf], ['LH', 'RH']):
+        if not op.isfile(lh_surf):
+            raise IOError('Could not find the %s surface %s' % (hemi, surf))
+
+    if fname is True:
+        if ico is not None:
+            extra = 'ico-%s' % ico
+        elif oct is not None:
+            extra = 'oct-%s' % oct
+        elif spacing is not None:
+            extra = str(spacing)
+        else:
+            extra = 'all'
+        fname = op.join(bem_dir, '%s-%s-src.fif' % (dest_subj, extra))
+    if fname is not None and op.isfile(fname) and overwrite is False:
+        raise IOError('file "%s" exists, use overwrite=True if you want '
+                      'to overwrite the file' % fname)
+
+    logger.info('Setting up the source space with the following parameters:')
+    logger.info('SUBJECTS_DIR = %s' % subjects_dir)
+    logger.info('Subject      = %s' % subject)
+    if morph != subject:
+        logger.info('Morph        = %s' % morph)
+    logger.info('Surface      = %s' % surf)
+    if ico is not None:
+        logger.info('Icosahedron subdivision grade %s' % ico)
+    elif oct is not None:
+        logger.info('Octahedron subdivision grade %s' % oct)
+    elif spacing is not None:
+        logger.info('Grid spacing = %s mm' % spacing)
+    else:
+        logger.info('Include all vertices')
+
+    if cps is True:
+        logger.info('Create a source space with patch information')
+
+    # Create the fif file
+    if fname is not None:
+        logger.info('>>> 1. Creating the source space file %s...' % fname)
+
+    # mne_make_source_space ...
+    spaces = []
+    mspaces = []
+    for surf in [lh_surf, rh_surf]:
+        space = load_source_space_surf_spacing(surfname, subject, ico, spacing)
+        spaces += [space]
+
+        logger.info('loaded %s %d/%d selected to source space'
+                    % (surf, space['nuse'], space['np']))
+
+        if morph != subject:
+            mspace = load_source_space_surf_spacing(surf, morph, 0, 0)
+            mspaces += [mspace]
+            logger.info('loaded %s of %s %d/%d selected to source space',
+                        surf, morph, mspace['nuse'], mspace['np'])
+
+    if morph != subject:
+        lh_orig, rh_orig = spaces[0], spaces[1]
+        morph_maps = read_morph_maps(subject, morph)
+        for space, mspace, mmap in zip(spaces, mspaces, morph_maps):
+            best = get_vertex_map(space, mspace, mmap)
+            mspace['vertno'] = np.zeros(space['nuse'])
+            mspace['nuse'] = space['nuse']
+            mspace['inuse'].fill(False)
+            mspace['vertno'] = best[space[vertno]]
+            mspace['inuse'][mspace['vertno']] = True
+
+            # Possibly add the source space triangulation information
+            if space['nuse'] == space['np'] and not space['use_itris']:
+                space['nuse_tri'] = space['ntri']
+                space['use_itris'] = \
+                                    space['itris'][:space['nuse_itris']].copy()
+            mspace['use_itris'] = None
+            mspace['use_itris'] = space['use_itris']
+            space['use_itris'] = None
+            space['nuse_tri'] = space['nuse_tri']
+            space['nuse_tri'] = 0
+            mspace['use_itris'] = \
+                           best[mspace['use_itris'][:mspace['nuse_tri']].copy()
+
+    if fname is not None:
+        write_source_space(fname, src)
+
+
+def get_vertex_map(surf, morph, mapMat):
+    inuse = np.zeros(morph['nuse'], bool)
+    best = np.zeros(surf['nuse'], int)
+
+    for k in range(surf['nuse']):
+        one = np.argmax(mapMat[:, surf['vertno'][k]])
+        best[surf['vertno'][k]] = one
+        if inuse[one] is True:
+            neighbors = morph['neighbor_vert'][one]
+            nneighbors = len(neighbors)
+            found = False
+            was = one
+            for p in range(nneighbors):
+                if not inuse[neigh[p]]:
+                    best[surf['vertno'][k]] = neigh[p]
+                    found = True
+            if not found:
+                raise RuntimeError('vertex %d would be used multiple '
+                                   'times.' % best[k])
+            logger.warning('Source space vertex moved from %d to %d because '
+                           'of double occupation.'
+                           % (was, best[surf['vertno'][k]]))
+        inuse[best[k]] = True
+    return best
