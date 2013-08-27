@@ -420,6 +420,9 @@ Inverse Solutions
    lcmv
    lcmv_epochs
    lcmv_raw
+   dics
+   dics_epochs
+   dics_source_power
 
 
 Source Space Data

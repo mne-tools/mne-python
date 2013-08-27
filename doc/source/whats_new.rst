@@ -32,6 +32,10 @@ Changelog
    - Add rejection buffer to ICA.decompose* methods by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Add polygonal surface decimation function by `Denis Engemann`_ and `Alex Gramfort`_
+   
+   - DICS time-frequency beamforming for epochs, evoked and for estimating source power by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
+
+   - Add method for computing cross-spectral density (CSD) from epochs and class for storing CSD data by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
 
 API
 ~~~
