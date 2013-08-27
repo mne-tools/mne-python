@@ -7,7 +7,7 @@
 #          simplified bsd-3 license
 
 """
-Create high-resulution head surfaces for coordinate alignment.
+Create high-resolution head surfaces for coordinate alignment.
 
 example usage: mne_make_scalp_surfaces.py --overwrite --subject sample
 """
@@ -62,10 +62,11 @@ if __name__ == '__main__':
 
     print '1. Creating a dense scalp tessellation with mkheadsurf...'
 
-    def check_seghead(surf=None, surf_path=op.join(subj_dir, subject, 'surf')):
+    def check_seghead(surf_path=op.join(subj_dir, subject, 'surf')):
         for k in ['/lh.seghead', '/lh.smseghead']:
-            if op.exists(surf_path + k):
-                surf = surf_path + k
+            surf = surf_path + k if op.exists(surf_path + k) else None
+            if surf is not None:
+                break
         return surf
 
     my_seghead = check_seghead()
@@ -92,10 +93,9 @@ if __name__ == '__main__':
         my_surf = mne.read_bem_surfaces(fif)[0]
         print '%i. Creating medium grade tessellation...' % ii
         print '%i.1 Decimating the dense tessellation...' % ii
-        reduction = 1 - (float(ntri) / my_surf['ntri'])
         points, tris = mne.decimate_surface(points=my_surf['rr'],
                                             triangles=my_surf['tris'],
-                                            reduction=reduction)
+                                            target_ntri=ntri)
         out_fif = fif.replace('dense', level)
         print '%i.2 Creating %s' % (ii, out_fif)
         surf_fname = '/tmp/tmp-surf.fif'

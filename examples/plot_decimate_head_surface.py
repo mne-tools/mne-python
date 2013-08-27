@@ -26,9 +26,8 @@ tris = surf['tris']
 # reduce to 30000 meshes equaling ${SUBJECT}-head-medium.fif output from
 # mne_make_scalp_surfaces.py and mne_make_scalp_surfaces
 
-target_ntri = 30000
-reduction = 1 - (float(target_ntri) / surf['ntri'])
-points_dec, tris_dec = decimate_surface(points, tris, reduction=reduction)
+target_ntri = 30001
+points_dec, tris_dec = decimate_surface(points, tris, target_ntri=target_ntri)
 
 try:
     from enthought.mayavi import mlab

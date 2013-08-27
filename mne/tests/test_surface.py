@@ -52,9 +52,9 @@ def test_decimate_surface():
                        [-0.00686208, -0.10368247, 0.02588313],
                        [-0.00713987, -0.10368724, 0.02587745]])
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, 0]])
-    for reduction, expected in zip([0.25, 0.5, 0.75], [3, 2, 1]):
-        _, this_tris = decimate_surface(points, tris, reduction)
-        assert_true(len(this_tris) == expected)
-    outlier = 5
-    tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, outlier]])
-    assert_raises(ValueError, decimate_surface, points, tris, reduction)
+    for ntri in [4, 3, 2]:  # quadric decimation creates even numberd output.
+        _, this_tris = decimate_surface(points, tris, ntri)
+        assert_true(len(this_tris) == ntri if not ntri % 2 else 2)
+    nirvana = 5
+    tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, nirvana]])
+    assert_raises(ValueError, decimate_surface, points, tris, ntri)

@@ -397,29 +397,8 @@ def write_bem_surface(fname, surf):
     end_file(fid)
 
 
-def decimate_surface(points, triangles, reduction):
-    """ Decimate surface data
-
-    Note. Requires tvtk to be installed for this to function.
-
-    Parameters
-    ----------
-    points : ndarray
-        The surface to be decimated, a 3 x number of points array.
-    triangles : ndarray
-        The surface to be decimated, a 3 x number of triangles array.
-    reduction : float
-        The amount of reduction > 0 and < 1. Smaller means
-        more reduction.
-
-    Returns
-    -------
-    points : ndarray
-        The decimated points.
-    triangles : ndarray
-        The decimated triangles.
-    """
-
+def _decimate_surface(points, triangles, reduction):
+    """Aux function"""
     if 'DISPLAY' not in os.environ and sys.platform != 'win32':
         os.environ['ETS_TOOLKIT'] = 'null'
     try:
@@ -430,7 +409,6 @@ def decimate_surface(points, triangles, reduction):
     if triangles.max() > len(points) - 1:
         raise ValueError('The triangles refer to undefined points. '
                          'Please chek your mesh.')
-
     src = tvtk.PolyData(points=points, polys=triangles)
     decimate = tvtk.QuadricDecimation(input=src, target_reduction=reduction)
     decimate.update()
@@ -438,3 +416,33 @@ def decimate_surface(points, triangles, reduction):
     tris = out.polys.to_array()
     # n-tuples + interleaved n-next -- reshape trick
     return out.points.to_array(), tris.reshape(tris.size / 4, 4)[:, 1:]
+
+
+def decimate_surface(points, triangles, target_ntri):
+    """ Decimate surface data
+
+    Note. Requires tvtk to be installed for this to function.
+    Note. If an if an odd target number was requested,
+    the ``quadric decimation`` algorithm used results in the
+    next even number of triangles. For example a reduction request to 30001
+    triangles will result in 30000 triangles.
+
+    Parameters
+    ----------
+    points : ndarray
+        The surface to be decimated, a 3 x number of points array.
+    triangles : ndarray
+        The surface to be decimated, a 3 x number of triangles array.
+    target_ntri : int
+        The desired number of triangles.
+
+    Returns
+    -------
+    points : ndarray
+        The decimated points.
+    triangles : ndarray
+        The decimated triangles.
+    """
+
+    reduction = 1 - (float(target_ntri) / len(triangles))
+    return _decimate_surface(points, triangles, reduction)
