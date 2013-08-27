@@ -4,7 +4,7 @@ import copy as cp
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal
 
 import mne
 from mne.datasets import sample
@@ -31,9 +31,8 @@ def read_data():
     """Read in data used in tests
     """
     label = mne.read_label(fname_label)
-    events = mne.read_events(fname_event)
+    events = mne.read_events(fname_event)[:10]
     raw = mne.fiff.Raw(fname_raw, preload=False)
-    # move reading these into test to save memory
     forward = mne.read_forward_solution(fname_fwd)
     forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
     forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
@@ -74,7 +73,8 @@ def test_dics():
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = read_data()
 
-    stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd)
+    stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
+               label=label)
 
     stc_pow = np.sum(stc.data, axis=1)
     idx = np.argmax(stc_pow)
@@ -82,11 +82,11 @@ def test_dics():
     tmax = stc.times[np.argmax(max_stc)]
 
     assert_true(0.09 < tmax < 0.11)
-    assert_true(12 < np.max(max_stc) < 13)
+    assert_true(10 < np.max(max_stc) < 11)
 
     # Test picking normal orientation
     stc_normal = dics(evoked, forward_surf_ori, noise_csd, data_csd,
-                      pick_ori="normal")
+                      pick_ori="normal", label=label)
 
     # The amplitude of normal orientation results should always be smaller than
     # free orientation results
@@ -109,11 +109,12 @@ def test_dics():
 
     # Now test single trial using fixed orientation forward solution
     # so we can compare it to the evoked solution
-    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01)
+    stcs = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
+                       label=label)
 
     # Testing returning of generator
     stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
-                        return_generator=True)
+                        return_generator=True, label=label)
     assert_array_equal(stcs[0].data, stcs_.next().data)
 
     # Test whether correct number of trials was returned
@@ -121,7 +122,7 @@ def test_dics():
     assert_true(len(epochs.events) == len(stcs))
 
     # Average the single trial estimates
-    stc_avg = np.zeros_like(stc.data)
+    stc_avg = np.zeros_like(stcs[0].data)
     for this_stc in stcs:
         stc_avg += this_stc.data
     stc_avg /= len(stcs)
@@ -130,15 +131,8 @@ def test_dics():
     max_stc = stc_avg[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    assert_true(0.09 < tmax < 0.11)
-    assert_true(15 < np.max(max_stc) < 16)
-
-    # Use a label so we have few source vertices and delayed computation is
-    # not used
-    stcs_label = dics_epochs(epochs, forward_fixed, noise_csd, data_csd,
-                             reg=0.01, label=label)
-
-    assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
+    assert_true(0.045 < tmax < 0.055)  # odd due to limited number of epochs
+    assert_true(17.5 < np.max(max_stc) < 18.5)
 
 
 def test_dics_source_power():
@@ -148,21 +142,19 @@ def test_dics_source_power():
         forward_surf_ori, forward_fixed, forward_vol = read_data()
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
-                                         data_csd)
+                                         data_csd, label=label)
 
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
 
-    # TODO: The results still have to be tested for whether they make sense,
-    # how they compare to dics() on evoked, etc. So these tests are really just
-    # provisional. Maybe they could be more directly compared to dics()?
-    assert_true(max_source_idx == 1321)
-    assert_true(1.8 < max_source_power < 1.9)
+    # TODO: Maybe these could be more directly compared to dics() results?
+    assert_true(max_source_idx == 18)
+    assert_true(1.05 < max_source_power < 1.15)
 
     # Test picking normal orientation and using a list of CSD matrices
     stc_normal = dics_source_power(epochs.info, forward_surf_ori,
                                    [noise_csd] * 2, [data_csd] * 2,
-                                   pick_ori="normal")
+                                   pick_ori="normal", label=label)
 
     assert_true(stc_normal.data.shape == (stc_source_power.data.shape[0], 2))
 
