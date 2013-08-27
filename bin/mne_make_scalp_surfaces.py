@@ -62,24 +62,23 @@ if __name__ == '__main__':
 
     print '1. Creating a dense scalp tessellation with mkheadsurf...'
 
-    my_seghead = None
-    if op.exists(op.join(subj_dir, subject, 'surf',
-                 'lh.seghead')):
-        my_seghead = 'lh.seghead'
-    elif op.exists(op.join(subj_dir, subject, 'surf',
-                   'lh.smseghead')):
-        my_seghead = 'lh.smseghead'
+    def check_seghead(surf=None, surf_path=op.join(subj_dir, subject, 'surf')):
+        for k in ['/lh.seghead', '/lh.smseghead']:
+            if op.exists(surf_path + k):
+                surf = surf_path + k
+        return surf
+
+    my_seghead = check_seghead()
     if my_seghead is None:
         cmd = 'mkheadsurf -subjid %s -srcvol %s >/dev/null' % (subject, mri)
         my_run_cmd(cmd, 'mkheadsurf failed')
     else:
         print '%s/%s/surf/%s already there' % (subj_dir, subject, my_seghead)
+        if not overwrite:
+            print 'Use the --overwrite option to replace exisiting surfaces.'
+            sys.exit()
 
-    surf, surf_path = None, op.join(subj_dir, subject, 'surf')
-    if op.exists(surf_path + '/lh.seghead'):
-        surf = surf_path + '/lh.seghead'
-    elif op.exists(surf_path + '/lh.smseghead'):
-        surf = surf_path + '/lh.smseghead'
+    surf = check_seghead()
     if surf is None:
         print 'mkheadsurf did not produce the standard output file.'
         sys.exit(1)
