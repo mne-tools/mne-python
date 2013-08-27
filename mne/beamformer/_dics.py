@@ -321,10 +321,6 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
                          'data CSD matrix and vice versa. All CSD matrices '
                          'should have identical shape.')
 
-    is_free_ori, picks, _, proj, vertno, G =\
-        _prepare_beamformer_input(info, forward, label, picks=None,
-                                  pick_ori=pick_ori)
-
     frequencies = []
     for data_csd, noise_csd in zip(data_csds, noise_csds):
         if data_csd.frequencies != noise_csd.frequencies:
@@ -352,6 +348,10 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         fstep = frequencies[1] - frequencies[0]
     else:
         fstep = 1  # dummy value
+
+    is_free_ori, picks, _, proj, vertno, G =\
+        _prepare_beamformer_input(info, forward, label, picks=None,
+                                  pick_ori=pick_ori)
 
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
