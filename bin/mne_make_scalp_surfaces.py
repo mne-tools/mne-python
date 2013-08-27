@@ -75,13 +75,11 @@ if __name__ == '__main__':
     else:
         print '%s/%s/surf/%s already there' % (subj_dir, subject, my_seghead)
 
-    surf = None
-    if op.exists(op.join(subj_dir, subject, 'surf',
-                 'lh.seghead')):
-        surf = op.join(subj_dir, subject, 'surf', 'lh.seghead')
-    elif op.exists(op.join(subj_dir, subject, 'surf',
-                   'lh.smseghead')):
-        surf = op.join(subj_dir, subject, 'surf', 'lh.seghead')
+    surf, surf_path = None, op.join(subj_dir, subject, 'surf')
+    if op.exists(surf_path + '/lh.seghead'):
+        surf = surf_path + '/lh.seghead'
+    elif op.exists(surf_path + '/lh.smseghead'):
+        surf = surf_path + '/lh.smseghead'
     if surf is None:
         print 'mkheadsurf did not produce the standard output file.'
         sys.exit(1)
