@@ -23,10 +23,17 @@ def test_setup_source_space():
     """
     # first lets test some input params
     assert_raises(ValueError, setup_source_space, 'sample', oct=6, ico=6)
+    assert_raises(IOError, setup_source_space, 'sample', oct=6,
+                  subjects_dir=subjects_dir)
 
     # now let's see if we get an equivalent source space
     src = read_source_spaces(fname)
-    src_new = setup_source_space('sample', oct=6, subjects_dir=subjects_dir)
+    temp_name = op.join(tempdir, 'temp-src.fif')
+    src_new = setup_source_space('sample', temp_name, oct=6,
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new)
+    # Test to make sure it made it to disk as requested
+    src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new)
 
 

@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import os
 import os.path as op
 from scipy import sparse, linalg
 
@@ -15,7 +16,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_sparse_rcs, write_string, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id
-from .surface import read_surface
+from .surface import read_surface, _create_surf_spacing
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
                    has_nibabel, logger, verbose
 
@@ -765,7 +766,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 @verbose
 def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
                        use_all=False, surface='white', overwrite=False,
-                       subjects_dir=None, verbose=None):
+                       morph=None, subjects_dir=None, verbose=None):
     """Setup a source space with decimation
 
     Parameters
@@ -847,8 +848,8 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
             extra = str(spacing)
         else:
             extra = 'all'
-        fname = op.join(bem_dir, '%s-%s-src.fif' % (dest_subj, extra))
-    if fname is not None and op.isfile(fname) and overwrite is False:
+        fname = op.join(bem_dir, '%s-%s-src.fif' % (dest_subject, extra))
+    if fname is not False and op.isfile(fname) and overwrite is False:
         raise IOError('file "%s" exists, use overwrite=True if you want '
                       'to overwrite the file' % fname)
 
@@ -867,63 +868,62 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
     else:
         logger.info('Include all vertices')
 
-    if cps is True:
-        logger.info('Create a source space with patch information')
+    #if cps is True:
+    #    logger.info('Create a source space with patch information')
 
     # Create the fif file
     if fname is not None:
         logger.info('>>> 1. Creating the source space file %s...' % fname)
 
     # mne_make_source_space ...
-    spaces = []
-    mspaces = []
-    for surf in [lh_surf, rh_surf]:
-        space = load_source_space_surf_spacing(surfname, subject, ico, spacing)
-        spaces += [space]
-
+    src = []
+    msrc = []
+    for hemi, surf in zip(['lh', 'rh'], [lh_surf, rh_surf]):
+        s = _create_surf_spacing(surf, hemi, subject, ico, oct, spacing,
+                                 subjects_dir)
         logger.info('loaded %s %d/%d selected to source space'
-                    % (surf, space['nuse'], space['np']))
-
+                    % (surf, s['nuse'], s['np']))
+        src += [s]
         if morph != subject:
-            mspace = load_source_space_surf_spacing(surf, morph, 0, 0)
-            mspaces += [mspace]
+            ms = _create_surf_spacing(surf, hemi, morph, None, None, None,
+                                      subjects_dir)
+            msrc += [ms]
             logger.info('loaded %s of %s %d/%d selected to source space',
-                        surf, morph, mspace['nuse'], mspace['np'])
+                        surf, morph, ms['nuse'], ms['np'])
 
     if morph != subject:
-        lh_orig, rh_orig = spaces[0], spaces[1]
-        morph_maps = read_morph_maps(subject, morph)
-        for space, mspace, mmap in zip(spaces, mspaces, morph_maps):
-            best = get_vertex_map(space, mspace, mmap)
-            mspace['vertno'] = np.zeros(space['nuse'])
-            mspace['nuse'] = space['nuse']
-            mspace['inuse'].fill(False)
-            mspace['vertno'] = best[space[vertno]]
-            mspace['inuse'][mspace['vertno']] = True
+        morph_maps = read_morph_map(subject, morph)
+        for s, ms, mmap in zip(src, msrc, morph_maps):
+            best = _get_vertex_map(s, ms, mmap)
+            ms['vertno'] = np.zeros(s['nuse'])
+            ms['nuse'] = s['nuse']
+            ms['inuse'].fill(False)
+            ms['vertno'] = best[s['vertno']]
+            ms['inuse'][ms['vertno']] = True
 
             # Possibly add the source space triangulation information
-            if space['nuse'] == space['np'] and not space['use_itris']:
-                space['nuse_tri'] = space['ntri']
-                space['use_itris'] = \
-                                    space['itris'][:space['nuse_itris']].copy()
-            mspace['use_itris'] = None
-            mspace['use_itris'] = space['use_itris']
-            space['use_itris'] = None
-            space['nuse_tri'] = space['nuse_tri']
-            space['nuse_tri'] = 0
-            mspace['use_itris'] = \
-                           best[mspace['use_itris'][:mspace['nuse_tri']].copy()
+            if s['nuse'] == s['np'] and not s['use_itris']:
+                s['nuse_tri'] = s['ntri']
+                s['use_itris'] = s['itris'][:s['nuse_itris']].copy()
+            ms['use_itris'] = None
+            ms['use_itris'] = s['use_itris']
+            s['use_itris'] = None
+            s['nuse_tri'] = s['nuse_tri']
+            s['nuse_tri'] = 0
+            ms['use_itris'] = best[ms['use_itris']][:ms['nuse_tri']].copy()
 
+    # write out if requested, then return the data
     if fname is not None:
-        write_source_space(fname, src)
+        write_source_spaces(fname, src)
+    return src
 
 
-def get_vertex_map(surf, morph, mapMat):
+def _get_vertex_map(surf, morph, map_mat):
     inuse = np.zeros(morph['nuse'], bool)
     best = np.zeros(surf['nuse'], int)
 
     for k in range(surf['nuse']):
-        one = np.argmax(mapMat[:, surf['vertno'][k]])
+        one = np.argmax(map_mat[:, surf['vertno'][k]])
         best[surf['vertno'][k]] = one
         if inuse[one] is True:
             neighbors = morph['neighbor_vert'][one]
@@ -931,8 +931,8 @@ def get_vertex_map(surf, morph, mapMat):
             found = False
             was = one
             for p in range(nneighbors):
-                if not inuse[neigh[p]]:
-                    best[surf['vertno'][k]] = neigh[p]
+                if not inuse[neighbors[p]]:
+                    best[surf['vertno'][k]] = neighbors[p]
                     found = True
             if not found:
                 raise RuntimeError('vertex %d would be used multiple '
@@ -942,3 +942,76 @@ def get_vertex_map(surf, morph, mapMat):
                            % (was, best[surf['vertno'][k]]))
         inuse[best[k]] = True
     return best
+
+
+@verbose
+def read_morph_map(subject_from, subject_to, subjects_dir=None,
+                   verbose=None):
+    """Read morph map generated with mne_make_morph_maps
+
+    Parameters
+    ----------
+    subject_from : string
+        Name of the original subject as named in the SUBJECTS_DIR.
+    subject_to : string
+        Name of the subject on which to morph as named in the SUBJECTS_DIR.
+    subjects_dir : string
+        Path to SUBJECTS_DIR is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    left_map, right_map : sparse matrix
+        The morph maps for the 2 hemispheres.
+    """
+
+    subjects_dir = get_subjects_dir(subjects_dir)
+
+    # Does the file exist
+    name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_from,
+                                              subject_to)
+    if not os.path.exists(name):
+        name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_to,
+                                                  subject_from)
+        if not os.path.exists(name):
+            raise ValueError('The requested morph map does not exist\n' +
+                             'Perhaps you need to run the MNE tool:\n' +
+                             '  mne_make_morph_maps --from %s --to %s'
+                             % (subject_from, subject_to))
+
+    fid, tree, _ = fiff_open(name)
+
+    # Locate all maps
+    maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
+    if len(maps) == 0:
+        fid.close()
+        raise ValueError('Morphing map data not found')
+
+    # Find the correct ones
+    left_map = None
+    right_map = None
+    for m in maps:
+        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
+        if tag.data == subject_from:
+            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
+            if tag.data == subject_to:
+                #  Names match: which hemishere is this?
+                tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
+                if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                    left_map = tag.data
+                    logger.info('    Left-hemisphere map read.')
+                elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                    right_map = tag.data
+                    logger.info('    Right-hemisphere map read.')
+
+    fid.close()
+    if left_map is None:
+        raise ValueError('Left hemisphere map not found in %s' % name)
+
+    if right_map is None:
+        raise ValueError('Left hemisphere map not found in %s' % name)
+
+    return left_map, right_map
