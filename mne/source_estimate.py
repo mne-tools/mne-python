@@ -14,7 +14,7 @@ import warnings
 
 from .filter import resample
 from .parallel import parallel_func
-from .surface import read_surface
+from .surface import read_surface, _get_ico_surface
 from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
                     deprecated, logger, verbose)
@@ -2455,10 +2455,7 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
 @verbose
 def _get_ico_tris(grade, verbose=None, return_surf=False):
     """Get triangles for ico surface."""
-    ico_file_name = os.path.join(os.path.dirname(__file__), 'data',
-                                 'icos.fif.gz')
-    ico = read_bem_surfaces(ico_file_name, s_id=9000 + grade)
-
+    ico = _get_ico_surface(grade)
     if not return_surf:
         return ico['tris']
     else:
