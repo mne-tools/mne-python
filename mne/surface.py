@@ -219,6 +219,7 @@ def _complete_surface_info(this, verbose=None):
     #
     size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
     this['tri_area'] = size / 2.0
+    size[size == 0] = 1.0  # prevent ugly divide-by-zero
     this['tri_nn'] /= size[:, None]
     #
     #   Accumulate the vertex normals
@@ -231,7 +232,9 @@ def _complete_surface_info(this, verbose=None):
     #   Compute the lengths of the vertex normals and scale
     #
     logger.info('normalize...')
-    this['nn'] /= np.sqrt(np.sum(this['nn'] ** 2, axis=1))[:, None]
+    size = np.sqrt(np.sum(this['nn'] ** 2, axis=1))
+    size[size == 0] = 1  # prevent ugly divide-by-zero
+    this['nn'] /= size[:, None]
 
     logger.info('[done]')
     # XXX TODO: Add neighbor checking for source space generation
@@ -348,7 +351,9 @@ def _get_ico_surface(grade):
 
 def _normalize_vertices(s):
     """Normalize surface vertices"""
-    s['rr'] /= np.sqrt(np.sum(s['rr'] * s['rr'], axis=1))[:, np.newaxis]
+    size = np.sqrt(np.sum(s['rr'] * s['rr'], axis=1))
+    size[size == 0] = 1.0  # avoid divide-by-zero
+    s['rr'] /= size[:, np.newaxis]
 
 
 def _get_ico_map(subject, hemi, ico, oct, use_reg, subjects_dir):
