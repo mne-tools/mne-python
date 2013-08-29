@@ -145,7 +145,7 @@ def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
         this = _read_one_source_space(fid, s)
         logger.info('    [done]')
         if add_geom:
-            complete_source_space_info(this)
+            _complete_source_space_info(this)
 
         src.append(this)
 
@@ -393,7 +393,7 @@ def _read_one_source_space(fid, this, verbose=None):
 
 
 @verbose
-def complete_source_space_info(this, verbose=None):
+def _complete_source_space_info(this, verbose=None):
     """Add more info on surface
     """
     #   Main triangulation
@@ -763,6 +763,9 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     return xfm
 
 
+###############################################################################
+# Creation and decimation
+
 @verbose
 def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
                        use_all=False, surface='white', overwrite=False,
@@ -923,23 +926,19 @@ def _get_vertex_map(surf, morph, map_mat):
     best = np.zeros(surf['nuse'], int)
 
     for k in range(surf['nuse']):
-        one = np.argmax(map_mat[:, surf['vertno'][k]])
+        one = np.argmax(map_mat[surf['vertno'][k], :])
         best[surf['vertno'][k]] = one
         if inuse[one] is True:
             neighbors = morph['neighbor_vert'][one]
-            nneighbors = len(neighbors)
-            found = False
-            was = one
-            for p in range(nneighbors):
-                if not inuse[neighbors[p]]:
-                    best[surf['vertno'][k]] = neighbors[p]
-                    found = True
-            if not found:
+            idx = np.where(np.logical_not(inuse[neighbors]))[0]
+            if len(idx) > 0:
+                best[surf['vertno'][k]] = neighbors[idx[0]]
+            else:
                 raise RuntimeError('vertex %d would be used multiple '
                                    'times.' % best[k])
             logger.warning('Source space vertex moved from %d to %d because '
                            'of double occupation.'
-                           % (was, best[surf['vertno'][k]]))
+                           % (one, best[surf['vertno'][k]]))
         inuse[best[k]] = True
     return best
 
