@@ -18,6 +18,7 @@ from .fiff.write import write_int, write_float, write_float_matrix, \
                         write_int_matrix, start_file, end_block, \
                         start_block, end_file
 from .utils import logger, verbose
+from .fixes import in1d
 
 #
 #   These fiff definitions are not needed elsewhere
@@ -200,44 +201,72 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     return res
 
 
-@verbose
-def _complete_surface_info(this, verbose=None):
+def _complete_surface_info(this):
     """Complete surface info"""
-    #
-    #   Main triangulation
-    #
+    # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
+
+    #   Main triangulation [mne_add_triangle_data()]
     logger.info('    Completing triangulation info...')
-    logger.info('triangle normals...')
+    logger.info('    Triangle and vertex normals and neighboring triangles...')
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
     r3 = this['rr'][this['tris'][:, 2], :]
     this['tri_cent'] = (r1 + r2 + r3) / 3.0
     this['tri_nn'] = np.cross((r2 - r1), (r3 - r1))
-    #
+
     #   Triangle normals and areas
-    #
     size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
     this['tri_area'] = size / 2.0
     size[size == 0] = 1.0  # prevent ugly divide-by-zero
     this['tri_nn'] /= size[:, None]
-    #
-    #   Accumulate the vertex normals
-    #
-    logger.info('vertex normals...')
+
+    #    Find neighboring triangles and accumulate vertex normals
     this['nn'] = np.zeros((this['np'], 3))
+    this['neighbor_tri'] = [np.array([], int) for _ in xrange(this['np'])]
     for p in range(this['ntri']):
+        # vertex normals
         this['nn'][this['tris'][p, :], :] += this['tri_nn'][p, :]
-    #
-    #   Compute the lengths of the vertex normals and scale
-    #
-    logger.info('normalize...')
+        # neighbors
+        ii = this['tris'][p]
+        for k in range(3):
+            # Add to the list of neighbors
+            x = this['neighbor_tri'][ii[k]]
+            this['neighbor_tri'][ii[k]] = np.append(x, p)
+
+    #   Normalize the lengths of the vertex normals
     size = np.sqrt(np.sum(this['nn'] ** 2, axis=1))
     size[size == 0] = 1  # prevent ugly divide-by-zero
     this['nn'] /= size[:, None]
 
+    #   Check for topological defects
+    idx = np.where([len(n) == 0 for n in this['neighbor_tri']])[0]
+    if len(idx) > 0:
+        logger.info('    Vertices [%s] do not have any neighboring'
+                    'triangles!' % ','.join([str(ii) for ii in idx]))
+    idx = np.where([len(n) < 3 for n in this['neighbor_tri']])[0]
+    if len(idx) > 0:
+        logger.info('    Vertices [%s] have fewer than three neighboring '
+                    'tris, omitted' % ','.join([str(ii) for ii in idx]))
+    for k in idx:
+        this['neighbor_tri'] = np.array([], int)
+
+    #   Determine the neighboring vertices and fix errors
+    this['neighbor_vert'] = [None] * this['np']
+    for k in xrange(this['np']):
+        nneigh_max = len(this['neighbor_tri'][k])
+        verts = np.setdiff1d(np.unique([nt for nt in this['neighbor_tri'][k]]),
+                             [k], assume_unique=True)
+        nneighbors = len(verts)
+        if nneighbors > nneigh_max:
+            raise RuntimeError('Too many neighbors for vertex %d' % k)
+        elif nneighbors != nneigh_max:
+            logger.info('Incorrect number of distinct neighbors for vertex '
+                        '%d (%d instead of %d) [fixed].' % (k, nneighbors,
+                                                            nneigh_max))
+        this['neighbor_vert'][k] = verts
+
     logger.info('[done]')
-    # XXX TODO: Add neighbor checking for source space generation
     return this
 
 
@@ -329,11 +358,15 @@ def read_surface(fname):
     return coords, faces
 
 
-def _read_surface_geom(fname, check_neighbors=True):
+def _read_surface_geom(fname):
     """Load the surface and add the geometry information"""
-    coords, tris = read_surface(fname)
-    s = dict(rr=coords, tris=tris, itris=tris, ntri=len(tris), np=len(coords))
-    # XXX TODO: add check_neighbors support
+    # based on mne_load_surface_geom() in mne_surface_io.c
+    coords, tris = read_surface(fname)  # mne_read_triangle_file()
+    nvert = len(coords)
+    ntri = len(tris)
+    s = dict(rr=coords, tris=tris, use_tris=tris, ntri=ntri,
+             np=nvert, nuse=nvert, inuse=np.ones(nvert, int),
+             vertno=np.arange(nvert))
     s = _complete_surface_info(s)
     s['nuse'] = s['np']
     s['inuse'] = np.ones(s['np'], int)
@@ -361,7 +394,7 @@ def _get_ico_map(subject, hemi, ico, oct, use_reg, subjects_dir):
     surf_name = hemi + ('.sphere.reg' if use_reg is True else '.sphere')
     surf_name = op.join(subjects_dir, subject, 'surf', surf_name)
     logger.info('Loading geometry from %s...' % surf_name)
-    from_surf = _read_surface_geom(surf_name, True)
+    from_surf = _read_surface_geom(surf_name)
     _normalize_vertices(from_surf)
     if oct is not None:
         to_surf = _tessellate_sphere_surf(oct)
@@ -383,39 +416,29 @@ def _get_nearest(to, fro):
     """For each point on (spherical) 'to', find closest on 'fro'"""
     from_to_map = np.zeros(to['np'], int)
     # Get a set of points for the hierarchical search
-    nodes = _tessellate_sphere(5)
+    nodes, nnode, corners, ntri = _tessellate_sphere(5)
     nnode = len(nodes)
 
-    max_cos = np.max(np.sqrt(np.sum(nodes[0] * nodes, axis=1)))
-    search_cos = np.cos(1.2 * np.acos(max_cos))
-    search = [dict(r=nodes[k].copy(), verts=None, nvert=0)
-              for k in range(nnode)]
+    max_cos = np.max(np.sum(nodes[0] * nodes, axis=1))
+    search_cos = np.cos(1.2 * np.arccos(max_cos))
+    search_verts = [None] * nnode
     temp = np.zeros(fro['np'], int)
     for k in range(nnode):
-        this_node = search[k]
-        ntemp = 0
-        for p in range(fro['np']):
-            this_cos = np.dot(fro['rr'][p], this_node['r'])
-            if this_cos > search_cos:
-                temp[ntemp] = p
-                ntemp += 1
-        if ntemp > 0:
-            this_node['nvert'] = ntemp
-            this_node['verts'] = temp[:ntemp].copy()
+        these_cos = np.sum(fro['rr'] * nodes[k], 1)
+        temp = these_cos[these_cos > search_cos]
+        if len(temp) > 0:
+            search_verts[k] = temp[:len(temp)].copy()
 
     # Do a hierarchical search
     for k in range(to['np']):
         r = to['rr'][k]
         # Perform stage1 search first
-        vals = [np.dot(r, s['r']) for s in search]
+        vals = np.sum(r * nodes[:nnode], axis=1)
         max_stage1 = np.argmax(vals)
-        max_cos = vals[max_stage1]
 
         # Then look at the viable nodes
-        from_to_map[k] = 0
-        ntemp = search[max_stage1]['nvert']
-        verts = search[max_stage1]['verts']
-        vals = [np.dot(r, fro['rr'][verts[p]]) for p in range(ntemp)]
+        verts = search_verts[max_stage1]
+        vals = np.sum(r * fro['rr'][verts], axis=1)
         from_to_map[k] = np.argmax(vals)
 
     return from_to_map
@@ -423,42 +446,13 @@ def _get_nearest(to, fro):
 
 def _tessellate_sphere_surf(level, rad=1.0):
     """Return a surface structure instead of the details"""
-    rr, npt, itris, ntri = _tessellate_sphere(level)
+    rr, npt, tris, ntri = _tessellate_sphere(level)
     nn = rr.copy()
     rr *= rad
-    s = dict(rr=rr, np=npt, tris=itris, itris=itris, ntri=ntri, nuse=npt,
+    s = dict(rr=rr, np=npt, tris=tris, use_tris=tris, ntri=ntri, nuse=npt,
              nn=nn, inuse=np.ones(npt, int))
     s = _complete_surface_info(s)
     return s
-
-
-"""
-typedef struct {
-  point     pt[3];	/* Vertices of triangle */
-} triangle;
-
-typedef struct {
-  int       npoly;	/* # of triangles in object */
-  triangle *poly;	/* Triangles */
-} object;
-
-  static triangle octahedron[] = {
-    { { XPLUS, ZPLUS, YPLUS }},
-    { { YPLUS, ZPLUS, XMIN  }},
-    { { XMIN , ZPLUS, YMIN  }},
-    { { YMIN , ZPLUS, XPLUS }},
-    { { XPLUS, YPLUS, ZMIN  }},
-    { { YPLUS, XMIN , ZMIN  }},
-    { { XMIN , YMIN , ZMIN  }},
-    { { YMIN , XPLUS, ZMIN  }}};
-  /*
-   * A unit octahedron
-   */
-  static object oct = {
-    sizeof(octahedron) / sizeof(octahedron[0]),
-    &octahedron[0]
-  };
-"""
 
 
 def _norm_midpt(a, b):
@@ -470,21 +464,13 @@ def _norm_midpt(a, b):
 
 def _tessellate_sphere(mylevel):
     """Create a tessellation of a unit sphere"""
-    XPLUS = [1, 0, 0]
-    XMIN = [-1, 0, 0]
-    YPLUS = [0, 1, 0]
-    YMIN = [0, -1, 0]
-    ZPLUS = [0, 0, 1]
-    ZMIN = [0, 0, -1]
     # Vertices of a unit octahedron
-    octahedron = np.array([[XPLUS, ZPLUS, YPLUS],
-                           [YPLUS, ZPLUS, XMIN],
-                           [XMIN, ZPLUS, YMIN],
-                           [YMIN, ZPLUS, XPLUS],
-                           [XPLUS, YPLUS, ZMIN],
-                           [YPLUS, XMIN, ZMIN],
-                           [XMIN, YMIN, ZMIN],
-                           [YMIN, XPLUS, ZMIN]])
+    xp, xm = [1, 0, 0], [-1, 0, 0]
+    yp, ym = [0, 1, 0], [0, -1, 0]
+    zp, zm = [0, 0, 1], [0, 0, -1]
+    octahedron = np.array([[xp, zp, yp], [yp, zp, xp], [xp, zp, ym],
+                           [ym, zp, xp], [xp, yp, zm], [yp, xp, zm],
+                           [xp, ym, zm], [ym, xp, zm]])
 
     # A unit octahedron
     if mylevel < 1:
@@ -546,19 +532,16 @@ def _tessellate_sphere(mylevel):
                 nodes[nnode] = tri[j]
                 corners[k, j] = nnode
                 nnode += 1
-
     return nodes, nnode, corners, ntri
 
 
 def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
-    if hemi == 'lh':
-        s_id = FIFF.FIFFV_MNE_SURF_LEFT_HEMI
-    else:
-        s_id = FIFF.FIFFV_MNE_SURF_LEFT_HEMI
-    surf = read_surface(surf)
-    surf = dict(verts=surf[0], tris=surf[1], id=s_id)
+    """Load a surf and use the subdivided icosahedron to get points"""
+    # Based on load_source_space_surf_spacing() in load_source_space.c
+    surf = _read_surface_geom(surf)
 
     if ico is not None or oct is not None:
+        ### from mne_ico_downsample.c ###
         if ico is not None:
             logger.info('Doing the octahedral vertex picking...')
             ico_surf = _get_ico_surface(ico)
@@ -571,17 +554,17 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
         for k in range(nmap):
             if surf['inuse'][mmap[k]]:
                 # Try the nearest neighbors
-                neigh = surf['neighbor_vert'][map[k]]
-                nneigh = surf['nneighbor_vert'][map[k]]
+                neigh = surf['neighbor_vert'][mmap[k]]
                 was = mmap[k]
                 inds = np.where(np.logical_not(surf['inuse'][neigh]))[0]
                 if len(inds) == 0:
-                    raise RuntimeError('Could not find neighbor')
+                    raise RuntimeError('Could not find neighbor for vertex '
+                                       '%d / %d' % (k, nmap))
                 else:
                     mmap[k] = neigh[inds[-1]]
                 logger.info('Source space vertex moved from %d to %d '
                             'because of double occupation', was, mmap[k])
-            elif mmap[k] < 0 or map[k] > surf['np']:
+            elif mmap[k] < 0 or mmap[k] > surf['np']:
                 raise RuntimeError('Map number out of range (%d), this is '
                                    'probably due to inconsistent surfaces. '
                                    'Parts of the FreeSurfer reconstruction '
@@ -591,12 +574,12 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
 
         logger.info('Setting up the triangulation for the decimated surface')
         surf['nuse_tri'] = ico_surf['ntri']
-        surf['use_itris'] = ico_surf['itris']
-        ico_surf['itris'] = None
+        surf['use_tris'] = ico_surf['tris']
         for k in range(surf['nuse_tri']):
-            surf['use_itris'][k] = mmap[surf['use_itris'][k]]
+            surf['use_tris'][k] = mmap[surf['use_tris'][k]]
 
     elif spacing is not None:
+        ### from mne_make_source_space/decimate.c ###
         # This is based on MRISubsampleDist in FreeSurfer
         logger.info('Decimating...')
         d = np.empty(surf['np'], int)
@@ -610,16 +593,14 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
             d[neigh] = np.minimum(d[k] + 1, d[neigh])
 
         for k in range(surf['np'] - 1, -1, -1):
-            nneigh = surf['nneighbor_vert'][k]
             neigh = surf['neighbor_vert'][k]
-            for p in range(nneigh):
+            for p in range(len(neigh)):
                 d[k] = np.minimum(d[neigh[p]] + 1, d[k])
                 d[neigh[p]] = np.minimum(d[k] + 1, d[neigh[p]])
 
         if spacing == 2.0:
             for k in range(surf['np']):
                 if d[k] > 0:
-                    nneigh = surf['nneighbor_vert'][k]
                     neigh = surf['neighbor_vert'][k]
                     n = np.sum(d[neigh] == 0)
                     if n <= 2:
