@@ -1155,6 +1155,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
             n_channel_types += 1
             ch_types_used.append(t)
 
+    axes_init = axes  # remember if axes where given as input
     if axes is None:
         pl.clf()
         axes = [pl.subplot(n_channel_types, 1, c + 1)
@@ -1209,8 +1210,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 for h in hline:
                     pl.axhline(h, color='r', linestyle='--', linewidth=2)
 
-    pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
-    tight_layout()
+    if axes_init is None:
+        pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
+        tight_layout()
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
