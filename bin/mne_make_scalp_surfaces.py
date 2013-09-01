@@ -61,14 +61,20 @@ if __name__ == '__main__':
         print 'The FreeSurfer environment needs to be set up for this script'
         sys.exit(1)
 
-    if op.exists(op.join(subj_dir, subject, 'mri', 'T1.mgz')):
+    subj_path = op.join(subj_dir, subject)
+    if not op.exists(subj_path):
+    	print ('%s does not exits. Please check your subject directory '
+    	       'path.' % subj_path)
+    	sys.exit(1)
+
+    if op.exists(op.join(subj_path, 'mri', 'T1.mgz')):
         mri = 'T1.mgz'
     else:
         mri = 'T1'
 
     print '1. Creating a dense scalp tessellation with mkheadsurf...'
 
-    def check_seghead(surf_path=op.join(subj_dir, subject, 'surf')):
+    def check_seghead(surf_path=op.join(subj_path, 'surf')):
         for k in ['/lh.seghead', '/lh.smseghead']:
             surf = surf_path + k if op.exists(surf_path + k) else None
             if surf is not None:
@@ -80,7 +86,7 @@ if __name__ == '__main__':
         cmd = 'mkheadsurf -subjid %s -srcvol %s >/dev/null' % (subject, mri)
         my_run_cmd(cmd, 'mkheadsurf failed')
     else:
-        print '%s/%s/surf/%s already there' % (subj_dir, subject, my_seghead)
+        print '%s/surf/%s already there' % (subj_path, my_seghead)
         if not overwrite:
             print 'Use the --overwrite option to replace exisiting surfaces.'
             sys.exit()
