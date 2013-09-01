@@ -682,6 +682,17 @@ class _BaseSourceEstimate(object):
             self._data += a
         return self
 
+    def mean(self):
+        # Make a summary stc file with mean power between tmin and tmax.
+        data = self.data
+        tmax = self.tmin + self.tstep * data.shape[1]
+        tmin = (self.tmin + tmax) / 2.
+        tstep = (tmax - self.tmin)
+        mean_stc = SourceEstimate(self.data.mean(axis=1)[:, np.newaxis],
+                                      vertices=self.vertno, tmin=tmin,
+                                      tstep=tstep, subject=self.subject)
+        return mean_stc
+
     def __sub__(self, a):
         stc = copy.deepcopy(self)
         stc -= a
