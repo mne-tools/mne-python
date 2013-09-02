@@ -172,6 +172,9 @@ def test_stc_arithmetic():
     assert_array_equal(out[0], out[1].data)
     assert_array_equal(stc.sqrt().data, np.sqrt(stc.data))
 
+    stc_mean = stc.mean()
+    assert_array_equal(stc_mean.data, np.mean(stc.data, 1)[:, None])
+
 
 def test_stc_methods():
     """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
