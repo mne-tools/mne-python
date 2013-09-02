@@ -610,6 +610,7 @@ class _BaseSourceEstimate(object):
             self._data = self._data[:, mask]
 
         self._update_times()
+        return self  # return self for chaining methods
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,

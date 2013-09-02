@@ -1,9 +1,14 @@
 """
-====================================
-Generate label from source estimates
-====================================
+=================================================
+Generate a functional label from source estimates
+=================================================
 
-Threshold a source estimate and produce a label after smoothing.
+Threshold source estimates and produce a functional label. The label
+is typically the region of interest that contains high values.
+Here we compare the average time course in the anatomical label obtained
+by FreeSurfer segmentation and the average time course from the
+functional label. As expected the time course in the functional
+label yields higher values.
 
 """
 
@@ -30,10 +35,8 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
-# The purpose of this example is to show how to compute labels based on seed
-# growing activity.
-# we'll compute an ROI based on the peak power between 80 and 120 ms.
-# and we'll use the bankssts-lh as the anatomical seed ROI
+# Compute a label/ROI based on the peak power between 80 and 120 ms.
+# The label bankssts-lh is used for the comparison.
 aparc_label_name = 'bankssts-lh'
 tmin, tmax = 0.080, 0.120
 
@@ -46,12 +49,8 @@ src = inverse_operator['src']  # get the source space
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
                     pick_normal=True)
 
-# Make an STC in the time interval of interest
-stc_peak = stc.copy()
-stc_peak.crop(tmin, tmax)
-
-# Make a summary stc file with mean power between tmin and tmax.
-stc_mean = stc_peak.mean()
+# Make an STC in the time interval of interest and take the mean
+stc_mean = stc.copy().crop(tmin, tmax).mean()
 
 # use the stc_mean to generate a functional label
 # region growing is halted at 60% of the peak value within the
