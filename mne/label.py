@@ -654,9 +654,14 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
                 this_data = tmp
             offset = cnt_full + len(this_data)
             this_src_conn = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
-            clusters, _ = _find_clusters(np.abs(this_data).max(axis=1), 0.,
+            this_data_abs_max = np.abs(this_data).max(axis=1)
+            clusters, _ = _find_clusters(this_data_abs_max, 0.,
                                          connectivity=this_src_conn)
             cnt_full += len(this_data)
+            # Then order clusters in descending order based on maximum value
+            clusters_max = np.argsort([np.max(this_data_abs_max[c])
+                                       for c in clusters])[::-1]
+            clusters = [clusters[k] for k in clusters_max]
             clusters = [inuse[c] for c in clusters]
         else:
             clusters = [this_vertno[np.any(this_data, axis=1)]]

@@ -46,10 +46,12 @@ src = inverse_operator['src']  # get the source space
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
                     pick_normal=True)
 
-stc.crop(tmin, tmax)
+# Make an STC in the time interval of interest
+stc_peak = stc.copy()
+stc_peak.crop(tmin, tmax)
 
 # Make a summary stc file with mean power between tmin and tmax.
-stc_mean = stc.mean()
+stc_mean = stc_peak.mean()
 
 # use the stc_mean to generate a functional label
 # region growing is halted at 60% of the peak value within the
