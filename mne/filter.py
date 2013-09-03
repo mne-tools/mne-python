@@ -14,8 +14,8 @@ from .fixes import firwin2, filtfilt  # back port for old scipy
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from . import verbose
 from .parallel import parallel_func
-from .cuda import setup_cuda_fft_multiply_repeated, fft_multiply_repeated, \
-                  setup_cuda_fft_resample, fft_resample, _smart_pad
+from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
+                   setup_cuda_fft_resample, fft_resample, _smart_pad)
 
 
 def is_power2(num):
@@ -984,8 +984,8 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
     if freqs is not None:
         freqs = np.atleast_1d(freqs)
     elif method != 'spectrum_fit':
-            raise ValueError('freqs=None can only be used with method '
-                             'spectrum_fit')
+        raise ValueError('freqs=None can only be used with method '
+                         'spectrum_fit')
 
     # Only have to deal with notch_widths for non-autodetect
     if freqs is not None:
@@ -1079,7 +1079,9 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     # compute dpss windows
     n_tapers_max = int(2 * half_nbw)
     window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-        low_bias=False, interp_from=min(n_times, dpss_n_times_max))
+                                       low_bias=False,
+                                       interp_from=min(n_times,
+                                                       dpss_n_times_max))
 
     # drop the even tapers
     n_tapers = len(window_fun)
