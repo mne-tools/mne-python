@@ -20,6 +20,7 @@ class MockRtClient(object):
         Measurement info.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
     """
     def __init__(self, raw, verbose=None):
         self.raw = raw
@@ -30,17 +31,18 @@ class MockRtClient(object):
         self._last = dict()  # Last index for the event
 
     def get_measurement_info(self):
-        """Returns the measurement info
+        """Returns the measurement info.
 
         Returns
         -------
         self.info : dict
             The measurement info.
+
         """
         return self.info
 
     def send_data(self, epochs, picks, tmin, tmax, buffer_size):
-        """ Read from raw object and send them to RtEpochs for processing
+        """Read from raw object and send them to RtEpochs for processing.
 
         Parameters
         ----------
@@ -54,6 +56,7 @@ class MockRtClient(object):
             Time instant to stop receiving buffers.
         buffer_size : int
             Size of each buffer in terms of number of samples.
+
         """
         # this is important to emulate a thread, instead of automatically
         # or constantly sending data, we will invoke this explicitly to send
@@ -88,7 +91,7 @@ class MockRtClient(object):
 
     def fake_data(self, event_id, tmin, tmax, picks, stim_channel=None,
                   min_duration=0):
-        """Fake the data for a particular event-id
+        """Fake the data for a particular event-id.
 
         Parameters
         ----------
@@ -114,8 +117,9 @@ class MockRtClient(object):
 
         Returns
         -------
-        data : 2D array (channels x time)
-            The epoch data that is being faked
+        data : 2D array with shape [n_channels, n_times]
+            The epochs that are being faked
+
         """
 
         # Get the list of all events

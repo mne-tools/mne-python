@@ -9,13 +9,11 @@ import threading
 import logging
 
 from .. import verbose
-
 logger = logging.getLogger('mne')
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    """
-    Creates a threaded TCP server
+    """Creates a threaded TCP server
 
     Parameters
     ----------
@@ -45,13 +43,10 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 
 class TriggerHandler(SocketServer.BaseRequestHandler):
-    """
-    Request handler on the server side
-    """
+    """Request handler on the server side."""
+
     def send_trigger(self, trigger):
-        """
-        Create a queue of triggers to be delivered
-        """
+        """Create a queue of triggers to be delivered."""
 
         # If no attribute trigger queue in self, create it
         if not hasattr(self, '_tx_queue'):
@@ -60,9 +55,7 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
         self._tx_queue.append(trigger)
 
     def handle(self):
-        """
-        Method to handle requests on the server side
-        """
+        """Method to handle requests on the server side."""
 
         self.request.settimeout(None)
 
@@ -92,14 +85,15 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
 
 
 class StimServer(object):
-    """ Stimulation Server
+    """Stimulation Server
 
-    Server to communicate with StimClient(s)
+    Server to communicate with StimClient(s).
 
     Parameters
     ----------
     port : int
         The port to which the stimulation server must bind to
+
     """
 
     def __init__(self, port=4218):
@@ -126,7 +120,16 @@ class StimServer(object):
 
     @verbose
     def start(self, ip, verbose=None):
-        """Method to start the client
+        """Method to start the client.
+
+        Parameters
+        ----------
+        ip : str
+            IP address of the host where StimServer is running.
+
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
         """
 
         # Instantiate queue for communication between threads
@@ -145,8 +148,21 @@ class StimServer(object):
 
     @verbose
     def add_client(self, ip, sock, verbose=None):
-        """Add client and flag it as running
+        """Add client and flag it as running.
+
+        Parameters
+        ----------
+        ip : str
+            IP address of the host where StimServer is running.
+
+        sock : instance of socket.socket
+            The client socket.
+
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
         """
+
         logger.info("Adding client with ip = %s" % ip)
         self._client['ip'] = ip
         self._client['running'] = True
@@ -154,8 +170,15 @@ class StimServer(object):
 
     @verbose
     def shutdown(self, verbose=None):
-        """Method to shutdown the client and server
+        """Method to shutdown the client and server.
+
+        Parameters
+        ----------
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
         """
+
         logger.info("Shutting down ...")
         self._client['running'] = False
         self._running = False
@@ -165,21 +188,33 @@ class StimServer(object):
 
     @verbose
     def add_trigger(self, trigger, verbose=None):
-        """Method to add a trigger
+        """Method to add a trigger.
+
+        Parameters
+        ----------
+        trigger : int
+            The trigger to be added to the queue for sending to StimClient.
+
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
         """
+
         logger.info("Adding trigger %d" % trigger)
         self._tx_queue.put(trigger)
 
 
 def send_trigger_worker(stim_server, tx_queue):
-    """Worker thread that sends the data to the client
+    """Worker thread that sends the data to the client.
 
     Parameters
     ----------
     stim_server : Instance of StimServer
         The server which delivers the triggers
+
     tx_queue : instance of Queue
         The queue which contains the triggers to be sent
+
     """
 
     while stim_server._running:
@@ -203,6 +238,10 @@ class StimClient(object):
 
     timeout : float
         Communication timeout in seconds.
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
     """
 
     @verbose
@@ -230,12 +269,16 @@ class StimClient(object):
 
     @verbose
     def get_trigger(self, timeout=5.0, verbose=None):
-        """Method to get triggers from StimServer
+        """Method to get triggers from StimServer.
 
         Parameters
         ----------
         timeout : float
             maximum time to wait for a valid trigger from the server
+
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
         """
         start_time = time.time()  # init delay counter. Will stop iterations
 
