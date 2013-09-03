@@ -226,6 +226,12 @@ def test_stc_to_label():
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
 
+    labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3, connected=True)
+    assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=3,
+                  connected=True)
+    assert_true(len(labels_lh) == 1)
+    assert_true(len(labels_rh) == 1)
+
 
 def test_morph():
     """Test inter-subject label morphing

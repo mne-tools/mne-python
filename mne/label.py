@@ -15,11 +15,12 @@ import logging
 logger = logging.getLogger('mne')
 
 from .utils import get_subjects_dir, _check_subject
-from .source_estimate import _read_stc, mesh_edges, mesh_dist, morph_data, \
-                             SourceEstimate
+from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
+                              SourceEstimate, spatial_src_connectivity)
 from .surface import read_surface
 from .parallel import parallel_func, check_n_jobs
 from . import verbose
+from .stats.cluster_level import _find_clusters
 
 
 class Label(object):
@@ -570,7 +571,7 @@ def label_sign_flip(label, src):
     return flip
 
 
-def stc_to_label(stc, src=None, smooth=5, subjects_dir=None):
+def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     """Compute a label from the non-zero sources in an stc object.
 
     Parameters
@@ -583,13 +584,22 @@ def stc_to_label(stc, src=None, smooth=5, subjects_dir=None):
         Can be None if stc.subject is not None.
     smooth : int
         Number of smoothing steps to use.
+    connected : bool
+        If True a list of connected labels will be returned in each
+        hemisphere. The labels are ordered in decreasing order depending
+        of the maximum value in the stc.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
 
     Returns
     -------
-    labels : list of Labels
-        The generated labels. One per hemisphere containing sources.
+    labels : list of Labels | list of list of Labels
+        The generated labels. If connected is False, it returns
+        a list of Labels (One per hemisphere). If no Label is available
+        in an hemisphere, None is returned. If connected is True,
+        it returns for each hemisphere a list of connected labels
+        ordered in decreasing order depending of the maximum value in the stc.
+        If no Label is available in an hemisphere, an empty list is returned.
     """
     src = stc.subject if src is None else src
     if src is None:
@@ -611,40 +621,81 @@ def stc_to_label(stc, src=None, smooth=5, subjects_dir=None):
                                       'rh.white'))
         rr = [rr_lh, rr_rh]
         tris = [tris_lh, tris_rh]
+        if connected:
+            raise ValueError('The option to return only connected labels'
+                             ' is only available if a source space is passed'
+                             ' as parameter.')
     else:
         if len(src) != 2:
             raise ValueError('source space should contain the 2 hemispheres')
-        tris = [src[0]['tris'], src[1]['tris']]
         rr = [1e3 * src[0]['rr'], 1e3 * src[1]['rr']]
+        tris = [src[0]['tris'], src[1]['tris']]
+        src_conn = spatial_src_connectivity(src).tocsr()
 
     labels = []
     cnt = 0
-    for hemi, this_vertno, this_tris, this_rr in \
-                                    zip(['lh', 'rh'], stc.vertno, tris, rr):
-        if len(this_vertno) == 0:
-            continue
+    cnt_full = 0
+    for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
+                                    zip(['lh', 'rh'], stc.vertno, tris, rr)):
+
+        this_data = stc.data[cnt:cnt + len(this_vertno)]
+
         e = mesh_edges(this_tris)
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
-        this_data = stc.data[cnt:cnt + len(this_vertno)]
-        cnt += len(this_vertno)
         e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = this_vertno[np.any(this_data, axis=1)]
-        if len(idx_use) == 0:
-            continue
-        for k in range(smooth):
-            e_use = e[:, idx_use]
-            data1 = e_use * np.ones(len(idx_use))
-            idx_use = np.where(data1)[0]
 
-        label = Label(vertices=idx_use,
-                      pos=this_rr[idx_use],
-                      values=np.ones(len(idx_use)),
-                      hemi=hemi,
-                      comment='Label from stc',
-                      subject=subject)
+        if connected:
+            if not isinstance(src, basestring):  # XXX : ugly
+                inuse = np.where(src[hemi_idx]['inuse'])[0]
+                tmp = np.zeros((len(inuse), this_data.shape[1]))
+                this_vertno_idx = np.searchsorted(inuse, this_vertno)
+                tmp[this_vertno_idx] = this_data
+                this_data = tmp
+            offset = cnt_full + len(this_data)
+            this_src_conn = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
+            this_data_abs_max = np.abs(this_data).max(axis=1)
+            clusters, _ = _find_clusters(this_data_abs_max, 0.,
+                                         connectivity=this_src_conn)
+            cnt_full += len(this_data)
+            # Then order clusters in descending order based on maximum value
+            clusters_max = np.argsort([np.max(this_data_abs_max[c])
+                                       for c in clusters])[::-1]
+            clusters = [clusters[k] for k in clusters_max]
+            clusters = [inuse[c] for c in clusters]
+        else:
+            clusters = [this_vertno[np.any(this_data, axis=1)]]
 
-        labels.append(label)
+        cnt += len(this_vertno)
+
+        clusters = [c for c in clusters if len(c) > 0]
+
+        if len(clusters) == 0:
+            if not connected:
+                this_labels = None
+            else:
+                this_labels = []
+        else:
+            this_labels = []
+            for c in clusters:
+                idx_use = c
+                for k in range(smooth):
+                    e_use = e[:, idx_use]
+                    data1 = e_use * np.ones(len(idx_use))
+                    idx_use = np.where(data1)[0]
+
+                label = Label(vertices=idx_use,
+                              pos=this_rr[idx_use],
+                              values=np.ones(len(idx_use)),
+                              hemi=hemi,
+                              comment='Label from stc',
+                              subject=subject)
+                this_labels.append(label)
+
+            if not connected:
+                this_labels = this_labels[0]
+
+        labels.append(this_labels)
 
     return labels
 
