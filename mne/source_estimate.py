@@ -18,9 +18,9 @@ logger = logging.getLogger('mne')
 from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
-from .utils import get_subjects_dir, _check_subject, \
-                   _check_pandas_index_arguments, _check_pandas_installed, \
-                   deprecated
+from .utils import (get_subjects_dir, _check_subject,
+                    _check_pandas_index_arguments, _check_pandas_installed,
+                    deprecated)
 from .viz import plot_source_estimates
 from . import verbose
 from . fixes import in1d
@@ -688,10 +688,10 @@ class _BaseSourceEstimate(object):
         data = self.data
         tmax = self.tmin + self.tstep * data.shape[1]
         tmin = (self.tmin + tmax) / 2.
-        tstep = (tmax - self.tmin)
+        tstep = tmax - self.tmin
         mean_stc = SourceEstimate(self.data.mean(axis=1)[:, np.newaxis],
-                                      vertices=self.vertno, tmin=tmin,
-                                      tstep=tstep, subject=self.subject)
+                                  vertices=self.vertno, tmin=tmin,
+                                  tstep=tstep, subject=self.subject)
         return mean_stc
 
     def __sub__(self, a):
