@@ -18,9 +18,9 @@ logger = logging.getLogger('mne')
 from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
-from .utils import get_subjects_dir, _check_subject, \
-                   _check_pandas_index_arguments, _check_pandas_installed, \
-                   deprecated
+from .utils import (get_subjects_dir, _check_subject,
+                    _check_pandas_index_arguments, _check_pandas_installed,
+                    deprecated)
 from .viz import plot_source_estimates
 from . import verbose
 from . fixes import in1d
@@ -610,6 +610,7 @@ class _BaseSourceEstimate(object):
             self._data = self._data[:, mask]
 
         self._update_times()
+        return self  # return self for chaining methods
 
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
@@ -681,6 +682,17 @@ class _BaseSourceEstimate(object):
         else:
             self._data += a
         return self
+
+    def mean(self):
+        # Make a summary stc file with mean power between tmin and tmax.
+        data = self.data
+        tmax = self.tmin + self.tstep * data.shape[1]
+        tmin = (self.tmin + tmax) / 2.
+        tstep = tmax - self.tmin
+        mean_stc = SourceEstimate(self.data.mean(axis=1)[:, np.newaxis],
+                                  vertices=self.vertno, tmin=tmin,
+                                  tstep=tstep, subject=self.subject)
+        return mean_stc
 
     def __sub__(self, a):
         stc = copy.deepcopy(self)
