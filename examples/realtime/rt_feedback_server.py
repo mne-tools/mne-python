@@ -69,7 +69,7 @@ score_c1, score_c2, score_x = [], [], []
 for ii in range(50):
 
     # Tell the stim_client about the next stimuli
-    stim_server.add_trigger(ev_list[ii])
+    stim_server.add_trigger(ev_list[ii], verbose=False)
 
     # Collecting data
     if ii == 0:

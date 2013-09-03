@@ -7,6 +7,9 @@ import socket
 import SocketServer
 import threading
 import logging
+
+from .. import verbose
+
 logger = logging.getLogger('mne')
 
 
@@ -56,12 +59,12 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
 
         self._tx_queue.append(trigger)
 
-        print "Trigger Queue at the moment is " + str(self._tx_queue)
-
     def handle(self):
         """
         Method to handle requests on the server side
         """
+
+        self.request.settimeout(None)
 
         while self.server.stim_server._running:
 
@@ -71,7 +74,7 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
                 # Add stim_server._client
                 self.server.stim_server.add_client(self.client_address[0],
                                                    self)
-                self.request.settimeout(None)
+                self.request.sendall("Client added")
 
             if data == 'Give me a trigger':
 
@@ -82,7 +85,7 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
                 # Pop triggers and send them
                 if len(self._tx_queue) > 0:
                     trigger = self._tx_queue.pop(0)
-                    print "Trigger " + str(trigger) + " popped and sent"
+                    logger.info("Trigger %s popped and sent" % (str(trigger)))
                     self.request.sendall(str(trigger))
                 else:
                     self.request.sendall("Empty")
@@ -121,7 +124,8 @@ class StimServer(object):
         self._running = False
         self._client = dict()
 
-    def start(self, ip):
+    @verbose
+    def start(self, ip, verbose=None):
         """Method to start the client
         """
 
@@ -139,28 +143,31 @@ class StimServer(object):
                                                  args=(self, self._tx_queue))
             self._send_thread.start()
 
-    def add_client(self, ip, sock):
+    @verbose
+    def add_client(self, ip, sock, verbose=None):
         """Add client and flag it as running
         """
-        print "Adding client with ip = " + ip
+        logger.info("Adding client with ip = %s" % ip)
         self._client['ip'] = ip
         self._client['running'] = True
         self._client['socket'] = sock
 
-    def shutdown(self):
+    @verbose
+    def shutdown(self, verbose=None):
         """Method to shutdown the client and server
         """
-        print "Shutting down ..."
+        logger.info("Shutting down ...")
         self._client['running'] = False
         self._running = False
         self._data.shutdown()
         self._data.server_close()
         self._data.socket.close()
 
-    def add_trigger(self, trigger):
+    @verbose
+    def add_trigger(self, trigger, verbose=None):
         """Method to add a trigger
         """
-        print "Adding trigger %d" % trigger
+        logger.info("Adding trigger %d" % trigger)
         self._tx_queue.put(trigger)
 
 
@@ -179,7 +186,6 @@ def send_trigger_worker(stim_server, tx_queue):
 
         trigger = tx_queue.get()
         stim_server._client['socket'].send_trigger(trigger)
-        print "stim server sending trigger %d" % trigger
 
 
 class StimClient(object):
@@ -199,24 +205,31 @@ class StimClient(object):
         Communication timeout in seconds.
     """
 
-    def __init__(self, host, port=4218, timeout=5.0):
+    @verbose
+    def __init__(self, host, port=4218, timeout=5.0, verbose=None):
         self._host = host
         self._timeout = timeout
         self._port = port
         try:
-            print "Setting up client socket"
+            logger.info("Setting up client socket")
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._sock.settimeout(timeout)
             self._sock.connect((host, port))
-            print "Establishing connection with server"
+            logger.info("Establishing connection with server")
             self._sock.send("Add me")
+
+            # wait till confirmation from server
+            while self._sock.recv(1024) != 'Client added':
+                pass
+
         except Exception:
             raise RuntimeError('Setting up acquisition <-> stimulation '
                                'computer connection (host: %s '
                                'port: %d) failed. Make sure StimServer '
                                'is running.' % (host, port))
 
-    def get_trigger(self, timeout=5.0):
+    @verbose
+    def get_trigger(self, timeout=5.0, verbose=None):
         """Method to get triggers from StimServer
 
         Parameters
@@ -232,15 +245,15 @@ class StimClient(object):
 
                 # Raise timeout error
                 if current_time > (start_time + timeout):
-                        print "received nothing"
+                        logger.info("received nothing")
                         return None
 
                 self._sock.send("Give me a trigger")
                 trigger = self._sock.recv(1024)
 
                 if trigger != 'Empty':
-                    print "received trigger " + trigger
+                    logger.info("received trigger %s" % str(trigger))
                     return int(trigger)
 
             except RuntimeError as err:
-                print 'Cannot receive triggers: %s' % err
+                logger.info('Cannot receive triggers: %s' % (err))
