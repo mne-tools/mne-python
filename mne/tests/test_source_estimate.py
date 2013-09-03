@@ -459,9 +459,10 @@ def test_spatio_temporal_src_connectivity():
     assert_array_equal(connectivity.todense(), connectivity3.todense())
     # add test for source space connectivity with omitted vertices
     inverse_operator = read_inverse_operator(fname_inv)
+    warnings.simplefilter("always")
     with warnings.catch_warnings(record=True) as w:
-        connectivity = spatio_temporal_src_connectivity(
-                                            inverse_operator['src'], n_times=2)
+        src_ = inverse_operator['src']
+        connectivity = spatio_temporal_src_connectivity(src_, n_times=2)
         assert len(w) == 1
     a = connectivity.shape[0] / 2
     b = sum([s['nuse'] for s in inverse_operator['src']])
