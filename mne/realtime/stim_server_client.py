@@ -63,13 +63,13 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
 
             data = self.request.recv(1024)  # clip input at 1Kb
 
-            if data == 'Add me':
+            if data == 'add client':
                 # Add stim_server._client
                 self.server.stim_server.add_client(self.client_address[0],
                                                    self)
                 self.request.sendall("Client added")
 
-            if data == 'Give me a trigger':
+            if data == 'get trigger':
 
                 # If the method self has trigger queue, create it
                 if not hasattr(self, '_tx_queue'):
@@ -91,15 +91,18 @@ class StimServer(object):
 
     Parameters
     ----------
+    ip : str
+        IP address of the host where StimServer is running.
+
     port : int
         The port to which the stimulation server must bind to
 
     """
 
-    def __init__(self, port=4218):
+    def __init__(self, ip='localhost', port=4218):
 
         # Start a threaded TCP server, binding to localhost on specified port
-        self._data = ThreadedTCPServer(('localhost', port),
+        self._data = ThreadedTCPServer((ip, port),
                                        TriggerHandler, self)
 
         # This is done to avoid "[Errno 98] Address already in use"
@@ -119,14 +122,11 @@ class StimServer(object):
         self._client = dict()
 
     @verbose
-    def start(self, ip, verbose=None):
+    def start(self, verbose=None):
         """Method to start the client.
 
         Parameters
         ----------
-        ip : str
-            IP address of the host where StimServer is running.
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -255,7 +255,7 @@ class StimClient(object):
             self._sock.settimeout(timeout)
             self._sock.connect((host, port))
             logger.info("Establishing connection with server")
-            self._sock.send("Add me")
+            self._sock.send("add client")
 
             # wait till confirmation from server
             while self._sock.recv(1024) != 'Client added':
@@ -291,7 +291,7 @@ class StimClient(object):
                         logger.info("received nothing")
                         return None
 
-                self._sock.send("Give me a trigger")
+                self._sock.send("get trigger")
                 trigger = self._sock.recv(1024)
 
                 if trigger != 'Empty':

@@ -30,8 +30,8 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.fiff.Raw(raw_fname, preload=True)
 
 # Instantiating stimulation server
-stim_server = StimServer(port=4218)
-stim_server.start('localhost')
+stim_server = StimServer('localhost', port=4218)
+stim_server.start()
 
 # Give time to start the client
 time.sleep(10)
@@ -120,6 +120,9 @@ for ii in range(50):
         pl.xlabel('Trials')
         pl.ylabel('Classification score (% correct)')
         pl.title('Real-time feedback')
+        pl.ylim([0, 100])
+        pl.xticks(score_x[-5:])
+        pl.legend(('LV', 'RV'), loc='upper left')
         pl.show()
 
 stim_server.shutdown()
