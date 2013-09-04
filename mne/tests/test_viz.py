@@ -159,6 +159,12 @@ def test_plot_evoked():
                   axes='foo')
 
 
+def test_plot_epochs():
+  """ Test plotting epochs
+  """
+  epochs.plot([0, 1], picks=[0, 2, 3], title_str='%s')
+
+
 @requires_mayavi
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates

@@ -3005,3 +3005,73 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     if show is True:
         webbrowser.open_new_tab(fname_out)
     return fname_out
+
+
+def plot_epochs(epochs, epoch_idx, picks=None, title_str='#%003i',
+                show=True):
+    """ Visualize single trials using Trellis plot.
+
+    Parameters
+    ----------
+
+    epochs : instance of Epochs
+        The epochs object
+    epoch_idx : array-like | int
+        The epochs to visualize.
+    picks : array-like | None
+        Channels to be included. If None only good data channels are used.
+        Defaults to None
+    title_str : None | str
+        The string formatting to use for axes titles. If None, no titles
+        will be shown. Defaults expand to ``Trial 001, Trial 002, ...``
+    show : bool
+        Whether to show the figure or not.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
+    """
+    import pylab as pl
+    scalings = _mutable_defaults(('scalings_plot_raw', None))[0]
+
+    if np.isscalar(epoch_idx):
+        epoch_idx = [epoch_idx]
+    if picks is None:
+        picks = pick_types(epochs.info, meg=True, eeg=True, exclude='bads')
+
+    times = epochs.times * 1e3
+    n_channels = len(picks)
+    types = [channel_type(epochs.info, idx) for idx in
+             picks]
+    data = np.zeros((len(epoch_idx), n_channels, len(times)))
+
+    for ii, epoch in enumerate(epochs.get_data()[epoch_idx][:, picks]):
+        for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
+            data[ii, jj] = this_channel * scalings[this_type]
+
+    # prepare data for iteration
+    if len(data) == 1:
+        nrow = ncol = 1
+    elif len(data) <= 5:
+        nrow, ncol = 1, len(data)
+    else:
+        nrow, ncol = int(math.ceil(len(data) / 5.)), 5
+
+    fig, axes = pl.subplots(nrow, ncol)
+    axes = [axes] if ncol == nrow == 1 else axes.flat
+    for ax in axes[len(data):]:  # hide unused axes
+        ax.set_visible(False)
+
+    vmin, vmax = data.min(), data.max()
+    for ii, data_, ax in zip(epoch_idx, data, axes):
+        ax.plot(times, data_.T, color='k')
+        if title_str is not None:
+            ax.set_title(title_str % ii, fontsize=12)
+        ax.set_ylim(vmin, vmax)
+        ax.set_yticks([])
+        ax.set_xticks([])
+    tight_layout()
+    if show is True:
+        pl.show()
+    return fig

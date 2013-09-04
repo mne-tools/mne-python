@@ -9,6 +9,7 @@ data and then saved to disk.
 
 """
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis A. Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -43,6 +44,10 @@ picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6))
+
+# plot a few single trials
+epochs.plot(range(15))
+
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
 evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
