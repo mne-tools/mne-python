@@ -105,6 +105,7 @@ class StimServer(object):
         self._data = ThreadedTCPServer((ip, port),
                                        TriggerHandler, self)
 
+    def __enter__(self):
         # This is done to avoid "[Errno 98] Address already in use"
         self._data.allow_reuse_address = True
         self._data.server_bind()
@@ -120,6 +121,10 @@ class StimServer(object):
 
         self._running = False
         self._client = dict()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.shutdown()
 
     @verbose
     def start(self, verbose=None):
