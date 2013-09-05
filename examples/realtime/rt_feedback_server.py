@@ -30,6 +30,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.fiff.Raw(raw_fname, preload=True)
 
 # Instantiating stimulation server
+# The with statement is necessary to ensure a clean exit
 with StimServer('localhost', port=4218) as stim_server:
 
     stim_server.start()
@@ -86,8 +87,7 @@ with StimServer('localhost', port=4218) as stim_server:
             time.sleep(1)  # faking the isi
             y = np.append(y, ev_list[ii])
 
-            # Start decoding after collecting sufficient data
-
+        # Start decoding after collecting sufficient data
         if ii >= 10:
             # Now start doing rtfeedback
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,

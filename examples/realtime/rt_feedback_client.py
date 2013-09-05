@@ -81,5 +81,5 @@ for ii in range(50):
     while timer2.getTime() < 0:
         pass
 
-core.quit()
 mywin.close()
+core.quit()

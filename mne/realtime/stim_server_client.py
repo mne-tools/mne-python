@@ -6,10 +6,12 @@ import time
 import socket
 import SocketServer
 import threading
+
 import logging
+logger = logging.getLogger('mne')
+logger.propagate = False
 
 from .. import verbose
-logger = logging.getLogger('mne')
 
 
 class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
