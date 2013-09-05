@@ -130,13 +130,13 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
     try:
         import pylab as pl
         pl.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
-    except:
+    except Exception as err:
         msg = ('Matplotlib function \'tight_layout\'%s.'
                ' Skipping subpplot adjusment.')
         if not hasattr(pl, 'tight_layout'):
             case = ' is not available'
         else:
-            case = ' seems corrupted'
+            case = ' seems corrupted (error message: %s)' % err
         warn(msg % case)
 
 

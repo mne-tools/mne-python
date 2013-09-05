@@ -6,8 +6,9 @@
 import os
 import os.path as op
 from functools import wraps
+import warnings
 
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 from copy import deepcopy
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -22,6 +23,8 @@ from mne.preprocessing import ICA, ica_find_ecg_events, ica_find_eog_events,\
 from mne.preprocessing.ica import score_funcs, _check_n_pca_components
 from mne.fiff.meas_info import Info
 from mne.utils import set_log_file, check_sklearn_version, _TempDir
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 tempdir = _TempDir()
 
@@ -223,7 +226,8 @@ def test_ica_additional():
     for cov in (None, test_cov):
         ica = ICA(noise_cov=cov, n_components=3, max_pca_components=4,
                   n_pca_components=4)
-        ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
+        with warnings.catch_warnings(True):  # ICA does not converge
+            ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
         sources = ica.get_sources_epochs(epochs)
         assert_true(ica.mixing_matrix_.shape == (3, 3))
         assert_true(ica.unmixing_matrix_.shape == (3, 3))
@@ -322,14 +326,18 @@ def test_ica_additional():
     ecg_scores = ica.find_sources_raw(raw, target='MEG 1531',
                                       score_func='pearsonr')
 
-    ecg_events = ica_find_ecg_events(raw, sources[np.abs(ecg_scores).argmax()])
+    with warnings.catch_warnings(True):  # filter attenuation warning
+        ecg_events = ica_find_ecg_events(raw,
+                                         sources[np.abs(ecg_scores).argmax()])
 
     assert_true(ecg_events.ndim == 2)
 
     # eog functionality
     eog_scores = ica.find_sources_raw(raw, target='EOG 061',
                                       score_func='pearsonr')
-    eog_events = ica_find_eog_events(raw, sources[np.abs(eog_scores).argmax()])
+    with warnings.catch_warnings(True):  # filter attenuation warning
+        eog_events = ica_find_eog_events(raw,
+                                         sources[np.abs(eog_scores).argmax()])
 
     assert_true(eog_events.ndim == 2)
 
@@ -397,4 +405,4 @@ def test_ica_reject_buffer():
                       tstep=0.01)
     assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in open(drop_log) if 'detected' in l]
-    assert_true(len(log) == 1)
+    assert_equal(len(log), 1)

@@ -18,6 +18,8 @@ from mne import read_cov, Epochs, merge_events, \
 from mne.fiff import Raw, pick_channels_cov, pick_channels, Evoked, pick_types
 from mne.utils import _TempDir
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 cov_gz_fname = op.join(base_dir, 'test-cov.fif.gz')
@@ -145,10 +147,10 @@ def test_cov_estimation_with_triggers():
     assert_raises(ValueError, compute_covariance, epochs)
     assert_raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(True) as w:  # too few samples warning
         cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
         cov = compute_covariance(epochs, projs=[])
-        assert_true(len(w) == 1)
+    assert_true(len(w) == 2)
 
     # test new dict support
     epochs = Epochs(raw, events, dict(a=1, b=2, c=3, d=4), tmin=-0.2, tmax=0,

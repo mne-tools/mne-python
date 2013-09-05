@@ -109,6 +109,8 @@ def test_compute_epochs_csd():
 
 
 def test_compute_epochs_csd_on_artificial_data():
+    """Test computing CSD on artificial data
+    """
     epochs, epochs_sin = _get_data()
     sfreq = epochs_sin.info['sfreq']
 
