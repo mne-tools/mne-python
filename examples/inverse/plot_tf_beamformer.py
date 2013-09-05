@@ -14,7 +14,10 @@ dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 
 print __doc__
 
+import os.path as op
+
 import numpy as np
+import matplotlib.pyplot as pl
 
 import logging
 logger = logging.getLogger('mne')
@@ -56,23 +59,32 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 ###############################################################################
 # New T-F Beamformer Code
 
+# Using a label to make example run faster
+label = 'Aud-lh'
+fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+label = mne.read_label(fname_label)
+
 # Just noting of reference values used in the Dalal paper for frequency bins
 # (the high gamma band was further subdivided) and time window lengths
 #freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
 #window_lenghts = [300, 200, 150]  # ms
 
 # Setting window length and time step equal for a start
-window_length = 0.2  # s
+window_length = 0.2  # s; currently unused
 time_step = 0.2  # s
 sfreq = epochs.info['sfreq']
 time_step = np.round(time_step * sfreq) / sfreq
 times = epochs.times
 n_steps = int(np.floor((times[-1] - times[0]) / time_step))
+time_bounds = [times[0]]
 
 # Setting frequency bins
+# TODO: The gap between 55 and 65 Hz should be marked on the final spectrogram
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
+# TODO: This should be calculated from freq_bins
+freq_bounds = [4, 12, 30, 55, 300]
 
-results = []
+source_power = []
 
 for i_time in range(n_steps):
     if i_time == 0:
@@ -80,6 +92,7 @@ for i_time in range(n_steps):
     else:
         tmin = tmax
     tmax = times[0] + (i_time + 1) * time_step
+    time_bounds.append(tmax)
 
     # Calculating data and noise CSD matrices for current time window
     data_csds = []
@@ -103,6 +116,21 @@ for i_time in range(n_steps):
                                        fsum=True)
         noise_csds.append(noise_csd)
 
-    stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
+    stc = dics_source_power(epochs.info, forward, noise_csds, data_csds,
+                            label=label)
 
-    results.append(stc.data)
+    source_power.append(stc.data)
+
+source_power = np.array(source_power)
+max_index = np.unravel_index(source_power.argmax(), source_power.shape)
+max_source = max_index[1]
+
+x, y = np.meshgrid(time_bounds, freq_bounds)
+pl.pcolor(x, y, source_power[:, max_source, :].T, cmap=pl.cm.jet)
+pl.yscale('log')
+ax = pl.gca()
+ax.set_yticks(freq_bounds)
+ax.set_yticklabels(freq_bounds)
+pl.ylim(freq_bounds[0], freq_bounds[-1])
+pl.colorbar()
+pl.show()
