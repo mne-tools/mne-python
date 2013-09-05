@@ -38,7 +38,8 @@ def _get_conditions():
 
 
 def test_cluster_permutation_test():
-    """Test cluster level permutations tests."""
+    """Test cluster level permutations tests
+    """
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
         _get_conditions()
     for condition1, condition2 in zip((condition1_1d, condition1_2d),
@@ -65,7 +66,8 @@ def test_cluster_permutation_test():
 
 
 def test_cluster_permutation_t_test():
-    """Test cluster level permutations T-test."""
+    """Test cluster level permutations T-test
+    """
     condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
         _get_conditions()
 
@@ -111,7 +113,8 @@ def test_cluster_permutation_t_test():
 
 
 def test_cluster_permutation_with_connectivity():
-    """Test cluster level permutations with connectivity matrix."""
+    """Test cluster level permutations with connectivity matrix
+    """
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
@@ -334,7 +337,8 @@ def test_permutation_connectivity_equiv():
 
 
 def spatio_temporal_cluster_test_connectivity():
-    """Test cluster level permutations with and without connectivity """
+    """Test cluster level permutations with and without connectivity
+    """
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
@@ -385,7 +389,7 @@ def ttest_1samp(X):
 
 
 def test_summarize_clusters():
-    """ test summary stcs
+    """Test cluster summary stcs
     """
     clu = (np.random.random([1, 20484]),
            [(np.array([0]), np.array([0, 2, 4]))],

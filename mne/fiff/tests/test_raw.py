@@ -780,6 +780,8 @@ def test_with_statement():
 
 
 def test_compensation_raw():
+    """Test Raw compensation
+    """
     raw1 = Raw(ctf_comp_fname, compensation=None)
     assert_true(raw1.comp is None)
     data1, times1 = raw1[:, :]

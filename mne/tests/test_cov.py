@@ -147,10 +147,10 @@ def test_cov_estimation_with_triggers():
     assert_raises(ValueError, compute_covariance, epochs)
     assert_raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(True) as w:  # too few samples warning
         cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
         cov = compute_covariance(epochs, projs=[])
-        assert_true(len(w) == 1)
+    assert_true(len(w) == 2)
 
     # test new dict support
     epochs = Epochs(raw, events, dict(a=1, b=2, c=3, d=4), tmin=-0.2, tmax=0,
