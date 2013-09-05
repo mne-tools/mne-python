@@ -36,7 +36,7 @@ from .filter import resample, detrend
 from .event import _read_events_fif
 from . import verbose
 from .fixes import in1d
-from .viz import _mutable_defaults
+from .viz import _mutable_defaults, plot_epochs
 
 
 class _BaseEpochs(ProjMixin):
@@ -346,6 +346,38 @@ class _BaseEpochs(ProjMixin):
     @property
     def ch_names(self):
         return self.info['ch_names']
+
+    def plot(self, epoch_idx=None, picks=None, scalings=None,
+             title_str='#%003i', show=True):
+        """ Visualize single trials using Trellis plot.
+
+        Parameters
+        ----------
+        epoch_idx : array-like | int | None
+            The epochs to visualize. If None, the frist 20 epochs are shoen.
+            Defaults to None.
+        picks : array-like | None
+            Channels to be included. If None only good data channels are used.
+            Defaults to None
+            scalings : dict | None
+        scalings : dict | None
+            Scale factors for the traces. If None, defaults to:
+            `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1,
+                  chpi=1e-4)`
+        title_str : None | str
+            The string formatting to use for axes titles. If None, no titles
+            will be shown. Defaults expand to ``#001, #002, ...``
+        show : bool
+            Whether to show the figure or not.
+
+        Returns
+        -------
+        fig : Instance of matplotlib.figure.Figure
+            The figure.
+        """
+        plot_epochs(self, epoch_idx=epoch_idx, picks=picks, scalings=scalings,
+                    title_str=title_str, show=show)
 
 
 class Epochs(_BaseEpochs):
