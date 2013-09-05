@@ -18,6 +18,8 @@ from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws, FIFF, \
 from mne import concatenate_events, find_events
 from mne.utils import _TempDir, requires_nitime, requires_pandas
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 base_dir = op.join(op.dirname(__file__), 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
 fif_gz_fname = op.join(base_dir, 'test_raw.fif.gz')
@@ -368,8 +370,8 @@ def test_io_complex():
         with warnings.catch_warnings(record=True) as w:
             raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5,
                         overwrite=True)
-            # warning only gets thrown on first instance
-            assert_equal(len(w), 1 if di == 0 else 0)
+            # warning gets thrown on every instance b/c simplifilter('always')
+            assert_equal(len(w), 1)
 
         raw2 = Raw(op.join(tempdir, 'raw.fif'))
         raw2_data, _ = raw2[picks, :]
