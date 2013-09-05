@@ -1868,7 +1868,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     data = data[:, picks]
 
     # prepare data for iteration
-    fig, axes = _prepare_trellis(data, max_col=5)
+    fig, axes = _prepare_trellis(len(data), max_col=5)
 
     if vmax is None:
         vrange = np.array([f(data) for f in np.min, np.max])
@@ -2997,20 +2997,20 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     return fname_out
 
 
-def _prepare_trellis(data, max_col):
+def _prepare_trellis(n_cells, max_col):
     """Aux function
     """
     import pylab as pl
-    if len(data) == 1:
+    if n_cells == 1:
         nrow = ncol = 1
-    elif len(data) <= max_col:
-        nrow, ncol = 1, len(data)
+    elif n_cells <= max_col:
+        nrow, ncol = 1, n_cells
     else:
-        nrow, ncol = int(math.ceil(len(data) / float(max_col))), max_col
+        nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
 
     fig, axes = pl.subplots(nrow, ncol)
     axes = [axes] if ncol == nrow == 1 else axes.flat
-    for ax in axes[len(data):]:  # hide unused axes
+    for ax in axes[n_cells:]:  # hide unused axes
         ax.set_visible(False)
     return fig, axes
 
@@ -3055,12 +3055,15 @@ def plot_epochs(epochs, epoch_idx, picks=None, scalings=None,
     n_channels = len(picks)
     types = [channel_type(epochs.info, idx) for idx in
              picks]
-    # preallocate data + scale
+
+    # preallocation needed for min / max scaling
     data = np.zeros((len(epoch_idx), n_channels, len(times)))
     for ii, epoch in enumerate(epochs.get_data()[epoch_idx][:, picks]):
         for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
             data[ii, jj] = this_channel / scalings[this_type]
+    vmin, vmax = data.min(), data.max()
 
+    # handle bads
     bad_idx = None
     ch_names = epochs.ch_names
     bads = epochs.info['bads']
@@ -3071,9 +3074,7 @@ def plot_epochs(epochs, epoch_idx, picks=None, scalings=None,
     else:
         good_idx = np.arange(n_channels)
 
-    fig, axes = _prepare_trellis(data, max_col=5)
-
-    vmin, vmax = data.min(), data.max()
+    fig, axes = _prepare_trellis(len(data), max_col=5)
     for ii, data_, ax in zip(epoch_idx, data, axes):
         ax.plot(times, data_[good_idx].T, color='k')
         if bad_idx is not None:
