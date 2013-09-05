@@ -1868,17 +1868,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     data = data[:, picks]
 
     # prepare data for iteration
-    if len(data) == 1:
-        nrow = ncol = 1
-    elif len(data) <= 5:
-        nrow, ncol = 1, len(data)
-    else:
-        nrow, ncol = int(math.ceil(len(data) / 5.)), 5
-
-    fig, axes = pl.subplots(nrow, ncol)
-    axes = [axes] if ncol == nrow == 1 else axes.flat
-    for ax in axes[len(data):]:  # hide unused axes
-        ax.set_visible(False)
+    fig, axes = _prepare_trellis(data, max_col=5)
 
     if vmax is None:
         vrange = np.array([f(data) for f in np.min, np.max])
@@ -3007,8 +2997,26 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     return fname_out
 
 
-def plot_epochs(epochs, epoch_idx, picks=None, title_str='#%003i',
-                show=True):
+def _prepare_trellis(data, max_col):
+    """Aux function
+    """
+    import pylab as pl
+    if len(data) == 1:
+        nrow = ncol = 1
+    elif len(data) <= max_col:
+        nrow, ncol = 1, len(data)
+    else:
+        nrow, ncol = int(math.ceil(len(data) / float(max_col))), max_col
+
+    fig, axes = pl.subplots(nrow, ncol)
+    axes = [axes] if ncol == nrow == 1 else axes.flat
+    for ax in axes[len(data):]:  # hide unused axes
+        ax.set_visible(False)
+    return fig, axes
+
+
+def plot_epochs(epochs, epoch_idx, picks=None, scalings=None,
+                title_str='#%003i', show=True):
     """ Visualize single trials using Trellis plot.
 
     Parameters
@@ -3021,6 +3029,10 @@ def plot_epochs(epochs, epoch_idx, picks=None, title_str='#%003i',
     picks : array-like | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
+    scalings : dict | None
+        Scale factors for the traces. If None, defaults to:
+        `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
+             ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
     title_str : None | str
         The string formatting to use for axes titles. If None, no titles
         will be shown. Defaults expand to ``#001, #002, ...``
@@ -3047,33 +3059,25 @@ def plot_epochs(epochs, epoch_idx, picks=None, title_str='#%003i',
     data = np.zeros((len(epoch_idx), n_channels, len(times)))
     for ii, epoch in enumerate(epochs.get_data()[epoch_idx][:, picks]):
         for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
-            data[ii, jj] = this_channel * scalings[this_type]
+            data[ii, jj] = this_channel / scalings[this_type]
 
-    # get bad indices
-    if epochs.info['bads']:
-        f = epochs.ch_names.index
-        ch_picked = [k for k in epochs.ch_names if f(k) in picks]
-        f = ch_picked.index
-        bad_idx = [f(k) for k in epochs.info['bads']]
-    # prepare data for iteration
-    if len(data) == 1:
-        nrow = ncol = 1
-    elif len(data) <= 5:
-        nrow, ncol = 1, len(data)
+    bad_idx = None
+    ch_names = epochs.ch_names
+    bads = epochs.info['bads']
+    if any([ch_names[k] in bads for k in picks]):
+        ch_picked = [k for k in ch_names if ch_names.index(k) in picks]
+        bad_idx = [ch_picked.index(k) for k in bads if k in ch_names]
+        good_idx = [p for p in picks if p not in bad_idx]
     else:
-        nrow, ncol = int(math.ceil(len(data) / 5.)), 5
+        good_idx = np.arange(n_channels)
 
-    fig, axes = pl.subplots(nrow, ncol)
-    axes = [axes] if ncol == nrow == 1 else axes.flat
-    for ax in axes[len(data):]:  # hide unused axes
-        ax.set_visible(False)
+    fig, axes = _prepare_trellis(data, max_col=5)
 
     vmin, vmax = data.min(), data.max()
-    good_idx = [p for p in picks if p not in bad_idx]
     for ii, data_, ax in zip(epoch_idx, data, axes):
         ax.plot(times, data_[good_idx].T, color='k')
-        if bad_idx:
-           ax.plot(times, data_[bad_idx].T, color='r')
+        if bad_idx is not None:
+            ax.plot(times, data_[bad_idx].T, color='r')
         if title_str is not None:
             ax.set_title(title_str % ii, fontsize=12)
         ax.set_ylim(vmin, vmax)

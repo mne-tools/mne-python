@@ -160,9 +160,9 @@ def test_plot_evoked():
 
 
 def test_plot_epochs():
-  """ Test plotting epochs
-  """
-  epochs.plot([0, 1], picks=[0, 2, 3], title_str='%s')
+    """ Test plotting epochs
+    """
+    epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
 
 
 @requires_mayavi
