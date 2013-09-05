@@ -1780,8 +1780,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         vars(line)['_mne_component'] = component
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
-        # ax.text(0.05, .95, component, transform=ax.transAxes,
-        #         verticalalignment='top')
+        ax.text(0.05, .95, component, transform=ax.transAxes,
+                verticalalignment='top')
         pl.setp(ax.get_xticklabels(), visible=False)
         pl.setp(ax.get_yticklabels(), visible=False)
     # register callback
