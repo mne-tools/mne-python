@@ -3032,7 +3032,13 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     if np.isscalar(epoch_idx):
         epoch_idx = [epoch_idx]
     if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True, exclude=[])
+        if any('ICA' in k for k in epochs.ch_names):
+            picks = pick_types(epochs.info, misc=True, exclude=[])
+        else:
+            picks = pick_types(epochs.info, meg=True, eeg=True, exclude=[])
+    if len(picks) < 1:
+        raise RuntimeError('No appropriate channels found. Please'
+                           ' check your picks')
     times = epochs.times * 1e3
     n_channels = len(picks)
     types = [channel_type(epochs.info, idx) for idx in
