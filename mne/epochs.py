@@ -347,14 +347,15 @@ class _BaseEpochs(ProjMixin):
     def ch_names(self):
         return self.info['ch_names']
 
-    def plot(self, epoch_idx, picks=None, scalings=None,
+    def plot(self, epoch_idx=None, picks=None, scalings=None,
              title_str='#%003i', show=True):
         """ Visualize single trials using Trellis plot.
 
         Parameters
         ----------
-        epoch_idx : array-like | int
-            The epochs to visualize.
+        epoch_idx : array-like | int | None
+            The epochs to visualize. If None, the frist 20 epochs are shoen.
+            Defaults to None.
         picks : array-like | None
             Channels to be included. If None only good data channels are used.
             Defaults to None

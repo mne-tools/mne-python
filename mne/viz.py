@@ -128,15 +128,15 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
         Defaults to `pad_inches`.
     """
     try:
-        import pylab as pl
+        import pylab as pl  # XXX his is a hack, improve later
         pl.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
-    except Exception as err:
+    except:
         msg = ('Matplotlib function \'tight_layout\'%s.'
                ' Skipping subpplot adjusment.')
         if not hasattr(pl, 'tight_layout'):
             case = ' is not available'
         else:
-            case = ' seems corrupted (error message: %s)' % err
+            case = ' is not supported by your backend: `%s`' % pl.get_backend()
         warn(msg % case)
 
 
@@ -1780,8 +1780,8 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         vars(line)['_mne_component'] = component
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
-        ax.text(0.05, .95, component, transform=ax.transAxes,
-                verticalalignment='top')
+        # ax.text(0.05, .95, component, transform=ax.transAxes,
+        #         verticalalignment='top')
         pl.setp(ax.get_xticklabels(), visible=False)
         pl.setp(ax.get_yticklabels(), visible=False)
     # register callback
@@ -2991,7 +2991,7 @@ def _prepare_trellis(n_cells, max_col):
     return fig, axes
 
 
-def plot_epochs(epochs, epoch_idx, picks=None, scalings=None,
+def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
                 title_str='#%003i', show=True):
     """ Visualize single trials using Trellis plot.
 
@@ -3000,8 +3000,9 @@ def plot_epochs(epochs, epoch_idx, picks=None, scalings=None,
 
     epochs : instance of Epochs
         The epochs object
-    epoch_idx : array-like | int
-        The epochs to visualize.
+    epoch_idx : array-like | int | None
+        The epochs to visualize. If None, the first 20 epochs are shown.
+        Defaults to None.
     picks : array-like | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
@@ -3022,7 +3023,12 @@ def plot_epochs(epochs, epoch_idx, picks=None, scalings=None,
     """
     import pylab as pl
     scalings = _mutable_defaults(('scalings_plot_raw', None))[0]
-
+    if epoch_idx is None:
+        n_events = len(epochs.events)
+        if n_events < 20:
+            epoch_idx = range(n_events)
+        else:
+            epoch_idx = range(20)
     if np.isscalar(epoch_idx):
         epoch_idx = [epoch_idx]
     if picks is None:
