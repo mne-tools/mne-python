@@ -365,12 +365,6 @@ def test_ica_additional():
     assert_true(ica_epochs.raw is None)
     assert_true(ica_epochs.preload is True)
 
-    # regression test for plot method
-    assert_raises(ValueError, ica.plot_sources_raw, raw,
-                  order=np.arange(50))
-    assert_raises(ValueError, ica.plot_sources_epochs, epochs,
-                  order=np.arange(50))
-
     # test float n pca components
     ica.pca_explained_variance_ = np.array([0.2] * 5)
     for ncomps, expected in [[0.3, 1], [0.9, 4], [1, 1]]:

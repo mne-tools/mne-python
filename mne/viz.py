@@ -128,15 +128,15 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
         Defaults to `pad_inches`.
     """
     try:
-        import pylab as pl
+        import pylab as pl  # XXX his is a hack, improve later
         pl.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
-    except Exception as err:
+    except:
         msg = ('Matplotlib function \'tight_layout\'%s.'
                ' Skipping subpplot adjusment.')
         if not hasattr(pl, 'tight_layout'):
             case = ' is not available'
         else:
-            case = ' seems corrupted (error message: %s)' % err
+            case = ' is not supported by your backend: `%s`' % pl.get_backend()
         warn(msg % case)
 
 
@@ -1714,8 +1714,6 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
                    title=None, show=True):
     """Create panel plots of ICA sources
 
-    Note. Inspired by an example from Carl Vogel's stats blog 'Will it Python?'
-
     Clicking on the plot of an individual source opens a new figure showing
     the source.
 
@@ -1752,22 +1750,18 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         source_idx = np.arange(len(sources))
     else:
         source_idx = np.array(source_idx)
-        sources = sources[source_idx]
 
-    if n_components is None:
-        n_components = len(sources)
+    for param in ['nrow', 'n_components']:
+        if eval(param) is not None:
+            warnings.warn('The `%s` parameter is deprecated and will be'
+                          'removed in MNE-Python 0.8' % param,
+                          DeprecationWarning)
 
-    hangover = n_components % ncol
-    nplots = nrow * ncol
-
-    if source_idx.size > nrow * ncol:
-        logger.info('More sources selected than rows and cols specified. '
-                    'Showing the first %i sources.' % nplots)
-        source_idx = np.arange(nplots)
-
-    sources = sources[:, start:stop]
+    n_components = len(sources)
+    sources = sources[source_idx, start:stop]
     ylims = sources.min(), sources.max()
-    fig, panel_axes = pl.subplots(nrow, ncol, sharey=True, figsize=(9, 10))
+    xlims = np.arange(sources.shape[-1])[[0, -1]]
+    fig, axes = _prepare_trellis(n_components, ncol)
     if title is None:
         fig.suptitle('MEG signal decomposition'
                      ' -- %i components.' % n_components, size=16)
@@ -1776,38 +1770,20 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
 
     pl.subplots_adjust(wspace=0.05, hspace=0.05)
 
-    iter_plots = ((row, col) for row in range(nrow) for col in range(ncol))
+    for idx, (ax, source) in enumerate(zip(axes, sources)):
+        ax.grid(linestyle='-', color='gray', linewidth=.25)
+        component = '[%i]' % idx
 
-    for idx, (row, col) in enumerate(iter_plots):
-        xs = panel_axes[row, col]
-        xs.grid(linestyle='-', color='gray', linewidth=.25)
-        if idx < n_components:
-            component = '[%i]' % idx
-            this_ax = xs.plot(sources[idx], linewidth=0.5, color='red',
-                              picker=1e9)
-            xs.text(0.05, .95, component,
-                    transform=panel_axes[row, col].transAxes,
-                    verticalalignment='top')
-            # emebed idx and comp. name to use in callback
-            this_ax[0].__dict__['_mne_src_idx'] = idx
-            this_ax[0].__dict__['_mne_component'] = component
-            pl.ylim(ylims)
-        else:
-            # Make extra subplots invisible
-            pl.setp(xs, visible=False)
-
-        xtl = xs.get_xticklabels()
-        ytl = xs.get_yticklabels()
-        if row < nrow - 2 or (row < nrow - 1 and
-                              (hangover == 0 or col <= hangover - 1)):
-            pl.setp(xtl, visible=False)
-        if (col > 0) or (row % 2 == 1):
-            pl.setp(ytl, visible=False)
-        if (col == ncol - 1) and (row % 2 == 1):
-            xs.yaxis.tick_right()
-
-        pl.setp(xtl, rotation=90.)
-
+        # plot+ emebed idx and comp. name to use in callback
+        line = ax.plot(source, linewidth=0.5, color='red', picker=1e9)[0]
+        vars(line)['_mne_src_idx'] = idx
+        vars(line)['_mne_component'] = component
+        ax.set_xlim(xlims)
+        ax.set_ylim(ylims)
+        # ax.text(0.05, .95, component, transform=ax.transAxes,
+        #         verticalalignment='top')
+        pl.setp(ax.get_xticklabels(), visible=False)
+        pl.setp(ax.get_yticklabels(), visible=False)
     # register callback
     callback = partial(_plot_ica_panel_onpick, sources=sources, ylims=ylims)
     fig.canvas.mpl_connect('pick_event', callback)
@@ -1868,17 +1844,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     data = data[:, picks]
 
     # prepare data for iteration
-    if len(data) == 1:
-        nrow = ncol = 1
-    elif len(data) <= 5:
-        nrow, ncol = 1, len(data)
-    else:
-        nrow, ncol = int(math.ceil(len(data) / 5.)), 5
-
-    fig, axes = pl.subplots(nrow, ncol)
-    axes = [axes] if ncol == nrow == 1 else axes.flat
-    for ax in axes[len(data):]:  # hide unused axes
-        ax.set_visible(False)
+    fig, axes = _prepare_trellis(len(data), max_col=5)
 
     if vmax is None:
         vrange = np.array([f(data) for f in np.min, np.max])
@@ -3005,3 +2971,102 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     if show is True:
         webbrowser.open_new_tab(fname_out)
     return fname_out
+
+
+def _prepare_trellis(n_cells, max_col):
+    """Aux function
+    """
+    import pylab as pl
+    if n_cells == 1:
+        nrow = ncol = 1
+    elif n_cells <= max_col:
+        nrow, ncol = 1, n_cells
+    else:
+        nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
+
+    fig, axes = pl.subplots(nrow, ncol)
+    axes = [axes] if ncol == nrow == 1 else axes.flat
+    for ax in axes[n_cells:]:  # hide unused axes
+        ax.set_visible(False)
+    return fig, axes
+
+
+def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
+                title_str='#%003i', show=True):
+    """ Visualize single trials using Trellis plot.
+
+    Parameters
+    ----------
+
+    epochs : instance of Epochs
+        The epochs object
+    epoch_idx : array-like | int | None
+        The epochs to visualize. If None, the first 20 epochs are shown.
+        Defaults to None.
+    picks : array-like | None
+        Channels to be included. If None only good data channels are used.
+        Defaults to None
+    scalings : dict | None
+        Scale factors for the traces. If None, defaults to:
+        `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
+             ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
+    title_str : None | str
+        The string formatting to use for axes titles. If None, no titles
+        will be shown. Defaults expand to ``#001, #002, ...``
+    show : bool
+        Whether to show the figure or not.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
+    """
+    import pylab as pl
+    scalings = _mutable_defaults(('scalings_plot_raw', None))[0]
+    if epoch_idx is None:
+        n_events = len(epochs.events)
+        if n_events < 20:
+            epoch_idx = range(n_events)
+        else:
+            epoch_idx = range(20)
+    if np.isscalar(epoch_idx):
+        epoch_idx = [epoch_idx]
+    if picks is None:
+        picks = pick_types(epochs.info, meg=True, eeg=True, exclude=[])
+    times = epochs.times * 1e3
+    n_channels = len(picks)
+    types = [channel_type(epochs.info, idx) for idx in
+             picks]
+
+    # preallocation needed for min / max scaling
+    data = np.zeros((len(epoch_idx), n_channels, len(times)))
+    for ii, epoch in enumerate(epochs.get_data()[epoch_idx][:, picks]):
+        for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
+            data[ii, jj] = this_channel / scalings[this_type]
+    vmin, vmax = data.min(), data.max()
+
+    # handle bads
+    bad_idx = None
+    ch_names = epochs.ch_names
+    bads = epochs.info['bads']
+    if any([ch_names[k] in bads for k in picks]):
+        ch_picked = [k for k in ch_names if ch_names.index(k) in picks]
+        bad_idx = [ch_picked.index(k) for k in bads if k in ch_names]
+        good_idx = [p for p in picks if p not in bad_idx]
+    else:
+        good_idx = np.arange(n_channels)
+
+    fig, axes = _prepare_trellis(len(data), max_col=5)
+    for ii, data_, ax in zip(epoch_idx, data, axes):
+        ax.plot(times, data_[good_idx].T, color='k')
+        if bad_idx is not None:
+            ax.plot(times, data_[bad_idx].T, color='r')
+        if title_str is not None:
+            ax.set_title(title_str % ii, fontsize=12)
+        ax.set_ylim(vmin, vmax)
+        ax.set_yticks([])
+        ax.set_xticks([])
+    tight_layout()
+    if show is True:
+        pl.show()
+    return fig
