@@ -18,7 +18,7 @@ from ..fiff.proj import read_proj, make_projector, write_proj
 from ..fiff.tree import dir_tree_find
 from ..fiff.write import write_int, write_float_matrix, start_file, \
                          start_block, end_block, end_file, write_float, \
-                         write_coord_trans
+                         write_coord_trans, write_string
 
 from ..fiff.cov import read_cov, write_cov
 from ..fiff.pick import channel_type, pick_info
@@ -290,18 +290,58 @@ def write_inverse_operator(fname, inv, verbose=None):
 
     # Create the file and save the essentials
     fid = start_file(fname)
+    start_block(fid, FIFF.FIFFB_MNE)
+
+    #write_int(fid, FIFF.FIFFB_MNE_ENV, inv['env'])
+
+    #
+    #   Parent MEG measurement info
+    #
+    write_forward_meas_info(fid, inv['info'])
+
+    #
+    #   Parent MRI data
+    #
+    start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, inv['info']['mri_file'])
+    write_coord_trans(fid, inv['mri_head_t'])
+    end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+
+    #
+    #   Write SSP operator
+    #
+    write_proj(fid, inv['projs'])
+
+    #
+    #   Write the source spaces
+    #
+    if 'src' in inv:
+        write_source_spaces_to_fid(fid, inv['src'])
 
     start_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
 
     logger.info('    Writing inverse operator info...')
 
     write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
+    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
-    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
+    write_int(fid, FIFF.FIFF_NCHAN, inv['nchan'])
     write_float_matrix(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS,
                        inv['source_nn'])
     write_float(fid, FIFF.FIFF_MNE_INVERSE_SING, inv['sing'])
+
+    #
+    #   write the covariance matrices
+    #
+    logger.info('    Writing noise covariance matrix.')
+    write_cov(fid, inv['noise_cov'])
+
+    logger.info('    Writing source covariance matrix.')
+    write_cov(fid, inv['source_cov'])
+
+    write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
+    logger.info('    [done]')
 
     #
     #   The eigenleads and eigenfields
@@ -313,16 +353,17 @@ def write_inverse_operator(fname, inv, verbose=None):
         write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS,
                            _transpose_named_matrix(inv['eigen_leads']))
 
-    write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
-    logger.info('    [done]')
     #
-    #   write the covariance matrices
+    #   Done!
     #
-    logger.info('    Writing noise covariance matrix.')
-    write_cov(fid, inv['noise_cov'])
 
-    logger.info('    Writing source covariance matrix.')
-    write_cov(fid, inv['source_cov'])
+    end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
+    end_block(fid, FIFF.FIFFB_MNE)
+    end_file(fid)
+
+    fid.close()
+    '''
+    # DELETE BEFORE PR AND NOTE IN COMMENTS
     #
     #   write the various priors
     #
@@ -334,39 +375,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     if inv['fmri_prior'] is not None:
         write_cov(fid, inv['fmri_prior'])
 
-    #
-    #   Parent MRI data
-    #
-    start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-    #   write the MRI <-> head coordinate transformation
-    write_coord_trans(fid, inv['mri_head_t'])
-    end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-
-    #
-    #   Parent MEG measurement info
-    #
-    write_forward_meas_info(fid, inv['info'])
-
-    #
-    #   Write the source spaces
-    #
-    if 'src' in inv:
-        write_source_spaces_to_fid(fid, inv['src'])
-
-    #
-    #  We also need the SSP operator
-    #
-    write_proj(fid, inv['projs'])
-    #
-    #   Done!
-    #
-
-    end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
-    end_file(fid)
-
-    fid.close()
-
-
+    '''
 ###############################################################################
 # Compute inverse solution
 
