@@ -361,11 +361,12 @@ class _BaseEpochs(ProjMixin):
             scalings : dict | None
         scalings : dict | None
             Scale factors for the traces. If None, defaults to:
-            `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
-                 ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
+            `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1,
+                  chpi=1e-4)`
         title_str : None | str
             The string formatting to use for axes titles. If None, no titles
-            will be shown. Defaults expand to ``Trial 001, Trial 002, ...``
+            will be shown. Defaults expand to ``#001, #002, ...``
         show : bool
             Whether to show the figure or not.
 
