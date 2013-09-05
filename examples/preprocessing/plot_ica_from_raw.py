@@ -61,7 +61,7 @@ print ica
 
 # plot reasonable time window for inspection
 start_plot, stop_plot = 100., 103.
-ica.plot_sources_raw(raw, start=start_plot, stop=stop_plot)
+ica.plot_sources_raw(raw, range(30), start=start_plot, stop=stop_plot)
 
 ###############################################################################
 # Automatically find the ECG component using correlation with ECG signal.
@@ -105,9 +105,9 @@ pl.show()
 # We can do this by reordering the plot by our scores using order
 # and generating sort indices for the sources:
 
-ecg_order = np.abs(ecg_scores).argsort()[::-1]  # ascending order
+ecg_order = np.abs(ecg_scores).argsort()[::-1][:30]  # ascending order
 
-ica.plot_sources_raw(raw, order=ecg_order, start=start_plot, stop=stop_plot)
+ica.plot_sources_raw(raw, ecg_order, start=start_plot, stop=stop_plot)
 
 # Let's make our ECG component selection more liberal and include sources
 # for which the variance explanation in terms of \{r^2}\ exceeds 5 percent.

@@ -1714,8 +1714,6 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
                    title=None, show=True):
     """Create panel plots of ICA sources
 
-    Note. Inspired by an example from Carl Vogel's stats blog 'Will it Python?'
-
     Clicking on the plot of an individual source opens a new figure showing
     the source.
 
@@ -1752,22 +1750,18 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         source_idx = np.arange(len(sources))
     else:
         source_idx = np.array(source_idx)
-        sources = sources[source_idx]
 
-    if n_components is None:
-        n_components = len(sources)
+    for param in ['nrow', 'n_components']:
+        if eval(param) is not None:
+            warnings.warn('The `%s` parameter is deprecated and will be'
+                          'removed in MNE-Python 0.8' % param,
+                          DeprecationWarning)
 
-    hangover = n_components % ncol
-    nplots = nrow * ncol
-
-    if source_idx.size > nrow * ncol:
-        logger.info('More sources selected than rows and cols specified. '
-                    'Showing the first %i sources.' % nplots)
-        source_idx = np.arange(nplots)
-
-    sources = sources[:, start:stop]
+    n_components = len(sources)
+    sources = sources[source_idx, start:stop]
     ylims = sources.min(), sources.max()
-    fig, panel_axes = pl.subplots(nrow, ncol, sharey=True, figsize=(9, 10))
+    xlims = np.arange(sources.shape[-1])[[0, -1]]
+    fig, axes = _prepare_trellis(n_components, ncol)
     if title is None:
         fig.suptitle('MEG signal decomposition'
                      ' -- %i components.' % n_components, size=16)
@@ -1776,38 +1770,23 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
 
     pl.subplots_adjust(wspace=0.05, hspace=0.05)
 
-    iter_plots = ((row, col) for row in range(nrow) for col in range(ncol))
+    for idx, (ax, source) in enumerate(zip(axes, sources)):
+        ax.grid(linestyle='-', color='gray', linewidth=.25)
+        component = '[%i]' % idx
+        line = ax.plot(source, linewidth=0.5, color='red', picker=1e9)[0]
+        ax.text(0.05, .95, component,
+                transform=ax.transAxes,
+                verticalalignment='top')
 
-    for idx, (row, col) in enumerate(iter_plots):
-        xs = panel_axes[row, col]
-        xs.grid(linestyle='-', color='gray', linewidth=.25)
-        if idx < n_components:
-            component = '[%i]' % idx
-            this_ax = xs.plot(sources[idx], linewidth=0.5, color='red',
-                              picker=1e9)
-            xs.text(0.05, .95, component,
-                    transform=panel_axes[row, col].transAxes,
-                    verticalalignment='top')
-            # emebed idx and comp. name to use in callback
-            this_ax[0].__dict__['_mne_src_idx'] = idx
-            this_ax[0].__dict__['_mne_component'] = component
-            pl.ylim(ylims)
-        else:
-            # Make extra subplots invisible
-            pl.setp(xs, visible=False)
-
-        xtl = xs.get_xticklabels()
-        ytl = xs.get_yticklabels()
-        if row < nrow - 2 or (row < nrow - 1 and
-                              (hangover == 0 or col <= hangover - 1)):
-            pl.setp(xtl, visible=False)
-        if (col > 0) or (row % 2 == 1):
-            pl.setp(ytl, visible=False)
-        if (col == ncol - 1) and (row % 2 == 1):
-            xs.yaxis.tick_right()
-
-        pl.setp(xtl, rotation=90.)
-
+        # emebed idx and comp. name to use in callback
+        vars(line)['_mne_src_idx'] = idx
+        vars(line)['_mne_component'] = component
+        ax.set_xlim(xlims)
+        ax.set_ylim(ylims)
+        xtl = ax.get_xticklabels()
+        ytl = ax.get_yticklabels()
+        pl.setp(xtl, visible=False)
+        pl.setp(ytl, visible=False)
     # register callback
     callback = partial(_plot_ica_panel_onpick, sources=sources, ylims=ylims)
     fig.canvas.mpl_connect('pick_event', callback)

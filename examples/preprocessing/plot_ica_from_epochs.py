@@ -80,16 +80,8 @@ ecg_source_idx = np.argsort(np.abs(ecg_scores))[-1]
 
 # get sources as epochs object and inspect some trial
 some_trial = 10
-sources = ica.sources_as_epochs(epochs)
-ecg_artifact = sources.get_data()[some_trial, ecg_source_idx]
-
-# plot first epoch in ICA space
-pl.figure()
-pl.title('Source most correlated with the ECG channel')
-pl.plot(sources.times, ecg_artifact, color='r')
-pl.xlabel('Time (s)')
-pl.ylabel('AU')
-pl.show()
+title = 'Source most similar to ECG'
+ica.plot_sources_epochs(epochs[some_trial], ecg_source_idx, title=title)
 
 # As we have an EOG channel, we can use it to detect the source.
 eog_scores = ica.find_sources_epochs(epochs, target='EOG 061',
@@ -98,25 +90,12 @@ eog_scores = ica.find_sources_epochs(epochs, target='EOG 061',
 # get maximum correlation index for EOG
 eog_source_idx = np.abs(eog_scores).argmax()
 
-# get sources as timeseries of concatenated epochs
-sources = ica.get_sources_epochs(epochs, concatenate=True)
-# compute times for concatenated epochs
-times = np.linspace(epochs.times[0], epochs.times[-1] * len(epochs),
-                    len(sources.T))
-
 # As the subject did not constantly move her eyes, the movement artifacts
 # may remain hidden when plotting single epochs.
 # Plotting the identified source across epochs reveals
 # considerable EOG artifacts.
-
-pl.figure()
-pl.title('Source most correlated with the EOG channel')
-pl.plot(times, sources[eog_source_idx].T, color='r')
-pl.xlabel('Time (s)')
-pl.ylabel('AU')
-pl.xlim(times[[0, -1]])
-pl.show()
-
+title = 'Source most similar to EOG'
+ica.plot_sources_epochs(epochs, [eog_source_idx], title=title)
 
 ###############################################################################
 # Reject artifact sources and compare results
