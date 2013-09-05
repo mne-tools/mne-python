@@ -3023,7 +3023,7 @@ def plot_epochs(epochs, epoch_idx, picks=None, title_str='#%003i',
         Defaults to None
     title_str : None | str
         The string formatting to use for axes titles. If None, no titles
-        will be shown. Defaults expand to ``Trial 001, Trial 002, ...``
+        will be shown. Defaults expand to ``#001, #002, ...``
     show : bool
         Whether to show the figure or not.
 
@@ -3038,18 +3038,23 @@ def plot_epochs(epochs, epoch_idx, picks=None, title_str='#%003i',
     if np.isscalar(epoch_idx):
         epoch_idx = [epoch_idx]
     if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True, exclude='bads')
-
+        picks = pick_types(epochs.info, meg=True, eeg=True, exclude=[])
     times = epochs.times * 1e3
     n_channels = len(picks)
     types = [channel_type(epochs.info, idx) for idx in
              picks]
+    # preallocate data + scale
     data = np.zeros((len(epoch_idx), n_channels, len(times)))
-
     for ii, epoch in enumerate(epochs.get_data()[epoch_idx][:, picks]):
         for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
             data[ii, jj] = this_channel * scalings[this_type]
 
+    # get bad indices
+    if epochs.info['bads']:
+        f = epochs.ch_names.index
+        ch_picked = [k for k in epochs.ch_names if f(k) in picks]
+        f = ch_picked.index
+        bad_idx = [f(k) for k in epochs.info['bads']]
     # prepare data for iteration
     if len(data) == 1:
         nrow = ncol = 1
@@ -3064,8 +3069,11 @@ def plot_epochs(epochs, epoch_idx, picks=None, title_str='#%003i',
         ax.set_visible(False)
 
     vmin, vmax = data.min(), data.max()
+    good_idx = [p for p in picks if p not in bad_idx]
     for ii, data_, ax in zip(epoch_idx, data, axes):
-        ax.plot(times, data_.T, color='k')
+        ax.plot(times, data_[good_idx].T, color='k')
+        if bad_idx:
+           ax.plot(times, data_[bad_idx].T, color='r')
         if title_str is not None:
             ax.set_title(title_str % ii, fontsize=12)
         ax.set_ylim(vmin, vmax)

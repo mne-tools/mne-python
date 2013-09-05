@@ -39,8 +39,8 @@ include = []  # or stim channels ['STI 014']
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 # pick EEG channels
-picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
-                        include=include, exclude='bads')
+picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=False, eog=True,
+                        include=include, exclude=[])
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6))
