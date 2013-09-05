@@ -85,21 +85,10 @@ ecg = raw[[raw.ch_names.index(ecg_ch_name)], :][0]
 ecg = band_pass_filter(ecg, raw.info['sfreq'], l_freq, h_freq)
 ecg_scores = ica.find_sources_raw(raw, target=ecg, score_func=corr)
 
-# get sources
-sources = ica.get_sources_raw(raw, start=start_plot, stop=stop_plot)
-
-# compute times
-times = np.linspace(start_plot, stop_plot, sources.shape[1])
-
 # get maximum correlation index for ECG
 ecg_source_idx = np.abs(ecg_scores).argmax()
-
-pl.figure()
-pl.plot(times, sources[ecg_source_idx], color='r')
-pl.title('ICA source matching ECG')
-pl.xlabel('Time (s)')
-pl.ylabel('AU')
-pl.show()
+title = 'ICA source matching ECG'
+ica.plot_sources_raw(raw, ecg_source_idx, title=title, stop=3.0)
 
 # let us have a look which other components resemble the ECG.
 # We can do this by reordering the plot by our scores using order
@@ -126,12 +115,8 @@ eog_scores = ica.find_sources_raw(raw, target='EOG 061', score_func=corr)
 eog_source_idx = np.abs(eog_scores).argmax()
 
 # plot the component that correlates most with the EOG
-pl.figure()
-pl.plot(times, sources[eog_source_idx], color='r')
-pl.title('ICA source matching EOG')
-pl.xlabel('Time (s)')
-pl.ylabel('AU')
-pl.show()
+title = 'ICA source matching EOG'
+ica.plot_sources_raw(raw, eog_source_idx, title=title, stop=3.0)
 
 # plot spatial sensitivities of EOG and ECG ICA components
 title = 'Spatial patterns of ICA components for ECG+EOG (Magnetometers)'

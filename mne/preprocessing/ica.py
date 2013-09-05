@@ -671,12 +671,12 @@ class ICA(object):
         sources = self.get_sources_raw(raw, start=start, stop=stop)
 
         if order is not None:
+            if np.isscalar(order):
+                order = [order]
             sources = sources[order]
-
-        fig = plot_ica_panel(sources, start=0 if start is not None else start,
-                             stop=(stop - start) if stop is not None else stop,
-                             n_components=n_components, source_idx=source_idx,
-                             ncol=ncol, nrow=nrow, title=title)
+        fig = plot_ica_panel(sources, n_components=n_components,
+                             source_idx=source_idx, ncol=ncol, nrow=nrow,
+                             title=title)
         if show:
             import pylab as pl
             pl.show()
@@ -699,10 +699,10 @@ class ICA(object):
             Example: arg_sort = np.argsort(np.var(sources)).
         epoch_idx : int
             Index to plot particular epoch.
-        start : int | None
+        start : int | float | None
             First sample to include. If None, data will be shown from the first
             sample.
-        stop : int | None
+        stop : int | float | None
             Last sample to not include. If None, data will be shown to the last
             sample.
         n_components : int
@@ -724,6 +724,8 @@ class ICA(object):
         """
         sources = self.get_sources_epochs(epochs, concatenate=True)
         if order is not None:
+            if np.isscalar(order):
+                order = [order]
             sources = np.atleast_2d(sources[order])
         if epoch_idx is not None:
             warnings.warn('`epochs_idx` is deprecated and will be removed in '
@@ -1227,8 +1229,8 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
     """Aux function"""
     if isinstance(_n_pca_comp, float):
         _n_pca_comp = ((ica.pca_explained_variance_ /
-                        ica.pca_explained_variance_.sum()).cumsum()
-                        <= _n_pca_comp).sum()
+                       ica.pca_explained_variance_.sum()).cumsum()
+                       <= _n_pca_comp).sum()
         logger.info('Selected %i PCA components by explained '
                     'variance' % _n_pca_comp)
     elif _n_pca_comp is None:
@@ -1239,7 +1241,7 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
 def _check_start_stop(raw, start, stop):
     """Aux function"""
     return [c if (isinstance(c, int) or c is None) else
-                   raw.time_as_index(c)[0] for c in start, stop]
+            raw.time_as_index(c)[0] for c in start, stop]
 
 
 @verbose

@@ -95,7 +95,7 @@ eog_source_idx = np.abs(eog_scores).argmax()
 # Plotting the identified source across epochs reveals
 # considerable EOG artifacts.
 title = 'Source most similar to EOG'
-ica.plot_sources_epochs(epochs, [eog_source_idx], title=title)
+ica.plot_sources_epochs(epochs, eog_source_idx, title=title)
 
 ###############################################################################
 # Reject artifact sources and compare results
