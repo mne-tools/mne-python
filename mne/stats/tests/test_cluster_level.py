@@ -12,6 +12,8 @@ from mne.stats.cluster_level import permutation_cluster_test, \
                                     spatio_temporal_cluster_1samp_test, \
                                     ttest_1samp_no_p, summarize_clusters_stc
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 
 def _get_conditions():
     noise_level = 20

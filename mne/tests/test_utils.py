@@ -9,6 +9,8 @@ from ..utils import set_log_level, set_log_file, _TempDir, \
                     get_config, set_config, deprecated, _fetch_file
 from ..fiff import Evoked, show_fiff
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_raw = op.join(base_dir, 'test_raw.fif')
@@ -106,9 +108,10 @@ def test_config():
         assert_true(len(w) == 1)
     assert_true(get_config(key) is None)
     assert_raises(KeyError, get_config, key, raise_error=True)
-    set_config(key, value)
-    assert_true(get_config(key) == value)
-    set_config(key, None)
+    with warnings.catch_warnings(True):
+        set_config(key, value)
+        assert_true(get_config(key) == value)
+        set_config(key, None)
     if old_val is not None:
         os.environ[key] = old_val
 

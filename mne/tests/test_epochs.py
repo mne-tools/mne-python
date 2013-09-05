@@ -20,6 +20,8 @@ from mne.fiff import read_evoked
 from mne.fiff.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')

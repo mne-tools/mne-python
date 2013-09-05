@@ -18,6 +18,8 @@ from mne import read_cov, Epochs, merge_events, \
 from mne.fiff import Raw, pick_channels_cov, pick_channels, Evoked, pick_types
 from mne.utils import _TempDir
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 cov_gz_fname = op.join(base_dir, 'test-cov.fif.gz')
