@@ -16,6 +16,8 @@ from mne.proj import read_proj, write_proj
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
 from mne.utils import _TempDir
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')

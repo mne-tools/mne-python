@@ -2,6 +2,7 @@ import os
 import os.path as op
 import cPickle as pickle
 import glob
+import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -15,6 +16,7 @@ from mne.label import Label
 from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.fixes import in1d
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
@@ -221,12 +223,17 @@ def test_stc_to_label():
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = stc_to_label(stc, src='sample', smooth=3)
-    labels2 = stc_to_label(stc, src=src, smooth=3)
+    with warnings.catch_warnings(True) as w:  # connectedness warning
+        labels2 = stc_to_label(stc, src=src, smooth=3)
+    assert_true(len(w) == 1)
     assert_true(len(labels1) == len(labels2))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
 
-    labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3, connected=True)
+    with warnings.catch_warnings(True) as w:  # connectedness warning
+        labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3,
+                                            connected=True)
+    assert_true(len(w) == 1)
     assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=3,
                   connected=True)
     assert_true(len(labels_lh) == 1)

@@ -2,6 +2,7 @@ import os.path as op
 from functools import wraps
 import numpy as np
 from numpy.testing import assert_raises
+import warnings
 
 from mne import fiff, read_events, Epochs, SourceEstimate, read_cov, read_proj
 from mne.layouts import read_layout
@@ -18,6 +19,8 @@ from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
 from mne.utils import check_sklearn_version
 
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 # Set our plotters to test mode
 import matplotlib
@@ -308,7 +311,8 @@ def test_plot_topomap():
     times = [0.1, 0.2]
     plot_evoked_topomap(evoked, times, ch_type='grad')
     plot_evoked_topomap(evoked, times, ch_type='planar1')
-    plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
+    with warnings.catch_warnings(True):  # delaunay triangulation warning
+        plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
     plot_evoked_topomap(evoked, 0.1, 'mag', proj='interactive')
     assert_raises(RuntimeError, plot_evoked_topomap, evoked, np.repeat(.1, 50))
     assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
@@ -326,7 +330,7 @@ def test_compare_fiff():
 
 @requires_sklearn
 def test_plot_ica_topomap():
-    """Test plotting of ica solutions
+    """Test plotting of ICA solutions
     """
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)

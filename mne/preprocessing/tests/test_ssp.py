@@ -9,6 +9,8 @@ from ...fiff import Raw
 from ...fiff.proj import make_projector, activate_proj
 from ..ssp import compute_proj_ecg, compute_proj_eog
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 data_path = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
 dur_use = 5.0
@@ -32,15 +34,14 @@ def test_compute_proj_ecg():
                     events.shape[0] < 3 * dur_use)
         #XXX: better tests
 
-        # without setting a bad channel, this should throw a warning (only
-        # thrown once, so it's for average == True)
+        # without setting a bad channel, this should throw a warning
         with warnings.catch_warnings(record=True) as w:
             projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
                                             ch_name='MEG 1531', bads=[],
                                             average=average, avg_ref=True,
                                             no_proj=True, l_freq=None,
                                             h_freq=None, tmax=dur_use)
-            assert_equal(len(w), 0 if average else 1)
+            assert_equal(len(w), 1)
         assert_equal(projs, None)
 
 
@@ -58,14 +59,14 @@ def test_compute_proj_eog():
                     np.sum(np.less(eog_times, dur_use))) <= 1)
         #XXX: better tests
 
-        # This will not throw a warning (?)
+        # This will throw a warning b/c simplefilter('always')
         with warnings.catch_warnings(record=True) as w:
             projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                          average=average, bads=[],
                                          avg_ref=True, no_proj=False,
                                          l_freq=None, h_freq=None,
                                          tmax=dur_use)
-            assert_equal(len(w), 0)
+            assert_equal(len(w), 1)
         assert_equal(projs, None)
 
 

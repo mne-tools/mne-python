@@ -13,6 +13,7 @@ from mne import set_log_file
 from mne.utils import _TempDir
 from mne.cuda import requires_cuda
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 tempdir = _TempDir()
 log_file = op.join(tempdir, 'temp_log.txt')

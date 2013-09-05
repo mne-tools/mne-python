@@ -22,6 +22,8 @@ from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip
 from mne.utils import _TempDir, requires_pandas
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 data_path = sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
@@ -459,7 +461,6 @@ def test_spatio_temporal_src_connectivity():
     assert_array_equal(connectivity.todense(), connectivity3.todense())
     # add test for source space connectivity with omitted vertices
     inverse_operator = read_inverse_operator(fname_inv)
-    warnings.simplefilter("always")
     with warnings.catch_warnings(record=True) as w:
         src_ = inverse_operator['src']
         connectivity = spatio_temporal_src_connectivity(src_, n_times=2)
