@@ -329,7 +329,8 @@ def write_inverse_operator(fname, inv, verbose=None):
     write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
-    write_int(fid, FIFF.FIFF_NCHAN, inv['nchan'])
+    if 'nchan' in inv:
+        write_int(fid, FIFF.FIFF_NCHAN, inv['nchan'])
     write_float_matrix(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS,
                        inv['source_nn'])
     write_float(fid, FIFF.FIFF_MNE_INVERSE_SING, inv['sing'])
@@ -343,8 +344,18 @@ def write_inverse_operator(fname, inv, verbose=None):
     logger.info('    Writing source covariance matrix.')
     write_cov(fid, inv['source_cov'])
 
+    #
+    #   write the various priors
+    #
+    logger.info('    Writing orientation priors.')
+    if inv['depth_prior'] is not None:
+        write_cov(fid, inv['depth_prior'])
+    if inv['orient_prior'] is not None:
+        write_cov(fid, inv['orient_prior'])
+    if inv['fmri_prior'] is not None:
+        write_cov(fid, inv['fmri_prior'])
+
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
-    logger.info('    [done]')
 
     #
     #   The eigenleads and eigenfields
@@ -359,26 +370,14 @@ def write_inverse_operator(fname, inv, verbose=None):
     #
     #   Done!
     #
+    logger.info('    [done]')
 
     end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
     end_block(fid, FIFF.FIFFB_MNE)
     end_file(fid)
 
     fid.close()
-    '''
-    # DELETE BEFORE PR AND NOTE IN COMMENTS
-    #
-    #   write the various priors
-    #
-    logger.info('    Writing orientation priors.')
-    if inv['orient_prior'] is not None:
-        write_cov(fid, inv['orient_prior'])
-    if inv['depth_prior'] is not None:
-        write_cov(fid, inv['depth_prior'])
-    if inv['fmri_prior'] is not None:
-        write_cov(fid, inv['fmri_prior'])
 
-    '''
 ###############################################################################
 # Compute inverse solution
 
