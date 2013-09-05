@@ -1773,20 +1773,17 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     for idx, (ax, source) in enumerate(zip(axes, sources)):
         ax.grid(linestyle='-', color='gray', linewidth=.25)
         component = '[%i]' % idx
-        line = ax.plot(source, linewidth=0.5, color='red', picker=1e9)[0]
-        ax.text(0.05, .95, component,
-                transform=ax.transAxes,
-                verticalalignment='top')
 
-        # emebed idx and comp. name to use in callback
+        # plot+ emebed idx and comp. name to use in callback
+        line = ax.plot(source, linewidth=0.5, color='red', picker=1e9)[0]
         vars(line)['_mne_src_idx'] = idx
         vars(line)['_mne_component'] = component
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
-        xtl = ax.get_xticklabels()
-        ytl = ax.get_yticklabels()
-        pl.setp(xtl, visible=False)
-        pl.setp(ytl, visible=False)
+        ax.text(0.05, .95, component, transform=ax.transAxes,
+                verticalalignment='top')
+        pl.setp(ax.get_xticklabels(), visible=False)
+        pl.setp(ax.get_yticklabels(), visible=False)
     # register callback
     callback = partial(_plot_ica_panel_onpick, sources=sources, ylims=ylims)
     fig.canvas.mpl_connect('pick_event', callback)
