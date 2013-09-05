@@ -292,8 +292,6 @@ def write_inverse_operator(fname, inv, verbose=None):
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)
 
-    #write_int(fid, FIFF.FIFFB_MNE_ENV, inv['env'])
-
     #
     #   Parent MEG measurement info
     #
@@ -339,18 +337,18 @@ def write_inverse_operator(fname, inv, verbose=None):
     write_cov(fid, inv['noise_cov'])
 
     logger.info('    Writing source covariance matrix.')
-    write_cov(fid, inv['source_cov'])
+    write_cov(fid, inv['source_cov'], False, False)
 
     #
     #   write the various priors
     #
     logger.info('    Writing orientation priors.')
     if inv['depth_prior'] is not None:
-        write_cov(fid, inv['depth_prior'])
+        write_cov(fid, inv['depth_prior'], False, False)
     if inv['orient_prior'] is not None:
-        write_cov(fid, inv['orient_prior'])
+        write_cov(fid, inv['orient_prior'], False, False)
     if inv['fmri_prior'] is not None:
-        write_cov(fid, inv['fmri_prior'])
+        write_cov(fid, inv['fmri_prior'], False, False)
 
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
 
