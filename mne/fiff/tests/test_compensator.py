@@ -13,6 +13,8 @@ ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 
 
 def test_compensation():
+    """Test compensation
+    """
     raw = Raw(ctf_comp_fname, compensation=None)
     comp1 = make_compensator(raw.info, 3, 1, exclude_comp_chs=False)
     assert_true(comp1.shape == (340, 340))
