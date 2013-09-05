@@ -320,7 +320,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
     frequencies = []
     for data_csd, noise_csd in zip(data_csds, noise_csds):
-        if data_csd.frequencies != noise_csd.frequencies:
+        if (data_csd.frequencies != noise_csd.frequencies).any:
             raise ValueError('Data and noise CSDs should be calculated at '
                              'identical frequencies')
 
