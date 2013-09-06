@@ -1597,10 +1597,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     Returns
     -------
-    brain : Brain | list of Brain
-        A instance of surfer.viz.Brain from PySurfer. For hemi='both',
-        a list with Brain instances for the left and right hemisphere is
-        returned.
+    brain : Brain
+        A instance of surfer.viz.Brain from PySurfer.
     """
     from surfer import Brain, TimeViewer
     try:
