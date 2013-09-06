@@ -90,18 +90,18 @@ print 'Visualizing clusters.'
 #    cluster becomes a "time point" in the SourceEstimate
 fsave_vertices = [np.arange(10242), np.arange(10242)]
 stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
-                                vertno=fsave_vertices, subject='fsaverage')
+                                             vertno=fsave_vertices,
+                                             subject='fsaverage')
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration
 subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A != condition B
-brains = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'both',
-                                  subjects_dir=subjects_dir,
-                                  time_label='Duration significant (ms)',
-                                  fmin=0, fmid=25, fmax=50)
-for idx, brain in enumerate(brains):
-    brain.set_data_time_index(0)
-    brain.scale_data_colormap(fmin=0, fmid=25, fmax=50, transparent=True)
-    brain.show_view('lateral')
-    brain.save_image('clusters-%s.png' % ('lh' if idx == 0 else 'rh'))
+brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'both',
+                                 subjects_dir=subjects_dir,
+                                 time_label='Duration significant (ms)',
+                                 fmin=0, fmid=25, fmax=50)
+brain.set_data_time_index(0)
+brain.scale_data_colormap(fmin=0, fmid=25, fmax=50, transparent=True)
+brain.show_view('lateral')
+brain.save_image('clusters.png')
