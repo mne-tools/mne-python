@@ -33,11 +33,6 @@ raw = mne.fiff.Raw(raw_fname, preload=True)
 # The with statement is necessary to ensure a clean exit
 with StimServer('localhost', port=4218) as stim_server:
 
-    stim_server.start()
-
-    # Give time to start the client
-    time.sleep(10)
-
     # The channels to be used while decoding
     picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                                 stim=True, exclude=raw.info['bads'])
@@ -62,6 +57,8 @@ with StimServer('localhost', port=4218) as stim_server:
     concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
                                   ('scaler', scaler), ('svm', clf)])
 
+    stim_server.start()
+
     # Just some initially decided events to be "faked"
     # Rest will decided on the fly
     ev_list = [4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4]
@@ -71,7 +68,7 @@ with StimServer('localhost', port=4218) as stim_server:
     for ii in range(50):
 
         # Tell the stim_client about the next stimuli
-        stim_server.add_trigger(ev_list[ii], verbose=False)
+        stim_server.add_trigger(ev_list[ii])
 
         # Collecting data
         if ii == 0:

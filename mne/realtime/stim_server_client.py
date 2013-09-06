@@ -122,7 +122,6 @@ class StimServer(object):
         self._thread.start()
 
         self._running = False
-        self._client = dict()
         return self
 
     def __exit__(self, type, value, traceback):
@@ -148,6 +147,10 @@ class StimServer(object):
             logger.info('RtServer: Start')
             self._running = True
 
+            # wait till client is added
+            while not hasattr(self, '_client'):
+                pass
+
             # start the send thread
             self._send_thread = threading.Thread(target=send_trigger_worker,
                                                  args=(self, self._tx_queue))
@@ -170,6 +173,8 @@ class StimServer(object):
 
         """
 
+        self._client = dict()
+
         logger.info("Adding client with ip = %s" % ip)
         self._client['ip'] = ip
         self._client['running'] = True
@@ -187,8 +192,12 @@ class StimServer(object):
         """
 
         logger.info("Shutting down ...")
-        self._client['running'] = False
+
         self._running = False
+
+        if hasattr(self, '_client'):
+            self._client['running'] = False
+
         self._data.shutdown()
         self._data.server_close()
         self._data.socket.close()
@@ -224,7 +233,7 @@ def send_trigger_worker(stim_server, tx_queue):
 
     """
 
-    while stim_server._running:
+    while stim_server._running and hasattr(stim_server, '_client'):
 
         trigger = tx_queue.get()
         stim_server._client['socket'].send_trigger(trigger)
@@ -254,19 +263,20 @@ class StimClient(object):
     @verbose
     def __init__(self, host, port=4218, timeout=5.0, verbose=None):
         self._host = host
-        self._timeout = timeout
         self._port = port
+
         try:
             logger.info("Setting up client socket")
             self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self._sock.settimeout(timeout)
             self._sock.connect((host, port))
+
             logger.info("Establishing connection with server")
             self._sock.send("add client")
+            resp = self._sock.recv(1024)
 
-            # wait till confirmation from server
-            while self._sock.recv(1024) != 'Client added':
-                pass
+            if resp == 'Client added':
+                logger.info("Connection established")
 
         except Exception:
             raise RuntimeError('Setting up acquisition <-> stimulation '
