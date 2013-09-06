@@ -1388,10 +1388,8 @@ class SourceEstimate(_BaseSourceEstimate):
 
         Returns
         -------
-        brain : Brain | list of Brain
-            A instance of surfer.viz.Brain from PySurfer For hemi='both',
-            a list with Brain instances for the left and right hemisphere is
-            returned.
+        brain : Brain
+            A instance of surfer.viz.Brain from PySurfer.
         """
         brain = plot_source_estimates(self, subject, surface=surface,
                         hemi=hemi, colormap=colormap, time_label=time_label,
