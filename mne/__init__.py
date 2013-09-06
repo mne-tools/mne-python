@@ -32,13 +32,14 @@ from .source_estimate import read_stc, write_stc, read_w, write_w, \
 from .surface import read_bem_surfaces, read_surface, write_bem_surface, \
                      write_surface, decimate_surface
 from .source_space import read_source_spaces, vertex_to_mni, \
-                          write_source_spaces
+                          write_source_spaces, setup_source_space
 from .epochs import Epochs, read_epochs
 from .label import label_time_courses, read_label, label_sign_flip, \
                    write_label, stc_to_label, grow_labels, Label, \
                    BiHemiLabel, labels_from_parc
 from .misc import parse_config, read_reject_parameters
-from .transforms import transform_coordinates, read_trans, write_trans
+from .transforms import transform_coordinates, read_trans, write_trans, \
+                        create_default_subject
 from .proj import read_proj, write_proj, compute_proj_epochs, \
                   compute_proj_evoked, compute_proj_raw, sensitivity_map
 from .selection import read_selection
@@ -50,6 +51,7 @@ from . import datasets
 from . import epochs
 from . import fiff
 from . import filter
+from . import gui
 from . import layouts
 from . import minimum_norm
 from . import mixed_norm

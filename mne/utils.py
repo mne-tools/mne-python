@@ -201,14 +201,18 @@ def run_subprocess(command, *args, **kwargs):
     p = subprocess.Popen(command, *args, **kwargs)
     stdout, stderr = p.communicate()
 
-    if stdout.strip():
-        logger.info("stdout:\n%s" % stdout)
-    if stderr.strip():
-        logger.info("stderr:\n%s" % stderr)
-
     output = (stdout, stderr)
     if p.returncode:
+        if stdout.strip():
+            logger.error("======\nstdout\n======\n%s" % stdout)
+        if stderr.strip():
+            logger.error("======\nstderr\n======\n%s" % stderr)
         raise subprocess.CalledProcessError(p.returncode, command, output)
+
+    if stdout.strip():
+        logger.info("======\nstdout\n======\n%s" % stdout)
+    if stderr.strip():
+        logger.info("======\nstderr\n======\n%s" % stderr)
 
     return output
 
@@ -446,6 +450,8 @@ def make_skipper_dec(module, skip_str):
 requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
 
+requires_mne_fs_in_env = np.testing.dec.skipif(('FS_HOME' in os.environ) and
+                                               ('MNE_ROOT' in os.environ))
 
 ###############################################################################
 # LOGGING
