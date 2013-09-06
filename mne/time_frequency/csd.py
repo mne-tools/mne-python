@@ -150,7 +150,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
             half_nbw = (float(mt_bandwidth) * n_times /
                         (2 * epochs.info['sfreq']))
         else:
-            half_nbw = 4
+            half_nbw = 2
 
         # Compute DPSS windows
         n_tapers_max = int(2 * half_nbw)
