@@ -87,21 +87,21 @@ def read_fiducials(fname):
         mne.fiff.FIFF.FIFFV_COORD_...)
     """
     fid, tree, _ = fiff_open(fname)
-    isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
-    isotrak = isotrak[0]
-    pts = []
-    coord_frame = 0
-    for k in range(isotrak['nent']):
-        kind = isotrak['directory'][k].kind
-        pos = isotrak['directory'][k].pos
-        if kind == FIFF.FIFF_DIG_POINT:
-            tag = read_tag(fid, pos)
-            pts.append(tag.data)
-        elif kind == FIFF.FIFF_MNE_COORD_FRAME:
-            tag = read_tag(fid, pos)
-            coord_frame = tag.data[0]
+    with fid:
+        isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
+        isotrak = isotrak[0]
+        pts = []
+        coord_frame = 0
+        for k in range(isotrak['nent']):
+            kind = isotrak['directory'][k].kind
+            pos = isotrak['directory'][k].pos
+            if kind == FIFF.FIFF_DIG_POINT:
+                tag = read_tag(fid, pos)
+                pts.append(tag.data)
+            elif kind == FIFF.FIFF_MNE_COORD_FRAME:
+                tag = read_tag(fid, pos)
+                coord_frame = tag.data[0]
 
-    fid.close()
     return pts, coord_frame
 
 
