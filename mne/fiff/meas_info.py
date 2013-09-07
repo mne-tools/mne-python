@@ -21,10 +21,9 @@ from .tag import read_tag
 from .proj import read_proj, write_proj
 from .ctf import read_ctf_comp, write_ctf_comp
 from .channels import read_bad_channels
-
-from .write import start_block, end_block, write_string, write_dig_point, \
-                   write_float, write_int, write_coord_trans, write_ch_info, \
-                   write_name_list, start_file
+from .write import start_file, end_file, start_block, end_block, \
+                   write_string, write_dig_point, write_float, write_int, \
+                   write_coord_trans, write_ch_info, write_name_list
 from .. import verbose
 
 
@@ -74,6 +73,60 @@ class Info(dict):
         st += '\n>'
         st %= non_empty
         return st
+
+
+def read_fiducials(fname):
+    """Read fiducials from a fiff file
+
+    Returns
+    -------
+    pts : list of dicts
+        List of digitizer points (each point in a dict).
+    coord_frame : int
+        The coordinate frame of the points (one of
+        mne.fiff.FIFF.FIFFV_COORD_...)
+    """
+    fid, tree, _ = fiff_open(fname)
+    isotrak = dir_tree_find(tree, FIFF.FIFFB_ISOTRAK)
+    isotrak = isotrak[0]
+    pts = []
+    coord_frame = 0
+    for k in range(isotrak['nent']):
+        kind = isotrak['directory'][k].kind
+        pos = isotrak['directory'][k].pos
+        if kind == FIFF.FIFF_DIG_POINT:
+            tag = read_tag(fid, pos)
+            pts.append(tag.data)
+        elif kind == FIFF.FIFF_MNE_COORD_FRAME:
+            tag = read_tag(fid, pos)
+            coord_frame = tag.data[0]
+
+    fid.close()
+    return pts, coord_frame
+
+
+def write_fiducials(fname, pts, coord_frame=0):
+    """Write fiducials to a fiff file
+
+    Parameters
+    ----------
+    fname : str
+        Destination file name.
+    pts : iterator of dict
+        Iterator through digitizer points. Each point is a dictionary with
+        the keys 'kind', 'ident' and 'r'.
+    coord_frame : int
+        The coordinate frame of the points (one of
+        mne.fiff.FIFF.FIFFV_COORD_...)
+    """
+    fid = start_file(fname)
+    start_block(fid, FIFF.FIFFB_ISOTRAK)
+    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
+    for pt in pts:
+        write_dig_point(fid, pt)
+
+    end_block(fid, FIFF.FIFFB_ISOTRAK)
+    end_file(fid)
 
 
 @verbose
