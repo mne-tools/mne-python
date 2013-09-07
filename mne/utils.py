@@ -446,6 +446,8 @@ def make_skipper_dec(module, skip_str):
 requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
 
+requires_mne_fs_in_env = np.testing.dec.skipif(('FS_HOME' in os.environ) and
+                                               ('MNE_ROOT' in os.environ))
 
 ###############################################################################
 # LOGGING

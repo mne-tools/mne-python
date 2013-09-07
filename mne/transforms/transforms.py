@@ -12,7 +12,14 @@ from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag, find_tag
 from ..fiff.tree import dir_tree_find
 from ..fiff.write import start_file, end_file, start_block, end_block, \
-                   write_coord_trans, write_dig_point, write_int
+                         write_coord_trans, write_dig_point, write_int
+
+
+# transformation from anterior/left/superior coordinate system to
+# right/anterior/superior:
+als_ras_trans = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+# simultaneously convert [m] to [mm]:
+als_ras_trans_mm = als_ras_trans * 0.001
 
 
 def apply_trans(trans, pts):
@@ -20,7 +27,7 @@ def apply_trans(trans, pts):
 
     Parameters
     ----------
-    trans : array, shape = (4, 4)
+    trans : array, shape = (4, 4) or (3, 3)
         Transform matrix.
     pts : array, shape = (3,) | (n, 3)
         Array with coordinates for one or n points.
@@ -32,19 +39,30 @@ def apply_trans(trans, pts):
     """
     trans = np.asarray(trans)
     pts = np.asarray(pts)
-    if pts.ndim == 1:
-        pts = np.vstack((pts[:, None], [1]))
-        pts = np.dot(trans, pts)
-        pts = pts[:3, 0]
+    if trans.shape == (3, 3):
+        if pts.ndim == 1:
+            pts = np.dot(trans, pts)
+        else:
+            pts = np.dot(pts, trans.T)
+    elif trans.shape == (4, 4):
+        if pts.ndim == 1:
+            pts = np.vstack((pts[:, None], [1]))
+            pts = np.dot(trans, pts)
+            pts = pts[:3, 0]
+        else:
+            pts = np.hstack((pts, np.ones((len(pts), 1))))
+            pts = np.dot(pts, trans.T)
+            pts = pts[:, :3]
     else:
-        pts = np.vstack((pts.T, np.ones(len(pts))))
-        pts = np.dot(trans, pts)
-        pts = pts[:3].T
+        err = ("trans parameter needs to be array with shape (4, 4) or "
+               "(3, 3), got %s" % str(trans.shape))
+        raise ValueError(err)
+
     return pts
 
 
 def rotation(x=0, y=0, z=0):
-    """Create an array with a rotation matrix
+    """Create an array with a 4 dimensional rotation matrix
 
     Parameters
     ----------
@@ -68,6 +86,33 @@ def rotation(x=0, y=0, z=0):
                    - sin_x * cos_z + cos_x * sin_y * sin_z, 0],
                   [-sin_y, sin_x * cos_y, cos_x * cos_y, 0],
                   [0, 0, 0, 1]], dtype=float)
+    return r
+
+
+def rotation3d(x=0, y=0, z=0):
+    """Create an array with a 3 dimensional rotation matrix
+
+    Parameters
+    ----------
+    x, y, z : scalar
+        Rotation around the origin (in rad).
+
+    Returns
+    -------
+    r : array, shape = (3, 3)
+        The rotation matrix.
+    """
+    cos_x = cos(x)
+    cos_y = cos(y)
+    cos_z = cos(z)
+    sin_x = sin(x)
+    sin_y = sin(y)
+    sin_z = sin(z)
+    r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
+                   sin_x * sin_z + cos_x * sin_y * cos_z],
+                  [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
+                   - sin_x * cos_z + cos_x * sin_y * sin_z],
+                  [-sin_y, sin_x * cos_y, cos_x * cos_y]], dtype=float)
     return r
 
 
