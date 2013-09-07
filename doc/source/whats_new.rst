@@ -38,6 +38,8 @@ Changelog
    - Add method for computing cross-spectral density (CSD) from epochs and class for storing CSD data by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
 
    - Add trellis plot function and method for visualizing single epochs by `Denis Engemann`_
+   
+   - Add fiducials read/write support by `Christian Brodbeck`_ and `Alex Gramfort`_
 
 API
 ~~~
