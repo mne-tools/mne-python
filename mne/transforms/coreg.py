@@ -4,10 +4,10 @@
 #
 # License: BSD (3-clause)
 
+from ConfigParser import RawConfigParser
 import fnmatch
 from glob import glob
 import os
-import cPickle as pickle
 import re
 import shutil
 
@@ -582,7 +582,7 @@ def is_mri_subject(subject, subjects_dir=None):
     return True
 
 
-def read_mri_scale(subject, subjects_dir=None):
+def read_mri_cfg(subject, subjects_dir=None):
     """Read the scale factor for a scaled MRI brain
 
     Parameters
@@ -599,20 +599,27 @@ def read_mri_scale(subject, subjects_dir=None):
         parameters were used).
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    fname = os.path.join(subjects_dir, subject,
-                         'MRI scaling parameters.pickled')
+    fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.cfg')
 
     if not os.path.exists(fname):
         err = ("%r does not seem to be a scaled mri subject: %r does not "
                "exist." % (subject, fname))
         raise IOError(err)
 
-    with open(fname) as fid:
-        info = pickle.load(fid)
+    config = RawConfigParser()
+    config.read(fname)
+    n_params = config.getint("MRI Scaling", 'n_params')
+    if n_params == 1:
+        scale = config.getfloat("MRI Scaling", 'scale')
+    elif n_params == 3:
+        scale_str = config.get("MRI Scaling", 'scale')
+        scale = np.array(map(float, scale_str.split()))
+    else:
+        raise ValueError("Invalid n_params value in MRI cfg: %i" % n_params)
 
-    scaling = info['scale']
-    return scaling
-
+    out = {'s_from': config.get("MRI Scaling", 's_from'), 'n_params': n_params,
+           'scale': scale}
+    return out
 
 def scale_labels(s_to, s_from='fsaverage', fname=None, overwrite=False,
                  subjects_dir=None):
@@ -711,15 +718,19 @@ def scale_mri(s_from, s_to, scale, src=False, overwrite=False, subjects_dir=None
         norm_scale = 1 / scale
 
     # save MRI scaling parameters
-    params = (('s_from', s_from), ('s_to', s_to), ('scale', scale),
-              ('version', 0.1))
-    fname = os.path.join(dest, 'MRI scaling parameters')
-    with open(fname + '.pickled', 'w') as fid:
-        pickle.dump(dict(params), fid, protocol=pickle.HIGHEST_PROTOCOL)
-    info = os.linesep.join(["Scaled MRI"] + [': '.join(map(str, item))
-                                             for item in params])
-    with open(fname + '.txt', 'w') as fid:
-        fid.write(info)
+    config = RawConfigParser()
+    config.add_section("MRI Scaling")
+    config.set("MRI Scaling", 's_from', s_from)
+    config.set("MRI Scaling", 's_to', s_to)
+    config.set("MRI Scaling", 'n_params', str(n_params))
+    if n_params == 1:
+        config.set("MRI Scaling", 'scale', str(scale))
+    else:
+        config.set("MRI Scaling", 'scale', ' '.join(map(str, scale)))
+    config.set("MRI Scaling", 'version', '1')
+    fname = os.path.join(dest, 'MRI scaling parameters.cfg')
+    with open(fname, 'wb') as fid:
+        config.write(fid)
 
     # surf files [in mm]
     for fname in paths['surf']:
