@@ -1,6 +1,6 @@
 import os.path as op
 
-from nose.tools import assert_true, assert_equal, eq_
+from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_equal
 
 from mne import fiff, Epochs, read_events
@@ -21,11 +21,11 @@ def test_fiducials_io():
     temp_fname = op.join(tempdir, 'test.fif')
     fiff.write_fiducials(temp_fname, pts, coord_frame)
     pts_1, coord_frame_1 = fiff.read_fiducials(temp_fname)
-    eq_(coord_frame, coord_frame_1)
+    assert_equal(coord_frame, coord_frame_1)
     for pt, pt_1 in zip(pts, pts_1):
-        eq_(pt['kind'], pt_1['kind'])
-        eq_(pt['ident'], pt_1['ident'])
-        eq_(pt['coord_frame'], pt_1['coord_frame'])
+        assert_equal(pt['kind'], pt_1['kind'])
+        assert_equal(pt['ident'], pt_1['ident'])
+        assert_equal(pt['coord_frame'], pt_1['coord_frame'])
         assert_array_equal(pt['r'], pt_1['r'])
 
 
