@@ -23,12 +23,14 @@ def test_scale_mri():
     is_mri = is_mri_subject('fsaverage', tempdir)
     assert_true(is_mri, "Creating fsaverage failed")
 
-    # cerate source space
-    cmd = ['mne_setup_source_space', '--subject', 'fsaverage', '--ico', '6']
-    env = os.environ.copy()
-    env['SUBJECTS_DIR'] = tempdir
-    run_subprocess(cmd, env=env)
-#     raise ValueError(str(os.listdir(os.path.join(tempdir, 'fsaverage'))))
+    # create source space
+    path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-6-src.fif')
+    if not os.path.exists(path):
+        cmd = ['mne_setup_source_space', '--subject', 'fsaverage', '--ico',
+               '6']
+        env = os.environ.copy()
+        env['SUBJECTS_DIR'] = tempdir
+        run_subprocess(cmd, env=env)
 
     # scale fsaverage
     scale_mri('fsaverage', 'kleinkopf', .8, True, subjects_dir=tempdir)
