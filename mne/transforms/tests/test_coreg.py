@@ -1,3 +1,5 @@
+import os
+
 from nose.tools import assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_less
@@ -7,7 +9,7 @@ from mne.transforms.coreg import fit_matched_pts, fit_point_cloud, \
                                  _point_cloud_error, decimate_points, \
                                  create_default_subject, scale_mri, \
                                  is_mri_subject, scale_labels
-from mne.utils import requires_mne_fs_in_env, _TempDir
+from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
 
 
 tempdir = _TempDir()
@@ -21,13 +23,23 @@ def test_scale_mri():
     is_mri = is_mri_subject('fsaverage', tempdir)
     assert_true(is_mri, "Creating fsaverage failed")
 
+    # cerate source space
+    cmd = ['mne_setup_source_space', '--subject', 'fsaverage', '--ico', '6']
+    env = os.environ.copy()
+    env['SUBJECTS_DIR'] = tempdir
+    run_subprocess(cmd, env=env)
+#     raise ValueError(str(os.listdir(os.path.join(tempdir, 'fsaverage'))))
+
     # scale fsaverage
-    scale_mri('fsaverage', 'kleinkopf', .8, subjects_dir=tempdir)
+    scale_mri('fsaverage', 'kleinkopf', .8, True, subjects_dir=tempdir)
     is_mri = is_mri_subject('kleinkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
+    scale_labels('kleinkopf', subjects_dir=tempdir)
 
-    # scale labels
-    scale_labels('kleinkopf', 'fsaverage', subjects_dir=tempdir)
+    scale_mri('fsaverage', 'flachkopf', [1, .2, 1], True, subjects_dir=tempdir)
+    is_mri = is_mri_subject('flachkopf', tempdir)
+    assert_true(is_mri, "Scaling fsaverage failed")
+    scale_labels('flachkopf', subjects_dir=tempdir)
 
 
 def test_fit_matched_pts():
