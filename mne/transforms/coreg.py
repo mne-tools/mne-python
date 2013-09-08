@@ -32,9 +32,9 @@ trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 
 
 def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
-    """Create a default subject in subjects_dir
+    """Create an average brain subject for subjects without structural MRI
 
-    Create a copy of fsaverage from the freesurfer directory in subjects_dir
+    Create a copy of fsaverage from the Freesurfer directory in subjects_dir
     and add auxiliary files from the mne package.
 
     Parameters
@@ -48,6 +48,15 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (os.environ['SUBJECTS_DIR']) as destination for the new subject.
+
+    Notes
+    -----
+    When no structural MRI is available for a subject, an average brain can be
+    substituted. Freesurfer comes with such an average brain model, and MNE
+    comes with some auxiliary files which make coregistration easier.
+    :py:func:`create_default_subject` copies the relevant files from Freesurfer
+    into the current subjects_dir, and also adds the auxiliary files provided
+    by MNE.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
@@ -229,8 +238,9 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
         Allow rotation of the ``src_pts``.
     translate : bool
         Allow translation of the ``src_pts``.
-    scale : 0 | 1
-        Number of scaling parameters.
+    scale : bool
+        Number of scaling parameters. With False, points are not scaled. With
+        True, points are scaled by the same factor along all axes.
     tol : scalar | None
         The error tolerance. If the distance between any of the matched points
         exceeds this value in the solution, a RuntimeError is raised. With
@@ -353,7 +363,7 @@ def _point_cloud_error(src_pts, tgt_pts):
 
 
 def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
-                    scale=0, x0=None, lsq_args={}, out='params'):
+                    scale=0, x0=None, leastsq_args={}, out='params'):
     """Find a transform that minimizes the squared distance from each source
     point to its closest target point
 
@@ -364,7 +374,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     ----------
     src_pts : array, shape = (n, 3)
         Points to which the transform should be applied.
-    tgt_pts : array, shape = (n, 3)
+    tgt_pts : array, shape = (m, 3)
         Points to which src_pts should be fitted. Each point in tgt_pts should
         correspond to the point in src_pts with the same index.
     rotate : bool
@@ -372,10 +382,12 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     translate : bool
         Allow translation of the ``src_pts``.
     scale : 0 | 1 | 3
-        Number of scaling parameters.
+        Number of scaling parameters. With 0, points are not scaled. With 1,
+        points are scaled by the same factor along all axes. With 3, points are
+        scaled by a separate factor along each axis.
     x0 : None | tuple
         Initial values for the fit parameters.
-    lsq_args : dict
+    leastsq_args : dict
         Additional parameters to submit to :func:`scipy.optimize.leastsq`.
     out : 'params' | 'trans'
         In what format to return the estimate: 'params' returns a tuple with
@@ -394,7 +406,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     estimate of the distance of src_pt to tgt_pts.
     """
     kwargs = {'epsfcn': 0.01}
-    kwargs.update(lsq_args)
+    kwargs.update(leastsq_args)
 
     # assert correct argument types
     src_pts = np.atleast_2d(src_pts)
@@ -612,7 +624,7 @@ def _is_mri_subject(subject, subjects_dir=None):
 
 
 def read_mri_cfg(subject, subjects_dir=None):
-    """Read the scale factor for a scaled MRI brain
+    """Read information from the cfg file of a scaled MRI brain
 
     Parameters
     ----------
@@ -623,9 +635,8 @@ def read_mri_cfg(subject, subjects_dir=None):
 
     Returns
     -------
-    scaling : array, shape = () | (3, )
-        The scaling factor (shape depends on whether one or three scaling
-        parameters were used).
+    cfg : dict
+        Dictionary with entries from the MRI's cfg file.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.cfg')
