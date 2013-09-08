@@ -6,7 +6,7 @@
 
 from ConfigParser import RawConfigParser
 import fnmatch
-from glob import glob
+from glob import iglob
 import os
 import re
 import shutil
@@ -459,7 +459,44 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
         raise ValueError(err)
 
 
-def find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
+def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
+    """Find paths to label files in a subject's label directory
+
+    Parameters
+    ----------
+    subject : str
+        Name of the mri subject.
+    pattern : str | None
+        Pattern for finding the labels relative to the label directory in the
+        MRI subject directory (e.g., "aparc/*.label" will find all labels
+        in the "subject/label/aparc" directory). With None, find all labels.
+    subjects_dir : None | path
+        Override the SUBJECTS_DIR environment variable
+        (sys.environ['SUBJECTS_DIR'])
+
+    Returns
+    ------
+    paths : list
+        List of paths relative to the subject's label directory
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subject_dir = os.path.join(subjects_dir, subject)
+    lbl_dir = os.path.join(subject_dir, 'label')
+
+    if pattern is None:
+        paths = []
+        for dirpath, _, filenames in os.walk(lbl_dir):
+            rel_dir = os.path.relpath(dirpath, lbl_dir)
+            for filename in fnmatch.filter(filenames, '*.label'):
+                path = os.path.join(rel_dir, filename)
+                paths.append(path)
+    else:
+        paths = [os.path.relpath(path, lbl_dir) for path in iglob(pattern)]
+
+    return paths
+
+
+def _find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
     """Find all files of an mri relevant for source transformation
 
     Parameters
@@ -486,7 +523,6 @@ def find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
     # directories to create
     bem_dir = os.path.join(s_dir, 'bem')
     surf_dir = os.path.join(s_dir, 'surf')
-    lbl_dir = os.path.join(s_dir, 'label')
 
     paths['dirs'] = [bem_dir, surf_dir]
 
@@ -535,17 +571,6 @@ def find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
                 kind = match.group(1)
                 fname = path.format(sub='{sub}', kind=kind)
                 src.append(fname)
-
-    # labels
-    paths['lbl'] = lbls = []
-    top = lbl_dir.format(sub=subject)
-    relpath_start = len(top) + 1
-    for dirp, _, files in os.walk(top):
-        files = fnmatch.filter(files, '*.label')
-        dirname = os.path.join(lbl_dir, dirp[relpath_start:])
-        for basename in files:
-            lbls.append(os.path.join(dirname, basename))
-        paths['dirs'].append(dirname)
 
     # duplicate curvature files
     paths['duplicate'] = dup = []
@@ -621,7 +646,8 @@ def read_mri_cfg(subject, subjects_dir=None):
            'scale': scale}
     return out
 
-def scale_labels(s_to, s_from='fsaverage', fname=None, overwrite=False,
+
+def scale_labels(s_to, pattern=None, overwrite=False, s_from=None, scale=None,
                  subjects_dir=None):
     """Scale labels to match a brain that was previously created by scaling
 
@@ -629,38 +655,43 @@ def scale_labels(s_to, s_from='fsaverage', fname=None, overwrite=False,
     ----------
     s_to : str
         Name of the scaled MRI subject (the destination brain).
-    s_from : str
-        Name of the original MRI subject (the brain that was scaled to create
-        s_to, usually "fsaverage").
-    fname : str | None
+    pattern : str | None
         Pattern for finding the labels relative to the label directory in the
         MRI subject directory (e.g., "lh.BA3a.label" will scale
         "fsaverage/label/lh.BA3a.label"; "aparc/*.label" will find all labels
         in the "fsaverage/label/aparc" directory). With None, scale all labels.
     overwrite : bool
-        Overwrite any label file that already exists for s_to.
+        Overwrite any label file that already exists for s_to (otherwise
+        existsing labels are skipped).
+    s_from : None | str
+        Name of the original MRI subject (the brain that was scaled to create
+        s_to). If None, the value is read from s_to's cfg file.
+    scale : None | float | array_like, shape = (3,)
+        Name of the original MRI subject (the brain that was scaled to create
+        s_to). If None, the value is read from s_to's cfg file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
+    # read parameters from cfg
+    if scale is None or s_from is None:
+        cfg = read_mri_cfg(s_to, subjects_dir)
+        if s_from is None:
+            s_from = cfg['s_from']
+        if scale is None:
+            scale = cfg['scale']
+
+    # find labels
+    paths = _find_label_paths(s_from, pattern, subjects_dir)
+    if not paths:
+        return
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    scale = read_mri_scale(s_to, subjects_dir)
+    src_root = os.path.join(subjects_dir, s_from, 'label')
+    dst_root = os.path.join(subjects_dir, s_to, 'label')
 
-    src_dir = os.path.join(subjects_dir, s_from, 'label')
-    dst_dir = os.path.join(subjects_dir, s_to, 'label')
-
-    os.chdir(src_dir)
-    if fname is None:
-        fnames = []
-        for dirpath, _, filenames in os.walk('.'):
-            filenames = fnmatch.filter(filenames, '*.label')
-            fmt = os.path.join(dirpath, '{}')
-            filepaths = map(fmt.format, filenames)
-            fnames.extend(filepaths)
-    else:
-        fnames = glob(fname)
-
-    for fname in fnames:
-        dst = os.path.join(dst_dir, fname)
+    # scale labels
+    for fname in paths:
+        dst = os.path.join(dst_root, fname)
         if not overwrite and os.path.exists(dst):
             continue
 
@@ -668,7 +699,7 @@ def scale_labels(s_to, s_from='fsaverage', fname=None, overwrite=False,
         if not os.path.exists(dirname):
             os.makedirs(dirname)
 
-        src = os.path.join(src_dir, fname)
+        src = os.path.join(src_root, fname)
         l_old = read_label(src)
         pos = l_old.pos * scale
         l_new = Label(l_old.vertices, pos, l_old.values, l_old.hemi,
@@ -676,7 +707,8 @@ def scale_labels(s_to, s_from='fsaverage', fname=None, overwrite=False,
         l_new.save(dst)
 
 
-def scale_mri(s_from, s_to, scale, src=False, overwrite=False, subjects_dir=None):
+def scale_mri(s_from, s_to, scale, src=False, overwrite=False,
+              subjects_dir=None):
     """Create a scaled copy of an MRI subject
 
     Parameters
@@ -695,7 +727,7 @@ def scale_mri(s_from, s_to, scale, src=False, overwrite=False, subjects_dir=None
         Override the SUBJECTS_DIR environment variable.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    paths = find_mri_paths(s_from, src, subjects_dir=subjects_dir)
+    paths = _find_mri_paths(s_from, src, subjects_dir=subjects_dir)
     scale = np.asarray(scale)
 
     # make sure we have an empty target directory
@@ -713,8 +745,10 @@ def scale_mri(s_from, s_to, scale, src=False, overwrite=False, subjects_dir=None
 
     # MRI Scaling
     if np.isscalar(scale) or scale.shape == ():
+        n_params = 1
         norm_scale = None
     else:
+        n_params = 3
         norm_scale = 1 / scale
 
     # save MRI scaling parameters
@@ -775,14 +809,7 @@ def scale_mri(s_from, s_to, scale, src=False, overwrite=False, subjects_dir=None
         write_source_spaces(dest, sss)
 
     # labels [in m]
-    for fname in paths['lbl']:
-        src = fname.format(sub=s_from)
-        l_old = read_label(src)
-        pos = l_old.pos * scale
-        l_new = Label(l_old.vertices, pos, l_old.values, l_old.hemi,
-                      l_old.comment)
-        dest = fname.format(sub=s_to)
-        l_new.save(dest)
+    scale_labels(s_to, s_from=s_from, scale=scale, subjects_dir=subjects_dir)
 
     # duplicate files
     for fname in paths['duplicate']:
