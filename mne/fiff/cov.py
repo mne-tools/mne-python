@@ -131,7 +131,7 @@ def read_cov(fid, node, cov_kind, verbose=None):
     return None
 
 
-def write_cov(fid, cov, include_proj=True, include_bads=True):
+def write_cov(fid, cov, include_proj, include_bads):
     """Write a noise covariance matrix
 
     Parameters

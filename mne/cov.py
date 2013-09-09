@@ -69,12 +69,12 @@ class Covariance(dict):
     def nfree(self):
         return self['nfree']
 
-    def save(self, fname):
+    def save(self, fname, include_proj=True, include_bads=True):
         """save covariance matrix in a FIF file"""
         fid = start_file(fname)
 
         try:
-            fiff.write_cov(fid, self)
+            fiff.write_cov(fid, self, include_proj, include_bads)
         except Exception as inst:
             os.remove(fname)
             raise inst
@@ -430,7 +430,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 ###############################################################################
 # Writing
 
-def write_cov(fname, cov):
+def write_cov(fname, cov, include_proj=True, include_bads=True):
     """Write a noise covariance matrix
 
     Parameters
@@ -440,8 +440,14 @@ def write_cov(fname, cov):
 
     cov : Covariance
         The noise covariance matrix
+
+    include_proj : bool
+        Whether to write projection operator.
+
+    include_bads : bool
+        Whether to write bad channels.
     """
-    cov.save(fname)
+    cov.save(fname, include_proj, include_bads)
 
 
 ###############################################################################
@@ -655,12 +661,6 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
     ----------
     noise_cov : Covariance
         The noise covariance.
-    info : dict
-        The measurement info.
-    picks : array of int | None
-        The channels indices to include. If None the data
-        channels in info, except bad channels, are used.
-    verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
