@@ -12,8 +12,6 @@ from math import ceil
 
 import os
 import json
-import logging
-logger = logging.getLogger('mne')
 
 import numpy as np
 from scipy import stats
@@ -39,7 +37,7 @@ from ..viz import plot_ica_panel, plot_ica_topomap
 from .. import verbose
 from ..fiff.write import start_file, end_file, write_id
 from ..epochs import _is_good
-from ..utils import check_sklearn_version
+from ..utils import check_sklearn_version, logger
 
 try:
     from sklearn.utils.extmath import fast_dot

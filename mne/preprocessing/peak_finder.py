@@ -1,11 +1,8 @@
 import numpy as np
 from math import ceil
 
-import logging
-logger = logging.getLogger('mne')
-
 from .. import verbose
-from .. utils import deprecated
+from .. utils import logger
 
 
 @verbose

@@ -1,9 +1,7 @@
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
 from .. import fiff, verbose
+from ..utils import logger
 from ..filter import band_pass_filter
 
 

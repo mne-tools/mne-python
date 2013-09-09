@@ -8,10 +8,9 @@ import numpy as np
 from scipy import linalg
 import os.path as op
 import gzip
-import logging
-logger = logging.getLogger('mne')
 
 from .constants import FIFF
+from ..utils import logger
 
 
 def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):

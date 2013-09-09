@@ -10,12 +10,10 @@ from warnings import warn
 import numpy as np
 from scipy import optimize, linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..fiff import Raw
 from ..fiff.constants import FIFF
 from .. import verbose
+from ..utils import logger
 
 
 @verbose
@@ -170,13 +168,13 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     linefreq : int (50, 60) (or None)
         Sets the basic line interference frequency (50 or 60 Hz)
         (None: do not use line filter)
-    
+
     cal : string
         Path to calibration file
-    
+
     ctc : string
         Path to Cross-talk compensation file
-        
+
     mx_args : string
         Additional command line arguments to pass to MaxFilter
 
@@ -186,7 +184,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
-    
+
     Returns
     -------
     origin: string

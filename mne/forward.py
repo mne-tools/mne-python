@@ -16,9 +16,6 @@ import os
 from os import path as op
 import tempfile
 
-import logging
-logger = logging.getLogger('mne')
-
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
@@ -40,7 +37,7 @@ from .source_space import read_source_spaces_from_tree, \
 from .transforms import transform_source_space_to, invert_transform, \
                         write_trans
 from .utils import _check_fname, get_subjects_dir, has_command_line_tools, \
-                   run_subprocess
+                   run_subprocess, logger
 from . import verbose
 
 

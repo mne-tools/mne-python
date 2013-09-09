@@ -7,15 +7,13 @@ from scipy.signal import freqz, iirdesign, iirfilter, filter_dict, get_window
 from scipy import signal, stats
 from copy import deepcopy
 
-import logging
-logger = logging.getLogger('mne')
-
 from .fixes import firwin2, filtfilt  # back port for old scipy
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from . import verbose
 from .parallel import parallel_func
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
+from .utils import logger
 
 
 def is_power2(num):

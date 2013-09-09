@@ -2,10 +2,7 @@
 #          simplified BSD-3 license
 
 import struct
-import logging
 import numpy as np
-
-logger = logging.getLogger('mne')
 
 
 def _unpack_matrix(fid, format, rows, cols, dtype):

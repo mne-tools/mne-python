@@ -3,14 +3,10 @@
 
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
-# XXX : don't import pylab here or you will break the doc
-
 from ..parallel import parallel_func
 from ..fiff.proj import make_projector_info
 from .. import verbose
+from ..utils import logger
 
 
 @verbose

@@ -6,10 +6,8 @@
 
 from os import path
 
-import logging
-logger = logging.getLogger('mne')
-
 from . import verbose
+from .utils import logger
 
 
 @verbose

@@ -5,10 +5,8 @@
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from . import fiff, Epochs, verbose
+from .utils import logger
 from .fiff.pick import pick_types, pick_types_forward
 from .fiff.proj import Projection
 from .event import make_fixed_length_events

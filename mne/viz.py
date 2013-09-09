@@ -23,16 +23,14 @@ import numpy as np
 from scipy import linalg
 from scipy import ndimage
 from matplotlib import delaunay
-
-import logging
-logger = logging.getLogger('mne')
 from warnings import warn
 
-
 # XXX : don't import pylab here or you will break the doc
+
 from .fixes import tril_indices, Counter
 from .baseline import rescale
-from .utils import get_subjects_dir, get_config, set_config, _check_subject
+from .utils import get_subjects_dir, get_config, set_config, _check_subject, \
+                   logger
 from .fiff import show_fiff, FIFF
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, setup_proj

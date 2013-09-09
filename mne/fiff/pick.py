@@ -8,12 +8,10 @@ from copy import deepcopy
 import re
 from warnings import warn
 
-import logging
-logger = logging.getLogger('mne')
-
 import numpy as np
 from .constants import FIFF
 from .. import verbose
+from ..utils import logger
 
 
 def channel_type(info, idx):

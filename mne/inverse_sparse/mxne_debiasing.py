@@ -7,10 +7,7 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
-from ..utils import check_random_state
+from ..utils import check_random_state, logger
 from .. import verbose
 
 

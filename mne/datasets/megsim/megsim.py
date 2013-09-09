@@ -6,9 +6,6 @@ from os import path as op
 import zipfile
 from sys import stdout
 
-import logging
-logger = logging.getLogger('mne')
-
 from ...utils import _fetch_file, get_config, set_config, _url_to_local_path
 from .urls import url_match, valid_data_types, valid_data_formats, \
                   valid_conditions

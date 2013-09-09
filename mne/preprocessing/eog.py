@@ -1,10 +1,8 @@
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
 from .peak_finder import peak_finder
 from .. import fiff, verbose
+from ..utils import logger
 from ..filter import band_pass_filter
 
 

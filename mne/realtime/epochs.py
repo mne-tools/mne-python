@@ -10,10 +10,8 @@ import copy
 
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
 from .. import verbose, fiff
+from ..utils import logger
 from ..baseline import rescale
 from ..epochs import _BaseEpochs
 from ..event import _find_events

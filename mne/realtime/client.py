@@ -10,12 +10,10 @@ import struct
 import StringIO
 import threading
 
-import logging
-logger = logging.getLogger('mne')
-
 import numpy as np
 
 from .. import verbose
+from ..utils import logger
 from ..fiff.constants import FIFF
 from ..fiff.meas_info import read_meas_info
 from ..fiff.tag import Tag, read_tag

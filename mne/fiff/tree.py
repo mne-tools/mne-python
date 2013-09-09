@@ -3,11 +3,9 @@
 #
 # License: BSD (3-clause)
 
-import logging
-logger = logging.getLogger('mne')
-
 from .tag import read_tag
 from .. import verbose
+from ..utils import logger
 
 
 def dir_tree_find(tree, kind):

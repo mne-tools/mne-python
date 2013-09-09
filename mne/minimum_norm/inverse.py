@@ -9,9 +9,6 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..fiff.constants import FIFF
 from ..fiff.open import fiff_open
 from ..fiff.tag import find_tag
@@ -35,6 +32,7 @@ from ..source_space import read_source_spaces_from_tree, \
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import _make_stc
 from .. import verbose
+from ..utils import logger
 
 
 def _pick_channels_inverse_operator(ch_names, inv):

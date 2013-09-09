@@ -12,12 +12,10 @@ import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..baseline import rescale
 from ..parallel import parallel_func
 from .. import verbose
+from ..utils import logger
 
 
 def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):

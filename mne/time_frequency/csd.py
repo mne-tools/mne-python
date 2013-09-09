@@ -8,11 +8,9 @@ import copy as cp
 import numpy as np
 from scipy.fftpack import fftfreq
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..fiff.pick import pick_types
 from .. import verbose
+from ..utils import logger
 from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
                                         _csd_from_mt, _psd_from_mt_adaptive
 

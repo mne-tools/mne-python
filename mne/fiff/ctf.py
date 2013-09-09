@@ -6,13 +6,11 @@
 
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
 from .constants import FIFF
 from .tag import find_tag, has_tag, read_tag
 from .tree import dir_tree_find
 from .. import verbose
+from ..utils import logger
 
 
 def hex2dec(s):

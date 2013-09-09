@@ -10,10 +10,8 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from .. import verbose
+from ..utils import logger
 from ..fiff.pick import pick_types
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz

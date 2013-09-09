@@ -11,9 +11,7 @@ from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
     band_stop_filter
 from ..time_frequency import multitaper_psd
 from ..fiff import pick_types
-
-import logging
-logger = logging.getLogger('mne')
+from .utils import logger
 
 
 class Scaler(TransformerMixin):

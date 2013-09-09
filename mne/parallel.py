@@ -6,11 +6,10 @@
 # License: Simplified BSD
 
 import inspect
-import logging
-logger = logging.getLogger('mne')
 
 from . import verbose
 from . import get_config
+from .utils import logger
 
 
 @verbose

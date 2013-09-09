@@ -12,10 +12,7 @@ except (ImportError, OSError):
     # need OSError because scikits.cuda throws it if cufft not found
     pass
 
-import logging
-logger = logging.getLogger('mne')
-
-from .utils import sizeof_fmt
+from .utils import sizeof_fmt, logger
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda

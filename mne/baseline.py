@@ -6,10 +6,9 @@
 # License: BSD (3-clause)
 
 import numpy as np
-import logging
-logger = logging.getLogger('mne')
 
 from . import verbose
+from .utils import logger
 
 
 @verbose

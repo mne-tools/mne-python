@@ -8,11 +8,8 @@ import os.path as op
 import shutil
 from warnings import warn
 
-import logging
-logger = logging.getLogger('mne')
-
 from ... import __version__ as mne_version
-from ...utils import get_config, set_config, _fetch_file
+from ...utils import get_config, set_config, _fetch_file, logger
 
 
 def _sample_version(path):
