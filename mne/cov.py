@@ -437,13 +437,10 @@ def write_cov(fname, cov, include_proj=True, include_bads=True):
     ----------
     fname : string
         The name of the file
-
     cov : Covariance
         The noise covariance matrix
-
     include_proj : bool
         Whether to write projection operator.
-
     include_bads : bool
         Whether to write bad channels.
     """
