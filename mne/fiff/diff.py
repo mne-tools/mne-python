@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from .utils import logger, verbose
+from ..utils import logger, verbose
 
 
 @verbose
