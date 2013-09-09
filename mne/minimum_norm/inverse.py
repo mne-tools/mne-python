@@ -135,12 +135,14 @@ def read_inverse_operator(fname, verbose=None):
     #
     tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT)
     if tag is not None:
-        if tag.data == 202:
+        if tag.data == FIFF.FIFF_UNIT_AM:
             inv['units'] = 'Am'
-        elif tag.data == 203:
+        elif tag.data == FIFF.FIFF_UNIT_AM_M2:
             inv['units'] = 'Am/m^2'
-        elif tag.data == 204:
+        elif tag.data == FIFF.FIFF_UNIT_AM_M3:
             inv['units'] = 'Am/m^3'
+        else:
+            inv['units'] = None
     else:
         inv['units'] = None
     #
@@ -256,6 +258,7 @@ def read_inverse_operator(fname, verbose=None):
     #  We also need the SSP operator
     #
     inv['projs'] = read_proj(fid, tree)
+
     #
     #  Some empty fields to be filled in later
     #
@@ -288,8 +291,7 @@ def read_inverse_operator(fname, verbose=None):
 
 
 @verbose
-def write_inverse_operator(fname, inv, include_proj=True,
-                           include_bads=True, verbose=None):
+def write_inverse_operator(fname, inv, verbose=None):
     """Write an inverse operator to a FIF file
 
     Parameters
@@ -343,11 +345,14 @@ def write_inverse_operator(fname, inv, include_proj=True,
 
     if 'units' in inv:
         if inv['units'] is 'Am':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT, 202)
+            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
+                      FIFF.FIFF_UNIT_AM)
         elif inv['units'] is 'Am/m^2':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT, 203)
+            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
+                      FIFF.FIFF_UNIT_AM_M2)
         elif inv['units'] is 'Am/m^3':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT, 204)
+            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
+                      FIFF.FIFF_UNIT_AM_M3)
 
     write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
@@ -364,18 +369,18 @@ def write_inverse_operator(fname, inv, include_proj=True,
     write_cov(fid, inv['noise_cov'], True, True)
 
     logger.info('    Writing source covariance matrix.')
-    write_cov(fid, inv['source_cov'], include_proj, include_bads)
+    write_cov(fid, inv['source_cov'], False, False)
 
     #
     #   write the various priors
     #
     logger.info('    Writing orientation priors.')
     if inv['depth_prior'] is not None:
-        write_cov(fid, inv['depth_prior'], include_proj, include_bads)
+        write_cov(fid, inv['depth_prior'], False, False)
     if inv['orient_prior'] is not None:
-        write_cov(fid, inv['orient_prior'], include_proj, include_bads)
+        write_cov(fid, inv['orient_prior'], False, False)
     if inv['fmri_prior'] is not None:
-        write_cov(fid, inv['fmri_prior'], include_proj, include_bads)
+        write_cov(fid, inv['fmri_prior'], False, False)
 
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
 
@@ -1356,7 +1361,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                   src=deepcopy(forward['src']), fmri_prior=None)
     inv_info = deepcopy(forward['info'])
     inv_info['bads'] = deepcopy(info['bads'])
-    inv_op['units'] = None
+    inv_op['units'] = 'Am'
     inv_op['info'] = inv_info
 
     return inv_op
