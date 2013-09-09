@@ -48,7 +48,7 @@ def test_read_pdf():
 
 
 def test_raw():
-    """ Test conversion to Raw object """
+    """ Test bti conversion to Raw object """
 
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,
                                exported_fnames):
