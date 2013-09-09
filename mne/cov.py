@@ -664,6 +664,13 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
     noise_cov : Covariance
         The noise covariance.
         If not None, override default verbose level (see mne.verbose).
+    info : dict
+        The measurement info.
+    picks : array of int | None
+        The channels indices to include. If None the data
+        channels in info, except bad channels, are used.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------

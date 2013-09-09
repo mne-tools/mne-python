@@ -256,7 +256,6 @@ def read_inverse_operator(fname, verbose=None):
     #  We also need the SSP operator
     #
     inv['projs'] = read_proj(fid, tree)
-
     #
     #  Some empty fields to be filled in later
     #
