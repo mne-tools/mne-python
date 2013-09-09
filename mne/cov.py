@@ -11,7 +11,8 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from . import fiff, verbose
+from . import fiff
+from .utils import logger, verbose
 from .fiff.write import start_file, end_file
 from .fiff.proj import make_projector, proj_equal, activate_proj
 from .fiff import fiff_open
@@ -19,7 +20,6 @@ from .fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov,\
                        pick_channels
 from .fiff.constants import FIFF
 from .epochs import _is_good
-from .utils import logger
 
 
 def _check_covs_algebra(cov1, cov2):

@@ -1,7 +1,7 @@
 import numpy as np
 
-from .. import fiff, verbose
-from ..utils import logger
+from ..fiff import pick_types, pick_channels
+from ..utils import logger, verbose
 from ..filter import band_pass_filter
 
 
@@ -131,11 +131,11 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
 
     # Geting ECG Channel
     if ch_name is None:
-        ch_ECG = fiff.pick_types(info, meg=False, eeg=False, stim=False,
-                                 eog=False, ecg=True, emg=False,
-                                 exclude='bads')
+        ch_ECG = pick_types(info, meg=False, eeg=False, stim=False,
+                            eog=False, ecg=True, emg=False,
+                            exclude='bads')
     else:
-        ch_ECG = fiff.pick_channels(raw.ch_names, include=[ch_name])
+        ch_ECG = pick_channels(raw.ch_names, include=[ch_name])
         if len(ch_ECG) == 0:
             raise ValueError('%s not in channel list (%s)' %
                              (ch_name, raw.ch_names))

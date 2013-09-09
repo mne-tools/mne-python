@@ -17,9 +17,8 @@ from .parallel import parallel_func
 from .surface import read_surface
 from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
-                    deprecated, logger)
+                    deprecated, logger, verbose)
 from .viz import plot_source_estimates
-from . import verbose
 from . fixes import in1d
 
 

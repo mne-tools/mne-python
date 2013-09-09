@@ -17,8 +17,7 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener
 from ..source_estimate import _make_stc
 from ..source_space import label_src_vertno_sel
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 @verbose

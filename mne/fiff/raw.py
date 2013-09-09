@@ -29,9 +29,8 @@ from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
 from ..utils import deprecated, _check_fname, estimate_rank, \
-                    _check_pandas_installed, logger
+                    _check_pandas_installed, logger, verbose
 from ..viz import plot_raw, _mutable_defaults
-from .. import verbose
 
 
 class Raw(ProjMixin):

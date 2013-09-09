@@ -5,8 +5,7 @@ import numpy as np
 
 from ..parallel import parallel_func
 from ..fiff.proj import make_projector_info
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 @verbose

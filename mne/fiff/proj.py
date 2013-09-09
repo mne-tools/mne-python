@@ -13,8 +13,7 @@ from .tree import dir_tree_find
 from .constants import FIFF
 from .tag import find_tag
 from .pick import pick_types
-from .. import verbose
-from ..utils import deprecated, logger
+from ..utils import deprecated, logger, verbose
 
 
 class Projection(dict):

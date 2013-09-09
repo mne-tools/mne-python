@@ -10,8 +10,8 @@ import copy
 
 import numpy as np
 
-from .. import verbose, fiff
-from ..utils import logger
+from ..fiff import pick_channels, pick_types
+from ..utils import logger, verbose
 from ..baseline import rescale
 from ..epochs import _BaseEpochs
 from ..event import _find_events
@@ -154,8 +154,8 @@ class RtEpochs(_BaseEpochs):
         if not isinstance(stim_channel, list):
             stim_channel = [stim_channel]
 
-        stim_picks = fiff.pick_channels(self._client_info['ch_names'],
-                                        include=stim_channel, exclude=[])
+        stim_picks = pick_channels(self._client_info['ch_names'],
+                                   include=stim_channel, exclude=[])
 
         if len(stim_picks) == 0:
             raise ValueError('No stim channel found to extract event '
@@ -363,8 +363,8 @@ class RtEpochs(_BaseEpochs):
 
         # Detrend
         if self.detrend is not None:
-            picks = fiff.pick_types(self.info, meg=True, eeg=True, stim=False,
-                                    eog=False, ecg=False, emg=False)
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               eog=False, ecg=False, emg=False)
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct

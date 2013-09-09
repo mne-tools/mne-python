@@ -14,8 +14,7 @@ from scipy.fftpack import fftn, ifftn
 
 from ..baseline import rescale
 from ..parallel import parallel_func
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):

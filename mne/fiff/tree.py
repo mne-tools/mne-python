@@ -4,8 +4,7 @@
 # License: BSD (3-clause)
 
 from .tag import read_tag
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 def dir_tree_find(tree, kind):

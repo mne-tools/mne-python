@@ -7,8 +7,7 @@
 
 import numpy as np
 
-from . import verbose
-from .utils import logger
+from .utils import logger, verbose
 
 
 @verbose

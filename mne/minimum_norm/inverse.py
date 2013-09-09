@@ -31,8 +31,7 @@ from ..source_space import read_source_spaces_from_tree, \
                            write_source_spaces_to_fid, label_src_vertno_sel
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import _make_stc
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 def _pick_channels_inverse_operator(ch_names, inv):

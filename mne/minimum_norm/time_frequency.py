@@ -18,8 +18,7 @@ from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
                      _pick_channels_inverse_operator, _check_method, \
                      _check_ori, _subject_from_inverse
 from ..parallel import parallel_func
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 @verbose

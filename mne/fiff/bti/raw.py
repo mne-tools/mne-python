@@ -11,8 +11,7 @@ import os.path as op
 from itertools import count
 import numpy as np
 
-from ... import verbose
-from ...utils import logger
+from ...utils import logger, verbose
 from .. import Raw
 from .. import FIFF
 from .constants import BTI

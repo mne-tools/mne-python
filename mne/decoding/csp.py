@@ -9,6 +9,7 @@ from distutils.version import LooseVersion
 
 from .mixin import TransformerMixin
 
+
 class CSP(TransformerMixin):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
 
@@ -24,7 +25,7 @@ class CSP(TransformerMixin):
     reg : float, str, None
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
-        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or 
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
                 Oracle Approximating Shrinkage ('oas')
 
     Attributes

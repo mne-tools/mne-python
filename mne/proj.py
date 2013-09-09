@@ -5,8 +5,8 @@
 import numpy as np
 from scipy import linalg
 
-from . import fiff, Epochs, verbose
-from .utils import logger
+from . import fiff, Epochs
+from .utils import logger, verbose
 from .fiff.pick import pick_types, pick_types_forward
 from .fiff.proj import Projection
 from .event import make_fixed_length_events

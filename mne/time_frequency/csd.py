@@ -9,8 +9,7 @@ import numpy as np
 from scipy.fftpack import fftfreq
 
 from ..fiff.pick import pick_types
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
                                         _csd_from_mt, _psd_from_mt_adaptive
 
@@ -148,8 +147,8 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     if mode == 'multitaper':
         # Compute standardized half-bandwidth
         if mt_bandwidth is not None:
-            half_nbw = float(mt_bandwidth) * n_times /\
-                       (2 * epochs.info['sfreq'])
+            half_nbw = (float(mt_bandwidth) * n_times /
+                        (2 * epochs.info['sfreq']))
         else:
             half_nbw = 4
 

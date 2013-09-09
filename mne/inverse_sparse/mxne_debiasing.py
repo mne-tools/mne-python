@@ -7,8 +7,7 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-from ..utils import check_random_state, logger
-from .. import verbose
+from ..utils import check_random_state, logger, verbose
 
 
 def power_iteration_kron(A, C, max_iter=1000, tol=1e-3, random_state=0):

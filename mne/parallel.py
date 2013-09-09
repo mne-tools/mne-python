@@ -6,10 +6,10 @@
 # License: Simplified BSD
 
 import inspect
+import logging
 
-from . import verbose
 from . import get_config
-from .utils import logger
+from .utils import logger, verbose
 
 
 @verbose
@@ -75,7 +75,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
             logger.warn('"MNE_CACHE_DIR" is set but a newer version of joblib '
                         'is needed to use the memmapping pool.')
         if joblib_mmap and cache_dir is None:
-            logger.info('joblib supports memapping pool but "MNE_CACHE_DIR" is '
+            logger.info('joblib supports memapping pool but "MNE_CACHE_DIR" '
                         'is not set in MNE-Python config. To enable it, use, '
                         'e.g., mne.set_cache_dir(\'/tmp/shm\'). This will '
                         'store temporary files under /dev/shm and can result '

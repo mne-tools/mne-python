@@ -10,8 +10,7 @@ from warnings import warn
 
 import numpy as np
 from .constants import FIFF
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 def channel_type(info, idx):

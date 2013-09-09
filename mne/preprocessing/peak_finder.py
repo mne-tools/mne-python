@@ -1,8 +1,7 @@
 import numpy as np
 from math import ceil
 
-from .. import verbose
-from .. utils import logger
+from .. utils import logger, verbose
 
 
 @verbose
@@ -109,7 +108,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
             # Reset peak finding if we had a peak and the next peak is bigger
             # than the last or the left min was small enough to reset.
             if found_peak and ((x[ii] > peak_mag[-1])
-                              or (left_min < peak_mag[-1] - thresh)):
+                               or (left_min < peak_mag[-1] - thresh)):
                 temp_mag = min_mag
                 found_peak = False
 

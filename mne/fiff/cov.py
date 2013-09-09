@@ -12,8 +12,7 @@ from .tag import find_tag
 from .tree import dir_tree_find
 from .proj import read_proj, write_proj
 from .channels import read_bad_channels
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 @verbose

@@ -15,8 +15,7 @@ from .fiff.tag import read_tag
 from .fiff.open import fiff_open
 from .fiff.write import write_int, start_block, start_file, end_block, end_file
 from .fiff.pick import pick_channels
-from .utils import get_config, logger
-from . import verbose
+from .utils import get_config, logger, verbose
 
 
 def pick_events(events, include=None, exclude=None):

@@ -18,14 +18,12 @@ from .proj import ProjMixin
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
-from ..utils import _check_pandas_installed, logger
-
+from ..utils import _check_pandas_installed, logger, verbose
 from .write import start_file, start_block, end_file, end_block, \
                    write_int, write_string, write_float_matrix, \
                    write_id
 
 from ..viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
-from .. import verbose
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}

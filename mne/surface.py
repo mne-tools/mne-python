@@ -16,8 +16,7 @@ from .fiff.tag import find_tag
 from .fiff.write import write_int, write_float, write_float_matrix, \
                         write_int_matrix, start_file, end_block, \
                         start_block, end_file
-from . import verbose
-from .utils import logger
+from .utils import logger, verbose
 
 #
 #   These fiff definitions are not needed elsewhere

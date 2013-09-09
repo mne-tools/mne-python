@@ -34,10 +34,9 @@ from ..fiff.tag import read_tag
 from ..fiff.meas_info import write_meas_info, read_meas_info
 from ..fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel, plot_ica_topomap
-from .. import verbose
 from ..fiff.write import start_file, end_file, write_id
 from ..epochs import _is_good
-from ..utils import check_sklearn_version, logger
+from ..utils import check_sklearn_version, logger, verbose
 
 try:
     from sklearn.utils.extmath import fast_dot

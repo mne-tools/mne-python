@@ -11,8 +11,7 @@ import cStringIO
 from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree
 from .constants import FIFF
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 @verbose

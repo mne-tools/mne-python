@@ -2,8 +2,7 @@ from math import ceil
 import numpy as np
 from scipy.fftpack import fft, ifft, fftfreq
 
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 
 
 @verbose

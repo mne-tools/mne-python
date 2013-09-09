@@ -31,10 +31,9 @@ from .utils import check_random_state, _check_pandas_index_arguments, \
                    _check_pandas_installed
 from .filter import resample, detrend
 from .event import _read_events_fif
-from . import verbose
 from .fixes import in1d
 from .viz import _mutable_defaults, plot_epochs
-from .utils import logger
+from .utils import logger, verbose
 
 
 class _BaseEpochs(ProjMixin):

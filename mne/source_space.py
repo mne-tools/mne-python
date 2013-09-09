@@ -17,8 +17,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_coord_trans, start_file, end_file, write_id
 from .surface import read_surface
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
-                   has_nibabel, logger
-from . import verbose
+                   has_nibabel, logger, verbose
 
 
 class SourceSpaces(list):

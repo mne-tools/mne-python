@@ -5,8 +5,7 @@ import copy
 
 import numpy as np
 
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 from .spectral import spectral_connectivity
 
 

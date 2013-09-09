@@ -9,7 +9,7 @@ import shutil
 from warnings import warn
 
 from ... import __version__ as mne_version
-from ...utils import get_config, set_config, _fetch_file, logger
+from ...utils import get_config, set_config, _fetch_file, logger, verbose
 
 
 def _sample_version(path):
@@ -26,7 +26,8 @@ def _sample_version(path):
     return version
 
 
-def data_path(path=None, force_update=False, update_path=True):
+@verbose
+def data_path(path=None, force_update=False, update_path=True, verbose=None):
     """Get path to local copy of Sample dataset
 
     Parameters
@@ -44,6 +45,14 @@ def data_path(path=None, force_update=False, update_path=True):
     update_path : bool | None
         If True, set the MNE_DATASETS_SAMPLE_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+
+    Returns
+    -------
+    path : str
+        Path to sample dataset directory.
     """
     if path is None:
         # use an intelligent guess if it's not defined

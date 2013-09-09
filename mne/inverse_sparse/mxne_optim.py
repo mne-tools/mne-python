@@ -8,8 +8,7 @@ import numpy as np
 from scipy import linalg
 
 from .mxne_debiasing import compute_bias
-from .. import verbose
-from ..utils import logger
+from ..utils import logger, verbose
 from ..time_frequency.stft import stft_norm2, stft, istft
 
 
