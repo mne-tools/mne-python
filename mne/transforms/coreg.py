@@ -116,7 +116,7 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
         shutil.copy(mne_fname % name, dest_bem)
 
 
-def decimate_points(pts, res=10):
+def _decimate_points(pts, res=10):
     """Decimate the number of points using a voxel grid
 
     Create a voxel grid with a specified resolution and retain at most one
@@ -582,7 +582,7 @@ def _find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
     return paths
 
 
-def is_mri_subject(subject, subjects_dir=None):
+def _is_mri_subject(subject, subjects_dir=None):
     """Check whether a directory in subjects_dir is an mri subject directory
 
     Parameters

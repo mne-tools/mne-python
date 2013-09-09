@@ -6,9 +6,9 @@ from numpy.testing import assert_array_almost_equal, assert_array_less
 
 from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.transforms.coreg import fit_matched_pts, fit_point_cloud, \
-                                 _point_cloud_error, decimate_points, \
+                                 _point_cloud_error, _decimate_points, \
                                  create_default_subject, scale_mri, \
-                                 is_mri_subject, scale_labels
+                                 _is_mri_subject, scale_labels
 from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
 
 
@@ -20,7 +20,7 @@ def test_scale_mri():
     """Test creating fsaverage and scaling it"""
     # create fsaverage
     create_default_subject(subjects_dir=tempdir)
-    is_mri = is_mri_subject('fsaverage', tempdir)
+    is_mri = _is_mri_subject('fsaverage', tempdir)
     assert_true(is_mri, "Creating fsaverage failed")
 
     # create source space
@@ -34,12 +34,12 @@ def test_scale_mri():
 
     # scale fsaverage
     scale_mri('fsaverage', 'kleinkopf', .8, True, subjects_dir=tempdir)
-    is_mri = is_mri_subject('kleinkopf', tempdir)
+    is_mri = _is_mri_subject('kleinkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
     scale_labels('kleinkopf', subjects_dir=tempdir)
 
     scale_mri('fsaverage', 'flachkopf', [1, .2, 1], True, subjects_dir=tempdir)
-    is_mri = is_mri_subject('flachkopf', tempdir)
+    is_mri = _is_mri_subject('flachkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
     scale_labels('flachkopf', subjects_dir=tempdir)
 
@@ -98,7 +98,7 @@ def test_fit_point_cloud():
     z = np.outer(np.ones(np.size(u)), np.cos(v)).reshape((-1, 1)) * 3
 
     tgt_pts = np.hstack((x, y, z))
-    tgt_pts = decimate_points(tgt_pts, .05)
+    tgt_pts = _decimate_points(tgt_pts, .05)
 
     # pick some points to fit
     some_tgt_pts = tgt_pts[::362]
