@@ -111,6 +111,7 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, stc_decimals,
     assert_true(stc_1.subject == stc_2.subject)
     assert_equal(stc_1.times, stc_2.times)
     assert_array_almost_equal(stc_1.data, stc_2.data, stc_decimals)
+    assert_true(inv_1['units'] == inv_2['units'])
 
 
 def _compare_io(inv_op, out_file_ext='.fif'):
@@ -139,6 +140,10 @@ def test_apply_inverse_operator():
                                       loose=0.2, depth=0.8,
                                       limit_depth_chs=False)
     _compare_io(my_inv_op)
+
+    # Check that the loaded inverse_operator has correct units
+    assert_true(inverse_operator['units'] == 'Am')
+
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 2,
                              check_depth=False)
     # Inverse has 306 channels - 4 proj = 302
