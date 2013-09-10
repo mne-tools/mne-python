@@ -48,7 +48,6 @@ def data_path(path=None, force_update=False, update_path=True, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
-
     Returns
     -------
     path : str
