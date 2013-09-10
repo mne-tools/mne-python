@@ -17,6 +17,7 @@ logger = logging.getLogger('mne')
 import numpy as np
 from numpy import dot
 from scipy.optimize import leastsq
+from scipy.spatial import KDTree
 from scipy.spatial.distance import cdist
 
 from ..fiff.meas_info import read_fiducials, write_fiducials
@@ -341,15 +342,15 @@ def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
         raise ValueError(err)
 
 
-def _point_cloud_error(src_pts, tgt_pts):
+def _point_cloud_error(src_pts, tgt_kdtree):
     """Find the distance from each source point to its closest target point
 
     Parameters
     ----------
     src_pts : array, shape = (n, 3)
         Source points.
-    tgt_pts : array, shape = (m, 3)
-        Target points.
+    tgt_kdtree : scipy.spatial.KDTree
+        KD-Tree of the target points.
 
     Returns
     -------
@@ -357,8 +358,7 @@ def _point_cloud_error(src_pts, tgt_pts):
         For each point in ``src_pts``, te distance to the closest point in
         ``tgt_pts``.
     """
-    Y = cdist(src_pts, tgt_pts, 'euclidean')
-    dist = Y.min(axis=1)
+    dist, _ = tgt_kdtree.query(src_pts)
     return dist
 
 
@@ -418,6 +418,8 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     if translate:
         src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
 
+    tgt_kdtree = KDTree(tgt_pts)
+
     # for efficiency, define parameter specific error function
     param_info = (rotate, translate, scale)
     if param_info == (True, False, 0):
@@ -426,7 +428,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
             est = dot(src_pts, trans.T)
-            err = _point_cloud_error(est, tgt_pts)
+            err = _point_cloud_error(est, tgt_kdtree)
             return err
     elif param_info == (True, False, 1):
         x0 = x0 or (0, 0, 0, 1)
@@ -434,7 +436,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz, s = x
             trans = rotation3d(rx, ry, rz) * s
             est = dot(src_pts, trans.T)
-            err = _point_cloud_error(est, tgt_pts)
+            err = _point_cloud_error(est, tgt_kdtree)
             return err
     elif param_info == (True, False, 3):
         x0 = x0 or (0, 0, 0, 1, 1, 1)
@@ -442,7 +444,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz, sx, sy, sz = x
             trans = rotation3d(rx, ry, rz) * [sx, sy, sz]
             est = dot(src_pts, trans.T)
-            err = _point_cloud_error(est, tgt_pts)
+            err = _point_cloud_error(est, tgt_kdtree)
             return err
     elif param_info == (True, True, 0):
         x0 = x0 or (0, 0, 0, 0, 0, 0)
@@ -450,7 +452,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz, tx, ty, tz = x
             trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
             est = dot(src_pts, trans.T)
-            err = _point_cloud_error(est[:, :3], tgt_pts)
+            err = _point_cloud_error(est[:, :3], tgt_kdtree)
             return err
     else:
         err = ("The specified parameter combination is not implemented: "
