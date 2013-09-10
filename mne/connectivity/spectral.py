@@ -8,10 +8,6 @@ from inspect import getargspec, getmembers
 import numpy as np
 from scipy.fftpack import fftfreq
 
-import logging
-logger = logging.getLogger('mne')
-
-
 from .utils import check_indices
 from ..fixes import tril_indices
 from ..parallel import parallel_func
@@ -21,7 +17,7 @@ from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
                                         _psd_from_mt, _csd_from_mt,\
                                         _psd_from_mt_adaptive
 from ..time_frequency.tfr import morlet, cwt
-from .. import verbose
+from ..utils import logger, verbose
 
 ########################################################################
 # Various connectivity estimators

@@ -7,11 +7,8 @@ from math import sqrt, ceil
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from .mxne_debiasing import compute_bias
-from .. import verbose
+from ..utils import logger, verbose
 from ..time_frequency.stft import stft_norm2, stft, istft
 
 

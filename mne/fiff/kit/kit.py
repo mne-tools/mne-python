@@ -9,21 +9,18 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 # License: BSD (3-clause)
 
 import time
-import logging
 from struct import unpack
 from os import SEEK_CUR
 import numpy as np
 from scipy.linalg import norm
 from ...fiff import pick_types
 from ...transforms.coreg import fit_matched_pts
-from ...utils import verbose
+from ...utils import verbose, logger
 from ..raw import Raw
 from ..constants import FIFF
 from ..meas_info import Info
 from .constants import KIT, KIT_NY, KIT_AD
 from . import coreg
-
-logger = logging.getLogger('mne')
 
 
 class RawKIT(Raw):

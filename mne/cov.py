@@ -11,10 +11,8 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
-from . import fiff, verbose
+from . import fiff
+from .utils import logger, verbose
 from .fiff.write import start_file, end_file
 from .fiff.proj import make_projector, proj_equal, activate_proj
 from .fiff import fiff_open

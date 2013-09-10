@@ -9,9 +9,6 @@ import sys
 from struct import pack
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
@@ -19,7 +16,7 @@ from .fiff.tag import find_tag
 from .fiff.write import write_int, write_float, write_float_matrix, \
                         write_int_matrix, start_file, end_block, \
                         start_block, end_file
-from . import verbose
+from .utils import logger, verbose
 
 #
 #   These fiff definitions are not needed elsewhere

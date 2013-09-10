@@ -7,13 +7,11 @@ import numpy as np
 import os.path as op
 import gzip
 import cStringIO
-import logging
-logger = logging.getLogger('mne')
 
 from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree
 from .constants import FIFF
-from .. import verbose
+from ..utils import logger, verbose
 
 
 @verbose

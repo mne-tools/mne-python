@@ -8,9 +8,6 @@ from warnings import warn
 import numpy as np
 from scipy import linalg, signal, fftpack
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..fiff.constants import FIFF
 from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
@@ -21,7 +18,7 @@ from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
                      _pick_channels_inverse_operator, _check_method, \
                      _check_ori, _subject_from_inverse
 from ..parallel import parallel_func
-from .. import verbose
+from ..utils import logger, verbose
 
 
 @verbose
