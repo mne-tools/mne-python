@@ -6,16 +6,14 @@
 
 import os
 from warnings import warn
+import logging
 
 import numpy as np
 from scipy import optimize, linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..fiff import Raw
 from ..fiff.constants import FIFF
-from .. import verbose
+from ..utils import logger, verbose
 
 
 @verbose
@@ -88,7 +86,7 @@ def fit_sphere_to_headshape(info, verbose=None):
 
 def _mxwarn(msg):
     warn('Possible MaxFilter bug: %s, more info: '
-          'http://imaging.mrc-cbu.cam.ac.uk/meg/maxbugs' % msg)
+         'http://imaging.mrc-cbu.cam.ac.uk/meg/maxbugs' % msg)
 
 
 @verbose
@@ -97,8 +95,8 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
                     st=False, st_buflen=16.0, st_corr=0.96, mv_trans=None,
                     mv_comp=False, mv_headpos=False, mv_hp=None,
                     mv_hpistep=None, mv_hpisubt=None, mv_hpicons=True,
-                    linefreq=None, cal=None, ctc=None, mx_args='', overwrite=True,
-                    verbose=None):
+                    linefreq=None, cal=None, ctc=None, mx_args='',
+                    overwrite=True, verbose=None):
 
     """ Apply NeuroMag MaxFilter to raw data.
 
@@ -170,13 +168,13 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     linefreq : int (50, 60) (or None)
         Sets the basic line interference frequency (50 or 60 Hz)
         (None: do not use line filter)
-    
+
     cal : string
         Path to calibration file
-    
+
     ctc : string
         Path to Cross-talk compensation file
-        
+
     mx_args : string
         Additional command line arguments to pass to MaxFilter
 
@@ -186,7 +184,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
-    
+
     Returns
     -------
     origin: string

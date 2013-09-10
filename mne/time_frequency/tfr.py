@@ -12,12 +12,9 @@ import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..baseline import rescale
 from ..parallel import parallel_func
-from .. import verbose
+from ..utils import logger, verbose
 
 
 def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
@@ -27,13 +24,10 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
     ----------
     Fs : float
         Sampling Frequency
-
     freqs : array
         frequency range of interest (1 x Frequencies)
-
     n_cycles: float | array of float
         Number of cycles. Fixed number or one per frequency.
-
     sigma : float, (optional)
         It controls the width of the wavelet ie its temporal
         resolution. If sigma is None the temporal resolution
@@ -42,7 +36,6 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
         If sigma is fixed the temporal resolution is fixed
         like for the short time Fourier transform and the number
         of oscillations increases with the frequency.
-
     zero_mean : bool
         Make sure the wavelet is zero mean
 

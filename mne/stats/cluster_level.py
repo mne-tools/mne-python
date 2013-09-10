@@ -13,15 +13,11 @@ import numpy as np
 from scipy import stats, sparse, ndimage
 import warnings
 
-import logging
-logger = logging.getLogger('mne')
-
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import split_list
+from ..utils import split_list, logger, verbose
 from ..fixes import in1d, unravel_index
 from .. import SourceEstimate
-from .. import verbose
 
 
 def _get_clusters_spatial(s, neighbors):

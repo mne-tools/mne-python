@@ -23,20 +23,17 @@ import numpy as np
 from scipy import linalg
 from scipy import ndimage
 from matplotlib import delaunay
-
-import logging
-logger = logging.getLogger('mne')
 from warnings import warn
 
-
 # XXX : don't import pylab here or you will break the doc
+
 from .fixes import tril_indices, Counter
 from .baseline import rescale
-from .utils import get_subjects_dir, get_config, set_config, _check_subject
+from .utils import get_subjects_dir, get_config, set_config, _check_subject, \
+                   logger, verbose
 from .fiff import show_fiff, FIFF
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, setup_proj
-from . import verbose
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']

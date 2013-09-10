@@ -16,9 +16,6 @@ import numpy as np
 from scipy.signal import hilbert
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from .constants import FIFF
 from .open import fiff_open
 from .meas_info import read_meas_info, write_meas_info
@@ -32,9 +29,8 @@ from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
 from ..utils import deprecated, _check_fname, estimate_rank, \
-                    _check_pandas_installed
+                    _check_pandas_installed, logger, verbose
 from ..viz import plot_raw, _mutable_defaults
-from .. import verbose
 
 
 class Raw(ProjMixin):

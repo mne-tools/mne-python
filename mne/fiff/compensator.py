@@ -1,10 +1,6 @@
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
 from .constants import FIFF
-from .. import verbose
 
 
 def get_current_comp(info):

@@ -14,9 +14,6 @@ import warnings
 import numpy as np
 from copy import deepcopy
 
-import logging
-logger = logging.getLogger('mne')
-
 from .fiff.write import start_file, start_block, end_file, end_block, \
                         write_int, write_float_matrix, write_float, \
                         write_id, write_string
@@ -34,9 +31,9 @@ from .utils import check_random_state, _check_pandas_index_arguments, \
                    _check_pandas_installed
 from .filter import resample, detrend
 from .event import _read_events_fif
-from . import verbose
 from .fixes import in1d
 from .viz import _mutable_defaults, plot_epochs
+from .utils import logger, verbose
 
 
 class _BaseEpochs(ProjMixin):

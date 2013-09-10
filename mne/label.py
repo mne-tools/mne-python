@@ -11,15 +11,11 @@ import numpy as np
 import re
 from scipy import linalg, sparse
 
-import logging
-logger = logging.getLogger('mne')
-
-from .utils import get_subjects_dir, _check_subject
+from .utils import get_subjects_dir, _check_subject, logger, verbose
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .surface import read_surface
 from .parallel import parallel_func, check_n_jobs
-from . import verbose
 from .stats.cluster_level import _find_clusters
 
 

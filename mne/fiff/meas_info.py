@@ -11,9 +11,6 @@ from scipy import linalg
 from StringIO import StringIO
 from datetime import datetime as dt
 
-import logging
-logger = logging.getLogger('mne')
-
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
 from .constants import FIFF
@@ -24,7 +21,7 @@ from .channels import read_bad_channels
 from .write import start_file, end_file, start_block, end_block, \
                    write_string, write_dig_point, write_float, write_int, \
                    write_coord_trans, write_ch_info, write_name_list
-from .. import verbose
+from ..utils import logger, verbose
 
 
 def _summarize_str(st):

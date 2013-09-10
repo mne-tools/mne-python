@@ -12,17 +12,13 @@ from scipy import linalg, sparse
 from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
-import logging
-logger = logging.getLogger('mne')
-
 from .filter import resample
 from .parallel import parallel_func
 from .surface import read_surface
 from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
-                    deprecated)
+                    deprecated, logger, verbose)
 from .viz import plot_source_estimates
-from . import verbose
 from . fixes import in1d
 
 

@@ -3,14 +3,9 @@
 
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
-# XXX : don't import pylab here or you will break the doc
-
 from ..parallel import parallel_func
 from ..fiff.proj import make_projector_info
-from .. import verbose
+from ..utils import logger, verbose
 
 
 @verbose
@@ -23,36 +18,26 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     ----------
     raw : instance of Raw
         The raw data.
-
     tmin : float
         Min time instant to consider
-
     tmax : float
         Max time instant to consider
-
     picks : None or array of integers
         The selection of channels to include in the computation.
         If None, take all channels.
-
     fmin : float
         Min frequency of interest
-
     fmax : float
         Max frequency of interest
-
     NFFT : int
         The length of the tappers ie. the windows. The smaller
         it is the smoother are the PSDs.
-
     n_jobs : int
         Number of CPUs to use in the computation.
-
     plot : bool
         Plot each PSD estimates
-
     proj : bool
         Apply SSP projection vectors
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -60,7 +45,6 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     -------
     psd : array of float
         The PSD for all channels
-
     freqs: array of float
         The frequencies
     """

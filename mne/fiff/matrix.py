@@ -3,14 +3,11 @@
 #
 # License: BSD (3-clause)
 
-import logging
-logger = logging.getLogger('mne')
-
 from .constants import FIFF
 from .tag import find_tag, has_tag
 from .write import write_int, start_block, end_block, write_float_matrix, \
                    write_name_list
-from .. import verbose
+from ..utils import logger, verbose
 
 
 def _transpose_named_matrix(mat, copy=True):

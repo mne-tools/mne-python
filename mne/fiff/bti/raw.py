@@ -7,12 +7,11 @@
 #
 #          simplified BSD-3 license
 
-import logging
 import os.path as op
 from itertools import count
 import numpy as np
 
-from ...utils import verbose
+from ...utils import logger, verbose
 from .. import Raw
 from .. import FIFF
 from .constants import BTI
@@ -23,8 +22,6 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
 from .transforms import (bti_identity_trans, bti_to_vv_trans,
                         bti_to_vv_coil_trans, inverse_trans, merge_trans)
 from ..meas_info import Info
-
-logger = logging.getLogger('mne')
 
 
 FIFF_INFO_CHS_FIELDS = ('loc', 'ch_name', 'unit_mul', 'coil_trans',

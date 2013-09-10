@@ -9,9 +9,6 @@
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..fiff.constants import FIFF
 from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
@@ -20,7 +17,7 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener
 from ..source_estimate import _make_stc
 from ..source_space import label_src_vertno_sel
-from .. import verbose
+from ..utils import logger, verbose
 
 
 @verbose

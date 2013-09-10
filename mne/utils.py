@@ -27,8 +27,8 @@ import ftplib
 import urlparse
 from scipy import linalg
 
-logger = logging.getLogger('mne')
-
+logger = logging.getLogger('mne')  # one selection here used across mne-python
+logger.propagate = False  # don't propagate (in case of multiple imports)
 
 ###############################################################################
 # RANDOM UTILITIES
