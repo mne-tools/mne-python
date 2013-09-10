@@ -17,9 +17,10 @@ from ..fiff.write import start_file, end_file, start_block, end_block, \
 
 # transformation from anterior/left/superior coordinate system to
 # right/anterior/superior:
-als_ras_trans = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
+als_ras_trans = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0],
+                          [0, 0, 0, 1]])
 # simultaneously convert [m] to [mm]:
-als_ras_trans_mm = als_ras_trans * 0.001
+als_ras_trans_mm = als_ras_trans * [0.001, 0.001, 0.001, 1]
 
 
 def apply_trans(trans, pts):
