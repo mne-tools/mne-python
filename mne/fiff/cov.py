@@ -134,7 +134,7 @@ def read_cov(fid, node, cov_kind, verbose=None):
     return None
 
 
-def write_cov(fid, cov, include_proj, include_bads):
+def write_cov(fid, cov):
     """Write a noise covariance matrix
 
     Parameters
@@ -143,10 +143,6 @@ def write_cov(fid, cov, include_proj, include_bads):
         The file descriptor.
     cov : dict
         The noise covariance matrix to write.
-    include_proj : bool
-        Whether to write projection operator.
-    include_bads : bool
-        Whether to write bad channels.
     """
     start_block(fid, FIFF.FIFFB_MNE_COV)
 
@@ -176,11 +172,11 @@ def write_cov(fid, cov, include_proj, include_bads):
         write_double(fid, FIFF.FIFF_MNE_COV_EIGENVALUES, cov['eig'])
 
     #   Projection operator
-    if include_proj:
+    if cov['projs'] is not None and len(cov['projs']) > 0:
         write_proj(fid, cov['projs'])
 
     #   Bad channels
-    if cov['bads'] is not None and include_bads:
+    if cov['bads'] is not None and len(cov['bads']) > 0:
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
         write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, cov['bads'])
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)

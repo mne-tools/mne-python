@@ -344,13 +344,13 @@ def write_inverse_operator(fname, inv, verbose=None):
     write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
 
     if 'units' in inv:
-        if inv['units'] is 'Am':
+        if inv['units'] == 'Am':
             write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
                       FIFF.FIFF_UNIT_AM)
-        elif inv['units'] is 'Am/m^2':
+        elif inv['units'] == 'Am/m^2':
             write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
                       FIFF.FIFF_UNIT_AM_M2)
-        elif inv['units'] is 'Am/m^3':
+        elif inv['units'] == 'Am/m^3':
             write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
                       FIFF.FIFF_UNIT_AM_M3)
 
@@ -358,6 +358,8 @@ def write_inverse_operator(fname, inv, verbose=None):
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
     if 'nchan' in inv:
         write_int(fid, FIFF.FIFF_NCHAN, inv['nchan'])
+    elif 'nchan' in inv['info']:
+        write_int(fid, FIFF.FIFF_NCHAN, inv['info']['nchan'])
     write_float_matrix(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS,
                        inv['source_nn'])
     write_float(fid, FIFF.FIFF_MNE_INVERSE_SING, inv['sing'])
@@ -366,21 +368,21 @@ def write_inverse_operator(fname, inv, verbose=None):
     #   write the covariance matrices
     #
     logger.info('    Writing noise covariance matrix.')
-    write_cov(fid, inv['noise_cov'], True, True)
+    write_cov(fid, inv['noise_cov'])
 
     logger.info('    Writing source covariance matrix.')
-    write_cov(fid, inv['source_cov'], False, False)
+    write_cov(fid, inv['source_cov'])
 
     #
     #   write the various priors
     #
     logger.info('    Writing orientation priors.')
     if inv['depth_prior'] is not None:
-        write_cov(fid, inv['depth_prior'], False, False)
+        write_cov(fid, inv['depth_prior'])
     if inv['orient_prior'] is not None:
-        write_cov(fid, inv['orient_prior'], False, False)
+        write_cov(fid, inv['orient_prior'])
     if inv['fmri_prior'] is not None:
-        write_cov(fid, inv['fmri_prior'], False, False)
+        write_cov(fid, inv['fmri_prior'])
 
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
 

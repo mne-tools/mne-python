@@ -71,12 +71,12 @@ class Covariance(dict):
     def nfree(self):
         return self['nfree']
 
-    def save(self, fname, include_proj=True, include_bads=True):
+    def save(self, fname):
         """save covariance matrix in a FIF file"""
         fid = start_file(fname)
 
         try:
-            fiff.write_cov(fid, self, include_proj, include_bads)
+            fiff.write_cov(fid, self)
         except Exception as inst:
             os.remove(fname)
             raise inst
@@ -432,7 +432,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 ###############################################################################
 # Writing
 
-def write_cov(fname, cov, include_proj=True, include_bads=True):
+def write_cov(fname, cov):
     """Write a noise covariance matrix
 
     Parameters
@@ -441,12 +441,8 @@ def write_cov(fname, cov, include_proj=True, include_bads=True):
         The name of the file
     cov : Covariance
         The noise covariance matrix
-    include_proj : bool
-        Whether to write projection operator.
-    include_bads : bool
-        Whether to write bad channels.
     """
-    cov.save(fname, include_proj, include_bads)
+    cov.save(fname)
 
 
 ###############################################################################
