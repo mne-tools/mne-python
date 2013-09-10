@@ -27,7 +27,7 @@ def apply_trans(trans, pts):
 
     Parameters
     ----------
-    trans : array, shape = (4, 4) or (3, 3)
+    trans : array, shape = (4, 4)
         Transform matrix.
     pts : array, shape = (3,) | (n, 3)
         Array with coordinates for one or n points.
@@ -39,12 +39,13 @@ def apply_trans(trans, pts):
     """
     trans = np.asarray(trans)
     pts = np.asarray(pts)
-    if trans.shape == (3, 3):
+    if np.all(trans[:, 3] == np.array([0, 0, 0, 1])):
+        trans = trans[:3, :3]
         if pts.ndim == 1:
             pts = np.dot(trans, pts)
         else:
             pts = np.dot(pts, trans.T)
-    elif trans.shape == (4, 4):
+    else:
         if pts.ndim == 1:
             pts = np.vstack((pts[:, None], [1]))
             pts = np.dot(trans, pts)
@@ -53,10 +54,6 @@ def apply_trans(trans, pts):
             pts = np.hstack((pts, np.ones((len(pts), 1))))
             pts = np.dot(pts, trans.T)
             pts = pts[:, :3]
-    else:
-        err = ("trans parameter needs to be array with shape (4, 4) or "
-               "(3, 3), got %s" % str(trans.shape))
-        raise ValueError(err)
 
     return pts
 
