@@ -220,8 +220,8 @@ def _trans_from_params(param_info, params):
     return trans
 
 
-def fit_matched_pts(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
-                    tol=None, x0=None, out='trans'):
+def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
+                       tol=None, x0=None, out='trans'):
     """Find a transform that minimizes the squared distance between two
     matching sets of points.
 

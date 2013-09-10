@@ -6,7 +6,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_less
 from scipy.spatial import KDTree
 
 from mne.transforms import apply_trans, rotation, translation, scaling
-from mne.transforms.coreg import fit_matched_pts, fit_point_cloud, \
+from mne.transforms.coreg import fit_matched_points, fit_point_cloud, \
                                  _point_cloud_error, _decimate_points, \
                                  create_default_subject, scale_mri, \
                                  _is_mri_subject, scale_labels
@@ -45,47 +45,48 @@ def test_scale_mri():
     scale_labels('flachkopf', subjects_dir=tempdir)
 
 
-def test_fit_matched_pts():
-    """Test fit_matched_pts: fitting two matching sets of points"""
+def test_fit_matched_points():
+    """Test fit_matched_points: fitting two matching sets of points"""
     tgt_pts = np.random.uniform(size=(6, 3))
 
     # rotation only
     trans = rotation(2, 6, 3)
     src_pts = apply_trans(trans, tgt_pts)
-    trans_est = fit_matched_pts(src_pts, tgt_pts, translate=False, out='trans')
+    trans_est = fit_matched_points(src_pts, tgt_pts, translate=False,
+                                   out='trans')
     est_pts = apply_trans(trans_est, src_pts)
-    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_pts with "
+    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with "
                               "rotation")
 
     # rotation & scaling
     trans = np.dot(rotation(2, 6, 3), scaling(.5, .5, .5))
     src_pts = apply_trans(trans, tgt_pts)
-    trans_est = fit_matched_pts(src_pts, tgt_pts, translate=False, scale=1,
+    trans_est = fit_matched_points(src_pts, tgt_pts, translate=False, scale=1,
                                 out='trans')
     est_pts = apply_trans(trans_est, src_pts)
-    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_pts with "
+    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with "
                               "rotation and scaling.")
 
     # rotation & translation
     trans = np.dot(translation(2, -6, 3), rotation(2, 6, 3))
     src_pts = apply_trans(trans, tgt_pts)
-    trans_est = fit_matched_pts(src_pts, tgt_pts, out='trans')
+    trans_est = fit_matched_points(src_pts, tgt_pts, out='trans')
     est_pts = apply_trans(trans_est, src_pts)
-    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_pts with "
+    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with "
                               "rotation and translation.")
 
     # rotation & translation & scaling
     trans = reduce(np.dot, (translation(2, -6, 3), rotation(1.5, .3, 1.4),
                             scaling(.5, .5, .5)))
     src_pts = apply_trans(trans, tgt_pts)
-    trans_est = fit_matched_pts(src_pts, tgt_pts, scale=1, out='trans')
+    trans_est = fit_matched_points(src_pts, tgt_pts, scale=1, out='trans')
     est_pts = apply_trans(trans_est, src_pts)
-    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_pts with "
+    assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with "
                               "rotation, translation and scaling.")
 
     # test exceeding tolerance
     tgt_pts[0, :] += 20
-    assert_raises(RuntimeError, fit_matched_pts, tgt_pts, src_pts, tol=10)
+    assert_raises(RuntimeError, fit_matched_points, tgt_pts, src_pts, tol=10)
 
 
 def test_fit_point_cloud():
