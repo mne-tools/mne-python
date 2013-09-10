@@ -332,6 +332,20 @@ Covariance
    write_cov
 
 
+MRI Processing
+==============
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+   
+   create_default_subject
+   scale_mri
+   scale_labels
+
+
 Forward Modeling
 ================
 
