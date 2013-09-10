@@ -139,11 +139,8 @@ def test_apply_inverse_operator():
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8,
                                       limit_depth_chs=False)
-    _compare_io(my_inv_op)
-
     # Check that the loaded inverse_operator has correct units
     assert_true(inverse_operator['units'] == 'Am')
-
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 2,
                              check_depth=False)
     # Inverse has 306 channels - 4 proj = 302
