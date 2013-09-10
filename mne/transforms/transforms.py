@@ -39,23 +39,19 @@ def apply_trans(trans, pts):
     """
     trans = np.asarray(trans)
     pts = np.asarray(pts)
-    if np.all(trans[:, 3] == np.array([0, 0, 0, 1])):
-        trans = trans[:3, :3]
-        if pts.ndim == 1:
-            pts = np.dot(trans, pts)
-        else:
-            pts = np.dot(pts, trans.T)
-    else:
-        if pts.ndim == 1:
-            pts = np.vstack((pts[:, None], [1]))
-            pts = np.dot(trans, pts)
-            pts = pts[:3, 0]
-        else:
-            pts = np.hstack((pts, np.ones((len(pts), 1))))
-            pts = np.dot(pts, trans.T)
-            pts = pts[:, :3]
 
-    return pts
+    # apply rotation & scale
+    if pts.ndim == 1:
+        out_pts = np.dot(trans[:3, :3], pts)
+    else:
+        out_pts = np.dot(pts, trans[:3, :3].T)
+
+    # apply translation
+    transl = trans[:3, 3]
+    if np.any(transl != 0):
+        out_pts += transl
+
+    return out_pts
 
 
 def rotation(x=0, y=0, z=0):
