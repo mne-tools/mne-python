@@ -6,7 +6,7 @@
 
 from ConfigParser import RawConfigParser
 import fnmatch
-from glob import iglob
+from glob import glob, iglob
 import os
 import re
 import shutil
@@ -599,10 +599,14 @@ def _is_mri_subject(subject, subjects_dir=None):
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     sdir = os.path.join(subjects_dir, subject)
-    for name in ('head',):
-        fname = os.path.join(sdir, 'bem', '%s-%s.fif' % (subject, name))
-        if not os.path.exists(fname):
-            return False
+
+    fname = os.path.join(sdir, 'bem', '%s-head.fif' % subject)
+    if not os.path.exists(fname):
+        return False
+
+    fname = os.path.join(sdir, 'bem', '%s-*-bem.fif' % subject)
+    if len(glob(fname)) == 0:
+        return False
 
     return True
 
