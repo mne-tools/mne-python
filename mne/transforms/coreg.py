@@ -46,7 +46,7 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
     fs_home : None | str
         The freesurfer home directory (only needed if FREESURFER_HOME is not
         specified as environment variable).
-    subjects_dir : None | path
+    subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (os.environ['SUBJECTS_DIR']) as destination for the new subject.
 
@@ -58,6 +58,19 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
     :py:func:`create_default_subject` copies the relevant files from Freesurfer
     into the current subjects_dir, and also adds the auxiliary files provided
     by MNE.
+
+    The files provided by MNE are the following (see MNE manual section 7.19
+    Working with the average brain):
+
+    fsaverage_head.fif:
+        The approximate head surface triangulation for fsaverage.
+    fsaverage_inner_skull-bem.fif:
+        The approximate inner skull surface for fsaverage.
+    fsaverage-fiducials.fif:
+        The locations of the fiducial points (LPA, RPA, and nasion).
+    fsaverage-trans.fif:
+        Contains a default MEG-MRI coordinate transformation suitable for
+        fsaverage.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if fs_home is None:
@@ -484,7 +497,7 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
         Pattern for finding the labels relative to the label directory in the
         MRI subject directory (e.g., "aparc/*.label" will find all labels
         in the "subject/label/aparc" directory). With None, find all labels.
-    subjects_dir : None | path
+    subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
 
@@ -519,7 +532,7 @@ def _find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
         Name of the mri subject.
     src : bool
         Include source spaces.
-    subjects_dir : None | path
+    subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
 
@@ -603,7 +616,7 @@ def _is_mri_subject(subject, subjects_dir=None):
     ----------
     subject : str
         Name of the potential subject/directory.
-    subjects_dir : None | path
+    subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
 
     Returns
