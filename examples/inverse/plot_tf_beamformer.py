@@ -18,6 +18,7 @@ import os.path as op
 
 import numpy as np
 import matplotlib.pyplot as pl
+from scipy.fftpack import fftfreq
 
 import logging
 logger = logging.getLogger('mne')
@@ -46,7 +47,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 # Read epochs
 event_id, tmin, tmax = 1, -0.2, 0.5
-events = mne.read_events(event_fname)[:3]  # TODO: Use all events
+#events = mne.read_events(event_fname)[:3]  # TODO: Use all events
+events = mne.read_events(event_fname)  # TODO: Use all events
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12))
@@ -70,28 +72,43 @@ label = mne.read_label(fname_label)
 #window_lenghts = [300, 200, 150]  # ms
 
 # Setting window length and time step equal for a start
-window_length = 0.2  # s; currently unused
-time_step = 0.2  # s
+#window_length = 0.1  # s; currently unused
+time_step = 0.15  # s
+time_start = -0.125  # s
 sfreq = epochs.info['sfreq']
 time_step = np.round(time_step * sfreq) / sfreq
 times = epochs.times
 n_steps = int(np.floor((times[-1] - times[0]) / time_step))
-time_bounds = [times[0]]
+time_bounds = [time_start]
 
-# Setting frequency bins
+# Setting frequency bins as in Dalal et al. 2008
 # TODO: The gap between 55 and 65 Hz should be marked on the final spectrogram
-freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
+#freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
 # TODO: This should be calculated from freq_bins
-freq_bounds = [4, 12, 30, 55, 300]
+#freq_bounds = [4, 12, 30, 55, 300]
+#freq_ticks = freq_bounds
 
-source_power = []
+# Setting frequency bins so that each frequency up to a certain limit is
+# plotted separately
+fmax = 59
+n_times = int(time_step * sfreq)
+freqs = fftfreq(n_times, 1. / sfreq)
+freqs = freqs[(freqs >= 0) & (freqs < fmax)]
+freq_bins = []
+freq_bounds = [np.mean([freqs[0], freqs[1]])]
+#freq_ticks = []
+for i in range(len(freqs) - 2):
+    freq_bins.append((np.mean([freqs[i], freqs[i + 1]]),
+                      np.mean([freqs[i + 1], freqs[i + 2]])))
+    freq_bounds.append(np.mean([freqs[i + 1], freqs[i + 2]]))
+    #freq_ticks.append(np.round(freqs[i+1], 2))
 
 for i_time in range(n_steps):
     if i_time == 0:
-        tmin = None
+        tmin = time_start
     else:
         tmin = tmax
-    tmax = times[0] + (i_time + 1) * time_step
+    tmax = time_start + (i_time + 1) * time_step
     time_bounds.append(tmax)
 
     # Calculating data and noise CSD matrices for current time window
@@ -102,23 +119,32 @@ for i_time in range(n_steps):
         # this is going to be taking a lot of time
         logger.info((i_time, freq_bin))
 
-        data_csd = compute_epochs_csd(epochs, mode='fourier', tmin=tmin,
+        data_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=tmin,
                                       tmax=tmax, fmin=freq_bin[0],
-                                      fmax=freq_bin[1], fsum=True)
+                                      fmax=freq_bin[1], fsum=True,
+                                      mt_bandwidth=53.5, mt_adaptive=True)
         data_csds.append(data_csd)
 
         # TODO: This is hacked for now to use always use the first time window
         # as noise, but noise normalization should be thought through (check
         # Dalal et al., they seem to describe it in detail)
-        noise_csd = compute_epochs_csd(epochs, mode='fourier', tmin=None,
-                                       tmax=times[0] + time_step,
-                                       fmin=freq_bin[0], fmax=freq_bin[1],
-                                       fsum=True)
+        #noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=None,
+        #                               tmax=times[0] + time_step,
+        #                               fmin=freq_bin[0], fmax=freq_bin[1],
+        #                               fsum=True)
+        noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.15,
+                                       tmax=-0.001, fmin=freq_bin[0],
+                                       fmax=freq_bin[1], fsum=True,
+                                       mt_bandwidth=53.5, mt_adaptive=True)
         noise_csds.append(noise_csd)
 
+    #stc = dics_source_power(epochs.info, forward, noise_csds, data_csds,
+    #                        reg=0.001, label=label)
     stc = dics_source_power(epochs.info, forward, noise_csds, data_csds,
-                            label=label)
+                            reg=0.001)
 
+source_power = []
+for stc in stc:
     source_power.append(stc.data)
 
 source_power = np.array(source_power)
@@ -127,10 +153,15 @@ max_source = max_index[1]
 
 x, y = np.meshgrid(time_bounds, freq_bounds)
 pl.pcolor(x, y, source_power[:, max_source, :].T, cmap=pl.cm.jet)
-pl.yscale('log')
 ax = pl.gca()
+pl.xlabel('Time window boundaries [s]')
+ax.set_xticks(time_bounds)
+pl.xlim(time_bounds[0], time_bounds[-1])
+pl.ylabel('Frequency bin boundaries [Hz]')
+pl.yscale('log')
 ax.set_yticks(freq_bounds)
-ax.set_yticklabels(freq_bounds)
+ax.set_yticklabels([np.round(freq, 2) for freq in freq_bounds])
 pl.ylim(freq_bounds[0], freq_bounds[-1])
+pl.grid(True, ls='-')
 pl.colorbar()
 pl.show()
