@@ -39,6 +39,8 @@ start, stop = 0, 6  # if stop is too small pca may fail in some cases, but
                     # we're okay on this file
 
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
+from sklearn.utils.validation import NonBLASDotWarning
+warnings.simplefilter('error', NonBLASDotWarning)
 
 
 def requires_sklearn(function):
@@ -119,7 +121,7 @@ def test_ica_core():
 
     # # test init catchers
     assert_raises(ValueError, ICA, n_components=3, max_pca_components=2)
-    assert_raises(ValueError, ICA, n_components=1.3, max_pca_components=2)
+    assert_raises(ValueError, ICA, n_components=2.3, max_pca_components=2)
 
     # test essential core functionality
     for n_cov, n_comp, max_n, pcks in iter_ica_params:
@@ -224,13 +226,13 @@ def test_ica_additional():
     # test reading and writing
     test_ica_fname = op.join(op.dirname(tempdir), 'ica_test.fif')
     for cov in (None, test_cov):
-        ica = ICA(noise_cov=cov, n_components=3, max_pca_components=4,
+        ica = ICA(noise_cov=cov, n_components=2, max_pca_components=4,
                   n_pca_components=4)
         with warnings.catch_warnings(True):  # ICA does not converge
             ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
         sources = ica.get_sources_epochs(epochs)
-        assert_true(ica.mixing_matrix_.shape == (3, 3))
-        assert_true(ica.unmixing_matrix_.shape == (3, 3))
+        assert_true(ica.mixing_matrix_.shape == (2, 2))
+        assert_true(ica.unmixing_matrix_.shape == (2, 2))
         assert_true(ica.pca_components_.shape == (4, len(picks)))
         assert_true(sources.shape[1] == ica.n_components_)
 
@@ -259,6 +261,14 @@ def test_ica_additional():
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
         assert_true(ica.n_pca_components == ica_read.n_pca_components)
+
+        # check type consistency
+        attrs = ('mixing_matrix_ unmixing_matrix_ pca_components_ '
+                 'pca_explained_variance_ _pre_whitener')
+        f = lambda x, y: getattr(x, y).dtype
+        for attr in attrs.split():
+            assert_equal(f(ica_read, attr), f(ica, attr))
+
         ica.n_pca_components = 4
         ica_read.n_pca_components = 4
 

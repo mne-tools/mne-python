@@ -1521,15 +1521,17 @@ def read_ica(fname):
         logger.info('Reading whitener drawn from noise covariance ...')
 
     logger.info('Now restoring ICA session ...')
+    # make sure dtypes are np.float64 to satisfy fast_dot
+    f = lambda x: x.astype(np.float64)
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
-    ica._pre_whitener = pre_whitener
-    ica.pca_mean_ = pca_mean
-    ica.pca_components_ = pca_components
+    ica._pre_whitener = f(pre_whitener)
+    ica.pca_mean_ = f(pca_mean)
+    ica.pca_components_ = f(pca_components)
     ica.n_components_ = unmixing_matrix.shape[0]
-    ica.pca_explained_variance_ = pca_explained_variance
-    ica.unmixing_matrix_ = unmixing_matrix
+    ica.pca_explained_variance_ = f(pca_explained_variance)
+    ica.unmixing_matrix_ = f(unmixing_matrix)
     ica.mixing_matrix_ = linalg.pinv(ica.unmixing_matrix_)
     ica.exclude = [] if exclude is None else list(exclude)
     ica.info = info
