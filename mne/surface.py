@@ -1,4 +1,3 @@
-
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis A. Engemann <d.engemann@fz-juelich.de>
