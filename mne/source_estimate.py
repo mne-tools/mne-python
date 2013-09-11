@@ -680,7 +680,13 @@ class _BaseSourceEstimate(object):
         return self
 
     def mean(self):
-        # Make a summary stc file with mean power between tmin and tmax.
+        """Make a summary stc file with mean power between tmin and tmax.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The modified stc (note: method operates inplace).
+        """
         data = self.data
         tmax = self.tmin + self.tstep * data.shape[1]
         tmin = (self.tmin + tmax) / 2.
@@ -1155,6 +1161,11 @@ class SourceEstimate(_BaseSourceEstimate):
         ----------
         vertno : list of array
             New vertices to add. Can also contain old values.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The modified stc (note: method operates inplace).
         """
         if not isinstance(vertno, list):
             raise TypeError('vertno must be a list')
@@ -1623,7 +1634,6 @@ from .fiff.constants import FIFF
 from .fiff.tag import find_tag
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
-from .surface import read_bem_surfaces
 
 
 @verbose
