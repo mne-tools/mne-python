@@ -224,7 +224,7 @@ def _complete_surface_info(this):
     #    Find neighboring triangles and accumulate vertex normals
     this['nn'] = np.zeros((this['np'], 3))
     this['neighbor_tri'] = [np.array([], int) for _ in xrange(this['np'])]
-    for p in range(this['ntri']):
+    for p in xrange(this['ntri']):
         # vertex normals
         this['nn'][this['tris'][p, :], :] += this['tri_nn'][p, :]
         # neighbors
@@ -423,14 +423,14 @@ def _get_nearest(to, fro):
     search_cos = np.cos(1.2 * np.arccos(max_cos))
     search_verts = [None] * nnode
     temp = np.zeros(fro['np'], int)
-    for k in range(nnode):
+    for k in xrange(nnode):
         these_cos = np.sum(fro['rr'] * nodes[k], 1)
         temp = these_cos[these_cos > search_cos]
         if len(temp) > 0:
             search_verts[k] = temp[:len(temp)].copy()
 
     # Do a hierarchical search
-    for k in range(to['np']):
+    for k in xrange(to['np']):
         r = to['rr'][k]
         # Perform stage1 search first
         vals = np.sum(r * nodes[:nnode], axis=1)
@@ -521,7 +521,7 @@ def _tessellate_sphere(mylevel):
     nodes = np.zeros((3 * ntri, 3))
     corners = np.zeros((ntri, 3), int)
     nnode = 0
-    for k in range(ntri):
+    for k in xrange(ntri):
         tri = old_object[k]
         for j in range(3):
             dists = np.sqrt(np.sum((tri[j] - nodes[:nnode]) ** 2, 1))
@@ -543,15 +543,15 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
     if ico is not None or oct is not None:
         ### from mne_ico_downsample.c ###
         if ico is not None:
-            logger.info('Doing the octahedral vertex picking...')
+            logger.info('Doing the icosahedral vertex picking...')
             ico_surf = _get_ico_surface(ico)
         else:
-            logger.info('Doing the icosahedral vertex picking...')
+            logger.info('Doing the octahedral vertex picking...')
             ico_surf = _tessellate_sphere_surf(oct)
         mmap = _get_ico_map(subject, hemi, ico, oct, False, subjects_dir)
         nmap = len(mmap)
         surf['inuse'].fill(False)
-        for k in range(nmap):
+        for k in xrange(nmap):
             if surf['inuse'][mmap[k]]:
                 # Try the nearest neighbors
                 neigh = surf['neighbor_vert'][mmap[k]]
@@ -575,7 +575,7 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
         logger.info('Setting up the triangulation for the decimated surface')
         surf['nuse_tri'] = ico_surf['ntri']
         surf['use_tris'] = ico_surf['tris']
-        for k in range(surf['nuse_tri']):
+        for k in xrange(surf['nuse_tri']):
             surf['use_tris'][k] = mmap[surf['use_tris'][k]]
 
     elif spacing is not None:
@@ -585,21 +585,21 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
         d = np.empty(surf['np'], int)
         d.fill(10000)
 
-        # A mysterious algorithm follows
-        for k in range(surf['np']):
+        # A mysterious algorithm follows (quoth Matti)
+        for k in xrange(surf['np']):
             neigh = surf['neighbor_vert'][k]
             d[k] = np.min(d[neigh] + 1)
             d[k] = 0 if d[k] >= spacing else d[k]
             d[neigh] = np.minimum(d[k] + 1, d[neigh])
 
-        for k in range(surf['np'] - 1, -1, -1):
+        for k in xrange(surf['np'] - 1, -1, -1):
             neigh = surf['neighbor_vert'][k]
-            for p in range(len(neigh)):
+            for p in xrange(len(neigh)):
                 d[k] = np.minimum(d[neigh[p]] + 1, d[k])
                 d[neigh[p]] = np.minimum(d[k] + 1, d[neigh[p]])
 
         if spacing == 2.0:
-            for k in range(surf['np']):
+            for k in xrange(surf['np']):
                 if d[k] > 0:
                     neigh = surf['neighbor_vert'][k]
                     n = np.sum(d[neigh] == 0)
