@@ -212,10 +212,13 @@ def _read_one_source_space(fid, this, verbose=None):
         raise ValueError('Unknown source space type')
     else:
         src_type = int(tag.data)
-        if src_type == 1:
+        if src_type == FIFF.FIFFV_MNE_SPACE_SURFACE:
             res['type'] = 'surf'
-        elif src_type == 2:
+        elif src_type == FIFF.FIFFV_MNE_SPACE_VOLUME:
             res['type'] = 'vol'
+        elif src_type == FIFF.FIFFV_MNE_SPACE_DISCRETE:
+            raise ValueError('Discrete source spaces (type 3) are not '
+                             'currently supported')
         else:
             raise ValueError('Unknown source space type (%d)' % src_type)
 
