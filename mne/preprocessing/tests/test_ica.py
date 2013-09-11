@@ -39,8 +39,11 @@ start, stop = 0, 6  # if stop is too small pca may fail in some cases, but
                     # we're okay on this file
 
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
-from sklearn.utils.validation import NonBLASDotWarning
-warnings.simplefilter('error', NonBLASDotWarning)
+try:
+    from sklearn.utils.validation import NonBLASDotWarning
+    warnings.simplefilter('error', NonBLASDotWarning)
+except:
+    pass
 
 
 def requires_sklearn(function):
