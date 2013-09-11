@@ -110,8 +110,9 @@ if __name__ == '__main__':
                                             n_triangles=n_tri)
         out_fif = fif.replace('dense', level)
         print '%i.2 Creating %s' % (ii, out_fif)
-        surf_fname = '/tmp/tmp-surf.fif'
-        mne.write_surface(surf_fname, points, tris)
+        surf_fname = '/tmp/tmp-surf.surf'
+        # convert points to meters, make mne_analyze happy
+        mne.write_surface(surf_fname, points * 1e3, tris)
         # XXX for some reason --check does not work here.
         cmd = 'mne_surf2bem --surf %s --id 4 --force --fif %s'
         cmd %= (surf_fname, out_fif)
