@@ -786,7 +786,7 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
         Use a recursively subdivided icosahedron. Should be None if
         ``spacing``, ``oct``, or ``all`` are used.
     oct : float | None
-        Use a recursively subdiveded octahedron. Should be None if
+        Use a recursively subdivided octahedron. Should be None if
         ``spacing``, ``ico``, or ``all`` are used.
     use_all : bool
         If True, include all vertices in the source space. Should be
