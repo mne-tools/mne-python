@@ -12,7 +12,15 @@ from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag, find_tag
 from ..fiff.tree import dir_tree_find
 from ..fiff.write import start_file, end_file, start_block, end_block, \
-                   write_coord_trans, write_dig_point, write_int
+                         write_coord_trans, write_dig_point, write_int
+
+
+# transformation from anterior/left/superior coordinate system to
+# right/anterior/superior:
+als_ras_trans = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0],
+                          [0, 0, 0, 1]])
+# simultaneously convert [m] to [mm]:
+als_ras_trans_mm = als_ras_trans * [0.001, 0.001, 0.001, 1]
 
 
 def apply_trans(trans, pts):
@@ -32,19 +40,23 @@ def apply_trans(trans, pts):
     """
     trans = np.asarray(trans)
     pts = np.asarray(pts)
+
+    # apply rotation & scale
     if pts.ndim == 1:
-        pts = np.vstack((pts[:, None], [1]))
-        pts = np.dot(trans, pts)
-        pts = pts[:3, 0]
+        out_pts = np.dot(trans[:3, :3], pts)
     else:
-        pts = np.vstack((pts.T, np.ones(len(pts))))
-        pts = np.dot(trans, pts)
-        pts = pts[:3].T
-    return pts
+        out_pts = np.dot(pts, trans[:3, :3].T)
+
+    # apply translation
+    transl = trans[:3, 3]
+    if np.any(transl != 0):
+        out_pts += transl
+
+    return out_pts
 
 
 def rotation(x=0, y=0, z=0):
-    """Create an array with a rotation matrix
+    """Create an array with a 4 dimensional rotation matrix
 
     Parameters
     ----------
@@ -68,6 +80,33 @@ def rotation(x=0, y=0, z=0):
                    - sin_x * cos_z + cos_x * sin_y * sin_z, 0],
                   [-sin_y, sin_x * cos_y, cos_x * cos_y, 0],
                   [0, 0, 0, 1]], dtype=float)
+    return r
+
+
+def rotation3d(x=0, y=0, z=0):
+    """Create an array with a 3 dimensional rotation matrix
+
+    Parameters
+    ----------
+    x, y, z : scalar
+        Rotation around the origin (in rad).
+
+    Returns
+    -------
+    r : array, shape = (3, 3)
+        The rotation matrix.
+    """
+    cos_x = cos(x)
+    cos_y = cos(y)
+    cos_z = cos(z)
+    sin_x = sin(x)
+    sin_y = sin(y)
+    sin_z = sin(z)
+    r = np.array([[cos_y * cos_z, -cos_x * sin_z + sin_x * sin_y * cos_z,
+                   sin_x * sin_z + cos_x * sin_y * cos_z],
+                  [cos_y * sin_z, cos_x * cos_z + sin_x * sin_y * sin_z,
+                   - sin_x * cos_z + cos_x * sin_y * sin_z],
+                  [-sin_y, sin_x * cos_y, cos_x * cos_y]], dtype=float)
     return r
 
 

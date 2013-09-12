@@ -63,7 +63,7 @@ if __name__ == "__main__":
                     'mne.preprocessing', 'mne.preprocessing.tests',
                     'mne.simulation', 'mne.simulation.tests',
                     'mne.tests',
-                    'mne.transforms',
+                    'mne.transforms', 'mne.transforms.tests',
                     'mne.stats', 'mne.stats.tests',
                     'mne.time_frequency', 'mne.time_frequency.tests',
                     'mne.realtime', 'mne.realtime.tests', 'mne.decoding',

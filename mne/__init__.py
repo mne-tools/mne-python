@@ -5,7 +5,7 @@ __version__ = '0.7.git'
 
 # have to import verbose first since it's needed by many things
 from .utils import set_log_level, set_log_file, verbose, set_config, \
-                   get_config, get_config_path, set_cache_dir,\
+                   get_config, get_config_path, set_cache_dir, \
                    set_memmap_min_size
 
 from .cov import read_cov, write_cov, Covariance, \
@@ -38,7 +38,8 @@ from .label import label_time_courses, read_label, label_sign_flip, \
                    write_label, stc_to_label, grow_labels, Label, \
                    BiHemiLabel, labels_from_parc
 from .misc import parse_config, read_reject_parameters
-from .transforms import transform_coordinates, read_trans, write_trans
+from .transforms import transform_coordinates, read_trans, write_trans, \
+                        create_default_subject, scale_mri, scale_labels
 from .proj import read_proj, write_proj, compute_proj_epochs, \
                   compute_proj_evoked, compute_proj_raw, sensitivity_map
 from .selection import read_selection
