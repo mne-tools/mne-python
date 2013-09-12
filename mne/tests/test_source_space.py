@@ -11,6 +11,14 @@ from mne.utils import _TempDir, requires_fs_or_nibabel, requires_nibabel, \
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
+fname_all = op.join(data_path, 'subjects', 'sample', 'bem',
+                    'sample-all-src.fif')
+fname_spacing = op.join(data_path, 'subjects', 'sample', 'bem',
+                        'sample-7-src.fif')
+fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
+                    'fsaverage-ico-5-src.fif')
+fname_morph = op.join(data_path, 'subjects', 'sample', 'bem',
+                      'sample-fsaverage-ico-5-src.fif')
 fname_nodist = op.join(data_path, 'subjects', 'sample', 'bem',
                        'sample-oct-6-orig-src.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -26,13 +34,38 @@ def test_setup_source_space():
     assert_raises(IOError, setup_source_space, 'sample', oct=6,
                   subjects_dir=subjects_dir)
 
-    # oct-6
+    # ico 5 fsaverage->sample morph - no file writing
+    src = read_source_spaces(fname_morph)
+    src_new = setup_source_space('fsaverage', False, ico=5, morph='sample',
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
+
+    # all source points - no file writing
+    src = read_source_spaces(fname_all)
+    src_new = setup_source_space('sample', False, use_all=True,
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
+
+    # spacing 7 (sample) - no file writing
+    src = read_source_spaces(fname_spacing)
+    src_new = setup_source_space('sample', False, spacing=7,
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
+
+    # ico 5 (fsaverage) - write to temp file
+    src = read_source_spaces(fname_ico)
+    temp_name = op.join(tempdir, 'temp-src.fif')
+    src_new = setup_source_space('fsaverage', temp_name, ico=5,
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
+
+
+    # oct-6 (sample) - auto filename + IO
     src = read_source_spaces(fname)
     temp_name = op.join(tempdir, 'temp-src.fif')
     src_new = setup_source_space('sample', temp_name, oct=6,
-                                 subjects_dir=subjects_dir)
+                                 subjects_dir=subjects_dir, overwrite=True)
     _compare_source_spaces(src, src_new, mode='approx')
-    # test I/O
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx')
 
@@ -41,7 +74,6 @@ def test_read_source_spaces():
     """Test reading of source space meshes
     """
     src = read_source_spaces(fname, add_geom=True)
-    print src
 
     # 3D source space
     lh_points = src[0]['rr']
@@ -73,9 +105,11 @@ def _compare_source_spaces(src0, src1, mode='exact'):
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'dist_limit', 'ntri', 'np', 'type', 'id',
                      'subject_his_id']:
+            print name
             assert_true(s0[name] == s1[name])
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris', 'nearest',
                      'nearest_dist']:
+            print name
             if s0[name] is None:
                 assert_true(s1[name] is None)
             else:
@@ -94,7 +128,10 @@ def _compare_source_spaces(src0, src1, mode='exact'):
             assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0])
             assert_equal(len(s0['vertno']), len(s1['vertno']))
             assert_true(np.mean(s0['inuse'] == s1['inuse']) > 0.99)
-            assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
+            if s0['use_tris'] is not None:  # for "spacing"
+                assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
+            else:
+                assert_true(s1['use_tris'] is None)
             assert_true(np.mean(s0['use_tris'] == s1['use_tris']) > 0.99)
         for name in ['dist']:
             if s0[name] is not None:
