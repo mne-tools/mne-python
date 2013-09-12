@@ -924,13 +924,15 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
         del s['tri_nn']
         del s['neighbor_tri']
 
+    # upconvert to object format from lists
+    src = SourceSpaces(src)
+
     # write out if requested, then return the data
     if fname is not False:
         write_source_spaces(fname, src)
         logger.info('Wrote %s' % fname)
     logger.info('You are now one step closer to computing the gain matrix')
-
-    return SourceSpaces(src)
+    return src
 
 
 def _get_vertex_map(surf, morph, map_mat):
