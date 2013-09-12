@@ -39,12 +39,7 @@ def test_scale_mri():
         run_subprocess(cmd, env=env)
 
     # scale fsaverage
-    scale_mri('fsaverage', 'kleinkopf', .8, True, subjects_dir=tempdir)
-    is_mri = _is_mri_subject('kleinkopf', tempdir)
-    assert_true(is_mri, "Scaling fsaverage failed")
-    scale_labels('kleinkopf', subjects_dir=tempdir)
-
-    scale_mri('fsaverage', 'flachkopf', [1, .2, 1], True, subjects_dir=tempdir)
+    scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True, subjects_dir=tempdir)
     is_mri = _is_mri_subject('flachkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
     scale_labels('flachkopf', subjects_dir=tempdir)
