@@ -74,7 +74,7 @@ freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
 tmin = -0.125
 tstep = 0.15
 
-stcs = tf_dics(epochs, forward, label, tmin=tmin, tmax=epochs.times[-1],
+stcs = tf_dics(epochs, forward, label=None, tmin=tmin, tmax=epochs.times[-1],
                tstep=tstep, freq_bins=freq_bins)
 
 # Gathering results for each time window
@@ -100,7 +100,7 @@ time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 
 # Plotting the results
 # TODO: The gap between 55 and 65 Hz should be marked on the final spectrogram
-pl.pcolor(time_grid, freq_grid, source_power[:, max_source, :].T,
+pl.pcolor(time_grid, freq_grid, source_power[:, max_source, :],
           cmap=pl.cm.jet)
 ax = pl.gca()
 pl.xlabel('Time window boundaries [s]')
