@@ -23,6 +23,12 @@ def test_scale_mri():
     is_mri = _is_mri_subject('fsaverage', tempdir)
     assert_true(is_mri, "Creating fsaverage failed")
 
+    fid_path = os.path.join(tempdir, 'fsaverage', 'bem',
+                            'fsaverage-fiducials.fif')
+    os.remove(fid_path)
+    create_default_subject(update=True, subjects_dir=tempdir)
+    assert_true(os.path.exists(fid_path), "Updating fsaverage")
+
     # create source space
     path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-6-src.fif')
     if not os.path.exists(path):

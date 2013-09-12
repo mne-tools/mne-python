@@ -31,7 +31,8 @@ from .transforms import rotation, rotation3d, scaling, translation
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 
 
-def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
+def create_default_subject(mne_root=None, fs_home=None, update=False,
+                           subjects_dir=None):
     """Create an average brain subject for subjects without structural MRI
 
     Create a copy of fsaverage from the Freesurfer directory in subjects_dir
@@ -45,6 +46,10 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
     fs_home : None | str
         The freesurfer home directory (only needed if FREESURFER_HOME is not
         specified as environment variable).
+    update : bool
+        In cases where a copy of the fsaverage brain already exists in the
+        subjects_dir, this option allows to only copy files that don't already
+        exist in the fsaverage directory.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (os.environ['SUBJECTS_DIR']) as destination for the new subject.
@@ -108,7 +113,7 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
                "installation directory; please specify a different "
                "subjects_dir." % subjects_dir)
         raise IOError(err)
-    elif os.path.exists(dest):
+    elif (not update) and os.path.exists(dest):
         err = ("Can not create fsaverage because %r already exists in "
                "subjects_dir %r. Delete or rename the existing fsaverage "
                "subject folder." % ('fsaverage', subjects_dir))
@@ -127,15 +132,18 @@ def create_default_subject(mne_root=None, fs_home=None, subjects_dir=None):
 
     # copy fsaverage from freesurfer
     logger.info("Copying fsaverage subject from freesurfer directory...")
-    shutil.copytree(fs_src, dest)
+    if (not update) or not os.path.exists(dest):
+        shutil.copytree(fs_src, dest)
 
     # add files from mne
     dest_bem = os.path.join(dest, 'bem')
     if not os.path.exists(dest_bem):
         os.mkdir(dest_bem)
     logger.info("Copying auxiliary fsaverage files from mne directory...")
+    dest_fname = os.path.join(dest_bem, 'fsaverage-%s.fif')
     for name in mne_files:
-        shutil.copy(mne_fname % name, dest_bem)
+        if not os.path.exists(dest_fname % name):
+            shutil.copy(mne_fname % name, dest_bem)
 
 
 def _decimate_points(pts, res=10):
