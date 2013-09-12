@@ -63,8 +63,9 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     into the current subjects_dir, and also adds the auxiliary files provided
     by MNE.
 
-    The files provided by MNE are the following (see MNE manual section 7.19
-    Working with the average brain):
+    The files provided by MNE are listed below and can be found under
+    ``share/mne/mne_analyze/fsaverage`` in the MNE directory (see MNE manual
+    section 7.19 Working with the average brain):
 
     fsaverage_head.fif:
         The approximate head surface triangulation for fsaverage.
