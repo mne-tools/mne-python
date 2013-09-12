@@ -17,7 +17,7 @@ from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import split_list, logger, verbose
 from ..fixes import in1d, unravel_index
-from .. import SourceEstimate
+from ..source_estimate import SourceEstimate
 
 
 def _get_clusters_spatial(s, neighbors):
