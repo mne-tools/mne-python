@@ -10,6 +10,7 @@ from glob import glob, iglob
 import os
 import re
 import shutil
+from warnings import warn
 
 import logging
 logger = logging.getLogger('mne')
@@ -467,6 +468,8 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
         tgt_pts = BallTree(tgt_pts)
         errfunc = _point_cloud_error_balltree
     except ImportError:
+        warn("Sklearn could not be imported. Fitting points will be slower. "
+             "To improve performance, install the sklearn module.")
         errfunc = _point_cloud_error
 
 
