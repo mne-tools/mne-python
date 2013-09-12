@@ -22,6 +22,7 @@ KIT.CHAN_SENS = 80
 KIT.DATA_OFFSET = 144
 KIT.SAMPLE_INFO = 128
 KIT.MRK_INFO = 192
+KIT.CHAN_LOC_OFFSET = 64
 
 # parameters
 KIT.VOLTAGE_RANGE = 5.
@@ -73,8 +74,7 @@ KIT_NY.LPFS = [10, 20, 50, 100, 200, 500, 1000, 2000]
 KIT_AD.nchan = 256
 KIT_AD.nmegchan = 208
 KIT_AD.nrefchan = 16
-KIT_AD.ntrigchan = 8
-KIT_AD.nmiscchan = 24
+KIT_AD.nmiscchan = 32
 KIT_AD.n_sens = KIT_AD.nmegchan + KIT_AD.nrefchan
 # 16-bit A-to-D converter, one bit for signed integer. range +/- 32768
 KIT_AD.DYNAMIC_RANGE = 2 ** 16 / 2
