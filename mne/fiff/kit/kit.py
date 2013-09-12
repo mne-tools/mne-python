@@ -14,7 +14,7 @@ from os import SEEK_CUR
 import numpy as np
 from scipy.linalg import norm
 from ...fiff import pick_types
-from ...transforms.coreg import fit_matched_pts
+from ...transforms.coreg import fit_matched_points
 from ...utils import verbose, logger
 from ..raw import Raw
 from ..constants import FIFF
@@ -102,8 +102,8 @@ class RawKIT(Raw):
         mrk, elp, self.info['dig'] = coreg.get_points(mrk_fname=mrk_fname,
                                                       elp_fname=elp_fname,
                                                       hsp_fname=hsp_fname)
-        self.info['dev_head_t']['trans'] = fit_matched_pts(tgt_pts=mrk,
-                                                           src_pts=elp)
+        self.info['dev_head_t']['trans'] = fit_matched_points(tgt_pts=mrk,
+                                                              src_pts=elp)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
