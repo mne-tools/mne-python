@@ -9,6 +9,7 @@ from os import path as op
 import sys
 from struct import pack
 import numpy as np
+from scipy.spatial.distance import cdist
 
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
@@ -18,7 +19,6 @@ from .fiff.write import write_int, write_float, write_float_matrix, \
                         write_int_matrix, start_file, end_block, \
                         start_block, end_file
 from .utils import logger, verbose
-from scipy.spatial.distance import cdist
 
 #
 #   These fiff definitions are not needed elsewhere
@@ -201,7 +201,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     return res
 
 
-def _complete_surface_info(this):
+def _complete_surface_info(this, do_neighbor_vert=False):
     """Complete surface info"""
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
 
@@ -256,6 +256,11 @@ def _complete_surface_info(this):
                     'tris, omitted' % ','.join([str(ii) for ii in idx]))
     for k in idx:
         this['neighbor_tri'] = np.array([], int)
+
+    #   Determine the neighboring vertices and fix errors
+    if do_neighbor_vert is True:
+        this['neighbor_vert'] = [_get_surf_neighbors(this, k)
+                                 for k in xrange(this['np'])]
 
     return this
 
@@ -425,6 +430,29 @@ def _get_nearest(to, fro):
         from_to_map = nbrs.kneighbors(to)[1].ravel()
     except:
         from_to_map = np.array([np.argmin(d) for d in cdist(to, fro)])
+    """
+    # For posterity, here is Matti's roughly equivalent hierarchical method.
+    # it is slower in Python than the brute force (or ball_tree) methods,
+    # and should be less accurate. The following should be nearly equivalent
+    # to the C Code.
+
+    # Get a set of points for the hierarchical search
+    nodes = _tessellate_sphere(5)[0]
+    to = to.astype(np.float32)
+    fro = fro.astype(np.float32)
+    nodes = nodes.astype(np.float32)
+    max_cos = np.max(np.sum(nodes[0] * nodes[1:], axis=1))
+    search_cos = np.cos(1.2 * np.arccos(max_cos))
+    search_verts = [np.where(np.sum(fro * node, 1) > search_cos)[0]
+                    for node in nodes]
+
+    # Do a hierarchical search
+    from_to_map = np.zeros(len(to), int)
+    for k in xrange(len(to)):
+        # Perform stage1 search first, then look at viable nodes
+        verts = search_verts[np.argmax(np.sum(to[k] * nodes, axis=1))]
+        from_to_map[k] = verts[np.argmax(np.sum(to[k] * fro[verts], axis=1))]
+    """
     return from_to_map
 
 

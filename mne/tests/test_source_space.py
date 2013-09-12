@@ -1,7 +1,7 @@
 import os.path as op
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
+from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne.datasets import sample
 from mne import read_source_spaces, vertex_to_mni, write_source_spaces, \
@@ -26,15 +26,15 @@ def test_setup_source_space():
     assert_raises(IOError, setup_source_space, 'sample', oct=6,
                   subjects_dir=subjects_dir)
 
-    # now let's see if we get an equivalent source space
+    # oct-6
     src = read_source_spaces(fname)
     temp_name = op.join(tempdir, 'temp-src.fif')
     src_new = setup_source_space('sample', temp_name, oct=6,
                                  subjects_dir=subjects_dir)
-    _compare_source_spaces(src, src_new)
-    # Test to make sure it made it wrote to disk as requested
+    _compare_source_spaces(src, src_new, mode='approx')
+    # test I/O
     src_new = read_source_spaces(temp_name)
-    _compare_source_spaces(src, src_new)
+    _compare_source_spaces(src, src_new, mode='approx')
 
 
 def test_read_source_spaces():
@@ -69,15 +69,33 @@ def test_write_source_space():
     _compare_source_spaces(src0, src1)
 
 
-def _compare_source_spaces(src0, src1):
+def _compare_source_spaces(src0, src1, mode='exact'):
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'dist_limit', 'ntri', 'np', 'type', 'id',
                      'subject_his_id']:
             assert_true(s0[name] == s1[name])
-        for name in ['nn', 'rr', 'inuse', 'vertno', 'nuse_tri',
-                     'coord_frame', 'use_tris', 'tris', 'nearest',
+        for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris', 'nearest',
                      'nearest_dist']:
-            assert_array_equal(s0[name], s1[name])
+            if s0[name] is None:
+                assert_true(s1[name] is None)
+            else:
+                if mode == 'exact':
+                    assert_array_equal(s0[name], s1[name])
+                elif mode == 'approx':
+                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4)
+                else:
+                    raise RuntimeError('unknown mode')
+        if mode == 'exact':
+            for name in ['inuse', 'vertno', 'use_tris']:
+                assert_array_equal(s0[name], s1[name])
+        elif mode == 'approx':
+            # deal with vertno, inuse, and use_tris carefully
+            assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0])
+            assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0])
+            assert_equal(len(s0['vertno']), len(s1['vertno']))
+            assert_true(np.mean(s0['inuse'] == s1['inuse']) > 0.99)
+            assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
+            assert_true(np.mean(s0['use_tris'] == s1['use_tris']) > 0.99)
         for name in ['dist']:
             if s0[name] is not None:
                 assert_true(s1[name].shape == s0[name].shape)
@@ -90,7 +108,11 @@ def _compare_source_spaces(src0, src1):
     # The above "if s0[name] is not None" can be removed once the sample
     # dataset is updated to have a source space with distance info
     for name in ['working_dir', 'command_line']:
-        assert_true(src0.info[name] == src1.info[name])
+        if mode == 'exact':
+            assert_true(src0.info[name] == src1.info[name])
+        elif mode == 'approx':
+            assert_true(name in src0.info)
+            assert_true(name in src1.info)
 
 
 @requires_fs_or_nibabel
