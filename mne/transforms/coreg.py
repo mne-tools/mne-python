@@ -241,8 +241,8 @@ def _trans_from_params(param_info, params):
     return trans
 
 
-def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
-                       tol=None, x0=None, out='trans'):
+def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
+                       scale=False, tol=None, x0=None, out='trans'):
     """Find a transform that minimizes the squared distance between two
     matching sets of points.
 
@@ -376,7 +376,7 @@ def _point_cloud_error(src_pts, tgt_pts):
     Returns
     -------
     dist : array, shape = (n, )
-        For each point in ``src_pts``, te distance to the closest point in
+        For each point in ``src_pts``, the distance to the closest point in
         ``tgt_pts``.
     """
     Y = cdist(src_pts, tgt_pts, 'euclidean')
@@ -399,7 +399,7 @@ def _point_cloud_error_balltree(src_pts, tgt_tree):
     Returns
     -------
     dist : array, shape = (n, )
-        For each point in ``src_pts``, te distance to the closest point in
+        For each point in ``src_pts``, the distance to the closest point in
         ``tgt_pts``.
     """
     dist, _ = tgt_tree.query(src_pts)
@@ -605,7 +605,7 @@ def _find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
             fname = surf_path.format(sub='{sub}', name=hemi + name)
             surf.append(fname)
 
-    # bem files
+    # BEM files
     paths['bem'] = bem = []
     path = os.path.join(subjects_dir, '{sub}', 'bem', '{sub}-{name}.fif')
     for name in ['head', 'inner_skull-bem']:
@@ -770,7 +770,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
         l_old = read_label(src)
         pos = l_old.pos * scale
         l_new = Label(l_old.vertices, pos, l_old.values, l_old.hemi,
-                      l_old.comment)
+                      l_old.comment, subject=subject_to)
         l_new.save(dst)
 
 
@@ -784,7 +784,7 @@ def scale_mri(subject_from, subject_to, scale, src=False, overwrite=False,
         Name of the subject providing the MRI.
     subject_to : str
         New subject name for which to save the scaled MRI.
-    scale : array, shape = () | (3,)
+    scale : float | array_like, shape = (3,)
         The scaling factor (one or 3 parameters).
     src : bool
         Also scale source spaces.
@@ -840,12 +840,12 @@ def scale_mri(subject_from, subject_to, scale, src=False, overwrite=False,
         pts, tri = read_surface(src)
         write_surface(dest, pts * scale, tri)
 
-    # bem files [in m]
+    # BEM files [in m]
     for fname in paths['bem']:
         src = os.path.realpath(fname.format(sub=subject_from))
         surfs = read_bem_surfaces(src)
         if len(surfs) != 1:
-            err = ("Bem file with more than one surface: %r" % src)
+            err = ("BEM file with more than one surface: %r" % src)
             raise NotImplementedError(err)
         surf0 = surfs[0]
         surf0['rr'] = surf0['rr'] * scale
@@ -870,7 +870,7 @@ def scale_mri(subject_from, subject_to, scale, src=False, overwrite=False,
             if norm_scale is not None:
                 nn = ss['nn'] * norm_scale
                 norm = np.sqrt(np.sum(nn ** 2, 1))
-                nn /= norm.reshape((-1, 1))
+                nn /= norm[:, np.newaxis]
                 ss['nn'] = nn
         dest = fname.format(sub=subject_to)
         write_source_spaces(dest, sss)
