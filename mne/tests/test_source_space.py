@@ -8,6 +8,7 @@ from mne import read_source_spaces, vertex_to_mni, write_source_spaces, \
                 setup_source_space
 from mne.utils import _TempDir, requires_fs_or_nibabel, requires_nibabel, \
                       requires_freesurfer
+from scipy.spatial.distance import cdist
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
@@ -60,7 +61,6 @@ def test_setup_source_space():
     src_new = setup_source_space('fsaverage', temp_name, ico=5,
                                  subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
-
 
     # oct-6 (sample) - auto filename + IO
     src = read_source_spaces(fname)
@@ -129,7 +129,15 @@ def _compare_source_spaces(src0, src1, mode='exact'):
             assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0])
             assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0])
             assert_equal(len(s0['vertno']), len(s1['vertno']))
-            assert_true(np.mean(s0['inuse'] == s1['inuse']) > 0.99)
+            agreement = np.mean(s0['inuse'] == s1['inuse'])
+            assert_true(agreement > 0.99)
+            if agreement < 1.0:
+                # make sure mismatched vertno are within 1.5mm
+                v0 = np.setdiff1d(s0['vertno'], s1['vertno'])
+                v1 = np.setdiff1d(s1['vertno'], s0['vertno'])
+                dists = cdist(s0['rr'][v0], s1['rr'][v1])
+                assert_allclose(np.min(dists, axis=1), np.zeros(len(v0)),
+                                atol=1.5e-3)
             if s0['use_tris'] is not None:  # for "spacing"
                 assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
             else:
