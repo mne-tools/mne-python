@@ -16,7 +16,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_sparse_rcs, write_string, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id
-from .surface import read_surface, _create_surf_spacing
+from .surface import read_surface, _create_surf_spacing, _get_vertex_map
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
                    has_nibabel, logger, verbose
 
@@ -884,9 +884,7 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
 
     # mne_make_source_space ...
     src = []
-    msrc = []
     if morph != subject:
-        raise NotImplementedError
         morph_maps = read_morph_map(subject, morph)
     else:
         morph_maps = [[], []]
@@ -897,11 +895,9 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
                                  subjects_dir)
         logger.info('loaded %s %d/%d selected to source space'
                     % (op.split(surf)[1], s['nuse'], s['np']))
-        src += [s]
         if morph != subject:
             ms = _create_surf_spacing(surf, hemi, morph, None, None, None,
                                       subjects_dir)
-            msrc += [ms]
             logger.info('loaded %s of %s %d/%d selected to source space',
                         surf, morph, ms['nuse'], ms['np'])
             best = _get_vertex_map(s, ms, mmap)
@@ -909,18 +905,27 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
             ms['inuse'].fill(False)
             ms['vertno'] = best[s['vertno']]
             ms['inuse'][ms['vertno']] = True
+
+            # Possibly add the source space triangulation information
+            if s['nuse'] == s['np'] and s['use_itris'] is None:
+                s['nuse_tri '] = s['ntri']
+                s['use_tris'] = s['tris'].copy()
+
+            ms['nuse_tri'] = s['nuse_tri']
+            if s['use_tris'] is not None:
+                ms['use_tris'] = best[s['use_tris']]
+            src.append(ms)
+        else:
+            src.append(s)
+
         logger.info('')  # newline after both subject types are run
-    if morph != subject:
-        # "s" becomes what we actually write
-        s = ms
 
     # Fill in source space info
     hemi_ids = [FIFF.FIFFV_MNE_SURF_LEFT_HEMI, FIFF.FIFFV_MNE_SURF_RIGHT_HEMI]
     for s, s_id in zip(src, hemi_ids):
         # Add missing fields
-        s.update(dict(dist=None, dist_limit=None, nearest=None,
-                      nearest_dist=None, pinfo=None, patch_inds=None,
-                      type='surf', id=s_id, subject_his_id=subject,
+        s.update(dict(dist=None, dist_limit=None, nearest=None, type='surf',
+                      nearest_dist=None, pinfo=None, patch_inds=None, id=s_id,
                       coord_frame=np.array((FIFF.FIFFV_COORD_MRI,), np.int32)))
         s['rr'] /= 1000.0
         del s['tri_area']
@@ -937,28 +942,6 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
         logger.info('Wrote %s' % fname)
     logger.info('You are now one step closer to computing the gain matrix')
     return src
-
-
-def _get_vertex_map(surf, morph, map_mat):
-    inuse = np.zeros(morph['nuse'], bool)
-    best = np.zeros(surf['nuse'], int)
-
-    for k in range(surf['nuse']):
-        one = np.argmax(map_mat[surf['vertno'][k], :])
-        best[surf['vertno'][k]] = one
-        if inuse[one] is True:
-            neighbors = morph['neighbor_vert'][one]
-            idx = np.where(np.logical_not(inuse[neighbors]))[0]
-            if len(idx) > 0:
-                best[surf['vertno'][k]] = neighbors[idx[0]]
-            else:
-                raise RuntimeError('vertex %d would be used multiple '
-                                   'times.' % best[k])
-            logger.warning('Source space vertex moved from %d to %d because '
-                           'of double occupation.'
-                           % (one, best[surf['vertno'][k]]))
-        inuse[best[k]] = True
-    return SourceSpaces(best)
 
 
 @verbose

@@ -279,6 +279,7 @@ def _get_surf_neighbors(this, k):
         logger.info('    Incorrect number of distinct neighbors for vertex'
                     ' %d (%d instead of %d) [fixed].' % (k, nneighbors,
                                                          nneigh_max))
+    return verts
 
 
 ###############################################################################
@@ -456,6 +457,29 @@ def _get_nearest(to, fro):
     return from_to_map
 
 
+def _get_vertex_map(surf, morph, map_mat):
+    inuse = np.zeros(morph['nuse'], bool)
+    best = np.zeros(surf['nuse'], int)
+
+    for k in xrange(surf['nuse']):
+        assert map_mat.shape[1] == surf['np']
+        one = np.argmax(map_mat[:, surf['vertno'][k]].todense())
+        best[surf['vertno'][k]] = one
+        if inuse[one] is True:
+            neighbors = _get_surf_neighbors(morph, one)
+            idx = np.where(np.logical_not(inuse[neighbors]))[0]
+            if len(idx) > 0:
+                best[surf['vertno'][k]] = neighbors[idx[0]]
+            else:
+                raise RuntimeError('vertex %d would be used multiple '
+                                   'times.' % best[k])
+            logger.warning('Source space vertex moved from %d to %d because '
+                           'of double occupation.'
+                           % (one, best[surf['vertno'][k]]))
+        inuse[best[k]] = True
+    return best
+
+
 def _tessellate_sphere_surf(level, rad=1.0):
     """Return a surface structure instead of the details"""
     rr, tris = _tessellate_sphere(level)
@@ -591,15 +615,12 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
 
         logger.info('Setting up the triangulation for the decimated '
                     'surface')
-        surf['nuse_tri'] = ico_surf['ntri']
-        surf['use_tris'] = ico_surf['tris'].astype(np.int32)
-        for k in xrange(surf['nuse_tri']):
-            surf['use_tris'][k] = mmap[surf['use_tris'][k]]
-
+        surf['use_tris'] = np.array([mmap[ist] for ist in ico_surf['tris']],
+                                    np.int32)
     elif spacing is not None:
         ### from mne_make_source_space/decimate.c ###
         # This is based on MRISubsampleDist in FreeSurfer
-        logger.info('    Decimating...')
+        logger.info('Decimating...')
         d = np.empty(surf['np'], int)
         d.fill(10000)
 
@@ -628,11 +649,15 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
                         d[k] = 0
                     d[neigh] = np.minimum(d[neigh], d[k] + 1)
 
-        logger.info("[done]")
         surf['inuse'] = (d == 0).astype(int)
-
-    else:
+        surf['use_tris'] = None
+    else:  # use_all is True
         surf['inuse'] = np.ones(surf['np'], int)
+        surf['use_tris'] = None
+    if surf['use_tris'] is not None:
+        surf['nuse_tri'] = len(surf['use_tris'])
+    else:
+        surf['nuse_tri'] = 0
     surf['nuse'] = np.sum(surf['inuse'])
     surf['vertno'] = np.where(surf['inuse'])[0]
 
@@ -642,6 +667,7 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
     surf['nn'][inds] = surf['nn'][inds] / sizes[:, np.newaxis]
     surf['inuse'][sizes <= 0] = False
     surf['nuse'] = np.sum(surf['inuse'])
+    surf['subject_his_id'] = subject
     return surf
 
 
