@@ -810,6 +810,10 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
     src : list
         The source space for each hemisphere.
     """
+    cmd = ('setup_source_space(%s, fname=%s, spacing=%s, ico=%s, oct=%s, '
+           'use_all=%s, surface=%s, overwrite=%s, morph=%s, subjects_dir=%s, '
+           'verbose=%s)' % (subject, fname, spacing, ico, oct, use_all,
+                            surface, overwrite, morph, subjects_dir, verbose))
     # check to make sure our parameters are good
     use_all = None if use_all is False else use_all
     opts = [ico, oct, spacing, use_all]
@@ -928,7 +932,7 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
         del s['neighbor_tri']
 
     # upconvert to object format from lists
-    src = SourceSpaces(src)
+    src = SourceSpaces(src, dict(working_dir=os.getcwd(), command_line=cmd))
 
     # write out if requested, then return the data
     if fname is not False:
