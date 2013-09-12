@@ -224,17 +224,21 @@ def _complete_surface_info(this):
 
     #    Find neighboring triangles and accumulate vertex normals
     this['nn'] = np.zeros((this['np'], 3))
-    this['neighbor_tri'] = [np.array([], int) for _ in xrange(this['np'])]
+    # as we don't know the number of neighbors, use lists (faster to append)
+    this['neighbor_tri'] = [list() for _ in xrange(this['np'])]
     logger.info('    Triangle normals and neighboring triangles...')
     for p in xrange(this['ntri']):
         # vertex normals
-        this['nn'][this['tris'][p, :], :] += this['tri_nn'][p, :]
-        # neighbors
-        ii = this['tris'][p]
-        for k in range(3):
-            # Add to the list of neighbors
-            x = this['neighbor_tri'][ii[k]]
-            this['neighbor_tri'][ii[k]] = np.append(x, p)
+        verts = this['tris'][p]
+        this['nn'][verts, :] += this['tri_nn'][p, :]
+
+        # Add to the list of neighbors
+        this['neighbor_tri'][verts[0]].append(p)
+        this['neighbor_tri'][verts[1]].append(p)
+        this['neighbor_tri'][verts[2]].append(p)
+
+    # convert the neighbor lists to arrays
+    this['neighbor_tri'] = [np.array(nb, int) for nb in this['neighbor_tri']]
 
     #   Normalize the lengths of the vertex normals
     size = np.sqrt(np.sum(this['nn'] ** 2, axis=1))
