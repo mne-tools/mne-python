@@ -18,7 +18,7 @@ from .fiff.write import write_int, write_float, write_float_matrix, \
                         write_int_matrix, start_file, end_block, \
                         start_block, end_file
 from .utils import logger, verbose
-from .fixes import in1d
+from scipy.spatial.distance import cdist
 
 #
 #   These fiff definitions are not needed elsewhere
@@ -206,8 +206,6 @@ def _complete_surface_info(this):
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
 
     #   Main triangulation [mne_add_triangle_data()]
-    logger.info('    Completing triangulation info...')
-    logger.info('    Triangle and vertex normals and neighboring triangles...')
     this['tri_area'] = np.zeros(this['ntri'])
     r1 = this['rr'][this['tris'][:, 0], :]
     r2 = this['rr'][this['tris'][:, 1], :]
@@ -218,12 +216,16 @@ def _complete_surface_info(this):
     #   Triangle normals and areas
     size = np.sqrt(np.sum(this['tri_nn'] ** 2, axis=1))
     this['tri_area'] = size / 2.0
-    size[size == 0] = 1.0  # prevent ugly divide-by-zero
+    zidx = np.where(size == 0)[0]
+    for idx in zidx:
+        logger.info('    Warning: zero size triangle # %s' % idx)
+    size[zidx] = 1.0  # prevent ugly divide-by-zero
     this['tri_nn'] /= size[:, None]
 
     #    Find neighboring triangles and accumulate vertex normals
     this['nn'] = np.zeros((this['np'], 3))
     this['neighbor_tri'] = [np.array([], int) for _ in xrange(this['np'])]
+    logger.info('    Triangle normals and neighboring triangles...')
     for p in xrange(this['ntri']):
         # vertex normals
         this['nn'][this['tris'][p, :], :] += this['tri_nn'][p, :]
@@ -251,23 +253,23 @@ def _complete_surface_info(this):
     for k in idx:
         this['neighbor_tri'] = np.array([], int)
 
-    #   Determine the neighboring vertices and fix errors
-    this['neighbor_vert'] = [None] * this['np']
-    for k in xrange(this['np']):
-        nneigh_max = len(this['neighbor_tri'][k])
-        verts = np.setdiff1d(np.unique([nt for nt in this['neighbor_tri'][k]]),
-                             [k], assume_unique=True)
-        nneighbors = len(verts)
-        if nneighbors > nneigh_max:
-            raise RuntimeError('Too many neighbors for vertex %d' % k)
-        elif nneighbors != nneigh_max:
-            logger.info('Incorrect number of distinct neighbors for vertex '
-                        '%d (%d instead of %d) [fixed].' % (k, nneighbors,
-                                                            nneigh_max))
-        this['neighbor_vert'][k] = verts
-
-    logger.info('[done]')
     return this
+
+
+def _get_surf_neighbors(this, k):
+    verts = np.concatenate([this['tris'][nt]
+                            for nt in this['neighbor_tri'][k]])
+    verts = np.setdiff1d(verts, [k], assume_unique=False)
+    if np.any(verts >= this['np']):
+        raise RuntimeError
+    nneighbors = len(verts)
+    nneigh_max = len(this['neighbor_tri'][k])
+    if nneighbors > nneigh_max:
+        raise RuntimeError('Too many neighbors for vertex %d' % k)
+    elif nneighbors != nneigh_max:
+        logger.info('    Incorrect number of distinct neighbors for vertex'
+                    ' %d (%d instead of %d) [fixed].' % (k, nneighbors,
+                                                         nneigh_max))
 
 
 ###############################################################################
@@ -353,6 +355,8 @@ def read_surface(fname):
         else:
             raise ValueError("%s does not appear to be a Freesurfer surface"
                              % fname)
+        logger.info('Triangle file: %s nvert = %s ntri = %s'
+                    % (create_stamp.strip(), len(coords), len(faces)))
 
     coords = coords.astype(np.float)  # XXX: due to mayavi bug on mac 32bits
     return coords, faces
@@ -365,12 +369,8 @@ def _read_surface_geom(fname):
     nvert = len(coords)
     ntri = len(tris)
     s = dict(rr=coords, tris=tris, use_tris=tris, ntri=ntri,
-             np=nvert, nuse=nvert, inuse=np.ones(nvert, int),
-             vertno=np.arange(nvert))
+             np=nvert)
     s = _complete_surface_info(s)
-    s['nuse'] = s['np']
-    s['inuse'] = np.ones(s['np'], int)
-    s['vertno'] = np.arange(s['np'], dtype=int)
     return s
 
 
@@ -389,8 +389,8 @@ def _normalize_vertices(s):
     s['rr'] /= size[:, np.newaxis]
 
 
-def _get_ico_map(subject, hemi, ico, oct, use_reg, subjects_dir):
-    """Get mapping to the nodes of an icosahedron"""
+def _get_ico_oct_map(subject, hemi, ico, oct, use_reg, subjects_dir):
+    """Get mapping to the nodes of an icos-/oct-ahedron"""
     surf_name = hemi + ('.sphere.reg' if use_reg is True else '.sphere')
     surf_name = op.join(subjects_dir, subject, 'surf', surf_name)
     logger.info('Loading geometry from %s...' % surf_name)
@@ -407,57 +407,38 @@ def _get_ico_map(subject, hemi, ico, oct, use_reg, subjects_dir):
         logger.info('Mapping %s %s -> ico (%d) ...', hemi, subject, ico)
     else:
         logger.info('Mapping %s %s -> oct (%d) ...', hemi, subject, oct)
-    from_to_map = _get_nearest(to_surf, from_surf)
-    logger.info('[done]')
+    from_to_map = _get_nearest(to_surf['rr'], from_surf['rr'])
     return from_to_map
 
 
 def _get_nearest(to, fro):
-    """For each point on (spherical) 'to', find closest on 'fro'"""
-    from_to_map = np.zeros(to['np'], int)
-    # Get a set of points for the hierarchical search
-    nodes, nnode, corners, ntri = _tessellate_sphere(5)
-    nnode = len(nodes)
-
-    max_cos = np.max(np.sum(nodes[0] * nodes, axis=1))
-    search_cos = np.cos(1.2 * np.arccos(max_cos))
-    search_verts = [None] * nnode
-    temp = np.zeros(fro['np'], int)
-    for k in xrange(nnode):
-        these_cos = np.sum(fro['rr'] * nodes[k], 1)
-        temp = these_cos[these_cos > search_cos]
-        if len(temp) > 0:
-            search_verts[k] = temp[:len(temp)].copy()
-
-    # Do a hierarchical search
-    for k in xrange(to['np']):
-        r = to['rr'][k]
-        # Perform stage1 search first
-        vals = np.sum(r * nodes[:nnode], axis=1)
-        max_stage1 = np.argmax(vals)
-
-        # Then look at the viable nodes
-        verts = search_verts[max_stage1]
-        vals = np.sum(r * fro['rr'][verts], axis=1)
-        from_to_map[k] = np.argmax(vals)
-
+    """For each point on 'to', find closest on 'fro'"""
+    # triage based on sklearn having ball_tree presence
+    try:
+        from sklearn.neighbors import NearestNeighbors
+        nbrs = NearestNeighbors(n_neighbors=1,
+                                algorithm='ball_tree').fit(fro)
+        from_to_map = nbrs.kneighbors(to)[1].ravel()
+    except:
+        from_to_map = np.array([np.argmin(d) for d in cdist(to, fro)])
     return from_to_map
 
 
 def _tessellate_sphere_surf(level, rad=1.0):
     """Return a surface structure instead of the details"""
-    rr, npt, tris, ntri = _tessellate_sphere(level)
+    rr, tris = _tessellate_sphere(level)
+    npt = len(rr)  # called "npt" instead of "np" because of numpy...
+    ntri = len(tris)
     nn = rr.copy()
     rr *= rad
-    s = dict(rr=rr, np=npt, tris=tris, use_tris=tris, ntri=ntri, nuse=npt,
+    s = dict(rr=rr, np=npt, tris=tris, use_tris=tris, ntri=ntri, nuse=np,
              nn=nn, inuse=np.ones(npt, int))
-    s = _complete_surface_info(s)
     return s
 
 
-def _norm_midpt(a, b):
-    assert a.shape[1] == 3
-    assert b.shape[1] == 3
+def _norm_midpt(ai, bi, rr):
+    a = np.array([rr[aii] for aii in ai])
+    b = np.array([rr[bii] for bii in bi])
     c = (a + b) / 2.
     return c / np.sqrt(np.sum(c ** 2, 1))[:, np.newaxis]
 
@@ -465,12 +446,11 @@ def _norm_midpt(a, b):
 def _tessellate_sphere(mylevel):
     """Create a tessellation of a unit sphere"""
     # Vertices of a unit octahedron
-    xp, xm = [1, 0, 0], [-1, 0, 0]
-    yp, ym = [0, 1, 0], [0, -1, 0]
-    zp, zm = [0, 0, 1], [0, 0, -1]
-    octahedron = np.array([[xp, zp, yp], [yp, zp, xp], [xp, zp, ym],
-                           [ym, zp, xp], [xp, yp, zm], [yp, xp, zm],
-                           [xp, ym, zm], [ym, xp, zm]])
+    rr = np.array([[1, 0, 0], [-1, 0, 0],  # xplus, xminus
+                   [0, 1, 0], [0, -1, 0],  # yplus, yminus
+                   [0, 0, 1], [0, 0, -1]], float)  # zplus, zminus
+    tris = np.array([[0, 4, 2], [2, 4, 1], [1, 4, 3], [3, 4, 0],
+                     [0, 2, 5], [2, 1, 5], [1, 3, 5], [3, 0, 5]], int)
 
     # A unit octahedron
     if mylevel < 1:
@@ -478,8 +458,7 @@ def _tessellate_sphere(mylevel):
 
     # Reverse order of points in each triangle
     # for counter-clockwise ordering
-    octahedron = octahedron[:, [2, 1, 0], :]
-    old_object = octahedron
+    tris = tris[:, [2, 1, 0]]
 
     # Subdivide each starting triangle (mylevel - 1) times
     for level in range(1, mylevel):
@@ -505,34 +484,41 @@ def _tessellate_sphere(mylevel):
           0     a      2     [a,c,2]
 
         """
-        new_object = np.zeros((len(old_object), 4, 3, 3))
-        a = _norm_midpt(old_object[:, 0], old_object[:, 2])
-        b = _norm_midpt(old_object[:, 0], old_object[:, 1])
-        c = _norm_midpt(old_object[:, 1], old_object[:, 1])
-        new_object[:, 0] = np.array([old_object[:, 0], b, a]).swapaxes(0, 1)
-        new_object[:, 1] = np.array([b, old_object[:, 1], c]).swapaxes(0, 1)
-        new_object[:, 2] = np.array([a, b, c]).swapaxes(0, 1)
-        new_object[:, 3] = np.array([a, c, old_object[:, 2]]).swapaxes(0, 1)
-        new_object = np.reshape(new_object, (len(old_object) * 4, 3, 3))
-        old_object = np.ascontiguousarray(new_object)
+        # use new method: first make new points (rr)
+        a = _norm_midpt(tris[:, 0], tris[:, 2], rr)
+        b = _norm_midpt(tris[:, 0], tris[:, 1], rr)
+        c = _norm_midpt(tris[:, 1], tris[:, 2], rr)
+        lims = np.cumsum([len(rr), len(a), len(b), len(c)])
+        aidx = np.arange(lims[0], lims[1])
+        bidx = np.arange(lims[1], lims[2])
+        cidx = np.arange(lims[2], lims[3])
+        rr = np.concatenate((rr, a, b, c))
+
+        # now that we have our points, make new triangle definitions
+        tris = np.array((np.c_[tris[:, 0], bidx, aidx],
+                         np.c_[bidx, tris[:, 1], cidx],
+                         np.c_[aidx, bidx, cidx],
+                         np.c_[aidx, cidx, tris[:, 2]]), int).swapaxes(0, 1)
+        tris = np.reshape(tris, (np.prod(tris.shape[:2]), 3))
 
     # Copy the resulting approximation into standard table
-    ntri = len(old_object)
-    nodes = np.zeros((3 * ntri, 3))
+    ntri = len(tris)
+    nodes = np.zeros((3 * ntri, 3))  # over-allocate for safety
     corners = np.zeros((ntri, 3), int)
     nnode = 0
-    for k in xrange(ntri):
-        tri = old_object[k]
+    for k, tri in enumerate(tris):
+        coords = np.array([rr[t] for t in tri])
         for j in range(3):
-            dists = np.sqrt(np.sum((tri[j] - nodes[:nnode]) ** 2, 1))
+            dists = cdist(coords[j][np.newaxis, :], nodes[:nnode])[0]
             idx = np.where(dists < 1e-4)[0]
             if len(idx) > 0:
                 corners[k, j] = idx[0]
             else:
-                nodes[nnode] = tri[j]
+                nodes[nnode] = coords[j]
                 corners[k, j] = nnode
                 nnode += 1
-    return nodes, nnode, corners, ntri
+    nodes = nodes[:nnode].copy()
+    return nodes, corners
 
 
 def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
@@ -548,13 +534,13 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
         else:
             logger.info('Doing the octahedral vertex picking...')
             ico_surf = _tessellate_sphere_surf(oct)
-        mmap = _get_ico_map(subject, hemi, ico, oct, False, subjects_dir)
+        mmap = _get_ico_oct_map(subject, hemi, ico, oct, False, subjects_dir)
         nmap = len(mmap)
-        surf['inuse'].fill(False)
+        surf['inuse'] = np.zeros(surf['np'], int)
         for k in xrange(nmap):
             if surf['inuse'][mmap[k]]:
                 # Try the nearest neighbors
-                neigh = surf['neighbor_vert'][mmap[k]]
+                neigh = _get_surf_neighbors(surf, mmap[k])
                 was = mmap[k]
                 inds = np.where(np.logical_not(surf['inuse'][neigh]))[0]
                 if len(inds) == 0:
@@ -562,7 +548,7 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
                                        '%d / %d' % (k, nmap))
                 else:
                     mmap[k] = neigh[inds[-1]]
-                logger.info('Source space vertex moved from %d to %d '
+                logger.info('    Source space vertex moved from %d to %d '
                             'because of double occupation', was, mmap[k])
             elif mmap[k] < 0 or mmap[k] > surf['np']:
                 raise RuntimeError('Map number out of range (%d), this is '
@@ -570,30 +556,33 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
                                    'Parts of the FreeSurfer reconstruction '
                                    'need to be redone.' % mmap[k])
             surf['inuse'][mmap[k]] = True
-        surf['nuse'] = nmap
 
-        logger.info('Setting up the triangulation for the decimated surface')
+        logger.info('Setting up the triangulation for the decimated '
+                    'surface')
         surf['nuse_tri'] = ico_surf['ntri']
-        surf['use_tris'] = ico_surf['tris']
+        surf['use_tris'] = ico_surf['tris'].astype(np.int32)
         for k in xrange(surf['nuse_tri']):
             surf['use_tris'][k] = mmap[surf['use_tris'][k]]
 
     elif spacing is not None:
         ### from mne_make_source_space/decimate.c ###
         # This is based on MRISubsampleDist in FreeSurfer
-        logger.info('Decimating...')
+        logger.info('    Decimating...')
         d = np.empty(surf['np'], int)
         d.fill(10000)
 
+        # construct all neighbor verts (SLOW!)
+        neighbor_vert = [_get_surf_neighbors(surf, k)
+                         for k in xrange(surf['np'])]
         # A mysterious algorithm follows (quoth Matti)
         for k in xrange(surf['np']):
-            neigh = surf['neighbor_vert'][k]
+            neigh = neighbor_vert[k]
             d[k] = np.min(d[neigh] + 1)
             d[k] = 0 if d[k] >= spacing else d[k]
             d[neigh] = np.minimum(d[k] + 1, d[neigh])
 
         for k in xrange(surf['np'] - 1, -1, -1):
-            neigh = surf['neighbor_vert'][k]
+            neigh = neighbor_vert[k]
             for p in xrange(len(neigh)):
                 d[k] = np.minimum(d[neigh[p]] + 1, d[k])
                 d[neigh[p]] = np.minimum(d[k] + 1, d[neigh[p]])
@@ -601,27 +590,27 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
         if spacing == 2.0:
             for k in xrange(surf['np']):
                 if d[k] > 0:
-                    neigh = surf['neighbor_vert'][k]
+                    neigh = neighbor_vert[k]
                     n = np.sum(d[neigh] == 0)
                     if n <= 2:
                         d[k] = 0
                     d[neigh] = np.minimum(d[neigh], d[k] + 1)
 
         logger.info("[done]")
-        surf['inuse'] = (d == 0)
-        surf['nuse'] = np.sum(surf['inuse'])
+        surf['inuse'] = (d == 0).astype(int)
 
     else:
-        surf['inuse'].fill(True)
-        surf['nuse'] = surf['np']
+        surf['inuse'] = np.ones(surf['np'], int)
+    surf['nuse'] = np.sum(surf['inuse'])
+    surf['vertno'] = np.where(surf['inuse'])[0]
 
     # set some final params
     inds = np.arange(surf['np'])
     sizes = np.sqrt(np.sum(surf['nn'] ** 2, axis=1))
-    surf['nn'][inds] = surf['nn'][inds] / sizes
+    surf['nn'][inds] = surf['nn'][inds] / sizes[:, np.newaxis]
     surf['inuse'][sizes <= 0] = False
     surf['nuse'] = np.sum(surf['inuse'])
-    surf['subject'] = subject
+    return surf
 
 
 def write_surface(fname, coords, faces, create_stamp=''):

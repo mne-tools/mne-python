@@ -32,7 +32,7 @@ def test_setup_source_space():
     src_new = setup_source_space('sample', temp_name, oct=6,
                                  subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new)
-    # Test to make sure it made it to disk as requested
+    # Test to make sure it made it wrote to disk as requested
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new)
 

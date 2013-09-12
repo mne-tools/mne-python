@@ -856,36 +856,43 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
         raise IOError('file "%s" exists, use overwrite=True if you want '
                       'to overwrite the file' % fname)
 
-    logger.info('Setting up the source space with the following parameters:')
+    logger.info('Setting up the source space with the following parameters:\n')
     logger.info('SUBJECTS_DIR = %s' % subjects_dir)
     logger.info('Subject      = %s' % subject)
     if morph != subject:
         logger.info('Morph        = %s' % morph)
     logger.info('Surface      = %s' % surf)
     if ico is not None:
-        logger.info('Icosahedron subdivision grade %s' % ico)
+        logger.info('Icosahedron subdivision grade %s\n' % ico)
     elif oct is not None:
-        logger.info('Octahedron subdivision grade %s' % oct)
+        logger.info('Octahedron subdivision grade %s\n' % oct)
     elif spacing is not None:
-        logger.info('Grid spacing = %s mm' % spacing)
+        logger.info('Grid spacing = %s mm\n' % spacing)
     else:
-        logger.info('Include all vertices')
-
-    #if cps is True:
-    #    logger.info('Create a source space with patch information')
+        logger.info('Include all vertices\n')
 
     # Create the fif file
     if fname is not None:
-        logger.info('>>> 1. Creating the source space file %s...' % fname)
+        if fname is False:
+            logger.info('>>> 1. Creating the source space...\n')
+        else:
+            logger.info('>>> 1. Creating the source space file %s...' % fname)
 
     # mne_make_source_space ...
     src = []
     msrc = []
-    for hemi, surf in zip(['lh', 'rh'], [lh_surf, rh_surf]):
+    if morph != subject:
+        raise NotImplementedError
+        morph_maps = read_morph_map(subject, morph)
+    else:
+        morph_maps = [[], []]
+    # actually make the source spaces
+    for hemi, surf, mmap in zip(['lh', 'rh'], [lh_surf, rh_surf], morph_maps):
+        logger.info('Loading %s...' % surf)
         s = _create_surf_spacing(surf, hemi, subject, ico, oct, spacing,
                                  subjects_dir)
         logger.info('loaded %s %d/%d selected to source space'
-                    % (surf, s['nuse'], s['np']))
+                    % (op.split(surf)[1], s['nuse'], s['np']))
         src += [s]
         if morph != subject:
             ms = _create_surf_spacing(surf, hemi, morph, None, None, None,
@@ -893,32 +900,37 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
             msrc += [ms]
             logger.info('loaded %s of %s %d/%d selected to source space',
                         surf, morph, ms['nuse'], ms['np'])
-
-    if morph != subject:
-        morph_maps = read_morph_map(subject, morph)
-        for s, ms, mmap in zip(src, msrc, morph_maps):
             best = _get_vertex_map(s, ms, mmap)
-            ms['vertno'] = np.zeros(s['nuse'])
             ms['nuse'] = s['nuse']
             ms['inuse'].fill(False)
             ms['vertno'] = best[s['vertno']]
             ms['inuse'][ms['vertno']] = True
+        logger.info('')  # newline after both subject types are run
+    if morph != subject:
+        # "s" becomes what we actually write
+        s = ms
 
-            # Possibly add the source space triangulation information
-            if s['nuse'] == s['np'] and not s['use_itris']:
-                s['nuse_tri'] = s['ntri']
-                s['use_itris'] = s['itris'][:s['nuse_itris']].copy()
-            ms['use_itris'] = None
-            ms['use_itris'] = s['use_itris']
-            s['use_itris'] = None
-            s['nuse_tri'] = s['nuse_tri']
-            s['nuse_tri'] = 0
-            ms['use_itris'] = best[ms['use_itris']][:ms['nuse_tri']].copy()
+    # Fill in source space info
+    hemi_ids = [FIFF.FIFFV_MNE_SURF_LEFT_HEMI, FIFF.FIFFV_MNE_SURF_RIGHT_HEMI]
+    for s, s_id in zip(src, hemi_ids):
+        # Add missing fields
+        s.update(dict(dist=None, dist_limit=None, nearest=None,
+                      nearest_dist=None, pinfo=None, patch_inds=None,
+                      type='surf', id=s_id, subject_his_id=subject,
+                      coord_frame=np.array((FIFF.FIFFV_COORD_MRI,), np.int32)))
+        s['rr'] /= 1000.0
+        del s['tri_area']
+        del s['tri_cent']
+        del s['tri_nn']
+        del s['neighbor_tri']
 
     # write out if requested, then return the data
-    if fname is not None:
+    if fname is not False:
         write_source_spaces(fname, src)
-    return src
+        logger.info('Wrote %s' % fname)
+    logger.info('You are now one step closer to computing the gain matrix')
+
+    return SourceSpaces(src)
 
 
 def _get_vertex_map(surf, morph, map_mat):
@@ -940,7 +952,7 @@ def _get_vertex_map(surf, morph, map_mat):
                            'of double occupation.'
                            % (one, best[surf['vertno'][k]]))
         inuse[best[k]] = True
-    return best
+    return SourceSpaces(best)
 
 
 @verbose
