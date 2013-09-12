@@ -18,7 +18,6 @@ import numpy as np
 from numpy import dot
 from scipy.optimize import leastsq
 from scipy.spatial.distance import cdist
-from sklearn.neighbors import BallTree
 
 from ..fiff.meas_info import read_fiducials, write_fiducials
 from ..label import read_label, Label
@@ -355,8 +354,31 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True, scale=0,
         raise ValueError(err)
 
 
-def _point_cloud_error(src_pts, tgt_tree):
+def _point_cloud_error(src_pts, tgt_pts):
     """Find the distance from each source point to its closest target point
+
+    Parameters
+    ----------
+    src_pts : array, shape = (n, 3)
+        Source points.
+    tgt_pts : array, shape = (m, 3)
+        Target points.
+
+    Returns
+    -------
+    dist : array, shape = (n, )
+        For each point in ``src_pts``, te distance to the closest point in
+        ``tgt_pts``.
+    """
+    Y = cdist(src_pts, tgt_pts, 'euclidean')
+    dist = Y.min(axis=1)
+    return dist
+
+
+def _point_cloud_error_balltree(src_pts, tgt_tree):
+    """Find the distance from each source point to its closest target point
+
+    Uses sklearn.neighbors.BallTree for greater efficiency
 
     Parameters
     ----------
@@ -431,7 +453,13 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     if translate:
         src_pts = np.hstack((src_pts, np.ones((len(src_pts), 1))))
 
-    tgt_tree = BallTree(tgt_pts)
+    try:
+        from sklearn.neighbors import BallTree
+        tgt_pts = BallTree(tgt_pts)
+        errfunc = _point_cloud_error_balltree
+    except ImportError:
+        errfunc = _point_cloud_error
+
 
     # for efficiency, define parameter specific error function
     param_info = (rotate, translate, scale)
@@ -441,7 +469,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
             est = dot(src_pts, trans.T)
-            err = _point_cloud_error(est, tgt_tree)
+            err = errfunc(est, tgt_pts)
             return err
     elif param_info == (True, False, 1):
         x0 = x0 or (0, 0, 0, 1)
@@ -449,7 +477,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz, s = x
             trans = rotation3d(rx, ry, rz) * s
             est = dot(src_pts, trans.T)
-            err = _point_cloud_error(est, tgt_tree)
+            err = errfunc(est, tgt_pts)
             return err
     elif param_info == (True, False, 3):
         x0 = x0 or (0, 0, 0, 1, 1, 1)
@@ -457,7 +485,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz, sx, sy, sz = x
             trans = rotation3d(rx, ry, rz) * [sx, sy, sz]
             est = dot(src_pts, trans.T)
-            err = _point_cloud_error(est, tgt_tree)
+            err = errfunc(est, tgt_pts)
             return err
     elif param_info == (True, True, 0):
         x0 = x0 or (0, 0, 0, 0, 0, 0)
@@ -465,7 +493,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             rx, ry, rz, tx, ty, tz = x
             trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
             est = dot(src_pts, trans.T)
-            err = _point_cloud_error(est[:, :3], tgt_tree)
+            err = errfunc(est[:, :3], tgt_pts)
             return err
     else:
         err = ("The specified parameter combination is not implemented: "

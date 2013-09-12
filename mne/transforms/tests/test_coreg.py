@@ -3,7 +3,6 @@ import os
 from nose.tools import assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_less
-from sklearn.neighbors import BallTree
 
 from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.transforms.coreg import fit_matched_points, fit_point_cloud, \
@@ -111,7 +110,7 @@ def test_fit_point_cloud():
     trans_est = fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=False,
                                 scale=0, out='trans')
     est_pts = apply_trans(trans_est, src_pts)
-    err = _point_cloud_error(est_pts, BallTree(tgt_pts))
+    err = _point_cloud_error(est_pts, tgt_pts)
     assert_array_less(err, .1, "fit_point_cloud with rotation.")
 
     # rotation and translation
@@ -120,7 +119,7 @@ def test_fit_point_cloud():
     trans_est = fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
                                 scale=0, out='trans')
     est_pts = apply_trans(trans_est, src_pts)
-    err = _point_cloud_error(est_pts, BallTree(tgt_pts))
+    err = _point_cloud_error(est_pts, tgt_pts)
     assert_array_less(err, .1, "fit_point_cloud with rotation and "
                       "translation.")
 
@@ -130,7 +129,7 @@ def test_fit_point_cloud():
     trans_est = fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=False,
                                 scale=1, out='trans')
     est_pts = apply_trans(trans_est, src_pts)
-    err = _point_cloud_error(est_pts, BallTree(tgt_pts))
+    err = _point_cloud_error(est_pts, tgt_pts)
     assert_array_less(err, .1, "fit_point_cloud with rotation and 1 scaling "
                       "parameter.")
 
@@ -140,6 +139,6 @@ def test_fit_point_cloud():
     trans_est = fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=False,
                                 scale=3, out='trans')
     est_pts = apply_trans(trans_est, src_pts)
-    err = _point_cloud_error(est_pts, BallTree(tgt_pts))
+    err = _point_cloud_error(est_pts, tgt_pts)
     assert_array_less(err, .1, "fit_point_cloud with rotation and 3 scaling "
                       "parameters.")
