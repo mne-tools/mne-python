@@ -69,8 +69,8 @@ label = mne.read_label(fname_label)
 
 # Setting frequency bins as in Dalal et al. 2008
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
-win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
-#win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
+#win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
+win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
 
 # Setting time windows, please note tmin stretches over the baseline, which is
 # selected to be as long as the longest time window. This enables a smooth and
