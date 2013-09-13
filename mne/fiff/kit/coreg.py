@@ -73,12 +73,12 @@ def read_mrk(fname):
     return mrk_points
 
 
-def write_mrk(path, points):
+def write_mrk(fname, points):
     """Save KIT marker coordinates
 
     Parameters
     ----------
-    path : str
+    fname : str
         Path to the file to write. The kind of file to write is determined
         based on the extension: '.txt' for tab separated text file, '.pickled'
         for pickled file.
@@ -86,28 +86,28 @@ def write_mrk(path, points):
         The marker point coordinates.
     """
     mrk = np.asarray(points)
-    _, ext = os.path.splitext(path)
+    _, ext = os.path.splitext(fname)
     if mrk.shape != (5, 3):
         err = ("KIT marker points array needs to have shape (5, 3), got "
                "%s." % str(mrk.shape))
         raise ValueError(err)
 
     if ext == '.pickled':
-        with open(path, 'w') as fid:
+        with open(fname, 'w') as fid:
             pickle.dump({'mrk': mrk}, fid, pickle.HIGHEST_PROTOCOL)
     elif ext == '.txt':
-        np.savetxt(path, mrk, fmt='%.18e', delimiter='\t', newline='\n')
+        np.savetxt(fname, mrk, fmt='%.18e', delimiter='\t', newline='\n')
     else:
         err = "Unrecognized extension: %r. Need '.txt' or '.pickled'." % ext
         raise ValueError(err)
 
 
-def read_elp(elp_fname):
+def read_elp(fname):
     """ELP point extraction in Polhemus head space
 
     Parameters
     ----------
-    elp_fname : str
+    fname : str
         Absolute path to laser point file acquired from Polhemus system.
         File formats allowed: *.txt
 
@@ -117,23 +117,23 @@ def read_elp(elp_fname):
         Fiducial and marker points in Polhemus head space.
     """
     pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    elp_points = pattern.findall(open(elp_fname).read())
+    elp_points = pattern.findall(open(fname).read())
     elp_points = np.array(elp_points, dtype=float)
     if elp_points.shape != (8, 3):
         err = ("File %r does not contain correct number of points for a "
                "fiducials file. Expected shape: (8 points, 3 "
                "coordinates); got shape "
-               "%s." % (elp_fname, elp_points.shape))
+               "%s." % (fname, elp_points.shape))
         raise ValueError(err)
     return elp_points
 
 
-def read_hsp(hsp_fname):
+def read_hsp(fname):
     """Read a Polhemus ascii head shape file
 
     Parameters
     ----------
-    hsp_fname : str
+    fname : str
         Path to head shape file acquired from Polhemus system and saved in
         ascii format.
 
@@ -144,7 +144,7 @@ def read_hsp(hsp_fname):
         File formats allowed: *.txt, *.pickled
     """
     pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    with open(hsp_fname) as fid:
+    with open(fname) as fid:
         hsp_points = pattern.findall(fid.read())
     hsp_points = np.array(hsp_points, dtype=float)
     return hsp_points
@@ -174,12 +174,12 @@ def write_hsp(fname, pts):
         np.savetxt(fid, pts, '%8.2f', ' ')
 
 
-def read_sns(sns_fname):
+def read_sns(fname):
     """Sensor coordinate extraction in MEG space
 
     Parameters
     ----------
-    sns_fname : str
+    fname : str
         Absolute path to sensor definition file.
 
     Returns
@@ -187,11 +187,11 @@ def read_sns(sns_fname):
     locs : numpy.array, shape = (n_points, 3)
         Sensor coil location.
     """
-
     p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),' +
                    r'([\.\-0-9]+),([\.\-0-9]+),' +
                    r'([\.\-0-9]+),([\.\-0-9]+)')
-    locs = np.array(p.findall(open(sns_fname).read()), dtype=float)
+    with open(fname) as fid:
+        locs = np.array(p.findall(fid.read()), dtype=float)
     return locs
 
 
