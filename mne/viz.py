@@ -2430,7 +2430,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
-             show_options=False, title=None, show=True):
+             show_options=False, title=None, show=True, block=False):
     """Plot raw data
 
     Parameters
@@ -2472,6 +2472,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         raw object or '<unknown>' will be displayed as title.
     show : bool
         Show figure if True
+    block : bool
+        Whether to halt program execution until the figure is closed.
+        Useful for setting bad channels on the fly (click on line).
 
     Returns
     -------
@@ -2643,7 +2646,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         _toggle_options(None, params)
 
     if show:
-        pl.show()
+        pl.show(block=block)
     return fig
 
 
@@ -2778,11 +2781,13 @@ def _pick_bad_channels(event, params):
                 if this_chan in params['raw'].ch_names:
                     if this_chan not in bads:
                         bads.append(this_chan)
-                        l.set_color('gray')
+                        l.set_color(params['bad_color'])
                     else:
                         bads.pop(bads.index(this_chan))
                         l.set_color(vars(l)['def-color'])
                     event.canvas.draw()
+    # update deepcopied info to persistenly draw bads
+    params['info']['bads'] = bads
 
 
 def _mouse_click(event, params):
@@ -2870,7 +2875,7 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
 
     info = params['info']
     n_channels = params['n_channels']
-
+    params['bad_color'] = bad_color
     # do the plotting
     tick_list = []
     for ii in xrange(n_channels):
