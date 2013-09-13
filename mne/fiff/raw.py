@@ -1048,6 +1048,9 @@ class Raw(ProjMixin):
         The arrow keys (up/down/left/right) can typically be used to navigate
         between channels and time ranges, but this depends on the backend
         matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
+        To mark or un-mark a channel as bad, click on the rather flat segments
+        of a channel's time series. The changes will be reflected immediately 
+        in the raw object's ``raw.info['bads']`` entry.
         """
         return plot_raw(raw, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,

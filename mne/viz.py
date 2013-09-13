@@ -2474,7 +2474,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         Show figure if True
     block : bool
         Whether to halt program execution until the figure is closed.
-        Useful for setting bad channels on the fly (click on line).
+        Useful for setting bad channels on the fly by clicking on a line.
 
     Returns
     -------
@@ -2486,6 +2486,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     The arrow keys (up/down/left/right) can typically be used to navigate
     between channels and time ranges, but this depends on the backend
     matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
+    To mark or un-mark a channel as bad, click on the rather flat segments
+    of a channel's time series. The changes will be reflected immediately 
+    in the raw object's ``raw.info['bads']`` entry.
     """
     import pylab as pl
     color, scalings = _mutable_defaults(('color', color),
@@ -2789,7 +2792,7 @@ def _pick_bad_channels(event, params):
                         bads.pop(bads.index(this_chan))
                         l.set_color(vars(l)['def-color'])
                     event.canvas.draw()
-    # update deepcopied info to persistenly draw bads
+    # update deep-copied info to persistently draw bads
     params['info']['bads'] = bads
 
 
