@@ -17,7 +17,7 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id
 from .surface import read_surface, _create_surf_spacing, _get_vertex_map, \
-                     _compose_morph_maps, read_morph_map
+                     _get_ico_surface, _tessellate_sphere_surf
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
                    has_nibabel, logger, verbose
 
@@ -768,30 +768,23 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 # Creation and decimation
 
 @verbose
-def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
-                       use_all=False, surface='white', overwrite=False,
-                       morph=None, subjects_dir=None, verbose=None):
-    """Setup a source space with decimation
+def setup_source_space(subject, fname=True, spacing='7mm', surface='white',
+                       overwrite=False, morph=None, subjects_dir=None,
+                       verbose=None):
+    """Setup a source space with subsampling
 
     Parameters
     ----------
     subject : str
         Subject to process.
-    fname : str | bool
-        Filename to use. If True, a default name will be used. If False,
+    fname : str | None | bool
+        Filename to use. If True, a default name will be used. If None,
         the source space will not be saved (only returned).
-    spacing : float | None
-        The spacing to use (in mm). Should be None if ``ico``, ``oct``,
-        or ``all`` are used. If all are None, a spacing of 7 will be used.
-    ico : float | None
-        Use a recursively subdivided icosahedron. Should be None if
-        ``spacing``, ``oct``, or ``all`` are used.
-    oct : float | None
-        Use a recursively subdivided octahedron. Should be None if
-        ``spacing``, ``ico``, or ``all`` are used.
-    use_all : bool
-        If True, include all vertices in the source space. Should be
-        False if ``spacing``, ``ico``, or ``oct`` are used.
+    spacing : str
+        The spacing to use. Can be ``'#mm'`` (e.g., ``'7mm'``) for
+        approximate distance-based spacing, ``'ico#'`` for a recursively
+        subdivided icosahedron, ``'oct#'`` for a recursively subdivided
+        octahedron, or ``'all'`` for all points.
     surface : str
         The surface to use.
     overwrite: bool
@@ -809,20 +802,37 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
     src : list
         The source space for each hemisphere.
     """
-    cmd = ('setup_source_space(%s, fname=%s, spacing=%s, ico=%s, oct=%s, '
-           'use_all=%s, surface=%s, overwrite=%s, morph=%s, subjects_dir=%s, '
-           'verbose=%s)' % (subject, fname, spacing, ico, oct, use_all,
-                            surface, overwrite, morph, subjects_dir, verbose))
-    # check to make sure our parameters are good
-    use_all = None if use_all is False else use_all
-    opts = [ico, oct, spacing, use_all]
-    n_chosen = sum([x is not None for x in opts])
-    if n_chosen == 0:
-        spacing = 7
-        n_chosen = 1
-    if not n_chosen == 1:
-        raise ValueError('Exactly one of "ico", "oct", "spacing", and "all"'
-                         'must be defined')
+    cmd = ('setup_source_space(%s, fname=%s, spacing=%s, surface=%s, '
+           'overwrite=%s, morph=%s, subjects_dir=%s, verbose=%s)'
+           % (subject, fname, spacing, surface, overwrite, morph,
+              subjects_dir, verbose))
+    # check to make sure our parameters are good, parse 'spacing'
+    space_err = ('"spacing" must be a string with values '
+                 '"#mm", "ico#", "oct#", or "all", and "ico" and "oct"'
+                 'numbers must be integers')
+    if not isinstance(spacing, basestring) or len(spacing) < 3:
+        raise ValueError(space_err)
+    if spacing == 'all':
+        stype = 'all'
+        sval = ''
+    elif spacing[:3] == 'ico':
+        stype = 'ico'
+        sval = spacing[3:]
+    elif spacing[:3] == 'oct':
+        stype = 'oct'
+        sval = spacing[3:]
+    elif spacing[-2:] == 'mm':
+        stype = 'spacing'
+        sval = spacing[:-2]
+    else:
+        raise ValueError(space_err)
+    try:
+        if stype in ['ico', 'oct']:
+            sval = int(sval)
+        elif stype == 'spacing':  # spacing
+            sval = float(sval)
+    except:
+        raise ValueError(space_err)
     subjects_dir = get_subjects_dir(subjects_dir)
     surfs = [op.join(subjects_dir, subject, 'surf', hemi + surface)
              for hemi in ['lh.', 'rh.']]
@@ -842,17 +852,15 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
                 raise IOError('Could not find the %s surface %s'
                               % (hemi, surf))
 
+    if not (fname is True or fname is None or isinstance(fname, basestring)):
+        raise ValueError('"fname" must be a string, True, or None')
     if fname is True:
-        if ico is not None:
-            extra = 'ico-%s' % ico
-        elif oct is not None:
-            extra = 'oct-%s' % oct
-        elif spacing is not None:
-            extra = str(spacing)
+        if stype == 'spacing':
+            extra = str(sval)
         else:
-            extra = 'all'
+            extra = '%s-%s' % (stype, sval) if sval != '' else stype
         fname = op.join(bem_dir, '%s-%s-src.fif' % (dest_subject, extra))
-    if fname is not False and op.isfile(fname) and overwrite is False:
+    if fname is not None and op.isfile(fname) and overwrite is False:
         raise IOError('file "%s" exists, use overwrite=True if you want '
                       'to overwrite the file' % fname)
 
@@ -862,41 +870,52 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
     if morph is not None:
         logger.info('Morph        = %s' % morph)
     logger.info('Surface      = %s' % surface)
-    if ico is not None:
-        src_type = 'ico = %s' % ico
-        logger.info('Icosahedron subdivision grade %s\n' % ico)
-    elif oct is not None:
-        src_type = 'oct = %s' % oct
-        logger.info('Octahedron subdivision grade %s\n' % oct)
-    elif spacing is not None:
-        src_type = 'spacing = %s' % spacing
-        logger.info('Grid spacing = %s mm\n' % spacing)
+    if stype == 'ico':
+        src_type_str = 'ico = %s' % sval
+        logger.info('Icosahedron subdivision grade %s\n' % sval)
+    elif stype == 'oct':
+        src_type_str = 'oct = %s' % sval
+        logger.info('Octahedron subdivision grade %s\n' % sval)
+    elif stype == 'spacing':
+        src_type_str = 'spacing = %s' % spacing
+        logger.info('Grid spacing = %s mm\n' % sval)
     else:
-        src_type = 'all'
+        src_type_str = 'all'
         logger.info('Include all vertices\n')
 
     # Create the fif file
     if fname is not None:
-        if fname is False:
-            logger.info('>>> 1. Creating the source space...\n')
-        else:
-            logger.info('>>> 1. Creating the source space file %s...' % fname)
+        logger.info('>>> 1. Creating the source space file %s...' % fname)
+    else:
+        logger.info('>>> 1. Creating the source space...\n')
 
-    # mne_make_source_space ...
+    # mne_make_source_space ... actually make the source spaces
     src = []
-    # actually make the source spaces
+
+    # pre-load ico/oct surf (once) for speed, if necessary
+    if stype in ['ico', 'oct']:
+        ### from mne_ico_downsample.c ###
+        if stype == 'ico':
+            logger.info('Doing the icosahedral vertex picking...')
+            ico_surf = _get_ico_surface(sval)
+        else:
+            logger.info('Doing the octahedral vertex picking...')
+            ico_surf = _tessellate_sphere_surf(sval)
+    else:
+        ico_surf = None
+
     for hemi, surf, msurf in zip(['lh', 'rh'], surfs, msurfs):
         logger.info('Loading %s...' % surf)
-        s = _create_surf_spacing(surf, hemi, subject, ico, oct, spacing,
+        s = _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
                                  subjects_dir)
         logger.info('loaded %s %d/%d selected to source space (%s)'
-                    % (op.split(surf)[1], s['nuse'], s['np'], src_type))
+                    % (op.split(surf)[1], s['nuse'], s['np'], src_type_str))
         if morph is not None:
             logger.info('Loading %s...' % msurf)
-            ms = _create_surf_spacing(msurf, hemi, morph, None, None, None,
+            ms = _create_surf_spacing(msurf, hemi, morph, 'all', '', None,
                                       subjects_dir)
             logger.info('loaded %s of %s %d/%d selected to source space (%s)',
-                        surf, morph, ms['nuse'], ms['np'], src_type)
+                        surf, morph, ms['nuse'], ms['np'], src_type_str)
             best = _get_vertex_map(s, ms, subject, morph, hemi, subjects_dir)
             ms['nuse'] = s['nuse']
             ms['inuse'].fill(False)
@@ -934,7 +953,7 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
     src = SourceSpaces(src, dict(working_dir=os.getcwd(), command_line=cmd))
 
     # write out if requested, then return the data
-    if fname is not False:
+    if fname is not None:
         write_source_spaces(fname, src)
         logger.info('Wrote %s' % fname)
     logger.info('You are now one step closer to computing the gain matrix')

@@ -202,6 +202,49 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     return res
 
 
+def _accumulate_normals(tris, tri_nn, npts):
+    """Efficiently accumulate triangle normals"""
+    # this code replaces the following, but is faster (vectorized):
+    #
+    # this['nn'] = np.zeros((this['np'], 3))
+    # for p in xrange(this['ntri']):
+    #     verts = this['tris'][p]
+    #     this['nn'][verts, :] += this['tri_nn'][p, :]
+    #
+    nn = np.zeros((npts, 3))
+    for verts in tris.T:  # note this only loops 3x (number of verts per tri)
+        counts = np.bincount(verts, minlength=npts)
+        reord = np.argsort(verts)
+        vals = np.r_[np.zeros((1, 3)), np.cumsum(tri_nn[reord, :], 0)]
+        idx = np.cumsum(np.r_[0, counts])
+        nn += vals[idx[1:], :] - vals[idx[:-1], :]
+    return nn
+
+
+def _triangle_neighbors(tris, npts):
+    """Efficiently compute vertex neighboring triangles"""
+    # this code replaces the following, but is faster (vectorized):
+    #
+    # this['neighbor_tri'] = [list() for _ in xrange(this['np'])]
+    # for p in xrange(this['ntri']):
+    #     verts = this['tris'][p]
+    #     this['neighbor_tri'][verts[0]].append(p)
+    #     this['neighbor_tri'][verts[1]].append(p)
+    #     this['neighbor_tri'][verts[2]].append(p)
+    # this['neighbor_tri'] = [np.array(nb, int) for nb in this['neighbor_tri']]
+    #
+    tri_idx = np.tile(np.arange(len(tris))[:, np.newaxis], (1, 3))
+    verts = tris.ravel()
+    counts = np.bincount(verts, minlength=npts)
+    reord = np.argsort(verts)
+    tri_idx = tri_idx.ravel()[reord]
+    idx = np.cumsum(np.r_[0, counts])
+    # the sort below slows it down a bit, but is needed for equivalence
+    neighbor_tri = [np.sort(tri_idx[v1:v2])
+                    for v1, v2 in zip(idx[:-1], idx[1:])]
+    return neighbor_tri
+
+
 def _complete_surface_info(this, do_neighbor_vert=False):
     """Complete surface info"""
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
@@ -223,28 +266,11 @@ def _complete_surface_info(this, do_neighbor_vert=False):
     size[zidx] = 1.0  # prevent ugly divide-by-zero
     this['tri_nn'] /= size[:, None]
 
-    #    Find neighboring triangles and accumulate vertex normals
-    this['nn'] = np.zeros((this['np'], 3))
-    # as we don't know the number of neighbors, use lists (faster to append)
-    this['neighbor_tri'] = [list() for _ in xrange(this['np'])]
-    logger.info('    Triangle normals and neighboring triangles...')
-    for p in xrange(this['ntri']):
-        # vertex normals
-        verts = this['tris'][p]
-        this['nn'][verts, :] += this['tri_nn'][p, :]
-
-        # Add to the list of neighbors
-        this['neighbor_tri'][verts[0]].append(p)
-        this['neighbor_tri'][verts[1]].append(p)
-        this['neighbor_tri'][verts[2]].append(p)
-
-    # convert the neighbor lists to arrays
-    this['neighbor_tri'] = [np.array(nb, int) for nb in this['neighbor_tri']]
-
-    #   Normalize the lengths of the vertex normals
-    size = np.sqrt(np.sum(this['nn'] ** 2, axis=1))
-    size[size == 0] = 1  # prevent ugly divide-by-zero
-    this['nn'] /= size[:, np.newaxis]
+    #    Find neighboring triangles, accumulate vertex normals, normalize
+    logger.info('    Triangle neighbors and vertex normals...')
+    this['neighbor_tri'] = _triangle_neighbors(this['tris'], this['np'])
+    this['nn'] = _accumulate_normals(this['tris'], this['tri_nn'], this['np'])
+    _normalize_vectors(this['nn'])
 
     #   Check for topological defects
     idx = np.where([len(n) == 0 for n in this['neighbor_tri']])[0]
@@ -385,7 +411,7 @@ def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
     if add_geom is True:
         s = _complete_surface_info(s)
     if norm_rr is True:
-        _normalize_vertices(s['rr'])
+        _normalize_vectors(s['rr'])
     return s
 
 
@@ -399,32 +425,11 @@ def _get_ico_surface(grade):
     return ico
 
 
-def _normalize_vertices(rr):
+def _normalize_vectors(rr):
     """Normalize surface vertices"""
     size = np.sqrt(np.sum(rr * rr, axis=1))
     size[size == 0] = 1.0  # avoid divide-by-zero
     rr /= size[:, np.newaxis]  # operate in-place
-
-
-def _get_ico_oct_map(subject, hemi, ico, oct, use_reg, subjects_dir):
-    """Get mapping to the nodes of an icos-/oct-ahedron"""
-    surf_name = hemi + ('.sphere.reg' if use_reg is True else '.sphere')
-    surf_name = op.join(subjects_dir, subject, 'surf', surf_name)
-    logger.info('Loading geometry from %s...' % surf_name)
-    from_surf = _read_surface_geom(surf_name, norm_rr=True)
-    if oct is not None:
-        to_surf = _tessellate_sphere_surf(oct)
-    else:
-        to_surf = _get_ico_surface(ico)
-    _normalize_vertices(to_surf['rr'])
-
-    # Make the maps
-    if ico is not None:
-        logger.info('Mapping %s %s -> ico (%d) ...', hemi, subject, ico)
-    else:
-        logger.info('Mapping %s %s -> oct (%d) ...', hemi, subject, oct)
-    from_to_map = _get_nearest(to_surf['rr'], from_surf['rr'])
-    return from_to_map
 
 
 def _get_nearest(to, fro):
@@ -591,20 +596,23 @@ def _tessellate_sphere(mylevel):
     return nodes, corners
 
 
-def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
+def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
+                         subjects_dir):
     """Load a surf and use the subdivided icosahedron to get points"""
     # Based on load_source_space_surf_spacing() in load_source_space.c
     surf = _read_surface_geom(surf)
 
-    if ico is not None or oct is not None:
+    if stype in ['ico', 'oct']:
         ### from mne_ico_downsample.c ###
-        if ico is not None:
-            logger.info('Doing the icosahedral vertex picking...')
-            ico_surf = _get_ico_surface(ico)
-        else:
-            logger.info('Doing the octahedral vertex picking...')
-            ico_surf = _tessellate_sphere_surf(oct)
-        mmap = _get_ico_oct_map(subject, hemi, ico, oct, False, subjects_dir)
+        surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
+        logger.info('Loading geometry from %s...' % surf_name)
+        from_surf = _read_surface_geom(surf_name, norm_rr=True)
+        _normalize_vectors(ico_surf['rr'])
+
+        # Make the maps
+        logger.info('Mapping %s %s -> %s (%d) ...'
+                    % (hemi, subject, stype, sval))
+        mmap = _get_nearest(ico_surf['rr'], from_surf['rr'])
         nmap = len(mmap)
         surf['inuse'] = np.zeros(surf['np'], int)
         for k in xrange(nmap):
@@ -631,7 +639,7 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
                     'surface...')
         surf['use_tris'] = np.array([mmap[ist] for ist in ico_surf['tris']],
                                     np.int32)
-    elif spacing is not None:
+    elif stype == 'spacing':
         ### from mne_make_source_space/decimate.c ###
         # This is based on MRISubsampleDist in FreeSurfer
         logger.info('Decimating...')
@@ -645,7 +653,7 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
         for k in xrange(surf['np']):
             neigh = neighbor_vert[k]
             d[k] = np.min(d[neigh] + 1)
-            d[k] = 0 if d[k] >= spacing else d[k]
+            d[k] = 0 if d[k] >= sval else d[k]
             d[neigh] = np.minimum(d[k] + 1, d[neigh])
 
         for k in xrange(surf['np'] - 1, -1, -1):
@@ -654,7 +662,7 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
                 d[k] = np.minimum(d[neigh[p]] + 1, d[k])
                 d[neigh[p]] = np.minimum(d[k] + 1, d[neigh[p]])
 
-        if spacing == 2.0:
+        if sval == 2.0:
             for k in xrange(surf['np']):
                 if d[k] > 0:
                     neigh = neighbor_vert[k]
@@ -805,154 +813,6 @@ def decimate_surface(points, triangles, n_triangles):
 
     reduction = 1 - (float(n_triangles) / len(triangles))
     return _decimate_surface(points, triangles, reduction)
-
-
-def _compose_morph_maps(fro, to, accurate, subjects_dir):
-    """Compose morph maps from one subject to another
-    """
-    # from "mne_morph_maps.c"
-
-    # only load surface geometry if we need accuracy
-    add_geom = accurate
-
-    # Get the spherical morph info
-    from_to_maps = []
-    to_from_maps = []
-    for hemi in ['lh', 'rh']:
-        # Load the two spherical surfaces
-        surfs = []
-        for subj in [fro, to]:
-            surf_name = op.join(subjects_dir, subj,
-                                'surf', hemi + '.sphere.reg')
-            logger.info('Loading %s...' % surf_name)
-            surfs.append(_read_surface_geom(surf_name, add_geom=add_geom,
-                                            norm_rr=True, verbose=False))
-        fsurf = surfs[0]
-        tsurf = surfs[1]
-
-        # Make the maps
-        tt = 'interpolated' if accurate else 'nearest_neighbor'
-        logger.info('Mapping %s %s -> %s (%s)...' % (hemi, fro, to, tt))
-        mmap = _get_nearest(tsurf['rr'], fsurf['rr'])
-        if accurate is True:
-            raise NotImplementedError
-            #mat = _make_accurate_morph_map(fsurf, tsurf, mmap)
-            #from_to_maps.append(mat)
-        else:
-            ij = np.array([np.arange(tsurf['np']), mmap])
-            mat = sparse.csr_matrix((np.ones(tsurf['np']), ij),
-                                    shape=(tsurf['np'], fsurf['np']))
-            from_to_maps.append(mat)
-
-        logger.info('Mapping %s %s -> %s (%s)...' % (hemi, to, fro, tt))
-        mmap = _get_nearest(fsurf['rr'], tsurf['rr'])
-        if accurate is True:
-            raise NotImplementedError
-            #mat = _make_accurate_morph_map(tsurf, fsurf, mmap)
-            #to_from_maps.append(mat)
-        else:
-            ij = np.array([np.arange(fsurf['np']), mmap])
-            mat = sparse.csr_matrix((np.ones(fsurf['np']), ij),
-                                    shape=(fsurf['np'], tsurf['np']))
-            to_from_maps.append(mat)
-    return from_to_maps, to_from_maps
-
-
-def _make_accurate_morph_map(fro, to):
-    """Interpolate within the triangles"""
-    # from mne_morph_maps.c
-    nnz = np.zeros(to['np'], int)
-    colindex = np.zeros((to['np'], 3))
-    vals = np.zeros(to['np'], 3)
-    mmap = _get_nearest(to['rr'], fro['rr'])
-
-    for j in xrange(to['np']):
-        nnz[j] = 3
-        min_dist = -1.0
-        min_tri = 0
-        p = q = 0.0
-        # For each neighboring triangle, find the one which the destination
-        # point projects into
-        for k, tri in enumerate(fro['neighbor_tri'][mmap[j]]):
-            pp, qq, dist = _nearest_triangle_point(to['rr'][j], fro, tri)
-            if min_dist < 0.0 or np.abs(dist) < min_dist:
-                p = pp
-                q = qq
-                min_dist = dist
-                min_tri = tri
-
-        colindex[j, :] = fro['tris'][min_tri]
-        #
-        # Linear interpolation weights
-        #
-        # v = v1 + p*(v2-v1) + q*(v3-v1)
-        #   = (1 - p - q)*v1 + p*v2 + q*v3
-        #
-        vals[j, :] = [1.0 - p - q, p, q]
-    # construct sparse representation
-    colindex = colindex.ravel()
-    rowindex = np.tile(np.arange(to['np'])[:, np.newaxis], (1, 3)).ravel()
-    mmap = sparse.csr_matrix((vals.ravel(), np.array(rowindex, colindex)))
-    return mmap
-
-
-def _dister(p, q, p0, q0, a, b, c, dist):
-    return np.sqrt((p - p0) * (p - p0) * a +
-                   (q - q0) * (q - q0) * b +
-                   (p - p0) * (q - q0) * c +
-                   dist * dist)
-
-
-def _nearest_triangle_point(r, s, tri):
-    """Find the nearest point from a triangle"""
-    # from mne_project_to_surface.c and mne_add_geometry_info.c
-    this_tri = s['tris'][tri]
-    r1 = s['rr'][this_tri[0]]
-    r2 = s['rr'][this_tri[1]]
-    r3 = s['rr'][this_tri[2]]
-    r12 = r1 - r2
-    r13 = r1 - r3
-    rr = r1 - r
-    dist = np.sum(rr * s['tri_nn'][tri])
-
-    a = np.sum(r12 * r12)
-    b = np.sum(r13 * r13)
-    c = np.sum(r12 * r13)
-    v1 = np.sum(rr * r12)
-    v2 = np.sum(rr * r13)
-
-    det = a * b - c * c
-    p = (b * v1 - c * v2) / det
-    q = (a * v2 - c * v1) / det
-
-    # If the point projects into the triangle we are done
-    if 0.0 <= p <= 1.0 and 0.0 <= q <= 1.0 and q <= 1.0 - p:
-        return p, q, dist
-
-    # Tough: must investigate the sides
-    # We might do something intelligent here. However, for now it is ok
-    # to do it in the hard way
-
-    # Side 1 -> 2
-    p0 = np.minimum(np.maximum(p + 0.5 * (q * c) / a, 0.0), 1.0)
-    q0 = 0.0
-    dist0 = _dister(p, q, p0, q0, a, b, c, dist)
-    best, x, y, z = dist0, p0, q0, dist0
-    # Side 2 -> 3
-    t0 = 0.5 * ((2.0 * a - c) * (1.0 - p) + (2.0 * b - c) * q) / (a + b - c)
-    t0 = np.minimum(np.maximum(t0, 0.0), 1.0)
-    p0 = 1.0 - t0
-    q0 = t0
-    dist0 = _dister(p, q, p0, q0, a, b, c)
-    if dist0 < best:
-        best, x, y, z = dist0, p0, q0, dist0
-    # Side 1 -> 3
-    p0 = 0.0
-    q0 = np.minimum(np.maximum(q + 0.5 * (p * c) / b, 0.0), 1.0)
-    dist0 = _dister(p, q, p0, q0, a, b, c)
-    if dist0 < best:
-        best, x, y, z = dist0, p0, q0, dist0
-    return x, y, z
 
 
 @verbose
