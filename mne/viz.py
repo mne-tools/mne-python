@@ -2768,13 +2768,13 @@ def _helper_resize(event, params):
 
 def _pick_bad_channels(event, params):
     """Helper for selecting / dropping bad channels onpick"""
+    bads = params['raw'].info['bads']
     for l in event.inaxes.lines:
         ydata = l.get_ydata()
         if not isinstance(ydata, list) or not np.isnan(ydata).any():
             ymin, ymax = ydata.min(), ydata.max()
             if ymin <= event.ydata <= ymax:
                 this_chan = vars(l)['ch_name']
-                bads = params['raw'].info['bads']
                 if this_chan in params['raw'].ch_names:
                     if this_chan not in bads:
                         bads.append(this_chan)
