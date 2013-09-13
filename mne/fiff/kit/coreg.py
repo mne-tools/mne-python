@@ -142,9 +142,6 @@ def read_hsp(hsp_fname):
     hsp_points : numpy.array, shape = (n_points, 3)
         Headshape points in Polhemus head space.
         File formats allowed: *.txt, *.pickled
-    max_n : None | int
-        Maximum number of points. If max_n is not None and the number of
-        points in the file exceeds max_n, only n_max points are returned.
     """
     pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     with open(hsp_fname) as fid:
