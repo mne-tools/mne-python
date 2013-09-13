@@ -76,7 +76,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     # Apply SSPs + whitener to data covariance
     data_cov = pick_channels_cov(data_cov, include=ch_names)
     Cm = data_cov['data']
-    if info['projs']:
+    if proj:
         Cm = np.dot(proj, np.dot(Cm, proj.T))
     Cm = np.dot(whitener, np.dot(Cm, whitener.T))
 
@@ -230,6 +230,8 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
     if info['projs']:
         proj, ncomp, _ = make_projector(info['projs'], ch_names)
         G = np.dot(proj, G)
+    else:
+        proj = None
 
     return is_free_ori, picks, ch_names, proj, vertno, G
 
