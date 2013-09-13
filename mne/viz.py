@@ -2766,6 +2766,25 @@ def _helper_resize(event, params):
     _layout_raw(params)
 
 
+def _pick_bad_channels(event, params):
+    """Helper for selecting / dropping bad channels onpick"""
+    for l in event.inaxes.lines:
+        ydata = l.get_ydata()
+        if not isinstance(ydata, list) or not np.isnan(ydata).any():
+            ymin, ymax = ydata.min(), ydata.max()
+            if ymin <= event.ydata <= ymax:
+                this_chan = vars(l)['ch_name']
+                bads = params['raw'].info['bads']
+                if this_chan in params['raw'].ch_names:
+                    if this_chan not in bads:
+                        bads.append(this_chan)
+                        l.set_color('gray')
+                    else:
+                        bads.pop(bads.index(this_chan))
+                        l.set_color(vars(l)['def-color'])
+                    event.canvas.draw()
+
+
 def _mouse_click(event, params):
     """Vertical select callback"""
     if event.inaxes is None or event.button != 1:
@@ -2780,6 +2799,9 @@ def _mouse_click(event, params):
     # horizontal scrollbar changed
     elif event.inaxes == params['ax_hscroll']:
         _plot_raw_time(event.xdata - params['duration'] / 2, params)
+
+    elif event.inaxes == params['ax']:
+        _pick_bad_channels(event, params)
 
 
 def _plot_raw_time(value, params):
@@ -2873,6 +2895,8 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
             lines[ii].set_ydata(offset - this_data)
             lines[ii].set_xdata(params['times'])
             lines[ii].set_color(this_color)
+            vars(lines[ii])['ch_name'] = ch_name
+            vars(lines[ii])['def-color'] = color[params['types'][inds[ch_ind]]]
         else:
             # "remove" lines
             lines[ii].set_xdata([])

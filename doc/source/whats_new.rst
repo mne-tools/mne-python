@@ -41,6 +41,8 @@ Changelog
    
    - Add fiducials read/write support by `Christian Brodbeck`_ and `Alex Gramfort`_
 
+   - Add select / drop bad channels in `plot_raw` on click by `Denis Engemann`_
+
 API
 ~~~
 
