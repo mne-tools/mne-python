@@ -69,13 +69,14 @@ label = mne.read_label(fname_label)
 
 # Setting frequency bins as in Dalal et al. 2008
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
+win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 
 # Setting time windows
-tmin = -0.125
-tstep = 0.15
+tmin = -0.2  # s
+tstep = 0.05  # s
 
-stcs = tf_dics(epochs, forward, label=None, tmin=tmin, tmax=epochs.times[-1],
-               tstep=tstep, freq_bins=freq_bins)
+stcs = tf_dics(epochs, forward, label=None, tmin=tmin, tmax=0.5,
+               tstep=tstep, win_lengths=win_lengths, freq_bins=freq_bins)
 
 # Gathering results for each time window
 # TODO: Should be frequencies, but stcs for time windows are returned now
