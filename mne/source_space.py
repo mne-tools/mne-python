@@ -16,7 +16,8 @@ from .fiff.write import start_block, end_block, write_int, \
                         write_float_sparse_rcs, write_string, \
                         write_float_matrix, write_int_matrix, \
                         write_coord_trans, start_file, end_file, write_id
-from .surface import read_surface, _create_surf_spacing, _get_vertex_map
+from .surface import read_surface, _create_surf_spacing, _get_vertex_map, \
+                     _compose_morph_maps, read_morph_map
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
                    has_nibabel, logger, verbose
 
@@ -799,7 +800,8 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
     overwrite: bool
         If True, overwrite file (if it exists).
     morph : str | None
-        Morph source space to this subject. If None, uses subject
+        Morph source space to this subject. If None, the source space will
+        not be morphed.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
@@ -824,30 +826,24 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
     if not n_chosen == 1:
         raise ValueError('Exactly one of "ico", "oct", "spacing", and "all"'
                          'must be defined')
+    subjects_dir = get_subjects_dir(subjects_dir)
+    surfs = [op.join(subjects_dir, subject, 'surf', hemi + surface)
+             for hemi in ['lh.', 'rh.']]
     if morph is None:
-        morph = subject
         dest_subject = subject
+        bem_dir = op.join(subjects_dir, subject, 'bem')
+        msurfs = [None, None]
     else:
         dest_subject = morph + '-' + subject
-    subjects_dir = get_subjects_dir(subjects_dir)
+        bem_dir = op.join(subjects_dir, morph, 'bem')
+        msurfs = [op.join(subjects_dir, morph, 'surf', hemi + surface)
+                  for hemi in ['lh.', 'rh.']]
 
-    subj_dir = op.join(subjects_dir, subject)
-    surf_dir = op.join(subj_dir, 'surf')
-    bem_dir = op.join(subjects_dir, morph, 'bem')
-    lh_surf = op.join(surf_dir, 'lh.' + surface)
-    rh_surf = op.join(surf_dir, 'rh.' + surface)
-
-    if not op.isdir(subj_dir):
-        raise IOError('Could not find the MRI data directory %s' % subj_dir)
-
-    if not op.isdir(surf_dir):
-        raise IOError('Could not find the surface reconstruction directory '
-                      '%s' % surf_dir)
-    if not op.isdir(bem_dir):
-        raise IOError('Could not create the model directory %s' % bem_dir)
-    for surf, hemi in zip([lh_surf, rh_surf], ['LH', 'RH']):
-        if not op.isfile(lh_surf):
-            raise IOError('Could not find the %s surface %s' % (hemi, surf))
+    for each_surfs in [surfs, msurfs]:
+        for surf, hemi in zip(each_surfs, ['LH', 'RH']):
+            if surf is not None and not op.isfile(surf):
+                raise IOError('Could not find the %s surface %s'
+                              % (hemi, surf))
 
     if fname is True:
         if ico is not None:
@@ -866,16 +862,20 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
     logger.info('Setting up the source space with the following parameters:\n')
     logger.info('SUBJECTS_DIR = %s' % subjects_dir)
     logger.info('Subject      = %s' % subject)
-    if morph != subject:
+    if morph is not None:
         logger.info('Morph        = %s' % morph)
-    logger.info('Surface      = %s' % surf)
+    logger.info('Surface      = %s' % surface)
     if ico is not None:
+        src_type = 'ico = %s' % ico
         logger.info('Icosahedron subdivision grade %s\n' % ico)
     elif oct is not None:
+        src_type = 'oct = %s' % oct
         logger.info('Octahedron subdivision grade %s\n' % oct)
     elif spacing is not None:
+        src_type = 'spacing = %s' % spacing
         logger.info('Grid spacing = %s mm\n' % spacing)
     else:
+        src_type = 'all'
         logger.info('Include all vertices\n')
 
     # Create the fif file
@@ -887,23 +887,20 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
 
     # mne_make_source_space ...
     src = []
-    if morph != subject:
-        morph_maps = read_morph_map(subject, morph)
-    else:
-        morph_maps = [[], []]
     # actually make the source spaces
-    for hemi, surf, mmap in zip(['lh', 'rh'], [lh_surf, rh_surf], morph_maps):
+    for hemi, surf, msurf in zip(['lh', 'rh'], surfs, msurfs):
         logger.info('Loading %s...' % surf)
         s = _create_surf_spacing(surf, hemi, subject, ico, oct, spacing,
                                  subjects_dir)
-        logger.info('loaded %s %d/%d selected to source space'
-                    % (op.split(surf)[1], s['nuse'], s['np']))
-        if morph != subject:
-            ms = _create_surf_spacing(surf, hemi, morph, None, None, None,
+        logger.info('loaded %s %d/%d selected to source space (%s)'
+                    % (op.split(surf)[1], s['nuse'], s['np'], src_type))
+        if morph is not None:
+            logger.info('Loading %s...' % msurf)
+            ms = _create_surf_spacing(msurf, hemi, morph, None, None, None,
                                       subjects_dir)
-            logger.info('loaded %s of %s %d/%d selected to source space',
-                        surf, morph, ms['nuse'], ms['np'])
-            best = _get_vertex_map(s, ms, mmap)
+            logger.info('loaded %s of %s %d/%d selected to source space (%s)',
+                        surf, morph, ms['nuse'], ms['np'], src_type)
+            best = _get_vertex_map(s, ms, subject, morph, hemi, subjects_dir)
             ms['nuse'] = s['nuse']
             ms['inuse'].fill(False)
             ms['vertno'] = best[s['vertno']]
@@ -945,76 +942,3 @@ def setup_source_space(subject, fname=True, spacing=None, ico=None, oct=None,
         logger.info('Wrote %s' % fname)
     logger.info('You are now one step closer to computing the gain matrix')
     return src
-
-
-@verbose
-def read_morph_map(subject_from, subject_to, subjects_dir=None,
-                   verbose=None):
-    """Read morph map generated with mne_make_morph_maps
-
-    Parameters
-    ----------
-    subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    subjects_dir : string
-        Path to SUBJECTS_DIR is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    left_map, right_map : sparse matrix
-        The morph maps for the 2 hemispheres.
-    """
-
-    subjects_dir = get_subjects_dir(subjects_dir)
-
-    # Does the file exist
-    name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_from,
-                                              subject_to)
-    if not os.path.exists(name):
-        name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_to,
-                                                  subject_from)
-        if not os.path.exists(name):
-            raise ValueError('The requested morph map does not exist\n' +
-                             'Perhaps you need to run the MNE tool:\n' +
-                             '  mne_make_morph_maps --from %s --to %s'
-                             % (subject_from, subject_to))
-
-    fid, tree, _ = fiff_open(name)
-
-    # Locate all maps
-    maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
-    if len(maps) == 0:
-        fid.close()
-        raise ValueError('Morphing map data not found')
-
-    # Find the correct ones
-    left_map = None
-    right_map = None
-    for m in maps:
-        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
-        if tag.data == subject_from:
-            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
-            if tag.data == subject_to:
-                #  Names match: which hemishere is this?
-                tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
-                if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    left_map = tag.data
-                    logger.info('    Left-hemisphere map read.')
-                elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    right_map = tag.data
-                    logger.info('    Right-hemisphere map read.')
-
-    fid.close()
-    if left_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % name)
-
-    if right_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % name)
-
-    return left_map, right_map
