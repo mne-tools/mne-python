@@ -10,6 +10,7 @@ import sys
 from struct import pack
 import numpy as np
 from scipy.spatial.distance import cdist
+from scipy import sparse
 
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
@@ -18,7 +19,7 @@ from .fiff.tag import find_tag
 from .fiff.write import write_int, write_float, write_float_matrix, \
                         write_int_matrix, start_file, end_block, \
                         start_block, end_file
-from .utils import logger, verbose
+from .utils import logger, verbose, get_subjects_dir
 
 #
 #   These fiff definitions are not needed elsewhere
@@ -243,7 +244,7 @@ def _complete_surface_info(this, do_neighbor_vert=False):
     #   Normalize the lengths of the vertex normals
     size = np.sqrt(np.sum(this['nn'] ** 2, axis=1))
     size[size == 0] = 1  # prevent ugly divide-by-zero
-    this['nn'] /= size[:, None]
+    this['nn'] /= size[:, np.newaxis]
 
     #   Check for topological defects
     idx = np.where([len(n) == 0 for n in this['neighbor_tri']])[0]
@@ -372,31 +373,37 @@ def read_surface(fname):
     return coords, faces
 
 
-def _read_surface_geom(fname):
-    """Load the surface and add the geometry information"""
+@verbose
+def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
+    """Load the surface as dict, optionally add the geometry information"""
     # based on mne_load_surface_geom() in mne_surface_io.c
     coords, tris = read_surface(fname)  # mne_read_triangle_file()
     nvert = len(coords)
     ntri = len(tris)
     s = dict(rr=coords, tris=tris, use_tris=tris, ntri=ntri,
              np=nvert)
-    s = _complete_surface_info(s)
+    if add_geom is True:
+        s = _complete_surface_info(s)
+    if norm_rr is True:
+        _normalize_vertices(s['rr'])
     return s
 
 
 def _get_ico_surface(grade):
     """Return an icosahedral surface of the desired grade"""
+    # always use verbose=False since users don't need to know we're pulling
+    # these from a file
     ico_file_name = os.path.join(os.path.dirname(__file__), 'data',
                                  'icos.fif.gz')
-    ico = read_bem_surfaces(ico_file_name, s_id=9000 + grade)
+    ico = read_bem_surfaces(ico_file_name, s_id=9000 + grade, verbose=False)
     return ico
 
 
-def _normalize_vertices(s):
+def _normalize_vertices(rr):
     """Normalize surface vertices"""
-    size = np.sqrt(np.sum(s['rr'] * s['rr'], axis=1))
+    size = np.sqrt(np.sum(rr * rr, axis=1))
     size[size == 0] = 1.0  # avoid divide-by-zero
-    s['rr'] /= size[:, np.newaxis]
+    rr /= size[:, np.newaxis]  # operate in-place
 
 
 def _get_ico_oct_map(subject, hemi, ico, oct, use_reg, subjects_dir):
@@ -404,13 +411,12 @@ def _get_ico_oct_map(subject, hemi, ico, oct, use_reg, subjects_dir):
     surf_name = hemi + ('.sphere.reg' if use_reg is True else '.sphere')
     surf_name = op.join(subjects_dir, subject, 'surf', surf_name)
     logger.info('Loading geometry from %s...' % surf_name)
-    from_surf = _read_surface_geom(surf_name)
-    _normalize_vertices(from_surf)
+    from_surf = _read_surface_geom(surf_name, norm_rr=True)
     if oct is not None:
         to_surf = _tessellate_sphere_surf(oct)
     else:
         to_surf = _get_ico_surface(ico)
-    _normalize_vertices(to_surf)
+    _normalize_vertices(to_surf['rr'])
 
     # Make the maps
     if ico is not None:
@@ -422,7 +428,7 @@ def _get_ico_oct_map(subject, hemi, ico, oct, use_reg, subjects_dir):
 
 
 def _get_nearest(to, fro):
-    """For each point on 'to', find closest on 'fro'"""
+    """For each point on 'fro', find closest on 'to'"""
     # triage based on sklearn having ball_tree presence
     try:
         from sklearn.neighbors import NearestNeighbors
@@ -430,7 +436,8 @@ def _get_nearest(to, fro):
                                 algorithm='ball_tree').fit(fro)
         from_to_map = nbrs.kneighbors(to)[1].ravel()
     except:
-        from_to_map = np.array([np.argmin(d) for d in cdist(to, fro)])
+        from_to_map = np.array([np.argmin(cdist(t[:, np.newaxis], fro))
+                                for t in to])
     """
     # For posterity, here is Matti's roughly equivalent hierarchical method.
     # it is slower in Python than the brute force (or ball_tree) methods,
@@ -457,19 +464,26 @@ def _get_nearest(to, fro):
     return from_to_map
 
 
-def _get_vertex_map(surf, morph, map_mat):
-    inuse = np.zeros(morph['nuse'], bool)
-    best = np.zeros(surf['nuse'], int)
+def _get_vertex_map(surf, morph, fro, to, hemi, subjects_dir):
+    inuse = np.zeros(morph['np'], bool)
+    best = np.zeros(surf['np'], int)
 
-    for k in xrange(surf['nuse']):
-        assert map_mat.shape[1] == surf['np']
-        one = np.argmax(map_mat[:, surf['vertno'][k]].todense())
-        best[surf['vertno'][k]] = one
+    surfs = []
+    for subj in [fro, to]:
+        surf_name = op.join(subjects_dir, subj,
+                            'surf', hemi + '.sphere.reg')
+        surfs.append(_read_surface_geom(surf_name, add_geom=False,
+                                        norm_rr=True, verbose=False))
+    mmap = _get_nearest(surfs[0]['rr'][surf['vertno'], :], surfs[1]['rr'])
+    assert len(mmap) == surf['nuse']
+
+    for k, (vertno, one) in enumerate(zip(surf['vertno'], mmap)):
+        best[vertno] = one
         if inuse[one] is True:
             neighbors = _get_surf_neighbors(morph, one)
             idx = np.where(np.logical_not(inuse[neighbors]))[0]
             if len(idx) > 0:
-                best[surf['vertno'][k]] = neighbors[idx[0]]
+                best[vertno] = neighbors[idx[0]]
             else:
                 raise RuntimeError('vertex %d would be used multiple '
                                    'times.' % best[k])
@@ -614,7 +628,7 @@ def _create_surf_spacing(surf, hemi, subject, ico, oct, spacing, subjects_dir):
             surf['inuse'][mmap[k]] = True
 
         logger.info('Setting up the triangulation for the decimated '
-                    'surface')
+                    'surface...')
         surf['use_tris'] = np.array([mmap[ist] for ist in ico_surf['tris']],
                                     np.int32)
     elif spacing is not None:
@@ -791,3 +805,224 @@ def decimate_surface(points, triangles, n_triangles):
 
     reduction = 1 - (float(n_triangles) / len(triangles))
     return _decimate_surface(points, triangles, reduction)
+
+
+def _compose_morph_maps(fro, to, accurate, subjects_dir):
+    """Compose morph maps from one subject to another
+    """
+    # from "mne_morph_maps.c"
+
+    # only load surface geometry if we need accuracy
+    add_geom = accurate
+
+    # Get the spherical morph info
+    from_to_maps = []
+    to_from_maps = []
+    for hemi in ['lh', 'rh']:
+        # Load the two spherical surfaces
+        surfs = []
+        for subj in [fro, to]:
+            surf_name = op.join(subjects_dir, subj,
+                                'surf', hemi + '.sphere.reg')
+            logger.info('Loading %s...' % surf_name)
+            surfs.append(_read_surface_geom(surf_name, add_geom=add_geom,
+                                            norm_rr=True, verbose=False))
+        fsurf = surfs[0]
+        tsurf = surfs[1]
+
+        # Make the maps
+        tt = 'interpolated' if accurate else 'nearest_neighbor'
+        logger.info('Mapping %s %s -> %s (%s)...' % (hemi, fro, to, tt))
+        mmap = _get_nearest(tsurf['rr'], fsurf['rr'])
+        if accurate is True:
+            raise NotImplementedError
+            #mat = _make_accurate_morph_map(fsurf, tsurf, mmap)
+            #from_to_maps.append(mat)
+        else:
+            ij = np.array([np.arange(tsurf['np']), mmap])
+            mat = sparse.csr_matrix((np.ones(tsurf['np']), ij),
+                                    shape=(tsurf['np'], fsurf['np']))
+            from_to_maps.append(mat)
+
+        logger.info('Mapping %s %s -> %s (%s)...' % (hemi, to, fro, tt))
+        mmap = _get_nearest(fsurf['rr'], tsurf['rr'])
+        if accurate is True:
+            raise NotImplementedError
+            #mat = _make_accurate_morph_map(tsurf, fsurf, mmap)
+            #to_from_maps.append(mat)
+        else:
+            ij = np.array([np.arange(fsurf['np']), mmap])
+            mat = sparse.csr_matrix((np.ones(fsurf['np']), ij),
+                                    shape=(fsurf['np'], tsurf['np']))
+            to_from_maps.append(mat)
+    return from_to_maps, to_from_maps
+
+
+def _make_accurate_morph_map(fro, to):
+    """Interpolate within the triangles"""
+    # from mne_morph_maps.c
+    nnz = np.zeros(to['np'], int)
+    colindex = np.zeros((to['np'], 3))
+    vals = np.zeros(to['np'], 3)
+    mmap = _get_nearest(to['rr'], fro['rr'])
+
+    for j in xrange(to['np']):
+        nnz[j] = 3
+        min_dist = -1.0
+        min_tri = 0
+        p = q = 0.0
+        # For each neighboring triangle, find the one which the destination
+        # point projects into
+        for k, tri in enumerate(fro['neighbor_tri'][mmap[j]]):
+            pp, qq, dist = _nearest_triangle_point(to['rr'][j], fro, tri)
+            if min_dist < 0.0 or np.abs(dist) < min_dist:
+                p = pp
+                q = qq
+                min_dist = dist
+                min_tri = tri
+
+        colindex[j, :] = fro['tris'][min_tri]
+        #
+        # Linear interpolation weights
+        #
+        # v = v1 + p*(v2-v1) + q*(v3-v1)
+        #   = (1 - p - q)*v1 + p*v2 + q*v3
+        #
+        vals[j, :] = [1.0 - p - q, p, q]
+    # construct sparse representation
+    colindex = colindex.ravel()
+    rowindex = np.tile(np.arange(to['np'])[:, np.newaxis], (1, 3)).ravel()
+    mmap = sparse.csr_matrix((vals.ravel(), np.array(rowindex, colindex)))
+    return mmap
+
+
+def _dister(p, q, p0, q0, a, b, c, dist):
+    return np.sqrt((p - p0) * (p - p0) * a +
+                   (q - q0) * (q - q0) * b +
+                   (p - p0) * (q - q0) * c +
+                   dist * dist)
+
+
+def _nearest_triangle_point(r, s, tri):
+    """Find the nearest point from a triangle"""
+    # from mne_project_to_surface.c and mne_add_geometry_info.c
+    this_tri = s['tris'][tri]
+    r1 = s['rr'][this_tri[0]]
+    r2 = s['rr'][this_tri[1]]
+    r3 = s['rr'][this_tri[2]]
+    r12 = r1 - r2
+    r13 = r1 - r3
+    rr = r1 - r
+    dist = np.sum(rr * s['tri_nn'][tri])
+
+    a = np.sum(r12 * r12)
+    b = np.sum(r13 * r13)
+    c = np.sum(r12 * r13)
+    v1 = np.sum(rr * r12)
+    v2 = np.sum(rr * r13)
+
+    det = a * b - c * c
+    p = (b * v1 - c * v2) / det
+    q = (a * v2 - c * v1) / det
+
+    # If the point projects into the triangle we are done
+    if 0.0 <= p <= 1.0 and 0.0 <= q <= 1.0 and q <= 1.0 - p:
+        return p, q, dist
+
+    # Tough: must investigate the sides
+    # We might do something intelligent here. However, for now it is ok
+    # to do it in the hard way
+
+    # Side 1 -> 2
+    p0 = np.minimum(np.maximum(p + 0.5 * (q * c) / a, 0.0), 1.0)
+    q0 = 0.0
+    dist0 = _dister(p, q, p0, q0, a, b, c, dist)
+    best, x, y, z = dist0, p0, q0, dist0
+    # Side 2 -> 3
+    t0 = 0.5 * ((2.0 * a - c) * (1.0 - p) + (2.0 * b - c) * q) / (a + b - c)
+    t0 = np.minimum(np.maximum(t0, 0.0), 1.0)
+    p0 = 1.0 - t0
+    q0 = t0
+    dist0 = _dister(p, q, p0, q0, a, b, c)
+    if dist0 < best:
+        best, x, y, z = dist0, p0, q0, dist0
+    # Side 1 -> 3
+    p0 = 0.0
+    q0 = np.minimum(np.maximum(q + 0.5 * (p * c) / b, 0.0), 1.0)
+    dist0 = _dister(p, q, p0, q0, a, b, c)
+    if dist0 < best:
+        best, x, y, z = dist0, p0, q0, dist0
+    return x, y, z
+
+
+@verbose
+def read_morph_map(subject_from, subject_to, subjects_dir=None,
+                   verbose=None):
+    """Read morph map generated with mne_make_morph_maps
+
+    Parameters
+    ----------
+    subject_from : string
+        Name of the original subject as named in the SUBJECTS_DIR.
+    subject_to : string
+        Name of the subject on which to morph as named in the SUBJECTS_DIR.
+    subjects_dir : string
+        Path to SUBJECTS_DIR is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    left_map, right_map : sparse matrix
+        The morph maps for the 2 hemispheres.
+    """
+
+    subjects_dir = get_subjects_dir(subjects_dir)
+
+    # Does the file exist
+    name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_from,
+                                              subject_to)
+    if not os.path.exists(name):
+        name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_to,
+                                                  subject_from)
+        if not os.path.exists(name):
+            raise ValueError('The requested morph map does not exist\n' +
+                             'Perhaps you need to run the MNE tool:\n' +
+                             '  mne_make_morph_maps --from %s --to %s'
+                             % (subject_from, subject_to))
+
+    fid, tree, _ = fiff_open(name)
+
+    # Locate all maps
+    maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
+    if len(maps) == 0:
+        fid.close()
+        raise ValueError('Morphing map data not found')
+
+    # Find the correct ones
+    left_map = None
+    right_map = None
+    for m in maps:
+        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
+        if tag.data == subject_from:
+            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
+            if tag.data == subject_to:
+                #  Names match: which hemishere is this?
+                tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
+                if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                    left_map = tag.data
+                    logger.info('    Left-hemisphere map read.')
+                elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                    right_map = tag.data
+                    logger.info('    Right-hemisphere map read.')
+
+    fid.close()
+    if left_map is None:
+        raise ValueError('Left hemisphere map not found in %s' % name)
+
+    if right_map is None:
+        raise ValueError('Left hemisphere map not found in %s' % name)
+
+    return left_map, right_map
