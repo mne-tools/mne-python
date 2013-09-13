@@ -2774,10 +2774,10 @@ def _pick_bad_channels(event, params):
     bads = params['raw'].info['bads']
     # trade-off, avoid selecting more than one channel when drifts are present
     # however for clean data don't click on peaks but on flat segments
-    f = lambda x, y: y(x.mean(), x.std() * 2)
+    f = lambda x, y: y(np.mean(x), x.std() * 2)
     for l in event.inaxes.lines:
-        xdata, ydata = l.get_xdata(), l.get_ydata()
-        if not isinstance(ydata, list) or not np.isnan(ydata).any():
+        ydata = l.get_ydata()
+        if not isinstance(ydata, list) and not np.isnan(ydata).any():
             ymin, ymax = f(ydata, np.subtract), f(ydata, np.add)
             if ymin <= event.ydata <= ymax:
                 this_chan = vars(l)['ch_name']
