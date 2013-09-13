@@ -8,19 +8,23 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 #
 # License: BSD (3-clause)
 
-import time
-from struct import unpack
+import os
 from os import SEEK_CUR
+from struct import unpack
+import time
+
 import numpy as np
 from scipy.linalg import norm
+
 from ...fiff import pick_types
-from ...transforms.coreg import fit_matched_points
+from ...transforms.coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
+from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..raw import Raw
 from ..constants import FIFF
 from ..meas_info import Info
 from .constants import KIT, KIT_NY, KIT_AD
-from . import coreg
+from .coreg import read_elp, read_hsp, read_mrk, get_head_coord_trans
 
 
 class RawKIT(Raw):
@@ -29,25 +33,31 @@ class RawKIT(Raw):
     Parameters
     ----------
     input_fname : str
-        Absolute path to the sqd file.
-    mrk_fname : str
-        Absolute path to marker coils file.
-    elp_fname : str
-        Absolute path to elp digitizer laser points file.
-    hsp_fname : str
-        Absolute path to elp digitizer head shape points file.
-    sns_fname : str
-        Absolute path to sensor information file.
+        Path to the sqd file.
+    mrk : None | str | array_like, shape = (5, 3)
+        Marker points representing the location of the marker coils with
+        respect to the MEG Sensors, or path to a marker file.
+    elp : None | str | array_like, shape = (8, 3)
+        Digitizer points representing the location of the fiducials and the
+        marker coils with respect to the digitized head shape, or path to a
+        file containing these points.
+    hsp : None | str | array, shape = (n_points, 3)
+        Digitizer head shape points, or path to head shape file. If more than
+        10`000 points are in the head shape, they are automatically decimated.
     stim : list of int | '<' | '>'
-        Can be submitted as list of trigger channels.
-        If a list is not specified, the default triggers extracted from
-        misc channels will be used with specified directionality.
-        '<' means that largest values assigned to the first channel
-        in sequence.
-        '>' means the largest trigger assigned to the last channel
-        in sequence.
+        Channel-value correspondence when converting KIT trigger channels to a
+        Neuromag-style stim channel. For '<', the largest values are assigned
+        to the first channel (default). For '>', the largest values are
+        assigned to the last channel. Can also be specified as a list of
+        trigger channel indexes.
+    slope : '+' | '-'
+        How to interpret values on KIT trigger channels when synthesizing a
+        Neuromag-style stim channel. With '+', a positive slope (low-to-high)
+        is interpreted as an event. With '-', a negative slope (high-to-low)
+        is interpreted as an event.
     stimthresh : float
-        The threshold level for accepting voltage change as a trigger event.
+        The threshold level for accepting voltage changes in KIT trigger
+        channels as a trigger event.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     preload : bool
@@ -59,10 +69,10 @@ class RawKIT(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim='<', stimthresh=1, verbose=None, preload=False):
-
+    def __init__(self, input_fname, mrk=None, elp=None, hsp=None, stim='>',
+                 slope='-', stimthresh=1, preload=False, verbose=None):
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
+        input_fname = os.path.abspath(input_fname)
         self._sqd_params = get_sqd_params(input_fname)
         self._sqd_params['stimthresh'] = stimthresh
         self._sqd_params['fname'] = input_fname
@@ -70,7 +80,7 @@ class RawKIT(Raw):
 
         # Raw attributes
         self.verbose = verbose
-        self._preloaded = preload
+        self._preloaded = False
         self.fids = list()
         self._projector = None
         self.first_samp = 0
@@ -95,15 +105,15 @@ class RawKIT(Raw):
         self.info['ctf_head_t'] = None
         self.info['dev_ctf_t'] = []
         self.info['filenames'] = []
-        self.info['dev_head_t'] = {}
-        self.info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
-        self.info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
+        self.info['dig'] = None
+        self.info['dev_head_t'] = None
 
-        mrk, elp, self.info['dig'] = coreg.get_points(mrk_fname=mrk_fname,
-                                                      elp_fname=elp_fname,
-                                                      hsp_fname=hsp_fname)
-        self.info['dev_head_t']['trans'] = fit_matched_points(tgt_pts=mrk,
-                                                              src_pts=elp)
+        if (mrk and elp and hsp):
+            self._set_dig_kit(mrk, elp, hsp)
+        elif (mrk or elp or hsp):
+            err = ("mrk, elp and hsp need to be provided as a group (all or "
+                   "none)")
+            raise ValueError(err)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
@@ -114,8 +124,8 @@ class RawKIT(Raw):
                                  in range(1, self._sqd_params['nmiscchan']
                                           + 1)]
         ch_names['STIM'] = ['STI 014']
-        locs = coreg.read_sns(sns_fname=sns_fname)
-        chan_locs = coreg.transform_pts(locs[:, :3])
+        locs = self._sqd_params['sensor_locs']
+        chan_locs = apply_trans(als_ras_trans, locs[:, :3])
         chan_angles = locs[:, 3:]
         self.info['chs'] = []
         for idx, ch_info in enumerate(zip(ch_names['MEG'], chan_locs,
@@ -162,7 +172,7 @@ class RawKIT(Raw):
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((vec_x, vec_y, vec_z))
-            vecs = coreg.transform_pts(vecs, unit='m')
+            vecs = apply_trans(als_ras_trans, vecs)
             chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
             self.info['chs'].append(chan_info)
 
@@ -188,27 +198,22 @@ class RawKIT(Raw):
         self.info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
                                  ch_names['STIM'])
 
-        # Acquire stim channels
-        if isinstance(stim, str):
-            picks = pick_types(self.info, meg=False, misc=True,
-                              exclude=[])[:8]
-            if stim == '<':
-                stim = picks[::-1]
-            elif stim == '>':
-                stim = picks
-            else:
-                raise ValueError("stim needs to be list of int, '>' or '<', "
-                                 "not %r" % stim)
-        self._sqd_params['stim'] = stim
-
-        if self._preloaded:
+        self._set_stimchannels(stim, slope)
+        if preload:
+            self._preloaded = preload
             logger.info('Reading raw data from %s...' % input_fname)
             self._data, _ = self._read_segment()
             assert len(self._data) == self.info['nchan']
 
             # Create a synthetic channel
+            stim = self._sqd_params['stim']
             trig_chs = self._data[stim, :]
-            trig_chs = trig_chs > stimthresh
+            if slope == '+':
+                trig_chs = trig_chs > stimthresh
+            elif slope == '-':
+                trig_chs = trig_chs < stimthresh
+            else:
+                raise ValueError("slope needs to be '+' or '-'")
             trig_vals = np.array(2 ** np.arange(len(stim)), ndmin=2).T
             trig_chs = trig_chs * trig_vals
             stim_ch = trig_chs.sum(axis=0)
@@ -224,6 +229,12 @@ class RawKIT(Raw):
                            float(self.first_samp) / self.info['sfreq'],
                            float(self.last_samp) / self.info['sfreq']))
         logger.info('Ready.')
+
+    def __repr__(self):
+        s = ('%r' % os.path.basename(self._sqd_params['fname']),
+             "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
+                                       self.last_samp - self.first_samp + 1))
+        return "<RawKIT  |  %s>" % ', '.join(s)
 
     def read_stim_ch(self, buffer_size=1e5):
         """Read events from data
@@ -299,7 +310,7 @@ class RawKIT(Raw):
                     (start, stop - 1, start / float(self.info['sfreq']),
                                (stop - 1) / float(self.info['sfreq'])))
 
-        with open(self._sqd_params['fname'], 'r') as fid:
+        with open(self._sqd_params['fname'], 'rb') as fid:
             # extract data
             fid.seek(KIT.DATA_OFFSET)
             # data offset info
@@ -323,7 +334,12 @@ class RawKIT(Raw):
         data = data.T
         # Create a synthetic channel
         trig_chs = data[self._sqd_params['stim'], :]
-        trig_chs = trig_chs > self._sqd_params['stimthresh']
+        if self._sqd_params['slope'] == '+':
+            trig_chs = trig_chs > self._sqd_params['stimthresh']
+        elif self._sqd_params['slope'] == '-':
+            trig_chs = trig_chs < self._sqd_params['stimthresh']
+        else:
+            raise ValueError("slope needs to be '+' or '-'")
         trig_vals = np.array(2 ** np.arange(len(self._sqd_params['stim'])),
                              ndmin=2).T
         trig_chs = trig_chs * trig_vals
@@ -335,6 +351,149 @@ class RawKIT(Raw):
         times = np.arange(start, stop) / self.info['sfreq']
 
         return data, times
+
+    def _set_dig_kit(self, mrk, elp, hsp, auto_decimate=True):
+        """Add landmark points and head shape data to the RawKIT instance
+
+        Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
+        ALS coordinate system.
+
+        Parameters
+        ----------
+        mrk : None | str | array_like, shape = (5, 3)
+            Marker points representing the location of the marker coils with
+            respect to the MEG Sensors, or path to a marker file.
+        elp : None | str | array_like, shape = (8, 3)
+            Digitizer points representing the location of the fiducials and the
+            marker coils with respect to the digitized head shape, or path to a
+            file containing these points.
+        hsp : None | str | array, shape = (n_points, 3)
+            Digitizer head shape points, or path to head shape file. If more
+            than 10`000 points are in the head shape, they are automatically
+            decimated.
+        auto_decimate : bool
+            Decimate hsp points for head shape files with more than 10'000
+            points.
+        """
+        if isinstance(hsp, basestring):
+            hsp = read_hsp(hsp)
+
+        n_pts = len(hsp)
+        if n_pts > KIT.DIG_POINTS:
+            hsp = _decimate_points(hsp, 5)
+            n_new = len(hsp)
+            msg = ("The selected head shape contained {n_in} points, which is "
+                   "more than recommended ({n_rec}), and was automatically "
+                   "downsampled to {n_new} points. The preferred way to "
+                   "downsample is using FastScan.")
+            msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
+            logger.warning(msg)
+
+        if isinstance(elp, basestring):
+            elp = read_elp(elp)
+
+        if isinstance(mrk, basestring):
+            mrk = read_mrk(mrk)
+
+        hsp = apply_trans(als_ras_trans_mm, hsp)
+        elp = apply_trans(als_ras_trans_mm, elp)
+        mrk = apply_trans(als_ras_trans, mrk)
+
+        nasion, lpa, rpa = elp[:3]
+        nmtrans = get_head_coord_trans(nasion, lpa, rpa)
+        elp = apply_trans(nmtrans, elp)
+        hsp = apply_trans(nmtrans, hsp)
+
+        # device head transform
+        trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
+
+        self._set_dig_neuromag(elp[:3], elp[3:], hsp, trans)
+
+    def _set_dig_neuromag(self, fid, elp, hsp, trans):
+        """Fill in the digitizer data using points in neuromag space
+
+        Parameters
+        ----------
+        fid : array, shape = (3, 3)
+            Digitizer fiducials.
+        elp : array, shape = (5, 3)
+            Digitizer ELP points.
+        hsp : array, shape = (n_points, 3)
+            Head shape points.
+        trans : None | array, shape = (4, 4)
+            Device head transformation.
+        """
+        trans = np.asarray(trans)
+        if not trans.shape == (4, 4):
+            raise ValueError("trans needs to be 4 by 4 array")
+
+        nasion, lpa, rpa = fid
+        dig = [{'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'coord_frame':  FIFF.FIFFV_COORD_HEAD},
+               {'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'coord_frame': FIFF.FIFFV_COORD_HEAD},
+               {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
+                'kind': FIFF.FIFFV_POINT_CARDINAL,
+                'coord_frame': FIFF.FIFFV_COORD_HEAD}]
+
+        for idx, point in enumerate(elp):
+            dig.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+
+        for idx, point in enumerate(hsp):
+            dig.append({'r': point, 'ident': idx,
+                        'kind': FIFF.FIFFV_POINT_EXTRA,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+
+        dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
+                      'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
+
+        self.info['dig'] = dig
+        self.info['dev_head_t'] = dev_head_t
+
+    def _set_stimchannels(self, stim='<', slope='-'):
+        """Specify how the trigger channel is synthesized form analog channels.
+
+        Has to be done before loading data. For a RawKIT instance that has been
+        created with preload=True, this method will raise a
+        NotImplementedError.
+
+        Parameters
+        ----------
+        stim : list of int | '<' | '>'
+            Can be submitted as list of trigger channels.
+            If a list is not specified, the default triggers extracted from
+            misc channels will be used with specified directionality.
+            '<' means that largest values assigned to the first channel
+            in sequence.
+            '>' means the largest trigger assigned to the last channel
+            in sequence.
+        slope : '+' | '-'
+            '+' means a positive slope (low-to-high) on the event channel(s)
+            is used to trigger an event.
+            '-' means a negative slope (high-to-low) on the event channel(s)
+            is used to trigger an event.
+        """
+        if self._preloaded:
+            err = "Can't change stim channel after preloading data"
+            raise NotImplementedError(err)
+
+        self._sqd_params['slope'] = slope
+
+        if isinstance(stim, str):
+            picks = pick_types(self.info, meg=False, misc=True, exclude=[])[:8]
+            if stim == '<':
+                stim = picks[::-1]
+            elif stim == '>':
+                stim = picks
+            else:
+                raise ValueError("stim needs to be list of int, '>' or "
+                                 "'<', not %r" % str(stim))
+
+        self._sqd_params['stim'] = stim
+
 
 
 def get_sqd_params(rawfile):
@@ -352,7 +511,7 @@ def get_sqd_params(rawfile):
     """
     sqd = dict()
     sqd['rawfile'] = rawfile
-    with open(rawfile, 'r') as fid:
+    with open(rawfile, 'rb') as fid:
         fid.seek(KIT.BASIC_INFO)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(basic_offset)
@@ -370,6 +529,34 @@ def get_sqd_params(rawfile):
             KIT_SYS = KIT_NY
         else:
             raise NotImplementedError
+
+        # channel locations
+        fid.seek(KIT_SYS.CHAN_LOC_OFFSET)
+        chan_offset = unpack('i', fid.read(KIT.INT))[0]
+        chan_size = unpack('i', fid.read(KIT.INT))[0]
+
+        fid.seek(chan_offset)
+        sensors = []
+        for i in xrange(KIT_SYS.N_SENS):
+            fid.seek(chan_offset + chan_size * i)
+            sens_type = unpack('i', fid.read(KIT.INT))[0]
+            if sens_type == 1:
+                # magnetometer
+                # x,y,z,theta,phi,coilsize
+                sensors.append(np.fromfile(fid, dtype='d', count=6))
+            elif sens_type == 2:
+                # axialgradiometer
+                # x,y,z,theta,phi,baseline,coilsize
+                sensors.append(np.fromfile(fid, dtype='d', count=7))
+            elif sens_type == 3:
+                # planargradiometer
+                # x,y,z,theta,phi,btheta,bphi,baseline,coilsize
+                sensors.append(np.fromfile(fid, dtype='d', count=9))
+            elif sens_type == 257:
+                # reference channels
+                sensors.append(np.zeros(7))
+                sqd['i'] = sens_type
+        sqd['sensor_locs'] = np.array(sensors)
 
         # amplifier gain
         fid.seek(KIT_SYS.AMPLIFIER_INFO)
@@ -405,9 +592,9 @@ def get_sqd_params(rawfile):
         fid.seek(sens_offset)
         sens = np.fromfile(fid, dtype='d', count=sqd['nchan'] * 2)
         sensitivities = (np.reshape(sens, (sqd['nchan'], 2))
-                         [:KIT_SYS.n_sens, 1])
-        sqd['sensor_gain'] = np.ones(KIT_SYS.nchan)
-        sqd['sensor_gain'][:KIT_SYS.n_sens] = sensitivities
+                         [:KIT_SYS.N_SENS, 1])
+        sqd['sensor_gain'] = np.ones(KIT_SYS.NCHAN)
+        sqd['sensor_gain'][:KIT_SYS.N_SENS] = sensitivities
 
         fid.seek(KIT_SYS.SAMPLE_INFO)
         acqcond_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
@@ -418,47 +605,54 @@ def get_sqd_params(rawfile):
             _ = fid.read(KIT_SYS.INT)  # initialized estimate of samples
             sqd['nsamples'] = unpack('i', fid.read(KIT_SYS.INT))[0]
         else:
-            raise NotImplementedError
-        sqd['n_sens'] = KIT_SYS.n_sens
-        sqd['nmegchan'] = KIT_SYS.nmegchan
-        sqd['nmiscchan'] = KIT_SYS.nmiscchan
+            err = ("You are probably trying to load a file that is not a "
+                   "continuous recording sqd file.")
+            raise ValueError(err)
+        sqd['n_sens'] = KIT_SYS.N_SENS
+        sqd['nmegchan'] = KIT_SYS.NMEGCHAN
+        sqd['nmiscchan'] = KIT_SYS.NMISCCHAN
         sqd['DYNAMIC_RANGE'] = KIT_SYS.DYNAMIC_RANGE
     return sqd
 
 
-def read_raw_kit(input_fname, mrk_fname, elp_fname, hsp_fname, sns_fname,
-                 stim='<', stimthresh=1, verbose=None, preload=False):
+def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
+                 slope='-', stimthresh=1, preload=False, verbose=None):
     """Reader function for KIT conversion to FIF
 
     Parameters
     ----------
     input_fname : str
-        Absolute path to the sqd file.
-    mrk_fname : str
-        Absolute path to marker coils file.
-    elp_fname : str
-        Absolute path to elp digitizer laser points file.
-    hsp_fname : str
-        Absolute path to elp digitizer head shape points file.
-    sns_fname : str
-        Absolute path to sensor information file.
+        Path to the sqd file.
+    mrk : None | str | array_like, shape = (5, 3)
+        Marker points representing the location of the marker coils with
+        respect to the MEG Sensors, or path to a marker file.
+    elp : None | str | array_like, shape = (8, 3)
+        Digitizer points representing the location of the fiducials and the
+        marker coils with respect to the digitized head shape, or path to a
+        file containing these points.
+    hsp : None | str | array, shape = (n_points, 3)
+        Digitizer head shape points, or path to head shape file. If more than
+        10`000 points are in the head shape, they are automatically decimated.
     stim : list of int | '<' | '>'
-        Can be submitted as list of trigger channels.
-        If a list is not specified, the default triggers extracted from
-        misc channels, will be used with specified directionality.
-        '<' means that largest values assigned to the first channel
-        in sequence.
-        '>' means the largest trigger assigned to the last channel
-        in sequence.
+        Channel-value correspondence when converting KIT trigger channels to a
+        Neuromag-style stim channel. For '<', the largest values are assigned
+        to the first channel (default). For '>', the largest values are
+        assigned to the last channel. Can also be specified as a list of
+        trigger channel indexes.
+    slope : '+' | '-'
+        How to interpret values on KIT trigger channels when synthesizing a
+        Neuromag-style stim channel. With '+', a positive slope (low-to-high)
+        is interpreted as an event. With '-', a negative slope (high-to-low)
+        is interpreted as an event.
     stimthresh : float
-        The threshold level for accepting voltage change as a trigger event.
+        The threshold level for accepting voltage changes in KIT trigger
+        channels as a trigger event.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
     """
-    return RawKIT(input_fname=input_fname, mrk_fname=mrk_fname,
-                  elp_fname=elp_fname, hsp_fname=hsp_fname,
-                  sns_fname=sns_fname, stim=stim, stimthresh=stimthresh,
+    return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
+                  stim=stim, slope=slope, stimthresh=stimthresh,
                   verbose=verbose, preload=preload)
