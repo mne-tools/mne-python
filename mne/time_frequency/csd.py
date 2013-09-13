@@ -100,10 +100,11 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     # Check correctness of input data and parameters
     if fmax < fmin:
         raise ValueError('fmax must be larger than fmin')
-    if tmin is not None and tmin < epochs.times[0]:
+    tstep = epochs.times[1] - epochs.times[0]
+    if tmin is not None and tmin < epochs.times[0] - tstep:
         raise ValueError('tmin should be larger than the smallest data time '
                          'point')
-    if tmax is not None and tmax > epochs.times[-1]:
+    if tmax is not None and tmax > epochs.times[-1] + tstep:
         raise ValueError('tmax should be smaller than the largest data time '
                          'point')
     if tmax is not None and tmin is not None:
