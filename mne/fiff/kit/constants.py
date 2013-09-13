@@ -43,11 +43,11 @@ KIT_NY = Bunch(**KIT)
 KIT_AD = Bunch(**KIT)
 
 # NYU-system channel information
-KIT_NY.nchan = 192
-KIT_NY.nmegchan = 157
-KIT_NY.nrefchan = 3
-KIT_NY.nmiscchan = 32
-KIT_NY.n_sens = KIT_NY.nmegchan + KIT_NY.nrefchan
+KIT_NY.NCHAN = 192
+KIT_NY.NMEGCHAN = 157
+KIT_NY.NREFCHAN = 3
+KIT_NY.NMISCCHAN = 32
+KIT_NY.N_SENS = KIT_NY.NMEGCHAN + KIT_NY.NREFCHAN
 # 12-bit A-to-D converter, one bit for signed integer. range +/- 2048
 KIT_NY.DYNAMIC_RANGE = 2 ** 12 / 2
 # amplifier information
@@ -71,11 +71,11 @@ KIT_NY.LPFS = [10, 20, 50, 100, 200, 500, 1000, 2000]
 
 
 # AD-system channel information
-KIT_AD.nchan = 256
-KIT_AD.nmegchan = 208
-KIT_AD.nrefchan = 16
-KIT_AD.nmiscchan = 32
-KIT_AD.n_sens = KIT_AD.nmegchan + KIT_AD.nrefchan
+KIT_AD.NCHAN = 256
+KIT_AD.NMEGCHAN = 208
+KIT_AD.NREFCHAN = 16
+KIT_AD.NMISCCHAN = 32
+KIT_AD.N_SENS = KIT_AD.NMEGCHAN + KIT_AD.NREFCHAN
 # 16-bit A-to-D converter, one bit for signed integer. range +/- 32768
 KIT_AD.DYNAMIC_RANGE = 2 ** 16 / 2
 # amplifier information

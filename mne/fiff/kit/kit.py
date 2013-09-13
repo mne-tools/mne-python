@@ -538,7 +538,7 @@ def get_sqd_params(rawfile):
 
         fid.seek(chan_offset)
         sensors = []
-        for i in xrange(KIT_SYS.n_sens):
+        for i in xrange(KIT_SYS.N_SENS):
             fid.seek(chan_offset + chan_size * i)
             sens_type = unpack('i', fid.read(KIT.INT))[0]
             if sens_type == 1:
@@ -593,9 +593,9 @@ def get_sqd_params(rawfile):
         fid.seek(sens_offset)
         sens = np.fromfile(fid, dtype='d', count=sqd['nchan'] * 2)
         sensitivities = (np.reshape(sens, (sqd['nchan'], 2))
-                         [:KIT_SYS.n_sens, 1])
-        sqd['sensor_gain'] = np.ones(KIT_SYS.nchan)
-        sqd['sensor_gain'][:KIT_SYS.n_sens] = sensitivities
+                         [:KIT_SYS.N_SENS, 1])
+        sqd['sensor_gain'] = np.ones(KIT_SYS.NCHAN)
+        sqd['sensor_gain'][:KIT_SYS.N_SENS] = sensitivities
 
         fid.seek(KIT_SYS.SAMPLE_INFO)
         acqcond_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
@@ -609,9 +609,9 @@ def get_sqd_params(rawfile):
             err = ("You are probably trying to load a file that is not a "
                    "continuous recording sqd file.")
             raise ValueError(err)
-        sqd['n_sens'] = KIT_SYS.n_sens
-        sqd['nmegchan'] = KIT_SYS.nmegchan
-        sqd['nmiscchan'] = KIT_SYS.nmiscchan
+        sqd['n_sens'] = KIT_SYS.N_SENS
+        sqd['nmegchan'] = KIT_SYS.NMEGCHAN
+        sqd['nmiscchan'] = KIT_SYS.NMISCCHAN
         sqd['DYNAMIC_RANGE'] = KIT_SYS.DYNAMIC_RANGE
     return sqd
 
