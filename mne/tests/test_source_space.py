@@ -8,6 +8,8 @@ from mne import read_source_spaces, vertex_to_mni, write_source_spaces, \
                 setup_source_space
 from mne.utils import _TempDir, requires_fs_or_nibabel, requires_nibabel, \
                       requires_freesurfer
+from mne.surface import _accumulate_normals, _triangle_neighbors
+
 from scipy.spatial.distance import cdist
 
 data_path = sample.data_path()
@@ -27,14 +29,99 @@ subjects_dir = op.join(data_path, 'subjects')
 tempdir = _TempDir()
 
 
-def test_setup_source_space():
-    """Test setting up a source space
+def test_triangle_neighbors():
+    """Test efficient vertex neighboring triangles for surfaces"""
+    this = read_source_spaces(fname)[0]
+    this['neighbor_tri'] = [list() for _ in xrange(this['np'])]
+    for p in xrange(this['ntri']):
+        verts = this['tris'][p]
+        this['neighbor_tri'][verts[0]].append(p)
+        this['neighbor_tri'][verts[1]].append(p)
+        this['neighbor_tri'][verts[2]].append(p)
+    this['neighbor_tri'] = [np.array(nb, int) for nb in this['neighbor_tri']]
+
+    neighbor_tri = _triangle_neighbors(this['tris'], this['np'])
+    assert_true(np.array_equal(nt1, nt2)
+                for nt1, nt2 in zip(neighbor_tri, this['neighbor_tri']))
+
+
+def test_accumulate_normals():
+    """Test efficient normal accumulation for surfaces"""
+    # set up comparison
+    rng = np.random.RandomState(0)
+    n_pts = int(1.6e5)  # approx number in sample source space
+    n_tris = int(3.2e5)
+    # use all positive to make a worst-case for cumulative summation
+    # (real "nn" vectors will have both positive and negative values)
+    tris = (rng.rand(n_tris, 1) * (n_pts - 2)).astype(int)
+    tris = np.c_[tris, tris + 1, tris + 2]
+    tri_nn = rng.rand(n_tris, 3)
+    this = dict(tris=tris, np=n_pts, ntri=n_tris, tri_nn=tri_nn)
+
+    # cut-and-paste from original code in surface.py:
+    #    Find neighboring triangles and accumulate vertex normals
+    this['nn'] = np.zeros((this['np'], 3))
+    for p in xrange(this['ntri']):
+        # vertex normals
+        verts = this['tris'][p]
+        this['nn'][verts, :] += this['tri_nn'][p, :]
+    nn = _accumulate_normals(this['tris'], this['tri_nn'], this['np'])
+
+    # the moment of truth (or reckoning)
+    assert_allclose(nn, this['nn'], rtol=1e-7, atol=1e-7)
+
+
+def test_setup_source_space_ico_oct():
+    """Test setting up ICO and OCT source spaces
     """
     # first lets test some input params
-    assert_raises(ValueError, setup_source_space, 'sample', oct=6, ico=6)
-    assert_raises(IOError, setup_source_space, 'sample', oct=6,
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='oct')
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='octo')
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='oct6e')
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='7emm')
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='alls')
+    assert_raises(IOError, setup_source_space, 'sample', spacing='oct6',
                   subjects_dir=subjects_dir)
 
+    # ico 5 (fsaverage) - write to temp file
+    src = read_source_spaces(fname_ico)
+    temp_name = op.join(tempdir, 'temp-src.fif')
+    src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
+
+    # oct-6 (sample) - auto filename + IO
+    src = read_source_spaces(fname)
+    temp_name = op.join(tempdir, 'temp-src.fif')
+    src_new = setup_source_space('sample', temp_name, spacing='oct6',
+                                 subjects_dir=subjects_dir, overwrite=True)
+    _compare_source_spaces(src, src_new, mode='approx')
+    src_new = read_source_spaces(temp_name)
+    _compare_source_spaces(src, src_new, mode='approx')
+
+
+def test_setup_source_space_all():
+    """Test setting up a full source space
+    """
+    # all source points - no file writing
+    src = read_source_spaces(fname_all)
+    src_new = setup_source_space('sample', None, spacing='all',
+                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
+
+
+def test_setup_source_space_spacing():
+    """Test setting up a source space with approximate spacing
+    """
+    # spacing 7 (sample; default) - no file writing
+    src = read_source_spaces(fname_spacing)
+    src_new = setup_source_space('sample', None, subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
+
+
+def test_setup_source_space_morph():
+    """Test setting up a source space with morphing
+    """
     """
     # ico 5 fsaverage->sample morph - no file writing
     src = read_source_spaces(fname_morph)
@@ -42,34 +129,6 @@ def test_setup_source_space():
                                  subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
     """
-
-    # all source points - no file writing
-    src = read_source_spaces(fname_all)
-    src_new = setup_source_space('sample', False, use_all=True,
-                                 subjects_dir=subjects_dir)
-    _compare_source_spaces(src, src_new, mode='approx')
-
-    # spacing 7 (sample) - no file writing
-    src = read_source_spaces(fname_spacing)
-    src_new = setup_source_space('sample', False, spacing=7,
-                                 subjects_dir=subjects_dir)
-    _compare_source_spaces(src, src_new, mode='approx')
-
-    # ico 5 (fsaverage) - write to temp file
-    src = read_source_spaces(fname_ico)
-    temp_name = op.join(tempdir, 'temp-src.fif')
-    src_new = setup_source_space('fsaverage', temp_name, ico=5,
-                                 subjects_dir=subjects_dir)
-    _compare_source_spaces(src, src_new, mode='approx')
-
-    # oct-6 (sample) - auto filename + IO
-    src = read_source_spaces(fname)
-    temp_name = op.join(tempdir, 'temp-src.fif')
-    src_new = setup_source_space('sample', temp_name, oct=6,
-                                 subjects_dir=subjects_dir, overwrite=True)
-    _compare_source_spaces(src, src_new, mode='approx')
-    src_new = read_source_spaces(temp_name)
-    _compare_source_spaces(src, src_new, mode='approx')
 
 
 def test_read_source_spaces():
