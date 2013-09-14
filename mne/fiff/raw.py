@@ -991,7 +991,7 @@ class Raw(ProjMixin):
     def plot(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
-             show_options=False, title=None, show=True):
+             show_options=False, title=None, show=True, block=False):
         """Plot raw data
 
         Parameters
@@ -1034,6 +1034,9 @@ class Raw(ProjMixin):
             raw object or '<unknown>' will be displayed as title.
         show : bool
             Show figures if True
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for setting bad channels on the fly (click on line).
 
         Returns
         -------
@@ -1045,10 +1048,13 @@ class Raw(ProjMixin):
         The arrow keys (up/down/left/right) can typically be used to navigate
         between channels and time ranges, but this depends on the backend
         matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
+        To mark or un-mark a channel as bad, click on the rather flat segments
+        of a channel's time series. The changes will be reflected immediately 
+        in the raw object's ``raw.info['bads']`` entry.
         """
         return plot_raw(raw, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
-                        order, show_options, title, show)
+                        order, show_options, title, show, block)
 
     @deprecated('time_to_index is deprecated please use time_as_index instead.'
                 ' Will be removed in v0.7.')
