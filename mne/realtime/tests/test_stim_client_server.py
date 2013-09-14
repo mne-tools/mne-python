@@ -7,7 +7,7 @@ from nose.tools import assert_equal
 
 
 def test_connection():
-    """Test TCP/IP connection for StimServer <-> StimClient
+    """Test TCP/IP connection for StimServer <-> StimClient.
     """
 
     # have to start a thread to simulate the effect of two
@@ -32,6 +32,8 @@ def test_connection():
 
 
 def connect_client(trig_queue):
+    """Helper method that instantiates the StimClient.
+    """
     # just wait till the main thread reaches stim_server.start()
     time.sleep(0.1)
 

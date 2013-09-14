@@ -97,20 +97,16 @@ class MockRtClient(object):
         ----------
         event_id : int
             The id of the event to consider.
-
         tmin : float
             Start time before event.
-
         tmax : float
             End time after event.
-
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables
             'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
             etc. are read. If these are not found, it will default to
             'STI 014'.
-
         min_duration : float
             The minimum duration of a change in the events channel required
             to consider it as an event (in seconds).

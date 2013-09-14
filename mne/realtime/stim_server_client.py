@@ -7,24 +7,18 @@ import socket
 import SocketServer
 import threading
 
-import logging
-logger = logging.getLogger('mne')
-logger.propagate = False
-
-from .. import verbose
+from ..utils import logger, verbose
 
 
-class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class _ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     """Creates a threaded TCP server
 
     Parameters
     ----------
     server_address : str
         Address on which server is listening
-
     request_handler_class : subclass of BaseRequestHandler
-        TriggerHandler which defines the handle method
-
+         _TriggerHandler which defines the handle method
     stim_server : instance of StimServer
         object of StimServer class
 
@@ -44,7 +38,7 @@ class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.stim_server = stim_server
 
 
-class TriggerHandler(SocketServer.BaseRequestHandler):
+class _TriggerHandler(SocketServer.BaseRequestHandler):
     """Request handler on the server side."""
 
     def send_trigger(self, trigger):
@@ -67,8 +61,8 @@ class TriggerHandler(SocketServer.BaseRequestHandler):
 
             if data == 'add client':
                 # Add stim_server._client
-                self.server.stim_server.add_client(self.client_address[0],
-                                                   self)
+                self.server.stim_server._add_client(self.client_address[0],
+                                                    self)
                 self.request.sendall("Client added")
 
             if data == 'get trigger':
@@ -95,7 +89,6 @@ class StimServer(object):
     ----------
     ip : str
         IP address of the host where StimServer is running.
-
     port : int
         The port to which the stimulation server must bind to
 
@@ -104,8 +97,8 @@ class StimServer(object):
     def __init__(self, ip='localhost', port=4218):
 
         # Start a threaded TCP server, binding to localhost on specified port
-        self._data = ThreadedTCPServer((ip, port),
-                                       TriggerHandler, self)
+        self._data = _ThreadedTCPServer((ip, port),
+                                        _TriggerHandler, self)
 
     def __enter__(self):
         # This is done to avoid "[Errno 98] Address already in use"
@@ -129,7 +122,7 @@ class StimServer(object):
 
     @verbose
     def start(self, verbose=None):
-        """Method to start the client.
+        """Method to start the server.
 
         Parameters
         ----------
@@ -157,17 +150,15 @@ class StimServer(object):
             self._send_thread.start()
 
     @verbose
-    def add_client(self, ip, sock, verbose=None):
+    def _add_client(self, ip, sock, verbose=None):
         """Add client and flag it as running.
 
         Parameters
         ----------
         ip : str
             IP address of the host where StimServer is running.
-
         sock : instance of socket.socket
             The client socket.
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -210,7 +201,6 @@ class StimServer(object):
         ----------
         trigger : int
             The trigger to be added to the queue for sending to StimClient.
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -227,7 +217,6 @@ def send_trigger_worker(stim_server, tx_queue):
     ----------
     stim_server : Instance of StimServer
         The server which delivers the triggers
-
     tx_queue : instance of Queue
         The queue which contains the triggers to be sent
 
@@ -248,13 +237,10 @@ class StimClient(object):
     ----------
     host : str
         Hostname (or IP address) of the host where StimServer is running.
-
     port : int
         Port to use for the connection.
-
     timeout : float
         Communication timeout in seconds.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -292,7 +278,6 @@ class StimClient(object):
         ----------
         timeout : float
             maximum time to wait for a valid trigger from the server
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 

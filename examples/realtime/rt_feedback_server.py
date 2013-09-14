@@ -1,10 +1,27 @@
 """
 ==============================================
-Real-time feedback for decoding :: Server Side
+Real-time feedback for decoding :: Client Side
 ==============================================
 
 This example demonstrates how to setup a real-time feedback
 mechanism using StimServer and StimClient.
+
+The idea here is to display future stimuli for that class which
+is predicted less accurately. This allows on-demand adaptation
+of the stimuli depending on the needs of the classifier.
+
+To run this example, open ipython in two separate terminals.
+In the first, run rt_feedback_server.py and then wait for the
+message
+
+RtServer: Start
+
+Once that appears, run rt_feedback_client.py and the feedback
+script should start.
+
+All brain responses are faked from a fiff file to make it easy
+to test. However, it should be possible to adapt this script
+for a real experiment.
 
 """
 
@@ -23,6 +40,13 @@ import pylab as pl
 from mne.datasets import sample
 from mne.realtime import StimServer
 from mne.realtime import MockRtClient
+from mne.decoding import ConcatenateChannels, FilterEstimator
+
+from sklearn import preprocessing
+from sklearn.svm import SVC
+from sklearn.pipeline import Pipeline
+from sklearn.cross_validation import train_test_split
+from sklearn.metrics import confusion_matrix
 
 # Load fiff file to "fake data"
 data_path = sample.data_path()
@@ -38,15 +62,6 @@ with StimServer('localhost', port=4218) as stim_server:
                                 stim=True, exclude=raw.info['bads'])
 
     rt_client = MockRtClient(raw)
-
-    # Importing modules for classification
-    from sklearn import preprocessing
-    from sklearn.svm import SVC
-    from sklearn.pipeline import Pipeline
-    from sklearn.cross_validation import train_test_split
-    from sklearn.metrics import confusion_matrix
-
-    from mne.decoding import ConcatenateChannels, FilterEstimator
 
     # Constructing the pipeline for classification
     filt = FilterEstimator(raw.info, 1, 40)
@@ -73,11 +88,13 @@ with StimServer('localhost', port=4218) as stim_server:
         # Collecting data
         if ii == 0:
             X = rt_client.fake_data(event_id=ev_list[ii], tmin=-0.2,
-                                    tmax=0.5, picks=picks)[None, ...]
+                                    tmax=0.5, picks=picks,
+                                    stim_channel='STI101')[None, ...]
             y = ev_list[ii]
         else:
             X_temp = rt_client.fake_data(event_id=ev_list[ii], tmin=-0.2,
-                                         tmax=0.5, picks=picks)[None, ...]
+                                         tmax=0.5, picks=picks,
+                                         stim_channel='STI101')[None, ...]
 
             X = np.concatenate((X, X_temp), axis=0)
 
@@ -87,8 +104,9 @@ with StimServer('localhost', port=4218) as stim_server:
         # Start decoding after collecting sufficient data
         if ii >= 10:
             # Now start doing rtfeedback
-            X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,
-                                                                random_state=42)
+            X_train, X_test, y_train, y_test = train_test_split(X, y,
+                                                                test_size=0.2,
+                                                                random_state=7)
 
             y_pred = concat_classifier.fit(X_train, y_train).predict(X_test)
 

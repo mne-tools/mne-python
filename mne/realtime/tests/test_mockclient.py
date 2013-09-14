@@ -41,7 +41,7 @@ def test_mockclient():
 
 
 def test_fakebrainresponse():
-    """Test the fakebrainresponse."""
+    """Test emulation of realtime data stream."""
 
     event_id, tmin, tmax = 2, -0.1, 0.3
     epochs = Epochs(raw, events, event_id=event_id,
@@ -52,6 +52,7 @@ def test_fakebrainresponse():
 
     rt_client = MockRtClient(raw)
     rt_data = rt_client.fake_data(event_id=event_id, tmin=tmin,
-                                  tmax=tmax, picks=picks)
+                                  tmax=tmax, picks=picks,
+                                  stim_channel='STI101')
 
     assert_array_equal(rt_data, data)
