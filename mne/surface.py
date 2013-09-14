@@ -552,7 +552,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
         ### from mne_ico_downsample.c ###
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
-        from_surf = _read_surface_geom(surf_name, norm_rr=True)
+        from_surf = _read_surface_geom(surf_name, norm_rr=True, add_geom=False)
         _normalize_vectors(ico_surf['rr'])
 
         # Make the maps
