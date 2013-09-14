@@ -2,6 +2,7 @@ import os.path as op
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
+import warnings
 
 from mne.datasets import sample
 from mne import read_source_spaces, vertex_to_mni, write_source_spaces, \
@@ -71,8 +72,8 @@ def test_accumulate_normals():
     assert_allclose(nn, this['nn'], rtol=1e-7, atol=1e-7)
 
 
-def test_setup_source_space_ico_oct():
-    """Test setting up ICO and OCT source spaces
+def test_setup_source_space():
+    """Test setting up ico, oct, and all source spaces
     """
     # first lets test some input params
     assert_raises(ValueError, setup_source_space, 'sample', spacing='oct')
@@ -86,49 +87,27 @@ def test_setup_source_space_ico_oct():
     # ico 5 (fsaverage) - write to temp file
     src = read_source_spaces(fname_ico)
     temp_name = op.join(tempdir, 'temp-src.fif')
-    src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
-                                 subjects_dir=subjects_dir)
+    with warnings.catch_warnings(True):  # sklearn equiv neighbors
+        src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
+                                     subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
 
     # oct-6 (sample) - auto filename + IO
     src = read_source_spaces(fname)
     temp_name = op.join(tempdir, 'temp-src.fif')
-    src_new = setup_source_space('sample', temp_name, spacing='oct6',
-                                 subjects_dir=subjects_dir, overwrite=True)
+    with warnings.catch_warnings(True):  # sklearn equiv neighbors
+        src_new = setup_source_space('sample', temp_name, spacing='oct6',
+                                     subjects_dir=subjects_dir,
+                                     overwrite=True)
     _compare_source_spaces(src, src_new, mode='approx')
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx')
 
-
-def test_setup_source_space_all():
-    """Test setting up a full source space
-    """
     # all source points - no file writing
     src = read_source_spaces(fname_all)
     src_new = setup_source_space('sample', None, spacing='all',
                                  subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
-
-
-def test_setup_source_space_spacing():
-    """Test setting up a source space with approximate spacing
-    """
-    # spacing 7 (sample; default) - no file writing
-    src = read_source_spaces(fname_spacing)
-    src_new = setup_source_space('sample', None, subjects_dir=subjects_dir)
-    _compare_source_spaces(src, src_new, mode='approx')
-
-
-def test_setup_source_space_morph():
-    """Test setting up a source space with morphing
-    """
-    """
-    # ico 5 fsaverage->sample morph - no file writing
-    src = read_source_spaces(fname_morph)
-    src_new = setup_source_space('fsaverage', False, ico=5, morph='sample',
-                                 subjects_dir=subjects_dir)
-    _compare_source_spaces(src, src_new, mode='approx')
-    """
 
 
 def test_read_source_spaces():
@@ -164,12 +143,10 @@ def test_write_source_space():
 
 def _compare_source_spaces(src0, src1, mode='exact'):
     for s0, s1 in zip(src0, src1):
-        for name in ['nuse', 'dist_limit', 'ntri', 'np', 'type', 'id',
-                     'subject_his_id']:
+        for name in ['nuse', 'ntri', 'np', 'type', 'id', 'subject_his_id']:
             print name
             assert_true(s0[name] == s1[name])
-        for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris', 'nearest',
-                     'nearest_dist']:
+        for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
             print name
             if s0[name] is None:
                 assert_true(s1[name] is None)
@@ -181,8 +158,17 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 else:
                     raise RuntimeError('unknown mode')
         if mode == 'exact':
+            for name in ['dist_limit']:
+                print name
+                assert_true(s0[name] == s1[name])
             for name in ['inuse', 'vertno', 'use_tris']:
                 assert_array_equal(s0[name], s1[name])
+            for name in ['nearest', 'nearest_dist']:
+                print name
+                if s0[name] is None:
+                    assert_true(s1[name] is None)
+                else:
+                    assert_array_equal(s0[name], s1[name])
         elif mode == 'approx':
             # deal with vertno, inuse, and use_tris carefully
             assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0])
