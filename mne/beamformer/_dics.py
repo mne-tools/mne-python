@@ -117,7 +117,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
             logger.info("Processing epoch : %d" % (i + 1))
 
         # Apply SSPs
-        if proj:
+        if info['projs']:
             M = np.dot(proj, M)
 
         # project to source space using beamformer weights
