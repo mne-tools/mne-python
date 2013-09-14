@@ -233,11 +233,10 @@ def _triangle_neighbors(tris, npts):
     #     this['neighbor_tri'][verts[2]].append(p)
     # this['neighbor_tri'] = [np.array(nb, int) for nb in this['neighbor_tri']]
     #
-    tri_idx = np.tile(np.arange(len(tris))[:, np.newaxis], (1, 3))
     verts = tris.ravel()
     counts = np.bincount(verts, minlength=npts)
     reord = np.argsort(verts)
-    tri_idx = tri_idx.ravel()[reord]
+    tri_idx = np.unravel_index(reord, (len(tris), 3))[0]
     idx = np.cumsum(np.r_[0, counts])
     # the sort below slows it down a bit, but is needed for equivalence
     neighbor_tri = [np.sort(tri_idx[v1:v2])
