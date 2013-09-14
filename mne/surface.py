@@ -523,6 +523,8 @@ def _tessellate_sphere(mylevel):
         tris = np.reshape(tris, (np.prod(tris.shape[:2]), 3))
 
     # Copy the resulting approximation into standard table
+    # this could likely be further optimized; this just needs to remove
+    # duplicate entries from "rr" and re-index tris
     ntri = len(tris)
     nodes = np.zeros((3 * ntri, 3))  # over-allocate for safety
     corners = np.zeros((ntri, 3), int)
