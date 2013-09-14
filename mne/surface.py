@@ -443,60 +443,7 @@ def _get_nearest(to, fro):
     except:
         from_to_map = np.array([np.argmin(cdist(t[:, np.newaxis], fro))
                                 for t in to])
-    """
-    # For posterity, here is Matti's roughly equivalent hierarchical method.
-    # it is slower in Python than the brute force (or ball_tree) methods,
-    # and should be less accurate. The following should be nearly equivalent
-    # to the C Code.
-
-    # Get a set of points for the hierarchical search
-    nodes = _tessellate_sphere(5)[0]
-    to = to.astype(np.float32)
-    fro = fro.astype(np.float32)
-    nodes = nodes.astype(np.float32)
-    max_cos = np.max(np.sum(nodes[0] * nodes[1:], axis=1))
-    search_cos = np.cos(1.2 * np.arccos(max_cos))
-    search_verts = [np.where(np.sum(fro * node, 1) > search_cos)[0]
-                    for node in nodes]
-
-    # Do a hierarchical search
-    from_to_map = np.zeros(len(to), int)
-    for k in xrange(len(to)):
-        # Perform stage1 search first, then look at viable nodes
-        verts = search_verts[np.argmax(np.sum(to[k] * nodes, axis=1))]
-        from_to_map[k] = verts[np.argmax(np.sum(to[k] * fro[verts], axis=1))]
-    """
     return from_to_map
-
-
-def _get_vertex_map(surf, morph, fro, to, hemi, subjects_dir):
-    inuse = np.zeros(morph['np'], bool)
-    best = np.zeros(surf['np'], int)
-
-    surfs = []
-    for subj in [fro, to]:
-        surf_name = op.join(subjects_dir, subj,
-                            'surf', hemi + '.sphere.reg')
-        surfs.append(_read_surface_geom(surf_name, add_geom=False,
-                                        norm_rr=True, verbose=False))
-    mmap = _get_nearest(surfs[0]['rr'][surf['vertno'], :], surfs[1]['rr'])
-    assert len(mmap) == surf['nuse']
-
-    for k, (vertno, one) in enumerate(zip(surf['vertno'], mmap)):
-        best[vertno] = one
-        if inuse[one] is True:
-            neighbors = _get_surf_neighbors(morph, one)
-            idx = np.where(np.logical_not(inuse[neighbors]))[0]
-            if len(idx) > 0:
-                best[vertno] = neighbors[idx[0]]
-            else:
-                raise RuntimeError('vertex %d would be used multiple '
-                                   'times.' % best[k])
-            logger.warning('Source space vertex moved from %d to %d because '
-                           'of double occupation.'
-                           % (one, best[surf['vertno'][k]]))
-        inuse[best[k]] = True
-    return best
 
 
 def _tessellate_sphere_surf(level, rad=1.0):
@@ -639,40 +586,6 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
                     'surface...')
         surf['use_tris'] = np.array([mmap[ist] for ist in ico_surf['tris']],
                                     np.int32)
-    elif stype == 'spacing':
-        ### from mne_make_source_space/decimate.c ###
-        # This is based on MRISubsampleDist in FreeSurfer
-        logger.info('Decimating...')
-        d = np.empty(surf['np'], int)
-        d.fill(10000)
-
-        # construct all neighbor verts (SLOW!)
-        neighbor_vert = [_get_surf_neighbors(surf, k)
-                         for k in xrange(surf['np'])]
-        # A mysterious algorithm follows (quoth Matti)
-        for k in xrange(surf['np']):
-            neigh = neighbor_vert[k]
-            d[k] = np.min(d[neigh] + 1)
-            d[k] = 0 if d[k] >= sval else d[k]
-            d[neigh] = np.minimum(d[k] + 1, d[neigh])
-
-        for k in xrange(surf['np'] - 1, -1, -1):
-            neigh = neighbor_vert[k]
-            for p in xrange(len(neigh)):
-                d[k] = np.minimum(d[neigh[p]] + 1, d[k])
-                d[neigh[p]] = np.minimum(d[k] + 1, d[neigh[p]])
-
-        if sval == 2.0:
-            for k in xrange(surf['np']):
-                if d[k] > 0:
-                    neigh = neighbor_vert[k]
-                    n = np.sum(d[neigh] == 0)
-                    if n <= 2:
-                        d[k] = 0
-                    d[neigh] = np.minimum(d[neigh], d[k] + 1)
-
-        surf['inuse'] = (d == 0).astype(int)
-        surf['use_tris'] = None
     else:  # use_all is True
         surf['inuse'] = np.ones(surf['np'], int)
         surf['use_tris'] = None
