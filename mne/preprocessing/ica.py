@@ -1161,7 +1161,8 @@ class ICA(object):
         # Take care of ICA
         from sklearn.decomposition import FastICA  # to avoid strong dep.
         ica = FastICA(algorithm=self.algorithm, fun=self.fun,
-                      fun_args=self.fun_args, whiten=False)
+                      fun_args=self.fun_args, whiten=False,
+                      random_state=self.random_state)
         ica.fit(data[:, sel])
 
         # get unmixing and add scaling
