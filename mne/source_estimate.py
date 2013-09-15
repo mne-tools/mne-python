@@ -1709,6 +1709,77 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     return left_map, right_map
 
 
+# http://blogs.msdn.com/b/rezanour/archive/2011/08/07/barycentric-coordinates-and-point-in-triangle-tests.aspx
+import time
+#@profile
+def make_morph_map(subject_from, subject_to, subjects_dir=None):
+
+    subjects_dir = get_subjects_dir(subjects_dir)
+
+    morph_maps = list()
+    for hemi in ['lh']:
+        fname = '%s/%s/surf/%s.sphere.reg' % (subjects_dir, subject_from, hemi)
+        from_pts, from_tris = read_surface(fname)
+        fname = '%s/%s/surf/%s.sphere.reg' % (subjects_dir, subject_to, hemi)
+        to_pts, to_tris = read_surface(fname)
+        
+        # normalize points to be on unit sphere
+        from_pts /= np.sqrt(np.sum(from_pts ** 2, axis=1))[:, None]
+        to_pts /= np.sqrt(np.sum(to_pts ** 2, axis=1))[:, None]
+        
+        # XXX debug
+        src = 163825
+        dst = [99978, 98753, 98754, 99979]
+        for ds in dst:
+            print 'dist %d - %d: %f' % (src, ds, linalg.norm(to_pts[src] - from_pts[ds]))
+
+        # get nearest neighbor pts in from surface
+        t0 = time.time()
+        nn_pts_idx = _compute_nearest(from_pts, to_pts)
+        print 'nn time: %f' % (time.time() - t0)
+
+        # find trinagles for each vertex in from surface
+        t0 = time.time()
+        from_pt_tris = [[] for i in xrange(len(from_pts))]
+        for i, tri in enumerate(from_tris):
+            from_pt_tris[tri[0]].append(i)
+            from_pt_tris[tri[1]].append(i)
+            from_pt_tris[tri[2]].append(i)
+        print 'pt tris time: %f' % (time.time() - t0)
+
+        # find triangle in which point lies and assoc. weights
+        nn_tris = np.zeros((len(nn_pts_idx), 3), dtype=np.int)
+        nn_tris_weights = np.zeros((len(nn_pts_idx), 3))
+        for i, pt_idx in enumerate(nn_pts_idx):
+            found = False
+            for tri_idx in from_pt_tris[pt_idx]:
+                tri = from_tris[tri_idx]
+                # step 1: find closest point of surface spanned by triangle
+                v1 = from_pts[tri[1], :] - from_pts[tri[0], :]
+                v2 = from_pts[tri[2], :] - from_pts[tri[0], :]
+                vx = to_pts[i] - from_pts[tri[0], :]
+                x = linalg.lstsq(np.c_[v1, v2], vx)[0]
+                x_sum = np.sum(x)
+                if i == 163825:
+                    print tri
+                    print x
+                    print x_sum
+                if x_sum <= 1. and np.all((x >= 0.) & (x <= 1.)):
+                    nn_tris[i] = tri                    
+                    nn_tris_weights[i, 0] = 1. - x_sum
+                    nn_tris_weights[i, 1:] = x
+                    found = True
+                    break
+
+        row_ind = np.repeat(np.arange(len(nn_pts_idx)), 3)
+        this_map = csr_matrix((nn_tris_weights.ravel(),
+                               (row_ind, nn_tris.ravel())),
+                              shape=(len(nn_pts_idx), len(from_pts)))
+        morph_maps.append(this_map)
+
+    return morph_maps
+
+
 def mesh_edges(tris):
     """Returns sparse matrix with edges as an adjacency matrix
 
