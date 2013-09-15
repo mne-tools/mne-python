@@ -8,10 +8,10 @@ from . import dics_source_power
 from ..source_estimate import SourceEstimate
 
 
-def tf_dics(epochs, forward, label, tmin, tmax, tstep, win_lengths, control,
-            freq_bins):
+def tf_dics(epochs, forward, label, tmin, tmax, tstep, win_lengths, freq_bins):
     # TODO: Check win_lengths and freq_bins match in length
     # TODO: Check that no time window is longer than tstep
+    # TODO: Check that there's enough data for baseline
     sol = []
     n_steps = int(np.floor((tmax - tmin) / tstep))  # TODO: Use // and 1e3
     for i_freq, freq_bin in enumerate(freq_bins):
@@ -24,23 +24,6 @@ def tf_dics(epochs, forward, label, tmin, tmax, tstep, win_lengths, control,
         n_overlap = int((win_length * 1e3) // (tstep * 1e3))
         #n_filters = int(((timax - win_length - tmin) * 1e3) // (tstep * 1e3))
 
-        # Calculating noise CSD in control window
-        logger.info('Noise: ' + str(((control[0], control[1]), freq_bin)))
-        noise_tmin = control[0]
-        noise_tmax = control[1]
-        #noise_tmin = tmin
-        #noise_tmax = tmin + win_length  # win_length as for data CSD
-        noise_csd = compute_epochs_csd(epochs, mode='fourier',
-                                       tmin=noise_tmin, tmax=noise_tmax,
-                                       fmin=freq_bin[0], fmax=freq_bin[1],
-                                       fsum=True)
-
-        # Scale so that noise and data CSDs are comparable
-        # TODO: Something fishy is going on besides the scaling when noise and
-        # data windows are different, so disabling the scaling for now and
-        # using only time windows of equal length
-        #noise_csd.data /= control[1] - control[0]
-
         for i_time in range(n_steps):
             win_tmin = tmin + i_time * tstep
             win_tmax = win_tmin + win_length
@@ -50,6 +33,12 @@ def tf_dics(epochs, forward, label, tmin, tmax, tstep, win_lengths, control,
             logger.info('Data: ' + str((i_time, i_freq)) + ' ' +
                         str(((win_tmin, win_tmax), freq_bin)))
 
+            # Calculating noise CSD
+            noise_csd = compute_epochs_csd(epochs, mode='fourier', tmin=tmin,
+                                           tmax=tmin + win_length,
+                                           fmin=freq_bin[0], fmax=freq_bin[1],
+                                           fsum=True)
+
             if win_tmax < tmax + (epochs.times[-1] - epochs.times[-2]):
                 # TODO: Allow selection of multitaper bandwidth for each window
                 # length separately
@@ -57,11 +46,8 @@ def tf_dics(epochs, forward, label, tmin, tmax, tstep, win_lengths, control,
                 data_csd = compute_epochs_csd(epochs, mode='fourier',
                                               tmin=win_tmin, tmax=win_tmax,
                                               fmin=freq_bin[0],
-                                              fmax=freq_bin[1], fsum=True)
-                #                              mt_bandwidth=15)
-
-                # Scale so that noise and data CSDs are comparable
-                #data_csd.data /= win_tmax - win_tmin
+                                              fmax=freq_bin[1],
+                                              fsum=True)
 
                 stc = dics_source_power(epochs.info, forward, noise_csd,
                                         data_csd, reg=0.001, label=label)
