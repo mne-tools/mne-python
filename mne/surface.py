@@ -482,7 +482,7 @@ def _tessellate_sphere(mylevel):
     tris = tris[:, [2, 1, 0]]
 
     # Subdivide each starting triangle (mylevel - 1) times
-    for level in range(1, mylevel):
+    for _ in range(1, mylevel):
         """
         Subdivide each triangle in the old approximation and normalize
         the new points thus generated to lie on the surface of the unit
@@ -523,25 +523,23 @@ def _tessellate_sphere(mylevel):
         tris = np.reshape(tris, (np.prod(tris.shape[:2]), 3))
 
     # Copy the resulting approximation into standard table
-    # this could likely be further optimized; this just needs to remove
-    # duplicate entries from "rr" and re-index tris
-    ntri = len(tris)
-    nodes = np.zeros((3 * ntri, 3))  # over-allocate for safety
-    corners = np.zeros((ntri, 3), int)
+    rr_orig = rr
+    rr = np.empty_like(rr)
     nnode = 0
     for k, tri in enumerate(tris):
-        coords = np.array([rr[t] for t in tri])
         for j in range(3):
-            dists = cdist(coords[j][np.newaxis, :], nodes[:nnode])[0]
-            idx = np.where(dists < 1e-4)[0]
+            coord = rr_orig[tri[j]]
+            # this is faster than cdist (no need for sqrt)
+            similarity = np.dot(rr[:nnode], coord)
+            idx = np.where(similarity > 0.99999)[0]
             if len(idx) > 0:
-                corners[k, j] = idx[0]
+                tris[k, j] = idx[0]
             else:
-                nodes[nnode] = coords[j]
-                corners[k, j] = nnode
+                rr[nnode] = coord
+                tris[k, j] = nnode
                 nnode += 1
-    nodes = nodes[:nnode].copy()
-    return nodes, corners
+    rr = rr[:nnode].copy()
+    return rr, tris
 
 
 def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
