@@ -42,6 +42,8 @@ Changelog
    - Add fiducials read/write support by `Christian Brodbeck`_ and `Alex Gramfort`_
 
    - Add select / drop bad channels in `plot_raw` on click by `Denis Engemann`_
+   
+   - `ico` and `oct` source space creation in native Python by `Eric Larson`_
 
 API
 ~~~
