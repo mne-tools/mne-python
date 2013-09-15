@@ -158,17 +158,28 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 else:
                     raise RuntimeError('unknown mode')
         if mode == 'exact':
-            for name in ['dist_limit']:
-                print name
-                assert_true(s0[name] == s1[name])
             for name in ['inuse', 'vertno', 'use_tris']:
                 assert_array_equal(s0[name], s1[name])
+            # these fields will exist if patch info was added, these are
+            # not tested in mode == 'approx'
             for name in ['nearest', 'nearest_dist']:
                 print name
                 if s0[name] is None:
                     assert_true(s1[name] is None)
                 else:
                     assert_array_equal(s0[name], s1[name])
+            for name in ['dist_limit']:
+                print name
+                assert_true(s0[name] == s1[name])
+            for name in ['dist']:
+                if s0[name] is not None:
+                    assert_true(s1[name].shape == s0[name].shape)
+                    assert_true(len((s0['dist'] - s1['dist']).data) == 0)
+            for name in ['pinfo']:
+                if s0[name] is not None:
+                    assert_true(len(s0[name]) == len(s1[name]))
+                    for p1, p2 in zip(s0[name], s1[name]):
+                        assert_true(all(p1 == p2))
         elif mode == 'approx':
             # deal with vertno, inuse, and use_tris carefully
             assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0])
@@ -188,15 +199,6 @@ def _compare_source_spaces(src0, src1, mode='exact'):
             else:
                 assert_true(s1['use_tris'] is None)
             assert_true(np.mean(s0['use_tris'] == s1['use_tris']) > 0.99)
-        for name in ['dist']:
-            if s0[name] is not None:
-                assert_true(s1[name].shape == s0[name].shape)
-                assert_true(len((s0['dist'] - s1['dist']).data) == 0)
-        for name in ['pinfo']:
-            if s0[name] is not None:
-                assert_true(len(s0[name]) == len(s1[name]))
-                for p1, p2 in zip(s0[name], s1[name]):
-                    assert_true(all(p1 == p2))
     # The above "if s0[name] is not None" can be removed once the sample
     # dataset is updated to have a source space with distance info
     for name in ['working_dir', 'command_line']:
