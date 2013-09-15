@@ -43,7 +43,7 @@ Changelog
 
    - Add select / drop bad channels in `plot_raw` on click by `Denis Engemann`_
    
-   - `ico` and `oct` source space creation in native Python by `Eric Larson`_
+   - Add `ico` and `oct` source space creation in native Python by `Eric Larson`_
 
 API
 ~~~
