@@ -66,6 +66,13 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
         win_length = win_lengths[i_freq]
         n_overlap = int((win_length * 1e3) // (tstep * 1e3))
 
+        # Calculating noise CSD
+        noise_csd = compute_epochs_csd(epochs, mode=mode, fmin=freq_bin[0],
+                                       fmax=freq_bin[1], fsum=True, tmin=tmin,
+                                       tmax=tmin + win_length,
+                                       mt_bandwidth=mt_bandwidths[i_freq],
+                                       mt_low_bias=mt_low_bias)
+
         sol_single = []
         sol_overlap = []
         for i_time in range(n_time_steps):
@@ -76,13 +83,6 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
                         'window %d to %d ms, in frequency range %d to %d Hz'
                         % (win_tmin * 1e3, win_tmax * 1e3, freq_bin[0],
                            freq_bin[1]))
-
-            # Calculating noise CSD
-            noise_csd = compute_epochs_csd(epochs, mode=mode, fmin=freq_bin[0],
-                                           fmax=freq_bin[1], fsum=True,
-                                           tmin=tmin, tmax=tmin + win_length,
-                                           mt_bandwidth=mt_bandwidths[i_freq],
-                                           mt_low_bias=mt_low_bias)
 
             if win_tmax < tmax + (epochs.times[-1] - epochs.times[-2]):
                 # Calculating data CSD in current time window
