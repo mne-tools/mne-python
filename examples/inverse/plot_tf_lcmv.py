@@ -83,12 +83,9 @@ max_index = np.unravel_index(source_power.argmax(), source_power.shape)
 max_source = max_index[1]
 
 # Preparing the time and frequency grid for plotting
-time_bounds = [tmin]
-for i in range(int(np.floor((tmax - tmin) / tstep))):
-    time_bounds.append(tmin + (i + 1) * tstep)
+time_bounds = np.arange(tmin, tmax + tstep, tstep)
 freq_bounds = [freq_bins[0][0]]
-for freq_bin in freq_bins:
-    freq_bounds.append(freq_bin[1])
+freq_bounds.extend([freq_bin[1] for freq_bin in freq_bins])
 time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 
 # Plotting the results

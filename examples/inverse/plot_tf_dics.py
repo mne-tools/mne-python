@@ -75,9 +75,10 @@ win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 # selected to be as long as the longest time window. This enables a smooth and
 # accurate localization of activity in time
 tmin = -0.3
+tmax = 0.5
 tstep = 0.05
 
-stcs = tf_dics(epochs, forward, label=None, tmin=tmin, tmax=0.5,
+stcs = tf_dics(epochs, forward, label=label, tmin=tmin, tmax=tmax,
                tstep=tstep, win_lengths=win_lengths, freq_bins=freq_bins)
 
 # Gathering results for each time window
@@ -92,12 +93,9 @@ max_index = np.unravel_index(source_power.argmax(), source_power.shape)
 max_source = max_index[1]
 
 # Preparing the time and frequency grid for plotting
-time_bounds = [tmin]
-for i in range(int(np.floor((epochs.times[-1] - tmin) / tstep))):
-    time_bounds.append(tmin + (i + 1) * tstep)
+time_bounds = np.arange(tmin, tmax + tstep, tstep)
 freq_bounds = [freq_bins[0][0]]
-for freq_bin in freq_bins:
-    freq_bounds.append(freq_bin[1])
+freq_bounds.extend([freq_bin[1] for freq_bin in freq_bins])
 time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 
 # Plotting the results
