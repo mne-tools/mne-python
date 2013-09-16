@@ -89,12 +89,12 @@ with StimServer('localhost', port=4218) as stim_server:
         if ii == 0:
             X = rt_client.fake_data(event_id=ev_list[ii], tmin=-0.2,
                                     tmax=0.5, picks=picks,
-                                    stim_channel='STI101')[None, ...]
+                                    stim_channel='STI 014')[None, ...]
             y = ev_list[ii]
         else:
             X_temp = rt_client.fake_data(event_id=ev_list[ii], tmin=-0.2,
                                          tmax=0.5, picks=picks,
-                                         stim_channel='STI101')[None, ...]
+                                         stim_channel='STI 014')[None, ...]
 
             X = np.concatenate((X, X_temp), axis=0)
 

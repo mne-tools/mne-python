@@ -41,15 +41,6 @@ class _ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 class _TriggerHandler(SocketServer.BaseRequestHandler):
     """Request handler on the server side."""
 
-    def send_trigger(self, trigger):
-        """Create a queue of triggers to be delivered."""
-
-        # If no attribute trigger queue in self, create it
-        if not hasattr(self, '_tx_queue'):
-            self._tx_queue = []
-
-        self._tx_queue.append(trigger)
-
     def handle(self):
         """Method to handle requests on the server side."""
 
@@ -67,13 +58,11 @@ class _TriggerHandler(SocketServer.BaseRequestHandler):
 
             if data == 'get trigger':
 
-                # If the method self has trigger queue, create it
-                if not hasattr(self, '_tx_queue'):
-                    self._tx_queue = []
-
                 # Pop triggers and send them
-                if len(self._tx_queue) > 0:
-                    trigger = self._tx_queue.pop(0)
+                if (self.server.stim_server._tx_queue.qsize() > 0 and
+                        hasattr(self.server.stim_server, '_client')):
+
+                    trigger = self.server.stim_server._tx_queue.get()
                     logger.info("Trigger %s popped and sent" % (str(trigger)))
                     self.request.sendall(str(trigger))
                 else:
@@ -135,7 +124,7 @@ class StimServer(object):
         if not hasattr(self, '_tx_queue'):
             self._tx_queue = Queue.Queue()
 
-        # Start server and a separate thread to send data
+        # Start server
         if not self._running:
             logger.info('RtServer: Start')
             self._running = True
@@ -143,11 +132,6 @@ class StimServer(object):
             # wait till client is added
             while not hasattr(self, '_client'):
                 pass
-
-            # start the send thread
-            self._send_thread = threading.Thread(target=send_trigger_worker,
-                                                 args=(self, self._tx_queue))
-            self._send_thread.start()
 
     @verbose
     def _add_client(self, ip, sock, verbose=None):
@@ -208,24 +192,6 @@ class StimServer(object):
 
         logger.info("Adding trigger %d" % trigger)
         self._tx_queue.put(trigger)
-
-
-def send_trigger_worker(stim_server, tx_queue):
-    """Worker thread that sends the data to the client.
-
-    Parameters
-    ----------
-    stim_server : Instance of StimServer
-        The server which delivers the triggers
-    tx_queue : instance of Queue
-        The queue which contains the triggers to be sent
-
-    """
-
-    while stim_server._running and hasattr(stim_server, '_client'):
-
-        trigger = tx_queue.get()
-        stim_server._client['socket'].send_trigger(trigger)
 
 
 class StimClient(object):

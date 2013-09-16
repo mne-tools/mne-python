@@ -53,6 +53,6 @@ def test_fakebrainresponse():
     rt_client = MockRtClient(raw)
     rt_data = rt_client.fake_data(event_id=event_id, tmin=tmin,
                                   tmax=tmax, picks=picks,
-                                  stim_channel='STI101')
+                                  stim_channel='STI 014')
 
     assert_array_equal(rt_data, data)
