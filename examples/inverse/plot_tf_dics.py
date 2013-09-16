@@ -78,8 +78,8 @@ tmin = -0.3
 tmax = 0.5
 tstep = 0.05
 
-stcs = tf_dics(epochs, forward, label=label, tmin=tmin, tmax=tmax,
-               tstep=tstep, win_lengths=win_lengths, freq_bins=freq_bins)
+stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
+               reg=0.001, label=label) 
 
 # Gathering results for each time window
 source_power = []
