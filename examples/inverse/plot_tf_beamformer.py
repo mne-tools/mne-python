@@ -45,9 +45,9 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
 # Read epochs
-event_id, tmin, tmax = 1, -0.2, 0.5
-#events = mne.read_events(event_fname)[:3]  # TODO: Use all events
-events = mne.read_events(event_fname)  # TODO: Use all events
+event_id, tmin, tmax = 1, -0.3, 0.5
+#events = mne.read_events(event_fname)[:3]
+events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12))
@@ -69,23 +69,18 @@ label = mne.read_label(fname_label)
 
 # Setting frequency bins as in Dalal et al. 2008
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
-#win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
-win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
+win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 
 # Setting time windows, please note tmin stretches over the baseline, which is
 # selected to be as long as the longest time window. This enables a smooth and
 # accurate localization of activity in time
-#tmin = 0.0  # s
-#tstep = 0.05  # s
-tmin = -0.2
+tmin = -0.3
 tstep = 0.05
 
-stcs = tf_dics(epochs, forward, label=label, tmin=tmin, tmax=0.5,
-               tstep=tstep, win_lengths=win_lengths, control=(-0.2, 0.0),
-               freq_bins=freq_bins)
+stcs = tf_dics(epochs, forward, label=None, tmin=tmin, tmax=0.5,
+               tstep=tstep, win_lengths=win_lengths, freq_bins=freq_bins)
 
 # Gathering results for each time window
-# TODO: Should be frequencies, but stcs for time windows are returned now
 source_power = []
 for stc in stcs:
     source_power.append(stc.data)
@@ -121,23 +116,3 @@ pl.ylim(freq_bounds[0], freq_bounds[-1])
 pl.grid(True, ls='-')
 pl.colorbar()
 pl.show()
-
-
-
-
-
-
-# Setting frequency bins so that each frequency up to a certain limit is
-# plotted separately
-#fmax = 59
-#n_times = int(time_step * sfreq)
-#freqs = fftfreq(n_times, 1. / sfreq)
-#freqs = freqs[(freqs >= 0) & (freqs < fmax)]
-#freq_bins = []
-#freq_bounds = [np.mean([freqs[0], freqs[1]])]
-##freq_ticks = []
-#for i in range(len(freqs) - 2):
-#    freq_bins.append((np.mean([freqs[i], freqs[i + 1]]),
-#                      np.mean([freqs[i + 1], freqs[i + 2]])))
-#    freq_bounds.append(np.mean([freqs[i + 1], freqs[i + 2]]))
-#    #freq_ticks.append(np.round(freqs[i+1], 2))
