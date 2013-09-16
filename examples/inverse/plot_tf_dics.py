@@ -1,7 +1,10 @@
 """
-==========================
-Time-frequency beamforming
-==========================
+=====================================
+Time-frequency beamforming using DICS
+=====================================
+
+Compute DICS source power in a grid of time-frequency windows and display
+results.
 
 The original reference is:
 Dalal et al. Five-dimensional neuroimaging: Localization of the time-frequency
@@ -16,7 +19,6 @@ print __doc__
 
 import numpy as np
 import matplotlib.pyplot as pl
-#from scipy.fftpack import fftfreq
 
 import logging
 logger = logging.getLogger('mne')
@@ -46,8 +48,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 # Read epochs
 event_id, tmin, tmax = 1, -0.3, 0.5
-#events = mne.read_events(event_fname)[:3]
-events = mne.read_events(event_fname)
+#events = mne.read_events(event_fname)
+events = mne.read_events(event_fname)[:3]
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12))
@@ -74,20 +76,19 @@ win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 # Setting time windows, please note tmin stretches over the baseline, which is
 # selected to be as long as the longest time window. This enables a smooth and
 # accurate localization of activity in time
-tmin = -0.3
-tmax = 0.5
-tstep = 0.05
+tmin = -0.3  # s
+tmax = 0.5  # s
+tstep = 0.05  # s
 
 stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
-               reg=0.001, label=label) 
+               reg=0.001, label=label)
 
 # Gathering results for each time window
 source_power = []
 for stc in stcs:
     source_power.append(stc.data)
 
-# Finding the source with maximum source power to plot spectrogram for that
-# source
+# Finding the source with maximum source power
 source_power = np.array(source_power)
 max_index = np.unravel_index(source_power.argmax(), source_power.shape)
 max_source = max_index[1]
@@ -102,15 +103,21 @@ time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 # TODO: The gap between 55 and 65 Hz should be marked on the final spectrogram
 pl.pcolor(time_grid, freq_grid, source_power[:, max_source, :],
           cmap=pl.cm.jet)
+pl.title('Source power in overlapping time-frequency windows calculated using '
+         'DICS')
 ax = pl.gca()
+
 pl.xlabel('Time window boundaries [s]')
 ax.set_xticks(time_bounds)
 pl.xlim(time_bounds[0], time_bounds[-1])
+
 pl.ylabel('Frequency bin boundaries [Hz]')
 pl.yscale('log')
 ax.set_yticks(freq_bounds)
 ax.set_yticklabels([np.round(freq, 2) for freq in freq_bounds])
 pl.ylim(freq_bounds[0], freq_bounds[-1])
+
 pl.grid(True, ls='-')
 pl.colorbar()
+
 pl.show()
