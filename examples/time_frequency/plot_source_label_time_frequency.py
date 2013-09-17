@@ -49,6 +49,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
                     preload=True)
 
+epochs.subtract_evoked(epochs.average())
+
 # Compute a source estimate per frequency band
 frequencies = np.arange(7, 30, 2)  # define frequencies of interest
 label = mne.read_label(fname_label)

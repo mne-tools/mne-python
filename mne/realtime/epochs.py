@@ -357,6 +357,10 @@ class RtEpochs(_BaseEpochs):
         # select the channels
         epoch = epoch[self.picks, :]
 
+        # handle offset
+        if self._offset is not None:
+            epoch = epoch + self._offset
+
         # apply SSP
         if self.proj and self._projector is not None:
             epoch = np.dot(self._projector, epoch)
