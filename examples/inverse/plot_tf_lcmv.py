@@ -44,7 +44,8 @@ events = mne.read_events(event_fname)[:3]  # TODO: Use all events
 
 # Setting frequency bins as in Dalal et al. 2008 (high gamma was subdivided)
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 299)]  # Hz
-win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
+#win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
+win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
 
 # Setting time windows
 tmin = -0.2
@@ -52,15 +53,12 @@ tmax = 0.5
 tstep = 0.2
 control = (-0.2, 0.0)
 
+filtered_epochs = iter_filter_epochs(raw, freq_bins, events, event_id,
+                                     epoch_tmin, epoch_tmax, control, n_jobs=4,
+                                     picks=picks)
+
 stcs = []
-for i, (epochs_band, freq_bin) in enumerate(iter_filter_epochs(raw, freq_bins,
-                                                               events,
-                                                               event_id,
-                                                               epoch_tmin,
-                                                               epoch_tmax,
-                                                               control,
-                                                               n_jobs=4,
-                                                               picks=picks)):
+for i, (epochs_band, freq_bin) in enumerate(filtered_epochs):
     stc = tf_lcmv(epochs_band, forward, label=label, tmin=tmin, tmax=tmax,
                   tstep=tstep, win_length=win_lengths[i], control=control,
                   reg=0.05)
@@ -76,8 +74,9 @@ source_power = np.array(source_power)
 max_index = np.unravel_index(source_power.argmax(), source_power.shape)
 max_source = max_index[1]
 
-# Preparing the time and frequency grid for plotting
-time_bounds = np.arange(tmin, tmax + tstep, tstep)
+# Preparing time-frequency cell boundaries and grid for plotting
+time_bounds = np.arange(tmin, tmax + 1 / raw.info['sfreq'], tstep)
+#freq_bounds = sorted(set(np.ravel(freq_bins)))
 freq_bounds = [freq_bins[0][0]]
 freq_bounds.extend([freq_bin[1] for freq_bin in freq_bins])
 time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
