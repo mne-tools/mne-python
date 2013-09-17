@@ -43,12 +43,8 @@ events = mne.read_events(event_fname)[:3]  # TODO: Use all events
 # Time-frequency beamforming based on LCMV
 
 # Setting frequency bins as in Dalal et al. 2008 (high gamma was subdivided)
-# TODO: Using 300 as last value leads to error, that's probably to be expected
-# due to sampling frequency being roughly 600, but maybe should be investigated
-#freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 299)]  # Hz
-#win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
-win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
+win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 
 # Setting time windows
 tmin = -0.2
