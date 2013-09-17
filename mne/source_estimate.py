@@ -14,7 +14,7 @@ import warnings
 
 from .filter import resample
 from .parallel import parallel_func
-from .surface import read_surface, _get_ico_surface
+from .surface import read_surface, _get_ico_surface, read_morph_map
 from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
                     deprecated, logger, verbose)
@@ -1627,158 +1627,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
         s += ", data size : %s x %s" % self.shape
         return "<VolSourceEstimate  |  %s>" % s
 
+
 ###############################################################################
 # Morphing
-
-from .fiff.constants import FIFF
-from .fiff.tag import find_tag
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
-
-
-@verbose
-def read_morph_map(subject_from, subject_to, subjects_dir=None,
-                   verbose=None):
-    """Read morph map generated with mne_make_morph_maps
-
-    Parameters
-    ----------
-    subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    subjects_dir : string
-        Path to SUBJECTS_DIR is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    left_map, right_map : sparse matrix
-        The morph maps for the 2 hemispheres.
-    """
-
-    subjects_dir = get_subjects_dir(subjects_dir)
-
-    # Does the file exist
-    name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_from,
-                                              subject_to)
-    if not os.path.exists(name):
-        name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_to,
-                                                  subject_from)
-        if not os.path.exists(name):
-            raise ValueError('The requested morph map does not exist\n' +
-                             'Perhaps you need to run the MNE tool:\n' +
-                             '  mne_make_morph_maps --from %s --to %s'
-                             % (subject_from, subject_to))
-
-    fid, tree, _ = fiff_open(name)
-
-    # Locate all maps
-    maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
-    if len(maps) == 0:
-        fid.close()
-        raise ValueError('Morphing map data not found')
-
-    # Find the correct ones
-    left_map = None
-    right_map = None
-    for m in maps:
-        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
-        if tag.data == subject_from:
-            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
-            if tag.data == subject_to:
-                #  Names match: which hemishere is this?
-                tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
-                if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    left_map = tag.data
-                    logger.info('    Left-hemisphere map read.')
-                elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    right_map = tag.data
-                    logger.info('    Right-hemisphere map read.')
-
-    fid.close()
-    if left_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % name)
-
-    if right_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % name)
-
-    return left_map, right_map
-
-
-# http://blogs.msdn.com/b/rezanour/archive/2011/08/07/barycentric-coordinates-and-point-in-triangle-tests.aspx
-import time
-#@profile
-def make_morph_map(subject_from, subject_to, subjects_dir=None):
-
-    subjects_dir = get_subjects_dir(subjects_dir)
-
-    morph_maps = list()
-    for hemi in ['lh']:
-        fname = '%s/%s/surf/%s.sphere.reg' % (subjects_dir, subject_from, hemi)
-        from_pts, from_tris = read_surface(fname)
-        fname = '%s/%s/surf/%s.sphere.reg' % (subjects_dir, subject_to, hemi)
-        to_pts, to_tris = read_surface(fname)
-        
-        # normalize points to be on unit sphere
-        from_pts /= np.sqrt(np.sum(from_pts ** 2, axis=1))[:, None]
-        to_pts /= np.sqrt(np.sum(to_pts ** 2, axis=1))[:, None]
-        
-        # XXX debug
-        src = 163825
-        dst = [99978, 98753, 98754, 99979]
-        for ds in dst:
-            print 'dist %d - %d: %f' % (src, ds, linalg.norm(to_pts[src] - from_pts[ds]))
-
-        # get nearest neighbor pts in from surface
-        t0 = time.time()
-        nn_pts_idx = _compute_nearest(from_pts, to_pts)
-        print 'nn time: %f' % (time.time() - t0)
-
-        # find trinagles for each vertex in from surface
-        t0 = time.time()
-        from_pt_tris = [[] for i in xrange(len(from_pts))]
-        for i, tri in enumerate(from_tris):
-            from_pt_tris[tri[0]].append(i)
-            from_pt_tris[tri[1]].append(i)
-            from_pt_tris[tri[2]].append(i)
-        print 'pt tris time: %f' % (time.time() - t0)
-
-        # find triangle in which point lies and assoc. weights
-        nn_tris = np.zeros((len(nn_pts_idx), 3), dtype=np.int)
-        nn_tris_weights = np.zeros((len(nn_pts_idx), 3))
-        for i, pt_idx in enumerate(nn_pts_idx):
-            found = False
-            for tri_idx in from_pt_tris[pt_idx]:
-                tri = from_tris[tri_idx]
-                # step 1: find closest point of surface spanned by triangle
-                v1 = from_pts[tri[1], :] - from_pts[tri[0], :]
-                v2 = from_pts[tri[2], :] - from_pts[tri[0], :]
-                vx = to_pts[i] - from_pts[tri[0], :]
-                x = linalg.lstsq(np.c_[v1, v2], vx)[0]
-                x_sum = np.sum(x)
-                if i == 163825:
-                    print tri
-                    print x
-                    print x_sum
-                if x_sum <= 1. and np.all((x >= 0.) & (x <= 1.)):
-                    nn_tris[i] = tri                    
-                    nn_tris_weights[i, 0] = 1. - x_sum
-                    nn_tris_weights[i, 1:] = x
-                    found = True
-                    break
-
-        row_ind = np.repeat(np.arange(len(nn_pts_idx)), 3)
-        this_map = csr_matrix((nn_tris_weights.ravel(),
-                               (row_ind, nn_tris.ravel())),
-                              shape=(len(nn_pts_idx), len(from_pts)))
-        morph_maps.append(this_map)
-
-    return morph_maps
-
 
 def mesh_edges(tris):
     """Returns sparse matrix with edges as an adjacency matrix
