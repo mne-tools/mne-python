@@ -48,8 +48,7 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 # Read epochs
 event_id, tmin, tmax = 1, -0.3, 0.5
-#events = mne.read_events(event_fname)
-events = mne.read_events(event_fname)[:3]
+events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12))
@@ -64,11 +63,6 @@ label = mne.read_label(fname_label)
 ###############################################################################
 # New T-F Beamformer Code
 
-# Just noting of reference values used in the Dalal paper for frequency bins
-# (the high gamma band was further subdivided) and time window lengths
-#freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
-#window_lenghts = [300, 200, 150]  # ms
-
 # Setting frequency bins as in Dalal et al. 2008
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
 win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
@@ -78,8 +72,10 @@ win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 # accurate localization of activity in time
 tmin = -0.3  # s
 tmax = 0.5  # s
-tstep = 0.05  # s
+tstep = 0.1  # s
 
+# Solution constrained to label in source space for faster computation, use
+# label=None for full solution
 stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
                reg=0.001, label=label)
 
