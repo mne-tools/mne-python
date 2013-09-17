@@ -71,8 +71,7 @@ source_power = [stc.data for stc in stcs]
 # Finding the source with maximum source power to plot spectrogram for that
 # source
 source_power = np.array(source_power)
-max_index = np.unravel_index(source_power.argmax(), source_power.shape)
-max_source = max_index[1]
+max_source = np.unravel_index(source_power.argmax(), source_power.shape)[1]
 
 # Preparing time-frequency cell boundaries and grid for plotting
 time_bounds = np.arange(tmin, tmax + 1 / raw.info['sfreq'], tstep)
