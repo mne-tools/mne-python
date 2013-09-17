@@ -68,9 +68,7 @@ for i, (epochs_band, freq_bin) in enumerate(iter_filter_epochs(raw, freq_bins,
 
 
 # Gathering results for each time window
-source_power = []
-for stc in stcs:
-    source_power.append(stc.data)
+source_power = [stc.data for stc in stcs]
 
 # Finding the source with maximum source power to plot spectrogram for that
 # source

@@ -80,9 +80,7 @@ stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
                reg=0.001, label=label)
 
 # Gathering results for each time window
-source_power = []
-for stc in stcs:
-    source_power.append(stc.data)
+source_power = [stc.data for stc in stcs]
 
 # Finding the source with maximum source power
 source_power = np.array(source_power)
