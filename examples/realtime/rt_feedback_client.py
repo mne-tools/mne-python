@@ -6,7 +6,7 @@ Real-time feedback for decoding :: Client Side
 This example demonstrates how to setup a real-time feedback
 mechanism using StimServer and StimClient.
 
-The idea here is to display future stimuli for that class which
+The idea here is to display future stimuli for the class which
 is predicted less accurately. This allows on-demand adaptation
 of the stimuli depending on the needs of the classifier.
 
@@ -16,10 +16,10 @@ message
 
 RtServer: Start
 
-Once that appears, run rt_feedback_client.py and the feedback
-script should start.
+Once that appears, run rt_feedback_client.py in the other terminal
+and the feedback script should start.
 
-All brain responses are faked from a fiff file to make it easy
+All brain responses are simulated from a fiff file to make it easy
 to test. However, it should be possible to adapt this script
 for a real experiment.
 

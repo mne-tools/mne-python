@@ -89,9 +89,14 @@ class MockRtClient(object):
     # but they need to be present for the emulation to work because
     # RtEpochs expects them to be there.
 
-    def fake_data(self, event_id, tmin, tmax, picks, stim_channel=None,
-                  min_duration=0):
-        """Fake the data for a particular event-id.
+    def get_event_data(self, event_id, tmin, tmax, picks, stim_channel=None,
+                       min_duration=0):
+        """Simulate the data for a particular event-id.
+
+        The epochs corresponding to a particular event-id are returned. The
+        method remembers the epoch that was returned in the previous call and
+        returns the next epoch in sequence. Once all epochs corresponding to
+        an event-id have been exhausted, the method returns None.
 
         Parameters
         ----------
@@ -114,7 +119,7 @@ class MockRtClient(object):
         Returns
         -------
         data : 2D array with shape [n_channels, n_times]
-            The epochs that are being faked
+            The epochs that are being simulated
 
         """
 

@@ -6,7 +6,7 @@ Real-time feedback for decoding :: Client Side
 This example demonstrates how to setup a real-time feedback
 mechanism using StimServer and StimClient.
 
-The idea here is to display future stimuli for that class which
+The idea here is to display future stimuli for the class which
 is predicted less accurately. This allows on-demand adaptation
 of the stimuli depending on the needs of the classifier.
 
@@ -16,10 +16,10 @@ message
 
 RtServer: Start
 
-Once that appears, run rt_feedback_client.py and the feedback
-script should start.
+Once that appears, run rt_feedback_client.py in the other terminal
+and the feedback script should start.
 
-All brain responses are faked from a fiff file to make it easy
+All brain responses are simulated from a fiff file to make it easy
 to test. However, it should be possible to adapt this script
 for a real experiment.
 
@@ -48,7 +48,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import confusion_matrix
 
-# Load fiff file to "fake data"
+# Load fiff file to simulate data
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.fiff.Raw(raw_fname, preload=True)
@@ -74,7 +74,7 @@ with StimServer('localhost', port=4218) as stim_server:
 
     stim_server.start()
 
-    # Just some initially decided events to be "faked"
+    # Just some initially decided events to be simulated
     # Rest will decided on the fly
     ev_list = [4, 3, 4, 3, 4, 3, 4, 3, 4, 3, 4]
 
@@ -87,18 +87,18 @@ with StimServer('localhost', port=4218) as stim_server:
 
         # Collecting data
         if ii == 0:
-            X = rt_client.fake_data(event_id=ev_list[ii], tmin=-0.2,
-                                    tmax=0.5, picks=picks,
-                                    stim_channel='STI 014')[None, ...]
-            y = ev_list[ii]
-        else:
-            X_temp = rt_client.fake_data(event_id=ev_list[ii], tmin=-0.2,
+            X = rt_client.get_event_data(event_id=ev_list[ii], tmin=-0.2,
                                          tmax=0.5, picks=picks,
                                          stim_channel='STI 014')[None, ...]
+            y = ev_list[ii]
+        else:
+            X_temp = rt_client.get_event_data(event_id=ev_list[ii], tmin=-0.2,
+                                              tmax=0.5, picks=picks,
+                                              stim_channel='STI 014')[None, ...]
 
             X = np.concatenate((X, X_temp), axis=0)
 
-            time.sleep(1)  # faking the isi
+            time.sleep(1)  # simulating the isi
             y = np.append(y, ev_list[ii])
 
         # Start decoding after collecting sufficient data
@@ -118,10 +118,10 @@ with StimServer('localhost', port=4218) as stim_server:
             # do something if one class is decoded better than the other
             if score_c1[-1] < score_c2[-1]:
                 print "We decoded class RV better than class LV"
-                ev_list.append(3)  # adding more LV to future "faked data"
+                ev_list.append(3)  # adding more LV to future simulated data
             else:
                 print "We decoded class LV better than class RV"
-                ev_list.append(4)  # adding more RV to future "faked data"
+                ev_list.append(4)  # adding more RV to future simulated data
 
             # Clear the figure
             pl.clf()
