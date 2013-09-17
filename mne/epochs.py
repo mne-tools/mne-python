@@ -137,6 +137,7 @@ class _BaseEpochs(ProjMixin):
 
         self.preload = False
         self._data = None
+        self._offset = None
 
         # setup epoch rejection
         self._reject_setup()
@@ -226,6 +227,53 @@ class _BaseEpochs(ProjMixin):
 
             yield evoked
 
+    def subtract_evoked(self, evoked):
+        """Subtract an evoked response from each epoch
+
+        Parameters
+        ----------
+        evoked : instance of mne.fiff.Evoked
+            The evoked response to subtract.
+
+        Returns
+        -------
+        self : instance of mne.Epochs
+            The modified instance (instance is also modified inplace).
+        """
+        # make sure evoked contains all the channels needed
+        ch_ok = True
+        try:
+            idx = [evoked.ch_names.index(ch) for ch in self.ch_names]
+        except ValueError:
+            ch_ok = False
+        if ch_ok and len(idx) < len(self.ch_names):
+            ch_ok = False
+        if not ch_ok:
+            raise ValueError('Epochs object has channels that are not '
+                             'present in Evoked.')
+        # make sure the times match
+        if (len(self.times) != len(evoked.times) or
+            np.max(np.abs(self.times - evoked.times)) >= 1e-7):
+            raise ValueError('Epochs and Evoked object do not contain '
+                             'the same time points.')
+
+        # handle SSPs
+        if not self.proj and evoked.proj:
+            warnings.warn('Evoked has SSP aplied while Epochs has not.')
+        if self.proj and not evoked.proj:
+            evoked = evoked.copy().apply_proj()
+
+        # do the subtraction
+        if self.preload:
+            self._data -= evoked.data[np.newaxis, idx, :]
+        else:
+            if self._offset is None:
+                self._offset = -1 * evoked.data[idx, :].copy()
+            else:
+                self._offset -= evoked.data[idx, :]
+
+        return self
+
     def _get_data_from_disk(self, out=True, verbose=None):
         raise NotImplementedError('_get_data_from_disk() must be implemented '
                                   'in derived class.')
@@ -245,7 +293,6 @@ class _BaseEpochs(ProjMixin):
 
         Parameters
         ----------
-
         picks : None | array of int
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
@@ -659,6 +706,10 @@ class Epochs(_BaseEpochs):
             return None, None
 
         epoch_raw, _ = self.raw[self.picks, start:stop]
+
+        # handle offset
+        if self._offset is not None:
+            epoch_raw = epoch_raw + self._offset
 
         # setup list of epochs to handle delayed SSP
         epochs = []
