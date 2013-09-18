@@ -97,6 +97,7 @@ Functions:
    read_events
    read_forward_solution
    read_label
+   read_morph_map
    read_proj
    read_reject_parameters
    read_selection
@@ -340,7 +341,7 @@ MRI Processing
 .. autosummary::
    :toctree: generated/
    :template: function.rst
-   
+
    create_default_subject
    scale_mri
    scale_labels

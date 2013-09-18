@@ -32,20 +32,22 @@ Changelog
    - Add rejection buffer to ICA.decompose* methods by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Add polygonal surface decimation function by `Denis Engemann`_ and `Alex Gramfort`_
-   
+
    - DICS time-frequency beamforming for epochs, evoked and for estimating source power by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
 
    - Add method for computing cross-spectral density (CSD) from epochs and class for storing CSD data by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
 
    - Add trellis plot function and method for visualizing single epochs by `Denis Engemann`_
-   
+
    - Add fiducials read/write support by `Christian Brodbeck`_ and `Alex Gramfort`_
 
    - Add select / drop bad channels in `plot_raw` on click by `Denis Engemann`_
-   
+
    - Add `ico` and `oct` source space creation in native Python by `Eric Larson`_
 
    - Add interactive rejection of bad trials in `plot_epochs` by `Denis Engemann`_
+
+   - Add morph map calculation by `Eric Larson`_ and `Martin Luessi`_
 
 API
 ~~~
