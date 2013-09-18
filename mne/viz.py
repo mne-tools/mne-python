@@ -3028,9 +3028,11 @@ def _draw_epochs_axes(epoch_idx, good_idx, bad_idx, data, times, axes,
                       title_str):
     """Aux functioin"""
     for ii, data_, ax in zip(epoch_idx, data, axes):
-        ax.plot(times, data_[good_idx].T, color='k')
+        # ax.plot(times, data_[good_idx].T, color='k')
+        [l.set_data(times, d) for l, d in zip(ax.lines, data_[good_idx])]
         if bad_idx is not None:
-            ax.plot(times, data_[bad_idx].T, color='r')
+            bad_lines = [ax.lines[k] for k in bad_idx]
+            [l.set_data(times, d) for l, d in zip(bad_lines, data_[bad_idx])]
         if title_str is not None:
             ax.set_title(title_str % ii, fontsize=12)
         ax.set_ylim(data.min(), data.max())
