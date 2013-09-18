@@ -1,6 +1,6 @@
 """
 ==============================================
-Real-time feedback for decoding :: Client Side
+Real-time feedback for decoding :: Server Side
 ==============================================
 
 This example demonstrates how to setup a real-time feedback
@@ -14,7 +14,7 @@ To run this example, open ipython in two separate terminals.
 In the first, run rt_feedback_server.py and then wait for the
 message
 
-RtServer: Start
+    RtServer: Start
 
 Once that appears, run rt_feedback_client.py in the other terminal
 and the feedback script should start.
@@ -54,6 +54,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.fiff.Raw(raw_fname, preload=True)
 
 # Instantiating stimulation server
+
 # The with statement is necessary to ensure a clean exit
 with StimServer('localhost', port=4218) as stim_server:
 
@@ -72,7 +73,7 @@ with StimServer('localhost', port=4218) as stim_server:
     concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
                                   ('scaler', scaler), ('svm', clf)])
 
-    stim_server.start()
+    stim_server.start(verbose=True)
 
     # Just some initially decided events to be simulated
     # Rest will decided on the fly

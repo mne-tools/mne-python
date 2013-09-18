@@ -9,6 +9,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Add capability for real-time feedback via trigger codes using StimServer and StimClient classes by `Mainak Jas`_
+
    - New decoding module for MEG analysis containing sklearn compatible transformers by `Mainak Jas`_ and `Alex Gramfort`_
 
    - New realtime module containing RtEpochs, RtClient and MockRtClient class by `Martin Luessi`_, Christopher Dinh, `Alex Gramfort`_, `Denis Engemann`_ and `Mainak Jas`_

@@ -20,7 +20,6 @@ class MockRtClient(object):
         Measurement info.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
     """
     def __init__(self, raw, verbose=None):
         self.raw = raw
@@ -37,7 +36,6 @@ class MockRtClient(object):
         -------
         self.info : dict
             The measurement info.
-
         """
         return self.info
 
@@ -56,7 +54,6 @@ class MockRtClient(object):
             Time instant to stop receiving buffers.
         buffer_size : int
             Size of each buffer in terms of number of samples.
-
         """
         # this is important to emulate a thread, instead of automatically
         # or constantly sending data, we will invoke this explicitly to send
@@ -120,7 +117,6 @@ class MockRtClient(object):
         -------
         data : 2D array with shape [n_channels, n_times]
             The epochs that are being simulated
-
         """
 
         # Get the list of all events

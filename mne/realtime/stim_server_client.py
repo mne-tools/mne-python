@@ -21,7 +21,6 @@ class _ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
          _TriggerHandler which defines the handle method
     stim_server : instance of StimServer
         object of StimServer class
-
     """
 
     def __init__(self, server_address, request_handler_class,
@@ -80,7 +79,6 @@ class StimServer(object):
         IP address of the host where StimServer is running.
     port : int
         The port to which the stimulation server must bind to
-
     """
 
     def __init__(self, ip='localhost', port=4218):
@@ -117,7 +115,6 @@ class StimServer(object):
         ----------
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-
         """
 
         # Instantiate queue for communication between threads
@@ -131,7 +128,7 @@ class StimServer(object):
 
             # wait till client is added
             while not hasattr(self, '_client'):
-                pass
+                time.sleep(0.1)
 
     @verbose
     def _add_client(self, ip, sock, verbose=None):
@@ -145,7 +142,6 @@ class StimServer(object):
             The client socket.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-
         """
 
         self._client = dict()
@@ -163,7 +159,6 @@ class StimServer(object):
         ----------
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-
         """
 
         logger.info("Shutting down ...")
@@ -187,7 +182,6 @@ class StimServer(object):
             The trigger to be added to the queue for sending to StimClient.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-
         """
 
         logger.info("Adding trigger %d" % trigger)
@@ -209,7 +203,6 @@ class StimClient(object):
         Communication timeout in seconds.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
     """
 
     @verbose
@@ -246,7 +239,6 @@ class StimClient(object):
             maximum time to wait for a valid trigger from the server
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
-
         """
         start_time = time.time()  # init delay counter. Will stop iterations
 

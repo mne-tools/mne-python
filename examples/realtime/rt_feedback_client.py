@@ -14,7 +14,7 @@ To run this example, open ipython in two separate terminals.
 In the first, run rt_feedback_server.py and then wait for the
 message
 
-RtServer: Start
+    RtServer: Start
 
 Once that appears, run rt_feedback_client.py in the other terminal
 and the feedback script should start.
@@ -35,6 +35,10 @@ from mne.realtime import StimClient
 from psychopy import visual, core
 
 # Instantiating stimulation client
+
+# Port number must match port number used to instantiate
+# StimServer. Any port number above 1000 should be fine
+# because they do not require root permission.
 stim_client = StimClient('localhost', port=4218)
 
 # create a window
@@ -85,6 +89,7 @@ for ii in range(50):
     else:
         right_cb.draw()
 
+    fixation.draw()  # draw fixation
     mywin.flip()  # show the stimuli
 
     timer1.reset()  # reset timer
