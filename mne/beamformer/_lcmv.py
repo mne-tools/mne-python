@@ -493,8 +493,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
                           tstep=1, subject=subject)
 
 
-def iter_filter_epochs(raw, freq_bins, events, event_id, tmin, tmax, baseline,
-                       n_jobs, picks, reject):
+def generate_filtered_epochs(raw, freq_bins, events, event_id, tmin, tmax,
+                             baseline, n_jobs, picks, reject):
     """Filters raw data, creates and yields epochs
     """
     # Getting picks based on rejections prior to filtering

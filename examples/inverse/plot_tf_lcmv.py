@@ -9,7 +9,7 @@ import mne
 
 from mne.fiff import Raw
 from mne.datasets import sample
-from mne.beamformer import iter_filter_epochs, tf_lcmv
+from mne.beamformer import generate_filtered_epochs, tf_lcmv
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -53,10 +53,11 @@ tmax = 0.5
 tstep = 0.2
 control = (-0.2, 0.0)
 
-filtered_epochs = iter_filter_epochs(raw, freq_bins, events, event_id,
-                                     epoch_tmin, epoch_tmax, control, n_jobs=4,
-                                     picks=picks,
-                                     reject=dict(grad=4000e-13, mag=4e-12))
+filtered_epochs = generate_filtered_epochs(raw, freq_bins, events, event_id,
+                                           epoch_tmin, epoch_tmax, control,
+                                           n_jobs=4, picks=picks,
+                                           reject=dict(grad=4000e-13,
+                                                       mag=4e-12))
 
 stcs = []
 for i, (epochs_band, freq_bin) in enumerate(filtered_epochs):
