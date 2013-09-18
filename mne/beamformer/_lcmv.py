@@ -494,13 +494,14 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
 
 def iter_filter_epochs(raw, freq_bins, events, event_id, tmin, tmax, baseline,
-                       n_jobs, picks):
+                       n_jobs, picks, reject):
     """Filters raw data, creates and yields epochs
     """
     # Getting picks based on rejections prior to filtering
     tmp_epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        proj=True, baseline=baseline, preload=True)
-    picks = tmp_epochs.picks
+                        proj=True, baseline=baseline, preload=True,
+                        reject=reject)
+    events = tmp_epochs.events
 
     for freq_bin in freq_bins:
         raw_band = raw.copy()
@@ -509,8 +510,7 @@ def iter_filter_epochs(raw, freq_bins, events, event_id, tmin, tmax, baseline,
         # TODO: Which of these parameters should really be exposed? All?
         # defaults taken from mne.Epochs?
         epochs_band = Epochs(raw_band, events, event_id, tmin, tmax, proj=True,
-                             picks=picks, baseline=baseline, preload=True,
-                             reject=dict(grad=4000e-13, mag=4e-12))
+                             picks=picks, baseline=baseline, preload=True)
 
         yield epochs_band, freq_bin
 

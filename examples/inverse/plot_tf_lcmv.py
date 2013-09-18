@@ -36,8 +36,8 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 # Read epochs
 event_id, epoch_tmin, epoch_tmax = 1, -0.2, 0.5
-events = mne.read_events(event_fname)[:3]  # TODO: Use all events
-#events = mne.read_events(event_fname)  # TODO: Use all events
+#events = mne.read_events(event_fname)[:3]  # TODO: Use all events
+events = mne.read_events(event_fname)  # TODO: Use all events
 
 ###############################################################################
 # Time-frequency beamforming based on LCMV
@@ -55,7 +55,8 @@ control = (-0.2, 0.0)
 
 filtered_epochs = iter_filter_epochs(raw, freq_bins, events, event_id,
                                      epoch_tmin, epoch_tmax, control, n_jobs=4,
-                                     picks=picks)
+                                     picks=picks,
+                                     reject=dict(grad=4000e-13, mag=4e-12))
 
 stcs = []
 for i, (epochs_band, freq_bin) in enumerate(filtered_epochs):
