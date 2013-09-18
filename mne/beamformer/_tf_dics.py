@@ -116,9 +116,8 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
             if i_time - n_overlap < 0:
                 curr_sol = np.mean(sol_single[0:i_time + 1], axis=0)
             else:
-                curr_sol =\
-                    np.mean(sol_single[i_time - n_overlap + 1:i_time + 1],
-                            axis=0)
+                curr_sol = np.mean(sol_single[i_time - n_overlap + 1:
+                                              i_time + 1], axis=0)
 
             # The final result for the current time point in the current
             # frequency bin

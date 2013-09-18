@@ -49,7 +49,8 @@ def tf_lcmv(epochs_band, forward, label, tmin, tmax, tstep, win_length,
     n_overlap = int((win_length * 1e3) // (tstep * 1e3))
 
     # Calculating noise covariance
-    noise_cov = mne.compute_covariance(epochs_band, tmin=control[0], tmax=control[1])
+    noise_cov = mne.compute_covariance(epochs_band, tmin=control[0],
+                                       tmax=control[1])
     noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=0.05,
                                    grad=0.05, eeg=0.1, proj=True)
 
@@ -72,8 +73,8 @@ def tf_lcmv(epochs_band, forward, label, tmin, tmax, tstep, win_length,
         if i_time - n_overlap < 0:
             curr_sol = np.mean(single_sols[0:i_time + 1], axis=0)
         else:
-            curr_sol =\
-                np.mean(single_sols[i_time - n_overlap + 1:i_time + 1], axis=0)
+            curr_sol = np.mean(single_sols[i_time - n_overlap + 1:
+                                           i_time + 1], axis=0)
 
         # The final values for the current time point averaged over all
         # time windows that contain it
@@ -82,7 +83,6 @@ def tf_lcmv(epochs_band, forward, label, tmin, tmax, tstep, win_length,
     sol = np.array(overlap_sol)
     return SourceEstimate(sol.T, vertices=stc.vertno, tmin=tmin, tstep=tstep,
                           subject=stc.subject)
-
 
 
 def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
