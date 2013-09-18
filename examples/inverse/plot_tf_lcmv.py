@@ -53,9 +53,9 @@ tmax = 0.5
 tstep = 0.2
 control = (-0.2, 0.0)
 
-filtered_epochs = generate_filtered_epochs(raw, freq_bins, events, event_id,
+filtered_epochs = generate_filtered_epochs(freq_bins, 4, raw, events, event_id,
                                            epoch_tmin, epoch_tmax, control,
-                                           n_jobs=4, picks=picks,
+                                           picks=picks,
                                            reject=dict(grad=4000e-13,
                                                        mag=4e-12))
 
