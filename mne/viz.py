@@ -3163,7 +3163,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     gs1 = pl.mpl.gridspec.GridSpec(1, 2)
     ax1 = pl.subplot(gs1[:, 0])
     ax2 = pl.subplot(gs1[:, 1])
-    # if show is True:
+
     params = {
         'index_handler': index_handler,
         'epochs': epochs,
