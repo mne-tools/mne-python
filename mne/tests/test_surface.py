@@ -1,20 +1,34 @@
 import os.path as op
 import numpy as np
 
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal, \
+                          assert_allclose, assert_equal
 
 from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import read_bem_surfaces, write_bem_surface, read_surface, \
                 write_surface, decimate_surface
+from mne.surface import make_morph_map, read_morph_map
 from mne.utils import _TempDir, requires_tvtk
 
 data_path = sample.data_path()
-fname = op.join(data_path, 'subjects', 'sample', 'bem',
+subjects_dir = op.join(data_path, 'subjects')
+fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-5120-5120-5120-bem-sol.fif')
-
 tempdir = _TempDir()
+
+
+def test_make_morph_maps():
+    """Test reading and creating morph maps
+    """
+    mmap = read_morph_map('fsaverage', 'sample', subjects_dir=subjects_dir)
+    mmap2 = make_morph_map('fsaverage', 'sample', subjects_dir=subjects_dir)
+    assert_equal(len(mmap), len(mmap2))
+    for m1, m2 in zip(mmap, mmap2):
+        # deal with sparse matrix stuff
+        diff = (m1 - m2).data
+        assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
 
 def test_io_bem_surfaces():

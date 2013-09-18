@@ -803,72 +803,23 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     return left_map, right_map
 
 
-"""
-def make_morph_map(subject_from, subject_to, subjects_dir=None):
-    subjects_dir = get_subjects_dir(subjects_dir)
-    morph_maps = list()
-    for hemi in ['lh']:
-        # load surfaces and normalize points to be on unit sphere
-        fname = os.path.join(subjects_dir, subject_from, 'surf',
-                             '%s.sphere.reg' % hemi)
-        from_pts, from_tris = read_surface(fname)
-        _normalize_vectors(from_pts)
-        fname = os.path.join(subjects_dir, subject_to, 'surf',
-                             '%s.sphere.reg' % hemi)
-        to_pts, to_tris = read_surface(fname)
-        _normalize_vectors(to_pts)
-
-        # from surface: get nearest neighbors, find trinagles for each vertex
-        nn_pts_idx = _get_nearest(to_pts, from_pts)
-        from_pt_tris = _triangle_neighbors(from_tris, len(from_pts))
-
-        # find triangle in which point lies and assoc. weights
-        nn_tris = np.zeros((len(nn_pts_idx), 3), dtype=np.int)
-        nn_tris_weights = np.zeros((len(nn_pts_idx), 3))
-        v1s = from_pts[from_tris[:, 1], :] - from_pts[from_tris[:, 0], :]
-        v2s = from_pts[from_tris[:, 2], :] - from_pts[from_tris[:, 0], :]
-        for ii, pt_idx in enumerate(nn_pts_idx):
-            for ti, tri_idx in enumerate(from_pt_tris[pt_idx]):
-                tri = from_tris[tri_idx]
-                # step 1: find closest point of surface spanned by triangle
-                vx = to_pts[ii] - from_pts[tri[0], :]
-                x = linalg.lstsq(np.c_[v1s[ti], v2s[ti]], vx)[0]
-                x_sum = np.sum(x)
-                if x_sum <= 1. and np.all((x >= 0.) & (x <= 1.)):
-                    nn_tris[ii] = tri
-                    nn_tris_weights[ii, 0] = 1. - x_sum
-                    nn_tris_weights[ii, 1:] = x
-                    break
-
-        row_ind = np.repeat(np.arange(len(nn_pts_idx)), 3)
-        this_map = sparse.csr_matrix((nn_tris_weights.ravel(),
-                                     (row_ind, nn_tris.ravel())),
-                                     shape=(len(nn_pts_idx), len(from_pts)))
-        morph_maps.append(this_map)
-
-    return morph_maps
-"""
-
-
 @verbose
 def make_morph_map(subject_from, subject_to, subjects_dir=None):
     subjects_dir = get_subjects_dir(subjects_dir)
     morph_maps = list()
-    for hemi in ['lh']:
+    for hemi in ['lh', 'rh']:
         # load surfaces and normalize points to be on unit sphere
         fname = os.path.join(subjects_dir, subject_from, 'surf',
                              '%s.sphere.reg' % hemi)
         from_pts, from_tris = read_surface(fname)
         _normalize_vectors(from_pts)
         r1 = from_pts[from_tris[:, 0], :]
-        r2 = from_pts[from_tris[:, 1], :]
-        r3 = from_pts[from_tris[:, 2], :]
-        r12 = r1 - r2
-        r13 = r1 - r3
-        aa = np.sum(r12 * r12, axis=1)
-        bb = np.sum(r13 * r13, axis=1)
-        cc = np.sum(r12 * r13, axis=1)
-        from_tri_nn = np.cross((r2 - r1), (r3 - r1))
+        r12 = r1 - from_pts[from_tris[:, 1], :]
+        r13 = r1 - from_pts[from_tris[:, 2], :]
+        a = np.sum(r12 * r12, axis=1)
+        b = np.sum(r13 * r13, axis=1)
+        c = np.sum(r12 * r13, axis=1)
+        det = a * b - c * c
 
         fname = os.path.join(subjects_dir, subject_to, 'surf',
                              '%s.sphere.reg' % hemi)
@@ -879,16 +830,37 @@ def make_morph_map(subject_from, subject_to, subjects_dir=None):
         nn_pts_idx = _get_nearest(to_pts, from_pts)
         from_pt_tris = _triangle_neighbors(from_tris, len(from_pts))
 
+        # set up approximation scheme to deal with roundoff errors
+        one = 1.0001
+        zer = 1.0 - one
         # find triangle in which point lies and assoc. weights
-        nn_tris = np.zeros((len(nn_pts_idx), 3), dtype=np.int)
+        nn_tri_inds = []
         nn_tris_weights = np.zeros((len(nn_pts_idx), 3))
         for ii, pt_idx in enumerate(nn_pts_idx):
-            p, q, min_idx = _nearest_tri_pt(to_pts[ii], r1, r12, r13,
-                                            aa, bb, cc,
-                                            from_tri_nn, from_pt_tris[pt_idx])
-            nn_tris[ii] = from_tris[min_idx]
-            nn_tris_weights[ii, :] = [1. - (p + q), p, q]
+            pt_tris = from_pt_tris[pt_idx]
+            rr = r1[pt_tris] - to_pts[ii]
+            v1s = np.sum(rr * r12[pt_tris], axis=1)
+            v2s = np.sum(rr * r13[pt_tris], axis=1)
+            aas = a[pt_tris]
+            bbs = b[pt_tris]
+            ccs = c[pt_tris]
+            dets = det[pt_tris]
+            pp = (bbs * v1s - ccs * v2s) / dets
+            qq = (aas * v2s - ccs * v1s) / dets
+            found = False
+            for (pt, p, q) in zip(pt_tris, pp, qq):
+                if zer <= p <= one and zer < q < one and p + q < one:
+                    found = True
+                    break
+            if found is False:
+                raise RuntimeError('Could not assign points, please notify '
+                                   'mne developers')
+            nn_tri_inds.append(pt)
+            nn_tris_weights[ii, 0] = 1. - (p + q)
+            nn_tris_weights[ii, 1] = p
+            nn_tris_weights[ii, 2] = q
 
+        nn_tris = from_tris[nn_tri_inds]
         row_ind = np.repeat(np.arange(len(nn_pts_idx)), 3)
         this_map = sparse.csr_matrix((nn_tris_weights.ravel(),
                                      (row_ind, nn_tris.ravel())),
@@ -896,115 +868,3 @@ def make_morph_map(subject_from, subject_to, subjects_dir=None):
         morph_maps.append(this_map)
 
     return morph_maps
-
-
-def _nearest_tri_pt(r, r1s, r12s, r13s,
-                    aa, bb, cc, tri_nns, pt_tris):
-    rr = r1s[pt_tris] - r
-    r12 = r12s[pt_tris]
-    r13 = r13s[pt_tris]
-    v1s = np.sum(rr * r12, axis=1)
-    v2s = np.sum(rr * r13, axis=1)
-    aas = aa[pt_tris]
-    bbs = bb[pt_tris]
-    ccs = cc[pt_tris]
-    dets = aas * bbs - ccs * ccs
-    p = (bbs * v1s - ccs * v2s) / dets
-    q = (aas * v2s - ccs * v1s) / dets
-    idx = np.where((p >= 0) & (p <= 1) &
-                   (q >= 0) & (q <= 1) & (p + q < 1.0001))[0]
-    return p[idx[0]], q[idx[0]], pt_tris[idx[0]]
-
-"""
-def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
-    return np.sqrt((p - p0) * (p - p0) * a +
-                   (q - q0) * (q - q0) * b +
-                   (p - p0) * (q - q0) * c +
-                   dist * dist)
-
-
-def _nearest_tri_pt(r, r1s, r12s, r13s,
-                    aa, bb, cc, tri_nns, pt_tris):
-    min_dist = np.inf
-    kept_tough = False
-    ps = []
-    qs = []
-    dists = []
-    for ti, tri_idx in enumerate(pt_tris):
-        r1 = r1s[tri_idx]
-        tri_nn = tri_nns[tri_idx]
-
-        #Find the nearest point from a triangle
-        rr = r1 - r
-        dist = np.sum(rr * tri_nn)
-        r12 = r12s[tri_idx]
-        r13 = r13s[tri_idx]
-        a = aa[tri_idx]
-        b = bb[tri_idx]
-        c = cc[tri_idx]
-        v1 = np.sum(rr * r12)
-        v2 = np.sum(rr * r13)
-        det = a * b - c * c
-
-        p = (b * v1 - c * v2) / det
-        q = (a * v2 - c * v1) / det
-        # If the point projects into the triangle we are done
-        ps.append(p)
-        qs.append(q)
-        dists.append(dist)
-        # we have to use approximate p + q <= 1.0 here because of precision
-        if 0.0 <= p <= 1.0 and 0.0 <= q <= 1.0 and q + p - 1.0 < 1e-4:
-            x, y, z = p, q, dist
-        else:
-            tough = True
-            # Tough: must investigate the sides
-            # We might do something intelligent here. However, for now it is ok
-            # to do it in the hard way
-
-            # Side 1 -> 2
-            p0 = np.minimum(np.maximum(p + 0.5 * (q * c) / a, 0.0), 1.0)
-            q0 = 0.0
-            dist0 = _get_tri_dist(p, q, p0, q0, a, b, c, dist)
-            best = dist0
-            x = p0
-            y = q0
-            z = dist0
-
-            # Side 2 -> 3
-            t0 = (0.5 * ((2.0 * a - c) * (1.0 - p) + (2.0 * b - c) * q)
-                  / (a + b - c))
-            t0 = np.minimum(np.maximum(t0, 0.0), 1.0)
-            p0 = 1.0 - t0
-            q0 = t0
-            dist0 = _get_tri_dist(p, q, p0, q0, a, b, c, dist)
-            if dist0 < best:
-                best = dist0
-                x = p0
-                y = q0
-                z = dist0
-
-            # Side 1 -> 3
-            p0 = 0.0
-            q0 = np.minimum(np.maximum(q + 0.5 * (p * c) / b, 0.0), 1.0)
-            dist0 = _get_tri_dist(p, q, p0, q0, a, b, c, dist)
-            if dist0 < best:
-                best = dist0
-                x = p0
-                y = q0
-                z = dist0
-
-        if np.abs(dist) < min_dist:
-            kept_tough = tough
-            p_out = x
-            q_out = y
-            min_dist = z
-            min_idx = tri_idx
-
-    if kept_tough:
-        print 'kept tough:'
-        print ps
-        print qs
-        print [p + q for p, q in zip(ps, qs)]
-        print dists
-    return p_out, q_out, min_idx
-"""
