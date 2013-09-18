@@ -803,7 +803,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     return left_map, right_map
 
 
-@verbose
+#@verbose
 def make_morph_map(subject_from, subject_to, subjects_dir=None):
     subjects_dir = get_subjects_dir(subjects_dir)
     morph_maps = list()
@@ -812,43 +812,43 @@ def make_morph_map(subject_from, subject_to, subjects_dir=None):
         fname = os.path.join(subjects_dir, subject_from, 'surf',
                              '%s.sphere.reg' % hemi)
         from_pts, from_tris = read_surface(fname)
+        n_from_pts = len(from_pts)
         _normalize_vectors(from_pts)
         r1 = from_pts[from_tris[:, 0], :]
         r12 = r1 - from_pts[from_tris[:, 1], :]
         r13 = r1 - from_pts[from_tris[:, 2], :]
+        r1213 = np.array([r12, r13]).swapaxes(0, 1)
         a = np.sum(r12 * r12, axis=1)
         b = np.sum(r13 * r13, axis=1)
         c = np.sum(r12 * r13, axis=1)
-        det = a * b - c * c
+        mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
+        mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
 
         fname = os.path.join(subjects_dir, subject_to, 'surf',
                              '%s.sphere.reg' % hemi)
         to_pts, to_tris = read_surface(fname)
+        n_to_pts = len(to_pts)
         _normalize_vectors(to_pts)
 
         # from surface: get nearest neighbors, find trinagles for each vertex
         nn_pts_idx = _get_nearest(to_pts, from_pts)
         from_pt_tris = _triangle_neighbors(from_tris, len(from_pts))
+        from_pt_tris = [from_pt_tris[pt_idx] for pt_idx in nn_pts_idx]
 
         # set up approximation scheme to deal with roundoff errors
         one = 1.0001
         zer = 1.0 - one
         # find triangle in which point lies and assoc. weights
         nn_tri_inds = []
-        nn_tris_weights = np.zeros((len(nn_pts_idx), 3))
-        for ii, pt_idx in enumerate(nn_pts_idx):
-            pt_tris = from_pt_tris[pt_idx]
-            rr = r1[pt_tris] - to_pts[ii]
-            v1s = np.sum(rr * r12[pt_tris], axis=1)
-            v2s = np.sum(rr * r13[pt_tris], axis=1)
-            aas = a[pt_tris]
-            bbs = b[pt_tris]
-            ccs = c[pt_tris]
-            dets = det[pt_tris]
-            pp = (bbs * v1s - ccs * v2s) / dets
-            qq = (aas * v2s - ccs * v1s) / dets
+        nn_tris_weights = []
+        for pt_tris, to_pt in zip(from_pt_tris, to_pts):
+            vect = np.einsum('ik,ijk->ij', r1[pt_tris] - to_pt, r1213[pt_tris])
+            mats = mat[pt_tris]
+            # This eigsum is equivalent to doing:
+            # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
+            pqs = np.einsum('ijk,ik->ji', mats, vect)
             found = False
-            for (pt, p, q) in zip(pt_tris, pp, qq):
+            for (pt, p, q) in zip(pt_tris, pqs[0], pqs[1]):
                 if zer <= p <= one and zer < q < one and p + q < one:
                     found = True
                     break
@@ -856,15 +856,13 @@ def make_morph_map(subject_from, subject_to, subjects_dir=None):
                 raise RuntimeError('Could not assign points, please notify '
                                    'mne developers')
             nn_tri_inds.append(pt)
-            nn_tris_weights[ii, 0] = 1. - (p + q)
-            nn_tris_weights[ii, 1] = p
-            nn_tris_weights[ii, 2] = q
+            nn_tris_weights.extend([1. - (p + q), p, q])
 
         nn_tris = from_tris[nn_tri_inds]
-        row_ind = np.repeat(np.arange(len(nn_pts_idx)), 3)
-        this_map = sparse.csr_matrix((nn_tris_weights.ravel(),
+        row_ind = np.repeat(np.arange(n_to_pts), 3)
+        this_map = sparse.csr_matrix((nn_tris_weights,
                                      (row_ind, nn_tris.ravel())),
-                                     shape=(len(nn_pts_idx), len(from_pts)))
+                                     shape=(n_to_pts, n_from_pts))
         morph_maps.append(this_map)
 
     return morph_maps
