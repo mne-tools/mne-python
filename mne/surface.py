@@ -340,13 +340,16 @@ def read_curvature(filepath):
     return bin_curv
 
 
-def read_surface(fname):
+@verbose
+def read_surface(fname, verbose=None):
     """Load a Freesurfer surface mesh in triangular format
 
     Parameters
     ----------
     fname : str
         The name of the file containing the surface.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -768,7 +771,11 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
             logger.warning('Morph map "%s" does not exist, '
                            'creating it and saving it to disk (this may take '
                            'a few minutes)' % fname)
+            logger.info('Creating morph map %s -> %s'
+                        % (subject_from, subject_to))
             mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir)
+            logger.info('Creating morph map %s -> %s'
+                        % (subject_to, subject_from))
             mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir)
             _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2)
 
@@ -841,7 +848,12 @@ def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
 
 @verbose
 def _make_morph_map(subject_from, subject_to, subjects_dir=None):
-    """Construct morph map from one subject to another"""
+    """Construct morph map from one subject to another
+
+    Note that this is close, but not exactly like the C version.
+    For example, parts are more accurate due to double precision,
+    so expect some small morph-map differences!
+    """
     subjects_dir = get_subjects_dir(subjects_dir)
     morph_maps = list()
 
@@ -850,7 +862,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         for hemi in ['lh', 'rh']:
             fname = op.join(subjects_dir, subject_from, 'surf',
                             '%s.sphere.reg' % hemi)
-            from_pts = read_surface(fname)[0]
+            from_pts = read_surface(fname, verbose=False)[0]
             morph_maps.append(sparse.eye(len(from_pts), format='csr'))
         return morph_maps
 
@@ -858,7 +870,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         # load surfaces and normalize points to be on unit sphere
         fname = op.join(subjects_dir, subject_from, 'surf',
                         '%s.sphere.reg' % hemi)
-        from_pts, from_tris = read_surface(fname)
+        from_pts, from_tris = read_surface(fname, verbose=False)
         n_from_pts = len(from_pts)
         _normalize_vectors(from_pts)
         r1 = from_pts[from_tris[:, 0], :]
@@ -874,7 +886,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
 
         fname = op.join(subjects_dir, subject_to, 'surf',
                         '%s.sphere.reg' % hemi)
-        to_pts, to_tris = read_surface(fname)
+        to_pts, to_tris = read_surface(fname, verbose=False)
         n_to_pts = len(to_pts)
         _normalize_vectors(to_pts)
 
@@ -883,13 +895,9 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         from_pt_tris = _triangle_neighbors(from_tris, len(from_pts))
         from_pt_tris = [from_pt_tris[pt_idx] for pt_idx in nn_pts_idx]
 
-        # set up approximation scheme to deal with roundoff errors
-        one = 1.000
-        zer = 1.0 - one
         # find triangle in which point lies and assoc. weights
         nn_tri_inds = []
         nn_tris_weights = []
-        n_bad = 0
         for pt_tris, to_pt in zip(from_pt_tris, to_pts):
             # The following dense code is equivalent to the following:
             #   rr = r1[pt_tris] - to_pts[ii]
@@ -910,66 +918,48 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
             pqs = np.einsum('ijk,ik->ji', mats, vect)
             found = False
             for (pt, p, q) in zip(pt_tris, pqs[0], pqs[1]):
-                if zer <= p <= one and zer < q < one and p + q < one:
+                if 0. <= p <= 1. and 0. < q < 1. and p + q < 1.:
                     found = True
                     break
             if found is False:
-                n_bad += 1
                 # Tough: must investigate the sides
                 # We might do something intelligent here. However, for now
                 # it is ok to do it in the hard way
                 rrs = r1[pt_tris] - to_pt
-                dists = np.sum(rrs * tri_nn[pt_tris], axis=1)
-                best = np.inf
-                for ti, tri_idx in enumerate(pt_tris):
-                    #Find the nearest point from a triangle
-                    p = pqs[0]
-                    q = pqs[1]
-                    aa = a[tri_idx]
-                    bb = b[tri_idx]
-                    cc = c[tri_idx]
-                    dist = dists[ti]
+                dist = np.sum(rrs * tri_nn[pt_tris], axis=1)
+                pp = pqs[0]
+                qq = pqs[1]
+                aa = a[pt_tris]
+                bb = b[pt_tris]
+                cc = c[pt_tris]
+                # Find the nearest point from a triangle:
+                #   Side 1 -> 2
+                p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa,
+                                           0.0), 1.0)
+                q0 = np.zeros_like(p0)
+                #   Side 2 -> 3
+                t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
+                             + (2.0 * bb - cc) * qq) / (aa + bb - cc))
+                t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
+                p1 = 1.0 - t1
+                q1 = t1
+                dist1 = _get_tri_dist(pp, qq, p1, q1, aa, bb, cc, dist)
+                dist0 = _get_tri_dist(pp, qq, p0, q0, aa, bb, cc, dist)
+                #   Side 1 -> 3
+                q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
+                                           / bb, 0.0), 1.0)
+                p2 = np.zeros_like(q2)
+                dist2 = _get_tri_dist(pp, qq, p2, q2, aa, bb, cc, dist)
 
-                    # Side 1 -> 2
-                    p0 = np.minimum(np.maximum(p + 0.5 * (q * cc) / aa,
-                                               0.0), 1.0)
-                    q0 = 0.0
-                    dist0 = _get_tri_dist(p, q, p0, q0, aa, bb, cc, dist)
-                    if dist0 < best:
-                        x = p0
-                        y = q0
-                        z = tri_idx
-
-                    # Side 2 -> 3
-                    t0 = (0.5 * ((2.0 * aa - cc) * (1.0 - p) + (2.0 * bb - cc) * q)
-                          / (aa + bb - cc))
-                    t0 = np.minimum(np.maximum(t0, 0.0), 1.0)
-                    p1 = 1.0 - t0
-                    q1 = t0
-                    dist0 = _get_tri_dist(p, q, p1, q1, aa, bb, cc, dist)
-                    if dist0 < best:
-                        best = dist0
-                        x = p1
-                        y = q1
-                        z = tri_idx
-
-                    # Side 1 -> 3
-                    p2 = 0.0
-                    q2 = np.minimum(np.maximum(q + 0.5 * (p * cc) / bb, 0.0), 1.0)
-                    dist0 = _get_tri_dist(p, q, p2, q2, aa, bb, cc, dist)
-                    if dist0 < best:
-                        best = dist0
-                        x = p2
-                        y = q2
-                        z = tri_idx
-                p = x
-                q = y
-                pt = z
+                # figure out which one had the lowest distance
+                pp = np.r_[p0, p1, p2]
+                qq = np.r_[q0, q1, q2]
+                idx = np.argmin(np.r_[dist0, dist1, dist2])
+                p, q, pt = pp[idx], qq[idx], pt_tris[idx % len(pt_tris)]
 
             nn_tri_inds.append(pt)
             nn_tris_weights.extend([1. - (p + q), p, q])
 
-        print n_bad
         nn_tris = from_tris[nn_tri_inds]
         row_ind = np.repeat(np.arange(n_to_pts), 3)
         this_map = sparse.csr_matrix((nn_tris_weights,

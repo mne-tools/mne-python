@@ -22,16 +22,13 @@ tempdir = _TempDir()
 def test_make_morph_maps():
     """Test reading and creating morph maps
     """
-    from_subjects = ['fsaverage', 'sample']
-    to_subjects = ['sample', 'fsaverage']
-    for fro, to in zip(from_subjects, to_subjects):
-        mmap = read_morph_map(to, fro, subjects_dir=subjects_dir)
-        mmap2 = _make_morph_map(to, fro, subjects_dir=subjects_dir)
-        assert_equal(len(mmap), len(mmap2))
-        for m1, m2 in zip(mmap, mmap2):
-            # deal with sparse matrix stuff
-            diff = (m1 - m2).data
-            assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
+    mmap = read_morph_map('fsaverage', 'sample', subjects_dir=subjects_dir)
+    mmap2 = _make_morph_map('fsaverage', 'sample', subjects_dir=subjects_dir)
+    assert_equal(len(mmap), len(mmap2))
+    for m1, m2 in zip(mmap, mmap2):
+        # deal with sparse matrix stuff
+        diff = (m1 - m2).data
+        assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
 
 def test_io_bem_surfaces():
