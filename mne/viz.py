@@ -3025,17 +3025,18 @@ def _prepare_trellis(n_cells, max_col):
 
 
 def _draw_epochs_axes(epoch_idx, good_idx, bad_idx, data, times, axes,
-                      title_str, offset):
+                      title_str):
     """Aux functioin"""
     for ii, data_, ax in zip(epoch_idx, data, axes):
         ax.plot(times, data_[good_idx].T, color='k')
         if bad_idx is not None:
             ax.plot(times, data_[bad_idx].T, color='r')
         if title_str is not None:
-            ax.set_title(title_str % (ii + offset), fontsize=12)
+            ax.set_title(title_str % ii, fontsize=12)
         ax.set_ylim(data.min(), data.max())
         ax.set_yticks([])
         ax.set_xticks([])
+
     axes[0].get_figure().canvas.draw()
 
 
@@ -3061,13 +3062,13 @@ def _epochs_navigation_onclick(event, params):
         here = -1
     else:
         return
-    [p[k].rotate(here) for k in 'index_handler', 'offsets']
+    p['index_handler'].rotate(here)
     this_idx = p['index_handler'][0]
     data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
                                  p['times'], p['picks'], p['scalings'],
                                  p['types'])
     _draw_epochs_axes(this_idx, p['good_idx'], p['bad_idx'], data, p['times'],
-                      p['axes'], p['title_str'], offset=p['offsets'][0])
+                      p['axes'], p['title_str'])
 
 
 def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
@@ -3144,7 +3145,6 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         good_idx = np.arange(n_channels)
 
     fig, axes = _prepare_trellis(len(data), max_col=5)
-    # fig.canvas.mpl_connect('button_press_event', callback_pick)
     for ii, data_, ax in zip(epoch_idx, data, axes):
         ax.plot(times, data_[good_idx].T, color='k')
         if bad_idx is not None:
@@ -3164,8 +3164,6 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     ax1 = pl.subplot(gs1[:, 0])
     ax2 = pl.subplot(gs1[:, 1])
     # if show is True:
-    offsets = [len(k) for k in list(index_handler)[:-1]]
-    offsets = deque(list(np.cumsum([0] + offsets)))
     params = {
         'fig': fig,
         'index_handler': index_handler,
@@ -3180,8 +3178,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         'axes': axes,
         'back': pl.mpl.widgets.Button(ax1, 'back'),
         'next': pl.mpl.widgets.Button(ax2, 'next'),
-        'title_str': title_str,
-        'offsets': offsets
+        'title_str': title_str
     }
     navigation.canvas.mpl_connect('button_press_event',
                                   partial(_epochs_navigation_onclick,
