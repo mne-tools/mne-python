@@ -537,6 +537,38 @@ def test_iter_evoked():
         assert_array_equal(x, y)
 
 
+def test_subtract_evoked():
+    """Test subtraction of Evoked from Epochs
+    """
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+
+    # make sure subraction fails if data channels are missing
+    assert_raises(ValueError, epochs.subtract_evoked,
+                  epochs.average(picks[:5]))
+
+    # do the subraction using the default argument
+    epochs.subtract_evoked()
+
+    # apply SSP now
+    epochs.apply_proj()
+
+    # use preloading and SSP from the start
+    epochs2 = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), preload=True, proj=True)
+
+    evoked = epochs2.average()
+    epochs2.subtract_evoked(evoked)
+
+    # this gives the same result
+    assert_allclose(epochs.get_data(), epochs2.get_data())
+
+    # if we compute the evoked response after subtracting it we get zero
+    zero_evoked = epochs.average()
+    data = zero_evoked.data
+    assert_array_almost_equal(data, np.zeros_like(data), decimal=20)
+
+
 @requires_nitime
 def test_epochs_to_nitime():
     """Test test_to_nitime
