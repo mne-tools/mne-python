@@ -24,6 +24,7 @@ from scipy import linalg
 from scipy import ndimage
 from matplotlib import delaunay
 from warnings import warn
+from collections import deque
 
 # XXX : don't import pylab here or you will break the doc
 
@@ -34,6 +35,7 @@ from .utils import get_subjects_dir, get_config, set_config, _check_subject, \
 from .fiff import show_fiff, FIFF
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, setup_proj
+from .utils import create_chunks
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -2791,7 +2793,8 @@ def _pick_bad_channels(event, params):
                     else:
                         bads.pop(bads.index(this_chan))
                         l.set_color(vars(l)['def-color'])
-                    event.canvas.draw()
+                event.canvas.draw()
+                break
     # update deep-copied info to persistently draw bads
     params['info']['bads'] = bads
 
@@ -3021,6 +3024,52 @@ def _prepare_trellis(n_cells, max_col):
     return fig, axes
 
 
+def _draw_epochs_axes(epoch_idx, good_idx, bad_idx, data, times, axes,
+                      title_str, offset):
+    """Aux functioin"""
+    for ii, data_, ax in zip(epoch_idx, data, axes):
+        ax.plot(times, data_[good_idx].T, color='k')
+        if bad_idx is not None:
+            ax.plot(times, data_[bad_idx].T, color='r')
+        if title_str is not None:
+            ax.set_title(title_str % (ii + offset), fontsize=12)
+        ax.set_ylim(data.min(), data.max())
+        ax.set_yticks([])
+        ax.set_xticks([])
+    axes[0].get_figure().canvas.draw()
+
+
+def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times, picks,
+                          scalings, types):
+    """Aux function
+    """
+    data = np.zeros((len(epoch_idx), n_channels, len(times)))
+    for ii, epoch in enumerate(epochs.get_data()[epoch_idx][:, picks]):
+        for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
+            data[ii, jj] = this_channel / scalings[this_type]
+    return data
+
+
+def _epochs_navigation_onclick(event, params):
+    """Aux function"""
+    p = params
+    print event.inaxes
+    print p['index_handler']
+    if event.inaxes == p['back'].ax:
+        here = 1
+    elif event.inaxes == p['next'].ax:
+        here = -1
+    else:
+        return
+    [p[k].rotate(here) for k in 'index_handler', 'offsets']
+    this_idx = p['index_handler'][0]
+    data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
+                                 p['times'], p['picks'], p['scalings'],
+                                 p['types'])
+    _draw_epochs_axes(this_idx, p['good_idx'], p['bad_idx'], data, p['times'],
+                      p['axes'], p['title_str'], offset=p['offsets'][0])
+
+
 def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
                 title_str='#%003i', show=True):
     """ Visualize single trials using Trellis plot.
@@ -3053,14 +3102,16 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     """
     import pylab as pl
     scalings = _mutable_defaults(('scalings_plot_raw', None))[0]
-    if epoch_idx is None:
-        n_events = len(epochs.events)
-        if n_events < 20:
-            epoch_idx = range(n_events)
-        else:
-            epoch_idx = range(20)
     if np.isscalar(epoch_idx):
         epoch_idx = [epoch_idx]
+    if epoch_idx is None:
+        n_events = len(epochs.events)
+        epoch_idx = range(n_events)
+    else:
+        n_events = len(epoch_idx)
+    epoch_idx = epoch_idx[:n_events]
+    index_handler = deque(create_chunks(epoch_idx, 20))
+
     if picks is None:
         if any('ICA' in k for k in epochs.ch_names):
             picks = pick_types(epochs.info, misc=True, exclude=[])
@@ -3075,12 +3126,12 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
              picks]
 
     # preallocation needed for min / max scaling
-    data = np.zeros((len(epoch_idx), n_channels, len(times)))
-    for ii, epoch in enumerate(epochs.get_data()[epoch_idx][:, picks]):
-        for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
-            data[ii, jj] = this_channel / scalings[this_type]
-    vmin, vmax = data.min(), data.max()
-
+    first_idx = index_handler[0]
+    data = _plot_epochs_get_data(epochs, first_idx, n_channels,
+                                 times, picks, scalings, types)
+    n_events = len(epochs.events)
+    epoch_idx = epoch_idx[:n_events]
+    index_handler = deque(create_chunks(epoch_idx, 20))
     # handle bads
     bad_idx = None
     ch_names = epochs.ch_names
@@ -3093,16 +3144,48 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         good_idx = np.arange(n_channels)
 
     fig, axes = _prepare_trellis(len(data), max_col=5)
+    # fig.canvas.mpl_connect('button_press_event', callback_pick)
     for ii, data_, ax in zip(epoch_idx, data, axes):
         ax.plot(times, data_[good_idx].T, color='k')
         if bad_idx is not None:
             ax.plot(times, data_[bad_idx].T, color='r')
         if title_str is not None:
             ax.set_title(title_str % ii, fontsize=12)
-        ax.set_ylim(vmin, vmax)
+        ax.set_ylim(data.min(), data.max())
         ax.set_yticks([])
         ax.set_xticks([])
+
     tight_layout()
     if show is True:
         pl.show()
+
+    navigation = figure_nobar(figsize=(3, 0.5))
+    gs1 = pl.mpl.gridspec.GridSpec(1, 2)
+    ax1 = pl.subplot(gs1[:, 0])
+    ax2 = pl.subplot(gs1[:, 1])
+    # if show is True:
+    offsets = [len(k) for k in list(index_handler)[:-1]]
+    offsets = deque(list(np.cumsum([0] + offsets)))
+    params = {
+        'fig': fig,
+        'index_handler': index_handler,
+        'epochs': epochs,
+        'n_channels': n_channels,
+        'picks': picks,
+        'times': times,
+        'scalings': scalings,
+        'types': types,
+        'good_idx': good_idx,
+        'bad_idx': bad_idx,
+        'axes': axes,
+        'back': pl.mpl.widgets.Button(ax1, 'back'),
+        'next': pl.mpl.widgets.Button(ax2, 'next'),
+        'title_str': title_str,
+        'offsets': offsets
+    }
+    navigation.canvas.mpl_connect('button_press_event',
+                                  partial(_epochs_navigation_onclick,
+                                          params=params))
+    navigation.show()
+
     return fig

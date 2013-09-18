@@ -60,6 +60,19 @@ def split_list(l, n):
     yield l[(n - 1) * sz:]
 
 
+def create_chunks(sequence, size):
+    """Generate chungs from a sequence
+
+    Parameters
+    ----------
+    sequence : iterable
+        Any iterable object
+    size : int
+        The chunksize to be returned
+    """
+    return [sequence[p:p + size] for p in xrange(0, len(sequence), size)]
+
+
 class WrapStdOut(object):
     """Ridiculous class to work around how doctest captures stdout"""
     def __getattr__(self, name):
