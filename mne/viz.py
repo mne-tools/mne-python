@@ -3018,7 +3018,7 @@ def _prepare_trellis(n_cells, max_col):
         nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
 
     fig, axes = pl.subplots(nrow, ncol)
-    axes = [axes] if ncol == nrow == 1 else axes.flat
+    axes = [axes] if ncol == nrow == 1 else axes.flatten()
     for ax in axes[n_cells:]:  # hide unused axes
         ax.set_visible(False)
     return fig, axes
@@ -3054,7 +3054,6 @@ def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times, picks,
 def _epochs_navigation_onclick(event, params):
     """Aux function"""
     p = params
-    print p['index_handler'][0]
     here = None
     if event.inaxes == p['back'].ax:
         here = 1
@@ -3063,7 +3062,6 @@ def _epochs_navigation_onclick(event, params):
     if here is not None:
         p['index_handler'].rotate(here)
         this_idx = p['index_handler'][0]
-        print p['index_handler'][0]
         data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
                                      p['times'], p['picks'], p['scalings'],
                                      p['types'])
