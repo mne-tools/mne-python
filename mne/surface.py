@@ -10,7 +10,7 @@ import sys
 from struct import pack
 import numpy as np
 from scipy.spatial.distance import cdist
-from scipy import linalg, sparse
+from scipy import sparse
 
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
