@@ -61,7 +61,7 @@ def split_list(l, n):
 
 
 def create_chunks(sequence, size):
-    """Generate chungs from a sequence
+    """Generate chunks from a sequence
 
     Parameters
     ----------
