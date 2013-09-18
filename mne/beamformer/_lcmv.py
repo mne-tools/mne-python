@@ -498,10 +498,8 @@ def generate_filtered_epochs(raw, freq_bins, events, event_id, tmin, tmax,
     """Filters raw data, creates and yields epochs
     """
     # Getting picks based on rejections prior to filtering
-    tmp_epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        proj=True, baseline=baseline, preload=True,
-                        reject=reject)
-    events = tmp_epochs.events
+    events = Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=True,
+                    baseline=baseline, preload=True, reject=reject).events
 
     for freq_bin in freq_bins:
         raw_band = raw.copy()
