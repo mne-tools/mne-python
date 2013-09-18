@@ -3039,8 +3039,6 @@ def _draw_epochs_axes(epoch_idx, good_idx, bad_idx, data, times, axes,
         ax.set_yticks([])
         ax.set_xticks([])
 
-    axes[0].get_figure().canvas.draw()
-
 
 def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times, picks,
                           scalings, types):
@@ -3056,21 +3054,23 @@ def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times, picks,
 def _epochs_navigation_onclick(event, params):
     """Aux function"""
     p = params
-    print event.inaxes
-    print p['index_handler']
+    print p['index_handler'][0]
+    here = None
     if event.inaxes == p['back'].ax:
         here = 1
     elif event.inaxes == p['next'].ax:
         here = -1
-    else:
-        return
-    p['index_handler'].rotate(here)
-    this_idx = p['index_handler'][0]
-    data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
-                                 p['times'], p['picks'], p['scalings'],
-                                 p['types'])
-    _draw_epochs_axes(this_idx, p['good_idx'], p['bad_idx'], data, p['times'],
-                      p['axes'], p['title_str'])
+    if here is not None:
+        p['index_handler'].rotate(here)
+        this_idx = p['index_handler'][0]
+        print p['index_handler'][0]
+        data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
+                                     p['times'], p['picks'], p['scalings'],
+                                     p['types'])
+        _draw_epochs_axes(this_idx, p['good_idx'], p['bad_idx'], data,
+                          p['times'], p['axes'], p['title_str'])
+            # XXX don't ask me why
+        p['axes'][0].get_figure().canvas.draw()
 
 
 def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
@@ -3167,7 +3167,6 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     ax2 = pl.subplot(gs1[:, 1])
     # if show is True:
     params = {
-        'fig': fig,
         'index_handler': index_handler,
         'epochs': epochs,
         'n_channels': n_channels,
