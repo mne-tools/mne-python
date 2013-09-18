@@ -497,20 +497,19 @@ def generate_filtered_epochs(raw, freq_bins, events, event_id, tmin, tmax,
                              baseline, n_jobs, picks, reject):
     """Filters raw data, creates and yields epochs
     """
-    # Getting picks based on rejections prior to filtering
+    # Rejecting events prior to filtering
     events = Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=True,
                     baseline=baseline, preload=True, reject=reject).events
 
-    for freq_bin in freq_bins:
+    for l_freq, h_freq in freq_bins:
         raw_band = raw.copy()
-        raw_band.filter(l_freq=freq_bin[0], h_freq=freq_bin[1], picks=picks,
-                        n_jobs=n_jobs)
+        raw_band.filter(l_freq, h_freq, picks=picks, n_jobs=n_jobs)
         # TODO: Which of these parameters should really be exposed? All?
         # defaults taken from mne.Epochs?
         epochs_band = Epochs(raw_band, events, event_id, tmin, tmax, proj=True,
                              picks=picks, baseline=baseline, preload=True)
 
-        yield epochs_band, freq_bin
+        yield epochs_band
 
 
 def tf_lcmv(epochs_band, forward, label, tmin, tmax, tstep, win_length,

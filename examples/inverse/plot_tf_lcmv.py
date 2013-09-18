@@ -60,7 +60,7 @@ filtered_epochs = generate_filtered_epochs(raw, freq_bins, events, event_id,
                                                        mag=4e-12))
 
 stcs = []
-for i, (epochs_band, freq_bin) in enumerate(filtered_epochs):
+for i, epochs_band in enumerate(filtered_epochs):
     stc = tf_lcmv(epochs_band, forward, label=label, tmin=tmin, tmax=tmax,
                   tstep=tstep, win_length=win_lengths[i], control=control,
                   reg=0.05)
