@@ -3122,7 +3122,7 @@ def _epochs_axes_onclick(event, params):
 
 
 def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
-                title_str='#%003i', show=True):
+                title_str='#%003i', show=True, block=False):
     """ Visualize single trials using Trellis plot.
 
     Parameters
@@ -3145,6 +3145,10 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         will be shown. Defaults expand to ``#001, #002, ...``
     show : bool
         Whether to show the figure or not.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+        Useful for rejecting bad trials on the fly by clicking on a
+        sub plot.
 
     Returns
     -------
@@ -3212,9 +3216,6 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
             vars(ax)[this_view] = {'idx': ii, 'reject': False}
 
     tight_layout()
-    if show is True:
-        pl.show()
-
     navigation = figure_nobar(figsize=(3, 1.5))
     from matplotlib import gridspec
     gs = gridspec.GridSpec(2, 2)
@@ -3246,6 +3247,6 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     navigation.canvas.mpl_connect('button_press_event',
                                   partial(_epochs_navigation_onclick,
                                           params=params))
-    navigation.show()
-
+    if show is True:
+        pl.show(block=block)
     return fig

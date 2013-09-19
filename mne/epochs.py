@@ -345,7 +345,7 @@ class _BaseEpochs(ProjMixin):
         return self.info['ch_names']
 
     def plot(self, epoch_idx=None, picks=None, scalings=None,
-             title_str='#%003i', show=True):
+             title_str='#%003i', show=True, block=False):
         """ Visualize single trials using Trellis plot.
 
         Parameters
@@ -367,6 +367,10 @@ class _BaseEpochs(ProjMixin):
             will be shown. Defaults expand to ``#001, #002, ...``
         show : bool
             Whether to show the figure or not.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for rejecting bad trials on the fly by clicking on a
+            sub plot.
 
         Returns
         -------
@@ -374,7 +378,7 @@ class _BaseEpochs(ProjMixin):
             The figure.
         """
         plot_epochs(self, epoch_idx=epoch_idx, picks=picks, scalings=scalings,
-                    title_str=title_str, show=show)
+                    title_str=title_str, show=show, block=block)
 
 
 class Epochs(_BaseEpochs):

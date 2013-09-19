@@ -45,8 +45,7 @@ Changelog
    
    - Add `ico` and `oct` source space creation in native Python by `Eric Larson`_
 
-   - Add interactive rejection on click of bad trials in `plot_epochs` by 
-   `Denis Engemann`_
+   - Add interactive rejection of bad trials in `plot_epochs` by `Denis Engemann`_
 
 API
 ~~~
