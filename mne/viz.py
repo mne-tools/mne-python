@@ -3091,7 +3091,7 @@ def _epochs_axes_onclick(event, params):
             good_lines = [ax.lines[k] for k in p['good_ch_idx']]
             [l.set_color('k') for l in good_lines]
             if p['bad_ch_idx'] is not None:
-                bad_lines = [ax.lines[k] for k in p['bad_ch_idx']]
+                bad_lines = ax.lines[-len(p['bad_ch_idx']):]
                 [l.set_color('r') for l in bad_lines]
             vars(ax)['reject'] = False
     ax.get_figure().canvas.draw()
