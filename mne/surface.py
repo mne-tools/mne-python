@@ -868,6 +868,10 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     Note that this is close, but not exactly like the C version.
     For example, parts are more accurate due to double precision,
     so expect some small morph-map differences!
+
+    Note: This seems easily parallelizable, but the overhead
+    of pickling all the data structures makes it less efficient
+    than just running on a single core :(
     """
     subjects_dir = get_subjects_dir(subjects_dir)
     morph_maps = list()
