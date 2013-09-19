@@ -14,7 +14,7 @@ import warnings
 
 from .filter import resample
 from .parallel import parallel_func
-from .surface import read_surface, _get_ico_surface
+from .surface import read_surface, _get_ico_surface, read_morph_map
 from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
                     deprecated, logger, verbose)
@@ -1627,87 +1627,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
         s += ", data size : %s x %s" % self.shape
         return "<VolSourceEstimate  |  %s>" % s
 
+
 ###############################################################################
 # Morphing
-
-from .fiff.constants import FIFF
-from .fiff.tag import find_tag
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
-
-
-@verbose
-def read_morph_map(subject_from, subject_to, subjects_dir=None,
-                   verbose=None):
-    """Read morph map generated with mne_make_morph_maps
-
-    Parameters
-    ----------
-    subject_from : string
-        Name of the original subject as named in the SUBJECTS_DIR.
-    subject_to : string
-        Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    subjects_dir : string
-        Path to SUBJECTS_DIR is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    left_map, right_map : sparse matrix
-        The morph maps for the 2 hemispheres.
-    """
-
-    subjects_dir = get_subjects_dir(subjects_dir)
-
-    # Does the file exist
-    name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_from,
-                                              subject_to)
-    if not os.path.exists(name):
-        name = '%s/morph-maps/%s-%s-morph.fif' % (subjects_dir, subject_to,
-                                                  subject_from)
-        if not os.path.exists(name):
-            raise ValueError('The requested morph map does not exist\n' +
-                             'Perhaps you need to run the MNE tool:\n' +
-                             '  mne_make_morph_maps --from %s --to %s'
-                             % (subject_from, subject_to))
-
-    fid, tree, _ = fiff_open(name)
-
-    # Locate all maps
-    maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
-    if len(maps) == 0:
-        fid.close()
-        raise ValueError('Morphing map data not found')
-
-    # Find the correct ones
-    left_map = None
-    right_map = None
-    for m in maps:
-        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
-        if tag.data == subject_from:
-            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
-            if tag.data == subject_to:
-                #  Names match: which hemishere is this?
-                tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
-                if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    left_map = tag.data
-                    logger.info('    Left-hemisphere map read.')
-                elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    right_map = tag.data
-                    logger.info('    Right-hemisphere map read.')
-
-    fid.close()
-    if left_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % name)
-
-    if right_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % name)
-
-    return left_map, right_map
-
 
 def mesh_edges(tris):
     """Returns sparse matrix with edges as an adjacency matrix
