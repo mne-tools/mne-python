@@ -44,29 +44,31 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # Picks MEG channels
 picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                                stim=False, include=include, exclude='bads')
+                        stim=False, include=include, exclude='bads')
+reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
 # Load epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
+                    baseline=(None, 0), reject=reject,
                     preload=True)
 
-# Compute a source estimate per frequency band inlcuding and excluding the
+# Compute a source estimate per frequency band including and excluding the
 # evoked response
 frequencies = np.arange(7, 30, 2)  # define frequencies of interest
 label = mne.read_label(fname_label)
 n_cycles = frequencies / 3.  # different number of cycle per frequency
 
+# subtract the evoked response in order to exclude evoked activity
+epochs_induced = epochs.copy().subtract_evoked()
+
 import pylab as pl
-pl.clf()
+pl.close('all')
 
-for ii, title in enumerate(['evoked + induced', 'induced only']):
-    if ii == 1:
-        # subtract the evoked response in order to exclude evoked activity
-        epochs.subtract_evoked()
-
+for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
+                                              ['evoked + induced',
+                                               'induced only'])):
     # compute the source space power and phase lock
-    power, phase_lock = source_induced_power(epochs, inverse_operator,
+    power, phase_lock = source_induced_power(this_epochs, inverse_operator,
         frequencies, label, baseline=(-0.1, 0), baseline_mode='percent',
         n_cycles=n_cycles, n_jobs=1)
 
@@ -80,7 +82,7 @@ for ii, title in enumerate(['evoked + induced', 'induced only']):
     pl.subplot(2, 2, 2 * ii + 1)
     pl.imshow(20 * power, extent=[times[0], times[-1],
                                   frequencies[0], frequencies[-1]],
-              aspect='auto', origin='lower')
+              aspect='auto', origin='lower', vmin=0., vmax=30.)
     pl.xlabel('Time (s)')
     pl.ylabel('Frequency (Hz)')
     pl.title('Power (%s)' % title)
@@ -89,7 +91,7 @@ for ii, title in enumerate(['evoked + induced', 'induced only']):
     pl.subplot(2, 2, 2 * ii + 2)
     pl.imshow(phase_lock, extent=[times[0], times[-1],
                                   frequencies[0], frequencies[-1]],
-              aspect='auto', origin='lower')
+              aspect='auto', origin='lower', vmin=0, vmax=0.7)
     pl.xlabel('Time (s)')
     pl.ylabel('Frequency (Hz)')
     pl.title('Phase-lock (%s)' % title)
