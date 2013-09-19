@@ -23,7 +23,8 @@ from .fiff.raw import _time_as_index, _index_as_time
 from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
-from .fiff.pick import pick_types, channel_indices_by_type, channel_type
+from .fiff.pick import pick_types, channel_indices_by_type, channel_type, \
+                       pick_channels
 from .fiff.proj import setup_proj, ProjMixin
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
@@ -137,6 +138,7 @@ class _BaseEpochs(ProjMixin):
 
         self.preload = False
         self._data = None
+        self._offset = None
 
         # setup epoch rejection
         self._reject_setup()
@@ -226,6 +228,80 @@ class _BaseEpochs(ProjMixin):
 
             yield evoked
 
+    def subtract_evoked(self, evoked=None):
+        """Subtract an evoked response from each epoch
+
+        Can be used to exclude the evoked response when analyzing induced
+        activity, see e.g. [1].
+
+        References
+        ----------
+        [1] David et al. "Mechanisms of evoked and induced responses in
+        MEG/EEG", NeuroImage, vol. 31, no. 4, pp. 1580-1591, July 2006.
+
+        Parameters
+        ----------
+        evoked : instance of mne.fiff.Evoked | None
+            The evoked response to subtract. If None, the evoked response
+            is computed from Epochs itself.
+
+        Returns
+        -------
+        self : instance of mne.Epochs
+            The modified instance (instance is also modified inplace).
+        """
+        logger.info('Subtracting Evoked from Epochs')
+        if evoked is None:
+            picks = pick_types(self.info, meg=True, eeg=True,
+                               stim=False, eog=False, ecg=False,
+                               emg=False, exclude=[])
+            evoked = self.average(picks)
+
+        # find the indices of the channels to use
+        picks = pick_channels(evoked.ch_names, include=self.ch_names)
+
+        # make sure the omitted channels are not data channels
+        if len(picks) < len(self.ch_names):
+            sel_ch = [evoked.ch_names[ii] for ii in picks]
+            diff_ch = list(set(self.ch_names).difference(sel_ch))
+            diff_idx = [self.ch_names.index(ch) for ch in diff_ch]
+            diff_types = [channel_type(self.info, idx) for idx in diff_idx]
+            bad_idx = [diff_types.index(t) for t in diff_types if t in
+                       ['grad', 'mag', 'eeg']]
+            if len(bad_idx) > 0:
+                bad_str = ', '.join([diff_ch[ii] for ii in bad_idx])
+                raise ValueError('The following data channels are missing '
+                                 'in the evoked response: %s' % bad_str)
+            logger.info('    The following channels are not included in the '
+                        'subtraction: %s' % ', '.join(diff_ch))
+
+        # make sure the times match
+        if (len(self.times) != len(evoked.times) or
+                np.max(np.abs(self.times - evoked.times)) >= 1e-7):
+            raise ValueError('Epochs and Evoked object do not contain '
+                             'the same time points.')
+
+        # handle SSPs
+        if not self.proj and evoked.proj:
+            warnings.warn('Evoked has SSP applied while Epochs has not.')
+        if self.proj and not evoked.proj:
+            evoked = evoked.copy().apply_proj()
+
+        # find the indices of the channels to use in Epochs
+        ep_picks = [self.ch_names.index(evoked.ch_names[ii]) for ii in picks]
+
+        # do the subtraction
+        if self.preload:
+            self._data[:, ep_picks, :] -= evoked.data[picks][None, :, :]
+        else:
+            if self._offset is None:
+                self._offset = np.zeros((len(self.ch_names), len(self.times)),
+                                        dtype=np.float)
+            self._offset[ep_picks] -= evoked.data[picks]
+        logger.info('[done]')
+
+        return self
+
     def _get_data_from_disk(self, out=True, verbose=None):
         raise NotImplementedError('_get_data_from_disk() must be implemented '
                                   'in derived class.')
@@ -245,7 +321,6 @@ class _BaseEpochs(ProjMixin):
 
         Parameters
         ----------
-
         picks : None | array of int
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
@@ -692,7 +767,12 @@ class Epochs(_BaseEpochs):
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
         # Baseline correct
         epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
-                    copy=False, verbose=verbose)
+                        copy=False, verbose=verbose)
+
+        # handle offset
+        if self._offset is not None:
+            epoch += self._offset
+
         # Decimate
         if self.decim > 1:
             epoch = epoch[:, self._decim_idx]
