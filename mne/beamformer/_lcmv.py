@@ -520,8 +520,64 @@ def generate_filtered_epochs(freq_bins, n_jobs, raw, events, event_id, tmin,
         yield epochs_band
 
 
-def tf_lcmv(epochs_band, forward, label, tmin, tmax, tstep, win_length,
-            control, reg):
+def tf_lcmv(epochs_band, forward, tmin, tmax, tstep, win_length,
+            baseline, reg=0.01, label=None, pick_ori=None, verbose=None):
+    """5D time-frequency beamforming based on LCMV.
+
+    Calculate source power in time-frequency windows using a spatial filter
+    based on the Linearly Constrained Minimum Variance (LCMV) beamforming
+    approach. Band-pass filtered epochs are divided into time windows from
+    which covariance is computed and used to create a beamformer spatial
+    filter. Baseline covariance is used to whiten the data first.
+
+    NOTE : This implementation has not been heavilly tested so please
+    report any issues or suggestions.
+
+    Parameters
+    ----------
+    epochs_band : list of Epochs
+        Single trial epochs containing data filtered in frequency bands of
+        interest. The generate_filtered_epochs function can be used to prepare
+        epochs_band.
+    forward : dict
+        Forward operator.
+    tmin : float
+        Minimum time instant to consider.
+    tmax : float
+        Maximum time instant to consider.
+    tstep : float
+        Spacing between consecutive time windows, should be smaller than or
+        equal to the shortest time window length.
+    win_length : float
+        Length in seconds of time windows for which data covariance and LCMV
+        source power will be computed.
+    baseline : tuple of float
+        Start and end points of baseline time window from which covariance will
+        be computed and used to whiten data covariance.
+    reg : float
+        The regularization for the whitened data covariance.
+    label : Label | None
+        Restricts the solution to a given label.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stcs : list of SourceEstimate
+        Source power at each time window. One SourceEstimate object is returned
+        for each frequency bin.
+
+    Notes
+    -----
+    The original reference is:
+    Dalal et al. Five-dimensional neuroimaging: Localization of the
+    time-frequency dynamics of cortical activity.
+    NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+    """
+
     # TODO: Check win_length and freq_bin match in length
     # TODO: Check that no time window is longer than tstep
     single_sols = []
@@ -533,8 +589,8 @@ def tf_lcmv(epochs_band, forward, label, tmin, tmax, tstep, win_length,
     n_overlap = int((win_length * 1e3) // (tstep * 1e3))
 
     # Calculating noise covariance
-    noise_cov = compute_covariance(epochs_band, tmin=control[0],
-                                   tmax=control[1])
+    noise_cov = compute_covariance(epochs_band, tmin=baseline[0],
+                                   tmax=baseline[1])
     noise_cov = regularize(noise_cov, epochs_band.info, mag=0.05, grad=0.05,
                            eeg=0.1, proj=True)
 
@@ -548,7 +604,8 @@ def tf_lcmv(epochs_band, forward, label, tmin, tmax, tstep, win_length,
                                           tmax=win_tmax)
 
             stc = _lcmv_source_power(epochs_band.info, forward, noise_cov,
-                                     data_cov, reg=0.001, label=label)
+                                     data_cov, reg=0.001, label=label,
+                                     pick_ori=pick_ori, verbose=verbose)
             single_sols.append(stc.data[:, 0])
 
         # Average over all time windows that contain the current time
