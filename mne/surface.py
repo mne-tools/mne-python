@@ -18,7 +18,8 @@ from .fiff.tree import dir_tree_find
 from .fiff.tag import find_tag
 from .fiff.write import write_int, write_float, write_float_matrix, \
                         write_int_matrix, start_file, end_block, \
-                        start_block, end_file
+                        start_block, end_file, write_string, \
+                        write_float_sparse_rcs
 from .utils import logger, verbose, get_subjects_dir
 
 #
@@ -339,13 +340,16 @@ def read_curvature(filepath):
     return bin_curv
 
 
-def read_surface(fname):
+@verbose
+def read_surface(fname, verbose=None):
     """Load a Freesurfer surface mesh in triangular format
 
     Parameters
     ----------
     fname : str
         The name of the file containing the surface.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -418,8 +422,8 @@ def _get_ico_surface(grade):
     """Return an icosahedral surface of the desired grade"""
     # always use verbose=False since users don't need to know we're pulling
     # these from a file
-    ico_file_name = os.path.join(os.path.dirname(__file__), 'data',
-                                 'icos.fif.gz')
+    ico_file_name = op.join(op.dirname(__file__), 'data',
+                            'icos.fif.gz')
     ico = read_bem_surfaces(ico_file_name, s_id=9000 + grade, verbose=False)
     return ico
 
@@ -725,3 +729,261 @@ def decimate_surface(points, triangles, n_triangles):
 
     reduction = 1 - (float(n_triangles) / len(triangles))
     return _decimate_surface(points, triangles, reduction)
+
+
+###############################################################################
+# Morph maps
+
+@verbose
+def read_morph_map(subject_from, subject_to, subjects_dir=None,
+                   verbose=None):
+    """Read morph map
+
+    Morph maps can be generated with mne_make_morph_maps. If one isn't
+    available, it will be generated automatically and saved to the
+    ``subjects_dir/morph_maps`` directory.
+
+    Parameters
+    ----------
+    subject_from : string
+        Name of the original subject as named in the SUBJECTS_DIR.
+    subject_to : string
+        Name of the subject on which to morph as named in the SUBJECTS_DIR.
+    subjects_dir : string
+        Path to SUBJECTS_DIR is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    left_map, right_map : sparse matrix
+        The morph maps for the 2 hemispheres.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir)
+
+    # First check for morph-map dir existence
+    mmap_dir = op.join(subjects_dir, 'morph-maps')
+    if not op.isdir(mmap_dir):
+        try:
+            os.mkdir(mmap_dir)
+        except:
+            logger.warn('Could not find or make morph map directory "%s"'
+                        % mmap_dir)
+
+    # Does the file exist
+    fname = op.join(mmap_dir, '%s-%s-morph.fif' % (subject_from, subject_to))
+    if not op.exists(fname):
+        fname = op.join(mmap_dir, '%s-%s-morph.fif'
+                        % (subject_to, subject_from))
+        if not op.exists(fname):
+            logger.warning('Morph map "%s" does not exist, '
+                           'creating it and saving it to disk (this may take '
+                           'a few minutes)' % fname)
+            logger.info('Creating morph map %s -> %s'
+                        % (subject_from, subject_to))
+            mmap_1 = _make_morph_map(subject_from, subject_to, subjects_dir)
+            logger.info('Creating morph map %s -> %s'
+                        % (subject_to, subject_from))
+            mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir)
+            try:
+                _write_morph_map(fname, subject_from, subject_to,
+                                 mmap_1, mmap_2)
+            except Exception as exp:
+                logger.warn('Could not write morph-map file "%s" (error: %s)'
+                            % (fname, exp))
+            return mmap_1
+
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        # Locate all maps
+        maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
+        if len(maps) == 0:
+            raise ValueError('Morphing map data not found')
+
+        # Find the correct ones
+        left_map = None
+        right_map = None
+        for m in maps:
+            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
+            if tag.data == subject_from:
+                tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
+                if tag.data == subject_to:
+                    #  Names match: which hemishere is this?
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
+                    if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
+                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                        left_map = tag.data
+                        logger.info('    Left-hemisphere map read.')
+                    elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
+                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                        right_map = tag.data
+                        logger.info('    Right-hemisphere map read.')
+
+    if left_map is None:
+        raise ValueError('Left hemisphere map not found in %s' % fname)
+
+    if right_map is None:
+        raise ValueError('Left hemisphere map not found in %s' % fname)
+
+    return left_map, right_map
+
+
+def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
+    """Write a morph map to disk"""
+    fid = start_file(fname)
+    assert len(mmap_1) == 2
+    assert len(mmap_2) == 2
+    hemis = [FIFF.FIFFV_MNE_SURF_LEFT_HEMI, FIFF.FIFFV_MNE_SURF_RIGHT_HEMI]
+    for m, hemi in zip(mmap_1, hemis):
+        start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
+        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_FROM, subject_from)
+        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_TO, subject_to)
+        write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
+        write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
+        end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
+    for m, hemi in zip(mmap_2, hemis):
+        start_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
+        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_FROM, subject_to)
+        write_string(fid, FIFF.FIFF_MNE_MORPH_MAP_TO, subject_from)
+        write_int(fid, FIFF.FIFF_MNE_HEMI, hemi)
+        write_float_sparse_rcs(fid, FIFF.FIFF_MNE_MORPH_MAP, m)
+        end_block(fid, FIFF.FIFFB_MNE_MORPH_MAP)
+    end_file(fid)
+
+
+def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
+    """Auxiliary function for getting the distance to a triangle edge"""
+    return np.sqrt((p - p0) * (p - p0) * a +
+                   (q - q0) * (q - q0) * b +
+                   (p - p0) * (q - q0) * c +
+                   dist * dist)
+
+
+@verbose
+def _make_morph_map(subject_from, subject_to, subjects_dir=None):
+    """Construct morph map from one subject to another
+
+    Note that this is close, but not exactly like the C version.
+    For example, parts are more accurate due to double precision,
+    so expect some small morph-map differences!
+
+    Note: This seems easily parallelizable, but the overhead
+    of pickling all the data structures makes it less efficient
+    than just running on a single core :(
+    """
+    subjects_dir = get_subjects_dir(subjects_dir)
+    morph_maps = list()
+
+    # add speedy short-circuit for self-maps
+    if subject_from == subject_to:
+        for hemi in ['lh', 'rh']:
+            fname = op.join(subjects_dir, subject_from, 'surf',
+                            '%s.sphere.reg' % hemi)
+            from_pts = read_surface(fname, verbose=False)[0]
+            morph_maps.append(sparse.eye(len(from_pts), format='csr'))
+        return morph_maps
+
+    for hemi in ['lh', 'rh']:
+        # load surfaces and normalize points to be on unit sphere
+        fname = op.join(subjects_dir, subject_from, 'surf',
+                        '%s.sphere.reg' % hemi)
+        from_pts, from_tris = read_surface(fname, verbose=False)
+        n_from_pts = len(from_pts)
+        _normalize_vectors(from_pts)
+        r1 = from_pts[from_tris[:, 0], :]
+        r12 = r1 - from_pts[from_tris[:, 1], :]
+        r13 = r1 - from_pts[from_tris[:, 2], :]
+        r1213 = np.array([r12, r13]).swapaxes(0, 1)
+        a = np.sum(r12 * r12, axis=1)
+        b = np.sum(r13 * r13, axis=1)
+        c = np.sum(r12 * r13, axis=1)
+        mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
+        mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
+        tri_nn = np.cross(r12, r13)
+
+        fname = op.join(subjects_dir, subject_to, 'surf',
+                        '%s.sphere.reg' % hemi)
+        to_pts = read_surface(fname, verbose=False)[0]
+        n_to_pts = len(to_pts)
+        _normalize_vectors(to_pts)
+
+        # from surface: get nearest neighbors, find triangles for each vertex
+        nn_pts_idx = _get_nearest(to_pts, from_pts)
+        from_pt_tris = _triangle_neighbors(from_tris, len(from_pts))
+        from_pt_tris = [from_pt_tris[pt_idx] for pt_idx in nn_pts_idx]
+
+        # find triangle in which point lies and assoc. weights
+        nn_tri_inds = []
+        nn_tris_weights = []
+        for pt_tris, to_pt in zip(from_pt_tris, to_pts):
+            # The following dense code is equivalent to the following:
+            #   rr = r1[pt_tris] - to_pts[ii]
+            #   v1s = np.sum(rr * r12[pt_tris], axis=1)
+            #   v2s = np.sum(rr * r13[pt_tris], axis=1)
+            #   aas = a[pt_tris]
+            #   bbs = b[pt_tris]
+            #   ccs = c[pt_tris]
+            #   dets = aas * bbs - ccs * ccs
+            #   pp = (bbs * v1s - ccs * v2s) / dets
+            #   qq = (aas * v2s - ccs * v1s) / dets
+            #   pqs = np.array(pp, qq)
+
+            # This einsum is equivalent to doing:
+            # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
+            vect = np.einsum('ijk,ik->ij', r1213[pt_tris], r1[pt_tris] - to_pt)
+            mats = mat[pt_tris]
+            # This einsum is equivalent to doing:
+            # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
+            pqs = np.einsum('ijk,ik->ji', mats, vect)
+            found = False
+            for (pt, p, q) in zip(pt_tris, pqs[0], pqs[1]):
+                if 0. <= p <= 1. and 0. < q < 1. and p + q < 1.:
+                    found = True
+                    break
+            if found is False:
+                # Tough: must investigate the sides
+                # We might do something intelligent here. However, for now
+                # it is ok to do it in the hard way
+                rrs = r1[pt_tris] - to_pt
+                dist = np.sum(rrs * tri_nn[pt_tris], axis=1)
+                pp = pqs[0]
+                qq = pqs[1]
+                aa = a[pt_tris]
+                bb = b[pt_tris]
+                cc = c[pt_tris]
+                # Find the nearest point from a triangle:
+                #   Side 1 -> 2
+                p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa,
+                                           0.0), 1.0)
+                q0 = np.zeros_like(p0)
+                #   Side 2 -> 3
+                t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
+                             + (2.0 * bb - cc) * qq) / (aa + bb - cc))
+                t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
+                p1 = 1.0 - t1
+                q1 = t1
+                dist1 = _get_tri_dist(pp, qq, p1, q1, aa, bb, cc, dist)
+                dist0 = _get_tri_dist(pp, qq, p0, q0, aa, bb, cc, dist)
+                #   Side 1 -> 3
+                q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
+                                           / bb, 0.0), 1.0)
+                p2 = np.zeros_like(q2)
+                dist2 = _get_tri_dist(pp, qq, p2, q2, aa, bb, cc, dist)
+
+                # figure out which one had the lowest distance
+                pp = np.r_[p0, p1, p2]
+                qq = np.r_[q0, q1, q2]
+                idx = np.argmin(np.r_[dist0, dist1, dist2])
+                p, q, pt = pp[idx], qq[idx], pt_tris[idx % len(pt_tris)]
+
+            nn_tri_inds.append(pt)
+            nn_tris_weights.extend([1. - (p + q), p, q])
+
+        nn_tris = from_tris[nn_tri_inds]
+        row_ind = np.repeat(np.arange(n_to_pts), 3)
+        this_map = sparse.csr_matrix((nn_tris_weights,
+                                     (row_ind, nn_tris.ravel())),
+                                     shape=(n_to_pts, n_from_pts))
+        morph_maps.append(this_map)
+
+    return morph_maps
