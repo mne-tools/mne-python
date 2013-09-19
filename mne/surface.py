@@ -852,7 +852,7 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
 
 
 def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
-    """Auxillary function for getting the distance to a triangle edge"""
+    """Auxiliary function for getting the distance to a triangle edge"""
     return np.sqrt((p - p0) * (p - p0) * a +
                    (q - q0) * (q - q0) * b +
                    (p - p0) * (q - q0) * c +
