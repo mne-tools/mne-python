@@ -3061,7 +3061,8 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
                     continue
                 if vars(ax).get(k, {}).get('reject', None) is True:
                     [l.set_color('k') for l in ax.lines[:len(good_ch_idx)]]
-                    [l.set_color('r') for l in ax.lines[-len(bad_ch_idx):]]
+                    if bad_ch_idx is not None:
+                        [l.set_color('r') for l in ax.lines[-len(bad_ch_idx):]]
                     ax.get_figure().canvas.draw()
                     break
 
@@ -3215,7 +3216,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         pl.show()
 
     navigation = figure_nobar(figsize=(3, 1.5))
-    gs = pl.mpl.gridspec.GridSpec(2, 2)
+    from matplotlib import gridspec
+    gs = gridspec.GridSpec(2, 2)
     ax1 = pl.subplot(gs[0, 0])
     ax2 = pl.subplot(gs[0, 1])
     ax3 = pl.subplot(gs[1, :])
