@@ -3060,8 +3060,8 @@ def _epochs_navigation_onclick(event, params):
     elif event.inaxes == p['next'].ax:
         here = -1
     if here is not None:
-        p['index_handler'].rotate(here)
-        this_idx = p['index_handler'][0]
+        p['idx_handler'].rotate(here)
+        this_idx = p['idx_handler'][0]
         data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
                                      p['times'], p['picks'], p['scalings'],
                                      p['types'])
@@ -3111,7 +3111,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     else:
         n_events = len(epoch_idx)
     epoch_idx = epoch_idx[:n_events]
-    index_handler = deque(create_chunks(epoch_idx, 20))
+    idx_handler = deque(create_chunks(epoch_idx, 20))
 
     if picks is None:
         if any('ICA' in k for k in epochs.ch_names):
@@ -3127,12 +3127,12 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
              picks]
 
     # preallocation needed for min / max scaling
-    first_idx = index_handler[0]
+    first_idx = idx_handler[0]
     data = _plot_epochs_get_data(epochs, first_idx, n_channels,
                                  times, picks, scalings, types)
     n_events = len(epochs.events)
     epoch_idx = epoch_idx[:n_events]
-    index_handler = deque(create_chunks(epoch_idx, 20))
+    idx_handler = deque(create_chunks(epoch_idx, 20))
     # handle bads
     bad_idx = None
     ch_names = epochs.ch_names
@@ -3165,7 +3165,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     ax2 = pl.subplot(gs1[:, 1])
 
     params = {
-        'index_handler': index_handler,
+        'idx_handler': idx_handler,
         'epochs': epochs,
         'n_channels': n_channels,
         'picks': picks,
