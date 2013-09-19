@@ -70,7 +70,7 @@ def create_chunks(sequence, size):
     size : int
         The chunksize to be returned
     """
-    return [sequence[p:p + size] for p in xrange(0, len(sequence), size)]
+    return (sequence[p:p + size] for p in xrange(0, len(sequence), size))
 
 
 class WrapStdOut(object):

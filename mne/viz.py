@@ -3024,22 +3024,6 @@ def _prepare_trellis(n_cells, max_col):
     return fig, axes
 
 
-def _draw_epochs_axes(epoch_idx, good_idx, bad_idx, data, times, axes,
-                      title_str):
-    """Aux functioin"""
-    for ii, data_, ax in zip(epoch_idx, data, axes):
-        # ax.plot(times, data_[good_idx].T, color='k')
-        [l.set_data(times, d) for l, d in zip(ax.lines, data_[good_idx])]
-        if bad_idx is not None:
-            bad_lines = [ax.lines[k] for k in bad_idx]
-            [l.set_data(times, d) for l, d in zip(bad_lines, data_[bad_idx])]
-        if title_str is not None:
-            ax.set_title(title_str % ii, fontsize=12)
-        ax.set_ylim(data.min(), data.max())
-        ax.set_yticks([])
-        ax.set_xticks([])
-
-
 def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times, picks,
                           scalings, types):
     """Aux function
@@ -3049,6 +3033,24 @@ def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times, picks,
         for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
             data[ii, jj] = this_channel / scalings[this_type]
     return data
+
+
+def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
+                      title_str):
+    """Aux functioin"""
+    for ii, data_, ax in zip(epoch_idx, data, axes):
+        # ax.plot(times, data_[good_ch_idx].T, color='k')
+        [l.set_data(times, d) for l, d in zip(ax.lines, data_[good_ch_idx])]
+        if bad_ch_idx is not None:
+            bad_lines = [ax.lines[k] for k in bad_ch_idx]
+            [l.set_data(times, d) for l, d in zip(bad_lines,
+                                                  data_[bad_ch_idx])]
+        if title_str is not None:
+            ax.set_title(title_str % ii, fontsize=12)
+        ax.set_ylim(data.min(), data.max())
+        ax.set_yticks([])
+        ax.set_xticks([])
+        vars(ax)['ix'] = ii
 
 
 def _epochs_navigation_onclick(event, params):
@@ -3065,10 +3067,34 @@ def _epochs_navigation_onclick(event, params):
         data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
                                      p['times'], p['picks'], p['scalings'],
                                      p['types'])
-        _draw_epochs_axes(this_idx, p['good_idx'], p['bad_idx'], data,
+        _draw_epochs_axes(this_idx, p['good_ch_idx'], p['bad_ch_idx'], data,
                           p['times'], p['axes'], p['title_str'])
             # XXX don't ask me why
         p['axes'][0].get_figure().canvas.draw()
+
+
+def _epochs_axes_onclick(event, params):
+    """Aux function"""
+    reject_color = (0.8, 0.8, 0.8)
+    ax = event.inaxes
+    p = params
+    if vars(ax).get('reject', None) is False:
+        idx = vars(ax)['idx']
+        if idx not in p['reject_idx']:
+            p['reject_idx'].append(idx)
+            [l.set_color(reject_color) for l in ax.lines]
+            vars(ax)['reject'] = True
+    elif vars(ax).get('reject', None) is True:
+        idx = vars(ax)['idx']
+        if idx in p['reject_idx']:
+            p['reject_idx'].pop(p['reject_idx'].index(idx))
+            good_lines = [ax.lines[k] for k in p['good_ch_idx']]
+            [l.set_color('k') for l in good_lines]
+            if p['bad_ch_idx'] is not None:
+                bad_lines = [ax.lines[k] for k in p['bad_ch_idx']]
+                [l.set_color('r') for l in bad_lines]
+            vars(ax)['reject'] = False
+    ax.get_figure().canvas.draw()
 
 
 def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
@@ -3127,33 +3153,33 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
              picks]
 
     # preallocation needed for min / max scaling
-    first_idx = idx_handler[0]
-    data = _plot_epochs_get_data(epochs, first_idx, n_channels,
+    data = _plot_epochs_get_data(epochs, idx_handler[0], n_channels,
                                  times, picks, scalings, types)
     n_events = len(epochs.events)
     epoch_idx = epoch_idx[:n_events]
     idx_handler = deque(create_chunks(epoch_idx, 20))
     # handle bads
-    bad_idx = None
+    bad_ch_idx = None
     ch_names = epochs.ch_names
     bads = epochs.info['bads']
     if any([ch_names[k] in bads for k in picks]):
         ch_picked = [k for k in ch_names if ch_names.index(k) in picks]
-        bad_idx = [ch_picked.index(k) for k in bads if k in ch_names]
-        good_idx = [p for p in picks if p not in bad_idx]
+        bad_ch_idx = [ch_picked.index(k) for k in bads if k in ch_names]
+        good_ch_idx = [p for p in picks if p not in bad_ch_idx]
     else:
-        good_idx = np.arange(n_channels)
+        good_ch_idx = np.arange(n_channels)
 
     fig, axes = _prepare_trellis(len(data), max_col=5)
     for ii, data_, ax in zip(epoch_idx, data, axes):
-        ax.plot(times, data_[good_idx].T, color='k')
-        if bad_idx is not None:
-            ax.plot(times, data_[bad_idx].T, color='r')
+        ax.plot(times, data_[good_ch_idx].T, color='k')
+        if bad_ch_idx is not None:
+            ax.plot(times, data_[bad_ch_idx].T, color='r')
         if title_str is not None:
             ax.set_title(title_str % ii, fontsize=12)
         ax.set_ylim(data.min(), data.max())
         ax.set_yticks([])
         ax.set_xticks([])
+        vars(ax).update({'idx': ii, 'reject': False})
 
     tight_layout()
     if show is True:
@@ -3172,13 +3198,16 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         'times': times,
         'scalings': scalings,
         'types': types,
-        'good_idx': good_idx,
-        'bad_idx': bad_idx,
+        'good_ch_idx': good_ch_idx,
+        'bad_ch_idx': bad_ch_idx,
         'axes': axes,
         'back': pl.mpl.widgets.Button(ax1, 'back'),
         'next': pl.mpl.widgets.Button(ax2, 'next'),
-        'title_str': title_str
+        'title_str': title_str,
+        'reject_idx': []
     }
+    fig.canvas.mpl_connect('button_press_event',
+                           partial(_epochs_axes_onclick, params=params))
     navigation.canvas.mpl_connect('button_press_event',
                                   partial(_epochs_navigation_onclick,
                                           params=params))
