@@ -3039,7 +3039,6 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
                       title_str, axes_handler):
     """Aux functioin"""
     this = axes_handler[0]
-    print this
     for ii, data_, ax in zip(epoch_idx, data, axes):
         [l.set_data(times, d) for l, d in zip(ax.lines, data_[good_ch_idx])]
         if bad_ch_idx is not None:
@@ -3051,33 +3050,37 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
         ax.set_ylim(data.min(), data.max())
         ax.set_yticks([])
         ax.set_xticks([])
-        if this not in vars(ax):  # new view
-            vars(ax)[this] = {'idx': ii, 'reject': False}
+        if vars(ax)[this]['reject'] is True:
+            #  memorizing reject
+            [l.set_color((0.8, 0.8, 0.8)) for l in ax.lines]
+            ax.get_figure().canvas.draw()
         else:
-            if vars(ax)[this]['reject'] is True:
-                #  memorizing reject
-                [l.set_color((0.8, 0.8, 0.8)) for l in ax.lines]
-                ax.get_figure().canvas.draw()
-            else:
-                #  forgetting previous reject
-                for k in axes_handler:
-                    if k == this:
-                        continue
-                    if vars(ax).get(k, {}).get('reject', None) is True:
-                        [l.set_color('k') for l in ax.lines[:len(good_ch_idx)]]
-                        [l.set_color('r') for l in ax.lines[-len(bad_ch_idx):]]
-                        ax.get_figure().canvas.draw()
-                        break
+            #  forgetting previous reject
+            for k in axes_handler:
+                if k == this:
+                    continue
+                if vars(ax).get(k, {}).get('reject', None) is True:
+                    [l.set_color('k') for l in ax.lines[:len(good_ch_idx)]]
+                    [l.set_color('r') for l in ax.lines[-len(bad_ch_idx):]]
+                    ax.get_figure().canvas.draw()
+                    break
 
 
 def _epochs_navigation_onclick(event, params):
     """Aux function"""
+    import pylab as pl
     p = params
     here = None
     if event.inaxes == p['back'].ax:
         here = 1
     elif event.inaxes == p['next'].ax:
         here = -1
+    elif event.inaxes == p['reject-quit'].ax:
+        if p['reject_idx']:
+            p['epochs'].drop_epochs(p['reject_idx'])
+        pl.close(p['fig'])
+        pl.close(event.inaxes.get_figure())
+
     if here is not None:
         p['idx_handler'].rotate(here)
         p['axes_handler'].rotate(here)
@@ -3115,8 +3118,6 @@ def _epochs_axes_onclick(event, params):
                 [l.set_color('r') for l in bad_lines]
             here['reject'] = False
     ax.get_figure().canvas.draw()
-    p['epochs'].reject_idx = p['reject_idx']
-    print here
 
 
 def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
@@ -3204,16 +3205,23 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         ax.set_xticks([])
         vars(ax)[axes_handler[0]] = {'idx': ii, 'reject': False}
 
+    # initialize memory
+    for this_view, this_inds in zip(axes_handler, idx_handler):
+        for ii, ax in zip(this_inds, axes):
+            vars(ax)[this_view] = {'idx': ii, 'reject': False}
+
     tight_layout()
     if show is True:
         pl.show()
 
-    navigation = figure_nobar(figsize=(3, 0.5))
-    gs1 = pl.mpl.gridspec.GridSpec(1, 2)
-    ax1 = pl.subplot(gs1[:, 0])
-    ax2 = pl.subplot(gs1[:, 1])
+    navigation = figure_nobar(figsize=(3, 1.5))
+    gs = pl.mpl.gridspec.GridSpec(2, 2)
+    ax1 = pl.subplot(gs[0, 0])
+    ax2 = pl.subplot(gs[0, 1])
+    ax3 = pl.subplot(gs[1, :])
 
     params = {
+        'fig': fig,
         'idx_handler': idx_handler,
         'epochs': epochs,
         'n_channels': n_channels,
@@ -3226,6 +3234,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         'axes': axes,
         'back': pl.mpl.widgets.Button(ax1, 'back'),
         'next': pl.mpl.widgets.Button(ax2, 'next'),
+        'reject-quit': pl.mpl.widgets.Button(ax3, 'reject-quit'),
         'title_str': title_str,
         'reject_idx': [],
         'axes_handler': axes_handler
