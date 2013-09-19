@@ -793,34 +793,32 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
                             % (fname, exp))
             return mmap_1
 
-    fid, tree, _ = fiff_open(fname)
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        # Locate all maps
+        maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
+        if len(maps) == 0:
+            raise ValueError('Morphing map data not found')
 
-    # Locate all maps
-    maps = dir_tree_find(tree, FIFF.FIFFB_MNE_MORPH_MAP)
-    if len(maps) == 0:
-        fid.close()
-        raise ValueError('Morphing map data not found')
+        # Find the correct ones
+        left_map = None
+        right_map = None
+        for m in maps:
+            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
+            if tag.data == subject_from:
+                tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
+                if tag.data == subject_to:
+                    #  Names match: which hemishere is this?
+                    tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
+                    if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
+                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                        left_map = tag.data
+                        logger.info('    Left-hemisphere map read.')
+                    elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
+                        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
+                        right_map = tag.data
+                        logger.info('    Right-hemisphere map read.')
 
-    # Find the correct ones
-    left_map = None
-    right_map = None
-    for m in maps:
-        tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_FROM)
-        if tag.data == subject_from:
-            tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP_TO)
-            if tag.data == subject_to:
-                #  Names match: which hemishere is this?
-                tag = find_tag(fid, m, FIFF.FIFF_MNE_HEMI)
-                if tag.data == FIFF.FIFFV_MNE_SURF_LEFT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    left_map = tag.data
-                    logger.info('    Left-hemisphere map read.')
-                elif tag.data == FIFF.FIFFV_MNE_SURF_RIGHT_HEMI:
-                    tag = find_tag(fid, m, FIFF.FIFF_MNE_MORPH_MAP)
-                    right_map = tag.data
-                    logger.info('    Right-hemisphere map read.')
-
-    fid.close()
     if left_map is None:
         raise ValueError('Left hemisphere map not found in %s' % fname)
 
