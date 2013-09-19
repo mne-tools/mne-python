@@ -150,7 +150,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
     courses in which case absolute values will be  returned. Therefore the
     orientation will no longer be fixed.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
 
     Parameters
@@ -175,7 +175,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
 
     Returns
     -------
-    stc: SourceEstimate
+    stc : SourceEstimate
         Source time courses
 
     Notes
@@ -205,7 +205,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     courses in which case absolute values will be  returned. Therefore the
     orientation will no longer be fixed.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
 
     Parameters
@@ -268,7 +268,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
     calculation of the data cross-spectral density matrix or matrices. Source
     power is normalized by noise power.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
 
     Parameters
@@ -295,7 +295,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
     Returns
     -------
-    stc: SourceEstimate
+    stc : SourceEstimate
         Source power with frequency instead of time.
 
     Notes
@@ -423,6 +423,56 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
     CSD. It should also be possible to use a longer time window (e.g. 600 ms)
     for the noise CSD estimate, but this is not implemented and was not tested.
 
+    NOTE : This implementation has not been heavilly tested so please
+    report any issues or suggestions.
+
+    Parameters
+    ----------
+    epochs : Epochs
+        Single trial epochs.
+    forward : dict
+        Forward operator.
+    tmin : float
+        Minimum time instant to consider.
+    tmax : float
+        Maximum time instant to consider.
+    tstep : float
+        Spacing between consecutive time windows, should be smaller than or
+        equal to the shortest time window length.
+    win_lengths : list of float
+        Time window lengths in seconds. One time window length should be
+        provided for each frequency bin.
+    freq_bins : list of tuples of float
+        Start and end point of frequency bins of interest.
+    mode : str
+        Spectrum estimation mode can be either: 'multitaper' or 'fourier'.
+    mt_bandwidths : list of float
+        The bandwidths of the multitaper windowing function in Hz. Only used in
+        'multitaper' mode. One value should be provided for each frequency bin.
+    mt_adaptive : bool
+        Use adaptive weights to combine the tapered spectra into CSD. Only used
+        in 'multitaper' mode.
+    mt_low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth. Only used in 'multitaper' mode.
+    reg : float
+        The regularization for the cross-spectral density.
+    label : Label | None
+        Restricts the solution to a given label.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stcs : list of SourceEstimate
+        Source power at each time window. One SourceEstimate object is returned
+        for each frequency bin.
+
+    Notes
+    -----
     The original reference is:
     Dalal et al. Five-dimensional neuroimaging: Localization of the
     time-frequency dynamics of cortical activity.
@@ -431,8 +481,6 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
     NOTE : Dalal et al. used a synthetic aperture magnetometry beamformer (SAM)
     in each time-frequency window instead of DICS.
     """
-    # TODO: Comment that multitaper mode is not yet well tested for use in
-    # tf_dics
 
     if len(win_lengths) != len(freq_bins):
         raise ValueError('One time window length expected per frequency bin')
@@ -443,9 +491,6 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
     if mt_bandwidths is None:
         mt_bandwidths = [None] * len(freq_bins)
 
-    # TODO: Note that 0.3 / 0.05 produces 5.99! So result of // or np.floor
-    # will be 5 instead of 6. How to deal with this better than by multiplying
-    # by 1e3?
     # Note: Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
 
