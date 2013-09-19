@@ -62,9 +62,11 @@ def read_data():
 
     # Computing the data and noise cross-spectral density matrices
     data_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04,
-                                  tmax=None, fmin=8, fmax=12)
+                                  tmax=None, fmin=8, fmax=12,
+                                  mt_bandwidth=72.72)
     noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=None,
-                                   tmax=0.0, fmin=8, fmax=12)
+                                   tmax=0.0, fmin=8, fmax=12,
+                                   mt_bandwidth=72.72)
 
     return raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol
