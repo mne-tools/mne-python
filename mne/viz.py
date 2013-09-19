@@ -3036,10 +3036,11 @@ def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times, picks,
 
 
 def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
-                      title_str):
+                      title_str, axes_handler):
     """Aux functioin"""
+    this = axes_handler[0]
+    print this
     for ii, data_, ax in zip(epoch_idx, data, axes):
-        # ax.plot(times, data_[good_ch_idx].T, color='k')
         [l.set_data(times, d) for l, d in zip(ax.lines, data_[good_ch_idx])]
         if bad_ch_idx is not None:
             bad_lines = [ax.lines[k] for k in bad_ch_idx]
@@ -3050,7 +3051,23 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
         ax.set_ylim(data.min(), data.max())
         ax.set_yticks([])
         ax.set_xticks([])
-        vars(ax)['ix'] = ii
+        if this not in vars(ax):  # new view
+            vars(ax)[this] = {'idx': ii, 'reject': False}
+        else:
+            if vars(ax)[this]['reject'] is True:
+                #  memorizing reject
+                [l.set_color((0.8, 0.8, 0.8)) for l in ax.lines]
+                ax.get_figure().canvas.draw()
+            else:
+                #  forgetting previous reject
+                for k in axes_handler:
+                    if k == this:
+                        continue
+                    if vars(ax).get(k, {}).get('reject', None) is True:
+                        [l.set_color('k') for l in ax.lines[:len(good_ch_idx)]]
+                        [l.set_color('r') for l in ax.lines[-len(bad_ch_idx):]]
+                        ax.get_figure().canvas.draw()
+                        break
 
 
 def _epochs_navigation_onclick(event, params):
@@ -3063,12 +3080,14 @@ def _epochs_navigation_onclick(event, params):
         here = -1
     if here is not None:
         p['idx_handler'].rotate(here)
+        p['axes_handler'].rotate(here)
         this_idx = p['idx_handler'][0]
         data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
                                      p['times'], p['picks'], p['scalings'],
                                      p['types'])
         _draw_epochs_axes(this_idx, p['good_ch_idx'], p['bad_ch_idx'], data,
-                          p['times'], p['axes'], p['title_str'])
+                          p['times'], p['axes'], p['title_str'],
+                          p['axes_handler'])
             # XXX don't ask me why
         p['axes'][0].get_figure().canvas.draw()
 
@@ -3078,14 +3097,15 @@ def _epochs_axes_onclick(event, params):
     reject_color = (0.8, 0.8, 0.8)
     ax = event.inaxes
     p = params
-    if vars(ax).get('reject', None) is False:
-        idx = vars(ax)['idx']
+    here = vars(ax)[p['axes_handler'][0]]
+    if here.get('reject', None) is False:
+        idx = here['idx']
         if idx not in p['reject_idx']:
             p['reject_idx'].append(idx)
             [l.set_color(reject_color) for l in ax.lines]
-            vars(ax)['reject'] = True
-    elif vars(ax).get('reject', None) is True:
-        idx = vars(ax)['idx']
+            here['reject'] = True
+    elif here.get('reject', None) is True:
+        idx = here['idx']
         if idx in p['reject_idx']:
             p['reject_idx'].pop(p['reject_idx'].index(idx))
             good_lines = [ax.lines[k] for k in p['good_ch_idx']]
@@ -3093,8 +3113,10 @@ def _epochs_axes_onclick(event, params):
             if p['bad_ch_idx'] is not None:
                 bad_lines = ax.lines[-len(p['bad_ch_idx']):]
                 [l.set_color('r') for l in bad_lines]
-            vars(ax)['reject'] = False
+            here['reject'] = False
     ax.get_figure().canvas.draw()
+    p['epochs'].reject_idx = p['reject_idx']
+    print here
 
 
 def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
@@ -3170,7 +3192,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         good_ch_idx = np.arange(n_channels)
 
     fig, axes = _prepare_trellis(len(data), max_col=5)
-    for ii, data_, ax in zip(epoch_idx, data, axes):
+    axes_handler = deque(range(len(idx_handler)))
+    for ii, data_, ax in zip(idx_handler[0], data, axes):
         ax.plot(times, data_[good_ch_idx].T, color='k')
         if bad_ch_idx is not None:
             ax.plot(times, data_[bad_ch_idx].T, color='r')
@@ -3179,7 +3202,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         ax.set_ylim(data.min(), data.max())
         ax.set_yticks([])
         ax.set_xticks([])
-        vars(ax).update({'idx': ii, 'reject': False})
+        vars(ax)[axes_handler[0]] = {'idx': ii, 'reject': False}
 
     tight_layout()
     if show is True:
@@ -3204,7 +3227,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         'back': pl.mpl.widgets.Button(ax1, 'back'),
         'next': pl.mpl.widgets.Button(ax2, 'next'),
         'title_str': title_str,
-        'reject_idx': []
+        'reject_idx': [],
+        'axes_handler': axes_handler
     }
     fig.canvas.mpl_connect('button_press_event',
                            partial(_epochs_axes_onclick, params=params))
