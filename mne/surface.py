@@ -903,7 +903,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
 
         fname = op.join(subjects_dir, subject_to, 'surf',
                         '%s.sphere.reg' % hemi)
-        to_pts, to_tris = read_surface(fname, verbose=False)
+        to_pts = read_surface(fname, verbose=False)[0]
         n_to_pts = len(to_pts)
         _normalize_vectors(to_pts)
 
