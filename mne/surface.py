@@ -761,12 +761,20 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     """
     subjects_dir = get_subjects_dir(subjects_dir)
 
+    # First check for morph-map dir existence
+    mmap_dir = op.join(subjects_dir, 'morph-maps')
+    if not op.isdir(mmap_dir):
+        try:
+            os.mkdir(mmap_dir)
+        except:
+            logger.warn('Could not find or make morph map directory "%s"'
+                        % mmap_dir)
+
     # Does the file exist
-    fname = op.join(subjects_dir, 'morph-maps',
-                    '%s-%s-morph.fif' % (subject_from, subject_to))
+    fname = op.join(mmap_dir, '%s-%s-morph.fif' % (subject_from, subject_to))
     if not op.exists(fname):
-        fname = op.join(subjects_dir, 'morph-maps',
-                        '%s-%s-morph.fif' % (subject_to, subject_from))
+        fname = op.join(mmap_dir, '%s-%s-morph.fif'
+                        % (subject_to, subject_from))
         if not op.exists(fname):
             logger.warning('Morph map "%s" does not exist, '
                            'creating it and saving it to disk (this may take '
@@ -777,7 +785,13 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
             logger.info('Creating morph map %s -> %s'
                         % (subject_to, subject_from))
             mmap_2 = _make_morph_map(subject_to, subject_from, subjects_dir)
-            _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2)
+            try:
+                _write_morph_map(fname, subject_from, subject_to,
+                                 mmap_1, mmap_2)
+            except Exception as exp:
+                logger.warn('Could not write morph-map file "%s" (error: %s)'
+                            % (fname, exp))
+            return mmap_1
 
     fid, tree, _ = fiff_open(fname)
 
@@ -840,6 +854,7 @@ def _write_morph_map(fname, subject_from, subject_to, mmap_1, mmap_2):
 
 
 def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
+    """Auxillary function for getting the distance to a triangle edge"""
     return np.sqrt((p - p0) * (p - p0) * a +
                    (q - q0) * (q - q0) * b +
                    (p - p0) * (q - q0) * c +
@@ -911,7 +926,9 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
             #   qq = (aas * v2s - ccs * v1s) / dets
             #   pqs = np.array(pp, qq)
 
-            vect = np.einsum('ik,ijk->ij', r1[pt_tris] - to_pt, r1213[pt_tris])
+            # This einsum is equivalent to doing:
+            # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
+            vect = np.einsum('ijk,ik->ij', r1213[pt_tris], r1[pt_tris] - to_pt)
             mats = mat[pt_tris]
             # This einsum is equivalent to doing:
             # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
