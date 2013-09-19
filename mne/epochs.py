@@ -345,7 +345,7 @@ class _BaseEpochs(ProjMixin):
         return self.info['ch_names']
 
     def plot(self, epoch_idx=None, picks=None, scalings=None,
-             title_str='#%003i', show=True):
+             title_str='#%003i', show=True, block=False):
         """ Visualize single trials using Trellis plot.
 
         Parameters
@@ -367,6 +367,10 @@ class _BaseEpochs(ProjMixin):
             will be shown. Defaults expand to ``#001, #002, ...``
         show : bool
             Whether to show the figure or not.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for rejecting bad trials on the fly by clicking on a
+            sub plot.
 
         Returns
         -------
@@ -374,7 +378,7 @@ class _BaseEpochs(ProjMixin):
             The figure.
         """
         plot_epochs(self, epoch_idx=epoch_idx, picks=picks, scalings=scalings,
-                    title_str=title_str, show=show)
+                    title_str=title_str, show=show, block=block)
 
 
 class Epochs(_BaseEpochs):
@@ -528,22 +532,23 @@ class Epochs(_BaseEpochs):
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
 
-
-        proj = proj or raw.proj # proj is on when applied in Raw
+        proj = proj or raw.proj  # proj is on when applied in Raw
 
         # call _BaseEpochs constructor
         super(Epochs, self).__init__(info, event_id, tmin, tmax,
-                baseline=baseline, picks=picks, name=name, keep_comp=keep_comp,
-                dest_comp=dest_comp, reject=reject, flat=flat,
-                decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
-                detrend=detrend, add_eeg_ref=add_eeg_ref, verbose=verbose)
+                                     baseline=baseline, picks=picks, name=name,
+                                     keep_comp=keep_comp, dest_comp=dest_comp,
+                                     reject=reject, flat=flat, decim=decim,
+                                     reject_tmin=reject_tmin,
+                                     reject_tmax=reject_tmax, detrend=detrend,
+                                     add_eeg_ref=add_eeg_ref, verbose=verbose)
 
         # do the rest
         self.raw = raw
         proj = proj or raw.proj  # proj is on when applied in Raw
         if proj not in [True, 'delayed', False]:
             raise ValueError(r"'proj' must either be 'True', 'False' or "
-                              "'delayed'")
+                             "'delayed'")
         self.proj = proj
         if self._check_delayed():
             logger.info('Entering delayed SSP mode.')
@@ -607,8 +612,9 @@ class Epochs(_BaseEpochs):
         if self.proj == 'delayed':
             if self.reject is None:
                 raise RuntimeError('The delayed SSP mode was requested '
-                        'but no rejection parameters are present. Please add '
-                        'rejection parameters before using this option.')
+                                   'but no rejection parameters are present. '
+                                   'Please add rejection parameters before '
+                                   'using this option.')
             is_delayed = True
         return is_delayed
 
@@ -668,12 +674,14 @@ class Epochs(_BaseEpochs):
         else:
             epochs += [epoch_raw]
 
-        # in case the proj passed is True but self proj is not we have delayed SSP
+        # in case the proj passed is True but self proj is not we
+        # have delayed SSP
         if self.proj != proj:  # so append another unprojected epoch
             epochs += [epoch_raw.copy()]
 
-        # only preprocess first candidate, to make delayed SSP working we need to
-        # postpone the preprocessing since projection comes first.
+        # only preprocess first candidate, to make delayed SSP working
+        # we need to postpone the preprocessing since projection comes
+        # first.
         epochs[0] = self._preprocess(epochs[0], verbose)
 
         # return a second None if nothing is projected
@@ -692,7 +700,7 @@ class Epochs(_BaseEpochs):
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
         # Baseline correct
         epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
-                    copy=False, verbose=verbose)
+                        copy=False, verbose=verbose)
         # Decimate
         if self.decim > 1:
             epoch = epoch[:, self._decim_idx]
@@ -830,7 +838,7 @@ class Epochs(_BaseEpochs):
             else:
                 idxs = np.nonzero(self.times >= self.reject_tmin)[0]
                 reject_imin = idxs[0]
-            if self.reject_tmax is  None:
+            if self.reject_tmax is None:
                 reject_imax = None
             else:
                 idxs = np.nonzero(self.times <= self.reject_tmax)[0]
@@ -1173,9 +1181,9 @@ class Epochs(_BaseEpochs):
         mindex = list()
         mindex.append(('condition', np.repeat(names, shape[2])))
         mindex.append(('time', np.tile(self.times, shape[0]) *
-                                scale_time))        # if 'epoch' in index:
+                      scale_time))  # if 'epoch' in index:
         mindex.append(('epoch', np.repeat(np.arange(shape[0]),
-                                shape[2])))
+                      shape[2])))
 
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
         col_names = [self.ch_names[k] for k in picks]
