@@ -55,7 +55,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 # evoked response
 frequencies = np.arange(7, 30, 2)  # define frequencies of interest
 label = mne.read_label(fname_label)
-n_cycles = frequencies / float(7)  # different number of cycle per frequency
+n_cycles = frequencies / 3.  # different number of cycle per frequency
 
 import pylab as pl
 pl.clf()
@@ -83,7 +83,7 @@ for ii, title in enumerate(['evoked + induced', 'induced only']):
               aspect='auto', origin='lower')
     pl.xlabel('Time (s)')
     pl.ylabel('Frequency (Hz)')
-    pl.title('Power (%s) in %s' % (title, label_name))
+    pl.title('Power (%s)' % title)
     pl.colorbar()
 
     pl.subplot(2, 2, 2 * ii + 2)
@@ -92,6 +92,7 @@ for ii, title in enumerate(['evoked + induced', 'induced only']):
               aspect='auto', origin='lower')
     pl.xlabel('Time (s)')
     pl.ylabel('Frequency (Hz)')
-    pl.title('Phase-lock (%s) in %s' % (title, label_name))
+    pl.title('Phase-lock (%s)' % title)
     pl.colorbar()
-    pl.show()
+
+pl.show()
