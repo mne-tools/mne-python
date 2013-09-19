@@ -1,14 +1,26 @@
+"""
+=====================================
+Time-frequency beamforming using LCMV
+=====================================
+
+Compute LCMV source power in a grid of time-frequency windows and display
+results.
+
+The original reference is:
+Dalal et al. Five-dimensional neuroimaging: Localization of the time-frequency
+dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+"""
+
+# Author: Roman Goj <roman.goj@gmail.com>
+#
+# License: BSD (3-clause)
+
 from copy import copy
 
 import numpy as np
 import matplotlib.pyplot as pl
-#from scipy.fftpack import fftfreq
-
-import logging
-logger = logging.getLogger('mne')
 
 import mne
-
 from mne.fiff import Raw
 from mne.datasets import sample
 from mne.beamformer import generate_filtered_epochs, tf_lcmv
@@ -46,7 +58,7 @@ events = mne.read_events(event_fname)[:3]  # TODO: Use all events
 
 # Setting frequency bins as in Dalal et al. 2008 (high gamma was subdivided)
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 299)]  # Hz
-#win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
+# win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
 
 # Setting time windows
@@ -95,22 +107,22 @@ for i in range(len(freq_bins) - 1):
 time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 
 # Plotting the results
-pl.figure(figsize=(13, 9))
+pl.figure(figsize=(7, 4))
 pl.pcolor(time_grid, freq_grid, source_power[:, max_source, :],
           cmap=pl.cm.jet)
-pl.title('Source power in overlapping time-frequency windows calculated using '
-         'LCMV')
+pl.title('TF source power calculated using LCMV')
 ax = pl.gca()
-pl.xlabel('Time window boundaries [s]')
+pl.xlabel('Time (s)')
 ax.set_xticks(time_bounds)
 pl.xlim(time_bounds[0], time_bounds[-1])
-pl.ylabel('Frequency bin boundaries [Hz]')
+pl.ylabel('Frequency (Hz)')
 pl.yscale('log')
 ax.set_yticks(freq_ticks)
 ax.set_yticklabels([np.round(freq, 2) for freq in freq_ticks])
 pl.ylim(freq_bounds[0], freq_bounds[-1])
 pl.grid(True, ls='-')
 pl.colorbar()
+mne.viz.tight_layout()
 
 # Horizontal bar across frequency gaps
 for lower_bound, upper_bound in gap_bounds:

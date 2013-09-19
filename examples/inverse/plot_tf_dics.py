@@ -20,13 +20,9 @@ print __doc__
 from copy import copy
 
 import numpy as np
-import matplotlib.pyplot as pl
-
-import logging
-logger = logging.getLogger('mne')
+import pylab as pl
 
 import mne
-
 from mne.fiff import Raw
 from mne.datasets import sample
 from mne.beamformer import tf_dics
@@ -54,7 +50,6 @@ events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12))
-evoked = epochs.average()
 
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
@@ -106,22 +101,22 @@ for i in range(len(freq_bins) - 1):
 time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 
 # Plotting the results
-pl.figure(figsize=(13, 9))
+pl.figure(figsize=(7, 4))
 pl.pcolor(time_grid, freq_grid, source_power[:, max_source, :],
           cmap=pl.cm.jet)
-pl.title('Source power in overlapping time-frequency windows calculated using '
-         'DICS')
+pl.title('TF source power calculated using DICS')
 ax = pl.gca()
-pl.xlabel('Time window boundaries [s]')
+pl.xlabel('Time (s)')
 ax.set_xticks(time_bounds)
 pl.xlim(time_bounds[0], time_bounds[-1])
-pl.ylabel('Frequency bin boundaries [Hz]')
+pl.ylabel('Frequency (Hz)')
 pl.yscale('log')
 ax.set_yticks(freq_ticks)
 ax.set_yticklabels([np.round(freq, 2) for freq in freq_ticks])
 pl.ylim(freq_bounds[0], freq_bounds[-1])
 pl.grid(True, ls='-')
 pl.colorbar()
+mne.viz.tight_layout()
 
 # Horizontal bar across frequency gaps
 for lower_bound, upper_bound in gap_bounds:
