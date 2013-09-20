@@ -248,6 +248,25 @@ FIFF.FIFFV_BEM_SURF_ID_UNKNOWN    = -1
 FIFF.FIFFV_BEM_SURF_ID_BRAIN      = 1
 FIFF.FIFFV_BEM_SURF_ID_SKULL      = 3
 FIFF.FIFFV_BEM_SURF_ID_HEAD       = 4
+
+FIFF.FIFFB_BEM                  = 310  # BEM data
+FIFF.FIFFB_BEM_SURF             = 311  # One of the surfaces
+FIFF.FIFF_BEM_SURF_ID           = 3101  # int    surface number
+FIFF.FIFF_BEM_SURF_NAME         = 3102  # string surface name
+FIFF.FIFF_BEM_SURF_NNODE        = 3103  # int    number of nodes on a surface
+FIFF.FIFF_BEM_SURF_NTRI         = 3104  # int     number of triangles on a surface
+FIFF.FIFF_BEM_SURF_NODES        = 3105  # float  surface nodes (nnode,3)
+FIFF.FIFF_BEM_SURF_TRIANGLES    = 3106  # int    surface triangles (ntri,3)
+FIFF.FIFF_BEM_SURF_NORMALS      = 3107  # float  surface node normal unit vectors
+
+FIFF.FIFF_BEM_POT_SOLUTION      = 3110  # float ** The solution matrix
+FIFF.FIFF_BEM_APPROX            = 3111  # int    approximation method, see below
+FIFF.FIFF_BEM_COORD_FRAME       = 3112  # The coordinate frame of the model
+FIFF.FIFF_BEM_SIGMA             = 3113  # Conductivity of a compartment
+FIFF.FIFF_BEM_APPROX            = 3111  # int    approixmation method
+FIFF.FIFFV_BEM_APPROX_CONST     = 1     # The constant potential approach
+FIFF.FIFFV_BEM_APPROX_LINEAR    = 2     # The linear potential approach
+
 #
 # More of those defined in MNE
 #
@@ -575,6 +594,30 @@ FIFF.FIFFV_COIL_BABY_REF_MAG            = 7003
 FIFF.FIFFV_REF_MEG_CH                   = 301
 FIFF.FIFF_UNIT_AM_M2  = 203 # Am/m^2
 FIFF.FIFF_UNIT_AM_M3  = 204	 # Am/m^3
+#
+#   FWD Types
+#
+FIFF.FWD_COIL_UNKNOWN                   = 0
+FIFF.FWD_COILC_UNKNOWN                  = 0
+FIFF.FWD_COILC_EEG                      = 1000
+FIFF.FWD_COILC_MAG                      = 1
+FIFF.FWD_COILC_AXIAL_GRAD               = 2
+FIFF.FWD_COILC_PLANAR_GRAD              = 3
+FIFF.FWD_COILC_AXIAL_GRAD2              = 4
+
+FIFF.FWD_COIL_ACCURACY_POINT            = 0
+FIFF.FWD_COIL_ACCURACY_NORMAL           = 1
+FIFF.FWD_COIL_ACCURACY_ACCURATE         = 2
+
+FIFF.FWD_BEM_UNKNOWN                    = -1
+FIFF.FWD_BEM_CONSTANT_COLL              = 1
+FIFF.FWD_BEM_LINEAR_COLL                = 2
+
+FIFF.FWD_BEM_IP_APPROACH_LIMIT          = 0.1
+
+FIFF.FWD_BEM_LIN_FIELD_SIMPLE           = 1
+FIFF.FWD_BEM_LIN_FIELD_FERGUSON         = 2
+FIFF.FWD_BEM_LIN_FIELD_URANKAR          = 3
 
 #
 #   Data types

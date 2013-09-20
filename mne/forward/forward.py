@@ -16,28 +16,28 @@ import os
 from os import path as op
 import tempfile
 
-from .fiff.constants import FIFF
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
-from .fiff.channels import read_bad_channels
-from .fiff.tag import find_tag, read_tag
-from .fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
-                         write_named_matrix
-from .fiff.pick import pick_channels_forward, pick_info, pick_channels, \
-                       pick_types
-from .fiff.write import write_int, start_block, end_block, \
-                        write_coord_trans, write_ch_info, write_name_list, \
-                        write_string, start_file, end_file, write_id
-from .fiff.raw import Raw
-from .fiff.evoked import Evoked, write_evoked
-from .event import make_fixed_length_events
-from .epochs import Epochs
-from .source_space import read_source_spaces_from_tree, \
+from ..fiff.constants import FIFF
+from ..fiff.open import fiff_open
+from ..fiff.tree import dir_tree_find
+from ..fiff.channels import read_bad_channels
+from ..fiff.tag import find_tag, read_tag
+from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
+                          write_named_matrix
+from ..fiff.pick import pick_channels_forward, pick_info, pick_channels, \
+                        pick_types
+from ..fiff.write import write_int, start_block, end_block, \
+                         write_coord_trans, write_ch_info, write_name_list, \
+                         write_string, start_file, end_file, write_id
+from ..fiff.raw import Raw
+from ..fiff.evoked import Evoked, write_evoked
+from ..event import make_fixed_length_events
+from ..epochs import Epochs
+from ..source_space import read_source_spaces_from_tree, \
                           find_source_space_hemi, _write_source_spaces_to_fid
-from .transforms import transform_source_space_to, invert_transform, \
-                        write_trans
-from .utils import _check_fname, get_subjects_dir, has_command_line_tools, \
-                   run_subprocess, logger, verbose
+from ..transforms import transform_source_space_to, invert_transform, \
+                         write_trans
+from ..utils import _check_fname, get_subjects_dir, has_command_line_tools, \
+                    run_subprocess, logger, verbose
 
 
 def _block_diag(A, n):
@@ -294,8 +294,43 @@ def _subject_from_forward(forward):
 
 
 @verbose
+def _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=None):
+    if megfwd is not None and eegfwd is not None:
+        if (megfwd['sol']['data'].shape[1] != eegfwd['sol']['data'].shape[1] or
+                megfwd['source_ori'] != eegfwd['source_ori'] or
+                megfwd['nsource'] != eegfwd['nsource'] or
+                megfwd['coord_frame'] != eegfwd['coord_frame']):
+            raise ValueError('The MEG and EEG forward solutions do not match')
+
+        fwd = megfwd
+        fwd['sol']['data'] = np.r_[fwd['sol']['data'], eegfwd['sol']['data']]
+        fwd['sol']['nrow'] = fwd['sol']['nrow'] + eegfwd['sol']['nrow']
+
+        fwd['sol']['row_names'] = (fwd['sol']['row_names'] +
+                                   eegfwd['sol']['row_names'])
+        if fwd['sol_grad'] is not None:
+            fwd['sol_grad']['data'] = np.r_[fwd['sol_grad']['data'],
+                                            eegfwd['sol_grad']['data']]
+            fwd['sol_grad']['nrow'] = (fwd['sol_grad']['nrow'] +
+                                       eegfwd['sol_grad']['nrow'])
+            fwd['sol_grad']['row_names'] = (fwd['sol_grad']['row_names'] +
+                                            eegfwd['sol_grad']['row_names'])
+
+        fwd['nchan'] = fwd['nchan'] + eegfwd['nchan']
+        logger.info('    MEG and EEG forward solutions combined')
+    elif megfwd is not None:
+        fwd = megfwd
+    else:
+        fwd = eegfwd
+
+    del megfwd
+    del eegfwd
+    return fwd
+
+
+@verbose
 def read_forward_solution(fname, force_fixed=False, surf_ori=False,
-                              include=[], exclude=[], verbose=None):
+                          include=[], exclude=[], verbose=None):
     """Read a forward solution a.k.a. lead field
 
     Parameters
@@ -385,37 +420,11 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
                                           ori))
 
     #   Merge the MEG and EEG solutions together
-    if megfwd is not None and eegfwd is not None:
-        if (megfwd['sol']['data'].shape[1] != eegfwd['sol']['data'].shape[1] or
-                megfwd['source_ori'] != eegfwd['source_ori'] or
-                megfwd['nsource'] != eegfwd['nsource'] or
-                megfwd['coord_frame'] != eegfwd['coord_frame']):
-            fid.close()
-            raise ValueError('The MEG and EEG forward solutions do not match')
-
-        fwd = megfwd
-        fwd['sol']['data'] = np.r_[fwd['sol']['data'], eegfwd['sol']['data']]
-        fwd['sol']['nrow'] = fwd['sol']['nrow'] + eegfwd['sol']['nrow']
-
-        fwd['sol']['row_names'] = fwd['sol']['row_names'] + \
-                                  eegfwd['sol']['row_names']
-        if fwd['sol_grad'] is not None:
-            fwd['sol_grad']['data'] = np.r_[fwd['sol_grad']['data'],
-                                            eegfwd['sol_grad']['data']]
-            fwd['sol_grad']['nrow'] = fwd['sol_grad']['nrow'] + \
-                                      eegfwd['sol_grad']['nrow']
-            fwd['sol_grad']['row_names'] = fwd['sol_grad']['row_names'] + \
-                                           eegfwd['sol_grad']['row_names']
-
-        fwd['nchan'] = fwd['nchan'] + eegfwd['nchan']
-        logger.info('    MEG and EEG forward solutions combined')
-    elif megfwd is not None:
-        fwd = megfwd
-    else:
-        fwd = eegfwd
-
-    del megfwd
-    del eegfwd
+    try:
+        fwd = _merge_meg_eeg_fwds(megfwd, eegfwd)
+    except:
+        fid.close()
+        raise
 
     #   Get the MRI <-> head coordinate transformation
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
@@ -882,8 +891,8 @@ def _stc_src_sel(src, stc):
     src_sel_lh = np.searchsorted(src[0]['vertno'], src_sel_lh)
 
     src_sel_rh = np.intersect1d(src[1]['vertno'], stc.vertno[1])
-    src_sel_rh = np.searchsorted(src[1]['vertno'], src_sel_rh)\
-                 + len(src[0]['vertno'])
+    src_sel_rh = (np.searchsorted(src[1]['vertno'], src_sel_rh)
+                  + len(src[0]['vertno']))
 
     src_sel = np.r_[src_sel_lh, src_sel_rh]
 
@@ -1171,8 +1180,8 @@ def restrict_forward_to_label(fwd, labels):
         else:
             i = 1
             src_sel = np.intersect1d(fwd['src'][1]['vertno'], label.vertices)
-            src_sel = np.searchsorted(fwd['src'][1]['vertno'], src_sel)\
-                        + len(fwd['src'][0]['vertno'])
+            src_sel = (np.searchsorted(fwd['src'][1]['vertno'], src_sel)
+                       + len(fwd['src'][0]['vertno']))
 
         fwd_out['source_rr'] = np.vstack([fwd_out['source_rr'],
                                           fwd['source_rr'][src_sel]])

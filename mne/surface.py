@@ -22,21 +22,6 @@ from .fiff.write import (write_int, write_float, write_float_matrix,
                          write_float_sparse_rcs)
 from .utils import logger, verbose, get_subjects_dir
 
-#
-#   These fiff definitions are not needed elsewhere
-#
-FIFFB_BEM = 310  # BEM data
-FIFFB_BEM_SURF = 311  # One of the surfaces
-FIFF_BEM_SURF_ID = 3101  # int    surface number
-FIFF_BEM_SURF_NAME = 3102  # string surface name
-FIFF_BEM_SURF_NNODE = 3103  # int    number of nodes on a surface
-FIFF_BEM_SURF_NTRI = 3104  # int     number of triangles on a surface
-FIFF_BEM_SURF_NODES = 3105  # float  surface nodes (nnode,3)
-FIFF_BEM_SURF_TRIANGLES = 3106  # int    surface triangles (ntri,3)
-FIFF_BEM_SURF_NORMALS = 3107  # float  surface node normal unit vectors
-FIFF_BEM_COORD_FRAME = 3112  # The coordinate frame of the mode
-FIFF_BEM_SIGMA = 3113  # Conductivity of a compartment
-
 
 @verbose
 def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
@@ -72,7 +57,7 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
     #
     #   Find BEM
     #
-    bem = dir_tree_find(tree, FIFFB_BEM)
+    bem = dir_tree_find(tree, FIFF.FIFFB_BEM)
     if bem is None:
         fid.close()
         raise ValueError('BEM data not found')
@@ -81,7 +66,7 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
     #
     #   Locate all surfaces
     #
-    bemsurf = dir_tree_find(bem, FIFFB_BEM_SURF)
+    bemsurf = dir_tree_find(bem, FIFF.FIFFB_BEM_SURF)
     if bemsurf is None:
         fid.close()
         raise ValueError('BEM surface data not found')
@@ -90,7 +75,7 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
     #
     #   Coordinate frame possibly at the top level
     #
-    tag = find_tag(fid, bem, FIFF_BEM_COORD_FRAME)
+    tag = find_tag(fid, bem, FIFF.FIFF_BEM_COORD_FRAME)
     if tag is not None:
         coord_frame = tag.data
     #
@@ -128,7 +113,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     #
     #   Read all the interesting stuff
     #
-    tag = find_tag(fid, this, FIFF_BEM_SURF_ID)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_ID)
 
     if tag is None:
         res['id'] = FIFF.FIFFV_BEM_SURF_ID_UNKNOWN
@@ -139,20 +124,20 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
         if res['id'] != s_id:
             return None
 
-    tag = find_tag(fid, this, FIFF_BEM_SIGMA)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SIGMA)
     if tag is None:
         res['sigma'] = 1.0
     else:
         res['sigma'] = float(tag.data)
 
-    tag = find_tag(fid, this, FIFF_BEM_SURF_NNODE)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NNODE)
     if tag is None:
         fid.close()
         raise ValueError('Number of vertices not found')
 
     res['np'] = int(tag.data)
 
-    tag = find_tag(fid, this, FIFF_BEM_SURF_NTRI)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NTRI)
     if tag is None:
         fid.close()
         raise ValueError('Number of triangles not found')
@@ -161,7 +146,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
-        tag = find_tag(fid, this, FIFF_BEM_COORD_FRAME)
+        tag = find_tag(fid, this, FIFF.FIFF_BEM_COORD_FRAME)
         if tag is None:
             res['coord_frame'] = def_coord_frame
         else:
@@ -171,7 +156,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     #
     #   Vertices, normals, and triangles
     #
-    tag = find_tag(fid, this, FIFF_BEM_SURF_NODES)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NODES)
     if tag is None:
         fid.close()
         raise ValueError('Vertex data not found')
@@ -190,7 +175,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
             fid.close()
             raise ValueError('Vertex normal information is incorrect')
 
-    tag = find_tag(fid, this, FIFF_BEM_SURF_TRIANGLES)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_TRIANGLES)
     if tag is None:
         fid.close()
         raise ValueError('Triangulation not found')
@@ -530,20 +515,6 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
             return nearest
 
 
-def _get_nearest(to, fro):
-    """For each point on 'fro', find closest on 'to'"""
-    # triage based on sklearn having ball_tree presence
-    try:
-        from sklearn.neighbors import NearestNeighbors
-        nbrs = NearestNeighbors(n_neighbors=1,
-                                algorithm='ball_tree').fit(fro)
-        from_to_map = nbrs.kneighbors(to)[1].ravel()
-    except:
-        from_to_map = np.array([np.argmin(cdist(t[:, np.newaxis], fro))
-                                for t in to])
-    return from_to_map
-
-
 def _tessellate_sphere_surf(level, rad=1.0):
     """Return a surface structure instead of the details"""
     rr, tris = _tessellate_sphere(level)
@@ -657,7 +628,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
         # Make the maps
         logger.info('Mapping %s %s -> %s (%d) ...'
                     % (hemi, subject, stype, sval))
-        mmap = _get_nearest(ico_surf['rr'], from_surf['rr'])
+        mmap = _compute_nearest(from_surf['rr'], ico_surf['rr'])
         nmap = len(mmap)
         surf['inuse'] = np.zeros(surf['np'], int)
         for k in xrange(nmap):
@@ -752,24 +723,24 @@ def write_bem_surface(fname, surf):
     # Create the file and save the essentials
     fid = start_file(fname)
 
-    start_block(fid, FIFFB_BEM)
-    start_block(fid, FIFFB_BEM_SURF)
+    start_block(fid, FIFF.FIFFB_BEM)
+    start_block(fid, FIFF.FIFFB_BEM_SURF)
 
-    write_int(fid, FIFF_BEM_SURF_ID, surf['id'])
-    write_float(fid, FIFF_BEM_SIGMA, surf['sigma'])
-    write_int(fid, FIFF_BEM_SURF_NNODE, surf['np'])
-    write_int(fid, FIFF_BEM_SURF_NTRI, surf['ntri'])
-    write_int(fid, FIFF_BEM_COORD_FRAME, surf['coord_frame'])
-    write_float_matrix(fid, FIFF_BEM_SURF_NODES, surf['rr'])
+    write_int(fid, FIFF.FIFF_BEM_SURF_ID, surf['id'])
+    write_float(fid, FIFF.FIFF_BEM_SIGMA, surf['sigma'])
+    write_int(fid, FIFF.FIFF_BEM_SURF_NNODE, surf['np'])
+    write_int(fid, FIFF.FIFF_BEM_SURF_NTRI, surf['ntri'])
+    write_int(fid, FIFF.FIFF_BEM_COORD_FRAME, surf['coord_frame'])
+    write_float_matrix(fid, FIFF.FIFF_BEM_SURF_NODES, surf['rr'])
 
     if 'nn' in surf and surf['nn'] is not None and len(surf['nn']) > 0:
         write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, surf['nn'])
 
     # index start at 0 in Python
-    write_int_matrix(fid, FIFF_BEM_SURF_TRIANGLES, surf['tris'] + 1)
+    write_int_matrix(fid, FIFF.FIFF_BEM_SURF_TRIANGLES, surf['tris'] + 1)
 
-    end_block(fid, FIFFB_BEM_SURF)
-    end_block(fid, FIFFB_BEM)
+    end_block(fid, FIFF.FIFFB_BEM_SURF)
+    end_block(fid, FIFF.FIFFB_BEM)
 
     end_file(fid)
 
@@ -954,6 +925,22 @@ def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
                    dist * dist)
 
 
+def _get_tri_supp_geom(tris, rr):
+    """Create supplementary geometry information using tris and rrs"""
+    r1 = rr[tris[:, 0], :]
+    r12 = r1 - rr[tris[:, 1], :]
+    r13 = r1 - rr[tris[:, 2], :]
+    r1213 = np.array([r12, r13]).swapaxes(0, 1)
+    a = np.sum(r12 * r12, axis=1)
+    b = np.sum(r13 * r13, axis=1)
+    c = np.sum(r12 * r13, axis=1)
+    mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
+    mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
+    nn = fast_cross_3d(r12, r13)
+    return dict(r1=r1, r12=r12, r13=r13, r1213=r1213,
+                a=a, b=b, c=c, mat=mat, nn=nn)
+
+
 @verbose
 def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     """Construct morph map from one subject to another
@@ -986,17 +973,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         from_pts, from_tris = read_surface(fname, verbose=False)
         n_from_pts = len(from_pts)
         _normalize_vectors(from_pts)
-        r1 = from_pts[from_tris[:, 0], :]
-        r12 = r1 - from_pts[from_tris[:, 1], :]
-        r13 = r1 - from_pts[from_tris[:, 2], :]
-        r1213 = np.array([r12, r13]).swapaxes(0, 1)
-        a = np.sum(r12 * r12, axis=1)
-        b = np.sum(r13 * r13, axis=1)
-        c = np.sum(r12 * r13, axis=1)
-        mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
-        mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
-        tri_nn = fast_cross_3d(r12, r13)
-
+        tri_geom = _get_tri_supp_geom(from_tris, from_pts)
         fname = op.join(subjects_dir, subject_to, 'surf',
                         '%s.sphere.reg' % hemi)
         to_pts = read_surface(fname, verbose=False)[0]
@@ -1004,7 +981,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         _normalize_vectors(to_pts)
 
         # from surface: get nearest neighbors, find triangles for each vertex
-        nn_pts_idx = _get_nearest(to_pts, from_pts)
+        nn_pts_idx = _compute_nearest(from_pts, to_pts)
         from_pt_tris = _triangle_neighbors(from_tris, len(from_pts))
         from_pt_tris = [from_pt_tris[pt_idx] for pt_idx in nn_pts_idx]
 
@@ -1012,67 +989,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         nn_tri_inds = []
         nn_tris_weights = []
         for pt_tris, to_pt in zip(from_pt_tris, to_pts):
-            # The following dense code is equivalent to the following:
-            #   rr = r1[pt_tris] - to_pts[ii]
-            #   v1s = np.sum(rr * r12[pt_tris], axis=1)
-            #   v2s = np.sum(rr * r13[pt_tris], axis=1)
-            #   aas = a[pt_tris]
-            #   bbs = b[pt_tris]
-            #   ccs = c[pt_tris]
-            #   dets = aas * bbs - ccs * ccs
-            #   pp = (bbs * v1s - ccs * v2s) / dets
-            #   qq = (aas * v2s - ccs * v1s) / dets
-            #   pqs = np.array(pp, qq)
-
-            # This einsum is equivalent to doing:
-            # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
-            vect = np.einsum('ijk,ik->ij', r1213[pt_tris], r1[pt_tris] - to_pt)
-            mats = mat[pt_tris]
-            # This einsum is equivalent to doing:
-            # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
-            pqs = np.einsum('ijk,ik->ji', mats, vect)
-            found = False
-            for (pt, p, q) in zip(pt_tris, pqs[0], pqs[1]):
-                if 0. <= p <= 1. and 0. < q < 1. and p + q < 1.:
-                    found = True
-                    break
-            if found is False:
-                # Tough: must investigate the sides
-                # We might do something intelligent here. However, for now
-                # it is ok to do it in the hard way
-                rrs = r1[pt_tris] - to_pt
-                dist = np.sum(rrs * tri_nn[pt_tris], axis=1)
-                pp = pqs[0]
-                qq = pqs[1]
-                aa = a[pt_tris]
-                bb = b[pt_tris]
-                cc = c[pt_tris]
-                # Find the nearest point from a triangle:
-                #   Side 1 -> 2
-                p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa,
-                                           0.0), 1.0)
-                q0 = np.zeros_like(p0)
-                #   Side 2 -> 3
-                t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
-                             + (2.0 * bb - cc) * qq) / (aa + bb - cc))
-                t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
-                p1 = 1.0 - t1
-                q1 = t1
-                dist1 = _get_tri_dist(pp, qq, p1, q1, aa, bb, cc, dist)
-                dist0 = _get_tri_dist(pp, qq, p0, q0, aa, bb, cc, dist)
-                #   Side 1 -> 3
-                q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
-                                           / bb, 0.0), 1.0)
-                p2 = np.zeros_like(q2)
-                dist2 = _get_tri_dist(pp, qq, p2, q2, aa, bb, cc, dist)
-
-                # figure out which one had the lowest distance
-                pp = np.r_[p0, p1, p2]
-                qq = np.r_[q0, q1, q2]
-                idx = np.argmin(np.r_[dist0, dist1, dist2])
-                p, q, pt = pp[idx], qq[idx], pt_tris[idx % len(pt_tris)]
-
-            nn_tri_inds.append(pt)
+            p, q, idx, dist = _find_nearest_tri_pt(pt_tris, to_pt, tri_geom)
+            nn_tri_inds.append(idx)
             nn_tris_weights.extend([1. - (p + q), p, q])
 
         nn_tris = from_tris[nn_tri_inds]
@@ -1083,3 +1001,73 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         morph_maps.append(this_map)
 
     return morph_maps
+
+
+def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom):
+    # The following dense code is equivalent to the following:
+    #   rr = r1[pt_tris] - to_pts[ii]
+    #   v1s = np.sum(rr * r12[pt_tris], axis=1)
+    #   v2s = np.sum(rr * r13[pt_tris], axis=1)
+    #   aas = a[pt_tris]
+    #   bbs = b[pt_tris]
+    #   ccs = c[pt_tris]
+    #   dets = aas * bbs - ccs * ccs
+    #   pp = (bbs * v1s - ccs * v2s) / dets
+    #   qq = (aas * v2s - ccs * v1s) / dets
+    #   pqs = np.array(pp, qq)
+
+    # This einsum is equivalent to doing:
+    # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
+    r1 = tri_geom['r1']
+    rrs = r1[pt_tris] - to_pt
+    a = tri_geom['a']
+    b = tri_geom['b']
+    c = tri_geom['c']
+    tri_nn = tri_geom['nn']
+    vect = np.einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
+    mats = tri_geom['mat'][pt_tris]
+    # This einsum is equivalent to doing:
+    # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
+    pqs = np.einsum('ijk,ik->ji', mats, vect)
+    found = False
+    dists = np.sum(rrs * tri_nn[pt_tris], axis=1)
+    for (p, q, pt, dist) in zip(pqs[0], pqs[1], pt_tris, dists):
+        if 0. <= p <= 1. and 0. < q < 1. and p + q < 1.:
+            found = True
+            break
+    if found is False:
+        # Tough: must investigate the sides
+        # We might do something intelligent here. However, for now
+        # it is ok to do it in the hard way
+        rrs = r1[pt_tris] - to_pt
+        pp = pqs[0]
+        qq = pqs[1]
+        aa = a[pt_tris]
+        bb = b[pt_tris]
+        cc = c[pt_tris]
+        # Find the nearest point from a triangle:
+        #   Side 1 -> 2
+        p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa,
+                                   0.0), 1.0)
+        q0 = np.zeros_like(p0)
+        #   Side 2 -> 3
+        t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
+                     + (2.0 * bb - cc) * qq) / (aa + bb - cc))
+        t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
+        p1 = 1.0 - t1
+        q1 = t1
+        #   Side 1 -> 3
+        q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
+                                   / bb, 0.0), 1.0)
+        p2 = np.zeros_like(q2)
+
+        # figure out which one had the lowest distance
+        dist0 = _get_tri_dist(pp, qq, p0, q0, aa, bb, cc, dist)
+        dist1 = _get_tri_dist(pp, qq, p1, q1, aa, bb, cc, dist)
+        dist2 = _get_tri_dist(pp, qq, p2, q2, aa, bb, cc, dist)
+        pp = np.r_[p0, p1, p2]
+        qq = np.r_[q0, q1, q2]
+        dists = np.r_[dist0, dist1, dist2]
+        ii = np.argmin(dists)
+        p, q, pt, dist = pp[ii], qq[ii], pt_tris[ii % len(pt_tris)], dists[ii]
+    return p, q, pt, dist

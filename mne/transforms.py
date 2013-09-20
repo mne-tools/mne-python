@@ -54,7 +54,7 @@ def _print_coord_trans(t, prefix='Coordinate transformation: '):
                     (tt[0], tt[1], tt[2], 1000 * tt[3]))
 
 
-def apply_trans(trans, pts):
+def apply_trans(trans, pts, move=True):
     """Apply a transform matrix to an array of points
 
     Parameters
@@ -63,6 +63,8 @@ def apply_trans(trans, pts):
         Transform matrix.
     pts : array, shape = (3,) | (n, 3)
         Array with coordinates for one or n points.
+    move : bool
+        If True (default), apply translation.
 
     Returns
     -------
@@ -79,9 +81,10 @@ def apply_trans(trans, pts):
         out_pts = np.dot(pts, trans[:3, :3].T)
 
     # apply translation
-    transl = trans[:3, 3]
-    if np.any(transl != 0):
-        out_pts += transl
+    if move is True:
+        transl = trans[:3, 3]
+        if np.any(transl != 0):
+            out_pts += transl
 
     return out_pts
 
@@ -179,6 +182,25 @@ def translation(x=0, y=0, z=0):
                   [0, 0, 1, z],
                   [0, 0, 0, 1]], dtype=float)
     return m
+
+
+def read_transform_ascii(fname, fro, to):
+    """Read the Neuromag -> FreeSurfer transformation matrix"""
+    trans = np.zeros(4, 4)
+    with open(fname, 'r') as fid:
+        lines = fid.readlines()
+        lines = lines[::-1]
+        line = '#'
+        for k in range(4):
+            while line[0] == '#':
+                line = lines.pop()
+            vals = np.fromstring(line, sep=' ')
+            if not len(vals) == 4:
+                raise IOError('Did not find 4 values in line from trans def '
+                              '(%s)' % line)
+            trans[k] = vals
+    trans[:, 3] /= 1000.0
+    return {'from': fro, 'to': to, 'trans': trans}
 
 
 def combine_transforms(t_first, t_second, fro, to):

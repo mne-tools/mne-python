@@ -1,15 +1,16 @@
 import os.path as op
 import numpy as np
 
-from numpy.testing import assert_array_equal, assert_array_almost_equal, \
-                          assert_allclose, assert_equal
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose, assert_equal)
 
 from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
-from mne import read_bem_surfaces, write_bem_surface, read_surface, \
-                write_surface, decimate_surface
-from mne.surface import _make_morph_map, read_morph_map, fast_cross_3d
+from mne import (read_bem_surfaces, write_bem_surface, read_surface,
+                 write_surface, decimate_surface)
+from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
+                         fast_cross_3d)
 from mne.utils import _TempDir, requires_tvtk
 
 data_path = sample.data_path()
@@ -27,6 +28,28 @@ def test_huge_cross():
     z = np.cross(x, y)
     zz = fast_cross_3d(x, y)
     assert_array_equal(z, zz)
+
+
+def test_compute_nearest():
+    """Test nearest neighbor searches"""
+    x = np.random.randn(500, 3)
+    x /= np.sqrt(np.sum(x ** 2, axis=1))[:, None]
+    nn_true = np.random.permutation(np.arange(500, dtype=np.int))[:20]
+    y = x[nn_true]
+
+    nn1 = _compute_nearest(x, y, use_balltree=False)
+    nn2 = _compute_nearest(x, y, use_balltree=True)
+    assert_array_equal(nn_true, nn1)
+    assert_array_equal(nn_true, nn2)
+
+    # test distance support
+    nnn1 = _compute_nearest(x, y, use_balltree=False, return_dists=True)
+    nnn2 = _compute_nearest(x, y, use_balltree=True, return_dists=True)
+    assert_array_equal(nnn1[0], nn_true)
+    assert_array_equal(nnn1[1], np.zeros_like(nn1))  # all dists should be 0
+    assert_equal(len(nnn1), len(nnn2))
+    for nn1, nn2 in zip(nnn1, nnn2):
+        assert_array_equal(nn1, nn2)
 
 
 def test_make_morph_maps():

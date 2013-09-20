@@ -23,11 +23,11 @@ fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis-meg-eeg-oct-6-fwd.fif')
 
-fname_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
+fname_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
 
-fname_evoked = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                       'test-ave.fif')
+fname_evoked = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+                       'data', 'test-ave.fif')
 fname_mri = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
 temp_dir = _TempDir()
 # make a file that exists with some data in it
