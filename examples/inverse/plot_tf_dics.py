@@ -73,8 +73,9 @@ tstep = 0.05  # s
 
 # Solution constrained to label in source space for faster computation, use
 # label=None for full solution
-stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
-               reg=0.001, label=label)
+stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
+               baseline=(tmin, 0.0), freq_bins=freq_bins, reg=0.001,
+               label=label)
 
 # Gathering results for each time window
 source_power = [stc.data for stc in stcs]

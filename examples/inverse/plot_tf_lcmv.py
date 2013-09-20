@@ -65,19 +65,19 @@ win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
 tmin = -0.2
 tmax = 0.5
 tstep = 0.2
-control = (-0.2, 0.0)
+baseline = (-0.2, 0.0)
 
 filtered_epochs = generate_filtered_epochs(freq_bins, 4, raw, events, event_id,
-                                           epoch_tmin, epoch_tmax, control,
+                                           epoch_tmin, epoch_tmax, baseline,
                                            picks=picks,
                                            reject=dict(grad=4000e-13,
                                                        mag=4e-12))
 
 stcs = []
 for i, epochs_band in enumerate(filtered_epochs):
-    stc = tf_lcmv(epochs_band, forward, label=label, tmin=tmin, tmax=tmax,
-                  tstep=tstep, win_length=win_lengths[i], control=control,
-                  reg=0.05)
+    stc = tf_lcmv(epochs_band, forward, tmin=tmin, tmax=tmax,
+                  tstep=tstep, win_length=win_lengths[i], baseline=baseline,
+                  reg=0.05, label=label)
     stcs.append(stc)
 
 

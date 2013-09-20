@@ -405,8 +405,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
 
 @verbose
-def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
-            mode='fourier', mt_bandwidths=None, mt_adaptive=False,
+def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
+            freq_bins, mode='fourier', mt_bandwidths=None, mt_adaptive=False,
             mt_low_bias=True, reg=0.01, label=None, pick_ori=None,
             verbose=None):
     """5D time-frequency beamforming based on DICS.
@@ -442,6 +442,10 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
     win_lengths : list of float
         Time window lengths in seconds. One time window length should be
         provided for each frequency bin.
+    baseline : tuple of float
+        Start and end points of baseline time window parts of which will be
+        used to calculate noise CSD. Must be as long as the longest time window
+        length in win_lengths.
     freq_bins : list of tuples of float
         Start and end point of frequency bins of interest.
     mode : str
@@ -488,6 +492,10 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
         raise ValueError('When using multitaper mode and specifying '
                          'multitaper transform bandwidth, one value must be '
                          'provided per frequency bin')
+    if np.max(win_lengths) > baseline[1] - baseline[0]:
+        raise ValueError('Baseline period must be long enough to accomodate '
+                         'the longest time window length from win_lengths')
+
     if mt_bandwidths is None:
         mt_bandwidths = [None] * len(freq_bins)
 
@@ -501,8 +509,9 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, freq_bins,
 
         # Calculating noise CSD
         noise_csd = compute_epochs_csd(epochs, mode=mode, fmin=freq_bin[0],
-                                       fmax=freq_bin[1], fsum=True, tmin=tmin,
-                                       tmax=tmin + win_length,
+                                       fmax=freq_bin[1], fsum=True,
+                                       tmin=baseline[0],
+                                       tmax=baseline[0] + win_length,
                                        mt_bandwidth=mt_bandwidths[i_freq],
                                        mt_low_bias=mt_low_bias)
 
