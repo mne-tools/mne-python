@@ -38,6 +38,8 @@ Classes
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
+   realtime.StimServer
+   realtime.StimClient
 
 Logging and Configuration
 =========================
