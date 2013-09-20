@@ -11,16 +11,17 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 
+raw = mne.fiff.Raw(raw_fname, preload=True, verbose=False)
+
+events = read_events(event_name)
+
+picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                            stim=True, exclude=raw.info['bads'])
+
 
 def test_mockclient():
-    """Test the RtMockClient
-    """
-    raw = mne.fiff.Raw(raw_fname, preload=True, verbose=False)
+    """Test the RtMockClient."""
 
-    events = read_events(event_name)
-
-    picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                                stim=True, exclude=raw.info['bads'])
     event_id, tmin, tmax = 1, -0.2, 0.5
 
     epochs = Epochs(raw, events[:7], event_id=event_id, tmin=tmin, tmax=tmax,
@@ -36,4 +37,22 @@ def test_mockclient():
     rt_data = rt_epochs.get_data()
 
     assert_true(rt_data.shape == data.shape)
+    assert_array_equal(rt_data, data)
+
+
+def test_get_event_data():
+    """Test emulation of realtime data stream."""
+
+    event_id, tmin, tmax = 2, -0.1, 0.3
+    epochs = Epochs(raw, events, event_id=event_id,
+                    tmin=tmin, tmax=tmax, picks=picks, baseline=None,
+                    preload=True, proj=False)
+
+    data = epochs.get_data()[0, :, :]
+
+    rt_client = MockRtClient(raw)
+    rt_data = rt_client.get_event_data(event_id=event_id, tmin=tmin,
+                                       tmax=tmax, picks=picks,
+                                       stim_channel='STI 014')
+
     assert_array_equal(rt_data, data)

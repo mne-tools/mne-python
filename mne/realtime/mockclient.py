@@ -6,6 +6,7 @@
 
 import copy
 import numpy as np
+from ..event import find_events
 
 
 class MockRtClient(object):
@@ -25,8 +26,11 @@ class MockRtClient(object):
         self.info = copy.deepcopy(self.raw.info)
         self.verbose = verbose
 
+        self._current = dict()  # pointer to current index for the event
+        self._last = dict()  # Last index for the event
+
     def get_measurement_info(self):
-        """Returns the measurement info
+        """Returns the measurement info.
 
         Returns
         -------
@@ -36,7 +40,7 @@ class MockRtClient(object):
         return self.info
 
     def send_data(self, epochs, picks, tmin, tmax, buffer_size):
-        """ Read from raw object and send them to RtEpochs for processing
+        """Read from raw object and send them to RtEpochs for processing.
 
         Parameters
         ----------
@@ -81,6 +85,78 @@ class MockRtClient(object):
     # The following methods do not seem to be important for this use case,
     # but they need to be present for the emulation to work because
     # RtEpochs expects them to be there.
+
+    def get_event_data(self, event_id, tmin, tmax, picks, stim_channel=None,
+                       min_duration=0):
+        """Simulate the data for a particular event-id.
+
+        The epochs corresponding to a particular event-id are returned. The
+        method remembers the epoch that was returned in the previous call and
+        returns the next epoch in sequence. Once all epochs corresponding to
+        an event-id have been exhausted, the method returns None.
+
+        Parameters
+        ----------
+        event_id : int
+            The id of the event to consider.
+        tmin : float
+            Start time before event.
+        tmax : float
+            End time after event.
+        stim_channel : None | string | list of string
+            Name of the stim channel or all the stim channels
+            affected by the trigger. If None, the config variables
+            'MNE_STIM_CHANNEL', 'MNE_STIM_CHANNEL_1', 'MNE_STIM_CHANNEL_2',
+            etc. are read. If these are not found, it will default to
+            'STI 014'.
+        min_duration : float
+            The minimum duration of a change in the events channel required
+            to consider it as an event (in seconds).
+
+        Returns
+        -------
+        data : 2D array with shape [n_channels, n_times]
+            The epochs that are being simulated
+        """
+
+        # Get the list of all events
+        events = find_events(self.raw, stim_channel=stim_channel,
+                             verbose=False, output='onset',
+                             consecutive='increasing',
+                             min_duration=min_duration)
+
+        # Get the list of only the specified event
+        idx = np.where(events[:, -1] == event_id)[0]
+        event_samp = events[idx, 0]
+
+        # Only do this the first time for each event type
+        if event_id not in self._current:
+
+            # Initialize pointer for the event to 0
+            self._current[event_id] = 0
+            self._last[event_id] = len(event_samp)
+
+        # relative start and stop positions in samples
+        tmin_samp = int(round(self.info['sfreq'] * tmin))
+        tmax_samp = int(round(self.info['sfreq'] * tmax)) + 1
+
+        if self._current[event_id] < self._last[event_id]:
+
+            # Select the current event from the events list
+            ev_samp = event_samp[self._current[event_id]]
+
+            # absolute start and stop positions in samples
+            start = ev_samp + tmin_samp - self.raw.first_samp
+            stop = ev_samp + tmax_samp - self.raw.first_samp
+
+            self._current[event_id] += 1  # increment pointer
+
+            data, _ = self.raw[picks, start:stop]
+
+            return data
+
+        else:
+            return None
 
     def register_receive_callback(self, x):
         """API boilerplate"""
