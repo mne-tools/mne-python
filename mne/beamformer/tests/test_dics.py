@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal
 
 import mne
 from mne.datasets import sample
-from mne.beamformer import dics, dics_epochs, dics_source_power
+from mne.beamformer import dics, dics_epochs, dics_source_power, tf_dics
 from mne.time_frequency import compute_epochs_csd
 
 # Note that this is the first test file, this will apply to all subsequent
@@ -30,7 +30,7 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 # that include this file's parent directory :(
 
 
-def read_data():
+def read_data(tmin=-0.11, tmax=0.15):
     """Read in data used in tests
     """
     label = mne.read_label(fname_label)
@@ -42,7 +42,7 @@ def read_data():
                                               surf_ori=True)
     forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
 
-    event_id, tmin, tmax = 1, -0.11, 0.15
+    event_id, tmin, tmax = 1, tmin, tmax
 
     # Setup for reading the raw data
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
@@ -205,3 +205,61 @@ def test_dics_source_power():
     with warnings.catch_warnings(True) as w:
         dics_source_power(epochs.info, forward, noise_csds, data_csds)
     assert len(w) == 1
+
+
+def test_tf_dics():
+    """Test TF beamforming based on DICS
+    """
+    tmin, tmax, tstep = -0.2, 0.4, 0.05
+    raw, epochs, evoked, data_csd, noise_csd, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol = read_data(tmin, tmax)
+
+    freq_bins = [(4, 12), (30, 55)]
+    win_lengths = [0.2, 0.2]
+    baseline = (tmin, 0.0)
+
+    stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
+                   freq_bins, reg=0.001, label=label)
+
+    assert_true(len(stcs) == len(freq_bins))
+    assert_true(stcs[0].shape[1] == 12)
+
+    # Manually calculating source power in several time windows to compare
+    # results and test overlapping
+    source_power = []
+    time_windows = [(-0.05, 0.15), (0, 0.2), (0.05, 0.25), (0.1, 0.3)]
+    for time_window in time_windows:
+        data_csd = compute_epochs_csd(epochs, mode='fourier',
+                                      fmin=freq_bins[0][0],
+                                      fmax=freq_bins[0][1], fsum=True,
+                                      tmin=time_window[0], tmax=time_window[1])
+        noise_csd = compute_epochs_csd(epochs, mode='fourier',
+                                       fmin=freq_bins[0][0],
+                                       fmax=freq_bins[0][1], fsum=True,
+                                       tmin=-0.2, tmax=0.0)
+        stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
+                                             data_csd, label=label)
+        source_power.append(stc_source_power.data)
+
+    # Averaging all time windows that overlap the time period 0.1 to 0.15 s
+    source_power = np.mean(source_power, axis=0)
+
+    # Selecting the first frequency bin in tf_dics results
+    stc = stcs[0]
+
+    # Comparing tf_dics results with dics_source_power results
+    assert_array_equal(stc.data[:, 6], source_power[:, 0])
+
+    # Test if freq_bins and win_lengths incompatibility is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, tmin, tmax, tstep,
+                  win_lengths=[0, 1, 2], baseline=baseline,
+                  freq_bins=freq_bins)
+
+    # Test if incorrect number of mt_bandwidths is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, tmin, tmax, tstep,
+                  win_lengths, baseline, freq_bins, mode='multitaper',
+                  mt_bandwidths=[20])
+
+    # Test if a baseline that is too short is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, tmin, tmax, tstep,
+                  win_lengths, baseline=(-0.1, 0.0), freq_bins=freq_bins)
