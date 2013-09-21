@@ -240,7 +240,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on evoked data.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issue or suggestions.
 
     Parameters
@@ -300,7 +300,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on single trial data.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issue or suggestions.
 
     Parameters
@@ -369,7 +369,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on raw data.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issue or suggestions.
 
     Parameters
@@ -503,8 +503,8 @@ def generate_filtered_epochs(freq_bins, n_jobs, raw, events, event_id, tmin,
     """
     # Rejecting events prior to filtering
     events = Epochs(raw, events, event_id, tmin, tmax, baseline, picks, name,
-                    keep_comp, dest_comp, preload, reject=reject, flat=flat,
-                    proj=proj, decim=decim, reject_tmin=reject_tmin,
+                    keep_comp, dest_comp, preload=True, reject=reject,
+                    flat=flat, proj=proj, decim=decim, reject_tmin=reject_tmin,
                     reject_tmax=reject_tmax, detrend=detrend,
                     add_eeg_ref=add_eeg_ref, verbose=verbose).events
 
@@ -530,12 +530,12 @@ def tf_lcmv(epochs_band, forward, tmin, tmax, tstep, win_length,
     which covariance is computed and used to create a beamformer spatial
     filter. Baseline covariance is used to whiten the data first.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
 
     Parameters
     ----------
-    epochs_band : list of Epochs
+    epochs_band : instance of Epochs
         Single trial epochs containing data filtered in frequency bands of
         interest. The generate_filtered_epochs function can be used to prepare
         epochs_band.
@@ -591,8 +591,8 @@ def tf_lcmv(epochs_band, forward, tmin, tmax, tstep, win_length,
     # Calculating noise covariance
     noise_cov = compute_covariance(epochs_band, tmin=baseline[0],
                                    tmax=baseline[1])
-    noise_cov = regularize(noise_cov, epochs_band.info, mag=0.05, grad=0.05,
-                           eeg=0.1, proj=True)
+    noise_cov = regularize(noise_cov, epochs_band.info, mag=reg, grad=reg,
+                           eeg=reg, proj=True)
 
     for i_time in range(n_steps):
         win_tmin = tmin + i_time * tstep

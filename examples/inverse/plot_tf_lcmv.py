@@ -62,9 +62,10 @@ tmax = 0.5
 tstep = 0.2
 baseline = (-0.2, 0.0)
 
-filtered_epochs = generate_filtered_epochs(freq_bins, 4, raw, events, event_id,
-                                           epoch_tmin, epoch_tmax, baseline,
-                                           picks=picks,
+n_jobs = 4
+filtered_epochs = generate_filtered_epochs(freq_bins, n_jobs, raw, events,
+                                           event_id, epoch_tmin, epoch_tmax,
+                                           baseline, picks=picks, 
                                            reject=dict(grad=4000e-13,
                                                        mag=4e-12))
 

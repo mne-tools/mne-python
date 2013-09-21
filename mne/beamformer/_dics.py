@@ -423,7 +423,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
     CSD. It should also be possible to use a longer time window (e.g. 600 ms)
     for the noise CSD estimate, but this is not implemented and was not tested.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
 
     Parameters
