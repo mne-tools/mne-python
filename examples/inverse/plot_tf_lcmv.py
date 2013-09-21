@@ -18,7 +18,8 @@ dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 import mne
 from mne.fiff import Raw
 from mne.datasets import sample
-from mne.beamformer import generate_filtered_epochs, tf_lcmv
+from mne.epochs import generate_filtered_epochs
+from mne.beamformer import tf_lcmv
 from mne.viz import plot_source_spectrogram
 
 data_path = sample.data_path()

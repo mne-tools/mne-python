@@ -17,7 +17,6 @@ from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener, compute_covariance, regularize
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
-from ..epochs import Epochs
 from ..utils import logger, verbose
 
 
@@ -491,33 +490,6 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
     subject = _subject_from_forward(forward)
     return SourceEstimate(source_power, vertices=vertno, tmin=1,
                           tstep=1, subject=subject)
-
-
-def generate_filtered_epochs(freq_bins, n_jobs, raw, events, event_id, tmin,
-                             tmax, baseline=(None, 0), picks=None,
-                             name='unknown', keep_comp=None, dest_comp=None,
-                             preload=False, reject=None, flat=None, proj=True,
-                             decim=1, reject_tmin=None, reject_tmax=None,
-                             detrend=None, add_eeg_ref=True, verbose=None):
-    """Filters raw data, creates and yields epochs
-    """
-    # Rejecting events prior to filtering
-    events = Epochs(raw, events, event_id, tmin, tmax, baseline, picks, name,
-                    keep_comp, dest_comp, preload=True, reject=reject,
-                    flat=flat, proj=proj, decim=decim, reject_tmin=reject_tmin,
-                    reject_tmax=reject_tmax, detrend=detrend,
-                    add_eeg_ref=add_eeg_ref, verbose=verbose).events
-
-    for l_freq, h_freq in freq_bins:
-        raw_band = raw.copy()
-        raw_band.filter(l_freq, h_freq, picks=picks, n_jobs=n_jobs)
-        epochs_band = Epochs(raw_band, events, event_id, tmin, tmax, baseline,
-                             picks, name, keep_comp, dest_comp, preload,
-                             flat=flat, proj=proj, decim=decim,
-                             detrend=detrend, add_eeg_ref=add_eeg_ref,
-                             verbose=verbose)
-
-        yield epochs_band
 
 
 def tf_lcmv(epochs_band, forward, tmin, tmax, tstep, win_length,
