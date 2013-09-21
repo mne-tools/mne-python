@@ -216,9 +216,16 @@ def test_tf_dics():
 
     freq_bins = [(4, 12), (30, 55)]
     win_lengths = [0.2, 0.2]
-    baseline = (tmin, 0.0)
 
-    stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
+    noise_csds = []
+    for i_freq, freq_bin in enumerate(freq_bins):
+        noise_csds.append(compute_epochs_csd(epochs, mode='fourier',
+                                             fmin=freq_bin[0],
+                                             fmax=freq_bin[1],
+                                             fsum=True, tmin=tmin,
+                                             tmax=tmin + win_lengths[i_freq]))
+
+    stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                    freq_bins, reg=0.001, label=label)
 
     assert_true(len(stcs) == len(freq_bins))
@@ -250,16 +257,15 @@ def test_tf_dics():
     # Comparing tf_dics results with dics_source_power results
     assert_array_equal(stc.data[:, 6], source_power[:, 0])
 
+    # Test if incorrect number of noise CSDs is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, [noise_csds[0]], tmin,
+                  tmax, tstep, win_lengths, freq_bins=freq_bins)
+
     # Test if freq_bins and win_lengths incompatibility is detected
-    assert_raises(ValueError, tf_dics, epochs, forward, tmin, tmax, tstep,
-                  win_lengths=[0, 1, 2], baseline=baseline,
-                  freq_bins=freq_bins)
+    assert_raises(ValueError, tf_dics, epochs, forward, noise_csds, tmin, tmax,
+                  tstep, win_lengths=[0, 1, 2], freq_bins=freq_bins)
 
     # Test if incorrect number of mt_bandwidths is detected
-    assert_raises(ValueError, tf_dics, epochs, forward, tmin, tmax, tstep,
-                  win_lengths, baseline, freq_bins, mode='multitaper',
+    assert_raises(ValueError, tf_dics, epochs, forward, noise_csds, tmin, tmax,
+                  tstep, win_lengths, freq_bins, mode='multitaper',
                   mt_bandwidths=[20])
-
-    # Test if a baseline that is too short is detected
-    assert_raises(ValueError, tf_dics, epochs, forward, tmin, tmax, tstep,
-                  win_lengths, baseline=(-0.1, 0.0), freq_bins=freq_bins)

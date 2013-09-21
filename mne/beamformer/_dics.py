@@ -405,7 +405,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
 
 @verbose
-def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
+def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             freq_bins, mode='fourier', mt_bandwidths=None, mt_adaptive=False,
             mt_low_bias=True, reg=0.01, label=None, pick_ori=None,
             verbose=None):
@@ -415,13 +415,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
     based on the Dynamic Imaging of Coherent Sources (DICS) beamforming
     approach. For each time window and frequency bin combination cross-spectral
     density (CSD) is computed and used to create a beamformer spatial filter
-    with noise CSD calculated from the baseline period being used for
-    normalization.
-
-    NOTE: Currently noise CSD can only be calculated in the baseline period
-    with a time window of length equal to that used for calculating the data
-    CSD. It should also be possible to use a longer time window (e.g. 600 ms)
-    for the noise CSD estimate, but this is not implemented and was not tested.
+    with noise CSD used for normalization.
 
     NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
@@ -432,6 +426,8 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
         Single trial epochs.
     forward : dict
         Forward operator.
+    noise_csds : list of instances of CrossSpectralDensity
+        Noise cross-spectral density for each frequency bin.
     tmin : float
         Minimum time instant to consider.
     tmax : float
@@ -442,10 +438,6 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
     win_lengths : list of float
         Time window lengths in seconds. One time window length should be
         provided for each frequency bin.
-    baseline : tuple of float
-        Start and end points of baseline time window parts of which will be
-        used to calculate noise CSD. Must be as long as the longest time window
-        length in win_lengths.
     freq_bins : list of tuples of float
         Start and end point of frequency bins of interest.
     mode : str
@@ -486,34 +478,25 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
     in each time-frequency window instead of DICS.
     """
 
+    if len(noise_csds) != len(freq_bins):
+        raise ValueError('One noise CSD object expected per frequency bin')
     if len(win_lengths) != len(freq_bins):
         raise ValueError('One time window length expected per frequency bin')
     if mt_bandwidths is not None and len(mt_bandwidths) != len(freq_bins):
         raise ValueError('When using multitaper mode and specifying '
                          'multitaper transform bandwidth, one value must be '
                          'provided per frequency bin')
-    if np.max(win_lengths) > baseline[1] - baseline[0]:
-        raise ValueError('Baseline period must be long enough to accomodate '
-                         'the longest time window length from win_lengths')
 
     if mt_bandwidths is None:
         mt_bandwidths = [None] * len(freq_bins)
 
-    # Note: Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
+    # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
 
     sol_final = []
-    for i_freq, freq_bin in enumerate(freq_bins):
-        win_length = win_lengths[i_freq]
+    for freq_bin, win_length, noise_csd, mt_bandwidth in\
+            zip(freq_bins, win_lengths, noise_csds, mt_bandwidths):
         n_overlap = int((win_length * 1e3) // (tstep * 1e3))
-
-        # Calculating noise CSD
-        noise_csd = compute_epochs_csd(epochs, mode=mode, fmin=freq_bin[0],
-                                       fmax=freq_bin[1], fsum=True,
-                                       tmin=baseline[0],
-                                       tmax=baseline[0] + win_length,
-                                       mt_bandwidth=mt_bandwidths[i_freq],
-                                       mt_low_bias=mt_low_bias)
 
         sol_single = []
         sol_overlap = []
@@ -541,8 +524,7 @@ def tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths, baseline,
                                               fmin=freq_bin[0],
                                               fmax=freq_bin[1], fsum=True,
                                               tmin=win_tmin, tmax=win_tmax,
-                                              mt_bandwidth=
-                                              mt_bandwidths[i_freq],
+                                              mt_bandwidth=mt_bandwidth,
                                               mt_low_bias=mt_low_bias)
 
                 stc = dics_source_power(epochs.info, forward, noise_csd,

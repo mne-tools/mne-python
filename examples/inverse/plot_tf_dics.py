@@ -20,6 +20,7 @@ print __doc__
 import mne
 from mne.fiff import Raw
 from mne.datasets import sample
+from mne.time_frequency import compute_epochs_csd
 from mne.beamformer import tf_dics
 from mne.viz import plot_source_spectrogram
 
@@ -67,11 +68,19 @@ tmin = -0.3  # s
 tmax = 0.5  # s
 tstep = 0.05  # s
 
+# Calculating noise cross-spectral density from data in the baseline period for
+# each frequency bin and the corresponding time window length
+noise_csds = []
+for i_freq, freq_bin in enumerate(freq_bins):
+    noise_csds.append(compute_epochs_csd(epochs, mode='fourier',
+                                         fmin=freq_bin[0], fmax=freq_bin[1],
+                                         fsum=True, tmin=tmin,
+                                         tmax=tmin + win_lengths[i_freq]))
+
 # Solution constrained to label in source space for faster computation, use
 # label=None for full solution
-stcs = tf_dics(epochs, forward, tmin, tmax, tstep, win_lengths,
-               baseline=(tmin, 0.0), freq_bins=freq_bins, reg=0.001,
-               label=label)
+stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
+               freq_bins=freq_bins, reg=0.001, label=label)
 
 # Plotting source spectrogram for source with maximum activity
 plot_source_spectrogram(stcs, freq_bins, source_index=None)
