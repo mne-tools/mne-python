@@ -57,7 +57,8 @@ events = mne.read_events(event_fname)
 # Read epochs without preloading to access the underlying raw object for
 # filtering later
 epochs = mne.Epochs(raw, events, event_id, epoch_tmin, epoch_tmax, proj=True,
-                    picks=picks, baseline=(None, 0))
+                    picks=picks, baseline=(None, 0), reject=dict(grad=4000e-13,
+                                                                 mag=4e-12))
 
 ###############################################################################
 # Time-frequency beamforming based on LCMV
@@ -75,13 +76,13 @@ baseline = (-0.2, 0.0)
 n_jobs = 4
 reg = 0.05
 
+# Calculating noise covariance
+# TODO: This should be done using empty room noise
 filtered_epochs = generate_filtered_epochs(freq_bins, n_jobs, raw, events,
                                            event_id, epoch_tmin, epoch_tmax,
                                            baseline, picks=picks,
                                            reject=dict(grad=4000e-13,
                                                        mag=4e-12))
-
-# Calculating noise covariance
 noise_covs = []
 for epochs_band in filtered_epochs:
     noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=0.0)
@@ -89,6 +90,8 @@ for epochs_band in filtered_epochs:
                            eeg=reg, proj=True)
     noise_covs.append(noise_cov)
 
+# Computing LCMV solutions for time-frequency windows in a label in source
+# space for faster computation, use label=None for full solution
 stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, reg=reg, label=label)
 

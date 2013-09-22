@@ -563,24 +563,17 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
 
-    # TODO: Make sure all parameters are used!
-    filtered_epochs = generate_filtered_epochs(freq_bins, n_jobs, epochs.raw,
-                                               epochs.events, epochs.event_id,
-                                               epochs.tmin, epochs.tmax,
-                                               epochs.baseline,
-                                               picks=epochs.picks,
-                                               name=epochs.name,
-                                               keep_comp=epochs.keep_comp,
-                                               dest_comp=epochs.dest_comp,
-                                               reject=dict(grad=4000e-13,
-                                                           mag=4e-12),
-                                               flat=epochs.flat,
-                                               proj=epochs.proj,
-                                               decim=epochs.decim,
-                                               reject_tmin=epochs.reject_tmin,
-                                               reject_tmax=epochs.reject_tmax,
-                                               detrend=epochs.detrend,
-                                               verbose=verbose)
+    filtered_epochs =\
+        generate_filtered_epochs(freq_bins, n_jobs, epochs.raw, epochs.events,
+                                 epochs.event_id, epochs.tmin, epochs.tmax,
+                                 epochs.baseline, picks=epochs.picks,
+                                 name=epochs.name, keep_comp=epochs.keep_comp,
+                                 dest_comp=epochs.dest_comp,
+                                 reject=epochs.reject, flat=epochs.flat,
+                                 proj=epochs.proj, decim=epochs.decim,
+                                 reject_tmin=epochs.reject_tmin,
+                                 reject_tmax=epochs.reject_tmax,
+                                 detrend=epochs.detrend, verbose=verbose)
 
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
