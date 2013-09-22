@@ -15,12 +15,17 @@ dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 #
 # License: BSD (3-clause)
 
+print __doc__
+
 import mne
+from mne import compute_covariance
 from mne.fiff import Raw
 from mne.datasets import sample
 from mne.epochs import generate_filtered_epochs
+from mne.cov import regularize
 from mne.beamformer import tf_lcmv
 from mne.viz import plot_source_spectrogram
+
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -49,12 +54,16 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 event_id, epoch_tmin, epoch_tmax = 1, -0.2, 0.5
 events = mne.read_events(event_fname)
 
+# Read epochs without preloading to access the underlying raw object for
+# filtering later
+epochs = mne.Epochs(raw, events, event_id, epoch_tmin, epoch_tmax, proj=True,
+                    picks=picks, baseline=(None, 0))
+
 ###############################################################################
 # Time-frequency beamforming based on LCMV
 
 # Setting frequency bins as in Dalal et al. 2008 (high gamma was subdivided)
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 299)]  # Hz
-# win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
 
 # Setting time windows
@@ -64,18 +73,24 @@ tstep = 0.2
 baseline = (-0.2, 0.0)
 
 n_jobs = 4
+reg = 0.05
+
 filtered_epochs = generate_filtered_epochs(freq_bins, n_jobs, raw, events,
                                            event_id, epoch_tmin, epoch_tmax,
-                                           baseline, picks=picks, 
+                                           baseline, picks=picks,
                                            reject=dict(grad=4000e-13,
                                                        mag=4e-12))
 
-stcs = []
-for i, epochs_band in enumerate(filtered_epochs):
-    stc = tf_lcmv(epochs_band, forward, tmin=tmin, tmax=tmax,
-                  tstep=tstep, win_length=win_lengths[i], baseline=baseline,
-                  reg=0.05, label=label)
-    stcs.append(stc)
+# Calculating noise covariance
+noise_covs = []
+for epochs_band in filtered_epochs:
+    noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=0.0)
+    noise_cov = regularize(noise_cov, epochs_band.info, mag=reg, grad=reg,
+                           eeg=reg, proj=True)
+    noise_covs.append(noise_cov)
+
+stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
+               freq_bins=freq_bins, reg=reg, label=label)
 
 # Plotting source spectrogram for source with maximum activity
 plot_source_spectrogram(stcs, freq_bins, source_index=None)

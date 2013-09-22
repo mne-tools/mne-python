@@ -6,6 +6,8 @@
 #
 # License: BSD (3-clause)
 
+import warnings
+
 import numpy as np
 from scipy import linalg
 
@@ -433,8 +435,6 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 
 def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
                        label=None, picks=None, pick_ori=None, verbose=None):
-    # TODO: Results of tf_dics are really weird, this function's results should
-    # be examined.
     is_free_ori, picks, ch_names, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
@@ -492,27 +492,29 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
                           tstep=1, subject=subject)
 
 
-def tf_lcmv(epochs_band, forward, tmin, tmax, tstep, win_length,
-            baseline, reg=0.01, label=None, pick_ori=None, verbose=None):
+@verbose
+def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
+            freq_bins, reg=0.01, label=None, pick_ori=None, n_jobs=1,
+            verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
     Calculate source power in time-frequency windows using a spatial filter
     based on the Linearly Constrained Minimum Variance (LCMV) beamforming
     approach. Band-pass filtered epochs are divided into time windows from
     which covariance is computed and used to create a beamformer spatial
-    filter. Baseline covariance is used to whiten the data first.
+    filter.
 
     NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
 
     Parameters
     ----------
-    epochs_band : instance of Epochs
-        Single trial epochs containing data filtered in frequency bands of
-        interest. The generate_filtered_epochs function can be used to prepare
-        epochs_band.
+    epochs : Epochs
+        Single trial epochs.
     forward : dict
         Forward operator.
+    noise_covs : list of instances of Covariance
+        Noise covariance for each frequency bin.
     tmin : float
         Minimum time instant to consider.
     tmax : float
@@ -520,12 +522,11 @@ def tf_lcmv(epochs_band, forward, tmin, tmax, tstep, win_length,
     tstep : float
         Spacing between consecutive time windows, should be smaller than or
         equal to the shortest time window length.
-    win_length : float
-        Length in seconds of time windows for which data covariance and LCMV
-        source power will be computed.
-    baseline : tuple of float
-        Start and end points of baseline time window from which covariance will
-        be computed and used to whiten data covariance.
+    win_lengths : list of float
+        Time window lengths in seconds. One time window length should be
+        provided for each frequency bin.
+    freq_bins : list of tuples of float
+        Start and end point of frequency bins of interest.
     reg : float
         The regularization for the whitened data covariance.
     label : Label | None
@@ -533,6 +534,9 @@ def tf_lcmv(epochs_band, forward, tmin, tmax, tstep, win_length,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly and CUDA is initialized.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -550,49 +554,96 @@ def tf_lcmv(epochs_band, forward, tmin, tmax, tstep, win_length,
     NeuroImage (2008) vol. 40 (4) pp. 1686-1700
     """
 
-    # TODO: Check win_length and freq_bin match in length
-    # TODO: Check that no time window is longer than tstep
-    single_sols = []
-    overlap_sol = []
-    # TODO: Note that 0.3 / 0.05 produces 5.999! So n_overlap will be 5
-    # instead of the 6 that it should be, absurd! How to deal with this
-    # better than by multiplying by 1e3?!?
-    n_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
-    n_overlap = int((win_length * 1e3) // (tstep * 1e3))
+    if len(noise_covs) != len(freq_bins):
+        raise ValueError('One noise covariance object expected per frequency '
+                         'bin')
+    if len(win_lengths) != len(freq_bins):
+        raise ValueError('One time window length expected per frequency bin')
+    if any(win_length < tstep for win_length in win_lengths):
+        raise ValueError('Time step should not be larger than any of the '
+                         'window lengths')
 
-    # Calculating noise covariance
-    noise_cov = compute_covariance(epochs_band, tmin=baseline[0],
-                                   tmax=baseline[1])
-    noise_cov = regularize(noise_cov, epochs_band.info, mag=reg, grad=reg,
-                           eeg=reg, proj=True)
+    # TODO: Make sure all parameters are used!
+    filtered_epochs = generate_filtered_epochs(freq_bins, n_jobs, epochs.raw,
+                                               epochs.events, epochs.event_id,
+                                               epochs.tmin, epochs.tmax,
+                                               epochs.baseline,
+                                               picks=epochs.picks,
+                                               name=epochs.name,
+                                               keep_comp=epochs.keep_comp,
+                                               dest_comp=epochs.dest_comp,
+                                               reject=dict(grad=4000e-13,
+                                                           mag=4e-12),
+                                               flat=epochs.flat,
+                                               proj=epochs.proj,
+                                               decim=epochs.decim,
+                                               reject_tmin=epochs.reject_tmin,
+                                               reject_tmax=epochs.reject_tmax,
+                                               detrend=epochs.detrend,
+                                               verbose=verbose)
 
-    for i_time in range(n_steps):
-        win_tmin = tmin + i_time * tstep
-        win_tmax = win_tmin + win_length
+    # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
+    n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
 
-        if win_tmax < tmax + (epochs_band.times[-1] - epochs_band.times[-2]):
-            # Calculating data covariance in current time window
-            data_cov = compute_covariance(epochs_band, tmin=win_tmin,
-                                          tmax=win_tmax)
+    sol_final = []
+    for freq_bin, win_length, noise_cov, epochs_band in\
+            zip(freq_bins, win_lengths, noise_covs, filtered_epochs):
+        n_overlap = int((win_length * 1e3) // (tstep * 1e3))
 
-            stc = _lcmv_source_power(epochs_band.info, forward, noise_cov,
-                                     data_cov, reg=0.001, label=label,
-                                     pick_ori=pick_ori, verbose=verbose)
-            single_sols.append(stc.data[:, 0])
+        sol_single = []
+        sol_overlap = []
+        for i_time in range(n_time_steps):
+            win_tmin = tmin + i_time * tstep
+            win_tmax = win_tmin + win_length
 
-        # Average over all time windows that contain the current time
-        # point, which is the current time window along with n_overlap
-        # others
-        if i_time - n_overlap < 0:
-            curr_sol = np.mean(single_sols[0:i_time + 1], axis=0)
-        else:
-            curr_sol = np.mean(single_sols[i_time - n_overlap + 1:
-                                           i_time + 1], axis=0)
+            # If in the last step the last time point was not covered in
+            # previous steps and will not be covered now, a solution needs to
+            # be calculated for an additional time window
+            if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and\
+               win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
+                warnings.warn('Adding a time window to cover last time points')
+                win_tmin = tmax - win_length
+                win_tmax = tmax
 
-        # The final values for the current time point averaged over all
-        # time windows that contain it
-        overlap_sol.append(curr_sol)
+            if win_tmax < tmax + (epochs.times[-1] - epochs.times[-2]):
+                logger.info('Computing time-frequency LCMV beamformer for '
+                            'time window %d to %d ms, in frequency range '
+                            '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
+                                             freq_bin[0], freq_bin[1]))
 
-    sol = np.array(overlap_sol)
-    return SourceEstimate(sol.T, vertices=stc.vertno, tmin=tmin, tstep=tstep,
-                          subject=stc.subject)
+                # Calculating data covariance from filtered epochs in current
+                # time window
+                data_cov = compute_covariance(epochs_band, tmin=win_tmin,
+                                              tmax=win_tmax)
+
+                stc = _lcmv_source_power(epochs_band.info, forward, noise_cov,
+                                         data_cov, reg=reg, label=label,
+                                         pick_ori=pick_ori, verbose=verbose)
+                sol_single.append(stc.data[:, 0])
+
+            # Average over all time windows that contain the current time
+            # point, which is the current time window along with
+            # n_overlap - 1 previous ones
+            if i_time - n_overlap < 0:
+                curr_sol = np.mean(sol_single[0:i_time + 1], axis=0)
+            else:
+                curr_sol = np.mean(sol_single[i_time - n_overlap + 1:
+                                              i_time + 1], axis=0)
+
+            # The final result for the current time point in the current
+            # frequency bin
+            sol_overlap.append(curr_sol)
+
+        # Gathering solutions for all time points for current frequency bin
+        sol_final.append(sol_overlap)
+
+    sol_final = np.array(sol_final)
+
+    # Creating stc objects containing all time points for each frequency bin
+    stcs = []
+    for i_freq, _ in enumerate(freq_bins):
+        stc = SourceEstimate(sol_final[i_freq, :, :].T, vertices=stc.vertno,
+                             tmin=tmin, tstep=tstep, subject=stc.subject)
+        stcs.append(stc)
+
+    return stcs
