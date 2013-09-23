@@ -529,6 +529,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                                               tmin=win_tmin, tmax=win_tmax,
                                               mt_bandwidth=mt_bandwidth,
                                               mt_low_bias=mt_low_bias)
+                data_csd.data /= win_length
 
                 stc = dics_source_power(epochs.info, forward, noise_csd,
                                         data_csd, reg=reg, label=label,
