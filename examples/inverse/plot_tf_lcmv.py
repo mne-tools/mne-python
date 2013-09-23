@@ -21,6 +21,7 @@ import mne
 from mne import compute_covariance
 from mne.fiff import Raw
 from mne.datasets import sample
+from mne.event import make_fixed_length_events
 from mne.epochs import generate_filtered_epochs
 from mne.cov import regularize
 from mne.beamformer import tf_lcmv
@@ -29,6 +30,7 @@ from mne.viz import plot_source_spectrogram
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+noise_fname = data_path + '/MEG/sample/ernoise_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 subjects_dir = data_path + '/subjects'
@@ -39,12 +41,6 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 # Read raw data, preload to allow filtering
 raw = Raw(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
-
-# Read forward operator
-forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
-
-# Read label
-label = mne.read_label(fname_label)
 
 # Set picks
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
@@ -57,6 +53,27 @@ events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, epoch_tmin, epoch_tmax, proj=True,
                     picks=picks, baseline=(None, 0), reject=dict(grad=4000e-13,
                                                                  mag=4e-12))
+
+# Read empty room noise, preload to allow filtering
+raw_noise = Raw(noise_fname, preload=True)
+raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
+
+# Create artificial events for empty room noise data and create epochs to
+# reject bad ones and prepare list of artifical events to be used to prepare
+# filtered noise
+events_noise = make_fixed_length_events(raw_noise, event_id)
+epochs_noise = mne.Epochs(raw, events_noise, event_id, epoch_tmin, epoch_tmax,
+                          proj=True, picks=picks, baseline=(None, 0),
+                          preload=True, reject=dict(grad=4000e-13, mag=4e-12))
+epochs_noise.drop_epochs(range(len(epochs_noise.events) - len(epochs.events)))
+epochs_noise.info['bads'] = epochs.info['bads']
+events_noise = epochs_noise.events
+
+# Read forward operator
+forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
+
+# Read label
+label = mne.read_label(fname_label)
 
 ###############################################################################
 # Time-frequency beamforming based on LCMV
@@ -74,15 +91,14 @@ baseline = (-0.2, 0.0)
 n_jobs = 4
 reg = 0.05
 
-# Calculating noise covariance
-# TODO: This should be done using empty room noise
-filtered_epochs = generate_filtered_epochs(freq_bins, n_jobs, raw, events,
-                                           event_id, epoch_tmin, epoch_tmax,
-                                           baseline, picks=picks,
-                                           reject=dict(grad=4000e-13,
-                                                       mag=4e-12))
+# Calculating covariance from empty room noise. To use baseline data as noise
+# substitute raw for raw_noise
+filtered_epochs_noise = generate_filtered_epochs(freq_bins, n_jobs, raw_noise,
+                                                 events_noise, event_id,
+                                                 epoch_tmin, epoch_tmax,
+                                                 baseline, picks=picks)
 noise_covs = []
-for epochs_band, win_length in zip(filtered_epochs, win_lengths):
+for epochs_band, win_length in zip(filtered_epochs_noise, win_lengths):
     noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
                                    win_length)
     noise_cov = regularize(noise_cov, epochs_band.info, mag=reg, grad=reg,
