@@ -19,6 +19,7 @@ print __doc__
 
 import mne
 from mne.fiff import Raw
+from mne.event import make_fixed_length_events
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
 from mne.beamformer import tf_dics
@@ -26,6 +27,7 @@ from mne.viz import plot_source_spectrogram
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+noise_fname = data_path + '/MEG/sample/ernoise_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 subjects_dir = data_path + '/subjects'
@@ -48,6 +50,18 @@ epochs = mne.Epochs(raw, events, event_id, epoch_tmin, epoch_tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12))
 
+# Read empty room noise raw data
+raw_noise = Raw(noise_fname)
+raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
+
+# Create noise epochs and make sure the number of noise epochs corresponds to
+# the number of data epochs
+events_noise = make_fixed_length_events(raw_noise, event_id)
+epochs_noise = mne.Epochs(raw, events_noise, event_id, epoch_tmin, epoch_tmax,
+                          proj=True, picks=picks, baseline=(None, 0),
+                          preload=True, reject=dict(grad=4000e-13, mag=4e-12))
+epochs_noise.drop_epochs(range(len(epochs_noise.events) - len(epochs.events)))
+
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 
@@ -68,14 +82,17 @@ tmin = -0.3  # s
 tmax = 0.5  # s
 tstep = 0.05  # s
 
-# Calculating noise cross-spectral density from data in the baseline period for
-# each frequency bin and the corresponding time window length
+# Calculating noise cross-spectral density from empty room noise for each
+# frequency bin and the corresponding time window length. To calculate noise
+# from the baseline period in the data, change epochs_noise to epochs
 noise_csds = []
-for i_freq, freq_bin in enumerate(freq_bins):
-    noise_csds.append(compute_epochs_csd(epochs, mode='fourier',
-                                         fmin=freq_bin[0], fmax=freq_bin[1],
-                                         fsum=True, tmin=tmin,
-                                         tmax=tmin + win_lengths[i_freq]))
+for freq_bin, win_length in zip(freq_bins, win_lengths):
+    noise_csd = compute_epochs_csd(epochs_noise, mode='fourier',
+                                   fmin=freq_bin[0], fmax=freq_bin[1],
+                                   fsum=True, tmin=tmin,
+                                   tmax=tmin + win_length)
+    noise_csd.data /= win_length
+    noise_csds.append(noise_csd)
 
 # Computing DICS solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
