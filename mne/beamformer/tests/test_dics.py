@@ -4,7 +4,7 @@ import copy as cp
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import mne
 from mne.datasets import sample
@@ -198,11 +198,8 @@ def test_dics_source_power():
     # Test detection of different frequencies in noise and data CSD objects
     noise_csd.frequencies = [1, 2]
     data_csd.frequencies = [1, 2, 3]
-    # TODO: This test doesn't work because the relevant code has been commented
-    # out to makte tf_dics work. IMHO the solution should be to transform this
-    # error into a warning and check the warning here.
-    #assert_raises(ValueError, dics_source_power, epochs.info, forward,
-    #              noise_csd, data_csd)
+    assert_raises(ValueError, dics_source_power, epochs.info, forward,
+                  noise_csd, data_csd)
 
     # Test detection of uneven frequency spacing
     data_csds = [cp.deepcopy(data_csd) for i in range(3)]
@@ -227,12 +224,13 @@ def test_tf_dics():
     reg = 0.001
 
     noise_csds = []
-    for i_freq, freq_bin in enumerate(freq_bins):
-        noise_csds.append(compute_epochs_csd(epochs, mode='fourier',
-                                             fmin=freq_bin[0],
-                                             fmax=freq_bin[1],
-                                             fsum=True, tmin=tmin,
-                                             tmax=tmin + win_lengths[i_freq]))
+    for freq_bin, win_length in zip(freq_bins, win_lengths):
+        noise_csd = compute_epochs_csd(epochs, mode='fourier',
+                                       fmin=freq_bin[0], fmax=freq_bin[1],
+                                       fsum=True, tmin=tmin,
+                                       tmax=tmin + win_length)
+        noise_csd.data /= win_length
+        noise_csds.append(noise_csd)
 
     stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                    freq_bins, reg=reg, label=label)
@@ -265,7 +263,7 @@ def test_tf_dics():
     stc = stcs[0]
 
     # Comparing tf_dics results with dics_source_power results
-    assert_array_equal(stc.data[:, 2], source_power[:, 0])
+    assert_array_almost_equal(stc.data[:, 2], source_power[:, 0])
 
     # Test if incorrect number of noise CSDs is detected
     assert_raises(ValueError, tf_dics, epochs, forward, [noise_csds[0]], tmin,
