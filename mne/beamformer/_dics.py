@@ -482,6 +482,9 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         raise ValueError('One noise CSD object expected per frequency bin')
     if len(win_lengths) != len(freq_bins):
         raise ValueError('One time window length expected per frequency bin')
+    if any(win_length < tstep for win_length in win_lengths):
+        raise ValueError('Time step should not be larger than any of the '
+                         'window lengths')
     if mt_bandwidths is not None and len(mt_bandwidths) != len(freq_bins):
         raise ValueError('When using multitaper mode and specifying '
                          'multitaper transform bandwidth, one value must be '
