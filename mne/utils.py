@@ -73,6 +73,18 @@ def create_chunks(sequence, size):
     return (sequence[p:p + size] for p in xrange(0, len(sequence), size))
 
 
+def compute_norm(X):
+    """Compute norm of an array
+
+    Parameters
+    ----------
+    X : array
+        Data whose norm must be found
+    """
+    return np.dot(X.ravel(order='F' if np.isfortran(X) else 'C'),
+                  X.ravel(order='F' if np.isfortran(X) else 'C'))
+
+
 class WrapStdOut(object):
     """Ridiculous class to work around how doctest captures stdout"""
     def __getattr__(self, name):

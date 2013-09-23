@@ -11,7 +11,7 @@ import os.path as op
 from itertools import count
 import numpy as np
 
-from ...utils import logger, verbose
+from ...utils import logger, verbose, compute_norm
 from .. import Raw
 from .. import FIFF
 from .constants import BTI
@@ -106,7 +106,7 @@ def _convert_head_shape(idx_points, dig_points):
 
     fp = idx_points.astype('>f8')
     dp = np.sum(fp[2] * (fp[0] - fp[1]))
-    tmp1, tmp2 = np.sum(fp[2] ** 2), np.sum((fp[0] - fp[1]) ** 2)
+    tmp1, tmp2 = compute_norm(fp[2]), compute_norm(fp[0] - fp[1])
     dcos = -dp / np.sqrt(tmp1 * tmp2)
     dsin = np.sqrt(1. - dcos * dcos)
     dt = dp / np.sqrt(tmp2)

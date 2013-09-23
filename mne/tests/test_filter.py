@@ -10,7 +10,7 @@ from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
                        notch_filter, detrend
 
 from mne import set_log_file
-from mne.utils import _TempDir
+from mne.utils import _TempDir, compute_norm
 from mne.cuda import requires_cuda
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -56,7 +56,7 @@ def test_notch_filters():
                 raise ValueError('Detected frequencies not logged properly')
             out = np.fromstring(out[1], sep=', ')
             assert_array_almost_equal(out, freqs)
-        new_power = np.sqrt(np.mean(b ** 2))
+        new_power = np.sqrt(compute_norm(b)/b.size)
         assert_almost_equal(new_power, orig_power, tol)
 
 
