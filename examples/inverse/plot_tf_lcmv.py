@@ -50,12 +50,10 @@ label = mne.read_label(fname_label)
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
-# Read epochs
+# Read epochs without preloading to access the underlying raw object for
+# filtering later in tf_lcmv
 event_id, epoch_tmin, epoch_tmax = 1, -0.2, 0.5
 events = mne.read_events(event_fname)
-
-# Read epochs without preloading to access the underlying raw object for
-# filtering later
 epochs = mne.Epochs(raw, events, event_id, epoch_tmin, epoch_tmax, proj=True,
                     picks=picks, baseline=(None, 0), reject=dict(grad=4000e-13,
                                                                  mag=4e-12))
@@ -84,8 +82,9 @@ filtered_epochs = generate_filtered_epochs(freq_bins, n_jobs, raw, events,
                                            reject=dict(grad=4000e-13,
                                                        mag=4e-12))
 noise_covs = []
-for epochs_band in filtered_epochs:
-    noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=0.0)
+for epochs_band, win_length in zip(filtered_epochs, win_lengths):
+    noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
+                                   win_length)
     noise_cov = regularize(noise_cov, epochs_band.info, mag=reg, grad=reg,
                            eeg=reg, proj=True)
     noise_covs.append(noise_cov)

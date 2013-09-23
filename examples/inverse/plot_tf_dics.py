@@ -42,9 +42,9 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
 # Read epochs
-event_id, tmin, tmax = 1, -0.3, 0.5
+event_id, epoch_tmin, epoch_tmax = 1, -0.3, 0.5
 events = mne.read_events(event_fname)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+epochs = mne.Epochs(raw, events, event_id, epoch_tmin, epoch_tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12))
 
@@ -77,8 +77,8 @@ for i_freq, freq_bin in enumerate(freq_bins):
                                          fsum=True, tmin=tmin,
                                          tmax=tmin + win_lengths[i_freq]))
 
-# Solution constrained to label in source space for faster computation, use
-# label=None for full solution
+# Computing DICS solutions for time-frequency windows in a label in source
+# space for faster computation, use label=None for full solution
 stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, reg=0.001, label=label)
 
