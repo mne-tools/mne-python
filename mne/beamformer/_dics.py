@@ -323,7 +323,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         # TODO: Is this check too restrictive? I.e. thick check won't fail only
         # when noise and data CSDs are calculated for exactly identical numbers
         # of samples, do we really need to require this?
-        if (data_csd.frequencies != noise_csd.frequencies).any():
+        if not np.allclose(data_csd.frequencies, noise_csd.frequencies):
             raise ValueError('Data and noise CSDs should be calculated at '
                              'identical frequencies')
 
