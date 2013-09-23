@@ -323,9 +323,9 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         # TODO: Is this check too restrictive? I.e. thick check won't fail only
         # when noise and data CSDs are calculated for exactly identical numbers
         # of samples, do we really need to require this?
-        #if (data_csd.frequencies != noise_csd.frequencies).any:
-        #    raise ValueError('Data and noise CSDs should be calculated at '
-        #                     'identical frequencies')
+        if (data_csd.frequencies != noise_csd.frequencies).any():
+            raise ValueError('Data and noise CSDs should be calculated at '
+                             'identical frequencies')
 
         # If CSD is summed over multiple frequencies, take the average
         # frequency
@@ -406,9 +406,9 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
 @verbose
 def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
-            freq_bins, mode='fourier', mt_bandwidths=None, mt_adaptive=False,
-            mt_low_bias=True, reg=0.01, label=None, pick_ori=None,
-            verbose=None):
+            freq_bins, mode='fourier', n_ffts=None, mt_bandwidths=None,
+            mt_adaptive=False, mt_low_bias=True, reg=0.01, label=None,
+            pick_ori=None, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -485,11 +485,16 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     if any(win_length < tstep for win_length in win_lengths):
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
+    if n_ffts is not None and len(n_ffts) != len(freq_bins):
+        raise ValueError('When specifiying number of FFT samples, one value '
+                         'must be provided per frequency bin')
     if mt_bandwidths is not None and len(mt_bandwidths) != len(freq_bins):
         raise ValueError('When using multitaper mode and specifying '
                          'multitaper transform bandwidth, one value must be '
                          'provided per frequency bin')
 
+    if n_ffts is None:
+        n_ffts = [None] * len(freq_bins)
     if mt_bandwidths is None:
         mt_bandwidths = [None] * len(freq_bins)
 
@@ -497,8 +502,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
 
     sol_final = []
-    for freq_bin, win_length, noise_csd, mt_bandwidth in\
-            zip(freq_bins, win_lengths, noise_csds, mt_bandwidths):
+    for freq_bin, win_length, noise_csd, n_fft, mt_bandwidth in\
+            zip(freq_bins, win_lengths, noise_csds, n_ffts, mt_bandwidths):
         n_overlap = int((win_length * 1e3) // (tstep * 1e3))
 
         sol_single = []
@@ -527,6 +532,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                                               fmin=freq_bin[0],
                                               fmax=freq_bin[1], fsum=True,
                                               tmin=win_tmin, tmax=win_tmax,
+                                              n_fft=n_fft,
                                               mt_bandwidth=mt_bandwidth,
                                               mt_low_bias=mt_low_bias)
                 data_csd.data /= win_length

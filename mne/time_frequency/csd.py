@@ -48,9 +48,9 @@ class CrossSpectralDensity(object):
 
 @verbose
 def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
-                       fsum=True, tmin=None, tmax=None, mt_bandwidth=None,
-                       mt_adaptive=False, mt_low_bias=True, projs=None,
-                       verbose=None):
+                       fsum=True, tmin=None, tmax=None, n_fft=None,
+                       mt_bandwidth=None, mt_adaptive=False, mt_low_bias=True,
+                       projs=None, verbose=None):
     """Estimate cross-spectral density from epochs
 
     Note: Baseline correction should be used when creating the Epochs.
@@ -75,6 +75,9 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         Minimum time instant to consider. If None start at first sample.
     tmax : float | None
         Maximum time instant to consider. If None end at last sample.
+    n_fft : int | None
+        Length of the FFT. If None the exact number of samples between tmin and
+        tmax will be used.
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'multitaper' mode.
@@ -131,9 +134,10 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         tend = np.where(epochs.times <= tmax)[0][-1] + 1
     tslice = slice(tstart, tend, None)
     n_times = len(epochs.times[tslice])
+    n_fft = n_times if n_fft is None else n_fft
 
     # Preparing frequencies of interest
-    frequencies = fftfreq(n_times, 1. / epochs.info['sfreq'])
+    frequencies = fftfreq(n_fft, 1. / epochs.info['sfreq'])
     freq_mask = (frequencies > fmin) & (frequencies < fmax)
     frequencies = frequencies[freq_mask]
     n_freqs = len(frequencies)
@@ -183,7 +187,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         epoch = epoch[picks_meeg][:, tslice]
 
         # Calculating Fourier transform using multitaper module
-        x_mt, _ = _mt_spectra(epoch, window_fun, epochs.info['sfreq'])
+        x_mt, _ = _mt_spectra(epoch, window_fun, epochs.info['sfreq'], n_fft)
 
         if mt_adaptive:
             # Compute adaptive weights

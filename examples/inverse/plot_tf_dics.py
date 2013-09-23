@@ -17,6 +17,8 @@ dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 
 print __doc__
 
+import numpy as np
+
 import mne
 from mne.fiff import Raw
 from mne.event import make_fixed_length_events
@@ -74,6 +76,8 @@ label = mne.read_label(fname_label)
 # Setting frequency bins as in Dalal et al. 2008
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
 win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
+n_ffts = [int(np.ceil(win_length * epochs.info['sfreq'])) for win_length in
+          win_lengths]
 
 # Setting time windows, please note tmin stretches over the baseline, which is
 # selected to be as long as the longest time window. This enables a smooth and
@@ -86,18 +90,18 @@ tstep = 0.05  # s
 # frequency bin and the corresponding time window length. To calculate noise
 # from the baseline period in the data, change epochs_noise to epochs
 noise_csds = []
-for freq_bin, win_length in zip(freq_bins, win_lengths):
+for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
     noise_csd = compute_epochs_csd(epochs_noise, mode='fourier',
                                    fmin=freq_bin[0], fmax=freq_bin[1],
                                    fsum=True, tmin=tmin,
-                                   tmax=tmin + win_length)
+                                   tmax=tmin + win_length, n_fft=n_fft)
     noise_csd.data /= win_length
     noise_csds.append(noise_csd)
 
 # Computing DICS solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
 stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
-               freq_bins=freq_bins, reg=0.001, label=label)
+               freq_bins=freq_bins, n_ffts=n_ffts, reg=0.001, label=label)
 
 # Plotting source spectrogram for source with maximum activity
 plot_source_spectrogram(stcs, freq_bins, source_index=None)
