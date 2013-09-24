@@ -8,7 +8,7 @@ import numpy as np
 from scipy import fftpack, linalg, interpolate
 
 from ..parallel import parallel_func
-from .. import verbose
+from ..utils import verbose, sum_squared
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -167,7 +167,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
                                  float(this_d.shape[-1] - 1) / N))
 
             # Rescale:
-            d_temp = d_temp / np.sqrt(np.sum(d_temp ** 2))
+            d_temp = d_temp / np.sqrt(sum_squared(d_temp))
 
             dpss.append(d_temp)
 

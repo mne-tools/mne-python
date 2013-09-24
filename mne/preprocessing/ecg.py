@@ -1,7 +1,7 @@
 import numpy as np
 
 from ..fiff import pick_types, pick_channels
-from ..utils import logger, verbose
+from ..utils import logger, verbose, sum_squared
 from ..filter import band_pass_filter
 
 
@@ -70,7 +70,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
             time.append(i + maxTime)
             numcross.append(np.sum(np.diff((window > thresh1).astype(np.int)
                                            == 1)))
-            rms.append(np.sqrt(np.mean(window ** 2)))
+            rms.append(np.sqrt(sum_squared(window) / window.size))
             i += win_size
         else:
             i += 1
