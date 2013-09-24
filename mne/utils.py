@@ -73,6 +73,23 @@ def create_chunks(sequence, size):
     return (sequence[p:p + size] for p in xrange(0, len(sequence), size))
 
 
+def sum_squared(X):
+    """Compute norm of an array
+
+    Parameters
+    ----------
+    X : array
+        Data whose norm must be found
+
+    Returns
+    -------
+    value : float
+        Sum of squares of the input array X
+    """
+    X_flat = X.ravel(order='F' if np.isfortran(X) else 'C')
+    return np.dot(X_flat, X_flat)
+
+
 class WrapStdOut(object):
     """Ridiculous class to work around how doctest captures stdout"""
     def __getattr__(self, name):

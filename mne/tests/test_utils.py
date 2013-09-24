@@ -1,12 +1,14 @@
 from numpy.testing import assert_equal
 from nose.tools import assert_true, assert_raises
 import os.path as op
+import numpy as np
 import os
 import warnings
 import urllib2
 
 from ..utils import set_log_level, set_log_file, _TempDir, \
-                    get_config, set_config, deprecated, _fetch_file
+                    get_config, set_config, deprecated, _fetch_file, \
+                    sum_squared
 from ..fiff import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -153,3 +155,10 @@ def test_fetch_file():
     url = "http://github.com/mne-tools/mne-python/blob/master/README.rst"
     archive_name = op.join(tempdir, "download_test")
     _fetch_file(url, archive_name, print_destination=False)
+
+
+def test_sum_squared():
+    """Optimized sum of squares
+    """
+    X = np.random.randint(0, 50, (3, 3))
+    assert_equal(np.sum(X ** 2), sum_squared(X))

@@ -8,7 +8,7 @@ import numpy as np
 from scipy import linalg
 
 from .mxne_debiasing import compute_bias
-from ..utils import logger, verbose
+from ..utils import logger, verbose, sum_squared
 from ..time_frequency.stft import stft_norm2, stft, istft
 
 
@@ -162,7 +162,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     GX = np.dot(G[:, active_set], X)
     R = M - GX
     penalty = norm_l21(X, n_orient, copy=True)
-    nR2 = np.sum(R ** 2)
+    nR2 = sum_squared(R)
     pobj = 0.5 * nR2 + alpha * penalty
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
