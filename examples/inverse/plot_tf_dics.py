@@ -17,8 +17,6 @@ dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 
 print __doc__
 
-import numpy as np
-
 import mne
 from mne.fiff import Raw
 from mne.event import make_fixed_length_events
@@ -62,7 +60,8 @@ events_noise = make_fixed_length_events(raw_noise, event_id)
 epochs_noise = mne.Epochs(raw, events_noise, event_id, epoch_tmin, epoch_tmax,
                           proj=True, picks=picks, baseline=(None, 0),
                           preload=True, reject=dict(grad=4000e-13, mag=4e-12))
-epochs_noise.drop_epochs(range(len(epochs_noise.events) - len(epochs.events)))
+# then make sure the number of epochs is the same
+epochs_noise = epochs[:len(epochs.events)]
 
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
@@ -76,8 +75,9 @@ label = mne.read_label(fname_label)
 # Setting frequency bins as in Dalal et al. 2008
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 300)]  # Hz
 win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
-n_ffts = [int(np.ceil(win_length * epochs.info['sfreq'])) for win_length in
-          win_lengths]
+# Then set FFTs length for each frequency range.
+# Should be a power of 2 to be faster.
+n_ffts = [256, 128, 128, 128]
 
 # Setting time windows, please note tmin stretches over the baseline, which is
 # selected to be as long as the longest time window. This enables a smooth and
@@ -95,7 +95,7 @@ for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
                                    fmin=freq_bin[0], fmax=freq_bin[1],
                                    fsum=True, tmin=tmin,
                                    tmax=tmin + win_length, n_fft=n_fft)
-    noise_csd.data /= win_length
+    noise_csd.data /= win_length  # XXX : why this?
     noise_csds.append(noise_csd)
 
 # Computing DICS solutions for time-frequency windows in a label in source

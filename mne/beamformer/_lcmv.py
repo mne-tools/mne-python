@@ -20,6 +20,7 @@ from ..cov import compute_whitener, compute_covariance, regularize
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
 from ..utils import logger, verbose
+from .. import Epochs
 
 
 @verbose
@@ -563,25 +564,29 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
 
-    filtered_epochs =\
-        generate_filtered_epochs(freq_bins, n_jobs, epochs.raw, epochs.events,
-                                 epochs.event_id, epochs.tmin, epochs.tmax,
-                                 epochs.baseline, picks=epochs.picks,
-                                 name=epochs.name, keep_comp=epochs.keep_comp,
-                                 dest_comp=epochs.dest_comp,
-                                 reject=epochs.reject, flat=epochs.flat,
-                                 proj=epochs.proj, decim=epochs.decim,
-                                 reject_tmin=epochs.reject_tmin,
-                                 reject_tmax=epochs.reject_tmax,
-                                 detrend=epochs.detrend, verbose=verbose)
+    # make sure epochs.events contains only good events:
+    epochs.drop_bad_epochs()
 
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
 
+    raw = epochs.raw
+    raw_picks = [raw.ch_names.index(c) for c in epochs.ch_names]
+
     sol_final = []
-    for freq_bin, win_length, noise_cov, epochs_band in\
-            zip(freq_bins, win_lengths, noise_covs, filtered_epochs):
+    for (l_freq, h_freq), win_length, noise_cov in \
+            zip(freq_bins, win_lengths, noise_covs):
         n_overlap = int((win_length * 1e3) // (tstep * 1e3))
+
+        raw_band = raw.copy()
+        raw_band.filter(l_freq, h_freq, picks=raw_picks, method='iir',
+                        n_jobs=n_jobs)
+        epochs_band = Epochs(raw_band, epochs.events, epochs.event_id,
+                             tmin=epochs.tmin, tmax=epochs.tmax,
+                             picks=raw_picks, keep_comp=epochs.keep_comp,
+                             dest_comp=epochs.dest_comp,
+                             proj=epochs.proj, preload=True)
+        del raw_band
 
         sol_single = []
         sol_overlap = []
@@ -602,7 +607,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                 logger.info('Computing time-frequency LCMV beamformer for '
                             'time window %d to %d ms, in frequency range '
                             '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
-                                             freq_bin[0], freq_bin[1]))
+                                             l_freq, h_freq))
 
                 # Calculating data covariance from filtered epochs in current
                 # time window

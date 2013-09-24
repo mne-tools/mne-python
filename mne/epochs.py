@@ -1777,29 +1777,3 @@ def _check_add_drop_log(epochs, inds):
     epochs.drop_log = new_drop_log
     return epochs
 
-
-def generate_filtered_epochs(freq_bins, n_jobs, raw, events, event_id, tmin,
-                             tmax, baseline=(None, 0), picks=None,
-                             name='unknown', keep_comp=None, dest_comp=None,
-                             preload=False, reject=None, flat=None, proj=True,
-                             decim=1, reject_tmin=None, reject_tmax=None,
-                             detrend=None, add_eeg_ref=True, verbose=None):
-    """Filters raw data, creates and yields epochs
-    """
-    # Rejecting events prior to filtering
-    events = Epochs(raw, events, event_id, tmin, tmax, baseline, picks, name,
-                    keep_comp, dest_comp, preload=True, reject=reject,
-                    flat=flat, proj=proj, decim=decim, reject_tmin=reject_tmin,
-                    reject_tmax=reject_tmax, detrend=detrend,
-                    add_eeg_ref=add_eeg_ref, verbose=verbose).events
-
-    for l_freq, h_freq in freq_bins:
-        raw_band = raw.copy()
-        raw_band.filter(l_freq, h_freq, picks=picks, n_jobs=n_jobs)
-        epochs_band = Epochs(raw_band, events, event_id, tmin, tmax, baseline,
-                             picks, name, keep_comp, dest_comp, preload,
-                             flat=flat, proj=proj, decim=decim,
-                             detrend=detrend, add_eeg_ref=add_eeg_ref,
-                             verbose=verbose)
-
-        yield epochs_band

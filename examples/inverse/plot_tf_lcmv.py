@@ -22,8 +22,6 @@ from mne import compute_covariance
 from mne.fiff import Raw
 from mne.datasets import sample
 from mne.event import make_fixed_length_events
-from mne.epochs import generate_filtered_epochs
-from mne.cov import regularize
 from mne.beamformer import tf_lcmv
 from mne.viz import plot_source_spectrogram
 
@@ -48,11 +46,11 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 # Read epochs without preloading to access the underlying raw object for
 # filtering later in tf_lcmv
-event_id, epoch_tmin, epoch_tmax = 1, -0.2, 0.5
+event_id, tmin, tmax = 1, -0.2, 0.5
+reject = dict(grad=4000e-13, mag=4e-12)
 events = mne.read_events(event_fname)
-epochs = mne.Epochs(raw, events, event_id, epoch_tmin, epoch_tmax, proj=True,
-                    picks=picks, baseline=(None, 0), reject=dict(grad=4000e-13,
-                                                                 mag=4e-12))
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                    picks=picks, baseline=(None, 0), reject=reject)
 
 # Read empty room noise, preload to allow filtering
 raw_noise = Raw(noise_fname, preload=True)
@@ -61,13 +59,12 @@ raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 # Create artificial events for empty room noise data and create epochs to
 # reject bad ones and prepare list of artifical events to be used to prepare
 # filtered noise
-events_noise = make_fixed_length_events(raw_noise, event_id)
-epochs_noise = mne.Epochs(raw, events_noise, event_id, epoch_tmin, epoch_tmax,
+events_noise = make_fixed_length_events(raw_noise, event_id, duration=1.)
+epochs_noise = mne.Epochs(raw, events_noise, event_id, tmin, tmax,
                           proj=True, picks=picks, baseline=(None, 0),
-                          preload=True, reject=dict(grad=4000e-13, mag=4e-12))
-epochs_noise.drop_epochs(range(len(epochs_noise.events) - len(epochs.events)))
-epochs_noise.info['bads'] = epochs.info['bads']
-events_noise = epochs_noise.events
+                          preload=True, reject=reject)
+# then make sure the number of epochs is the same
+epochs_noise = epochs[:len(epochs.events)]
 
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
@@ -83,27 +80,23 @@ freq_bins = [(4, 12), (12, 30), (30, 55), (65, 299)]  # Hz
 win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
 
 # Setting time windows
-tmin = -0.2
-tmax = 0.5
 tstep = 0.2
-baseline = (-0.2, 0.0)
-
-n_jobs = 4
 reg = 0.05
 
 # Calculating covariance from empty room noise. To use baseline data as noise
 # substitute raw for raw_noise
-filtered_epochs_noise = generate_filtered_epochs(freq_bins, n_jobs, raw_noise,
-                                                 events_noise, event_id,
-                                                 epoch_tmin, epoch_tmax,
-                                                 baseline, picks=picks)
 noise_covs = []
-for epochs_band, win_length in zip(filtered_epochs_noise, win_lengths):
-    noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
-                                   win_length)
-    noise_cov = regularize(noise_cov, epochs_band.info, mag=reg, grad=reg,
-                           eeg=reg, proj=True)
+
+for (l_freq, h_freq), win_length in zip(freq_bins, win_lengths):
+    raw_band = raw_noise.copy()
+    raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1)
+    epochs_band = mne.Epochs(raw_band, epochs_noise.events, event_id,
+                             tmin=tmin, tmax=tmax, proj=True)
+    noise_cov = compute_covariance(epochs_band)
+    noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=reg,
+                                   grad=reg, eeg=reg, proj=True)
     noise_covs.append(noise_cov)
+    del raw_band  # to save memory
 
 # Computing LCMV solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
