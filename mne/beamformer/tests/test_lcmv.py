@@ -7,6 +7,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 import mne
 from mne.datasets import sample
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw
+from mne.beamformer._lcmv import _lcmv_source_power
 from mne.source_estimate import SourceEstimate, VolSourceEstimate
 
 
@@ -96,7 +97,6 @@ def test_lcmv():
         max_stc = stc.data[idx]
         tmax = stc.times[np.argmax(max_stc)]
 
-        print 'TMAX: %f' % np.max(max_stc)
         assert_true(0.09 < tmax < 0.105)
         assert_true(1.9 < np.max(max_stc) < 3.)
 
@@ -206,3 +206,44 @@ def test_lcmv_raw():
                                                          label.vertices)))
     assert_true(len(stc.vertno[1]) == 0)
     # TODO: test more things
+
+
+def test_lcmv_source_power():
+    """Test LCMV source power computation
+    """
+    raw, epochs, evoked, data_cov, noise_cov, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol = _get_data()
+
+    stc_source_power = _lcmv_source_power(epochs.info, forward, noise_cov,
+                                          data_cov, label=label)
+
+    max_source_idx = np.argmax(stc_source_power.data)
+    max_source_power = np.max(stc_source_power.data)
+
+    # TODO: Try a direct comparison to results of lcmv
+    assert_true(max_source_idx == 24)
+    assert_true(2.2 < max_source_power < 2.4)
+
+    # Test picking normal orientation and using a list of CSD matrices
+    stc_normal = _lcmv_source_power(epochs.info, forward_surf_ori, noise_cov,
+                                    data_cov, pick_ori="normal", label=label)
+
+    # The normal orientation results should always be smaller than free
+    # orientation results
+    assert_true((np.abs(stc_normal.data[:, 0]) <=
+                 stc_source_power.data[:, 0]).all())
+
+    # Test if fixed forward operator is detected when picking normal
+    # orientation
+    assert_raises(ValueError, _lcmv_source_power, raw.info, forward_fixed,
+                  noise_cov, data_cov, pick_ori="normal")
+
+    # Test if non-surface oriented forward operator is detected when picking
+    # normal orientation
+    assert_raises(ValueError, _lcmv_source_power, raw.info, forward, noise_cov,
+                  data_cov, pick_ori="normal")
+
+    # Test if volume forward operator is detected when picking normal
+    # orientation
+    assert_raises(ValueError, _lcmv_source_power, epochs.info, forward_vol,
+                  noise_cov, data_cov, pick_ori="normal")
