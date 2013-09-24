@@ -5,7 +5,7 @@ from numpy.testing import assert_array_equal
 import mne
 
 from mne.fiff import Raw
-from mne.utils import compute_norm
+from mne.utils import sum_squared
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd, induced_power
 
@@ -116,7 +116,7 @@ def test_compute_epochs_csd_on_artificial_data():
     sfreq = epochs_sin.info['sfreq']
 
     # Computing signal power in the time domain
-    signal_power = compute_norm(epochs_sin._data)
+    signal_power = sum_squared(epochs_sin._data)
     signal_power_per_sample = signal_power / len(epochs_sin.times)
 
     # Computing signal power in the frequency domain

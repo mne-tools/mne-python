@@ -12,7 +12,7 @@ from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .parallel import parallel_func
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
-from .utils import logger, verbose, compute_norm
+from .utils import logger, verbose, sum_squared
 
 
 def is_power2(num):
@@ -1090,7 +1090,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     H0 = np.sum(tapers_use, axis=1)
 
     # sum of squares across tapers (1, )
-    H0_sq = compute_norm(H0)
+    H0_sq = sum_squared(H0)
 
     # make "time" vector
     rads = 2 * np.pi * (np.arange(n_times) / float(sfreq))
