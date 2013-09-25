@@ -51,6 +51,8 @@ Changelog
 
    - Add morph map calculation by `Eric Larson`_ and `Martin Luessi`_
 
+   - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
+
 API
 ~~~
 

@@ -17,8 +17,7 @@ from .event import read_events, write_events, find_events, merge_events, \
 from .forward import read_forward_solution, apply_forward, apply_forward_raw, \
                      do_forward_solution, average_forward_solutions, \
                      write_forward_solution
-from .source_estimate import read_stc, write_stc, read_w, write_w, \
-                             read_source_estimate, \
+from .source_estimate import read_source_estimate, \
                              SourceEstimate, VolSourceEstimate, morph_data, \
                              morph_data_precomputed, compute_morph_matrix, \
                              grade_to_tris, grade_to_vertices, \
