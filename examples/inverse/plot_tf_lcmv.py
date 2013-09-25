@@ -64,7 +64,7 @@ epochs_noise = mne.Epochs(raw_noise, events_noise, event_id, tmin, tmax,
                           proj=True, picks=picks, baseline=(None, 0),
                           preload=True, reject=reject)
 # then make sure the number of noise epochs is the same as data epochs
-epochs_noise = epochs[:len(epochs.events)]
+epochs_noise = epochs_noise[:len(epochs.events)]
 
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
