@@ -126,7 +126,7 @@ def pick_channels_regexp(ch_names, regexp):
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg=False, misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False,
-               include=[], exclude=None, selection=None):
+               include=[], exclude='bads', selection=None):
     """Pick channels by type and names
 
     Parameters
@@ -180,12 +180,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     pick = np.zeros(nchan, dtype=np.bool)
 
     if exclude is None:
-        msg = ('In pick_types, the parameter "exclude" must be specified as '
-               'either "bads" or a list of channels to exclude. In 0.7, the '
-               'default will be changed from [] (current behavior) to "bads".')
-        warn(msg, category=DeprecationWarning)
-        logger.warn(msg)
-        exclude = []
+        raise ValueError('exclude must be a list of strings or "bads"')
     elif exclude == 'bads':
         exclude = info.get('bads', [])
     elif not isinstance(exclude, list):
