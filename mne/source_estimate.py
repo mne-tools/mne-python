@@ -17,37 +17,9 @@ from .parallel import parallel_func
 from .surface import read_surface, _get_ico_surface, read_morph_map
 from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
-                    deprecated, logger, verbose)
+                    logger, verbose)
 from .viz import plot_source_estimates
 from . fixes import in1d
-
-
-@deprecated('read_stc is deprecated and will be removed with version 0.7. '
-            'Please use read_source_estimate instead.')
-def read_stc(filename):
-    """Read an STC file and return as dict
-
-    STC files contain activations or source reconstructions.
-
-    Parameters
-    ----------
-    filename : string
-        The name of the STC file.
-
-    Returns
-    -------
-    data: dict
-        The STC structure. It has the following keys:
-           tmin           The first time point of the data in seconds
-           tstep          Time between frames in seconds
-           vertices       vertex indices (0 based)
-           data           The data matrix (nvert * ntime)
-
-    See Also
-    --------
-    read_source_estimate
-    """
-    return _read_stc(filename)
 
 
 def _read_stc(filename):
@@ -89,31 +61,6 @@ def _read_stc(filename):
     # close the file
     fid.close()
     return stc
-
-
-@deprecated('write_stc is deprecated and will be removed with version 0.7. '
-            'Please use SourceEstimate.save instead.')
-def write_stc(filename, tmin, tstep, vertices, data):
-    """Write an STC file
-
-    Parameters
-    ----------
-    filename : string
-        The name of the STC file.
-    tmin : float
-        The first time point of the data in seconds.
-    tstep : float
-        Time between frames in seconds.
-    vertices : array of integers
-        Vertex indices (0 based).
-    data : 2D array
-        The data matrix (nvert * ntime).
-
-    See Also
-    --------
-    SourceEstimate.save (instance method)
-    """
-    return _write_stc(filename, tmin, tstep, vertices, data)
 
 
 def _write_stc(filename, tmin, tstep, vertices, data):
@@ -162,29 +109,6 @@ def _read_3(fid):
     out = np.left_shift(data[0], 16) + np.left_shift(data[1], 8) + data[2]
 
     return out
-
-
-@deprecated('read_w is deprecated and will be removed with version 0.7. '
-            'Please use read_source_estimate instead.')
-def read_w(filename):
-    """Read a w file and return as dict
-
-    w files contain activations or source reconstructions for a single time
-    point.
-
-    Parameters
-    ----------
-    filename : string
-        The name of the w file.
-
-    Returns
-    -------
-    data: dict
-        The w structure. It has the following keys:
-           vertices       vertex indices (0 based)
-           data           The data matrix (nvert long)
-    """
-    return _read_w(filename)
 
 
 def _read_w(filename):
@@ -242,30 +166,6 @@ def _write_3(fid, val):
     f_bytes[2] = val & 255
 
     fid.write(f_bytes.tostring())
-
-
-@deprecated('read_w is deprecated and will be removed with version 0.7. '
-            'Please use SoureEstimate.save instead.')
-def write_w(filename, vertices, data):
-    """Read a w file
-
-    w files contain activations or source reconstructions for a single time
-    point.
-
-    Parameters
-    ----------
-    filename: string
-        The name of the w file.
-    vertices: array of int
-        Vertex indices (0 based).
-    data: 1D array
-        The data array (nvert).
-
-    See Also
-    --------
-    SourceEstimate.save (instance method)
-    """
-    return _write_w(filename, vertices, data)
 
 
 def _write_w(filename, vertices, data):
