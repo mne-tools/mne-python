@@ -9,6 +9,7 @@ import time
 import struct
 import StringIO
 import threading
+import json
 
 import numpy as np
 
@@ -38,7 +39,11 @@ def _recv_tag_raw(sock):
     buff : str
         The raw data of the tag (including header).
     """
-    s = sock.recv(4 * 4)
+    try:
+        s = sock.recv(4 * 4)
+    except socket.timeout:
+        return None, None
+
     if len(s) != 16:
         raise RuntimeError('Not enough bytes received, something is wrong. '
                            'Make sure the mne_rt_server is running.')
@@ -69,6 +74,26 @@ def _buffer_recv_worker(rt_client, nchan):
         # something is wrong, the server stopped (or something)
         rt_client._recv_thread = None
         print 'Buffer receive thread stopped: %s' % err
+
+
+def _compile_docstring(name, cmd_spec):
+    doc_str = cmd_spec['description']
+    first = True
+    for p_name, p_spec in cmd_spec['parameters'].iteritems():
+        if first:
+            doc_str += '\n\nParameters\n----------\n'
+            first = False
+        doc_str += '%s : %s\n    %s\n' % (p_name, p_spec['type'],
+                                          p_spec['description'])
+    return doc_str
+
+
+class _ServerCommand(object):
+    def __init__(self, name, cmd_spec):
+        self._name = name
+        self._desc = cmd_spec['description']
+        self._params = cmd_spec['parameters']
+        self.__doc__ = _compile_docstring(name, cmd_spec)
 
 
 class RtClient(object):
@@ -123,11 +148,19 @@ class RtClient(object):
 
         self.verbose = verbose
 
+        self._update_server_commands()
+
         # get my client ID
         self._client_id = self.get_client_id()
 
         self._recv_thread = None
         self._recv_callbacks = list()
+
+    def _update_server_commands(self):
+        self._server_commands = dict()
+        cmds = json.loads(self._send_command('{"commands":{"help":{}}}'))
+        for name, cmd_spec in cmds['commands'].iteritems():
+            self._server_commands[name] = _ServerCommand(name, cmd_spec)
 
     def _send_command(self, command):
         """Send a command to the server
@@ -196,6 +229,38 @@ class RtClient(object):
 
         self._data_sock.sendall(msg)
 
+    def list_server_commands(self):
+        """List the supported server commands"""
+
+        print 'Supported server commands:\n\n'
+        for name, cmd in self._server_commands.iteritems():
+            print 'Command: "%s"\n\n%s\n\n' % (name, cmd.__doc__)
+
+    def send_server_command(self, cmd, *args):
+        """Send a command to the server"""
+
+        if cmd not in self._server_commands:
+            raise ValueError('%s is not a valid server command' % cmd)
+
+        arg_names = self._server_commands[cmd]._params.keys()
+
+        if len(args) != len(arg_names):
+            raise ValueError('command %s requires %d arguments'
+                             % (cmd, len(arg_names)))
+
+        cmd_d = {'commands': {cmd: {key: val
+                 for (key, val) in zip(arg_names, args)}}}
+
+        # send the json formated command to the server
+        ret = self._send_command(json.dumps(cmd_d))
+
+        # "selcon" causes the available commands to change
+        if cmd == 'selcon':
+            self._update_server_commands()
+
+        if len(ret) > 0:
+            return json.dumps(ret)
+
     def get_measurement_info(self):
         """Get the measurement information
 
@@ -261,12 +326,11 @@ class RtClient(object):
 
     def start_measurement(self):
         """Start the measurement"""
-        cmd = 'start %d' % self._client_id
-        self._send_command(cmd)
+        self.send_server_command('start', self._client_id)
 
     def stop_measurement(self):
         """Stop the measurement"""
-        self._send_command('stop-all')
+        self.send_server_command('stop-all')
 
     def start_receive_thread(self, nchan):
         """Start the receive thread
