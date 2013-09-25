@@ -28,7 +28,7 @@ from .compensator import get_current_comp, make_compensator
 from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
                      notch_filter, band_stop_filter, resample
 from ..parallel import parallel_func
-from ..utils import deprecated, _check_fname, estimate_rank, \
+from ..utils import _check_fname, estimate_rank, \
                     _check_pandas_installed, logger, verbose
 from ..viz import plot_raw, _mutable_defaults
 
@@ -78,13 +78,8 @@ class Raw(ProjMixin):
     """
     @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 proj=False, proj_active=None, compensation=None,
+                 proj=False, compensation=None,
                  verbose=None):
-
-        if proj_active is not None:
-            warnings.warn('proj_active param in Raw is deprecated and will be'
-                          ' removed in version 0.7. Please use proj instead.')
-            proj = proj_active
 
         if not isinstance(fnames, list):
             fnames = [op.abspath(fnames)] if not op.isabs(fnames) else [fnames]
@@ -843,7 +838,7 @@ class Raw(ProjMixin):
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False, proj=False, format='single',
-             overwrite=False, verbose=None, proj_active=None):
+             overwrite=False, verbose=None):
         """Save raw data to file
 
         Parameters
@@ -893,11 +888,6 @@ class Raw(ProjMixin):
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
-        if proj_active is not None:
-            warnings.warn('proj_active param in Raw is deprecated and will be'
-                          ' removed in version 0.7. Please use proj instead.')
-            proj = proj_active
-
         fname = op.abspath(fname)
         if not self._preloaded and fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
@@ -1049,22 +1039,12 @@ class Raw(ProjMixin):
         between channels and time ranges, but this depends on the backend
         matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
         To mark or un-mark a channel as bad, click on the rather flat segments
-        of a channel's time series. The changes will be reflected immediately 
+        of a channel's time series. The changes will be reflected immediately
         in the raw object's ``raw.info['bads']`` entry.
         """
         return plot_raw(raw, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block)
-
-    @deprecated('time_to_index is deprecated please use time_as_index instead.'
-                ' Will be removed in v0.7.')
-    def time_to_index(self, *args):
-        """Convert time to indices"""
-        indices = []
-        for time in args:
-            ind = int(time * self.info['sfreq'])
-            indices.append(ind)
-        return indices
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices
