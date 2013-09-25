@@ -56,14 +56,14 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 raw_noise = Raw(noise_fname, preload=True)
 raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
-# Create artificial events for empty room noise data and create epochs to
-# reject bad ones and prepare list of artifical events to be used to prepare
-# filtered noise
+# Create artificial events for empty room noise data which will later be used
+# to create epochs from filtered data
 events_noise = make_fixed_length_events(raw_noise, event_id, duration=1.)
+# reject bad noise epochs based on unfiltered data
 epochs_noise = mne.Epochs(raw, events_noise, event_id, tmin, tmax,
                           proj=True, picks=picks, baseline=(None, 0),
                           preload=True, reject=reject)
-# then make sure the number of epochs is the same
+# then make sure the number of noise epochs is the same as data epochs
 epochs_noise = epochs[:len(epochs.events)]
 
 # Read forward operator
@@ -79,7 +79,7 @@ label = mne.read_label(fname_label)
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 299)]  # Hz
 win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
 
-# Setting time windows
+# Setting time step and CSD regularization parameter
 tstep = 0.2
 reg = 0.05
 
