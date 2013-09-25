@@ -60,7 +60,7 @@ raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 # to create epochs from filtered data
 events_noise = make_fixed_length_events(raw_noise, event_id, duration=1.)
 # reject bad noise epochs based on unfiltered data
-epochs_noise = mne.Epochs(raw, events_noise, event_id, tmin, tmax,
+epochs_noise = mne.Epochs(raw_noise, events_noise, event_id, tmin, tmax,
                           proj=True, picks=picks, baseline=(None, 0),
                           preload=True, reject=reject)
 # then make sure the number of noise epochs is the same as data epochs
