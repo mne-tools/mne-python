@@ -255,15 +255,11 @@ def test_lcmv_source_power():
 def test_tf_lcmv():
     """Test TF beamforming based on LCMV
     """
-    #tmin, tmax, tstep = -0.2, 0.2, 0.1
-    #raw, epochs, _, _, _, label, forward, _, _, _ =\
-    #    _get_data(tmin, tmax, all_forward=False, epochs_preload=False)
-    #fname_raw = op.join(data_path, 'MEG', 'sample',
-    #                    'sample_audvis_filt-0-40_raw.fif')
+    fname_raw = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_filt-0-40_raw.fif')
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
     raw = mne.fiff.Raw(fname_raw, preload=True)
-    raw = raw.crop(20, 30)
     forward = mne.read_forward_solution(fname_fwd)
 
     event_id, tmin, tmax = 1, -0.2, 0.2
@@ -282,8 +278,9 @@ def test_tf_lcmv():
                         picks=picks, baseline=(None, 0),
                         preload=False,
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+    epochs.drop_bad_epochs()
 
-    freq_bins = [(4, 20), (30, 55)]
+    freq_bins = [(4, 12), (15, 40)]
     time_windows = [(-0.1, 0.1), (0.0, 0.2)]
     win_lengths = [0.2, 0.2]
     tstep = 0.1
