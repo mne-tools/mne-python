@@ -9,35 +9,100 @@ from mne.datasets import sample
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
-                       requires_freesurfer)
+                       requires_freesurfer, run_subprocess,
+                       requires_mne)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 
 from scipy.spatial.distance import cdist
 
 data_path = sample.data_path()
-fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
-# volume source spaces
 subjects_dir = op.join(data_path, 'subjects')
+fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
+fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
+                    'sample-5120-bem.fif')
+fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 
 tempdir = _TempDir()
 
 
+@requires_mne
+def test_discrete_source_space():
+    """Test setting up (and reading/writing) discrete source spaces
+    """
+    src = read_source_spaces(fname)
+    temp_pos = op.join(tempdir, 'temp-pos.txt')
+    v = src[0]['vertno']
+    # convert to mm and save
+    np.savetxt(temp_pos, 1000 * np.c_[src[0]['rr'][v], src[0]['nn'][v]])
+
+    # let's make a discrete version with the C code, and with ours
+    temp_name = op.join(tempdir, 'temp-src.fif')
+    try:
+        # let's try the spherical one (no bem or surf supplied)
+        run_subprocess(['mne_volume_source_space',
+                        '--pos',  temp_pos, '--src', temp_name])
+        src_c = read_source_spaces(temp_name)
+        src_new = setup_volume_source_space('sample', None, pos=temp_pos,
+                                            subjects_dir=subjects_dir)
+        _compare_source_spaces(src_c, src_new, mode='approx')
+        assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
+                        rtol=1e-3, atol=1e-6)
+        assert_allclose(src[0]['nn'][v], src_new[0]['nn'],
+                        rtol=1e-3, atol=1e-6)
+
+        # now let's try the dict, with units in meters, no normals, head coords
+        # (even though they aren't really head coords, won't matter)
+        temp_pos = op.join(tempdir, 'temp-pos.txt')
+        np.savetxt(temp_pos, src[0]['rr'][v])
+
+        run_subprocess(['mne_volume_source_space', '--meters', '--head',
+                        '--pos',  temp_pos, '--src', temp_name])
+        src_c = read_source_spaces(temp_name)
+        src_new = setup_volume_source_space('sample', None,
+                                            pos=dict(fname=temp_pos,
+                                                     meters=True,
+                                                     head=True),
+                                            subjects_dir=subjects_dir)
+        _compare_source_spaces(src_c, src_new, mode='approx')
+        assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
+                        rtol=1e-3, atol=1e-6)
+        assert_true(np.all(src_new[0]['nn'] == np.array([0, 0, 1.0])))
+
+        # now do writing
+        write_source_spaces(temp_name, src_c)
+        src_c2 = read_source_spaces(temp_name)
+        _compare_source_spaces(src_c, src_c2)
+    finally:
+        if op.isfile(temp_name):
+            os.remove(temp_name)
+
+
+@requires_mne
 def test_volume_source_space():
     """Test setting up volume source spaces
     """
     fname_vol = op.join(data_path, 'subjects', 'sample', 'bem',
                         'volume-7mm-src.fif')
-    fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
-                        'sample-5120-bem.fif')
-    fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
     src = read_source_spaces(fname_vol)
     temp_name = op.join(tempdir, 'temp-src.fif')
     try:
+        # The one in the sample dataset (uses bem as bounds)
         src_new = setup_volume_source_space('sample', temp_name, grid=7.0,
                                             bem=fname_bem, mri=fname_mri,
                                             subjects_dir=subjects_dir)
         _compare_source_spaces(src, src_new, mode='approx')
         src_new = read_source_spaces(temp_name)
+        _compare_source_spaces(src, src_new, mode='approx')
+
+        # let's try the spherical one (no bem or surf supplied)
+        run_subprocess(['mne_volume_source_space',
+                        '--grid',  '15.0',
+                        '--src', temp_name,
+                        '--mri', fname_mri])
+        src = read_source_spaces(temp_name)
+        src_new = setup_volume_source_space('sample', temp_name, grid=15.0,
+                                            mri=fname_mri,
+                                            subjects_dir=subjects_dir)
         _compare_source_spaces(src, src_new, mode='approx')
     finally:
         if op.isfile(temp_name):

@@ -238,6 +238,7 @@ def run_subprocess(command, *args, **kwargs):
 
     output = (stdout, stderr)
     if p.returncode:
+        print output
         raise subprocess.CalledProcessError(p.returncode, command, output)
 
     return output

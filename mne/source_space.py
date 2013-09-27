@@ -227,8 +227,7 @@ def _read_one_source_space(fid, this, verbose=None):
         elif src_type == FIFF.FIFFV_MNE_SPACE_VOLUME:
             res['type'] = 'vol'
         elif src_type == FIFF.FIFFV_MNE_SPACE_DISCRETE:
-            raise ValueError('Discrete source spaces (type 3) are not '
-                             'currently supported')
+            res['type'] = 'discrete'
         else:
             raise ValueError('Unknown source space type (%d)' % src_type)
 
@@ -570,11 +569,14 @@ def write_source_spaces(fname, src, verbose=None):
 def _write_one_source_space(fid, this, verbose=None):
     """Write one source space"""
     if this['type'] == 'surf':
-        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 1)
+        src_type = FIFF.FIFFV_MNE_SPACE_SURFACE
     elif this['type'] == 'vol':
-        write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, 2)
+        src_type = FIFF.FIFFV_MNE_SPACE_VOLUME
+    elif this['type'] == 'discrete':
+        src_type = FIFF.FIFFV_MNE_SPACE_DISCRETE
     else:
-        raise ValueError('Unknown source space type (%d)' % this['type'])
+        raise ValueError('Unknown source space type (%s)' % this['type'])
+    write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_TYPE, src_type)
     if this['id'] >= 0:
         write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_ID, this['id'])
 
@@ -953,7 +955,7 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
         The spacing to use in mm.
     mri : str | None
         The filename of an MRI volume (mgh or mgz) to create the
-        interpolation matrix over. If None, a sphere will be used.
+        interpolation matrix over. If pos is supplied, this can be None.
     sphere : array_like (length 4)
         Define a spherical source space using origin and radius given
         by (ox, oy, oz, rad) in mm.
@@ -994,8 +996,13 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
     if (bem is not None or surface is not None) and pos is not None:
         raise ValueError('"pos" should not be specified if "surface" or '
                          '"bem" is given')
-    if mri is not None and not has_nibabel():
-        raise RuntimeError('nibabel is required to process MRI data')
+    if pos is None and not isinstance(mri, basestring):
+        raise TypeError('If pos is not specified, mri must be a '
+                        'string (filename)')
+    if mri is not None and not op.isfile(mri):
+        raise IOError('mri file "%s" not found' % mri)
+    if not has_nibabel():
+        raise RuntimeError('nibabel is required to make a volume source space')
 
     sphere = np.asarray(sphere)
     if sphere.size != 4:
@@ -1058,8 +1065,8 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
 
             # Scale and shift
             _normalize_vectors(surf['rr'])
-            surf['rr'] *= sphere[3]  # scale by radius
-            surf['rr'] += sphere[:3]  # move by center
+            surf['rr'] *= sphere[3] / 1000.0  # scale by radius
+            surf['rr'] += sphere[:3] / 1000.0  # move by center
             _complete_surface_info(surf, True)
         # Make the grid of sources
         sp = _make_volume_source_space(surf, grid, exclude, mindist)
@@ -1100,7 +1107,7 @@ def _make_discrete_source_space(posname, pos_mm, pos_head):
     units = 'millimeters' if pos_mm else 'meters'
 
     # Read in data
-    data = np.fromfile(posname, dtype=float)
+    data = np.genfromtxt(posname, float)
     npts = data.shape[0]
     if data.ndim != 2:
         raise RuntimeError('Data must be 2D')
@@ -1110,7 +1117,7 @@ def _make_discrete_source_space(posname, pos_mm, pos_head):
         logger.info('Positions only (in %s)' % units)
     elif data.shape[1] == 6:
         nn = data[:, 3:6]
-        nn = _normalize_vectors(nn)
+        _normalize_vectors(nn)
         nz = np.sum(np.sum(nn * nn, axis=1) == 0)
         if nz != 0:
             raise RuntimeError('%d sources have zero length normal' % nz)
@@ -1119,13 +1126,13 @@ def _make_discrete_source_space(posname, pos_mm, pos_head):
         raise RuntimeError('Cannot understand %d-item lines in source '
                            'position file' % data.shape[1])
     rr = mult * data[:, :3]
-    logger.info('%d sources' % np)
+    logger.info('%d sources' % npts)
 
     # Ready to make the source space
     coord_frame = FIFF.FIFFV_COORD_HEAD if pos_head else FIFF.FIFFV_COORD_MRI
-    sp = dict(coord_frame=coord_frame, type=FIFF.MNE_SOURCE_SPACE_DISCRETE,
-              inuse=np.ones(npts, int), vertno=np.arange(npts),
-              rr=rr, nn=nn)
+    sp = dict(coord_frame=coord_frame, type='discrete', nuse=npts, np=npts,
+              inuse=np.ones(npts, int), vertno=np.arange(npts), rr=rr, nn=nn,
+              id=-1)
     return sp
 
 

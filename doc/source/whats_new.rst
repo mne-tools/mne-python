@@ -53,7 +53,7 @@ Changelog
 
    - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
 
-   - Add volume and discrete source space creation support by `Eric Larson`_
+   - Add volume and discrete source space creation and I/O support by `Eric Larson`_
 
 API
 ~~~
