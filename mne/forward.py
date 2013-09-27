@@ -33,7 +33,7 @@ from .fiff.evoked import Evoked, write_evoked
 from .event import make_fixed_length_events
 from .epochs import Epochs
 from .source_space import read_source_spaces_from_tree, \
-                          find_source_space_hemi, write_source_spaces_to_fid
+                          find_source_space_hemi, _write_source_spaces_to_fid
 from .transforms import transform_source_space_to, invert_transform, \
                         write_trans
 from .utils import _check_fname, get_subjects_dir, has_command_line_tools, \
@@ -609,7 +609,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     #
     # Write the source spaces (again)
     #
-    write_source_spaces_to_fid(fid, src)
+    _write_source_spaces_to_fid(fid, src)
     n_vert = sum([s['nuse'] for s in src])
     n_col = fwd['sol']['data'].shape[1]
     if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:

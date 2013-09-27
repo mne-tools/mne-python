@@ -28,7 +28,7 @@ from ..forward import compute_depth_prior, read_forward_meas_info, \
                       compute_orient_prior, _to_fixed_ori
 from ..source_space import read_source_spaces_from_tree, \
                            find_source_space_hemi, _get_vertno, \
-                           write_source_spaces_to_fid, label_src_vertno_sel
+                           _write_source_spaces_to_fid, label_src_vertno_sel
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import _make_stc
 from ..utils import logger, verbose
@@ -331,7 +331,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     #   Write the source spaces
     #
     if 'src' in inv:
-        write_source_spaces_to_fid(fid, inv['src'])
+        _write_source_spaces_to_fid(fid, inv['src'])
 
     start_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
 

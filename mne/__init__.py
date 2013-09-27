@@ -31,14 +31,15 @@ from .source_estimate import read_source_estimate, \
 from .surface import read_bem_surfaces, read_surface, write_bem_surface, \
                      write_surface, decimate_surface, read_morph_map
 from .source_space import read_source_spaces, vertex_to_mni, \
-                          write_source_spaces, setup_source_space
+                          write_source_spaces, setup_source_space, \
+                          setup_volume_source_space
 from .epochs import Epochs, read_epochs
 from .label import label_time_courses, read_label, label_sign_flip, \
                    write_label, stc_to_label, grow_labels, Label, \
                    BiHemiLabel, labels_from_parc
 from .misc import parse_config, read_reject_parameters
-from .transforms import transform_coordinates, read_trans, write_trans, \
-                        create_default_subject, scale_mri, scale_labels
+from .coreg import create_default_subject, scale_mri, scale_labels
+from .transforms import transform_coordinates, read_trans, write_trans
 from .proj import read_proj, write_proj, compute_proj_epochs, \
                   compute_proj_evoked, compute_proj_raw, sensitivity_map
 from .selection import read_selection

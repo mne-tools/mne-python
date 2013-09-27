@@ -1,3 +1,4 @@
+import os
 import os.path as op
 from nose.tools import assert_true, assert_raises
 import numpy as np
@@ -5,29 +6,42 @@ from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import warnings
 
 from mne.datasets import sample
-from mne import read_source_spaces, vertex_to_mni, write_source_spaces, \
-                setup_source_space
-from mne.utils import _TempDir, requires_fs_or_nibabel, requires_nibabel, \
-                      requires_freesurfer
+from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
+                 setup_source_space, setup_volume_source_space)
+from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
+                       requires_freesurfer)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 
 from scipy.spatial.distance import cdist
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
-fname_all = op.join(data_path, 'subjects', 'sample', 'bem',
-                    'sample-all-src.fif')
-fname_spacing = op.join(data_path, 'subjects', 'sample', 'bem',
-                        'sample-7-src.fif')
-fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
-                    'fsaverage-ico-5-src.fif')
-fname_morph = op.join(data_path, 'subjects', 'sample', 'bem',
-                      'sample-fsaverage-ico-5-src.fif')
-fname_nodist = op.join(data_path, 'subjects', 'sample', 'bem',
-                       'sample-oct-6-orig-src.fif')
+# volume source spaces
 subjects_dir = op.join(data_path, 'subjects')
 
 tempdir = _TempDir()
+
+
+def test_volume_source_space():
+    """Test setting up volume source spaces
+    """
+    fname_vol = op.join(data_path, 'subjects', 'sample', 'bem',
+                        'volume-7mm-src.fif')
+    fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
+                        'sample-5120-bem.fif')
+    fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
+    src = read_source_spaces(fname_vol)
+    temp_name = op.join(tempdir, 'temp-src.fif')
+    try:
+        src_new = setup_volume_source_space('sample', temp_name, grid=7.0,
+                                            bem=fname_bem, mri=fname_mri,
+                                            subjects_dir=subjects_dir)
+        _compare_source_spaces(src, src_new, mode='approx')
+        src_new = read_source_spaces(temp_name)
+        _compare_source_spaces(src, src_new, mode='approx')
+    finally:
+        if op.isfile(temp_name):
+            os.remove(temp_name)
 
 
 def test_triangle_neighbors():
@@ -75,6 +89,10 @@ def test_accumulate_normals():
 def test_setup_source_space():
     """Test setting up ico, oct, and all source spaces
     """
+    fname_all = op.join(data_path, 'subjects', 'sample', 'bem',
+                        'sample-all-src.fif')
+    fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
+                        'fsaverage-ico-5-src.fif')
     # first lets test some input params
     assert_raises(ValueError, setup_source_space, 'sample', spacing='oct')
     assert_raises(ValueError, setup_source_space, 'sample', spacing='octo')
@@ -143,9 +161,18 @@ def test_write_source_space():
 
 def _compare_source_spaces(src0, src1, mode='exact'):
     for s0, s1 in zip(src0, src1):
-        for name in ['nuse', 'ntri', 'np', 'type', 'id', 'subject_his_id']:
+        for name in ['nuse', 'ntri', 'np', 'type', 'id']:
             print name
             assert_true(s0[name] == s1[name])
+        for name in ['subject_his_id']:
+            if name in s0 or name in s1:
+                print name
+                assert_true(s0[name] == s1[name])
+        for name in ['interpolator']:
+            if name in s0 or name in s1:
+                print name
+                diffs = (s0['interpolator'] - s1['interpolator']).data
+                assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.05)  # 5%
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
             print name
             if s0[name] is None:
