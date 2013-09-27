@@ -95,7 +95,9 @@ for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
                                    fmin=freq_bin[0], fmax=freq_bin[1],
                                    fsum=True, tmin=tmin,
                                    tmax=tmin + win_length, n_fft=n_fft)
-    noise_csd.data /= win_length  # XXX : why this?
+    # Scale to obtain CSD per second to allow data and noise time windows to be
+    # of different length; Similar scaling is performed in tf_dics on data_csds
+    noise_csd.data /= win_length
     noise_csds.append(noise_csd)
 
 # Computing DICS solutions for time-frequency windows in a label in source

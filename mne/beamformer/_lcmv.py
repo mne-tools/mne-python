@@ -613,11 +613,13 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
 
+    # Extract raw object from the epochs object
     raw = epochs.raw
     if raw is None:
         raise ValueError('The provided epochs object does not contain the '
                          'underlying raw object. Please use preload=False '
                          'when constructing the epochs object')
+    # Use picks from epochs for picking channels in the raw object
     raw_picks = [raw.ch_names.index(c) for c in epochs.ch_names]
 
     # Make sure epochs.events contains only good events:
