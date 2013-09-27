@@ -87,7 +87,7 @@ reg = 0.05
 # substitute raw for raw_noise
 noise_covs = []
 
-for (l_freq, h_freq), win_length in zip(freq_bins, win_lengths):
+for (l_freq, h_freq) in freq_bins:
     raw_band = raw_noise.copy()
     raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1)
     epochs_band = mne.Epochs(raw_band, epochs_noise.events, event_id,
