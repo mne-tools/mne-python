@@ -330,6 +330,18 @@ def test_tf_lcmv():
     # Comparing tf_lcmv results with _lcmv_source_power results
     assert_array_almost_equal(stc.data[:, 2], source_power[:, 0])
 
+    # Test if incorrect number of noise covariances is detected
+    assert_raises(ValueError, tf_lcmv, epochs, forward, [noise_covs[0]], tmin,
+                  tmax, tstep, win_lengths, freq_bins)
+
+    # Test if freq_bins and win_lengths incompatibility is detected
+    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+                  tstep, win_lengths=[0, 1, 2], freq_bins=freq_bins)
+
+    # Test if time step exceeding window lengths is detected
+    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+                  tstep=0.15, win_lengths=[0.2, 0.1], freq_bins=freq_bins)
+
     # Test correct detection of preloaded epochs objects that do not contain
     # the underlying raw object
     epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
