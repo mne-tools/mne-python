@@ -613,14 +613,18 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
 
-    # make sure epochs.events contains only good events:
+    raw = epochs.raw
+    if raw is None:
+        raise ValueError('The provided epochs object does not contain the '
+                         'underlying raw object. Please use preload=False '
+                         'when constructing the epochs object')
+    raw_picks = [raw.ch_names.index(c) for c in epochs.ch_names]
+
+    # Make sure epochs.events contains only good events:
     epochs.drop_bad_epochs()
 
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
-
-    raw = epochs.raw
-    raw_picks = [raw.ch_names.index(c) for c in epochs.ch_names]
 
     sol_final = []
     for (l_freq, h_freq), win_length, noise_cov in \

@@ -258,6 +258,8 @@ def test_tf_lcmv():
     #tmin, tmax, tstep = -0.2, 0.2, 0.1
     #raw, epochs, _, _, _, label, forward, _, _, _ =\
     #    _get_data(tmin, tmax, all_forward=False, epochs_preload=False)
+    #fname_raw = op.join(data_path, 'MEG', 'sample',
+    #                    'sample_audvis_filt-0-40_raw.fif')
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
     raw = mne.fiff.Raw(fname_raw, preload=True)
@@ -327,3 +329,10 @@ def test_tf_lcmv():
 
     # Comparing tf_lcmv results with _lcmv_source_power results
     assert_array_almost_equal(stc.data[:, 2], source_power[:, 0])
+
+    # Test correct detection of preloaded epochs objects that do not contain
+    # the underlying raw object
+    epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                                  baseline=(None, 0), preload=True)
+    assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward, noise_covs,
+                  tmin, tmax, tstep, win_lengths, freq_bins)
