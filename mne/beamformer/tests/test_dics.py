@@ -26,11 +26,8 @@ fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
-# preloading raw here increases mem requirements by 400 mb for all nosetests
-# that include this file's parent directory :(
 
-
-def read_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
+def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     """Read in data used in tests
     """
     label = mne.read_label(fname_label)
@@ -84,7 +81,7 @@ def test_dics():
     """Test DICS with evoked data and single trials
     """
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
-        forward_surf_ori, forward_fixed, forward_vol = read_data()
+        forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
                label=label)
@@ -152,7 +149,7 @@ def test_dics_source_power():
     """Test DICS source power computation
     """
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
-        forward_surf_ori, forward_fixed, forward_vol = read_data()
+        forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
                                          data_csd, label=label)
@@ -217,7 +214,7 @@ def test_tf_dics():
     """
     tmin, tmax, tstep = -0.2, 0.2, 0.1
     raw, epochs, _, _, _, label, forward, _, _, _ =\
-        read_data(tmin, tmax, read_all_forward=False, compute_csds=False)
+        _get_data(tmin, tmax, read_all_forward=False, compute_csds=False)
 
     freq_bins = [(4, 20), (30, 55)]
     win_lengths = [0.2, 0.2]
