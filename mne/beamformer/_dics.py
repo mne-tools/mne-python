@@ -261,7 +261,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
 
 @verbose
 def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
-                      label=None, picks=None, pick_ori=None, verbose=None):
+                      label=None, pick_ori=None, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
     Calculate source power in time and frequency windows specified in the
