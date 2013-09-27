@@ -988,7 +988,9 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
     Returns
     -------
     src : list
-        The source space for each hemisphere.
+        The source space. Note that this list will have length 1 for
+        compatibility reasons, as most functions expect source spaces
+        to be provided as lists).
     """
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
@@ -999,10 +1001,11 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
     if pos is None and not isinstance(mri, basestring):
         raise TypeError('If pos is not specified, mri must be a '
                         'string (filename)')
-    if mri is not None and not op.isfile(mri):
-        raise IOError('mri file "%s" not found' % mri)
-    if not has_nibabel():
-        raise RuntimeError('nibabel is required to make a volume source space')
+    if mri is not None:
+        if not op.isfile(mri):
+            raise IOError('mri file "%s" not found' % mri)
+        if not has_nibabel():
+            raise RuntimeError('nibabel is required to process mri data')
 
     sphere = np.asarray(sphere)
     if sphere.size != 4:
