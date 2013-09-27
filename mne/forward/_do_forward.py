@@ -18,10 +18,10 @@ from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forward
 from ..transforms import (invert_transform, transform_source_space_to,
                           read_trans, read_transform_ascii, combine_transforms,
-                          apply_trans)
+                          apply_trans, _print_coord_trans, _coord_frame_name)
 from ..utils import logger, verbose
-from ..source_space import read_source_spaces
-from ..surface import read_bem_surfaces, _compute_nearest, fast_cross_3d
+from ..source_space import read_source_spaces, _filter_source_spaces
+from ..surface import read_bem_surfaces
 
 
 # Not currently supported:
@@ -30,37 +30,6 @@ from ..surface import read_bem_surfaces, _compute_nearest, fast_cross_3d
 #    EEG Sphere model
 #    Label specification
 #    Channel compensation
-
-
-def _coord_frame_name(cframe):
-    """Map integers to human-readable names"""
-    types = [FIFF.FIFFV_COORD_UNKNOWN, FIFF.FIFFV_COORD_DEVICE,
-             FIFF.FIFFV_COORD_ISOTRAK, FIFF.FIFFV_COORD_HPI,
-             FIFF.FIFFV_COORD_HEAD, FIFF.FIFFV_COORD_MRI,
-             FIFF.FIFFV_MNE_COORD_MRI_VOXEL, FIFF.FIFFV_COORD_MRI_SLICE,
-             FIFF.FIFFV_COORD_MRI_DISPLAY, FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-             FIFF.FIFFV_MNE_COORD_CTF_HEAD, FIFF.FIFFV_MNE_COORD_RAS,
-             FIFF.FIFFV_MNE_COORD_MNI_TAL, FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ,
-             FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ, -1]
-    strs = ['unknown', 'MEG device', 'isotrak', 'hpi', 'head',
-            'MRI (surface RAS)', 'MRI voxel', 'MRI slice', 'MRI display',
-            'CTF MEG device', 'CTF/4D/KIT head', 'RAS (non-zero origin)',
-            'MNI Talairach', 'Talairach (MNI z > 0)', 'Talairach (MNI z < 0)',
-            'unknown']
-    assert len(types) == len(strs)
-    for t, s in zip(types, strs):
-        if cframe == t:
-            return s
-    return strs[-1]
-
-
-def _print_coord_trans(t):
-    logger.info('Coordinate transformation: ')
-    logger.info('%s -> %s'
-                % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
-    for tt in t['trans']:
-        logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f mm' %
-                    (tt[0], tt[1], tt[2], 1000 * tt[3]))
 
 
 def _read_coil_defs(fname):
@@ -258,81 +227,6 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
             raise RuntimeError('unknown coil type')
     res = dict(coils=coils, ncoil=len(coils), coord_frame=t['to'])
     return res
-
-
-def _sum_solids_div(fros, surf):
-    """Compute sum of solid angles according to van Oosterom for all tris"""
-    # NOTE: This incorporates the division by 4PI that used to be separate
-    tot_angle = np.zeros((len(fros)))
-    for tri in surf['tris']:
-        v1 = fros - surf['rr'][tri[0]]
-        v2 = fros - surf['rr'][tri[1]]
-        v3 = fros - surf['rr'][tri[2]]
-        triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
-        l1 = np.sqrt(np.sum(v1 * v1, axis=1))
-        l2 = np.sqrt(np.sum(v2 * v2, axis=1))
-        l3 = np.sqrt(np.sum(v3 * v3, axis=1))
-        s = (l1 * l2 * l3 +
-             np.sum(v1 * v2, axis=1) * l3 +
-             np.sum(v1 * v3, axis=1) * l2 +
-             np.sum(v2 * v3, axis=1) * l1)
-        tot_angle -= np.arctan2(triple, s)
-    return tot_angle / (2 * np.pi)
-
-
-@verbose
-def _filter_source_spaces(surf, limit, mri_head_t, src, verbose=None):
-    """Remove all source space points closer than a given limit"""
-    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
-        raise RuntimeError('Source spaces are in head coordinates and no '
-                           'coordinate transform was provided!')
-
-    # How close are the source points to the surface?
-    out_str = 'Source spaces are in '
-
-    if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-        inv_trans = invert_transform(mri_head_t)
-        out_str += 'head coordinates.'
-    elif src[0]['coord_frame'] == FIFF.FIFFV_COORD_MRI:
-        out_str += 'MRI coordinates.'
-    else:
-        out_str += 'unknown (%d) coordinates.' % src[0]['coord_frame']
-    logger.info(out_str)
-    out_str = 'Checking that the sources are inside the bounding surface'
-    if limit > 0.0:
-        out_str += 'and at least %6.1f mm away' % (limit)
-    logger.info(out_str + ' (will take a few...)')
-
-    for s in src:
-        vertno = np.where(s['inuse'])[0]  # can't trust s['vertno'] this deep
-        # Convert all points here first to save time
-        r1s = s['rr'][vertno]
-        if s['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-            r1s = apply_trans(inv_trans['trans'], r1s)
-
-        # Check that the source is inside the inner skull surface
-        x = _sum_solids_div(r1s, surf)
-        outside = np.abs(x - 1.0) > 1e-5
-        omit_outside = np.sum(outside)
-
-        # vectorized nearest using BallTree (or cdist)
-        omit = 0
-        if limit > 0.0:
-            dists = _compute_nearest(surf['rr'], r1s, return_dists=True)[1]
-            close = np.logical_and(dists < limit / 1000.0,
-                                   np.logical_not(outside))
-            omit = np.sum(close)
-            outside = np.logical_or(outside, close)
-        s['inuse'][vertno[outside]] = False
-        s['nuse'] -= (omit + omit_outside)
-
-        if omit_outside > 0:
-            logger.info('%d source space points omitted because they are '
-                        'outside the inner skull surface.' % omit_outside)
-        if omit > 0:
-            logger.info('%d source space points omitted because of the '
-                        '%6.1f-mm distance limit.' % (omit, limit))
-    logger.info('Thank you for waiting.')
 
 
 @verbose
