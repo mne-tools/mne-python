@@ -434,8 +434,57 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     return stc
 
 
+@verbose
 def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
                        label=None, picks=None, pick_ori=None, verbose=None):
+    """Linearly Constrained Minimum Variance (LCMV) beamformer.
+
+    Calculate source power in a time window based on the provided data
+    covariance. Noise covariance is used to whiten the data covariance making
+    the output equivalent to the neural activity index as defined by
+    Van Veen et al. 1997.
+
+    NOTE : This implementation has not been heavily tested so please
+    report any issues or suggestions.
+
+    Parameters
+    ----------
+    info : dict
+        Measurement info, e.g. epochs.info.
+    forward : dict
+        Forward operator.
+    noise_cov : Covariance
+        The noise covariance.
+    data_cov : Covariance
+        The data covariance.
+    reg : float
+        The regularization for the whitened data covariance.
+    label : Label | None
+        Restricts the solution to a given label.
+    picks : array of int | None
+        Indices (in info) of data channels. If None, MEG and EEG data channels
+        (without bad channels) will be used.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stc : SourceEstimate
+        Source power with a single time point representing the entire time
+        window for which data covariance was calculated.
+
+    Notes
+    -----
+    The original reference is:
+    Van Veen et al. Localization of brain electrical activity via linearly
+    constrained minimum variance spatial filtering.
+    Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    """
+
+    # TODO: Make actual use of the picks parameter!
     is_free_ori, picks, ch_names, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
