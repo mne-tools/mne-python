@@ -69,16 +69,6 @@ def _dup_coil_set(s, t):
     return res
 
 
-def _bem_one_lin_field_coeff_ferg():
-    """Skip this, code currently only requires SIMPLE"""
-    raise NotImplementedError
-
-
-def _bem_one_lin_field_coeff_uran():
-    """Skip this, code currently only requires SIMPLE"""
-    raise NotImplementedError
-
-
 def _bem_one_lin_field_coeff_simple(dest, normal, tri_rr, tri_nn, tri_area):
     """Simple version..."""
     out = np.zeros((3, len(dest)))
@@ -147,9 +137,9 @@ def _bem_lin_field_coeff(m, coils, method):
     coils = _check_coil_frame(coils, m)
     coeff = np.zeros((coils['ncoil'], m['nsol']))
     if method == FIFF.FWD_BEM_LIN_FIELD_FERGUSON:
-        func = _bem_one_lin_field_coeff_ferg
+        raise NotImplementedError
     elif method == FIFF.FWD_BEM_LIN_FIELD_URANKAR:
-        func = _bem_one_lin_field_coeff_uran
+        raise NotImplementedError
     else:
         func = _bem_one_lin_field_coeff_simple
 
@@ -597,7 +587,7 @@ def _bem_pot_grad_els(rd, Q, els, pot, xgrad, ygrad, zgrad, client):
 def _meg_eeg_fwd_one_source_space(a):
     """Compute the MEG or EEG forward solution for one source space"""
     Qs = np.eye(3)
-    # XXX Make subfunctions take vectors and vertno
+    # XXX Make subfunctions take vectors and vertno for efficiency
     s = a['s']
     vertno = np.where(s['inuse'])[0]
     p = a['off']
@@ -693,12 +683,11 @@ def _compute_forward(src, coils_els, comp_coils, comp_data, fixed,
                    client=client, fixed=fixed, field_pot=field,
                    vec_field_pot=vec_field, field_pot_grad=field_grad,
                    comp=-1)
-
     off = 0
     for k, s in enumerate(src):
         one_arg['s'] = s
         one_arg['off'] = off
         _meg_eeg_fwd_one_source_space(one_arg)
-        off += s['nuse'] if fixed else 3 * s['nuse']
+        off += (s['nuse'] if fixed else 3 * s['nuse'])
 
     return res, res_grad

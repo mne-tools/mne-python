@@ -1402,7 +1402,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     except Exception as exception:
         raise exception
     else:
-        fwd = read_forward_solution(op.join(path, fname))
+        fwd = read_forward_solution(op.join(path, fname), verbose=False)
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
     return fwd

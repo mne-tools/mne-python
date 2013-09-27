@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+import os
 from os import path as op
 import numpy as np
 
@@ -26,7 +27,6 @@ from ..surface import read_bem_surfaces
 
 # Not currently supported:
 #    Correct FWD calculation (hah!)
-#    Correct fwd['info'] population/restriction
 #    EEG Sphere model
 #    Label specification
 #    Channel compensation
@@ -235,6 +235,10 @@ def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
                          eeg=True, meg=True, fixed=False, grad=False,
                          mricoord=False, do_all=False, overwrite=False,
                          subjects_dir=None, verbose=None):
+    arg_list = [subject, meas, fname, src, spacing, mindist, bem, mri,
+                trans, eeg, meg, fixed, grad, mricoord, do_all, overwrite,
+                subjects_dir, verbose]
+    cmd = 'do_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     if src is None:
         raise ValueError('Source space file "src" must be specified')
     elif not op.isfile(src):
@@ -251,13 +255,16 @@ def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
             raise IOError('mri file "%s" not found' % mri)
         if trans is not None and not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
+    if fname is not None and op.isfile(fname) and not overwrite:
+        raise IOError('file "%s" exists, consider using overwrite=True'
+                      % fname)
 
     coord_frame = FIFF.FIFFV_COORD_HEAD
 
     # Report the setup
+    mri_file = mri if mri is not None else trans
     logger.info('Source space                 : %s' % src)
-    logger.info('MRI -> head transform source : %s'
-                % (mri if mri is not None else trans))
+    logger.info('MRI -> head transform source : %s' % (mri_file))
     logger.info('Measurement data             : %s' % meas)
     logger.info('BEM model                    : %s' % bem)
     # XXX Left out EEG sphere model code in mne_forward_solution.c
@@ -305,6 +312,13 @@ def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
     # Read the channel information & MEG device -> head coord trans
     raw = Raw(meas, verbose=False)
     info = raw.info
+    # make a new dict with the relevant information
+    mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
+    info = dict(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
+                ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
+                mri_file=mri_file, mri_id=mri_id, meas_file=meas,
+                meas_id=None, working_dir=os.getcwd(),
+                command_line=cmd, bads=info['bads'])
     meg_head_t = info['dev_head_t']
 
     # MEG channels
@@ -452,7 +466,7 @@ def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
 
     # pick out final dict info
     picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=meg, exclude=[])
-    fwd_info = pick_info(info, picks)
+    info = pick_info(info, picks)
     source_rr = np.concatenate([s['rr'][s['inuse'] == 1] for s in src])
     if fixed:
         nsource = fwd['sol']['data'].shape[1]
@@ -466,9 +480,10 @@ def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
         transform_source_space_to(s, FIFF.FIFFV_COORD_MRI, mri_head_t)
 
     fwd.update(dict(nchan=fwd['sol']['data'].shape[0], nsource=nsource,
-                    info=fwd_info, src=src, source_nn=source_nn,
+                    info=info, src=src, source_nn=source_nn,
                     source_rr=source_rr, surf_ori=False,
                     mri_head_t=mri_head_t))
+    fwd['info']['mri_head_t'] = mri_head_t
     if fname is not None:
         logger.info('writing %s...', fname)
         write_forward_solution(fname, fwd, overwrite)
