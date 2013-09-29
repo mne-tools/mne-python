@@ -30,20 +30,40 @@ class CrossSpectralDensity(object):
     frequencies : float | list of float
         Frequency or frequencies for which the CSD matrix was calculated. If a
         list is passed, data is a sum across CSD matrices for all frequencies.
+    sfreq : float
+        Sampling frequency of the data from which the CSD was obtained.
+    n_fft : int
+        Length of the FFT used when calculating the CSD matrix.
     """
-    def __init__(self, data, ch_names, projs, bads, frequencies):
+    def __init__(self, data, ch_names, projs, bads, frequencies, sfreq, n_fft):
         self.data = data
         self.dim = len(data)
         self.ch_names = cp.deepcopy(ch_names)
         self.projs = cp.deepcopy(projs)
         self.bads = cp.deepcopy(bads)
         self.frequencies = np.atleast_1d(np.copy(frequencies))
+        self.sfreq = sfreq
+        self.n_fft = n_fft
+        self._scaled_per_second = False
 
     def __repr__(self):
         s = 'frequencies : %s' % self.frequencies
         s += ', size : %s x %s' % self.data.shape
         s += ', data : %s' % self.data
         return '<CrossSpectralDensity  |  %s>' % s
+
+    def scale_per_second(self):
+        """Rescale CSD to obtain cross-spectral density per second.
+
+        Removes scaling by sampling frequency and divides by number of samples
+        used for the FFT. This enables CSD values to be compared across
+        different time window lengths, different numbers of samples used for
+        obtaining the FFT and different sampling frequencies of the original
+        signal.
+        """
+        if not self._scaled_per_second:
+            self.data *= self.sfreq ** 2 / self.n_fft
+            self._scaled_per_second = True
 
 
 @verbose
@@ -55,6 +75,9 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
 
     Note: Baseline correction should be used when creating the Epochs.
           Otherwise the computed cross-spectral density will be inaccurate.
+
+    Note: Results are scaled by sampling frequency for compatibility with
+          Matlab.
 
     Parameters
     ----------
@@ -137,7 +160,8 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     n_fft = n_times if n_fft is None else n_fft
 
     # Preparing frequencies of interest
-    frequencies = fftfreq(n_fft, 1. / epochs.info['sfreq'])
+    sfreq = epochs.info['sfreq']
+    frequencies = fftfreq(n_fft, 1. / sfreq)
     freq_mask = (frequencies > fmin) & (frequencies < fmax)
     frequencies = frequencies[freq_mask]
     n_freqs = len(frequencies)
@@ -152,8 +176,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     if mode == 'multitaper':
         # Compute standardized half-bandwidth
         if mt_bandwidth is not None:
-            half_nbw = (float(mt_bandwidth) * n_times /
-                        (2 * epochs.info['sfreq']))
+            half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
         else:
             half_nbw = 2
 
@@ -187,7 +210,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         epoch = epoch[picks_meeg][:, tslice]
 
         # Calculating Fourier transform using multitaper module
-        x_mt, _ = _mt_spectra(epoch, window_fun, epochs.info['sfreq'], n_fft)
+        x_mt, _ = _mt_spectra(epoch, window_fun, sfreq, n_fft)
 
         if mt_adaptive:
             # Compute adaptive weights
@@ -223,7 +246,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
             csds_epoch *= 8 / 3.
 
         # Scaling by sampling frequency for compatibility with Matlab
-        csds_epoch /= epochs.info['sfreq']
+        csds_epoch /= sfreq
 
         csds_mean += csds_epoch
         n_epochs += 1
@@ -238,12 +261,14 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         csd_mean_fsum = np.sum(csds_mean, 2)
         csd = CrossSpectralDensity(csd_mean_fsum, ch_names, projs,
                                    epochs.info['bads'],
-                                   frequencies=frequencies)
+                                   frequencies=frequencies, sfreq=sfreq,
+                                   n_fft=n_fft)
         return csd
     else:
         csds = []
         for i in range(n_freqs):
             csds.append(CrossSpectralDensity(csds_mean[:, :, i], ch_names,
                                              projs, epochs.info['bads'],
-                                             frequencies=frequencies[i]))
+                                             frequencies=frequencies[i],
+                                             sfreq=sfreq, n_fft=n_fft))
         return csds

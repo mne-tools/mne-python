@@ -117,7 +117,7 @@ def test_compute_epochs_csd_on_artificial_data():
 
     # Computing signal power in the time domain
     signal_power = sum_squared(epochs_sin._data)
-    signal_power_per_sample = signal_power / len(epochs_sin.times)
+    signal_power_per_sample = signal_power / len(epochs_sin.times) * sfreq
 
     # Computing signal power in the frequency domain
     data_csd_fourier = compute_epochs_csd(epochs_sin, mode='fourier')
@@ -129,25 +129,37 @@ def test_compute_epochs_csd_on_artificial_data():
 
     # Power per sample should not depend on time window length
     for tmax in [0.2, 0.4, 0.6, 0.8]:
-        t_mask = (epochs_sin.times >= 0) & (epochs_sin.times <= tmax)
-        n_samples = sum(t_mask)
+        print "tmax: " + str(tmax)
+        for add_n_fft in [30, 0, 30]:
+            t_mask = (epochs_sin.times >= 0) & (epochs_sin.times <= tmax)
+            n_samples = sum(t_mask)
+            n_fft = n_samples + add_n_fft
 
-        data_csd_fourier = compute_epochs_csd(epochs_sin, mode='fourier',
-                                              tmin=None, tmax=tmax, fmin=0,
-                                              fmax=np.inf)
-        fourier_power = np.abs(data_csd_fourier.data[0, 0]) * sfreq
-        fourier_power_per_sample = fourier_power / n_samples
-        assert_almost_equal(signal_power_per_sample, fourier_power_per_sample,
-                            2)
+            data_csd_fourier = compute_epochs_csd(epochs_sin, mode='fourier',
+                                                  tmin=None, tmax=tmax, fmin=0,
+                                                  fmax=np.inf, n_fft=n_fft)
+            data_csd_fourier.scale_per_second()
+            fourier_power = np.abs(data_csd_fourier.data[0, 0])
+            fourier_power_per_second = data_csd_fourier.data[0, 0]
+            assert_almost_equal(signal_power_per_second,
+                                fourier_power_per_second, delta=2)
 
         # Power per sample should not depend on number of tapers
         for n_tapers in [1, 2, 3, 5]:
-            mt_bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
-            data_csd_mt = compute_epochs_csd(epochs_sin, mode='multitaper',
-                                             tmin=None, tmax=tmax, fmin=0,
-                                             fmax=np.inf,
-                                             mt_bandwidth=mt_bandwidth)
-            mt_power = np.abs(data_csd_mt.data[0, 0]) * sfreq
-            mt_power_per_sample = mt_power / n_samples
-            assert_almost_equal(signal_power_per_sample, mt_power_per_sample,
-                                delta=0.09)
+            for add_n_fft in [30, 0, 30]:
+                mt_bandwidth = sfreq / float(n_samples) * (n_tapers + 1)
+                data_csd_mt = compute_epochs_csd(epochs_sin, mode='multitaper',
+                                                 tmin=None, tmax=tmax, fmin=0,
+                                                 fmax=np.inf,
+                                                 mt_bandwidth=mt_bandwidth,
+                                                 n_fft=n_fft)
+                data_csd_mt.scale_per_second()
+                mt_power_per_second = np.abs(data_csd_mt.data[0, 0])
+                # The estimate of power gets worse for small time windows when
+                # more tapers are used
+                if n_tapers == 5 and tmax == 0.2:
+                    delta = 45
+                else:
+                    delta = 2
+                assert_almost_equal(signal_power_per_second,
+                                    mt_power_per_second, delta=delta)
