@@ -129,7 +129,6 @@ def test_compute_epochs_csd_on_artificial_data():
 
     # Power per sample should not depend on time window length
     for tmax in [0.2, 0.4, 0.6, 0.8]:
-        print "tmax: " + str(tmax)
         for add_n_fft in [30, 0, 30]:
             t_mask = (epochs_sin.times >= 0) & (epochs_sin.times <= tmax)
             n_samples = sum(t_mask)
