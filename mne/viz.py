@@ -960,17 +960,23 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     if not isinstance(layout, list):
         layout = [layout]
 
+    if not isinstance(layout, list):
+        layout = [layout]
+
     n_projs = len(projs)
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
 
     pl.clf()
     for k, proj in enumerate(projs):
-        ch_names = proj['data']['col_names']
+
+        ch_names = _clean_names(proj['data']['col_names'])
         data = proj['data']['data'].ravel()
 
         idx = []
         for l in layout:
+            l = copy.deepcopy(l)
+            l.names = _clean_names(l.names)
             is_vv = l.kind.startswith('Vectorview')
             if is_vv:
                 from .layouts.layout import _pair_grad_sensors_from_ch_names
