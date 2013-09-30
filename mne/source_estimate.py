@@ -1971,25 +1971,6 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     return stc_to
 
 
-def apply_volume_interpolator(stc, src):
-    """Apply a volume interpolator to a volume SourceEstimate
-
-    Parameters
-    ----------
-    stc : instance of SourceEstimate
-        The volume SourceEstimate to use. Must be a volume STC.
-    src : list
-        The source space to use. Exactly one of the entries in the
-        source space should be a volume.
-
-    Returns
-    -------
-    data : ndarray
-        A 4-dimensional (3D MRI x time) array of estimates.
-    """
-    raise NotImplementedError
-
-
 @verbose
 def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
     """Compute connectivity for a source space activation over time
