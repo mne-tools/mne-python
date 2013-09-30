@@ -936,10 +936,9 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
 
 
 @verbose
-def setup_volume_source_space(subject, fname=None, grid=5.0,
-                              mri=None, sphere=(0.0, 0.0, 0.0, 90.0),
-                              bem=None, surface=None,
-                              mindist=5.0, exclude=0.0, pos=None,
+def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
+                              sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
+                              surface=None, mindist=5.0, exclude=0.0,
                               use_all=False, overwrite=False,
                               subjects_dir=None, verbose=None):
     """Setup a volume source space with grid spacing
@@ -951,33 +950,33 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
     fname : str | None
         Filename to use. If None, the source space will not be saved
         (only returned).
-    grid : float
-        The spacing to use in mm.
+    pos : float | str | dict
+        Positions to use for sources. If float, a grid will be constructed
+        with the spacing given by `pos` in mm. If string, the file `pos`
+        will be read to specify positions. If dict, pos['rr'] and pos['nn']
+        will be used as the source space locations (in meters) and normals,
+        respectively.
     mri : str | None
         The filename of an MRI volume (mgh or mgz) to create the
-        interpolation matrix over. If pos is supplied, this can be None.
+        interpolation matrix over. Source estimates obtained in the
+        volume source space can then be morphed onto the MRI volume
+        using this interpolator. If pos is supplied, this can be None.
     sphere : array_like (length 4)
-        Define a spherical source space using origin and radius given
-        by (ox, oy, oz, rad) in mm.
+        Define spherical source space bounds using origin and radius given
+        by (ox, oy, oz, rad) in mm. Only used if `bem` and `surface` are
+        both None.
     bem : str | None
-        A BEM file specifying the inner skull surface. If both `surface`
-        and `bem` are None, a spherical source space will be created.
-    surface : str | None
-        A surface file specifying the boundary of the source volume.
-        If both `surface` and `bem` are None, a spherical source space will
-        be created.
+        Define source space bounds using a BEM file (specifically the inner
+        skull surface).
+    surface : str | dict | None
+        Define source space bounds using a FreeSurfer surface file. Can
+        also be a dictionary with entries `'rr'` and `'tris'`, such as
+        those returned by `read_surface()`.
     mindist : float
         Exclude points closer than this distance (mm) to the bounding surface.
     exclude : float
         Exclude points closer than this distance (mm) from the center of mass
         of the bounding surface.
-    pos : None | str | dict
-        Positions to use for sources. If None, a grid will be used. If string,
-        `grid` will be ignored and the file `pos` will be read to specify
-        positions. If dict, pos['fname'] will be used; if pos['meters']
-        exists and is True, units will be assumed to be meters instead of mm;
-        if pos['head'] is True, points will be assumed to be in head
-        coordinates instead of MRI coordinates.
     overwrite: bool
         If True, overwrite output file (if it exists).
     subjects_dir : string, or None
@@ -995,12 +994,6 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
                          'specified')
-    if (bem is not None or surface is not None) and pos is not None:
-        raise ValueError('"pos" should not be specified if "surface" or '
-                         '"bem" is given')
-    if pos is None and not isinstance(mri, basestring):
-        raise TypeError('If pos is not specified, mri must be a '
-                        'string (filename)')
     if mri is not None:
         if not op.isfile(mri):
             raise IOError('mri file "%s" not found' % mri)
@@ -1011,46 +1004,63 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
     if sphere.size != 4:
         raise ValueError('"sphere" must be array_like with 4 elements')
 
+    # triage bounding argument
     if bem is not None:
         logger.info('BEM file              : %s', bem)
     elif surface is not None:
-        logger.info('Boundary surface file : %s', surface)
-    elif pos is not None:
-        if isinstance(pos, basestring):
-            pos = dict(fname=pos)
-        if not isinstance(pos, dict):
-            raise ValueError('"pos" must be a str, dict, or None')
-        if 'fname' not in pos:
-            raise KeyError('"pos" must have entry "fname"')
-        pos_fname = pos['fname']
-        pos_mm = not pos.get('meters', False)
-        pos_head = pos.get('head', False)
-        logger.info('Source location file  : %s', pos_fname)
-        logger.info('Assuming input in %s' %
-                    'millimeters' if pos_mm else 'meters')
-        logger.info('Assuming input in %s coordinates' %
-                    'MEG head' if pos_head else 'MRI')
+        if isinstance(surface, dict):
+            if not all([key in surface for key in ['rr', 'tris']]):
+                raise KeyError('surface, if dict, must have entries "rr" '
+                               'and "tris"')
+            # let's make sure we have geom info
+            surface = _read_surface_geom(surface, verbose=False)
+            surf_extra = 'dict()'
+        elif isinstance(surface, basestring):
+            if not op.isfile(surface):
+                raise IOError('surface file "%s" not found' % surface)
+            surf_extra = surface
+        logger.info('Boundary surface file : %s', surf_extra)
     else:
         logger.info('Sphere                : origin at (%.1f %.1f %.1f) mm'
                     % (sphere[0], sphere[1], sphere[2]))
         logger.info('              radius  : %.1f mm' % sphere[3])
 
+    # triage pos argument
+    if isinstance(pos, basestring):
+        if not op.isfile(pos):
+            raise IOError('position file "%s" not found' % pos)
+        pos_extra = pos
+    elif isinstance(pos, dict):
+        if not all([key in pos for key in ['rr', 'nn']]):
+            raise KeyError('pos, if dict, must contain "rr" and "nn"')
+        pos_extra = 'dict()'
+    else:  # pos should be float-like
+        try:
+            pos = float(pos)
+        except (TypeError, ValueError):
+            raise ValueError('pos must be a string, dict, or something '
+                             'that can be cast to float()')
+    if not isinstance(pos, float):
+        logger.info('Source location file  : %s', pos_extra)
+        logger.info('Assuming input in millimeters')
+        logger.info('Assuming input in MRI coordinates')
+
     logger.info('Output file           : %s', fname)
-    if pos is None:
-        logger.info('grid                  : %.1f mm' % grid)
+    if isinstance(pos, float):
+        logger.info('grid                  : %.1f mm' % pos)
         logger.info('mindist               : %.1f mm' % mindist)
+        pos /= 1000.0
     if exclude > 0.0:
         logger.info('Exclude               : %.1f mm' % exclude)
     if mri is not None:
         logger.info('MRI volume            : %s' % mri)
-    grid /= 1000.0
     exclude /= 1000.0
     logger.info('')
 
     # Explicit list of points
-    if pos is not None:
+    if not isinstance(pos, float):
         # Make the grid of sources
-        sp = _make_discrete_source_space(pos_fname, pos_mm, pos_head)
+        sp = _make_discrete_source_space(pos)
     else:
         # Load the brain surface as a template
         if bem is not None:
@@ -1059,7 +1069,10 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
             logger.info('Loaded inner skull from %s (%d nodes)'
                         % (bem, surf['np']))
         elif surface is not None:
-            surf = _read_surface_geom(surface)
+            if isinstance(surf, basestring):
+                surf = _read_surface_geom(surface)
+            else:
+                surf = surface
             logger.info('Loaded bounding surface from %s (%d nodes)'
                         % (surface, surf['np']))
         else:  # Load an icosahedron and use that as the surface
@@ -1072,7 +1085,7 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
             surf['rr'] += sphere[:3] / 1000.0  # move by center
             _complete_surface_info(surf, True)
         # Make the grid of sources
-        sp = _make_volume_source_space(surf, grid, exclude, mindist)
+        sp = _make_volume_source_space(surf, pos, exclude, mindist)
 
     # Compute an interpolation matrix to show data in an MRI volume
     if mri is not None:
@@ -1092,6 +1105,7 @@ def setup_volume_source_space(subject, fname=None, grid=5.0,
 
 
 def _make_voxel_ras_trans(move, ras, voxel_size):
+    """Make a transformation for MRI voxel to MRI surface RAS"""
     assert voxel_size.ndim == 1
     assert voxel_size.size == 3
     rot = ras.T * voxel_size[np.newaxis, :]
@@ -1104,35 +1118,60 @@ def _make_voxel_ras_trans(move, ras, voxel_size):
     return t
 
 
-def _make_discrete_source_space(posname, pos_mm, pos_head):
-    """Read a discrete set of source locs/oris, make src space"""
-    mult = 1e-3 if pos_mm else 1.0
-    units = 'millimeters' if pos_mm else 'meters'
+def _make_discrete_source_space(pos):
+    """Read a discrete set of source locs/oris, make src space
 
-    # Read in data
-    data = np.genfromtxt(posname, float)
-    npts = data.shape[0]
-    if data.ndim != 2:
-        raise RuntimeError('Data must be 2D')
-    if data.shape[1] == 3:
-        nn = np.zeros((npts, 3))
-        nn[:, 2] = 1
-        logger.info('Positions only (in %s)' % units)
-    elif data.shape[1] == 6:
-        nn = data[:, 3:6]
-        _normalize_vectors(nn)
-        nz = np.sum(np.sum(nn * nn, axis=1) == 0)
-        if nz != 0:
-            raise RuntimeError('%d sources have zero length normal' % nz)
-        logger.info('Positions (in %s) and orientations' % units)
+    Parameters
+    ----------
+    pos : str or dict
+        If dict, must have entries "rr" and "nn". If string, should be
+        a filename with 3 (or 6) rows and N columns for N source space
+        points with rr (first three) and nn (last three) in columns,
+        stored in a form readable by `np.genfromtxt()`. Data should be
+        in meters.
+
+    Returns
+    -------
+    src : dict
+        The source space.
+    """
+
+    msg = 'Positions (in meters) and orientations'
+    # Read in data from text file
+    if isinstance(pos, basestring):
+        data = np.genfromtxt(pos, float)
+        npts = data.shape[0]
+        if data.ndim != 2:
+            raise RuntimeError('Data must be 2D')
+        if data.shape[1] == 3:
+            nn = np.zeros((npts, 3))
+            nn[:, 2] = 1
+            msg = 'Positions only (in meters)'
+        elif data.shape[1] == 6:
+            nn = data[:, 3:6]
+        else:
+            raise RuntimeError('Cannot understand %d-item lines in source '
+                               'position file' % data.shape[1])
+        rr = data[:, :3]
     else:
-        raise RuntimeError('Cannot understand %d-item lines in source '
-                           'position file' % data.shape[1])
-    rr = mult * data[:, :3]
+        rr = pos['rr'].copy()
+        nn = pos['nn'].copy()
+        if not (rr.ndim == nn.ndim == 2 and nn.shape[0] == nn.shape[0] and
+                rr.shape[1] == nn.shape[1]):
+            raise RuntimeError('"rr" and "nn" must both be 2D arrays with '
+                               'the same number of rows and 3 columns')
+        npts = rr.shape[0]
+
+    # process points
+    _normalize_vectors(nn)
+    nz = np.sum(np.sum(nn * nn, axis=1) == 0)
+    if nz != 0:
+        raise RuntimeError('%d sources have zero length normal' % nz)
+    logger.info(msg)
     logger.info('%d sources' % npts)
 
     # Ready to make the source space
-    coord_frame = FIFF.FIFFV_COORD_HEAD if pos_head else FIFF.FIFFV_COORD_MRI
+    coord_frame = FIFF.FIFFV_COORD_MRI
     sp = dict(coord_frame=coord_frame, type='discrete', nuse=npts, np=npts,
               inuse=np.ones(npts, int), vertno=np.arange(npts), rr=rr, nn=nn,
               id=-1)
@@ -1148,7 +1187,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
     cm = np.mean(surf['rr'], axis=0)  # center of mass
 
     # Define the sphere which fits the surface
-    maxdist = np.max(np.sqrt(np.sum((surf['rr'] - cm) ** 2, axis=1)))
+    maxdist = np.sqrt(np.max(np.sum((surf['rr'] - cm) ** 2, axis=1)))
 
     logger.info('Surface CM = (%6.1f %6.1f %6.1f) mm'
                 % (1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
@@ -1429,7 +1468,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, verbose=None):
         if s['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
             r1s = apply_trans(inv_trans['trans'], r1s)
 
-        # Check that the source is inside the inner skull surface
+        # Check that the source is inside surface (often the inner skull)
         x = _sum_solids_div(r1s, surf)
         outside = np.abs(x - 1.0) > 1e-5
         omit_outside = np.sum(outside)

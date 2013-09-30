@@ -390,9 +390,9 @@ def read_surface(fname, verbose=None):
 
     Returns
     -------
-    coords : array, shape=(n_vertices, 3)
+    rr : array, shape=(n_vertices, 3)
         Coordinate points.
-    faces : int array, shape=(n_faces, 3)
+    tris : int array, shape=(n_faces, 3)
         Triangulation (each line contains indexes for three points which
         together form a face).
     """
@@ -443,11 +443,16 @@ def read_surface(fname, verbose=None):
 def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
     """Load the surface as dict, optionally add the geometry information"""
     # based on mne_load_surface_geom() in mne_surface_io.c
-    coords, tris = read_surface(fname)  # mne_read_triangle_file()
-    nvert = len(coords)
-    ntri = len(tris)
-    s = dict(rr=coords, tris=tris, use_tris=tris, ntri=ntri,
-             np=nvert)
+    if isinstance(fname, basestring):
+        rr, tris = read_surface(fname)  # mne_read_triangle_file()
+        nvert = len(rr)
+        ntri = len(tris)
+        s = dict(rr=rr, tris=tris, use_tris=tris, ntri=ntri,
+                 np=nvert)
+    elif isinstance(fname, dict):
+        s = fname
+    else:
+        raise RuntimeError('fname cannot be understood as str or dict')
     if add_geom is True:
         s = _complete_surface_info(s)
     if norm_rr is True:

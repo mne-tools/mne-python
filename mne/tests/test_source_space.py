@@ -30,16 +30,16 @@ def test_discrete_source_space():
     """Test setting up (and reading/writing) discrete source spaces
     """
     src = read_source_spaces(fname)
-    temp_pos = op.join(tempdir, 'temp-pos.txt')
     v = src[0]['vertno']
-    # convert to mm and save
-    np.savetxt(temp_pos, 1000 * np.c_[src[0]['rr'][v], src[0]['nn'][v]])
 
     # let's make a discrete version with the C code, and with ours
     temp_name = op.join(tempdir, 'temp-src.fif')
     try:
+        # save
+        temp_pos = op.join(tempdir, 'temp-pos.txt')
+        np.savetxt(temp_pos, src[0]['rr'][v])
         # let's try the spherical one (no bem or surf supplied)
-        run_subprocess(['mne_volume_source_space',
+        run_subprocess(['mne_volume_source_space', '--meters',
                         '--pos',  temp_pos, '--src', temp_name])
         src_c = read_source_spaces(temp_name)
         src_new = setup_volume_source_space('sample', None, pos=temp_pos,
@@ -47,26 +47,24 @@ def test_discrete_source_space():
         _compare_source_spaces(src_c, src_new, mode='approx')
         assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
                         rtol=1e-3, atol=1e-6)
-        assert_allclose(src[0]['nn'][v], src_new[0]['nn'],
-                        rtol=1e-3, atol=1e-6)
+        assert_true(np.all(src_new[0]['nn'] == np.array([0, 0, 1.0])))
 
-        # now let's try the dict, with units in meters, no normals, head coords
-        # (even though they aren't really head coords, won't matter)
+        # now let's try the dict support
         temp_pos = op.join(tempdir, 'temp-pos.txt')
-        np.savetxt(temp_pos, src[0]['rr'][v])
-
-        run_subprocess(['mne_volume_source_space', '--meters', '--head',
+        np.savetxt(temp_pos, np.c_[src[0]['rr'][v], src[0]['nn'][v]])
+        # let's try the spherical one (no bem or surf supplied)
+        run_subprocess(['mne_volume_source_space', '--meters',
                         '--pos',  temp_pos, '--src', temp_name])
         src_c = read_source_spaces(temp_name)
         src_new = setup_volume_source_space('sample', None,
-                                            pos=dict(fname=temp_pos,
-                                                     meters=True,
-                                                     head=True),
+                                            pos=dict(rr=src[0]['rr'][v],
+                                                     nn=src[0]['nn'][v]),
                                             subjects_dir=subjects_dir)
         _compare_source_spaces(src_c, src_new, mode='approx')
         assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
                         rtol=1e-3, atol=1e-6)
-        assert_true(np.all(src_new[0]['nn'] == np.array([0, 0, 1.0])))
+        assert_allclose(src[0]['nn'][v], src_new[0]['nn'],
+                        rtol=1e-3, atol=1e-6)
 
         # now do writing
         write_source_spaces(temp_name, src_c)
@@ -87,7 +85,7 @@ def test_volume_source_space():
     temp_name = op.join(tempdir, 'temp-src.fif')
     try:
         # The one in the sample dataset (uses bem as bounds)
-        src_new = setup_volume_source_space('sample', temp_name, grid=7.0,
+        src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
                                             bem=fname_bem, mri=fname_mri,
                                             subjects_dir=subjects_dir)
         _compare_source_spaces(src, src_new, mode='approx')
@@ -100,7 +98,7 @@ def test_volume_source_space():
                         '--src', temp_name,
                         '--mri', fname_mri])
         src = read_source_spaces(temp_name)
-        src_new = setup_volume_source_space('sample', temp_name, grid=15.0,
+        src_new = setup_volume_source_space('sample', temp_name, pos=15.0,
                                             mri=fname_mri,
                                             subjects_dir=subjects_dir)
         _compare_source_spaces(src, src_new, mode='approx')
