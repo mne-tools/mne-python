@@ -960,9 +960,6 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     if not isinstance(layout, list):
         layout = [layout]
 
-    if not isinstance(layout, list):
-        layout = [layout]
-
     n_projs = len(projs)
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
