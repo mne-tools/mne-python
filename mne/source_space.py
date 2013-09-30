@@ -950,12 +950,11 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     fname : str | None
         Filename to use. If None, the source space will not be saved
         (only returned).
-    pos : float | str | dict
+    pos : float | dict
         Positions to use for sources. If float, a grid will be constructed
-        with the spacing given by `pos` in mm. If string, the file `pos`
-        will be read to specify positions. If dict, pos['rr'] and pos['nn']
-        will be used as the source space locations (in meters) and normals,
-        respectively.
+        with the spacing given by `pos` in mm. If dict, pos['rr'] and
+        pos['nn'] will be used as the source space locations (in meters)
+        and normals, respectively.
     mri : str | None
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
@@ -1026,11 +1025,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         logger.info('              radius  : %.1f mm' % sphere[3])
 
     # triage pos argument
-    if isinstance(pos, basestring):
-        if not op.isfile(pos):
-            raise IOError('position file "%s" not found' % pos)
-        pos_extra = pos
-    elif isinstance(pos, dict):
+    if isinstance(pos, dict):
         if not all([key in pos for key in ['rr', 'nn']]):
             raise KeyError('pos, if dict, must contain "rr" and "nn"')
         pos_extra = 'dict()'
@@ -1038,8 +1033,8 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         try:
             pos = float(pos)
         except (TypeError, ValueError):
-            raise ValueError('pos must be a string, dict, or something '
-                             'that can be cast to float()')
+            raise ValueError('pos must be a dict, or something that can be '
+                             'cast to float()')
     if not isinstance(pos, float):
         logger.info('Source location file  : %s', pos_extra)
         logger.info('Assuming input in millimeters')
@@ -1119,55 +1114,31 @@ def _make_voxel_ras_trans(move, ras, voxel_size):
 
 
 def _make_discrete_source_space(pos):
-    """Read a discrete set of source locs/oris, make src space
+    """Use a discrete set of source locs/oris to make src space
 
     Parameters
     ----------
-    pos : str or dict
-        If dict, must have entries "rr" and "nn". If string, should be
-        a filename with 3 (or 6) rows and N columns for N source space
-        points with rr (first three) and nn (last three) in columns,
-        stored in a form readable by `np.genfromtxt()`. Data should be
-        in meters.
+    pos : dict
+        Must have entries "rr" and "nn". Data should be in meters.
 
     Returns
     -------
     src : dict
         The source space.
     """
-
-    msg = 'Positions (in meters) and orientations'
-    # Read in data from text file
-    if isinstance(pos, basestring):
-        data = np.genfromtxt(pos, float)
-        npts = data.shape[0]
-        if data.ndim != 2:
-            raise RuntimeError('Data must be 2D')
-        if data.shape[1] == 3:
-            nn = np.zeros((npts, 3))
-            nn[:, 2] = 1
-            msg = 'Positions only (in meters)'
-        elif data.shape[1] == 6:
-            nn = data[:, 3:6]
-        else:
-            raise RuntimeError('Cannot understand %d-item lines in source '
-                               'position file' % data.shape[1])
-        rr = data[:, :3]
-    else:
-        rr = pos['rr'].copy()
-        nn = pos['nn'].copy()
-        if not (rr.ndim == nn.ndim == 2 and nn.shape[0] == nn.shape[0] and
-                rr.shape[1] == nn.shape[1]):
-            raise RuntimeError('"rr" and "nn" must both be 2D arrays with '
-                               'the same number of rows and 3 columns')
-        npts = rr.shape[0]
-
     # process points
+    rr = pos['rr'].copy()
+    nn = pos['nn'].copy()
+    if not (rr.ndim == nn.ndim == 2 and nn.shape[0] == nn.shape[0] and
+            rr.shape[1] == nn.shape[1]):
+        raise RuntimeError('"rr" and "nn" must both be 2D arrays with '
+                           'the same number of rows and 3 columns')
+    npts = rr.shape[0]
     _normalize_vectors(nn)
     nz = np.sum(np.sum(nn * nn, axis=1) == 0)
     if nz != 0:
         raise RuntimeError('%d sources have zero length normal' % nz)
-    logger.info(msg)
+    logger.info('Positions (in meters) and orientations')
     logger.info('%d sources' % npts)
 
     # Ready to make the source space

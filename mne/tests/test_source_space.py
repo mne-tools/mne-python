@@ -37,20 +37,6 @@ def test_discrete_source_space():
     try:
         # save
         temp_pos = op.join(tempdir, 'temp-pos.txt')
-        np.savetxt(temp_pos, src[0]['rr'][v])
-        # let's try the spherical one (no bem or surf supplied)
-        run_subprocess(['mne_volume_source_space', '--meters',
-                        '--pos',  temp_pos, '--src', temp_name])
-        src_c = read_source_spaces(temp_name)
-        src_new = setup_volume_source_space('sample', None, pos=temp_pos,
-                                            subjects_dir=subjects_dir)
-        _compare_source_spaces(src_c, src_new, mode='approx')
-        assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
-                        rtol=1e-3, atol=1e-6)
-        assert_true(np.all(src_new[0]['nn'] == np.array([0, 0, 1.0])))
-
-        # now let's try the dict support
-        temp_pos = op.join(tempdir, 'temp-pos.txt')
         np.savetxt(temp_pos, np.c_[src[0]['rr'][v], src[0]['nn'][v]])
         # let's try the spherical one (no bem or surf supplied)
         run_subprocess(['mne_volume_source_space', '--meters',
