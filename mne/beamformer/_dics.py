@@ -537,7 +537,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                                               mt_low_bias=mt_low_bias)
                 # Scale to obtain CSD per second to allow data and noise time
                 # windows to be of different length
-                data_csd.data /= win_length
+                noise_csd.scale_per_second()
+                data_csd.scale_per_second()
 
                 stc = dics_source_power(epochs.info, forward, noise_csd,
                                         data_csd, reg=reg, label=label,
