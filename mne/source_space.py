@@ -1348,16 +1348,21 @@ def _add_interpolator(s, mri_name):
                                      invert_transform(s['src_mri_t']),
                                      FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
                                      FIFF.FIFFV_MNE_COORD_MRI_VOXEL)
+    combo_trans['trans'] = combo_trans['trans'].astype(np.float32)
 
     logger.info('Setting up interpolation...')
-    js = np.tile(np.arange(mri_width)[np.newaxis, np.newaxis, :],
+    js = np.arange(mri_width, dtype=np.float32)
+    js = np.tile(js[np.newaxis, np.newaxis, :],
                  (mri_depth, mri_height, 1)).ravel()
-    ks = np.tile(np.arange(mri_height)[np.newaxis, :, np.newaxis],
+    ks = np.arange(mri_height, dtype=np.float32)
+    ks = np.tile(ks[np.newaxis, :, np.newaxis],
                  (mri_depth, 1, mri_width)).ravel()
-    ps = np.tile(np.arange(mri_depth)[:, np.newaxis, np.newaxis],
+    ps = np.arange(mri_depth, dtype=np.float32)
+    ps = np.tile(ps[:, np.newaxis, np.newaxis],
                  (1, mri_height, mri_width)).ravel()
 
     r0 = apply_trans(combo_trans['trans'], np.c_[js, ks, ps])
+    del js, ks, ps
     rn = np.floor(r0).astype(int)
     maxs = (s['vol_dims'] - 1)[np.newaxis, :]
     good = np.logical_and(np.all(rn >= 0, axis=1), np.all(rn < maxs, axis=1))
@@ -1377,6 +1382,7 @@ def _add_interpolator(s, mri_name):
     vss[5, :] = _vol_vertex(width, height, jj + 1, kk, pp + 1)
     vss[6, :] = _vol_vertex(width, height, jj + 1, kk + 1, pp + 1)
     vss[7, :] = _vol_vertex(width, height, jj, kk + 1, pp + 1)
+    del jj, kk, pp
     uses = np.any(s['inuse'][vss], axis=0)
 
     verts = vss[:, uses].ravel()  # vertex (col) numbers in csr matrix
@@ -1385,9 +1391,9 @@ def _add_interpolator(s, mri_name):
     # figure out weights for each vertex
     r0 = r0[uses]
     rn = rn[uses]
-    xf = r0[:, 0] - rn[:, 0]
-    yf = r0[:, 1] - rn[:, 1]
-    zf = r0[:, 2] - rn[:, 2]
+    xf = r0[:, 0] - rn[:, 0].astype(np.float32)
+    yf = r0[:, 1] - rn[:, 1].astype(np.float32)
+    zf = r0[:, 2] - rn[:, 2].astype(np.float32)
     omxf = 1.0 - xf
     omyf = 1.0 - yf
     omzf = 1.0 - zf
@@ -1399,6 +1405,7 @@ def _add_interpolator(s, mri_name):
                               xf * omyf * zf,
                               xf * yf * zf,
                               omxf * yf * zf])
+    del xf, yf, zf, omxf, omyf, omzf
 
     # Compose the sparse matrix
     ij = (row_idx, verts)
