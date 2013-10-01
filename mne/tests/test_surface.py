@@ -9,7 +9,7 @@ from nose.tools import assert_true, assert_raises
 from mne.datasets import sample
 from mne import read_bem_surfaces, write_bem_surface, read_surface, \
                 write_surface, decimate_surface
-from mne.surface import _make_morph_map, read_morph_map
+from mne.surface import _make_morph_map, read_morph_map, fast_cross_3d
 from mne.utils import _TempDir, requires_tvtk
 
 data_path = sample.data_path()
@@ -17,6 +17,16 @@ subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-5120-5120-5120-bem-sol.fif')
 tempdir = _TempDir()
+
+
+def test_huge_cross():
+    """Test cross product with lots of elements
+    """
+    x = np.random.rand(100000, 3)
+    y = np.random.rand(1, 3)
+    z = np.cross(x, y)
+    zz = fast_cross_3d(x, y)
+    assert_array_equal(z, zz)
 
 
 def test_make_morph_maps():

@@ -26,7 +26,7 @@ from ..source_space import read_source_spaces, write_source_spaces
 from ..surface import read_surface, write_surface, read_bem_surfaces, \
                       write_bem_surface
 from ..utils import get_config, get_subjects_dir
-from .transforms import rotation, rotation3d, scaling, translation
+from ..transforms import rotation, rotation3d, scaling, translation
 
 
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
