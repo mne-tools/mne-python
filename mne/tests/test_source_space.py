@@ -10,7 +10,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
-                       requires_mne)
+                       requires_mne, requires_mem_gb)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 
 from scipy.spatial.distance import cdist
@@ -61,6 +61,7 @@ def test_discrete_source_space():
             os.remove(temp_name)
 
 
+@requires_mem_gb(3)
 @requires_mne
 def test_volume_source_space():
     """Test setting up volume source spaces

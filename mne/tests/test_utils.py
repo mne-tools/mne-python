@@ -8,7 +8,7 @@ import urllib2
 
 from ..utils import set_log_level, set_log_file, _TempDir, \
                     get_config, set_config, deprecated, _fetch_file, \
-                    sum_squared
+                    sum_squared, requires_mem_gb
 from ..fiff import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -135,12 +135,33 @@ def deprecated_func():
     pass
 
 
+@requires_mem_gb(10000)
+def big_mem_func():
+    pass
+
+
+@requires_mem_gb(0)
+def no_mem_func():
+    pass
+
+
 def test_deprecated():
     """Test deprecated function
     """
     with warnings.catch_warnings(True) as w:
         deprecated_func()
     assert_true(len(w) == 1)
+
+
+def test_requires_mem_gb():
+    """Test requires memory function
+    """
+    with warnings.catch_warnings(True) as w:
+        big_mem_func()
+    assert_true(len(w) == 1)
+    with warnings.catch_warnings(True) as w:
+        no_mem_func()
+    assert_true(len(w) == 0)
 
 
 def test_fetch_file():
