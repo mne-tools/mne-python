@@ -23,8 +23,8 @@ _mag_factor = 1e-7  # \mu_0/4\pi
 def _project_to_triangle(s, idx, p, q):
     tri = s['tris'][idx]
     r1 = s['rr'][tri[0]]
-    r12 = r1 - s['rr'][tri[1]]
-    r13 = r1 - s['rr'][tri[2]]
+    r12 = s['rr'][tri[1]] - r1
+    r13 = s['rr'][tri[2]] - r1
     r = r1 + p * r12 + q * r13
     return r
 
@@ -37,7 +37,7 @@ def _triangle_coords(r, geom, best):
     a = geom['a'][best]
     b = geom['b'][best]
     c = geom['c'][best]
-    rr = r1 - r
+    rr = r - r1
     z = np.sum(rr * tri_nn)
     v1 = np.sum(rr * r12)
     v2 = np.sum(rr * r13)
@@ -73,7 +73,7 @@ def _bem_one_lin_field_coeff_simple(dest, normal, tri_rr, tri_nn, tri_area):
     """Simple version..."""
     out = np.zeros((3, len(dest)))
     for rr, o in zip(tri_rr, out):
-        diff = rr - dest
+        diff = dest - rr
         dl = np.sum(diff * diff, axis=1)
         x = fast_cross_3d(diff, tri_nn[np.newaxis, :])
         o[:] = tri_area * np.sum(x * normal, axis=1) / (3.0 * dl * np.sqrt(dl))
@@ -153,24 +153,20 @@ def _bem_lin_field_coeff(m, coils, method):
     for surf, mult in zip(m['surfs'], m['field_mult']):
         for tri, tri_nn, tri_area in zip(surf['tris'],
                                          surf['tri_nn'], surf['tri_area']):
-            """
+            # Accumulate the coefficients for each triangle node
+            # and add to the corresponding coefficient matrix
+            tri_rr = surf['rr'][tri]
+
             # The following is equivalent to:
-            tri_rr = surf['rr'][tri]
-            xx = func(cosmags, rmags, tri_rr, tri_nn, tri_area)
-            for j, coil in enumerate(coils['coils']):
-                # Accumulate the coefficients for each triangle node...
-                x = func(coil['rmag'], coil['cosmag'],
-                         tri_rr, tri_nn, tri_area)
-                assert np.array_equal(x, xx[lims[j]:lims[j + 1]])
-                res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
-                # Add these to the corresponding coefficient matrix
-                coeff[j][tri + off] += mult * res
-            """
-            tri_rr = surf['rr'][tri]
-            # Accumulate the coefficients for each triangle node...
+            #for j, coil in enumerate(coils['coils']):
+            #    x = func(coil['rmag'], coil['cosmag'],
+            #             tri_rr, tri_nn, tri_area)
+            #    res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
+            #    coeff[j][tri + off] += mult * res
+
             xx = func(rmags, cosmags, tri_rr, tri_nn, tri_area)
             yy = np.c_[np.zeros((3, 1)), np.cumsum(xx * ws, axis=1)]
-            zz = yy[:, lims[1:]] - yy[:, lims[:-1]]
+            zz = mult * np.diff(yy[:, lims], axis=1)
             coeff[:, tri + off] += zz.T
         off += surf['np']
     return coeff
@@ -201,7 +197,7 @@ def _bem_specify_els(m, els):
     # Go through all coils
     scalp = m['surfs'][0]
     scalp['geom'] = _get_tri_supp_geom(scalp['tris'], scalp['rr'])
-    inds = np.arange(len(scalp['rr']))
+    inds = np.arange(len(scalp['tris']))
     for k, el in enumerate(els['coils']):
         # Go through all 'integration points'
         for elw, r in zip(el['w'], el['rmag']):
@@ -210,14 +206,14 @@ def _bem_specify_els(m, els):
             best = _find_nearest_tri_pt(inds, r, scalp['geom'])[2]
             if m['bem_method'] == 'constant collocation':
                 # Simply pick the value at the triangle
-                solution[k] += elw * m['solution'][best]
+                amt = elw * m['solution'][best]
             else:  # m['bem_method'] == 'linear collocation'
                 # Calculate a linear interpolation between the vertex values
                 tri = scalp['tris'][best]
                 x, y, z = _triangle_coords(r, scalp['geom'], best)
                 w = elw * np.array([(1.0 - x - y), x, y])
-                for v in xrange(3):
-                    solution[k] += w[v] * m['solution'][tri[v]]
+                amt = np.dot(w, m['solution'][tri])
+            solution[k] += amt
 
 
 #############################################################################
@@ -289,14 +285,14 @@ def _make_comp_data(dataset, coils, comp_coils, field, vec_field, field_grad,
 
 def _bem_inf_pot(rd, Q, rp):
     """The infinite medium potential"""
-    diff = rd - rp
-    diff2 = np.sqrt(np.sum(diff * diff, axis=1))
-    return np.sum(Q * diff, axis=1) / (4.0 * np.pi * diff2 * diff2)
+    diff = rp - rd
+    diff2 = np.sum(diff * diff, axis=1)
+    return np.sum(Q * diff, axis=1) / (4.0 * np.pi * diff2 * np.sqrt(diff2))
 
 
 def _bem_inf_field(rd, Q, rp, d):
     """Infinite-medium magnetic field"""
-    diff = rd - rp
+    diff = rp - rd
     diff2 = np.sum(diff * diff, axis=1)
     x = fast_cross_3d(Q[np.newaxis, :], diff)
     return np.sum(x * d, axis=1) / (diff2 * np.sqrt(diff2))
@@ -352,10 +348,10 @@ def _bem_field(rd, Q, coils, B, m):
     # (can be calculated in the coil/dipole coordinates)
 
     # The following code is equivalent to this, but vectorized:
-    # B.fill(0.0)
-    # for k, coil in enumerate(coils['coils']):
-    #     B[k] += np.sum(coil['w'] * _bem_inf_field(rd, Q, coil['rmag'],
-    #                                               coil['cosmag']))
+    #B.fill(0.0)
+    #for k, coil in enumerate(coils['coils']):
+    #    B[k] += np.sum(coil['w'] * _bem_inf_field(rd, Q, coil['rmag'],
+    #                                              coil['cosmag']))
     rmags = np.concatenate([coil['rmag'] for coil in coils['coils']])
     cosmags = np.concatenate([coil['cosmag'] for coil in coils['coils']])
     ws = np.concatenate([coil['w'] for coil in coils['coils']])

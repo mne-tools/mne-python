@@ -486,7 +486,7 @@ def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
     fwd['info']['mri_head_t'] = mri_head_t
     if fname is not None:
         logger.info('writing %s...', fname)
-        write_forward_solution(fname, fwd, overwrite)
+        write_forward_solution(fname, fwd, overwrite, verbose=False)
 
     logger.info('Finished.')
     return fwd

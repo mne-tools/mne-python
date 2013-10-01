@@ -928,8 +928,8 @@ def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
 def _get_tri_supp_geom(tris, rr):
     """Create supplementary geometry information using tris and rrs"""
     r1 = rr[tris[:, 0], :]
-    r12 = r1 - rr[tris[:, 1], :]
-    r13 = r1 - rr[tris[:, 2], :]
+    r12 = rr[tris[:, 1], :] - r1
+    r13 = rr[tris[:, 2], :] - r1
     r1213 = np.array([r12, r13]).swapaxes(0, 1)
     a = np.sum(r12 * r12, axis=1)
     b = np.sum(r13 * r13, axis=1)
@@ -937,6 +937,7 @@ def _get_tri_supp_geom(tris, rr):
     mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
     mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
     nn = fast_cross_3d(r12, r13)
+    _normalize_vectors(nn)
     return dict(r1=r1, r12=r12, r13=r13, r1213=r1213,
                 a=a, b=b, c=c, mat=mat, nn=nn)
 
@@ -1003,7 +1004,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     return morph_maps
 
 
-def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom):
+def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, check_multiple=False):
     # The following dense code is equivalent to the following:
     #   rr = r1[pt_tris] - to_pts[ii]
     #   v1s = np.sum(rr * r12[pt_tris], axis=1)
@@ -1019,7 +1020,7 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom):
     # This einsum is equivalent to doing:
     # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
     r1 = tri_geom['r1']
-    rrs = r1[pt_tris] - to_pt
+    rrs = to_pt - r1[pt_tris]
     a = tri_geom['a']
     b = tri_geom['b']
     c = tri_geom['c']
@@ -1031,10 +1032,17 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom):
     pqs = np.einsum('ijk,ik->ji', mats, vect)
     found = False
     dists = np.sum(rrs * tri_nn[pt_tris], axis=1)
-    for (p, q, pt, dist) in zip(pqs[0], pqs[1], pt_tris, dists):
-        if 0. <= p <= 1. and 0. < q < 1. and p + q < 1.:
-            found = True
-            break
+
+    # There can be multiple (sadnesss), find closest
+    idx = np.where(np.all(pqs >= 0., axis=0))[0]
+    idx = idx[np.where(np.all(pqs[:, idx] <= 1., axis=0))[0]]
+    idx = idx[np.where(np.sum(pqs[:, idx], axis=0) < 1.)[0]]
+    if len(idx) > 0:
+        pt = idx[np.argmin(np.abs(dists[idx]))]
+        found = True
+        p, q = pqs[:, pt]
+        dist = dists[idx]
+
     if found is False:
         # Tough: must investigate the sides
         # We might do something intelligent here. However, for now
