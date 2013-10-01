@@ -50,7 +50,8 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 reject = dict(grad=4000e-13, mag=4e-12)
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), reject=reject)
+                    picks=picks, baseline=(None, 0), preload=False,
+                    reject=reject)
 
 # Read empty room noise, preload to allow filtering
 raw_noise = Raw(noise_fname, preload=True)
@@ -81,7 +82,7 @@ win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
 
 # Setting time step and CSD regularization parameter
 tstep = 0.2
-reg = 0.05
+reg = 0.1
 
 # Calculating covariance from empty room noise. To use baseline data as noise
 # substitute raw for raw_noise
@@ -89,9 +90,10 @@ noise_covs = []
 
 for (l_freq, h_freq) in freq_bins:
     raw_band = raw_noise.copy()
-    raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1)
+    raw_band.filter(l_freq, h_freq, picks=epochs.picks, method='iir', n_jobs=1)
     epochs_band = mne.Epochs(raw_band, epochs_noise.events, event_id,
-                             tmin=tmin, tmax=tmax, proj=True)
+                             tmin=tmin, tmax=tmax, picks=epochs.picks,
+                             proj=True)
     noise_cov = compute_covariance(epochs_band)
     noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=reg,
                                    grad=reg, eeg=reg, proj=True)
