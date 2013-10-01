@@ -57,11 +57,12 @@ raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 # Create noise epochs and make sure the number of noise epochs corresponds to
 # the number of data epochs
 events_noise = make_fixed_length_events(raw_noise, event_id)
-epochs_noise = mne.Epochs(raw, events_noise, event_id, epoch_tmin, epoch_tmax,
-                          proj=True, picks=picks, baseline=(None, 0),
-                          preload=True, reject=dict(grad=4000e-13, mag=4e-12))
+epochs_noise = mne.Epochs(raw_noise, events_noise, event_id, epoch_tmin,
+                          epoch_tmax, proj=True, picks=picks,
+                          baseline=(None, 0), preload=True,
+                          reject=dict(grad=4000e-13, mag=4e-12))
 # then make sure the number of epochs is the same
-epochs_noise = epochs[:len(epochs.events)]
+epochs_noise = epochs_noise[:len(epochs.events)]
 
 # Read forward operator
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
