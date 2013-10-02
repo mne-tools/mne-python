@@ -426,7 +426,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freqs_mask]
     fstep = np.mean(np.diff(freqs))
-    psd = np.zeros((noise_norm.size, np.sum(freqs_mask)))
+    psd = np.zeros((K.shape[0], np.sum(freqs_mask)))
     n_windows = 0
 
     for this_start in np.arange(start, stop, int(NFFT * (1. - overlap))):
