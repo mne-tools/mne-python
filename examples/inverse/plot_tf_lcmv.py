@@ -44,8 +44,14 @@ raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
-# Read epochs without preloading to access the underlying raw object for
-# filtering later in tf_lcmv
+# Read epochs. Note that preload is set to False to enable tf_lcmv to read the
+# underlying raw object from epochs.raw, which would be set to None during
+# preloading. Filtering is then performed on raw data in tf_lcmv and the epochs
+# parameters passed here are used to create epochs from filtered data. However,
+# reading epochs without preloading means that bad epoch rejection is delayed
+# until later. To perform bad epoch rejection based on the reject parameter
+# passed here, run epochs.drop_bad_epochs(). This is done automatically in
+# tf_lcmv to reject bad epochs based on unfiltered data.
 event_id, tmin, tmax = 1, -0.2, 0.5
 reject = dict(grad=4000e-13, mag=4e-12)
 events = mne.read_events(event_fname)
@@ -57,14 +63,15 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 raw_noise = Raw(noise_fname, preload=True)
 raw_noise.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
-# Create artificial events for empty room noise data which will later be used
-# to create epochs from filtered data
+# Create artificial events for empty room noise data
 events_noise = make_fixed_length_events(raw_noise, event_id, duration=1.)
-# reject bad noise epochs based on unfiltered data
+# Create an epochs object using preload=True to reject bad epochs based on
+# unfiltered data
 epochs_noise = mne.Epochs(raw_noise, events_noise, event_id, tmin, tmax,
                           proj=True, picks=picks, baseline=(None, 0),
                           preload=True, reject=reject)
-# then make sure the number of noise epochs is the same as data epochs
+
+# Make sure the number of noise epochs is the same as data epochs
 epochs_noise = epochs_noise[:len(epochs.events)]
 
 # Read forward operator
