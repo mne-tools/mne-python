@@ -378,6 +378,8 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 # triage based on cluster storage type
                 if isinstance(c, slice):
                     len_c = c.stop - c.start
+                elif isinstance(c, tuple):
+                    len_c = len(c)
                 elif c.dtype == bool:
                     len_c = np.sum(c)
                 else:
