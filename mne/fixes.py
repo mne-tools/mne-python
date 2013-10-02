@@ -22,6 +22,8 @@ from math import ceil, log
 from numpy.fft import irfft
 from scipy.signal import filtfilt as sp_filtfilt
 from distutils.version import LooseVersion
+from functools import partial
+import copy_reg
 
 try:
     Counter = collections.Counter
@@ -519,3 +521,14 @@ if LooseVersion(np.__version__) > '1.7.1':
     from numpy.linalg import matrix_rank
 else:
     matrix_rank = _matrix_rank
+
+
+def _reconstruct_partial(func, args, kwargs):
+    return partial(func, *args, **(kwargs or {}))
+
+
+def _reduce_partial(p):
+    return _reconstruct_partial, (p.func, p.args, p.keywords)
+
+
+copy_reg.pickle(partial, _reduce_partial)
