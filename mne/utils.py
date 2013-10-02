@@ -25,7 +25,6 @@ import urllib
 import urllib2
 import ftplib
 import urlparse
-import psutil
 from scipy import linalg
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -426,6 +425,7 @@ def requires_mem_gb(requirement):
     def real_decorator(function):
         # convert to gb
         req = int(1e9 * requirement)
+        import psutil
 
         @wraps(function)
         def dec(*args, **kwargs):
@@ -502,6 +502,7 @@ def make_skipper_dec(module, skip_str):
 requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
 
+
 def _mne_fs_not_in_env():
     return (('FREESURFER_HOME' not in os.environ) or
             ('MNE_ROOT' not in os.environ))
@@ -510,6 +511,7 @@ requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env)
 
 ###############################################################################
 # LOGGING
+
 
 def set_log_level(verbose=None, return_old_level=False):
     """Convenience function for setting the logging level
