@@ -862,10 +862,10 @@ class _BaseSourceEstimate(object):
         [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
 
         if index is not None:
+            if 'time' in index:
+                df['time'] = df['time'].astype(np.int64)
             with warnings.catch_warnings(True):
                 df.set_index(index, inplace=True)
-            if 'time' in df.index.names and hasattr(df.index, 'levels'):
-                df.index.levels[1] = df.index.levels[1].astype(int)
 
         return df
 

@@ -1364,9 +1364,10 @@ class Raw(ProjMixin):
         df.insert(0, 'time', times * scale_time)
 
         if use_time_index is True:
+            if 'time' in df:
+                df['time'] = df['time'].astype(np.int64)
             with warnings.catch_warnings(True):
                 df.set_index('time', inplace=True)
-            df.index = df.index.astype(int)
 
         return df
 
