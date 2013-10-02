@@ -18,8 +18,9 @@ from ..fiff.tag import find_tag
 from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forward
 from ..transforms import (invert_transform, transform_source_space_to,
-                          read_trans, read_transform_ascii, combine_transforms,
-                          apply_trans, _print_coord_trans, _coord_frame_name)
+                          read_trans, _get_mri_head_t_from_trans_file,
+                          combine_transforms, apply_trans, _print_coord_trans,
+                          _coord_frame_name)
 from ..utils import logger, verbose
 from ..source_space import read_source_spaces, _filter_source_spaces
 from ..surface import read_bem_surfaces
@@ -340,15 +341,15 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
     logger.info('')
     if mri is not None:
         mri_head_t = read_trans(mri)
+        # it's actually usually a head->MRI transform, so we probably need to
+        # invert it
         if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
             mri_head_t = invert_transform(mri_head_t)
         if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
                 mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
             raise RuntimeError('Incorrect MRI transform provided')
     elif trans is not None:
-        t = read_transform_ascii(trans, FIFF.FIFFV_COORD_HEAD,
-                                 FIFF.FIFFV_COORD_MRI)
-        mri_head_t = invert_transform(t)
+        mri_head_t = _get_mri_head_t_from_trans_file(trans)
     _print_coord_trans(mri_head_t)
 
     # Read the channel information & MEG device -> head coord trans

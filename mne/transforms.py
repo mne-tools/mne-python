@@ -184,23 +184,14 @@ def translation(x=0, y=0, z=0):
     return m
 
 
-def read_transform_ascii(fname, fro, to):
-    """Read the Neuromag -> FreeSurfer transformation matrix"""
-    trans = np.zeros(4, 4)
-    with open(fname, 'r') as fid:
-        lines = fid.readlines()
-        lines = lines[::-1]
-        line = '#'
-        for k in range(4):
-            while line[0] == '#':
-                line = lines.pop()
-            vals = np.fromstring(line, sep=' ')
-            if not len(vals) == 4:
-                raise IOError('Did not find 4 values in line from trans def '
-                              '(%s)' % line)
-            trans[k] = vals
-    trans[:, 3] /= 1000.0
-    return {'from': fro, 'to': to, 'trans': trans}
+def _get_mri_head_t_from_trans_file(fname):
+    """Helper to convert "-trans.txt" to "-trans.fif" mri-type equivalent"""
+    """Read a Neuromag -> FreeSurfer transformation matrix"""
+    t = np.genfromtxt(fname)
+    if t.ndim != 2 or t.shape != (4, 4):
+        raise RuntimeError('File "%s" did not have 4x4 entries' % fname)
+    t = {'from': FIFF.FIFFV_COORD_HEAD, 'to': FIFF.FIFFV_COORD_MRI, 'trans': t}
+    return invert_transform(t)
 
 
 def combine_transforms(t_first, t_second, fro, to):
