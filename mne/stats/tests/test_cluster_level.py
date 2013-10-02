@@ -3,7 +3,7 @@ from numpy.testing import assert_equal, assert_array_equal,\
                           assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 from scipy import sparse, linalg, stats
-from functools import partial
+from mne.fixes import partial
 import warnings
 
 from mne.stats.cluster_level import permutation_cluster_test, \
