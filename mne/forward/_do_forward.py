@@ -25,13 +25,6 @@ from ..source_space import read_source_spaces, _filter_source_spaces
 from ..surface import read_bem_surfaces
 
 
-# Not currently supported:
-#    Correct FWD calculation (hah!)
-#    EEG Sphere model
-#    Label specification
-#    Channel compensation
-
-
 def _read_coil_defs(fname):
     """Read a coil definition file"""
     big_val = 0.5
@@ -230,14 +223,73 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
 
 
 @verbose
-def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
-                         mindist=0.0, bem=None, mri=None, trans=None,
-                         eeg=True, meg=True, fixed=False, grad=False,
-                         mricoord=False, do_all=False, overwrite=False,
-                         subjects_dir=None, verbose=None):
-    arg_list = [subject, meas, fname, src, spacing, mindist, bem, mri,
-                trans, eeg, meg, fixed, grad, mricoord, do_all, overwrite,
-                subjects_dir, verbose]
+def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
+                        bem=None, trans=None, mri=None, eeg=True, meg=True,
+                        mricoord=False, overwrite=False, subjects_dir=None,
+                        n_jobs=1, verbose=None):
+    """Calculate a forward solution for a subject
+
+    Parameters
+    ----------
+    subject : str
+        Name of the subject.
+    meas : Raw | Epochs | Evoked | str
+        If str, then it should be a filename to a file with measurement
+        information (i.e, Raw, Epochs, or Evoked).
+    fname : str | None
+        Destination forward solution filename. If None, the solution
+        will be created in a temporary directory, loaded, and deleted.
+    src : str | None
+        Source space name. If None, the MNE default is used.
+    mindist : float | str | None
+        Minimum distance of sources from inner skull surface (in mm).
+        If None, the MNE default value is used. If string, 'all'
+        indicates to include all points.
+    bem : str | None
+        Name of the BEM to use (e.g., "sample-5120-5120-5120"). If None
+        (Default), the MNE default will be used.
+    trans : str | None
+        File name of the trans file. If None, mri must not be None.
+    mri : dict | str | None
+        Either a transformation (usually made using mne_analyze) or an
+        info dict (usually opened using read_trans()), or a filename.
+        If dict, the trans will be saved in a temporary directory. If
+        None, trans must not be None.
+    eeg : bool
+        If True (Default), include EEG computations.
+    meg : bool
+        If True (Default), include MEG computations.
+    mricoord : bool
+        If True, calculate in MRI coordinates (Default: False).
+    overwrite : bool
+        If True, the destination file (if it exists) will be overwritten.
+        If False (default), an error will be raised if the file exists.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fwd : dict
+        The generated forward solution.
+
+    Notes
+    -----
+    Some of the forward solution calculation options from the C code
+    (e.g., `--grad`, `--fixed`) are not implemented here. For those,
+    consider using the C command line tools or the Python wrapper
+    `do_forward_solution_c`.
+    """
+    # Currently not ported:
+    # 1. EEG Sphere model (not used much)
+    # 2. --grad option (gradients of the field, not used much)
+    # 3. --fixed option (can be computed post-hoc)
+
+    arg_list = [subject, meas, fname, src, mindist, bem, mri,
+                trans, eeg, meg, mricoord, overwrite, subjects_dir, verbose]
     cmd = 'do_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     if src is None:
         raise ValueError('Source space file "src" must be specified')
@@ -267,26 +319,16 @@ def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
     logger.info('MRI -> head transform source : %s' % (mri_file))
     logger.info('Measurement data             : %s' % meas)
     logger.info('BEM model                    : %s' % bem)
-    # XXX Left out EEG sphere model code in mne_forward_solution.c
     logger.info('Accurate field computations')
     logger.info('Do computations in %s coordinates',
                 _coord_frame_name(coord_frame))
-    logger.info("%s source orientations" % ('Fixed' if fixed else 'Free'))
-    if grad is True:
-        logger.info('Compute derivatives with respect to source location '
-                    'coordinates')
+    logger.info('Free source orientations')
     logger.info('Destination for the solution : %s' % fname)
-    if do_all is True:
-        logger.info('Calculate solution for all source locations.')
 
     # Read the source locations
     logger.info('')
     logger.info('Reading %s...' % src)
     src = read_source_spaces(src, verbose=False)
-    if do_all is True:
-        for s in src:
-            s['inuse'].fill(True)
-            s['nuse'] = s['np']
     nsource = sum(s['nuse'] for s in src)
     if nsource == 0:
         raise RuntimeError('No sources are active in these source spaces. '
@@ -447,18 +489,16 @@ def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
 
     # Do the actual computation
     megfwd, megfwd_grad, eegfwd, eegfwd_grad = None, None, None, None
-    ori = FIFF.FIFFV_MNE_FIXED_ORI if fixed else FIFF.FIFFV_MNE_FREE_ORI
+    ori = FIFF.FIFFV_MNE_FREE_ORI
     cf = coord_frame
     if nmeg > 0:
-        out = _compute_forward(src, megcoils, compcoils, comp_data, fixed,
-                               bem_model, None, coil_type='meg', grad=grad)
-        megfwd, megfwd_grad = out
-        megfwd = _to_forward_dict(megfwd, megfwd_grad, megnames, cf, ori)
+        megfwd = _compute_forward(src, megcoils, compcoils, comp_data,
+                                  bem_model, 'meg', n_jobs)
+        megfwd = _to_forward_dict(megfwd, None, megnames, cf, ori)
     if neeg > 0:
-        out = _compute_forward(src, eegels, None, None, fixed,
-                               bem_model, None, coil_type='eeg', grad=grad)
-        eegfwd, eegfwd_grad = out
-        eegfwd = _to_forward_dict(eegfwd, eegfwd_grad, eegnames, cf, ori)
+        eegfwd = _compute_forward(src, eegels, None, None,
+                                  bem_model, 'eeg', n_jobs)
+        eegfwd = _to_forward_dict(eegfwd, None, eegnames, cf, ori)
 
     # merge forwards into one
     fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
@@ -468,12 +508,9 @@ def do_forward_solution2(subject, meas, fname=None, src=None, spacing=None,
     picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=meg, exclude=[])
     info = pick_info(info, picks)
     source_rr = np.concatenate([s['rr'][s['inuse'] == 1] for s in src])
-    if fixed:
-        nsource = fwd['sol']['data'].shape[1]
-        source_nn = np.concatenate([s['nn'][s['inuse'] == 1] for s in src])
-    else:
-        nsource = fwd['sol']['data'].shape[1] / 3
-        source_nn = np.tile(np.eye(3), (nsource, 1))
+    # deal with free orientations:
+    nsource = fwd['sol']['data'].shape[1] / 3
+    source_nn = np.tile(np.eye(3), (nsource, 1))
 
     # Transform the source spaces back into MRI coordinates
     for s in src:

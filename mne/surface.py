@@ -1004,7 +1004,13 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     return morph_maps
 
 
-def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, check_multiple=False):
+def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
+    """Find nearest point mapping to a set of triangles
+
+    If run_all is False, if the point lies within a triangle, it stops.
+    If run_all is True, edges of other triangles are checked in case
+    those (somehow) are closer.
+    """
     # The following dense code is equivalent to the following:
     #   rr = r1[pt_tris] - to_pts[ii]
     #   v1s = np.sum(rr * r12[pt_tris], axis=1)
@@ -1021,9 +1027,6 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, check_multiple=False):
     # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
     r1 = tri_geom['r1']
     rrs = to_pt - r1[pt_tris]
-    a = tri_geom['a']
-    b = tri_geom['b']
-    c = tri_geom['c']
     tri_nn = tri_geom['nn']
     vect = np.einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
     mats = tri_geom['mat'][pt_tris]
@@ -1037,45 +1040,59 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, check_multiple=False):
     idx = np.where(np.all(pqs >= 0., axis=0))[0]
     idx = idx[np.where(np.all(pqs[:, idx] <= 1., axis=0))[0]]
     idx = idx[np.where(np.sum(pqs[:, idx], axis=0) < 1.)[0]]
+    dist = np.inf
     if len(idx) > 0:
         pt = idx[np.argmin(np.abs(dists[idx]))]
         found = True
         p, q = pqs[:, pt]
-        dist = dists[idx]
+        dist = dists[pt]
 
-    if found is False:
+    if found is False or run_all is True:
+        # don't include ones that we might have found before
+        siders = np.setdiff1d(np.arange(len(pt_tris)), idx)
         # Tough: must investigate the sides
-        # We might do something intelligent here. However, for now
-        # it is ok to do it in the hard way
-        rrs = r1[pt_tris] - to_pt
-        pp = pqs[0]
-        qq = pqs[1]
-        aa = a[pt_tris]
-        bb = b[pt_tris]
-        cc = c[pt_tris]
-        # Find the nearest point from a triangle:
-        #   Side 1 -> 2
-        p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa,
-                                   0.0), 1.0)
-        q0 = np.zeros_like(p0)
-        #   Side 2 -> 3
-        t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
-                     + (2.0 * bb - cc) * qq) / (aa + bb - cc))
-        t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
-        p1 = 1.0 - t1
-        q1 = t1
-        #   Side 1 -> 3
-        q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
-                                   / bb, 0.0), 1.0)
-        p2 = np.zeros_like(q2)
+        pp, qq, ptt, distt = _nearest_tri_edge(pt_tris[siders], to_pt,
+                                               pqs[:, siders], r1[siders],
+                                               dists[siders], tri_geom)
+        if np.abs(distt) < np.abs(dist):
+            p, q, pt, dist = pp, qq, ptt, distt
+    return p, q, pt, dist
 
-        # figure out which one had the lowest distance
-        dist0 = _get_tri_dist(pp, qq, p0, q0, aa, bb, cc, dist)
-        dist1 = _get_tri_dist(pp, qq, p1, q1, aa, bb, cc, dist)
-        dist2 = _get_tri_dist(pp, qq, p2, q2, aa, bb, cc, dist)
-        pp = np.r_[p0, p1, p2]
-        qq = np.r_[q0, q1, q2]
-        dists = np.r_[dist0, dist1, dist2]
-        ii = np.argmin(dists)
-        p, q, pt, dist = pp[ii], qq[ii], pt_tris[ii % len(pt_tris)], dists[ii]
+
+def _nearest_tri_edge(pt_tris, to_pt, pqs, r1, dist, tri_geom):
+    # We might do something intelligent here. However, for now
+    # it is ok to do it in the hard way
+    a = tri_geom['a']
+    b = tri_geom['b']
+    c = tri_geom['c']
+    pp = pqs[0]
+    qq = pqs[1]
+    aa = a[pt_tris]
+    bb = b[pt_tris]
+    cc = c[pt_tris]
+    # Find the nearest point from a triangle:
+    #   Side 1 -> 2
+    p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa,
+                               0.0), 1.0)
+    q0 = np.zeros_like(p0)
+    #   Side 2 -> 3
+    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
+                 + (2.0 * bb - cc) * qq) / (aa + bb - cc))
+    t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
+    p1 = 1.0 - t1
+    q1 = t1
+    #   Side 1 -> 3
+    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
+                               / bb, 0.0), 1.0)
+    p2 = np.zeros_like(q2)
+
+    # figure out which one had the lowest distance
+    dist0 = _get_tri_dist(pp, qq, p0, q0, aa, bb, cc, dist)
+    dist1 = _get_tri_dist(pp, qq, p1, q1, aa, bb, cc, dist)
+    dist2 = _get_tri_dist(pp, qq, p2, q2, aa, bb, cc, dist)
+    pp = np.r_[p0, p1, p2]
+    qq = np.r_[q0, q1, q2]
+    dists = np.r_[dist0, dist1, dist2]
+    ii = np.argmin(np.abs(dists))
+    p, q, pt, dist = pp[ii], qq[ii], pt_tris[ii % len(pt_tris)], dists[ii]
     return p, q, pt, dist
