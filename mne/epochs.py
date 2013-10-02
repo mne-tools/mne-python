@@ -1272,9 +1272,9 @@ class Epochs(_BaseEpochs):
         [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
         if index is not None:
             with warnings.catch_warnings(True):
+                if 'time' in index:
+                    df['time'] = df['time'].astype(np.int64)
                 df.set_index(index, inplace=True)
-            if 'time' in df.index.names and hasattr(df.index, 'levels'):
-                df.index.levels[1] = df.index.levels[1].astype(int)
 
         return df
 

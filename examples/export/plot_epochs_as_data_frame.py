@@ -207,7 +207,7 @@ df.condition = df.condition.apply(lambda name: name + ' ')
 
 pl.figure()
 max_latency.plot(kind='barh', title='Latency of Maximum Reponse',
-                 color='steelblue')
+                 color=['steelblue'])
 mne.viz.tight_layout()
 
 # Finally, we will again remove the index to create a proper data table that
