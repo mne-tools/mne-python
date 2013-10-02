@@ -25,10 +25,12 @@ import urllib
 import urllib2
 import ftplib
 import urlparse
+import psutil
 from scipy import linalg
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
+
 
 ###############################################################################
 # RANDOM UTILITIES
@@ -238,6 +240,7 @@ def run_subprocess(command, *args, **kwargs):
 
     output = (stdout, stderr)
     if p.returncode:
+        print output
         raise subprocess.CalledProcessError(p.returncode, command, output)
 
     return output
@@ -416,6 +419,29 @@ requires_nibabel = np.testing.dec.skipif(not has_nibabel(),
                                          'Requires nibabel')
 requires_freesurfer = np.testing.dec.skipif(not has_freesurfer(),
                                             'Requires Freesurfer')
+
+
+def requires_mem_gb(requirement):
+    """Decorator to skip test if insufficient memory is available"""
+    def real_decorator(function):
+        # convert to gb
+        req = int(1e9 * requirement)
+
+        @wraps(function)
+        def dec(*args, **kwargs):
+            if psutil.virtual_memory().available >= req:
+                skip = False
+            else:
+                skip = True
+
+            if skip is True:
+                from nose.plugins.skip import SkipTest
+                raise SkipTest('Test %s skipped, requires >= %0.1f GB free '
+                               'memory' % (function.__name__, requirement))
+            ret = function(*args, **kwargs)
+            return ret
+        return dec
+    return real_decorator
 
 
 def requires_pandas(function):

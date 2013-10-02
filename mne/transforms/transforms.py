@@ -11,8 +11,9 @@ from ..fiff import FIFF
 from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag, find_tag
 from ..fiff.tree import dir_tree_find
-from ..fiff.write import start_file, end_file, start_block, end_block, \
-                         write_coord_trans, write_dig_point, write_int
+from ..fiff.write import (start_file, end_file, start_block, end_block,
+                          write_coord_trans, write_dig_point, write_int)
+from ..utils import logger
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -21,6 +22,36 @@ als_ras_trans = np.array([[0, -1, 0, 0], [1, 0, 0, 0], [0, 0, 1, 0],
                           [0, 0, 0, 1]])
 # simultaneously convert [m] to [mm]:
 als_ras_trans_mm = als_ras_trans * [0.001, 0.001, 0.001, 1]
+
+
+def _coord_frame_name(cframe):
+    """Map integers to human-readable names"""
+    types = [FIFF.FIFFV_COORD_UNKNOWN, FIFF.FIFFV_COORD_DEVICE,
+             FIFF.FIFFV_COORD_ISOTRAK, FIFF.FIFFV_COORD_HPI,
+             FIFF.FIFFV_COORD_HEAD, FIFF.FIFFV_COORD_MRI,
+             FIFF.FIFFV_MNE_COORD_MRI_VOXEL, FIFF.FIFFV_COORD_MRI_SLICE,
+             FIFF.FIFFV_COORD_MRI_DISPLAY, FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
+             FIFF.FIFFV_MNE_COORD_CTF_HEAD, FIFF.FIFFV_MNE_COORD_RAS,
+             FIFF.FIFFV_MNE_COORD_MNI_TAL, FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ,
+             FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ, -1]
+    strs = ['unknown', 'MEG device', 'isotrak', 'hpi', 'head',
+            'MRI (surface RAS)', 'MRI voxel', 'MRI slice', 'MRI display',
+            'CTF MEG device', 'CTF/4D/KIT head', 'RAS (non-zero origin)',
+            'MNI Talairach', 'Talairach (MNI z > 0)', 'Talairach (MNI z < 0)',
+            'unknown']
+    assert len(types) == len(strs)
+    for t, s in zip(types, strs):
+        if cframe == t:
+            return s
+    return strs[-1]
+
+
+def _print_coord_trans(t, prefix='Coordinate transformation: '):
+    logger.info(prefix + '%s -> %s'
+                % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
+    for tt in t['trans']:
+        logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f mm' %
+                    (tt[0], tt[1], tt[2], 1000 * tt[3]))
 
 
 def apply_trans(trans, pts):
@@ -148,6 +179,28 @@ def translation(x=0, y=0, z=0):
                   [0, 0, 1, z],
                   [0, 0, 0, 1]], dtype=float)
     return m
+
+
+def combine_transforms(t_first, t_second, fro, to):
+    """Combine two transforms"""
+    if t_first['from'] != fro:
+        raise RuntimeError('From mismatch: %s ("%s") != %s ("%s")'
+                           % (t_first['from'],
+                              _coord_frame_name(t_first['from']),
+                              fro, _coord_frame_name(fro)))
+    if t_first['to'] != t_second['from']:
+        raise RuntimeError('Transform mismatch: t1["to"] = %s ("%s"), '
+                           't2["from"] = %s ("%s")'
+                           % (t_first['to'], _coord_frame_name(t_first['to']),
+                              t_second['from'],
+                              _coord_frame_name(t_second['from'])))
+    if t_second['to'] != to:
+        raise RuntimeError('To mismatch: %s ("%s") != %s ("%s")'
+                           % (t_second['to'],
+                              _coord_frame_name(t_second['to']),
+                              to, _coord_frame_name(to)))
+    return {'from': fro, 'to': to, 'trans': np.dot(t_second['trans'],
+                                                   t_first['trans'])}
 
 
 def read_trans(fname):
