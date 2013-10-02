@@ -117,7 +117,7 @@ def test_compute_epochs_csd_on_artificial_data():
 
     # Computing signal power in the time domain
     signal_power = sum_squared(epochs_sin._data)
-    signal_power_per_sample = signal_power / len(epochs_sin.times) * sfreq
+    signal_power_per_sample = signal_power / len(epochs_sin.times)
 
     # Computing signal power in the frequency domain
     data_csd_fourier = compute_epochs_csd(epochs_sin, mode='fourier')
@@ -137,11 +137,10 @@ def test_compute_epochs_csd_on_artificial_data():
             data_csd_fourier = compute_epochs_csd(epochs_sin, mode='fourier',
                                                   tmin=None, tmax=tmax, fmin=0,
                                                   fmax=np.inf, n_fft=n_fft)
-            data_csd_fourier.scale_per_second()
-            fourier_power = np.abs(data_csd_fourier.data[0, 0])
-            fourier_power_per_second = data_csd_fourier.data[0, 0]
-            assert_almost_equal(signal_power_per_second,
-                                fourier_power_per_second, delta=2)
+            fourier_power_per_sample = np.abs(data_csd_fourier.data[0, 0]) *\
+                sfreq / data_csd_fourier.n_fft
+            assert_almost_equal(signal_power_per_sample,
+                                fourier_power_per_sample, delta=0.003)
 
         # Power per sample should not depend on number of tapers
         for n_tapers in [1, 2, 3, 5]:
@@ -152,13 +151,13 @@ def test_compute_epochs_csd_on_artificial_data():
                                                  fmax=np.inf,
                                                  mt_bandwidth=mt_bandwidth,
                                                  n_fft=n_fft)
-                data_csd_mt.scale_per_second()
-                mt_power_per_second = np.abs(data_csd_mt.data[0, 0])
+                mt_power_per_sample = np.abs(data_csd_mt.data[0, 0]) *\
+                    sfreq / data_csd_mt.n_fft
                 # The estimate of power gets worse for small time windows when
                 # more tapers are used
                 if n_tapers == 5 and tmax == 0.2:
-                    delta = 45
+                    delta = 0.05
                 else:
-                    delta = 2
-                assert_almost_equal(signal_power_per_second,
-                                    mt_power_per_second, delta=delta)
+                    delta = 0.004
+                assert_almost_equal(signal_power_per_sample,
+                                    mt_power_per_sample, delta=delta)

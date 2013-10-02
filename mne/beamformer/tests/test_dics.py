@@ -226,7 +226,6 @@ def test_tf_dics():
                                        fmin=freq_bin[0], fmax=freq_bin[1],
                                        fsum=True, tmin=tmin,
                                        tmax=tmin + win_length)
-        noise_csd.data /= win_length
         noise_csds.append(noise_csd)
 
     stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
@@ -249,6 +248,8 @@ def test_tf_dics():
                                        fmin=freq_bins[0][0],
                                        fmax=freq_bins[0][1], fsum=True,
                                        tmin=-0.2, tmax=0.0)
+        data_csd.data /= data_csd.n_fft
+        noise_csd.data /= noise_csd.n_fft
         stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
                                              data_csd, reg=reg, label=label)
         source_power.append(stc_source_power.data)

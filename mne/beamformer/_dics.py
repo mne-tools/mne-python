@@ -6,6 +6,7 @@
 # License: BSD (3-clause)
 
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from scipy import linalg
@@ -506,6 +507,10 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
             zip(freq_bins, win_lengths, noise_csds, n_ffts, mt_bandwidths):
         n_overlap = int((win_length * 1e3) // (tstep * 1e3))
 
+        # Scale noise CSD to allow data and noise CSDs to have different length
+        noise_csd = deepcopy(noise_csd)
+        noise_csd.data /= noise_csd.n_fft
+
         sol_single = []
         sol_overlap = []
         for i_time in range(n_time_steps):
@@ -535,10 +540,10 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                                               n_fft=n_fft,
                                               mt_bandwidth=mt_bandwidth,
                                               mt_low_bias=mt_low_bias)
-                # Scale to obtain CSD per second to allow data and noise time
-                # windows to be of different length
-                noise_csd.scale_per_second()
-                data_csd.scale_per_second()
+
+                # Scale data CSD to allow data and noise CSDs to have different
+                # length
+                data_csd.data /= data_csd.n_fft
 
                 stc = dics_source_power(epochs.info, forward, noise_csd,
                                         data_csd, reg=reg, label=label,
