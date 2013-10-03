@@ -35,12 +35,12 @@ def connect_client(trig_queue):
     """Helper method that instantiates the StimClient.
     """
     # just wait till the main thread reaches stim_server.start()
-    time.sleep(0.1)
+    time.sleep(1.)
 
     # instantiate StimClient
     stim_client = StimClient('localhost', port=4218)
 
     # wait a bit more for script to reach stim_server.add_trigger()
-    time.sleep(0.1)
+    time.sleep(1.)
 
     trig_queue.put(stim_client.get_trigger())
