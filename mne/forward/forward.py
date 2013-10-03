@@ -422,9 +422,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     #   Merge the MEG and EEG solutions together
     try:
         fwd = _merge_meg_eeg_fwds(megfwd, eegfwd)
-    except:
+    finally:
         fid.close()
-        raise
 
     #   Get the MRI <-> head coordinate transformation
     tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
