@@ -46,6 +46,7 @@ from .selection import read_selection
 from .dipole import read_dip
 from . import beamformer
 from . import connectivity
+from . import coreg
 from . import cuda
 from . import datasets
 from . import epochs
