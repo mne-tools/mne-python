@@ -164,10 +164,16 @@ def test_requires_mem_gb():
             no_mem_func()
         assert_true(len(w) == 0)
     except:
-        import psutil
+        try:
+            import psutil
+            has_psutil =True
+            msg = ('psutil version %s exposes unexpected API' %
+                   psutil.__version__)
+        except ImportError:
+            has_psutil = False
+            msg = 'Could not import psutil'
         from nose.plugins.skip import SkipTest
-        SkipTest('psutil version %s exposes unexpected API' %
-                 psutil.__version__)
+        SkipTest(msg)
 
 
 def test_fetch_file():
