@@ -166,11 +166,9 @@ def test_requires_mem_gb():
     except:
         try:
             import psutil
-            has_psutil =True
             msg = ('psutil version %s exposes unexpected API' %
                    psutil.__version__)
         except ImportError:
-            has_psutil = False
             msg = 'Could not import psutil'
         from nose.plugins.skip import SkipTest
         SkipTest(msg)
