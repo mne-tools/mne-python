@@ -17,7 +17,7 @@ import numpy as np
 from scipy.linalg import norm
 
 from ...fiff import pick_types
-from ...transforms.coreg import fit_matched_points, _decimate_points
+from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
 from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..raw import Raw
