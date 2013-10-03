@@ -954,6 +954,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     of pickling all the data structures makes it less efficient
     than just running on a single core :(
     """
+
     subjects_dir = get_subjects_dir(subjects_dir)
     morph_maps = list()
 
@@ -975,6 +976,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         n_from_pts = len(from_pts)
         _normalize_vectors(from_pts)
         tri_geom = _get_tri_supp_geom(from_tris, from_pts)
+
         fname = op.join(subjects_dir, subject_to, 'surf',
                         '%s.sphere.reg' % hemi)
         to_pts = read_surface(fname, verbose=False)[0]
@@ -1025,51 +1027,49 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
 
     # This einsum is equivalent to doing:
     # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
-    r1 = tri_geom['r1']
-    rrs = to_pt - r1[pt_tris]
-    tri_nn = tri_geom['nn']
+    r1 = tri_geom['r1'][pt_tris]
+    rrs = to_pt - r1
+    tri_nn = tri_geom['nn'][pt_tris]
     vect = np.einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
     mats = tri_geom['mat'][pt_tris]
     # This einsum is equivalent to doing:
     # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
     pqs = np.einsum('ijk,ik->ji', mats, vect)
     found = False
-    dists = np.sum(rrs * tri_nn[pt_tris], axis=1)
+    dists = np.sum(rrs * tri_nn, axis=1)
 
-    # There can be multiple (sadnesss), find closest
+    # There can be multiple (sadness), find closest
     idx = np.where(np.all(pqs >= 0., axis=0))[0]
     idx = idx[np.where(np.all(pqs[:, idx] <= 1., axis=0))[0]]
     idx = idx[np.where(np.sum(pqs[:, idx], axis=0) < 1.)[0]]
     dist = np.inf
     if len(idx) > 0:
-        pt = idx[np.argmin(np.abs(dists[idx]))]
         found = True
+        pt = idx[np.argmin(np.abs(dists[idx]))]
         p, q = pqs[:, pt]
         dist = dists[pt]
+        # re-reference back to original numbers
+        pt = pt_tris[pt]
 
     if found is False or run_all is True:
         # don't include ones that we might have found before
-        siders = np.setdiff1d(np.arange(len(pt_tris)), idx)
+        s = np.setdiff1d(np.arange(len(pt_tris)), idx)  # ones to check sides
         # Tough: must investigate the sides
-        pp, qq, ptt, distt = _nearest_tri_edge(pt_tris[siders], to_pt,
-                                               pqs[:, siders], r1[siders],
-                                               dists[siders], tri_geom)
+        pp, qq, ptt, distt = _nearest_tri_edge(pt_tris[s], to_pt, pqs[:, s],
+                                               dists[s], tri_geom)
         if np.abs(distt) < np.abs(dist):
             p, q, pt, dist = pp, qq, ptt, distt
     return p, q, pt, dist
 
 
-def _nearest_tri_edge(pt_tris, to_pt, pqs, r1, dist, tri_geom):
+def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
     # We might do something intelligent here. However, for now
     # it is ok to do it in the hard way
-    a = tri_geom['a']
-    b = tri_geom['b']
-    c = tri_geom['c']
+    aa = tri_geom['a'][pt_tris]
+    bb = tri_geom['b'][pt_tris]
+    cc = tri_geom['c'][pt_tris]
     pp = pqs[0]
     qq = pqs[1]
-    aa = a[pt_tris]
-    bb = b[pt_tris]
-    cc = c[pt_tris]
     # Find the nearest point from a triangle:
     #   Side 1 -> 2
     p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa,

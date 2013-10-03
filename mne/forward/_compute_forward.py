@@ -213,14 +213,13 @@ def _make_ctf_comp(compset, chs, compchs):
     comp = get_current_comp(dict(chs=chs))
     if comp is None or comp == 0:
         logger.info('    No compensation set. Nothing more to do.')
-        return None
+        return
 
     # Need to meaningfully populate comp['set'] dict a.k.a. compset
     compset['current'] = True
     nch = len(chs)
     comps = np.zeros(nch, int)
     comps[[c['kind'] == FIFF.FIFFV_MEG_CH for c in chs]] = comp
-    print comp
     raise NotImplementedError
 
 

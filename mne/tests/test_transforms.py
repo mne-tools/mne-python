@@ -42,5 +42,3 @@ def test_io_trans():
         assert_array_equal(d0['r'], d1['r'])
         for name in ['kind', 'ident', 'coord_frame']:
             assert_true(d0[name] == d1[name])
-
-

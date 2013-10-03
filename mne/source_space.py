@@ -1471,11 +1471,16 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, verbose=None):
         s['nuse'] -= (omit + omit_outside)
 
         if omit_outside > 0:
-            logger.info('%d source space points omitted because they are '
-                        'outside the inner skull surface.' % omit_outside)
+            extras = [omit_outside]
+            extras += ['s', 'they are'] if omit_outside > 1 else ['', 'it is']
+            logger.info('%d source space point%s omitted because %s '
+                        'outside the inner skull surface.' % tuple(extras))
         if omit > 0:
-            logger.info('%d source space points omitted because of the '
-                        '%6.1f-mm distance limit.' % (omit, limit))
+            extras = [omit]
+            extras += ['s'] if omit_outside > 1 else ['']
+            extras += [limit]
+            logger.info('%d source space point%s omitted because of the '
+                        '%6.1f-mm distance limit.' % tuple(extras))
     logger.info('Thank you for waiting.')
 
 

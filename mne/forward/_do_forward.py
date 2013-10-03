@@ -370,9 +370,9 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
     if meg:
         picks = pick_types(info, meg=True, eeg=False, exclude=[])
         nmeg = len(picks)
-        megchs = pick_info(info, picks)['chs']
-        megnames = [info['ch_names'][p] for p in picks]
         if nmeg > 0:
+            megchs = pick_info(info, picks)['chs']
+            megnames = [info['ch_names'][p] for p in picks]
             logger.info('Read %3d MEG channels from %s' % (len(picks), meas))
 
         # comp data
@@ -381,9 +381,9 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
 
         # comp channels
         picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
-        compchs = pick_info(info, picks)['chs']
-        ncomp = len(compchs)
+        ncomp = len(picks)
         if (ncomp > 0):
+            compchs = pick_info(info, picks)['chs']
             logger.info('Read %3d MEG compensation channels from %s'
                         % (ncomp, meas))
         _print_coord_trans(meg_head_t)
@@ -395,9 +395,9 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
     if eeg:
         picks = pick_types(info, meg=False, eeg=True, exclude=[])
         neeg = len(picks)
-        eegchs = pick_info(info, picks)['chs']
-        eegnames = [info['ch_names'][p] for p in picks]
         if neeg > 0:
+            eegchs = pick_info(info, picks)['chs']
+            eegnames = [info['ch_names'][p] for p in picks]
             logger.info('Read %3d EEG channels from %s' % (len(picks), meas))
     else:
         neeg = 0
