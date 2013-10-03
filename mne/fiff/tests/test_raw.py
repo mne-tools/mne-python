@@ -815,3 +815,23 @@ def test_compensation_raw():
     data5, times5 = raw5[:, :]
     assert_array_equal(times1, times5)
     assert_allclose(data1, data5, rtol=1e-12, atol=1e-22)
+    
+def test_set_eeg_reference():
+    """ Test rereference eeg data"""
+    raw = Raw(fif_fname, preload=True)
+    reref = Raw(fif_fname, preload=True)
+    reref.set_eeg_reference(['EEG 001', 'EEG 002'])
+
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    picks_other = pick_types(raw.info, meg=True, eeg=False, eog=True,
+                                    stim=True, exclude='bads')
+
+    raw_eeg_data = raw._data[picks_eeg]
+    reref_eeg_data = reref._data[picks_eeg]
+    unref_eeg_data = reref_eeg_data+reref.ref_data
+
+    raw_other_data = raw._data[picks_other]
+    reref_other_data = reref._data[picks_other]
+
+    assert_array_equal(raw_eeg_data, unref_eeg_data)
+    assert_array_equal(raw_other_data, reref_other_data)
