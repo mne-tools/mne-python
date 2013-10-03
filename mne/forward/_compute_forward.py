@@ -14,6 +14,8 @@ from ..transforms import apply_trans
 from ..utils import logger
 from ..parallel import parallel_func
 
+_mag_factor = 1e-7  # \mu_0/4\pi
+
 
 ##############################################################################
 # Triangle utilities
@@ -257,20 +259,50 @@ def _make_ctf_comp_coils(dataset, coils, comp_coils):
     return _make_ctf_comp(dataset, chs, compchs)
 
 
-def _bem_inf_pot(rd, Q, rp):
-    """The infinite medium potential"""
+#def _bem_inf_pot(rd, Q, rp):
+#    """The infinite medium potential in one direction"""
+#    # NOTE: the (4.0 * np.pi) that was in the denominator has been moved!
+#    diff = rp - rd
+#    diff2 = np.sum(diff * diff, axis=1)
+#    return np.sum(Q * diff, axis=1) / (diff2 * np.sqrt(diff2))
+
+
+def _bem_inf_pots(rr, surf_rr, Q=None):
+    """The infinite medium potential in all 3 directions"""
     # NOTE: the (4.0 * np.pi) that was in the denominator has been moved!
-    diff = rp - rd
-    diff2 = np.sum(diff * diff, axis=1)
-    return np.sum(Q * diff, axis=1) / (diff2 * np.sqrt(diff2))
+    diff = surf_rr.T[np.newaxis, :, :] - rr[:, :, np.newaxis]  # n_rr, 3, n_bem
+    diff_norm = np.sum(diff * diff, axis=1)
+    diff_norm *= np.sqrt(diff_norm)
+    diff_norm[diff_norm == 0] = 1  # avoid nans
+    if Q is None:  # save time when Q=np.eye(3) (e.g., MEG sensors)
+        return diff / diff_norm[:, np.newaxis, :]
+    else:  # get components in each direction (e.g., EEG sensors)
+        return np.einsum('ijk,mj->imk', diff, Q) / diff_norm[:, np.newaxis, :]
 
 
-def _bem_inf_field(rd, Q, rp, d):
-    """Infinite-medium magnetic field"""
-    diff = rp - rd
-    diff2 = np.sum(diff * diff, axis=1)
-    x = fast_cross_3d(Q[np.newaxis, :], diff)
-    return np.sum(x * d, axis=1) / (diff2 * np.sqrt(diff2))
+# This function has been refactored to process all points simultaneously
+#def _bem_inf_field(rd, Q, rp, d):
+#    """Infinite-medium magnetic field"""
+#    diff = rp - rd
+#    diff2 = np.sum(diff * diff, axis=1)
+#    x = fast_cross_3d(Q[np.newaxis, :], diff)
+#    return np.sum(x * d, axis=1) / (diff2 * np.sqrt(diff2))
+
+
+def _bem_inf_fields(rr, rp, c):
+    """Infinite-medium magnetic field in all 3 basis directions"""
+    # Knowing that we're doing all directions, the above can be refactored:
+    diff = rp.T[np.newaxis, :, :] - rr[:, :, np.newaxis]
+    diff_norm = np.sum(diff * diff, axis=1)
+    diff_norm *= np.sqrt(diff_norm)
+    diff_norm[diff_norm == 0] = 1  # avoid nans
+    # This is the result of cross-prod calcs with basis vectors,
+    # as if we had taken (Q=np.eye(3)), then multiplied by the cosmags (c)
+    # factor, and then summed across directions
+    x = np.array([diff[:, 1] * c[:, 2] - diff[:, 2] * c[:, 1],
+                  diff[:, 2] * c[:, 0] - diff[:, 0] * c[:, 2],
+                  diff[:, 0] * c[:, 1] - diff[:, 1] * c[:, 0]])
+    return np.rollaxis(x / diff_norm, 1)
 
 
 def _apply_ctf_comp():
@@ -305,83 +337,83 @@ def _comp_field(rrs, coils, client, n_jobs):
     return res
 
 
-def _bem_field(rrs, coils, m, n_jobs):
+def _bem_field(rr, coils, m, n_jobs):
     """Calculate the magnetic field in a set of coils"""
+    return _bem_pot_or_field(rr, coils, m, n_jobs, 'MEG')
+
+
+def _bem_pot(rr, els, m, n_jobs):
+    """Compute the potentials due to a current dipole"""
+    return _bem_pot_or_field(rr, els, m, n_jobs, 'EEG')
+
+
+def _bem_pot_or_field(rr, coils, m, n_jobs, ctype):
+    """Calculate the magnetic field or electric potential
+
+    The code is very similar between EEG and MEG potentials, so we'll
+    combine them.
+    """
+    # multiply solution by "mults" here for simplicity
     mults = np.repeat(m['source_mult'] / (4.0 * np.pi),
                       [len(s['rr']) for s in m['surfs']])
     solution = coils['user_data']['solution'] * mults[np.newaxis, :]
+
+    # The dipole location and orientation must be transformed
+    if m['head_mri_t'] is not None:
+        mri_rr = apply_trans(m['head_mri_t']['trans'], rr)
+        mri_Q = apply_trans(m['head_mri_t']['trans'], np.eye(3), False)
+    else:
+        mri_rr = rr
+        mri_Q = np.eye(3)
+
+    # Both MEG and EEG have the inifinite-medium potentials
     srr = np.concatenate([s['rr'] for s in m['surfs']])
+    # This could be just vectorized, but eats too much memory, so instead we
+    # reduce memory by chunking within _do_inf_pots and parallelize, too:
+    parallel, p_fun, _ = parallel_func(_do_inf_pots, n_jobs)
+    nas = np.array_split
+    B = np.sum(parallel(p_fun(mri_rr, sr.copy(), mri_Q, sol.copy())
+                        for sr, sol in zip(nas(srr, n_jobs),
+                                           nas(solution.T, n_jobs))), axis=0)
+    # The copy()s above should make it so the whole objects don't need to be
+    # pickled...
 
-    Qs = np.eye(3)
-    rmags = np.concatenate([coil['rmag'] for coil in coils['coils']])
-    cosmags = np.concatenate([coil['cosmag'] for coil in coils['coils']])
-    ws = np.concatenate([coil['w'] for coil in coils['coils']])
-    lims = np.r_[0, np.cumsum([len(coil['rmag']) for coil in coils['coils']])]
-
-    # parallelize here
-    ncoil = len(coils['coils'])
-    B = np.zeros((3, len(rrs), ncoil))
-    for qi, Qq in enumerate(Qs):
-        mri_rds, mri_Q = _xform_rd_Q(m['head_mri_t'], rrs, Qq)
-        for ri, (mri_rd, rr) in enumerate(zip(mri_rds, rrs)):
-            # The dipole location and orientation must be transformed
-
-            # Compute inifinite-medium potentials (see non-vectorized
-            # version in _bem_pot_els)
-            v0 = _bem_inf_pot(mri_rd, mri_Q, srr)
-
-            # Primary current contribution
-            # (can be calculated in the coil/dipole coordinates)
-
-            # The following code is equivalent to this, but vectorized:
-            #x = np.array([np.sum(coil['w'] *
-            #                     _bem_inf_field(rr, Qq, coil['rmag'],
-            #                                    coil['cosmag']))
-            #              for coil in coils['coils']])
-            x = np.r_[0.0, np.cumsum(ws * _bem_inf_field(rr, Qq, rmags,
-                                                         cosmags))]
-            B[qi, ri] = np.diff(x[lims])
-
-            # Volume current contribution
-            B[qi, ri] += np.dot(solution, v0)
-    B = np.reshape(np.swapaxes(B, 0, 1), (len(rrs) * 3, B.shape[2]))
-    # Scale correctly
-    B *= 1e-7  # MAG_FACTOR in C code
+    # Only MEG gets the primary current distribution
+    if ctype == 'MEG':
+        # Primary current contribution (can be calc. in coil/dipole coords)
+        parallel, p_fun, _ = parallel_func(_do_prim_curr, n_jobs)
+        pcc = np.concatenate(parallel(p_fun(rr, c)
+                                      for c in np.array_split(coils['coils'],
+                                                              n_jobs)), axis=1)
+        B += pcc
+        B *= 1e-7  # MAG_FACTOR from C code
     return B
 
 
-def _bem_pot_els(rrs, els, m, n_jobs):
-    """Compute the potentials due to a current dipole"""
-    # n_jobs currently ignored because no speedup gains found from using it
-    v0 = np.zeros(m['nsol'])
-    Qs = np.eye(3)
-    pot = np.zeros((3, len(rrs), len(els['coils'])))
-    mults = np.repeat(m['source_mult'] / (4.0 * np.pi),
-                      [len(s['rr']) for s in m['surfs']])
-    solution = els['user_data']['solution'] * mults[np.newaxis, :]
-    srr = np.concatenate([s['rr'] for s in m['surfs']])
-    for qi, Qq in enumerate(Qs):
-        mri_rds, mri_Q = _xform_rd_Q(m['head_mri_t'], rrs, Qq)
-        for ri, mri_rd in enumerate(mri_rds):
-            # The below is equivalent to the following, but vectorized
-            #soff = 0
-            #for surf, mult in zip(m['surfs'], m['source_mult']):
-            #    srr = surf['rr']
-            #    v0[soff:soff + len(srr)] = mult * _bem_inf_pot(mri_rd, mri_Q,
-            #                                                   srr)
-            #    soff += len(srr)
-            v0 = _bem_inf_pot(mri_rd, mri_Q, srr)  # "mults" in solution
-            pot[qi, ri] = np.dot(solution, v0)
-    pot = np.reshape(np.swapaxes(pot, 0, 1), (len(rrs) * 3, pot.shape[2]))
-    return pot
+def _do_prim_curr(rr, coils):
+    """Calculate primary currents in a set of coils"""
+    out = np.empty((len(rr) * 3, len(coils)))
+    for ci, c in enumerate(coils):
+        out[:, ci] = np.sum(c['w'] * _bem_inf_fields(rr, c['rmag'],
+                                                     c['cosmag']), 2).ravel()
+    return out
 
 
-def _xform_rd_Q(m_trans, rd, Q):
-    """Transform rd and Q into mri coords if necessary"""
-    if m_trans is not None:
-        rd = apply_trans(m_trans['trans'], rd)
-        Q = apply_trans(m_trans['trans'], Q, False)
-    return rd, Q
+def _do_inf_pots(rr, srr, mri_Q, sol):
+    """Calculate infinite potentials using chunks"""
+    # The following code is equivalent to this, but saves memory
+    #v0s = _bem_inf_pots(rr, srr, mri_Q)  # n_rr x 3 x n_surf_rr
+    #v0s.shape = (len(rr) * 3, v0s.shape[2])
+    #B = np.dot(v0s, sol)
+
+    # We chunk the source rr's in order to save memory
+    bounds = np.r_[np.arange(0, len(rr), 1000), len(rr)]
+    B = np.empty((len(rr) * 3, sol.shape[1]))
+    for bi in xrange(len(bounds) - 1):
+        v0s = _bem_inf_pots(rr[bounds[bi]:bounds[bi + 1]], srr, mri_Q)
+        v0s.shape = (v0s.shape[0] * 3, v0s.shape[2])
+        B[3 * bounds[bi]:3 * bounds[bi + 1]] = np.dot(v0s, sol)
+    return B
 
 
 def _compute_forward(src, coils_els, comp_coils, comp_data, bem_model, ctype,
@@ -412,7 +444,7 @@ def _compute_forward(src, coils_els, comp_coils, comp_data, bem_model, ctype,
     elif ctype == 'eeg':
         _bem_specify_els(bem_model, coils_els)
         client = bem_model
-        field = _bem_pot_els
+        field = _bem_pot
         ftype = 'EEG'
     else:
         raise ValueError('coil_type must be "meg" or "eeg"')
@@ -426,10 +458,8 @@ def _compute_forward(src, coils_els, comp_coils, comp_data, bem_model, ctype,
     # Set up arguments for the field computation
     logger.info('Computing %s at %d source locations '
                 '(free orientations)...' % (ftype, nsource))
-    # keep this split because a) we can and b) reduces cumsum() errors
-    res = list()
-    for s in src:
-        rrs = s['rr'][np.where(s['inuse'])[0]]
-        res.append(field(rrs, coils_els, client, n_jobs))
-    res = np.concatenate(res)
+
+    # keep this split to reduce memory consumption
+    rrs = np.concatenate([s['rr'][np.where(s['inuse'])[0]] for s in src])
+    res = field(rrs, coils_els, client, n_jobs)
     return res

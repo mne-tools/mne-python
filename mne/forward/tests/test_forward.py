@@ -54,7 +54,7 @@ def test_do_forward_solution():
     # check EEG
     assert_allclose(fwd['sol']['data'][306:],
                     fwd_py['sol']['data'][306:],
-                    rtol=1e-2, atol=1e-3)
+                    rtol=1e-2, atol=1e-2)
     assert_equal(fwd_py['sol']['data'].shape, (366, 22494))
     assert_equal(len(fwd['sol']['row_names']), 366)
 
