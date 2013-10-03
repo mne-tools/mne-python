@@ -19,8 +19,6 @@ tempdir = _TempDir()
 def test_get_mri_head_t():
     """Test converting '-trans.txt' to '-trans.fif'"""
     trans = read_trans(fname)
-    import numpy as np
-    np.savetxt('temp.txt', trans['trans'], '%0.06f')
     trans = invert_transform(trans)  # starts out as head->MRI, so invert
     trans_2 = _get_mri_head_t_from_trans_file(fname_trans)
     assert_equal(trans['from'], trans_2['from'])

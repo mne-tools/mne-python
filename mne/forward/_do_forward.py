@@ -212,13 +212,14 @@ def _create_eeg_el(ch, t):
 def _create_coils(coilset, chs, acc, t, coil_type='meg'):
     """Create a set of MEG or EEG coils"""
     coils = list()
-    for ch in chs:
-        if coil_type == 'meg':
+    if coil_type == 'meg':
+        for ch in chs:
             coils.append(_create_meg_coil(coilset, ch, acc, t))
-        elif coil_type == 'eeg':
+    elif coil_type == 'eeg':
+        for ch in chs:
             coils.append(_create_eeg_el(ch, t))
-        else:
-            raise RuntimeError('unknown coil type')
+    else:
+        raise RuntimeError('unknown coil type')
     res = dict(coils=coils, ncoil=len(coils), coord_frame=t['to'])
     return res
 
@@ -363,48 +364,50 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
                 meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'])
     meg_head_t = info['dev_head_t']
+    logger.info('')
 
     # MEG channels
-    logger.info('')
-    picks = pick_types(info, meg=True, eeg=False, exclude=[])
-    nmeg = len(picks)
-    megchs = pick_info(info, picks)['chs']
-    megnames = [info['ch_names'][p] for p in picks]
-    if nmeg > 0:
-        logger.info('Read %3d MEG channels from %s' % (len(picks), meas))
+    if meg:
+        picks = pick_types(info, meg=True, eeg=False, exclude=[])
+        nmeg = len(picks)
+        megchs = pick_info(info, picks)['chs']
+        megnames = [info['ch_names'][p] for p in picks]
+        if nmeg > 0:
+            logger.info('Read %3d MEG channels from %s' % (len(picks), meas))
 
-    # comp channels
-    compchs = info['comps']
-    ncomp = len(compchs)
-    if (ncomp > 0):
-        logger.info('Read %3d MEG compensation channels from %s'
-                    % (ncomp, meas))
-    comp_data = None  # ACTUALLY NEED THIS XXX
+        # comp data
+        comp_data = info['comps']
+        ncomp_data = len(comp_data)
 
-    # EEG channels
-    picks = pick_types(info, meg=False, eeg=True, exclude=[])
-    neeg = len(picks)
-    eegchs = pick_info(info, picks)['chs']
-    eegnames = [info['ch_names'][p] for p in picks]
-    if neeg > 0:
-        logger.info('Read %3d EEG channels from %s' % (len(picks), meas))
-
-    if not meg:
+        # comp channels
+        picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
+        compchs = pick_info(info, picks)['chs']
+        ncomp = len(compchs)
+        if (ncomp > 0):
+            logger.info('Read %3d MEG compensation channels from %s'
+                        % (ncomp, meas))
+        _print_coord_trans(meg_head_t)
+    else:
         logger.info('MEG not requested. MEG channels omitted.')
         nmeg = 0
+
+    # EEG channels
+    if eeg:
+        picks = pick_types(info, meg=False, eeg=True, exclude=[])
+        neeg = len(picks)
+        eegchs = pick_info(info, picks)['chs']
+        eegnames = [info['ch_names'][p] for p in picks]
+        if neeg > 0:
+            logger.info('Read %3d EEG channels from %s' % (len(picks), meas))
     else:
-        _print_coord_trans(meg_head_t)
-    if not eeg:
-        logger.info('EEG not requested. EEG channels omitted.')
         neeg = 0
+        logger.info('EEG not requested. EEG channels omitted.')
 
     # Create coil descriptions with transformation to head or MRI frame
     templates = _read_coil_defs(op.join(op.split(__file__)[0],
                                         '..', 'data', 'coil_def.dat'))
-    if meg is True:
-        # Compensation data
-        if ncomp > 0:  # Compensation channel information may be needed
-            logger.info('%d compensation data sets in %s' % (ncomp, meas))
+    if nmeg > 0 and ncomp > 0:  # Compensation channel information
+        logger.info('%d compensation data sets in %s' % (ncomp_data, meas))
 
     if coord_frame == FIFF.FIFFV_COORD_MRI:
         head_mri_t = invert_transform(mri_head_t)
@@ -419,17 +422,19 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
                      'from': FIFF.FIFFV_COORD_HEAD}
         extra_str = 'Head'
 
-    megcoils = _create_coils(templates, megchs,
-                             FIFF.FWD_COIL_ACCURACY_ACCURATE,
-                             meg_xform, coil_type='meg')
-    if ncomp > 0:
-        compcoils = _create_coils(templates, compchs,
-                                  FIFF.FWD_COIL_ACCURACY_NORMAL,
-                                  meg_xform, coil_type='meg')
-    else:
-        compcoils = None
-    eegels = _create_coils(templates, eegchs, None,
-                           eeg_xform, coil_type='eeg')
+    if nmeg > 0:
+        megcoils = _create_coils(templates, megchs,
+                                 FIFF.FWD_COIL_ACCURACY_ACCURATE,
+                                 meg_xform, coil_type='meg')
+        if ncomp > 0:
+            compcoils = _create_coils(templates, compchs,
+                                      FIFF.FWD_COIL_ACCURACY_NORMAL,
+                                      meg_xform, coil_type='meg')
+        else:
+            compcoils = None
+    if neeg > 0:
+        eegels = _create_coils(templates, eegchs, None,
+                               eeg_xform, coil_type='eeg')
     logger.info('%s coordinate coil definitions created.' % extra_str)
 
     # Transform the source spaces into the appropriate coordinates
@@ -506,7 +511,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
     logger.info('')
 
     # pick out final dict info
-    picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=meg, exclude=[])
+    picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False, exclude=[])
     info = pick_info(info, picks)
     source_rr = np.concatenate([s['rr'][s['inuse'] == 1] for s in src])
     # deal with free orientations:

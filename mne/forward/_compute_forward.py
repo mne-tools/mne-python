@@ -13,6 +13,7 @@ from ..fiff.constants import FIFF
 from ..transforms import apply_trans
 from ..utils import logger
 from ..parallel import parallel_func
+from ..fiff.compensator import get_current_comp
 
 _mag_factor = 1e-7  # \mu_0/4\pi
 
@@ -205,35 +206,25 @@ def _bem_specify_els(m, els):
 #############################################################################
 # FORWARD COMPUTATION
 
-def _make_ctf_comp(dataset, chs, compchs):
+def _make_ctf_comp(compset, chs, compchs):
     """Make CTF compensator"""
     # mne_make_ctf_comp() from mne_ctf_comp.c
-    nch = len(chs)
     logger.info('Setting up compensation data...')
-    comps = np.zeros(nch, int)
-    need_comp = False
-    first_comp = 0
-    for k, ch in enumerate(chs):
-        if ch['kind'] == FIFF.FIFFV_MEG_CH:
-            comps[k] = int(ch['coil_type']) >> 16
-            if comps[k] != 0:
-                if first_comp == 0:
-                    first_comp = comps[k]
-                elif comps[k] != first_comp:
-                    raise RuntimeError('We do not support nonuniform '
-                                       'compensation yet.')
-                need_comp = True
-        else:
-            comps[k] = 0
-
-    if need_comp is False:
+    comp = get_current_comp(dict(chs=chs))
+    if comp is None or comp == 0:
         logger.info('    No compensation set. Nothing more to do.')
         return None
-    else:
-        raise NotImplementedError
+
+    # Need to meaningfully populate comp['set'] dict a.k.a. compset
+    compset['current'] = True
+    nch = len(chs)
+    comps = np.zeros(nch, int)
+    comps[[c['kind'] == FIFF.FIFFV_MEG_CH for c in chs]] = comp
+    print comp
+    raise NotImplementedError
 
 
-def _make_ctf_comp_coils(dataset, coils, comp_coils):
+def _make_ctf_comp_coils(compset, coils, comp_coils):
     """Call mne_make_ctf_comp using the information in the coil sets"""
     # Create the fake channel info which contain just enough information
     # for _make_ctf_comp
@@ -256,7 +247,7 @@ def _make_ctf_comp_coils(dataset, coils, comp_coils):
             compchs.append(dict(ch_name=coil['chname'],
                                 coil_type=coil['type'], kind=kind))
 
-    return _make_ctf_comp(dataset, chs, compchs)
+    _make_ctf_comp(compset, chs, compchs)
 
 
 #def _bem_inf_pot(rd, Q, rp):
@@ -313,7 +304,7 @@ def _apply_ctf_comp():
 def _need_comp(comp):
     """Helper for triaging whether coils have compensation"""
     need = (comp['comp_coils'] and comp['comp_coils']['ncoil'] > 0
-            and comp['set'] and comp['dataset']['current'])
+            and comp['set']['current'])
     return need
 
 
@@ -425,7 +416,8 @@ def _compute_forward(src, coils_els, comp_coils, comp_data, bem_model, ctype,
         # is in effect
 
         # Compose a compensation data set
-        comp = dict(set=comp_data, comp_coils=comp_coils, field=_bem_field,
+        comp = dict(set=dict(comp_data=comp_data, current=False),
+                    comp_coils=comp_coils, field=_bem_field,
                     vec_field=None, client=bem_model)
         _make_ctf_comp_coils(comp['set'], coils_els, comp['comp_coils'])
 
@@ -434,7 +426,7 @@ def _compute_forward(src, coils_els, comp_coils, comp_data, bem_model, ctype,
         logger.info('Composing the field computation matrix...')
         _bem_specify_coils(bem_model, coils_els, n_jobs)
 
-        if comp['set'] is not None and comp['set']['current'] is True:
+        if comp['set']['current'] is True:
             logger.info('Composing the field computation matrix '
                         '(compensation coils)...')
             _bem_specify_coils(bem_model, comp['comp_coils'])
