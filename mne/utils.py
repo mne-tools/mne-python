@@ -425,11 +425,15 @@ def requires_mem_gb(requirement):
     def real_decorator(function):
         # convert to gb
         req = int(1e9 * requirement)
-        import psutil
+        try:
+            import psutil
+            has_psutil = True
+        except ImportError:
+            has_psutil = False
 
         @wraps(function)
         def dec(*args, **kwargs):
-            if psutil.virtual_memory().available >= req:
+            if has_psutil and psutil.virtual_memory().available >= req:
                 skip = False
             else:
                 skip = True
