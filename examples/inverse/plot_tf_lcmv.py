@@ -40,9 +40,14 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 raw = Raw(raw_fname, preload=True)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
-# Set picks
-picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                            stim=False, exclude='bads')
+# Pick a selection of magnetometer channels. A subset of all channels was used
+# to speed up the example. For a solution based on all MEG channels use
+# meg=True, selection=None and add grad=4000e-13 to the reject dictionary.
+left_temporal_channels = mne.read_selection('Left-temporal')
+picks = mne.fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False,
+                            stim=False, exclude='bads',
+                            selection=left_temporal_channels)
+reject = dict(mag=4e-12)
 
 # Read epochs. Note that preload is set to False to enable tf_lcmv to read the
 # underlying raw object from epochs.raw, which would be set to None during
@@ -53,7 +58,6 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # passed here, run epochs.drop_bad_epochs(). This is done automatically in
 # tf_lcmv to reject bad epochs based on unfiltered data.
 event_id, tmin, tmax = 1, -0.2, 0.5
-reject = dict(grad=4000e-13, mag=4e-12)
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=False,

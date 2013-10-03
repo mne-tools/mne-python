@@ -39,16 +39,21 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 raw = Raw(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
-# Set picks
-picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                            stim=False, exclude='bads')
+# Pick a selection of magnetometer channels. A subset of all channels was used
+# to speed up the example. For a solution based on all MEG channels use
+# meg=True, selection=None and add mag=4e-12 to the reject dictionary.
+left_temporal_channels = mne.read_selection('Left-temporal')
+picks = mne.fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False,
+                            stim=False, exclude='bads',
+                            selection=left_temporal_channels)
+reject = dict(mag=4e-12)
 
 # Read epochs
 event_id, epoch_tmin, epoch_tmax = 1, -0.3, 0.5
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, epoch_tmin, epoch_tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
-                    reject=dict(grad=4000e-13, mag=4e-12))
+                    reject=reject)
 
 # Read empty room noise raw data
 raw_noise = Raw(noise_fname)
@@ -60,7 +65,7 @@ events_noise = make_fixed_length_events(raw_noise, event_id)
 epochs_noise = mne.Epochs(raw_noise, events_noise, event_id, epoch_tmin,
                           epoch_tmax, proj=True, picks=picks,
                           baseline=(None, 0), preload=True,
-                          reject=dict(grad=4000e-13, mag=4e-12))
+                          reject=reject)
 # then make sure the number of epochs is the same
 epochs_noise = epochs_noise[:len(epochs.events)]
 
