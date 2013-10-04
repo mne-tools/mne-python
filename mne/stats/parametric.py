@@ -110,15 +110,27 @@ def _check_effects(effects):
 
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
-    """ Aux Function """
-    sc, sy, = [], []  # setup contrasts
+    """ Aux Function: Setup contrasts """
+    sc, sy, = [], []  
+    
+    # prepare computation of Kronecker products
     for n_levels in factor_levels:
+        # for each factor add
+        # column vector of length == number of levels,
+        # square matrix with diagonal == number of levels 
+        # main + interaction effects for contrasts 
         sc.append([np.ones([n_levels, 1]),
-            detrend(np.eye(n_levels), type='constant')])
+                   detrend(np.eye(n_levels), type='constant')])
+        # main + interaction effects for meand
         sy.append([np.ones([n_levels, 1]) / n_levels, np.eye(n_levels)])
+        # XXX component means not returned at the moment
 
     for (c1, c2, c3) in defaults_twoway_rm['iter_contrasts'][effect_picks]:
+        # c1 selects the first factors' level in the column vector
+        # c3 selects the actual factor
+        # c2 selects either its column vector or diag matrix
         c_ = np.kron(sc[0][c1], sc[c3][c2])
+        # for 3 way anova accumulation of c_ across factors required
         df1 = matrix_rank(c_)
         df2 = df1 * (n_subjects - 1)
         yield c_, df1, df2
