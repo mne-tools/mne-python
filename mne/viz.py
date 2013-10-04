@@ -3311,7 +3311,14 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, show=True):
     pl.xlabel('Time (s)')
     pl.ylabel('Frequency (Hz)')
 
+    time_tick_labels = [str(np.round(t, 2)) for t in time_bounds]
+    n_skip = 1 + len(time_bounds) // 10
+    for i in range(len(time_bounds)):
+        if i % n_skip != 0:
+            time_tick_labels[i] = ''
+
     ax.set_xticks(time_bounds)
+    ax.set_xticklabels(time_tick_labels)
     pl.xlim(time_bounds[0], time_bounds[-1])
     pl.yscale('log')
     ax.set_yticks(freq_ticks)
