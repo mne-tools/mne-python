@@ -954,7 +954,6 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     of pickling all the data structures makes it less efficient
     than just running on a single core :(
     """
-
     subjects_dir = get_subjects_dir(subjects_dir)
     morph_maps = list()
 
