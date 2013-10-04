@@ -69,8 +69,6 @@ def test_convert_forward():
     compare_forwards(fwd_fixed, fwd_fixed_io)
     # now go back to cartesian (original condition)
     fwd_new = convert_forward_solution(fwd_fixed)
-    print fwd_new['source_ori']
-    print fwd['source_ori']
     compare_forwards(fwd, fwd_new)
 
 
