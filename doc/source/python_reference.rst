@@ -363,6 +363,7 @@ Forward Modeling
    apply_forward
    apply_forward_raw
    average_forward_solutions
+   convert_forward_solution
    do_forward_solution
    do_forward_solution_c
    read_bem_surfaces

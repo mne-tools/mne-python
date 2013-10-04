@@ -226,7 +226,7 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
 
 @verbose
 def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
-                        bem=None, trans=None, mri=None, eeg=True, meg=True,
+                        bem=None, trans=None, mri=None, meg=True, eeg=True,
                         mricoord=False, overwrite=False, subjects_dir=None,
                         n_jobs=1, verbose=None):
     """Calculate a forward solution for a subject
@@ -257,10 +257,10 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
         info dict (usually opened using read_trans()), or a filename.
         If dict, the trans will be saved in a temporary directory. If
         None, trans must not be None.
-    eeg : bool
-        If True (Default), include EEG computations.
     meg : bool
         If True (Default), include MEG computations.
+    eeg : bool
+        If True (Default), include EEG computations.
     mricoord : bool
         If True, calculate in MRI coordinates (Default: False).
     overwrite : bool
@@ -291,7 +291,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
     # 3. --fixed option (can be computed post-hoc)
 
     arg_list = [subject, meas, fname, src, mindist, bem, mri,
-                trans, eeg, meg, mricoord, overwrite, subjects_dir, verbose]
+                trans, meg, eeg, mricoord, overwrite, subjects_dir, verbose]
     cmd = 'do_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
     if src is None:
         raise ValueError('Source space file "src" must be specified')
@@ -513,7 +513,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
     # pick out final dict info
     picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False, exclude=[])
     info = pick_info(info, picks)
-    source_rr = np.concatenate([s['rr'][s['inuse'] == 1] for s in src])
+    source_rr = np.concatenate([s['rr'][s['vertno']] for s in src])
     # deal with free orientations:
     nsource = fwd['sol']['data'].shape[1] / 3
     source_nn = np.tile(np.eye(3), (nsource, 1))
@@ -541,10 +541,12 @@ def _to_forward_dict(fwd, fwd_grad, names, coord_frame, source_ori):
                row_names=names, col_names=[])
     fwd = dict(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
                coord_frame=coord_frame, sol_grad=None,
-               nchan=sol['nrow'])
+               nchan=sol['nrow'], _orig_source_ori=source_ori,
+               _orig_sol=sol['data'].copy(), _orig_sol_grad=None)
     if fwd_grad is not None:
         sol_grad = dict(data=fwd_grad.T, nrow=fwd_grad.shape[1],
                         ncol=fwd_grad.shape[0], row_names=names,
                         col_names=[])
-        fwd.update(dict(sol_grad=sol_grad))
+        fwd.update(dict(sol_grad=sol_grad),
+                   _orig_sol_grad=sol_grad['data'].copy())
     return fwd

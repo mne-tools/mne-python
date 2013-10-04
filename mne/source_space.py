@@ -1469,6 +1469,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, verbose=None):
             outside = np.logical_or(outside, close)
         s['inuse'][vertno[outside]] = False
         s['nuse'] -= (omit + omit_outside)
+        s['vertno'] = np.where(s['inuse'])[0]
 
         if omit_outside > 0:
             extras = [omit_outside]

@@ -7,5 +7,5 @@ from .forward import (read_forward_solution, write_forward_solution,
                       do_forward_solution_c, average_forward_solutions,
                       _to_fixed_ori, _restrict_gain_matrix, _stc_src_sel,
                       _fill_measurement_info, _apply_forward,
-                      _subject_from_forward)
+                      _subject_from_forward, convert_forward_solution)
 from ._do_forward import do_forward_solution  # XXX Temporary for debugging

@@ -418,6 +418,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
     #   Pick the correct rows of the forward operator
     fwd['sol']['data'] = fwd['sol']['data'][sel, :]
+    fwd['_orig_sol'] = fwd['_orig_sol'][sel, :]
     fwd['sol']['nrow'] = nuse
 
     ch_names = [fwd['sol']['row_names'][k] for k in sel]
@@ -431,6 +432,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
     if fwd['sol_grad'] is not None:
         fwd['sol_grad']['data'] = fwd['sol_grad']['data'][sel, :]
+        fwd['_orig_sol_grad'] = fwd['_orig_sol_grad'][sel, :]
         fwd['sol_grad']['nrow'] = nuse
         fwd['sol_grad']['row_names'] = [fwd['sol_grad']['row_names'][k]
                                         for k in sel]

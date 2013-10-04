@@ -22,12 +22,10 @@ fname = 'test-fwd.fif'
 
 fwd = mne.do_forward_solution('sample', meas, fname, bem=bem, src=src, mri=mri,
                               subjects_dir=subjects_dir, meg=True, eeg=True,
-                              n_jobs=2, verbose=True)
-# we have to read it in because read_forward_solution does a bunch of things
-# to the forward solution that we'll need to refactor XXX
-fwd = mne.read_forward_solution(fname, surf_ori=True)
+                              mindist=5.0, n_jobs=2, overwrite=True)
 
-# convert to surface orientation (necessary for sensitivity_map calculations)
+# convert to surface orientation for better visualization
+fwd = mne.convert_forward_solution(fwd, surf_ori=True)
 leadfield = fwd['sol']['data']
 
 print "Leadfield size : %d x %d" % leadfield.shape

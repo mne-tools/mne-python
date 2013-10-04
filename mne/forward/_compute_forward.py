@@ -451,6 +451,6 @@ def _compute_forward(src, coils_els, comp_coils, comp_data, bem_model, ctype,
                 '(free orientations)...' % (ftype, nsource))
 
     # keep this split to reduce memory consumption
-    rrs = np.concatenate([s['rr'][np.where(s['inuse'])[0]] for s in src])
+    rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
     res = field(rrs, coils_els, client, n_jobs)
     return res
