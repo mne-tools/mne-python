@@ -97,7 +97,7 @@ tstep = 0.05
 # Setting the noise covariance and whitened data covariance regularization
 # parameters
 noise_reg = 0.03
-data_reg = 1e-15
+data_reg = 0.001
 
 # Calculating covariance from empty room noise. To use baseline data as noise
 # substitute raw for raw_noise
