@@ -57,7 +57,7 @@ reject = dict(mag=4e-12)
 # until later. To perform bad epoch rejection based on the reject parameter
 # passed here, run epochs.drop_bad_epochs(). This is done automatically in
 # tf_lcmv to reject bad epochs based on unfiltered data.
-event_id, tmin, tmax = 1, -0.2, 0.5
+event_id, tmin, tmax = 1, -0.3, 0.5
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=False,
@@ -89,16 +89,19 @@ label = mne.read_label(fname_label)
 
 # Setting frequency bins as in Dalal et al. 2008 (high gamma was subdivided)
 freq_bins = [(4, 12), (12, 30), (30, 55), (65, 299)]  # Hz
-win_lengths = [0.2, 0.2, 0.2, 0.2]  # s
+win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 
-# Setting time step and CSD regularization parameter
-tstep = 0.2
-reg = 0.1
+# Setting the time step
+tstep = 0.05
+
+# Setting the noise covariance and whitened data covariance regularization
+# parameters
+noise_reg = 0.03
+data_reg = 1e-15
 
 # Calculating covariance from empty room noise. To use baseline data as noise
 # substitute raw for raw_noise
 noise_covs = []
-
 for (l_freq, h_freq) in freq_bins:
     raw_band = raw_noise.copy()
     raw_band.filter(l_freq, h_freq, picks=epochs.picks, method='iir', n_jobs=1)
@@ -106,15 +109,15 @@ for (l_freq, h_freq) in freq_bins:
                              tmin=tmin, tmax=tmax, picks=epochs.picks,
                              proj=True)
     noise_cov = compute_covariance(epochs_band)
-    noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=reg,
-                                   grad=reg, eeg=reg, proj=True)
+    noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=noise_reg,
+                                   grad=noise_reg, eeg=noise_reg, proj=True)
     noise_covs.append(noise_cov)
     del raw_band  # to save memory
 
 # Computing LCMV solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
 stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-               freq_bins=freq_bins, reg=reg, label=label)
+               freq_bins=freq_bins, reg=data_reg, label=label)
 
 # Plotting source spectrogram for source with maximum activity
 plot_source_spectrogram(stcs, freq_bins, source_index=None)
