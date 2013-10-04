@@ -115,15 +115,16 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
     
     # prepare computation of Kronecker products
     for n_levels in factor_levels:
-        # for each factor add
-        # column vector of length == number of levels,
-        # square matrix with diagonal == number of levels 
+        # for each factor append
+        # 1) column vector of length == number of levels,
+        # 2) square matrix with diagonal == number of levels 
+
         # main + interaction effects for contrasts 
         sc.append([np.ones([n_levels, 1]),
                    detrend(np.eye(n_levels), type='constant')])
-        # main + interaction effects for meand
+        # main + interaction effects for component means
         sy.append([np.ones([n_levels, 1]) / n_levels, np.eye(n_levels)])
-        # XXX component means not returned at the moment
+        # XXX component means not returned at the moment 
 
     for (c1, c2, c3) in defaults_twoway_rm['iter_contrasts'][effect_picks]:
         # c1 selects the first factors' level in the column vector
