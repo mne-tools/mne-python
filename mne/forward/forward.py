@@ -505,7 +505,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 @verbose
 def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
                              copy=True, verbose=None):
-    """Convert forward solution type
+    """Convert forward solution between different source orientations
 
     Parameters
     ----------
