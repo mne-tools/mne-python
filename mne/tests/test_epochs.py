@@ -6,7 +6,8 @@
 import os.path as op
 from copy import deepcopy
 
-from nose.tools import assert_true, assert_equal, assert_raises
+from nose.tools import assert_true, assert_equal, assert_raises, \
+                       assert_greater_equal
 from numpy.testing import assert_array_equal, assert_array_almost_equal, \
                           assert_allclose
 import numpy as np
@@ -803,3 +804,14 @@ def test_epochs_proj_mixin():
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
+
+
+def test_event_ordering():
+    """Test event order"""
+    events2 = events.copy()
+    np.random.shuffle(events2)
+    for eve in [events, events2]:
+        epochs = Epochs(raw, eve, event_id, tmin, tmax,
+                        baseline=(None, 0), reject=reject, flat=flat)
+        mydiff = np.diff(epochs.events[:, 0].astype(np.int64))  # uint ...
+        assert_greater_equal(mydiff.min(), 0)

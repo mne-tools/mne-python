@@ -633,7 +633,8 @@ class Epochs(_BaseEpochs):
                                                 activate=activate)
         # Select the desired events
         selected = in1d(events[:, 2], self.event_id.values())
-        self.events = events[selected]
+        events = events[selected]
+        self.events = events[np.argsort(events[:, 0])]  # prevent evil
 
         n_events = len(self.events)
         if n_events > 0:
