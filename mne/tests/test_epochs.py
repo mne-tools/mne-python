@@ -816,3 +816,5 @@ def test_event_ordering():
             Epochs(raw, eve, event_id, tmin, tmax,
                    baseline=(None, 0), reject=reject, flat=flat)
             assert_equal(len(w), ii)
+            if ii > 0:
+                assert_true('chronologically' in '%s' % w[-1].message)
