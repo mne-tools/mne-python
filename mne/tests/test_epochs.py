@@ -7,6 +7,7 @@ import os.path as op
 from copy import deepcopy
 
 from nose.tools import assert_true, assert_equal, assert_raises
+
 from numpy.testing import assert_array_equal, assert_array_almost_equal, \
                           assert_allclose
 import numpy as np
@@ -803,3 +804,17 @@ def test_epochs_proj_mixin():
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
+
+
+def test_event_ordering():
+    """Test event order"""
+    events2 = events.copy()
+    np.random.shuffle(events2)
+    for ii, eve in enumerate([events, events2]):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always', RuntimeWarning)
+            Epochs(raw, eve, event_id, tmin, tmax,
+                   baseline=(None, 0), reject=reject, flat=flat)
+            assert_equal(len(w), ii)
+            if ii > 0:
+                assert_true('chronologically' in '%s' % w[-1].message)
