@@ -188,6 +188,98 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     return res
 
 
+@verbose
+def read_bem_solution(fname, verbose=None):
+    """Read the BEM solution from a file
+
+    Parameters
+    ----------
+    fname : string
+        The file containing the BEM solution.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    bem : dict
+        The BEM solution.
+    """
+    logger.info('Loading surfaces...')
+    bem_surfs = read_bem_surfaces(fname, add_geom=True, verbose=False)
+    if len(bem_surfs) == 3:
+        logger.info('Three-layer model surfaces loaded.')
+        needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                           FIFF.FIFFV_BEM_SURF_ID_SKULL,
+                           FIFF.FIFFV_BEM_SURF_ID_BRAIN])
+        if not all([x['id'] in needed for x in bem_surfs]):
+            raise RuntimeError('Could not find necessary BEM surfaces')
+        # reorder surfaces as necessary (shouldn't need to?)
+        reorder = [None] * 3
+        for x in bem_surfs:
+            reorder[np.where(x['id'] == needed)[0]] = x
+        bem_surfs = reorder
+    elif len(bem_surfs) == 1:
+        if not bem_surfs[0]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN:
+            raise RuntimeError('BEM Surfaces not found')
+        logger.info('Homogeneous model surface loaded.')
+
+    # convert from surfaces to solution
+    bem = dict(surfs=bem_surfs)
+    logger.info('\nLoading the solution matrix...\n')
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        # Find the BEM data
+        nodes = dir_tree_find(tree, FIFF.FIFFB_BEM)
+        if len(nodes) == 0:
+            raise RuntimeError('No BEM data in %s' % fname)
+        bem_node = nodes[0]
+
+        # Approximation method
+        tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
+        method = tag.data[0]
+        if method == FIFF.FIFFV_BEM_APPROX_CONST:
+            method = 'constant collocation'
+        elif method == FIFF.FIFFV_BEM_APPROX_LINEAR:
+            method = 'linear collocation'
+        else:
+            raise RuntimeError('Cannot handle BEM approximation method : %d'
+                               % method)
+
+        tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
+        dims = tag.data.shape
+        if len(dims) != 2:
+            raise RuntimeError('Expected a two-dimensional solution matrix '
+                               'instead of a %d dimensional one' % dims[0])
+
+        dim = 0
+        for surf in bem['surfs']:
+            if method == 'linear collocation':
+                dim += surf['np']
+            else:
+                dim += surf['ntri']
+
+        if dims[0] != dim or dims[1] != dim:
+            raise RuntimeError('Expected a %d x %d solution matrix instead of '
+                               'a %d x %d one' % (dim, dim, dims[1], dims[0]))
+        sol = tag.data
+        nsol = dims[0]
+
+    # Gamma factors and multipliers
+    bem['sigma'] = np.array([surf['sigma'] for surf in bem['surfs']])
+    # Dirty trick for the zero conductivity outside
+    sigma = np.r_[0.0, bem['sigma']]
+    bem['source_mult'] = 2.0 / (sigma[1:] + sigma[:-1])
+    bem['field_mult'] = sigma[1:] - sigma[:-1]
+    bem['gamma'] = ((sigma[1:] - sigma[:-1])[np.newaxis, :] /
+                    (sigma[1:] + sigma[:-1])[:, np.newaxis])
+    bem['sol_name'] = fname
+    bem['solution'] = sol
+    bem['nsol'] = nsol
+    bem['bem_method'] = method
+    logger.info('Loaded %s BEM solution from %s', bem['bem_method'], fname)
+    return bem
+
+
 def fast_cross_3d(x, y):
     """Compute cross product between list of 3D vectors
 

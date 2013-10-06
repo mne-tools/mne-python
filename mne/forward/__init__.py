@@ -4,9 +4,9 @@ from .forward import (read_forward_solution, write_forward_solution,
                       compute_orient_prior, compute_depth_prior,
                       apply_forward, apply_forward_raw,
                       restrict_forward_to_stc, restrict_forward_to_label,
-                      do_forward_solution_c, average_forward_solutions,
+                      do_forward_solution, average_forward_solutions,
                       _restrict_gain_matrix, _stc_src_sel,
                       _fill_measurement_info, _apply_forward,
                       _subject_from_forward, convert_forward_solution,
                       _to_fixed_ori)
-from ._do_forward import do_forward_solution  # XXX Temporary for debugging
+from ._do_forward import make_forward_solution

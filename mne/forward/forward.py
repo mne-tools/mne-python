@@ -1267,11 +1267,11 @@ def restrict_forward_to_label(fwd, labels):
 
 
 @verbose
-def do_forward_solution_c(subject, meas, fname=None, src=None, spacing=None,
-                          mindist=None, bem=None, mri=None, trans=None,
-                          eeg=True, meg=True, fixed=False, grad=False,
-                          mricoord=False, overwrite=False, subjects_dir=None,
-                          verbose=None):
+def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
+                        mindist=None, bem=None, mri=None, trans=None,
+                        eeg=True, meg=True, fixed=False, grad=False,
+                        mricoord=False, overwrite=False, subjects_dir=None,
+                        verbose=None):
     """Calculate a forward solution for a subject using MNE-C routines
 
     This function wraps to mne_do_forward_solution, so the mne

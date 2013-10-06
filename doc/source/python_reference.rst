@@ -92,6 +92,7 @@ Functions:
 
    parse_config
    decimate_surfaces
+   read_bem_solution
    read_bem_surfaces
    read_cov
    read_dip
@@ -365,7 +366,7 @@ Forward Modeling
    average_forward_solutions
    convert_forward_solution
    do_forward_solution
-   do_forward_solution_c
+   make_forward_solution
    read_bem_surfaces
    read_forward_solution
    read_trans

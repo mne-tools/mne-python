@@ -12,18 +12,15 @@ import numpy as np
 from ..fiff.raw import Raw
 from ..fiff.pick import pick_types, pick_info
 from ..fiff.constants import FIFF
-from ..fiff.open import fiff_open
-from ..fiff.tree import dir_tree_find
-from ..fiff.tag import find_tag
 from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forward
 from ..transforms import (invert_transform, transform_source_space_to,
                           read_trans, _get_mri_head_t_from_trans_file,
-                          combine_transforms, apply_trans, _print_coord_trans,
-                          _coord_frame_name)
+                          apply_trans, _print_coord_trans, _coord_frame_name)
 from ..utils import logger, verbose
-from ..source_space import read_source_spaces, _filter_source_spaces
-from ..surface import read_bem_surfaces
+from ..source_space import (read_source_spaces, _filter_source_spaces,
+                            SourceSpaces)
+from ..surface import read_bem_solution
 
 
 def _read_coil_defs(fname):
@@ -69,64 +66,6 @@ def _read_coil_defs(fname):
     res['ncoil'] = len(res['coils'])
     logger.info('%d coil definitions read', res['ncoil'])
     return res
-
-
-def _bem_load_solution(fname, m):
-    """Load the solution matrix"""
-    # convert from surfaces to solution
-    m = dict(surfs=m)
-    f, tree, _ = fiff_open(fname)
-    with f as fid:
-        # Find the BEM data
-        nodes = dir_tree_find(tree, FIFF.FIFFB_BEM)
-        if len(nodes) == 0:
-            raise RuntimeError('No BEM data in %s' % fname)
-        bem_node = nodes[0]
-
-        # Approximation method
-        tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
-        method = tag.data[0]
-        if method == FIFF.FIFFV_BEM_APPROX_CONST:
-            method = 'constant collocation'
-        elif method == FIFF.FIFFV_BEM_APPROX_LINEAR:
-            method = 'linear collocation'
-        else:
-            raise RuntimeError('Cannot handle BEM approximation method : %d'
-                               % method)
-
-        tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
-        dims = tag.data.shape
-        if len(dims) != 2:
-            raise RuntimeError('Expected a two-dimensional solution matrix '
-                               'instead of a %d dimensional one' % dims[0])
-
-        dim = 0
-        for mm in m['surfs']:
-            if method == 'linear collocation':
-                dim += mm['np']
-            else:
-                dim += mm['ntri']
-
-        if dims[0] != dim or dims[1] != dim:
-            raise RuntimeError('Expected a %d x %d solution matrix instead of '
-                               'a %d x %d one' % (dim, dim, dims[1], dims[0]))
-        sol = tag.data
-        nsol = dims[0]
-
-    # Gamma factors and multipliers
-    m['sigma'] = np.array([s['sigma'] for s in m['surfs']])
-    # Dirty trick for the zero conductivity outside
-    sigma = np.r_[0.0, m['sigma']]
-    m['source_mult'] = 2.0 / (sigma[1:] + sigma[:-1])
-    m['field_mult'] = sigma[1:] - sigma[:-1]
-    m['gamma'] = ((sigma[1:] - sigma[:-1])[np.newaxis, :] /
-                  (sigma[1:] + sigma[:-1])[:, np.newaxis])
-    m['sol_name'] = fname
-    m['solution'] = sol
-    m['nsol'] = nsol
-    m['bem_method'] = method
-    logger.info('Loaded %s BEM solution from %s', m['bem_method'], fname)
-    return m
 
 
 def _create_meg_coil(coilset, ch, acc, t):
@@ -225,44 +164,41 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
 
 
 @verbose
-def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
-                        bem=None, trans=None, mri=None, meg=True, eeg=True,
-                        mricoord=False, overwrite=False, subjects_dir=None,
-                        n_jobs=1, verbose=None):
+def make_forward_solution(subject, info, mri, src, bem, fname=None,
+                          meg=True, eeg=True, mindist=0.0, overwrite=False,
+                          subjects_dir=None, n_jobs=1, verbose=None):
     """Calculate a forward solution for a subject
 
     Parameters
     ----------
     subject : str
         Name of the subject.
-    meas : Raw | Epochs | Evoked | str
-        If str, then it should be a filename to a file with measurement
-        information (i.e, Raw, Epochs, or Evoked).
+    info : dict | str
+        If str, then it should be a filename to a Raw file with measurement
+        information. If dict, should be an info dict (such as one from Raw,
+        Epochs, or Evoked).
+    mri : dict | str
+        Either a transformation filename (usually made using mne_analyze)
+        or an info dict (usually opened using read_trans()).
+        If string, an ending of `.fif` or `.fif.gz` will be assumed to
+        be in FIF format, any other ending will be assumed to be a text
+        file with a 4x4 transformation matrix (like the `--trans` MNE-C
+        option).
+    src : str | instance of SourceSpaces
+        If string, should be a source space filename. Can also be an
+        instance of loaded or generated SourceSpaces.
+    bem : str
+        Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
+        use.
     fname : str | None
         Destination forward solution filename. If None, the solution
-        will be created in a temporary directory, loaded, and deleted.
-    src : str | None
-        Source space name. If None, the MNE default is used.
-    mindist : float | str | None
-        Minimum distance of sources from inner skull surface (in mm).
-        If None, the MNE default value is used. If string, 'all'
-        indicates to include all points.
-    bem : str | None
-        Name of the BEM to use (e.g., "sample-5120-5120-5120"). If None
-        (Default), the MNE default will be used.
-    trans : str | None
-        File name of the trans file. If None, mri must not be None.
-    mri : dict | str | None
-        Either a transformation (usually made using mne_analyze) or an
-        info dict (usually opened using read_trans()), or a filename.
-        If dict, the trans will be saved in a temporary directory. If
-        None, trans must not be None.
+        will not be saved.
     meg : bool
         If True (Default), include MEG computations.
     eeg : bool
         If True (Default), include EEG computations.
-    mricoord : bool
-        If True, calculate in MRI coordinates (Default: False).
+    mindist : float
+        Minimum distance of sources from inner skull surface (in mm).
     overwrite : bool
         If True, the destination file (if it exists) will be overwritten.
         If False (default), an error will be raised if the file exists.
@@ -283,43 +219,46 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
     Some of the forward solution calculation options from the C code
     (e.g., `--grad`, `--fixed`) are not implemented here. For those,
     consider using the C command line tools or the Python wrapper
-    `do_forward_solution_c`.
+    `do_forward_solution`.
     """
     # Currently not ported:
     # 1. EEG Sphere model (not used much)
     # 2. --grad option (gradients of the field, not used much)
     # 3. --fixed option (can be computed post-hoc)
+    # 4. --mricoord option (probably not necessary)
 
-    arg_list = [subject, meas, fname, src, mindist, bem, mri,
-                trans, meg, eeg, mricoord, overwrite, subjects_dir, verbose]
+    arg_list = [subject, info, mri, src, bem, fname,  meg, eeg, mindist,
+                overwrite, subjects_dir, n_jobs, verbose]
     cmd = 'do_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
-    if src is None:
-        raise ValueError('Source space file "src" must be specified')
+    if not isinstance(src, basestring):
+        if not isinstance(src, SourceSpaces):
+            raise TypeError('src must be a string or SourceSpaces')
     elif not op.isfile(src):
         raise IOError('Source space file "%s" not found' % src)
-    if bem is None:
-        raise ValueError('BEM file "bem" must be specified')
     elif not op.isfile(bem):
         raise IOError('BEM file "%s" not found' % bem)
-    if sum([mri is None, trans is None]) != 1:
-        raise ValueError('Either "mri" or "trans" must be specified '
-                         '(but not both)')
-    else:
-        if mri is not None and not op.isfile(mri):
-            raise IOError('mri file "%s" not found' % mri)
-        if trans is not None and not op.isfile(trans):
-            raise IOError('trans file "%s" not found' % trans)
+    if not op.isfile(mri):
+        raise IOError('mri file "%s" not found' % mri)
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'
                       % fname)
+    if not isinstance(info, (dict, basestring)):
+        raise TypeError('info should be a dict or string')
+    if isinstance(info, basestring):
+        info_extra = info
+        info = Raw(info, verbose=False)
+        info = info.info
+    else:
+        info_extra = repr(info)
 
+    # this could, in principle, be an option
     coord_frame = FIFF.FIFFV_COORD_HEAD
 
     # Report the setup
-    mri_file = mri if mri is not None else trans
+    mri_extra = mri if isinstance(mri, basestring) else 'dict'
     logger.info('Source space                 : %s' % src)
-    logger.info('MRI -> head transform source : %s' % (mri_file))
-    logger.info('Measurement data             : %s' % meas)
+    logger.info('MRI -> head transform source : %s' % mri_extra)
+    logger.info('Measurement data             : %s' % info)
     logger.info('BEM model                    : %s' % bem)
     logger.info('Accurate field computations')
     logger.info('Do computations in %s coordinates',
@@ -329,8 +268,9 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
 
     # Read the source locations
     logger.info('')
-    logger.info('Reading %s...' % src)
-    src = read_source_spaces(src, verbose=False)
+    if isinstance(src, basestring):
+        logger.info('Reading %s...' % src)
+        src = read_source_spaces(src, verbose=False)
     nsource = sum(s['nuse'] for s in src)
     if nsource == 0:
         raise RuntimeError('No sources are active in these source spaces. '
@@ -340,27 +280,28 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
 
     # Read the MRI -> head coordinate transformation
     logger.info('')
-    if mri is not None:
-        mri_head_t = read_trans(mri)
-        # it's actually usually a head->MRI transform, so we probably need to
-        # invert it
-        if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
-            mri_head_t = invert_transform(mri_head_t)
-        if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
-                mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
-            raise RuntimeError('Incorrect MRI transform provided')
-    elif trans is not None:
-        mri_head_t = _get_mri_head_t_from_trans_file(trans)
+    if isinstance(mri, basestring):
+        if op.splitext(mri)[1] in ['.fif', '.gz']:
+            mri_head_t = read_trans(mri)
+        else:
+            mri_head_t = _get_mri_head_t_from_trans_file(mri)
+    else:  # dict
+        mri_head_t = mri
+
+    # it's actually usually a head->MRI transform, so we probably need to
+    # invert it
+    if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
+        mri_head_t = invert_transform(mri_head_t)
+    if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
+            mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
+        raise RuntimeError('Incorrect MRI transform provided')
     _print_coord_trans(mri_head_t)
 
-    # Read the channel information & MEG device -> head coord trans
-    raw = Raw(meas, verbose=False)
-    info = raw.info
     # make a new dict with the relevant information
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
     info = dict(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
                 ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
-                mri_file=mri_file, mri_id=mri_id, meas_file=meas,
+                mri_file=mri_extra, mri_id=mri_id, meas_file=info_extra,
                 meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'])
     meg_head_t = info['dev_head_t']
@@ -373,7 +314,8 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
         if nmeg > 0:
             megchs = pick_info(info, picks)['chs']
             megnames = [info['ch_names'][p] for p in picks]
-            logger.info('Read %3d MEG channels from %s' % (len(picks), meas))
+            logger.info('Read %3d MEG channels from %s'
+                         % (len(picks), info_extra))
 
         # comp data
         comp_data = info['comps']
@@ -385,7 +327,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
         if (ncomp > 0):
             compchs = pick_info(info, picks)['chs']
             logger.info('Read %3d MEG compensation channels from %s'
-                        % (ncomp, meas))
+                        % (ncomp, info_extra))
         _print_coord_trans(meg_head_t)
     else:
         logger.info('MEG not requested. MEG channels omitted.')
@@ -398,7 +340,8 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
         if neeg > 0:
             eegchs = pick_info(info, picks)['chs']
             eegnames = [info['ch_names'][p] for p in picks]
-            logger.info('Read %3d EEG channels from %s' % (len(picks), meas))
+            logger.info('Read %3d EEG channels from %s'
+                        % (len(picks), info_extra))
     else:
         neeg = 0
         logger.info('EEG not requested. EEG channels omitted.')
@@ -407,20 +350,13 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
     templates = _read_coil_defs(op.join(op.split(__file__)[0],
                                         '..', 'data', 'coil_def.dat'))
     if nmeg > 0 and ncomp > 0:  # Compensation channel information
-        logger.info('%d compensation data sets in %s' % (ncomp_data, meas))
+        logger.info('%d compensation data sets in %s'
+                    % (ncomp_data, info_extra))
 
-    if coord_frame == FIFF.FIFFV_COORD_MRI:
-        head_mri_t = invert_transform(mri_head_t)
-        meg_xform = combine_transforms(FIFF.FIFFV_COORD_DEVICE,
-                                       FIFF.FIFFV_COORD_MRI,
-                                       meg_head_t, head_mri_t)
-        eeg_xform = head_mri_t
-        extra_str = 'MRI'
-    else:
-        meg_xform = meg_head_t
-        eeg_xform = {'trans': np.eye(4), 'to': FIFF.FIFFV_COORD_HEAD,
-                     'from': FIFF.FIFFV_COORD_HEAD}
-        extra_str = 'Head'
+    meg_xform = meg_head_t
+    eeg_xform = {'trans': np.eye(4), 'to': FIFF.FIFFV_COORD_HEAD,
+                 'from': FIFF.FIFFV_COORD_HEAD}
+    extra_str = 'Head'
 
     if nmeg > 0:
         megcoils = _create_coils(templates, megchs,
@@ -445,42 +381,21 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
 
     # Prepare the BEM model
     logger.info('')
-    logger.info('Setting up the BEM model using %s...' % bem)
-    logger.info('\nLoading surfaces...')
-    bem_model = read_bem_surfaces(bem, add_geom=True, verbose=False)
-    if len(bem_model) == 3:
-        logger.info('Three-layer model surfaces loaded.')
-        needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
-                           FIFF.FIFFV_BEM_SURF_ID_SKULL,
-                           FIFF.FIFFV_BEM_SURF_ID_BRAIN])
-        if not all([x['id'] in needed for x in bem_model]):
-            raise RuntimeError('Could not find necessary BEM surfaces')
-        # reorder surfaces as necessary (shouldn't need to?)
-        reorder = [None] * 3
-        for x in bem_model:
-            reorder[np.where(x['id'] == needed)[0]] = x
-        bem_model = reorder
-    elif len(bem_model) == 1:
-        if not bem_model[0]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN:
-            raise RuntimeError('BEM Surfaces not found')
-        logger.info('Homogeneous model surface loaded.')
-        if neeg > 0:
-            raise RuntimeError('Cannot use a homogeneous model in EEG '
-                               'calculations')
-
-    logger.info('\nLoading the solution matrix...\n')
-    bem_model = _bem_load_solution(bem, bem_model)
-    if coord_frame == FIFF.FIFFV_COORD_HEAD:
-        logger.info('Employing the head->MRI coordinate transform with the '
-                    'BEM model.')
-        # fwd_bem_set_head_mri_t: Set the coordinate transformation
-        to, fro = mri_head_t['to'], mri_head_t['from']
-        if fro == FIFF.FIFFV_COORD_HEAD and to == FIFF.FIFFV_COORD_MRI:
-            bem_model['head_mri_t'] = mri_head_t
-        elif fro == FIFF.FIFFV_COORD_MRI and to == FIFF.FIFFV_COORD_HEAD:
-            bem_model['head_mri_t'] = invert_transform(mri_head_t)
-        else:
-            raise RuntimeError('Improper coordinate transform')
+    logger.info('Setting up the BEM model using %s...\n' % bem)
+    bem_model = read_bem_solution(bem)
+    if neeg > 0 and len(bem_model['surfs']) == 1:
+        raise RuntimeError('Cannot use a homogeneous model in EEG '
+                           'calculations')
+    logger.info('Employing the head->MRI coordinate transform with the '
+                'BEM model.')
+    # fwd_bem_set_head_mri_t: Set the coordinate transformation
+    to, fro = mri_head_t['to'], mri_head_t['from']
+    if fro == FIFF.FIFFV_COORD_HEAD and to == FIFF.FIFFV_COORD_MRI:
+        bem_model['head_mri_t'] = mri_head_t
+    elif fro == FIFF.FIFFV_COORD_MRI and to == FIFF.FIFFV_COORD_HEAD:
+        bem_model['head_mri_t'] = invert_transform(mri_head_t)
+    else:
+        raise RuntimeError('Improper coordinate transform')
     logger.info('BEM model %s is now set up' % bem)
     logger.info('')
 
@@ -495,16 +410,16 @@ def do_forward_solution(subject, meas, fname=None, src=None, mindist=0.0,
 
     # Do the actual computation
     megfwd, megfwd_grad, eegfwd, eegfwd_grad = None, None, None, None
-    ori = FIFF.FIFFV_MNE_FREE_ORI
-    cf = coord_frame
     if nmeg > 0:
         megfwd = _compute_forward(src, megcoils, compcoils, comp_data,
                                   bem_model, 'meg', n_jobs)
-        megfwd = _to_forward_dict(megfwd, None, megnames, cf, ori)
+        megfwd = _to_forward_dict(megfwd, None, megnames, coord_frame,
+                                  FIFF.FIFFV_MNE_FREE_ORI)
     if neeg > 0:
         eegfwd = _compute_forward(src, eegels, None, None,
                                   bem_model, 'eeg', n_jobs)
-        eegfwd = _to_forward_dict(eegfwd, None, eegnames, cf, ori)
+        eegfwd = _to_forward_dict(eegfwd, None, eegnames, coord_frame,
+                                  FIFF.FIFFV_MNE_FREE_ORI)
 
     # merge forwards into one
     fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
