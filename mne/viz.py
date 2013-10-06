@@ -3274,8 +3274,7 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, show=True):
     import pylab as pl
 
     # Gathering results for each time window
-    source_power = [stc.data for stc in stcs]
-    source_power = np.array(source_power)
+    source_power = np.array([stc.data for stc in stcs])
 
     # Finding the source with maximum source power
     if source_index is None:

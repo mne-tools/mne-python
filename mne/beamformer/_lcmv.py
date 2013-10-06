@@ -484,7 +484,6 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
     """
 
-    # TODO: Make actual use of the picks parameter!
     is_free_ori, picks, ch_names, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 

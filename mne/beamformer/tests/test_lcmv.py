@@ -208,7 +208,6 @@ def test_lcmv_raw():
     assert_true(len(stc.vertno[0]) == len(np.intersect1d(vertno[0],
                                                          label.vertices)))
     assert_true(len(stc.vertno[1]) == 0)
-    # TODO: test more things
 
 
 def test_lcmv_source_power():
@@ -223,7 +222,6 @@ def test_lcmv_source_power():
     max_source_idx = np.argmax(stc_source_power.data)
     max_source_power = np.max(stc_source_power.data)
 
-    # TODO: Try a direct comparison to results of lcmv
     assert_true(max_source_idx == 24)
     assert_true(2.2 < max_source_power < 2.4)
 
