@@ -810,8 +810,9 @@ def test_event_ordering():
     """Test event order"""
     events2 = events.copy()
     np.random.shuffle(events2)
-    for eve in [events, events2]:
-        epochs = Epochs(raw, eve, event_id, tmin, tmax,
-                        baseline=(None, 0), reject=reject, flat=flat)
-        mydiff = np.diff(epochs.events[:, 0].astype(np.int64))  # uint ...
-        assert_greater_equal(mydiff.min(), 0)
+    for ii, eve in enumerate([events, events2]):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always', RuntimeWarning)
+            Epochs(raw, eve, event_id, tmin, tmax,
+                   baseline=(None, 0), reject=reject, flat=flat)
+            assert_equal(len(w), ii)

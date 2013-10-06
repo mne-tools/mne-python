@@ -633,9 +633,10 @@ class Epochs(_BaseEpochs):
                                                 activate=activate)
         # Select the desired events
         selected = in1d(events[:, 2], self.event_id.values())
-        events = events[selected]
-        self.events = events[np.argsort(events[:, 0])]  # prevent evil
-
+        self.events = events[selected]
+        if np.diff(self.events.astype(np.int64)[:, 0]).min() <= 0:
+            warnings.warn('The events passed to the Epochs constructor are '
+                          'not chronologically ordererd.', RuntimeWarning)
         n_events = len(self.events)
         if n_events > 0:
             logger.info('%d matching events found' % n_events)
