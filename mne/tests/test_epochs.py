@@ -6,8 +6,8 @@
 import os.path as op
 from copy import deepcopy
 
-from nose.tools import assert_true, assert_equal, assert_raises, \
-                       assert_greater_equal
+from nose.tools import assert_true, assert_equal, assert_raises
+
 from numpy.testing import assert_array_equal, assert_array_almost_equal, \
                           assert_allclose
 import numpy as np

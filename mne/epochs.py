@@ -636,7 +636,7 @@ class Epochs(_BaseEpochs):
         self.events = events[selected]
         if np.diff(self.events.astype(np.int64)[:, 0]).min() <= 0:
             warnings.warn('The events passed to the Epochs constructor are '
-                          'not chronologically ordererd.', RuntimeWarning)
+                          'not chronologically ordered.', RuntimeWarning)
         n_events = len(self.events)
         if n_events > 0:
             logger.info('%d matching events found' % n_events)
