@@ -3255,7 +3255,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     return fig
 
 
-def plot_source_spectrogram(stcs, freq_bins, source_index=None, show=True):
+def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
+                            show=True):
     """Plot source power in time-freqency grid
 
     Parameters
@@ -3268,6 +3269,8 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, show=True):
     source_index : int | None
         Index of source for which the spectrogram will be plotted. If None,
         the source with the largest activation will be selected.
+    colorbar : bool
+        If true, a colorbar will be added to the plot.
     show : bool
         Show figure if True.
     """
@@ -3325,7 +3328,8 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, show=True):
     pl.ylim(freq_bounds[0], freq_bounds[-1])
 
     pl.grid(True, ls='-')
-    pl.colorbar()
+    if colorbar:
+        pl.colorbar()
     tight_layout()
 
     # Covering frequency gaps with horizontal bars

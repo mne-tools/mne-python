@@ -109,4 +109,4 @@ stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, n_ffts=n_ffts, reg=0.001, label=label)
 
 # Plotting source spectrogram for source with maximum activity
-plot_source_spectrogram(stcs, freq_bins, source_index=None)
+plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=True)
