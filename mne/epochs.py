@@ -634,7 +634,11 @@ class Epochs(_BaseEpochs):
         # Select the desired events
         selected = in1d(events[:, 2], self.event_id.values())
         self.events = events[selected]
-
+        if len(self.events) > 1:
+            if np.diff(self.events.astype(np.int64)[:, 0]).min() <= 0:
+                warnings.warn('The events passed to the Epochs constructor '
+                              'are not chronologically ordered.',
+                              RuntimeWarning)
         n_events = len(self.events)
         if n_events > 0:
             logger.info('%d matching events found' % n_events)
