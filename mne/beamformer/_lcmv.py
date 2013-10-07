@@ -16,7 +16,7 @@ from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
-from ..cov import compute_whitener, compute_covariance, regularize
+from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
 from ..utils import logger, verbose
