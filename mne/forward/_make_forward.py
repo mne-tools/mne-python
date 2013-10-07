@@ -255,7 +255,7 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
     mri_extra = mri if isinstance(mri, basestring) else 'dict'
     logger.info('Source space                 : %s' % src)
     logger.info('MRI -> head transform source : %s' % mri_extra)
-    logger.info('Measurement data             : %s' % info)
+    logger.info('Measurement data             : %s' % info_extra)
     logger.info('BEM model                    : %s' % bem)
     logger.info('Accurate field computations')
     logger.info('Do computations in %s coordinates',

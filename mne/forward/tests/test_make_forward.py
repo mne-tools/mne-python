@@ -37,19 +37,19 @@ def test_make_forward_solution():
     """
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
                         'sample-5120-5120-5120-bem-sol.fif')
-    fwd_py = make_forward_solution('sample', fname_raw, mindist=5,
-                                   src=fname_src,
-                                   bem=fname_bem, mri=fname_mri, eeg=True,
-                                   subjects_dir=subjects_dir, n_jobs=2)
+    fwd_py = make_forward_solution('sample', fname_raw, mindist=5.0,
+                                   src=fname_src, eeg=True, meg=True,
+                                   bem=fname_bem, mri=fname_mri,
+                                   subjects_dir=subjects_dir)
     fwd = read_forward_solution(fname_meeg)
     # check MEG
     assert_allclose(fwd['sol']['data'][:306],
                     fwd_py['sol']['data'][:306],
-                    rtol=1e-3, atol=1e-8)
+                    rtol=1e-4, atol=1e-9)
     # check EEG
     assert_allclose(fwd['sol']['data'][306:],
                     fwd_py['sol']['data'][306:],
-                    rtol=1e-2, atol=1e-2)
+                    rtol=1e-3, atol=1e-3)
     assert_equal(fwd_py['sol']['data'].shape, (366, 22494))
     assert_equal(len(fwd['sol']['row_names']), 366)
 

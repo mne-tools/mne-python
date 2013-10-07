@@ -23,6 +23,9 @@ from .fiff.write import (write_int, write_float, write_float_matrix,
 from .utils import logger, verbose, get_subjects_dir
 
 
+##############################################################################
+# BEM
+
 @verbose
 def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
     """Read the BEM surfaces from a FIF file
@@ -270,6 +273,8 @@ def read_bem_solution(fname, verbose=None):
     sigma = np.r_[0.0, bem['sigma']]
     bem['source_mult'] = 2.0 / (sigma[1:] + sigma[:-1])
     bem['field_mult'] = sigma[1:] - sigma[:-1]
+    # make sure subsequent "zip"s work correctly
+    assert len(bem['surfs']) == len(bem['field_mult'])
     bem['gamma'] = ((sigma[1:] - sigma[:-1])[np.newaxis, :] /
                     (sigma[1:] + sigma[:-1])[:, np.newaxis])
     bem['sol_name'] = fname
@@ -279,6 +284,9 @@ def read_bem_solution(fname, verbose=None):
     logger.info('Loaded %s BEM solution from %s', bem['bem_method'], fname)
     return bem
 
+
+###############################################################################
+# EFFICIENCY UTILITIES
 
 def fast_cross_3d(x, y):
     """Compute cross product between list of 3D vectors
@@ -359,6 +367,24 @@ def _triangle_neighbors(tris, npts):
     return neighbor_tri
 
 
+def _triangle_coords(r, geom, best):
+    r1 = geom['r1'][best]
+    tri_nn = geom['nn'][best]
+    r12 = geom['r12'][best]
+    r13 = geom['r13'][best]
+    a = geom['a'][best]
+    b = geom['b'][best]
+    c = geom['c'][best]
+    rr = r - r1
+    z = np.sum(rr * tri_nn)
+    v1 = np.sum(rr * r12)
+    v2 = np.sum(rr * r13)
+    det = a * b - c * c
+    x = (b * v1 - c * v2) / det
+    y = (a * v2 - c * v1) / det
+    return x, y, z
+
+
 def _complete_surface_info(this, do_neighbor_vert=False):
     """Complete surface info"""
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
@@ -421,6 +447,66 @@ def _get_surf_neighbors(this, k):
                     ' %d (%d instead of %d) [fixed].' % (k, nneighbors,
                                                          nneigh_max))
     return verts
+
+
+def _normalize_vectors(rr):
+    """Normalize surface vertices"""
+    size = np.sqrt(np.sum(rr * rr, axis=1))
+    size[size == 0] = 1.0  # avoid divide-by-zero
+    rr /= size[:, np.newaxis]  # operate in-place
+
+
+def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
+    """Find nearest neighbors
+
+    Note: The rows in xhs and rr must all be unit-length vectors, otherwise
+    the result will be incorrect.
+
+    Parameters
+    ----------
+    xhs : array, shape=(n_samples, n_dim)
+        Points of data set.
+    rr : array, shape=(n_query, n_dim)
+        Points to find nearest neighbors for.
+    use_balltree : bool
+        Use fast BallTree based search from scikit-learn. If scikit-learn
+        is not installed it will fall back to the slow brute force search.
+
+    Returns
+    -------
+    nearest : array, shape=(n_query,)
+        Index of nearest neighbor in xhs for every point in rr.
+    """
+    if use_balltree:
+        try:
+            from sklearn.neighbors import BallTree
+        except ImportError:
+            logger.info('Nearest-neighbor searches will be significantly '
+                        'faster if scikit-learn is installed.')
+            use_balltree = False
+
+    if use_balltree is True:
+        ball_tree = BallTree(xhs)
+        if return_dists:
+            out = ball_tree.query(rr, k=1, return_distance=True)
+            return out[1][:, 0], out[0][:, 0]
+        else:
+            nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
+            return nearest
+    else:
+        if return_dists:
+            nearest = list()
+            dists = list()
+            for r in rr:
+                d = cdist(r[np.newaxis, :], xhs)
+                idx = np.argmin(d)
+                nearest.append(idx)
+                dists.append(d[0, idx])
+            return (np.array(nearest), np.array(dists))
+        else:
+            nearest = np.array([np.argmin(cdist(r[np.newaxis, :], xhs))
+                                for r in rr])
+            return nearest
 
 
 ###############################################################################
@@ -537,6 +623,9 @@ def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
     return s
 
 
+##############################################################################
+# SURFACE CREATION
+
 def _get_ico_surface(grade):
     """Return an icosahedral surface of the desired grade"""
     # always use verbose=False since users don't need to know we're pulling
@@ -545,66 +634,6 @@ def _get_ico_surface(grade):
                             'icos.fif.gz')
     ico = read_bem_surfaces(ico_file_name, s_id=9000 + grade, verbose=False)
     return ico
-
-
-def _normalize_vectors(rr):
-    """Normalize surface vertices"""
-    size = np.sqrt(np.sum(rr * rr, axis=1))
-    size[size == 0] = 1.0  # avoid divide-by-zero
-    rr /= size[:, np.newaxis]  # operate in-place
-
-
-def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
-    """Find nearest neighbors
-
-    Note: The rows in xhs and rr must all be unit-length vectors, otherwise
-    the result will be incorrect.
-
-    Parameters
-    ----------
-    xhs : array, shape=(n_samples, n_dim)
-        Points of data set.
-    rr : array, shape=(n_query, n_dim)
-        Points to find nearest neighbors for.
-    use_balltree : bool
-        Use fast BallTree based search from scikit-learn. If scikit-learn
-        is not installed it will fall back to the slow brute force search.
-
-    Returns
-    -------
-    nearest : array, shape=(n_query,)
-        Index of nearest neighbor in xhs for every point in rr.
-    """
-    if use_balltree:
-        try:
-            from sklearn.neighbors import BallTree
-        except ImportError:
-            logger.info('Nearest-neighbor searches will be significantly '
-                        'faster if scikit-learn is installed.')
-            use_balltree = False
-
-    if use_balltree is True:
-        ball_tree = BallTree(xhs)
-        if return_dists:
-            out = ball_tree.query(rr, k=1, return_distance=True)
-            return out[1][:, 0], out[0][:, 0]
-        else:
-            nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
-            return nearest
-    else:
-        if return_dists:
-            nearest = list()
-            dists = list()
-            for r in rr:
-                d = cdist(r[np.newaxis, :], xhs)
-                idx = np.argmin(d)
-                nearest.append(idx)
-                dists.append(d[0, idx])
-            return (np.array(nearest), np.array(dists))
-        else:
-            nearest = np.array([np.argmin(cdist(r[np.newaxis, :], xhs))
-                                for r in rr])
-            return nearest
 
 
 def _tessellate_sphere_surf(level, rad=1.0):

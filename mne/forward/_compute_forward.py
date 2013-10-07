@@ -7,36 +7,15 @@
 
 import numpy as np
 from copy import deepcopy
+from functools import partial
 
-from ..surface import fast_cross_3d, _find_nearest_tri_pt, _get_tri_supp_geom
+from ..surface import (fast_cross_3d, _find_nearest_tri_pt, _get_tri_supp_geom,
+                       _triangle_coords)
 from ..fiff.constants import FIFF
 from ..transforms import apply_trans
 from ..utils import logger
 from ..parallel import parallel_func
 from ..fiff.compensator import get_current_comp
-
-_mag_factor = 1e-7  # \mu_0/4\pi
-
-
-##############################################################################
-# Triangle utilities
-
-def _triangle_coords(r, geom, best):
-    r1 = geom['r1'][best]
-    tri_nn = geom['nn'][best]
-    r12 = geom['r12'][best]
-    r13 = geom['r13'][best]
-    a = geom['a'][best]
-    b = geom['b'][best]
-    c = geom['c'][best]
-    rr = r - r1
-    z = np.sum(rr * tri_nn)
-    v1 = np.sum(rr * r12)
-    v2 = np.sum(rr * r13)
-    det = a * b - c * c
-    x = (b * v1 - c * v2) / det
-    y = (a * v2 - c * v1) / det
-    return x, y, z
 
 
 ##############################################################################
@@ -45,8 +24,7 @@ def _triangle_coords(r, geom, best):
 def _dup_coil_set(s, t):
     """Make a duplicate"""
     if t is not None and s['coord_frame'] != t['from']:
-        raise RuntimeError('Coordinate frame of the transformation does not '
-                           'match the coil set')
+        raise RuntimeError('transformation frame does not match the coil set')
     res = deepcopy(s)
     if t is not None:
         res['coord_frame'] = t['to']
@@ -72,53 +50,29 @@ def _bem_one_lin_field_coeff_simple(dest, normal, tri_rr, tri_nn, tri_area):
     return out
 
 
-def _calc_beta(rk, rk1):
-    rkk1 = rk1 - rk
-    size = np.sqrt(np.sum(rkk1 * rkk1, axis=1))
-    vlrk = np.sqrt(np.sum(rk * rk, axis=1))
-    vlrk1 = np.sqrt(np.sum(rk1 * rk1, axis=1))
-    return np.log((vlrk * size + np.sum(rk * rkk1, axis=1)) /
-                  (vlrk1 * size + np.sum(rk1 * rkk1, axis=1))) / size
-
-
-def _one_field_coeff(dest, normal, tri_rr):
-    """Compute the integral over one triangle"""
-    # This looks magical but it is not.
-    yy = tri_rr[[0, 1, 2, 0]] - dest
-    beta = _calc_beta(yy[:3], yy[1:])
-    beta = np.array([beta[2] - beta[0], beta[0] - beta[1], beta[1] - beta[2]])
-    return np.dot(np.sum(yy[:3] * beta, axis=0), normal)
-
-
-def _check_coil_frame(coils, m):
+def _check_coil_frame(coils, bem):
     if coils['coord_frame'] != FIFF.FIFFV_COORD_MRI:
         if coils['coord_frame'] == FIFF.FIFFV_COORD_HEAD:
-            if m['head_mri_t'] is None:
-                raise RuntimeError('head -> mri coordinate transform missing')
             # Make a transformed duplicate
-            coils = _dup_coil_set(coils, m['head_mri_t'])
+            coils = _dup_coil_set(coils, bem['head_mri_t'])
         else:
-            raise RuntimeError('Incompatible coil coordinate frame %d'
+            raise RuntimeError('Bad coil coordinate frame %d'
                                % coils['coord_frame'])
     return coils
 
 
-def _bem_lin_field_coeff(m, coils, n_jobs,
-                         method=FIFF.FWD_BEM_LIN_FIELD_SIMPLE):
+def _bem_lin_field_coeff(bem, coils, n_jobs, method):
     """Compute the weighting factors to obtain the magnetic field"""
     #in the linear potential approximation
-    coils = _check_coil_frame(coils, m)
+    coils = _check_coil_frame(coils, bem)
 
     # leaving this in in case we want to easily add in the future
-    if method == FIFF.FWD_BEM_LIN_FIELD_FERGUSON:
-        raise NotImplementedError
-    elif method == FIFF.FWD_BEM_LIN_FIELD_URANKAR:
-        raise NotImplementedError
-    else:
-        func = _bem_one_lin_field_coeff_simple
+    #if method != 'simple':  # in ['ferguson', 'urankar']:
+    #    raise NotImplementedError
+    #else:
+    func = _bem_one_lin_field_coeff_simple
 
     # Process each of the surfaces
-    assert len(m['surfs']) == len(m['field_mult'])
     rmags = np.concatenate([coil['rmag'] for coil in coils['coils']])
     cosmags = np.concatenate([coil['cosmag'] for coil in coils['coils']])
     lims = np.cumsum(np.r_[0, [len(coil['rmag']) for coil in coils['coils']]])
@@ -127,7 +81,8 @@ def _bem_lin_field_coeff(m, coils, n_jobs,
     # might as well parallelize over surfaces here
     parallel, p_fun, _ = parallel_func(_do_lin_field_coeff, n_jobs)
     coeff = parallel(p_fun(surf, mult, rmags, cosmags, ws, lims, func)
-                     for surf, mult in zip(m['surfs'], m['field_mult']))
+                     for surf, mult in zip(bem['surfs'], bem['field_mult']))
+    # coeff checked against fwd_bem_lin_field_coeff, equiv to at least 7
     coeff = np.concatenate(coeff, axis=1)
     return coeff
 
@@ -154,27 +109,19 @@ def _do_lin_field_coeff(surf, mult, rmags, cosmags, ws, lims, func):
     return coeff
 
 
-def _bem_specify_coils(m, coils, n_jobs):
+def _bem_specify_coils(bem, coils, n_jobs):
     """Set up for computing the solution at a set of coils"""
-    if m['bem_method'] == 'linear collocation':
-        sol = _bem_lin_field_coeff(m, coils, n_jobs)
-    else:
-        raise RuntimeError('Only linear collocation supported')
-    solution = np.dot(sol, m['solution'])
-    csol = dict(ncoil=coils['ncoil'], np=m['nsol'], solution=solution)
-    coils['user_data'] = csol
+    sol = _bem_lin_field_coeff(bem, coils, n_jobs, 'simple')
+    sol = np.dot(sol, bem['solution'])
+    coils['user_data'] = dict(ncoil=coils['ncoil'], np=bem['nsol'],
+                              solution=sol)
 
 
-def _bem_specify_els(m, els):
+def _bem_specify_els(bem, els):
     """Set up for computing the solution at a set of electrodes"""
-    sol = dict(ncoil=els['ncoil'], np=m['nsol'])
-    els['user_data'] = sol
-    solution = np.zeros((sol['ncoil'], sol['np']))
-    sol['solution'] = solution
-    if m['bem_method'] not in ['linear collocation']:
-        raise RuntimeError('Only linear collocation supported')
+    sol = np.zeros((els['ncoil'], bem['nsol']))
     # Go through all coils
-    scalp = m['surfs'][0]
+    scalp = bem['surfs'][0]
     scalp['geom'] = _get_tri_supp_geom(scalp['tris'], scalp['rr'])
     inds = np.arange(len(scalp['tris']))
 
@@ -182,16 +129,16 @@ def _bem_specify_els(m, els):
     # (makes it slower than non-parallel)
     for k, el in enumerate(els['coils']):
         # Go through all 'integration points'
-        for elw, r in zip(el['w'], el['rmag']):
-            if m['head_mri_t'] is not None:
-                r = apply_trans(m['head_mri_t']['trans'], r)
+        el_r = apply_trans(bem['head_mri_t']['trans'], el['rmag'])
+        for elw, r in zip(el['w'], el_r):
             best = _find_nearest_tri_pt(inds, r, scalp['geom'], True)[2]
             # Calculate a linear interpolation between the vertex values
             tri = scalp['tris'][best]
             x, y, z = _triangle_coords(r, scalp['geom'], best)
             w = elw * np.array([(1.0 - x - y), x, y])
-            amt = np.dot(w, m['solution'][tri])
-            solution[k] += amt
+            amt = np.dot(w, bem['solution'][tri])
+            sol[k] += amt
+    els['user_data'] = dict(ncoil=sol.shape[0], np=sol.shape[1], solution=sol)
 
 
 #############################################################################
@@ -298,12 +245,8 @@ def _need_comp(comp):
     return need
 
 
-def _comp_field(rrs, coils, client, n_jobs):
+def _comp_field(rrs, coils, comp, n_jobs):
     """Calculate the compensated field"""
-    comp = client
-    if not comp['field']:
-        raise RuntimeError('Field computation function is missing')
-
     # First compute the field in the primary set of coils
     res = comp['field'](rrs, coils, comp['client'], n_jobs)
 
@@ -318,37 +261,23 @@ def _comp_field(rrs, coils, client, n_jobs):
     return res
 
 
-def _bem_field(rr, coils, m, n_jobs):
-    """Calculate the magnetic field in a set of coils"""
-    return _bem_pot_or_field(rr, coils, m, n_jobs, 'MEG')
-
-
-def _bem_pot(rr, els, m, n_jobs):
-    """Compute the potentials due to a current dipole"""
-    return _bem_pot_or_field(rr, els, m, n_jobs, 'EEG')
-
-
-def _bem_pot_or_field(rr, coils, m, n_jobs, ctype):
+def _bem_pot_or_field(rr, coils, bem, n_jobs, ctype):
     """Calculate the magnetic field or electric potential
 
     The code is very similar between EEG and MEG potentials, so we'll
     combine them.
     """
     # multiply solution by "mults" here for simplicity
-    mults = np.repeat(m['source_mult'] / (4.0 * np.pi),
-                      [len(s['rr']) for s in m['surfs']])
+    mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
+                      [len(s['rr']) for s in bem['surfs']])
     solution = coils['user_data']['solution'] * mults[np.newaxis, :]
 
     # The dipole location and orientation must be transformed
-    if m['head_mri_t'] is not None:
-        mri_rr = apply_trans(m['head_mri_t']['trans'], rr)
-        mri_Q = apply_trans(m['head_mri_t']['trans'], np.eye(3), False)
-    else:
-        mri_rr = rr
-        mri_Q = np.eye(3)
+    mri_rr = apply_trans(bem['head_mri_t']['trans'], rr)
+    mri_Q = apply_trans(bem['head_mri_t']['trans'], np.eye(3), False)
 
     # Both MEG and EEG have the inifinite-medium potentials
-    srr = np.concatenate([s['rr'] for s in m['surfs']])
+    srr = np.concatenate([s['rr'] for s in bem['surfs']])
     # This could be just vectorized, but eats too much memory, so instead we
     # reduce memory by chunking within _do_inf_pots and parallelize, too:
     parallel, p_fun, _ = parallel_func(_do_inf_pots, n_jobs)
@@ -360,7 +289,7 @@ def _bem_pot_or_field(rr, coils, m, n_jobs, ctype):
     # pickled...
 
     # Only MEG gets the primary current distribution
-    if ctype == 'MEG':
+    if ctype.lower() == 'meg':
         # Primary current contribution (can be calc. in coil/dipole coords)
         parallel, p_fun, _ = parallel_func(_do_prim_curr, n_jobs)
         pcc = np.concatenate(parallel(p_fun(rr, c)
@@ -397,9 +326,11 @@ def _do_inf_pots(rr, srr, mri_Q, sol):
     return B
 
 
-def _compute_forward(src, coils_els, comp_coils, comp_data, bem_model, ctype,
-                     n_jobs):
-    """Compute the MEG forward solution"""
+def _compute_forward(src, coils, comp_coils, comp_data, bem, ctype, n_jobs):
+    """Compute the M/EEG forward solution"""
+    if bem['bem_method'] != 'linear collocation':
+        raise RuntimeError('only linear collocation supported')
+    field = partial(_bem_pot_or_field, ctype=ctype)
     if ctype == 'meg':
         # Use the new compensated field computation
         # It works the same way independent of whether or not the compensation
@@ -407,41 +338,27 @@ def _compute_forward(src, coils_els, comp_coils, comp_data, bem_model, ctype,
 
         # Compose a compensation data set
         comp = dict(set=dict(comp_data=comp_data, current=False),
-                    comp_coils=comp_coils, field=_bem_field,
-                    vec_field=None, client=bem_model)
-        _make_ctf_comp_coils(comp['set'], coils_els, comp['comp_coils'])
+                    comp_coils=comp_coils, field=field,
+                    vec_field=None, client=bem)
+        _make_ctf_comp_coils(comp['set'], coils, comp['comp_coils'])
 
         # Field computation matrices...
         logger.info('')
         logger.info('Composing the field computation matrix...')
-        _bem_specify_coils(bem_model, coils_els, n_jobs)
+        _bem_specify_coils(bem, coils, n_jobs)
 
         if comp['set']['current'] is True:
             logger.info('Composing the field computation matrix '
                         '(compensation coils)...')
-            _bem_specify_coils(bem_model, comp['comp_coils'])
+            _bem_specify_coils(bem, comp['comp_coils'])
         field = _comp_field
         client = comp
-        ftype = 'MEG'
     elif ctype == 'eeg':
-        _bem_specify_els(bem_model, coils_els)
-        client = bem_model
-        field = _bem_pot
-        ftype = 'EEG'
-    else:
-        raise ValueError('coil_type must be "meg" or "eeg"')
+        _bem_specify_els(bem, coils)
+        client = bem
 
-    # Count the sources and allocate space
-    n_ch = len(coils_els['coils'])
-    nsource = np.sum([s['nuse'] for s in src])
-    n_res = 3 * nsource  # free orientations
-    res = np.zeros((n_res, n_ch))
-
-    # Set up arguments for the field computation
-    logger.info('Computing %s at %d source locations '
-                '(free orientations)...' % (ftype, nsource))
-
-    # keep this split to reduce memory consumption
     rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
-    res = field(rrs, coils_els, client, n_jobs)
+    logger.info('Computing %s at %d source locations '
+                '(free orientations)...' % (ctype.upper(), len(rrs)))
+    res = field(rrs, coils, client, n_jobs)
     return res
