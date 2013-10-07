@@ -1603,40 +1603,50 @@ class Raw(ProjMixin):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                                 self.n_times)
         return "<Raw  |  %s>" % s
-        
 
-    def set_eeg_reference(self, ref_channels):
-        """Rereference eeg channels to new reference channel(s)
 
-        If multiple reference channels are specified, they will be averaged.
+def set_eeg_reference(raw, ref_channels):
+    """Rereference eeg channels to new reference channel(s)
 
-        Parameters
-        ----------
-        raw : instance of Raw
-            Instance of .fiff.Raw with eeg channels and reference channel(s),
-            data is modified in place.
+    If multiple reference channels are specified, they will be averaged.
 
-        ref_channels : str | list of str
-            The name(s) of the reference channel(s).
-        """
-        # Check to see that raw data is preloaded
-        if not self._preloaded:
-            raise RuntimeError('Raw data needs to be preloaded. Use '
-                               'preload=True (or string) in the constructor.')
-        # Find the indices to the reference electrodes
-        ref_idx = np.in1d(self.ch_names, ref_channels)
+    Parameters
+    ----------
+    raw : instance of Raw
+        Instance of .fiff.Raw with eeg channels and reference channel(s),
+        data is modified in place.
 
-        # Get the reference data
-        ref_data = self._data[ref_idx].mean(0)
+    ref_channels : str | list of str
+        The name(s) of the reference channel(s).
 
-        # Get the indices to the eeg channels using the pick_types function
-        eeg_idx = pick_types(self.info, exclude="bads", eeg=True, meg=False)
+    Returns
+    -------
+    raw : instance of Raw
+        Instance of .fiff.Raw with eeg channels rereferenced.
 
-        # Rereference the eeg channels
-        self._data[eeg_idx] -= ref_data
+    ref_data : array
+        Array of reference data subtracted from eeg channels.
+    """
+    # Check to see that raw data is preloaded
+    if not raw._preloaded:
+        raise RuntimeError('Raw data needs to be preloaded. Use '
+                           'preload=True (or string) in the constructor.')
+    # Find the indices to the reference electrodes
+    ref_idx = [raw.ch_names.index(c) for c in ref_channels]
 
-        # Store the reference data as attribute (useful for testing)
-        self.ref_data = ref_data
+    # Get the reference data
+    ref_data = raw._data[ref_idx].mean(0)
+
+    # Get the indices to the eeg channels using the pick_types function
+    eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False)
+
+    # Copy raw data (otherwise raw will be modified in place)
+    reref = raw.copy()
+
+    # Rereference the eeg channels
+    reref._data[eeg_idx] -= ref_data
+
+    return reref, ref_data
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
