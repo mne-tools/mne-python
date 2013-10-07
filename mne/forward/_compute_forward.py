@@ -15,7 +15,8 @@ from ..fiff.constants import FIFF
 from ..transforms import apply_trans
 from ..utils import logger
 from ..parallel import parallel_func
-from ..fiff.compensator import get_current_comp
+from ..fiff.compensator import get_current_comp, make_compensator
+from ..fiff.pick import pick_types
 
 
 ##############################################################################
@@ -144,47 +145,30 @@ def _bem_specify_els(bem, els):
 #############################################################################
 # FORWARD COMPUTATION
 
-def _make_ctf_comp(compset, chs, compchs):
-    """Make CTF compensator"""
-    # mne_make_ctf_comp() from mne_ctf_comp.c
+def _make_ctf_comp_coils(comp, coils):
+    """Call mne_make_ctf_comp using the information in the coil sets"""
+    info = comp['set']['info']
+
+    # adapted from mne_make_ctf_comp() from mne_ctf_comp.c
     logger.info('Setting up compensation data...')
-    comp = get_current_comp(dict(chs=chs))
-    if comp is None or comp == 0:
+    comp_num = get_current_comp(info)
+    if comp_num is None or comp_num == 0:
         logger.info('    No compensation set. Nothing more to do.')
+        comp['set']['current'] = None
         return
 
     # Need to meaningfully populate comp['set'] dict a.k.a. compset
-    compset['current'] = True
-    nch = len(chs)
-    comps = np.zeros(nch, int)
-    comps[[c['kind'] == FIFF.FIFFV_MEG_CH for c in chs]] = comp
-    raise NotImplementedError
+    n_comp_ch = sum([c['kind'] == FIFF.FIFFV_MEG_CH for c in info['chs']])
+    logger.info('    %d out of %d channels have the compensation set.'
+                % (n_comp_ch, len(coils['coils'])))
 
-
-def _make_ctf_comp_coils(compset, coils, comp_coils):
-    """Call mne_make_ctf_comp using the information in the coil sets"""
-    # Create the fake channel info which contain just enough information
-    # for _make_ctf_comp
-    chs = list()
-    for coil in coils['coils']:
-        if coil['coil_class'] == FIFF.FWD_COILC_EEG:
-            kind = FIFF.FIFFV_EEG_CH
-        else:
-            kind = FIFF.FIFFV_MEG_CH
-        chs.append(dict(ch_name=coil['chname'], coil_type=coil['type'],
-                        kind=kind))
-
-    compchs = list()
-    if comp_coils is not None and comp_coils['ncoil'] > 0:
-        for coil in coils['coils']:
-            if coil['coil_class'] == FIFF.FWD_COILC_EEG:
-                kind = FIFF.FIFFV_EEG_CH
-            else:
-                kind = FIFF.FIFFV_MEG_CH
-            compchs.append(dict(ch_name=coil['chname'],
-                                coil_type=coil['type'], kind=kind))
-
-    _make_ctf_comp(compset, chs, compchs)
+    # Find the desired compensation data matrix
+    comp['set']['current'] = make_compensator(info, 0, comp_num, True)
+    logger.info('    Desired compensation data (%s) found.' % comp_num)
+    logger.info('    All compensation channels found.')
+    logger.info('    Preselector created.')
+    logger.info('    Compensation data matrix created.')
+    logger.info('    Postselector created.')
 
 
 #def _bem_inf_pot(rd, Q, rp):
@@ -233,31 +217,22 @@ def _bem_inf_fields(rr, rp, c):
     return np.rollaxis(x / diff_norm, 1)
 
 
-def _apply_ctf_comp():
-    # mne_apply_ctf_comp()
-    raise NotImplementedError
-
-
-def _need_comp(comp):
-    """Helper for triaging whether coils have compensation"""
-    need = (comp['comp_coils'] and comp['comp_coils']['ncoil'] > 0
-            and comp['set']['current'])
-    return need
-
-
 def _comp_field(rrs, coils, comp, n_jobs):
     """Calculate the compensated field"""
     # First compute the field in the primary set of coils
     res = comp['field'](rrs, coils, comp['client'], n_jobs)
 
     # Compensation needed?
-    if _need_comp(comp):
+    if comp['set']['current'] is not None:
         # Compute the field in the compensation coils
-        comp['work'] = comp['field'](rrs, comp['comp_coils'], comp['work'],
-                                     comp['client'], n_jobs)
-        _apply_ctf_comp(comp['dataset'], True, res,
-                        coils['ncoil'], comp['work'],
-                        comp['comp_coils']['ncoil'])
+        work = comp['field'](rrs, comp['comp_coils'], comp['client'], n_jobs)
+        # Combine solutions so we can do the compensation
+        both = np.zeros((work.shape[0], res.shape[1] + work.shape[1]))
+        picks = pick_types(comp['set']['info'], meg=True, ref_meg=False)
+        both[:, picks] = res
+        picks = pick_types(comp['set']['info'], meg=False, ref_meg=True)
+        both[:, picks] = work
+        res = np.dot(both, comp['set']['current'].T)
     return res
 
 
@@ -326,7 +301,7 @@ def _do_inf_pots(rr, srr, mri_Q, sol):
     return B
 
 
-def _compute_forward(src, coils, comp_coils, comp_data, bem, ctype, n_jobs):
+def _compute_forward(src, coils, comp_coils, info, bem, ctype, n_jobs):
     """Compute the M/EEG forward solution"""
     if bem['bem_method'] != 'linear collocation':
         raise RuntimeError('only linear collocation supported')
@@ -337,20 +312,19 @@ def _compute_forward(src, coils, comp_coils, comp_data, bem, ctype, n_jobs):
         # is in effect
 
         # Compose a compensation data set
-        comp = dict(set=dict(comp_data=comp_data, current=False),
-                    comp_coils=comp_coils, field=field,
+        comp = dict(set=dict(info=info), comp_coils=comp_coils, field=field,
                     vec_field=None, client=bem)
-        _make_ctf_comp_coils(comp['set'], coils, comp['comp_coils'])
+        _make_ctf_comp_coils(comp, coils)
 
         # Field computation matrices...
         logger.info('')
         logger.info('Composing the field computation matrix...')
         _bem_specify_coils(bem, coils, n_jobs)
 
-        if comp['set']['current'] is True:
+        if comp['set']['current'] is not None:
             logger.info('Composing the field computation matrix '
                         '(compensation coils)...')
-            _bem_specify_coils(bem, comp['comp_coils'])
+            _bem_specify_coils(bem, comp['comp_coils'], n_jobs)
         field = _comp_field
         client = comp
     elif ctype == 'eeg':

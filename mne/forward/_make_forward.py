@@ -86,7 +86,7 @@ def _create_meg_coil(coilset, ch, acc, t):
     # Create the result
     res = dict(chname=ch['ch_name'], desc=None, coil_class=d['coil_class'],
                accuracy=d['accuracy'], base=d['base'], size=d['size'],
-               type=d['coil_type'], np=d['np'], w=d['w'])
+               type=ch['coil_type'], np=d['np'], w=d['w'])
 
     if d['desc']:
         res['desc'] = d['desc']
@@ -312,11 +312,9 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
             megchs = pick_info(info, picks)['chs']
             megnames = [info['ch_names'][p] for p in picks]
             logger.info('Read %3d MEG channels from %s'
-                         % (len(picks), info_extra))
+                        % (len(picks), info_extra))
 
         # comp data
-        comp_data = info['comps']
-        ncomp_data = len(comp_data)
 
         # comp channels
         picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
@@ -326,6 +324,10 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
             logger.info('Read %3d MEG compensation channels from %s'
                         % (ncomp, info_extra))
         _print_coord_trans(meg_head_t)
+        # make info structure to allow making compensator later
+        ncomp_data = len(info['comps'])
+        picks = pick_types(info, meg=True, ref_meg=True, exclude=[])
+        meg_info = pick_info(info, picks)
     else:
         logger.info('MEG not requested. MEG channels omitted.')
         nmeg = 0
@@ -408,7 +410,7 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
     # Do the actual computation
     megfwd, megfwd_grad, eegfwd, eegfwd_grad = None, None, None, None
     if nmeg > 0:
-        megfwd = _compute_forward(src, megcoils, compcoils, comp_data,
+        megfwd = _compute_forward(src, megcoils, compcoils, meg_info,
                                   bem_model, 'meg', n_jobs)
         megfwd = _to_forward_dict(megfwd, None, megnames, coord_frame,
                                   FIFF.FIFFV_MNE_FREE_ORI)

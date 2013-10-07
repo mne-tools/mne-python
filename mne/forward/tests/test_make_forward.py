@@ -8,7 +8,7 @@ from numpy.testing import (assert_equal, assert_allclose)
 from mne.datasets import sample
 from mne.fiff import Raw
 from mne import (read_forward_solution, make_forward_solution,
-                 do_forward_solution)
+                 do_forward_solution, setup_source_space)
 from mne import read_trans
 from mne.utils import requires_mne, _TempDir
 
@@ -30,6 +30,30 @@ temp_dir = _TempDir()
 existing_file = op.join(temp_dir, 'test.fif')
 with open(existing_file, 'wb') as fid:
     fid.write('aoeu')
+
+
+def test_make_forward_solution_compensation():
+    """Test making forward solution from python with compensation
+    """
+    fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+                            'data', 'test_ctf_comp_raw.fif')
+    fname_bem = op.join(subjects_dir, 'sample', 'bem',
+                        'sample-5120-bem-sol.fif')
+    fname_src = op.join(temp_dir, 'oct2-src.fif')
+    src = setup_source_space('sample', fname_src, 'oct2')
+    fwd_py = make_forward_solution('sample', fname_ctf_raw, mindist=0.0,
+                                   src=src, eeg=False, meg=True,
+                                   bem=fname_bem, mri=fname_mri,
+                                   subjects_dir=subjects_dir)
+
+    fwd = do_forward_solution('sample', fname_ctf_raw, src=fname_src,
+                              mindist=0.0, bem=fname_bem, mri=fname_mri,
+                              eeg=False, meg=True, subjects_dir=subjects_dir)
+
+    # check MEG
+    assert_allclose(fwd['sol']['data'], fwd_py['sol']['data'],
+                    rtol=1e-4, atol=1e-9)
+    assert_equal(len(fwd['sol']['row_names']), 274)
 
 
 def test_make_forward_solution():
