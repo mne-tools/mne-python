@@ -1606,23 +1606,22 @@ class Raw(ProjMixin):
 
 
 def set_eeg_reference(raw, ref_channels):
-    """Rereference eeg channels to new reference channel(s)
+    """Rereference eeg channels to new reference channel(s).
 
     If multiple reference channels are specified, they will be averaged.
 
     Parameters
     ----------
     raw : instance of Raw
-        Instance of .fiff.Raw with eeg channels and reference channel(s),
-        data is modified in place.
+        Instance of Raw with eeg channels and reference channel(s).
 
-    ref_channels : str | list of str
+    ref_channels : list of str
         The name(s) of the reference channel(s).
 
     Returns
     -------
     raw : instance of Raw
-        Instance of .fiff.Raw with eeg channels rereferenced.
+        Instance of Raw with eeg channels rereferenced.
 
     ref_data : array
         Array of reference data subtracted from eeg channels.
@@ -1631,6 +1630,11 @@ def set_eeg_reference(raw, ref_channels):
     if not raw._preloaded:
         raise RuntimeError('Raw data needs to be preloaded. Use '
                            'preload=True (or string) in the constructor.')
+    # Make sure that reference channels are loaded as list of string
+    if type(ref_channels) != list:
+        raise IOError('Reference channel(s) must be a list of string. '
+                      'If using a single reference channel, enter as '
+                      'a list with one element.')
     # Find the indices to the reference electrodes
     ref_idx = [raw.ch_names.index(c) for c in ref_channels]
 
