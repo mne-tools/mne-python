@@ -325,6 +325,12 @@ def test_tf_lcmv():
     # Comparing tf_lcmv results with _lcmv_source_power results
     assert_array_almost_equal(stc.data[:, 2], source_power[:, 0])
 
+    # Test if using unsupported max-power orientation is detected
+    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+                  tstep, win_lengths, freq_bins=freq_bins,
+                  pick_ori='max-power')
+
+    # Test if incorrect number of noise CSDs is detected
     # Test if incorrect number of noise covariances is detected
     assert_raises(ValueError, tf_lcmv, epochs, forward, [noise_covs[0]], tmin,
                   tmax, tstep, win_lengths, freq_bins)

@@ -117,8 +117,7 @@ for (l_freq, h_freq) in freq_bins:
 # Computing LCMV solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
 stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-               freq_bins=freq_bins, reg=data_reg, label=label,
-               pick_ori='max-power')
+               freq_bins=freq_bins, reg=data_reg, label=label)
 
 # Plotting source spectrogram for source with maximum activity
 plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=True)

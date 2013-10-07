@@ -476,6 +476,9 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     in each time-frequency window instead of DICS.
     """
 
+    if pick_ori not in [None, 'normal']:
+        raise ValueError('Unrecognized orientation option in pick_ori, '
+                         'available choices are None and normal')
     if len(noise_csds) != len(freq_bins):
         raise ValueError('One noise CSD object expected per frequency bin')
     if len(win_lengths) != len(freq_bins):

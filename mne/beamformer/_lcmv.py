@@ -603,6 +603,9 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     NeuroImage (2008) vol. 40 (4) pp. 1686-1700
     """
 
+    if pick_ori not in [None, 'normal']:
+        raise ValueError('Unrecognized orientation option in pick_ori, '
+                         'available choices are None and normal')
     if len(noise_covs) != len(freq_bins):
         raise ValueError('One noise covariance object expected per frequency '
                          'bin')

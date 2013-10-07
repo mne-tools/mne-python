@@ -263,6 +263,11 @@ def test_tf_dics():
     # Comparing tf_dics results with dics_source_power results
     assert_array_almost_equal(stc.data[:, 2], source_power[:, 0])
 
+    # Test if using unsupported max-power orientation is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, noise_csds, tmin, tmax,
+                  tstep, win_lengths, freq_bins=freq_bins,
+                  pick_ori='max-power')
+
     # Test if incorrect number of noise CSDs is detected
     assert_raises(ValueError, tf_dics, epochs, forward, [noise_csds[0]], tmin,
                   tmax, tstep, win_lengths, freq_bins=freq_bins)
