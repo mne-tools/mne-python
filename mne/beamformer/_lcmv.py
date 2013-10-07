@@ -6,6 +6,8 @@
 #
 # License: BSD (3-clause)
 
+import warnings
+
 import numpy as np
 from scipy import linalg
 
@@ -14,10 +16,11 @@ from ..fiff.proj import make_projector
 from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
-from ..cov import compute_whitener
-from ..source_estimate import _make_stc
+from ..cov import compute_whitener, compute_covariance
+from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
 from ..utils import logger, verbose
+from .. import Epochs
 
 
 @verbose
@@ -239,7 +242,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on evoked data.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issue or suggestions.
 
     Parameters
@@ -299,7 +302,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on single trial data.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issue or suggestions.
 
     Parameters
@@ -368,7 +371,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
     on raw data.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issue or suggestions.
 
     Parameters
@@ -429,3 +432,273 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
                       label, picks, pick_ori).next()
 
     return stc
+
+
+@verbose
+def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
+                       label=None, picks=None, pick_ori=None, verbose=None):
+    """Linearly Constrained Minimum Variance (LCMV) beamformer.
+
+    Calculate source power in a time window based on the provided data
+    covariance. Noise covariance is used to whiten the data covariance making
+    the output equivalent to the neural activity index as defined by
+    Van Veen et al. 1997.
+
+    NOTE : This implementation has not been heavily tested so please
+    report any issues or suggestions.
+
+    Parameters
+    ----------
+    info : dict
+        Measurement info, e.g. epochs.info.
+    forward : dict
+        Forward operator.
+    noise_cov : Covariance
+        The noise covariance.
+    data_cov : Covariance
+        The data covariance.
+    reg : float
+        The regularization for the whitened data covariance.
+    label : Label | None
+        Restricts the solution to a given label.
+    picks : array of int | None
+        Indices (in info) of data channels. If None, MEG and EEG data channels
+        (without bad channels) will be used.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stc : SourceEstimate
+        Source power with a single time point representing the entire time
+        window for which data covariance was calculated.
+
+    Notes
+    -----
+    The original reference is:
+    Van Veen et al. Localization of brain electrical activity via linearly
+    constrained minimum variance spatial filtering.
+    Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
+    """
+
+    is_free_ori, picks, ch_names, proj, vertno, G =\
+        _prepare_beamformer_input(info, forward, label, picks, pick_ori)
+
+    # Handle whitening
+    whitener, _ = compute_whitener(noise_cov, info, picks)
+
+    # whiten the leadfield
+    G = np.dot(whitener, G)
+
+    # Apply SSPs + whitener to data covariance
+    data_cov = pick_channels_cov(data_cov, include=ch_names)
+    Cm = data_cov['data']
+    if info['projs']:
+        Cm = np.dot(proj, np.dot(Cm, proj.T))
+    Cm = np.dot(whitener, np.dot(Cm, whitener.T))
+
+    # Calculating regularized inverse, equivalent to an inverse operation after
+    # the following regularization:
+    # Cm += reg * np.trace(Cm) / len(Cm) * np.eye(len(Cm))
+    Cm_inv = linalg.pinv(Cm, reg)
+
+    # Compute spatial filters
+    W = np.dot(G.T, Cm_inv)
+    n_orient = 3 if is_free_ori else 1
+    n_sources = G.shape[1] // n_orient
+    source_power = np.zeros((n_sources, 1))
+    for k in range(n_sources):
+        Wk = W[n_orient * k: n_orient * k + n_orient]
+        Gk = G[:, n_orient * k: n_orient * k + n_orient]
+        Ck = np.dot(Wk, Gk)
+
+        if is_free_ori:
+            # Free source orientation
+            Wk[:] = np.dot(linalg.pinv(Ck, 0.1), Wk)
+        else:
+            # Fixed source orientation
+            Wk /= Ck
+
+        # Noise normalization
+        noise_norm = np.dot(Wk, Wk.T)
+        noise_norm = noise_norm.trace()
+
+        # Calculating source power
+        sp_temp = np.dot(np.dot(Wk, Cm), Wk.T)
+        sp_temp /= noise_norm
+        if pick_ori == 'normal':
+            source_power[k, 0] = sp_temp[2, 2]
+        else:
+            source_power[k, 0] = sp_temp.trace()
+
+    logger.info('[done]')
+
+    subject = _subject_from_forward(forward)
+    return SourceEstimate(source_power, vertices=vertno, tmin=1,
+                          tstep=1, subject=subject)
+
+
+@verbose
+def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
+            freq_bins, reg=0.01, label=None, pick_ori=None, n_jobs=1,
+            verbose=None):
+    """5D time-frequency beamforming based on LCMV.
+
+    Calculate source power in time-frequency windows using a spatial filter
+    based on the Linearly Constrained Minimum Variance (LCMV) beamforming
+    approach. Band-pass filtered epochs are divided into time windows from
+    which covariance is computed and used to create a beamformer spatial
+    filter.
+
+    NOTE : This implementation has not been heavily tested so please
+    report any issues or suggestions.
+
+    Parameters
+    ----------
+    epochs : Epochs
+        Single trial epochs.
+    forward : dict
+        Forward operator.
+    noise_covs : list of instances of Covariance
+        Noise covariance for each frequency bin.
+    tmin : float
+        Minimum time instant to consider.
+    tmax : float
+        Maximum time instant to consider.
+    tstep : float
+        Spacing between consecutive time windows, should be smaller than or
+        equal to the shortest time window length.
+    win_lengths : list of float
+        Time window lengths in seconds. One time window length should be
+        provided for each frequency bin.
+    freq_bins : list of tuples of float
+        Start and end point of frequency bins of interest.
+    reg : float
+        The regularization for the whitened data covariance.
+    label : Label | None
+        Restricts the solution to a given label.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
+    n_jobs : int | str
+        Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
+        is installed properly and CUDA is initialized.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stcs : list of SourceEstimate
+        Source power at each time window. One SourceEstimate object is returned
+        for each frequency bin.
+
+    Notes
+    -----
+    The original reference is:
+    Dalal et al. Five-dimensional neuroimaging: Localization of the
+    time-frequency dynamics of cortical activity.
+    NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+    """
+
+    if pick_ori not in [None, 'normal']:
+        raise ValueError('Unrecognized orientation option in pick_ori, '
+                         'available choices are None and normal')
+    if len(noise_covs) != len(freq_bins):
+        raise ValueError('One noise covariance object expected per frequency '
+                         'bin')
+    if len(win_lengths) != len(freq_bins):
+        raise ValueError('One time window length expected per frequency bin')
+    if any(win_length < tstep for win_length in win_lengths):
+        raise ValueError('Time step should not be larger than any of the '
+                         'window lengths')
+
+    # Extract raw object from the epochs object
+    raw = epochs.raw
+    if raw is None:
+        raise ValueError('The provided epochs object does not contain the '
+                         'underlying raw object. Please use preload=False '
+                         'when constructing the epochs object')
+    # Use picks from epochs for picking channels in the raw object
+    raw_picks = [raw.ch_names.index(c) for c in epochs.ch_names]
+
+    # Make sure epochs.events contains only good events:
+    epochs.drop_bad_epochs()
+
+    # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
+    n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
+
+    sol_final = []
+    for (l_freq, h_freq), win_length, noise_cov in \
+            zip(freq_bins, win_lengths, noise_covs):
+        n_overlap = int((win_length * 1e3) // (tstep * 1e3))
+
+        raw_band = raw.copy()
+        raw_band.filter(l_freq, h_freq, picks=raw_picks, method='iir',
+                        n_jobs=n_jobs)
+        epochs_band = Epochs(raw_band, epochs.events, epochs.event_id,
+                             tmin=epochs.tmin, tmax=epochs.tmax,
+                             picks=raw_picks, keep_comp=epochs.keep_comp,
+                             dest_comp=epochs.dest_comp,
+                             proj=epochs.proj, preload=True)
+        del raw_band
+
+        sol_single = []
+        sol_overlap = []
+        for i_time in range(n_time_steps):
+            win_tmin = tmin + i_time * tstep
+            win_tmax = win_tmin + win_length
+
+            # If in the last step the last time point was not covered in
+            # previous steps and will not be covered now, a solution needs to
+            # be calculated for an additional time window
+            if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and\
+               win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
+                warnings.warn('Adding a time window to cover last time points')
+                win_tmin = tmax - win_length
+                win_tmax = tmax
+
+            if win_tmax < tmax + (epochs.times[-1] - epochs.times[-2]):
+                logger.info('Computing time-frequency LCMV beamformer for '
+                            'time window %d to %d ms, in frequency range '
+                            '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
+                                             l_freq, h_freq))
+
+                # Calculating data covariance from filtered epochs in current
+                # time window
+                data_cov = compute_covariance(epochs_band, tmin=win_tmin,
+                                              tmax=win_tmax)
+
+                stc = _lcmv_source_power(epochs_band.info, forward, noise_cov,
+                                         data_cov, reg=reg, label=label,
+                                         pick_ori=pick_ori, verbose=verbose)
+                sol_single.append(stc.data[:, 0])
+
+            # Average over all time windows that contain the current time
+            # point, which is the current time window along with
+            # n_overlap - 1 previous ones
+            if i_time - n_overlap < 0:
+                curr_sol = np.mean(sol_single[0:i_time + 1], axis=0)
+            else:
+                curr_sol = np.mean(sol_single[i_time - n_overlap + 1:
+                                              i_time + 1], axis=0)
+
+            # The final result for the current time point in the current
+            # frequency bin
+            sol_overlap.append(curr_sol)
+
+        # Gathering solutions for all time points for current frequency bin
+        sol_final.append(sol_overlap)
+
+    sol_final = np.array(sol_final)
+
+    # Creating stc objects containing all time points for each frequency bin
+    stcs = []
+    for i_freq, _ in enumerate(freq_bins):
+        stc = SourceEstimate(sol_final[i_freq, :, :].T, vertices=stc.vertno,
+                             tmin=tmin, tstep=tstep, subject=stc.subject)
+        stcs.append(stc)
+
+    return stcs

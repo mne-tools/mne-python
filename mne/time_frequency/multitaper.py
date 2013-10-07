@@ -410,7 +410,7 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
     return csd
 
 
-def _mt_spectra(x, dpss, sfreq):
+def _mt_spectra(x, dpss, sfreq, n_fft=None):
     """ Compute tapered spectra
 
     Parameters
@@ -421,6 +421,9 @@ def _mt_spectra(x, dpss, sfreq):
         The tapers
     sfreq : float
         The sampling frequency
+    n_fft : int | None
+        Length of the FFT. If None, the number of samples in the input signal
+        will be used.
 
     Returns
     -------
@@ -430,12 +433,15 @@ def _mt_spectra(x, dpss, sfreq):
         The frequency points in Hz of the spectra
     """
 
+    if n_fft is None:
+        n_fft = x.shape[1]
+
     # remove mean (do not use in-place subtraction as it may modify input x)
     x = x - np.mean(x, axis=-1)[:, np.newaxis]
-    x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss)
+    x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
 
     # only keep positive frequencies
-    freqs = fftpack.fftfreq(x.shape[1], 1. / sfreq)
+    freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
     freq_mask = (freqs >= 0)
 
     x_mt = x_mt[:, :, freq_mask]

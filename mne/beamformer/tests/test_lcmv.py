@@ -5,64 +5,87 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import mne
+from mne import compute_covariance
 from mne.datasets import sample
-from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw
+from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw, tf_lcmv
+from mne.beamformer._lcmv import _lcmv_source_power
 from mne.source_estimate import SourceEstimate, VolSourceEstimate
 
+
 data_path = sample.data_path()
-fname_data = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis-ave.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_raw.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-cov.fif')
+fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-fwd.fif')
 fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
                         'sample_audvis-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_raw-eve.fif')
+fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+
+
+def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
+              epochs_preload=True, data_cov=True):
+    """Read in data used in tests
+    """
+    label = mne.read_label(fname_label)
+    events = mne.read_events(fname_event)
+    raw = mne.fiff.Raw(fname_raw, preload=True)
+    forward = mne.read_forward_solution(fname_fwd)
+    if all_forward:
+        forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
+        forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
+                                                  surf_ori=True)
+        forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
+    else:
+        forward_surf_ori = None
+        forward_fixed = None
+        forward_vol = None
+
+    event_id, tmin, tmax = 1, tmin, tmax
+
+    # Setup for reading the raw data
+    raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
+
+    if epochs:
+        # Set up pick list: MEG - bad channels
+        left_temporal_channels = mne.read_selection('Left-temporal')
+        picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False,
+                                    stim=True, eog=True, exclude='bads',
+                                    selection=left_temporal_channels)
+
+        # Read epochs
+        epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                            picks=picks, baseline=(None, 0),
+                            preload=epochs_preload,
+                            reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+        if epochs_preload:
+            epochs.resample(200, npad=0, n_jobs=2)
+        evoked = epochs.average()
+        info = evoked.info
+    else:
+        epochs = None
+        evoked = None
+        info = raw.info
+
+    noise_cov = mne.read_cov(fname_cov)
+    noise_cov = mne.cov.regularize(noise_cov, info,
+                                   mag=0.05, grad=0.05, eeg=0.1, proj=True)
+    if data_cov:
+        data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+    else:
+        data_cov = None
+
+    return raw, epochs, evoked, data_cov, noise_cov, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol
 
 
 def test_lcmv():
     """Test LCMV with evoked data and single trials
     """
-    # load forwards here to save memory
-    forward = mne.read_forward_solution(fname_fwd)
-    forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
-    forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
-                                              surf_ori=True)
-    forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
-
-    event_id, tmin, tmax = 1, -0.1, 0.15
-    label = mne.read_label(fname_label)
-    noise_cov = mne.read_cov(fname_cov)
-    raw = mne.fiff.Raw(fname_raw, preload=False)
-    events = mne.read_events(fname_event)
-
-    # Setup for reading the raw data
-    raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
-
-    # Set up pick list: EEG + MEG - bad channels (modify to your needs)
-    left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False,
-                                stim=True, eog=True, exclude='bads',
-                                selection=left_temporal_channels)
-
-    # Read epochs
-    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        picks=picks, baseline=(None, 0), preload=True,
-                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
-    epochs.resample(200, npad=0, n_jobs=2)
-    evoked = epochs.average()
-
-    noise_cov = mne.read_cov(fname_cov)
-    noise_cov = mne.cov.regularize(noise_cov, evoked.info,
-                                   mag=0.05, grad=0.05, eeg=0.1, proj=True)
-
-    data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+    raw, epochs, evoked, data_cov, noise_cov, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     for fwd in [forward, forward_vol]:
         stc = lcmv(evoked, fwd, noise_cov, data_cov, reg=0.01)
@@ -77,7 +100,6 @@ def test_lcmv():
         max_stc = stc.data[idx]
         tmax = stc.times[np.argmax(max_stc)]
 
-        print 'TMAX: %f' % np.max(max_stc)
         assert_true(0.09 < tmax < 0.105)
         assert_true(1.9 < np.max(max_stc) < 3.)
 
@@ -161,28 +183,14 @@ def test_lcmv():
 def test_lcmv_raw():
     """Test LCMV with raw data
     """
-    forward = mne.read_forward_solution(fname_fwd)
-    label = mne.read_label(fname_label)
-    noise_cov = mne.read_cov(fname_cov)
-    raw = mne.fiff.Raw(fname_raw, preload=False)
+    raw, _, _, _, noise_cov, label, forward, _, _, _ =\
+        _get_data(all_forward=False, epochs=False, data_cov=False)
 
     tmin, tmax = 0, 20
-    # Setup for reading the raw data
-    raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
-
-    # Set up pick list: EEG + MEG - bad channels (modify to your needs)
-    left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                                eog=True, exclude='bads',
-                                selection=left_temporal_channels)
-
-    noise_cov = mne.read_cov(fname_cov)
-    noise_cov = mne.cov.regularize(noise_cov, raw.info,
-                                   mag=0.05, grad=0.05, eeg=0.1, proj=True)
-
     start, stop = raw.time_as_index([tmin, tmax])
 
     # use only the left-temporal MEG channels for LCMV
+    left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads',
                                 selection=left_temporal_channels)
 
@@ -200,4 +208,144 @@ def test_lcmv_raw():
     assert_true(len(stc.vertno[0]) == len(np.intersect1d(vertno[0],
                                                          label.vertices)))
     assert_true(len(stc.vertno[1]) == 0)
-    # TODO: test more things
+
+
+def test_lcmv_source_power():
+    """Test LCMV source power computation
+    """
+    raw, epochs, evoked, data_cov, noise_cov, label, forward,\
+        forward_surf_ori, forward_fixed, forward_vol = _get_data()
+
+    stc_source_power = _lcmv_source_power(epochs.info, forward, noise_cov,
+                                          data_cov, label=label)
+
+    max_source_idx = np.argmax(stc_source_power.data)
+    max_source_power = np.max(stc_source_power.data)
+
+    assert_true(max_source_idx == 24)
+    assert_true(2.2 < max_source_power < 2.4)
+
+    # Test picking normal orientation and using a list of CSD matrices
+    stc_normal = _lcmv_source_power(epochs.info, forward_surf_ori, noise_cov,
+                                    data_cov, pick_ori="normal", label=label)
+
+    # The normal orientation results should always be smaller than free
+    # orientation results
+    assert_true((np.abs(stc_normal.data[:, 0]) <=
+                 stc_source_power.data[:, 0]).all())
+
+    # Test if fixed forward operator is detected when picking normal
+    # orientation
+    assert_raises(ValueError, _lcmv_source_power, raw.info, forward_fixed,
+                  noise_cov, data_cov, pick_ori="normal")
+
+    # Test if non-surface oriented forward operator is detected when picking
+    # normal orientation
+    assert_raises(ValueError, _lcmv_source_power, raw.info, forward, noise_cov,
+                  data_cov, pick_ori="normal")
+
+    # Test if volume forward operator is detected when picking normal
+    # orientation
+    assert_raises(ValueError, _lcmv_source_power, epochs.info, forward_vol,
+                  noise_cov, data_cov, pick_ori="normal")
+
+
+def test_tf_lcmv():
+    """Test TF beamforming based on LCMV
+    """
+    fname_raw = op.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_filt-0-40_raw.fif')
+    label = mne.read_label(fname_label)
+    events = mne.read_events(fname_event)
+    raw = mne.fiff.Raw(fname_raw, preload=True)
+    forward = mne.read_forward_solution(fname_fwd)
+
+    event_id, tmin, tmax = 1, -0.2, 0.2
+
+    # Setup for reading the raw data
+    raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
+
+    # Set up pick list: MEG - bad channels
+    left_temporal_channels = mne.read_selection('Left-temporal')
+    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False,
+                                stim=True, eog=True, exclude='bads',
+                                selection=left_temporal_channels)
+
+    # Read epochs
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                        picks=picks, baseline=(None, 0),
+                        preload=False,
+                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+    epochs.drop_bad_epochs()
+
+    freq_bins = [(4, 12), (15, 40)]
+    time_windows = [(-0.1, 0.1), (0.0, 0.2)]
+    win_lengths = [0.2, 0.2]
+    tstep = 0.1
+    reg = 0.05
+
+    source_power = []
+    noise_covs = []
+    for (l_freq, h_freq), win_length in zip(freq_bins, win_lengths):
+        raw_band = raw.copy()
+        raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1, picks=picks)
+        epochs_band = mne.Epochs(raw_band, epochs.events, epochs.event_id,
+                                 tmin=tmin, tmax=tmax, proj=True)
+        noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
+                                       win_length)
+        noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=reg,
+                                       grad=reg, eeg=reg, proj=True)
+        noise_covs.append(noise_cov)
+        del raw_band  # to save memory
+
+        # Manually calculating source power in on frequency band and several
+        # time windows to compare to tf_lcmv results and test overlapping
+        if (l_freq, h_freq) == freq_bins[0]:
+            for time_window in time_windows:
+                data_cov = compute_covariance(epochs_band,
+                                              tmin=time_window[0],
+                                              tmax=time_window[1])
+                stc_source_power = _lcmv_source_power(epochs.info, forward,
+                                                      noise_cov, data_cov,
+                                                      reg=reg, label=label)
+                source_power.append(stc_source_power.data)
+
+    stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
+                   freq_bins, reg=reg, label=label)
+
+    assert_true(len(stcs) == len(freq_bins))
+    assert_true(stcs[0].shape[1] == 4)
+
+    # Averaging all time windows that overlap the time period 0 to 100 ms
+    source_power = np.mean(source_power, axis=0)
+
+    # Selecting the first frequency bin in tf_lcmv results
+    stc = stcs[0]
+
+    # Comparing tf_lcmv results with _lcmv_source_power results
+    assert_array_almost_equal(stc.data[:, 2], source_power[:, 0])
+
+    # Test if using unsupported max-power orientation is detected
+    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+                  tstep, win_lengths, freq_bins=freq_bins,
+                  pick_ori='max-power')
+
+    # Test if incorrect number of noise CSDs is detected
+    # Test if incorrect number of noise covariances is detected
+    assert_raises(ValueError, tf_lcmv, epochs, forward, [noise_covs[0]], tmin,
+                  tmax, tstep, win_lengths, freq_bins)
+
+    # Test if freq_bins and win_lengths incompatibility is detected
+    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+                  tstep, win_lengths=[0, 1, 2], freq_bins=freq_bins)
+
+    # Test if time step exceeding window lengths is detected
+    assert_raises(ValueError, tf_lcmv, epochs, forward, noise_covs, tmin, tmax,
+                  tstep=0.15, win_lengths=[0.2, 0.1], freq_bins=freq_bins)
+
+    # Test correct detection of preloaded epochs objects that do not contain
+    # the underlying raw object
+    epochs_preloaded = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                                  baseline=(None, 0), preload=True)
+    assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward, noise_covs,
+                  tmin, tmax, tstep, win_lengths, freq_bins)
