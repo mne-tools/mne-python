@@ -4,11 +4,11 @@ import copy as cp
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 import mne
 from mne.datasets import sample
-from mne.beamformer import dics, dics_epochs, dics_source_power
+from mne.beamformer import dics, dics_epochs, dics_source_power, tf_dics
 from mne.time_frequency import compute_epochs_csd
 
 # Note that this is the first test file, this will apply to all subsequent
@@ -26,23 +26,25 @@ fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
-# preloading raw here increases mem requirements by 400 mb for all nosetests
-# that include this file's parent directory :(
 
-
-def read_data():
+def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     """Read in data used in tests
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)[:10]
     raw = mne.fiff.Raw(fname_raw, preload=False)
     forward = mne.read_forward_solution(fname_fwd)
-    forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
-    forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
-                                              surf_ori=True)
-    forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
+    if read_all_forward:
+        forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
+        forward_fixed = mne.read_forward_solution(fname_fwd, force_fixed=True,
+                                                  surf_ori=True)
+        forward_vol = mne.read_forward_solution(fname_fwd_vol, surf_ori=True)
+    else:
+        forward_surf_ori = None
+        forward_fixed = None
+        forward_vol = None
 
-    event_id, tmin, tmax = 1, -0.11, 0.15
+    event_id, tmin, tmax = 1, tmin, tmax
 
     # Setup for reading the raw data
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
@@ -61,10 +63,15 @@ def read_data():
     evoked = epochs.average()
 
     # Computing the data and noise cross-spectral density matrices
-    data_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04,
-                                  tmax=None, fmin=8, fmax=12)
-    noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=None,
-                                   tmax=0.0, fmin=8, fmax=12)
+    if compute_csds:
+        data_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04,
+                                      tmax=None, fmin=8, fmax=12,
+                                      mt_bandwidth=72.72)
+        noise_csd = compute_epochs_csd(epochs, mode='multitaper', tmin=None,
+                                       tmax=0.0, fmin=8, fmax=12,
+                                       mt_bandwidth=72.72)
+    else:
+        data_csd, noise_csd = None, None
 
     return raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol
@@ -74,7 +81,7 @@ def test_dics():
     """Test DICS with evoked data and single trials
     """
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
-        forward_surf_ori, forward_fixed, forward_vol = read_data()
+        forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     stc = dics(evoked, forward, noise_csd=noise_csd, data_csd=data_csd,
                label=label)
@@ -142,7 +149,7 @@ def test_dics_source_power():
     """Test DICS source power computation
     """
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
-        forward_surf_ori, forward_fixed, forward_vol = read_data()
+        forward_surf_ori, forward_fixed, forward_vol = _get_data()
 
     stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
                                          data_csd, label=label)
@@ -200,3 +207,80 @@ def test_dics_source_power():
     with warnings.catch_warnings(True) as w:
         dics_source_power(epochs.info, forward, noise_csds, data_csds)
     assert len(w) == 1
+
+
+def test_tf_dics():
+    """Test TF beamforming based on DICS
+    """
+    tmin, tmax, tstep = -0.2, 0.2, 0.1
+    raw, epochs, _, _, _, label, forward, _, _, _ =\
+        _get_data(tmin, tmax, read_all_forward=False, compute_csds=False)
+
+    freq_bins = [(4, 20), (30, 55)]
+    win_lengths = [0.2, 0.2]
+    reg = 0.001
+
+    noise_csds = []
+    for freq_bin, win_length in zip(freq_bins, win_lengths):
+        noise_csd = compute_epochs_csd(epochs, mode='fourier',
+                                       fmin=freq_bin[0], fmax=freq_bin[1],
+                                       fsum=True, tmin=tmin,
+                                       tmax=tmin + win_length)
+        noise_csds.append(noise_csd)
+
+    stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
+                   freq_bins, reg=reg, label=label)
+
+    assert_true(len(stcs) == len(freq_bins))
+    print stcs[0].shape
+    assert_true(stcs[0].shape[1] == 4)
+
+    # Manually calculating source power in several time windows to compare
+    # results and test overlapping
+    source_power = []
+    time_windows = [(-0.1, 0.1), (0.0, 0.2)]
+    for time_window in time_windows:
+        data_csd = compute_epochs_csd(epochs, mode='fourier',
+                                      fmin=freq_bins[0][0],
+                                      fmax=freq_bins[0][1], fsum=True,
+                                      tmin=time_window[0], tmax=time_window[1])
+        noise_csd = compute_epochs_csd(epochs, mode='fourier',
+                                       fmin=freq_bins[0][0],
+                                       fmax=freq_bins[0][1], fsum=True,
+                                       tmin=-0.2, tmax=0.0)
+        data_csd.data /= data_csd.n_fft
+        noise_csd.data /= noise_csd.n_fft
+        stc_source_power = dics_source_power(epochs.info, forward, noise_csd,
+                                             data_csd, reg=reg, label=label)
+        source_power.append(stc_source_power.data)
+
+    # Averaging all time windows that overlap the time period 0 to 100 ms
+    source_power = np.mean(source_power, axis=0)
+
+    # Selecting the first frequency bin in tf_dics results
+    stc = stcs[0]
+
+    # Comparing tf_dics results with dics_source_power results
+    assert_array_almost_equal(stc.data[:, 2], source_power[:, 0])
+
+    # Test if using unsupported max-power orientation is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, noise_csds, tmin, tmax,
+                  tstep, win_lengths, freq_bins=freq_bins,
+                  pick_ori='max-power')
+
+    # Test if incorrect number of noise CSDs is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, [noise_csds[0]], tmin,
+                  tmax, tstep, win_lengths, freq_bins=freq_bins)
+
+    # Test if freq_bins and win_lengths incompatibility is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, noise_csds, tmin, tmax,
+                  tstep, win_lengths=[0, 1, 2], freq_bins=freq_bins)
+
+    # Test if time step exceeding window lengths is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, noise_csds, tmin, tmax,
+                  tstep=0.15, win_lengths=[0.2, 0.1], freq_bins=freq_bins)
+
+    # Test if incorrect number of mt_bandwidths is detected
+    assert_raises(ValueError, tf_dics, epochs, forward, noise_csds, tmin, tmax,
+                  tstep, win_lengths, freq_bins, mode='multitaper',
+                  mt_bandwidths=[20])

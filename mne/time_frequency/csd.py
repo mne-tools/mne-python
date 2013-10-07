@@ -30,14 +30,19 @@ class CrossSpectralDensity(object):
     frequencies : float | list of float
         Frequency or frequencies for which the CSD matrix was calculated. If a
         list is passed, data is a sum across CSD matrices for all frequencies.
+    sfreq : float
+        Sampling frequency of the data from which the CSD was obtained.
+    n_fft : int
+        Length of the FFT used when calculating the CSD matrix.
     """
-    def __init__(self, data, ch_names, projs, bads, frequencies):
+    def __init__(self, data, ch_names, projs, bads, frequencies, n_fft):
         self.data = data
         self.dim = len(data)
         self.ch_names = cp.deepcopy(ch_names)
         self.projs = cp.deepcopy(projs)
         self.bads = cp.deepcopy(bads)
         self.frequencies = np.atleast_1d(np.copy(frequencies))
+        self.n_fft = n_fft
 
     def __repr__(self):
         s = 'frequencies : %s' % self.frequencies
@@ -48,13 +53,16 @@ class CrossSpectralDensity(object):
 
 @verbose
 def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
-                       fsum=True, tmin=None, tmax=None, mt_bandwidth=None,
-                       mt_adaptive=False, mt_low_bias=True, projs=None,
-                       verbose=None):
+                       fsum=True, tmin=None, tmax=None, n_fft=None,
+                       mt_bandwidth=None, mt_adaptive=False, mt_low_bias=True,
+                       projs=None, verbose=None):
     """Estimate cross-spectral density from epochs
 
     Note: Baseline correction should be used when creating the Epochs.
           Otherwise the computed cross-spectral density will be inaccurate.
+
+    Note: Results are scaled by sampling frequency for compatibility with
+          Matlab.
 
     Parameters
     ----------
@@ -75,6 +83,9 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         Minimum time instant to consider. If None start at first sample.
     tmax : float | None
         Maximum time instant to consider. If None end at last sample.
+    n_fft : int | None
+        Length of the FFT. If None the exact number of samples between tmin and
+        tmax will be used.
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'multitaper' mode.
@@ -100,10 +111,11 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     # Check correctness of input data and parameters
     if fmax < fmin:
         raise ValueError('fmax must be larger than fmin')
-    if tmin is not None and tmin < epochs.times[0]:
+    tstep = epochs.times[1] - epochs.times[0]
+    if tmin is not None and tmin < epochs.times[0] - tstep:
         raise ValueError('tmin should be larger than the smallest data time '
                          'point')
-    if tmax is not None and tmax > epochs.times[-1]:
+    if tmax is not None and tmax > epochs.times[-1] + tstep:
         raise ValueError('tmax should be smaller than the largest data time '
                          'point')
     if tmax is not None and tmin is not None:
@@ -130,9 +142,11 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         tend = np.where(epochs.times <= tmax)[0][-1] + 1
     tslice = slice(tstart, tend, None)
     n_times = len(epochs.times[tslice])
+    n_fft = n_times if n_fft is None else n_fft
 
     # Preparing frequencies of interest
-    frequencies = fftfreq(n_times, 1. / epochs.info['sfreq'])
+    sfreq = epochs.info['sfreq']
+    frequencies = fftfreq(n_fft, 1. / sfreq)
     freq_mask = (frequencies > fmin) & (frequencies < fmax)
     frequencies = frequencies[freq_mask]
     n_freqs = len(frequencies)
@@ -147,10 +161,9 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
     if mode == 'multitaper':
         # Compute standardized half-bandwidth
         if mt_bandwidth is not None:
-            half_nbw = (float(mt_bandwidth) * n_times /
-                        (2 * epochs.info['sfreq']))
+            half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
         else:
-            half_nbw = 4
+            half_nbw = 2
 
         # Compute DPSS windows
         n_tapers_max = int(2 * half_nbw)
@@ -182,7 +195,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         epoch = epoch[picks_meeg][:, tslice]
 
         # Calculating Fourier transform using multitaper module
-        x_mt, _ = _mt_spectra(epoch, window_fun, epochs.info['sfreq'])
+        x_mt, _ = _mt_spectra(epoch, window_fun, sfreq, n_fft)
 
         if mt_adaptive:
             # Compute adaptive weights
@@ -218,7 +231,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
             csds_epoch *= 8 / 3.
 
         # Scaling by sampling frequency for compatibility with Matlab
-        csds_epoch /= epochs.info['sfreq']
+        csds_epoch /= sfreq
 
         csds_mean += csds_epoch
         n_epochs += 1
@@ -233,12 +246,13 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         csd_mean_fsum = np.sum(csds_mean, 2)
         csd = CrossSpectralDensity(csd_mean_fsum, ch_names, projs,
                                    epochs.info['bads'],
-                                   frequencies=frequencies)
+                                   frequencies=frequencies, n_fft=n_fft)
         return csd
     else:
         csds = []
         for i in range(n_freqs):
             csds.append(CrossSpectralDensity(csds_mean[:, :, i], ch_names,
                                              projs, epochs.info['bads'],
-                                             frequencies=frequencies[i]))
+                                             frequencies=frequencies[i],
+                                             n_fft=n_fft))
         return csds

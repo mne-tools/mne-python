@@ -1776,3 +1776,4 @@ def _check_add_drop_log(epochs, inds):
         new_drop_log.append(new_log)
     epochs.drop_log = new_drop_log
     return epochs
+

@@ -6,6 +6,7 @@
 # License: BSD (3-clause)
 
 import warnings
+from copy import deepcopy
 
 import numpy as np
 from scipy import linalg
@@ -15,7 +16,7 @@ from ..fiff.pick import pick_types
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz
 from ..source_estimate import SourceEstimate
-from ..time_frequency import CrossSpectralDensity
+from ..time_frequency import CrossSpectralDensity, compute_epochs_csd
 from ._lcmv import _prepare_beamformer_input
 
 
@@ -150,7 +151,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
     courses in which case absolute values will be  returned. Therefore the
     orientation will no longer be fixed.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
 
     Parameters
@@ -175,7 +176,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
 
     Returns
     -------
-    stc: SourceEstimate
+    stc : SourceEstimate
         Source time courses
 
     Notes
@@ -205,7 +206,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     courses in which case absolute values will be  returned. Therefore the
     orientation will no longer be fixed.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
 
     Parameters
@@ -261,14 +262,14 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
 
 @verbose
 def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
-                      label=None, picks=None, pick_ori=None, verbose=None):
+                      label=None, pick_ori=None, verbose=None):
     """Dynamic Imaging of Coherent Sources (DICS).
 
     Calculate source power in time and frequency windows specified in the
     calculation of the data cross-spectral density matrix or matrices. Source
     power is normalized by noise power.
 
-    NOTE : This implementation has not been heavilly tested so please
+    NOTE : This implementation has not been heavily tested so please
     report any issues or suggestions.
 
     Parameters
@@ -295,7 +296,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
     Returns
     -------
-    stc: SourceEstimate
+    stc : SourceEstimate
         Source power with frequency instead of time.
 
     Notes
@@ -320,7 +321,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
     frequencies = []
     for data_csd, noise_csd in zip(data_csds, noise_csds):
-        if data_csd.frequencies != noise_csd.frequencies:
+        if not np.allclose(data_csd.frequencies, noise_csd.frequencies):
             raise ValueError('Data and noise CSDs should be calculated at '
                              'identical frequencies')
 
@@ -399,3 +400,179 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
     subject = _subject_from_forward(forward)
     return SourceEstimate(source_power, vertices=vertno, tmin=fmin / 1000.,
                           tstep=fstep / 1000., subject=subject)
+
+
+@verbose
+def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
+            freq_bins, mode='fourier', n_ffts=None, mt_bandwidths=None,
+            mt_adaptive=False, mt_low_bias=True, reg=0.01, label=None,
+            pick_ori=None, verbose=None):
+    """5D time-frequency beamforming based on DICS.
+
+    Calculate source power in time-frequency windows using a spatial filter
+    based on the Dynamic Imaging of Coherent Sources (DICS) beamforming
+    approach. For each time window and frequency bin combination cross-spectral
+    density (CSD) is computed and used to create a beamformer spatial filter
+    with noise CSD used for normalization.
+
+    NOTE : This implementation has not been heavily tested so please
+    report any issues or suggestions.
+
+    Parameters
+    ----------
+    epochs : Epochs
+        Single trial epochs.
+    forward : dict
+        Forward operator.
+    noise_csds : list of instances of CrossSpectralDensity
+        Noise cross-spectral density for each frequency bin.
+    tmin : float
+        Minimum time instant to consider.
+    tmax : float
+        Maximum time instant to consider.
+    tstep : float
+        Spacing between consecutive time windows, should be smaller than or
+        equal to the shortest time window length.
+    win_lengths : list of float
+        Time window lengths in seconds. One time window length should be
+        provided for each frequency bin.
+    freq_bins : list of tuples of float
+        Start and end point of frequency bins of interest.
+    mode : str
+        Spectrum estimation mode can be either: 'multitaper' or 'fourier'.
+    mt_bandwidths : list of float
+        The bandwidths of the multitaper windowing function in Hz. Only used in
+        'multitaper' mode. One value should be provided for each frequency bin.
+    mt_adaptive : bool
+        Use adaptive weights to combine the tapered spectra into CSD. Only used
+        in 'multitaper' mode.
+    mt_low_bias : bool
+        Only use tapers with more than 90% spectral concentration within
+        bandwidth. Only used in 'multitaper' mode.
+    reg : float
+        The regularization for the cross-spectral density.
+    label : Label | None
+        Restricts the solution to a given label.
+    pick_ori : None | 'normal'
+        If 'normal', rather than pooling the orientations by taking the norm,
+        only the radial component is kept.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stcs : list of SourceEstimate
+        Source power at each time window. One SourceEstimate object is returned
+        for each frequency bin.
+
+    Notes
+    -----
+    The original reference is:
+    Dalal et al. Five-dimensional neuroimaging: Localization of the
+    time-frequency dynamics of cortical activity.
+    NeuroImage (2008) vol. 40 (4) pp. 1686-1700
+
+    NOTE : Dalal et al. used a synthetic aperture magnetometry beamformer (SAM)
+    in each time-frequency window instead of DICS.
+    """
+
+    if pick_ori not in [None, 'normal']:
+        raise ValueError('Unrecognized orientation option in pick_ori, '
+                         'available choices are None and normal')
+    if len(noise_csds) != len(freq_bins):
+        raise ValueError('One noise CSD object expected per frequency bin')
+    if len(win_lengths) != len(freq_bins):
+        raise ValueError('One time window length expected per frequency bin')
+    if any(win_length < tstep for win_length in win_lengths):
+        raise ValueError('Time step should not be larger than any of the '
+                         'window lengths')
+    if n_ffts is not None and len(n_ffts) != len(freq_bins):
+        raise ValueError('When specifiying number of FFT samples, one value '
+                         'must be provided per frequency bin')
+    if mt_bandwidths is not None and len(mt_bandwidths) != len(freq_bins):
+        raise ValueError('When using multitaper mode and specifying '
+                         'multitaper transform bandwidth, one value must be '
+                         'provided per frequency bin')
+
+    if n_ffts is None:
+        n_ffts = [None] * len(freq_bins)
+    if mt_bandwidths is None:
+        mt_bandwidths = [None] * len(freq_bins)
+
+    # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
+    n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
+
+    sol_final = []
+    for freq_bin, win_length, noise_csd, n_fft, mt_bandwidth in\
+            zip(freq_bins, win_lengths, noise_csds, n_ffts, mt_bandwidths):
+        n_overlap = int((win_length * 1e3) // (tstep * 1e3))
+
+        # Scale noise CSD to allow data and noise CSDs to have different length
+        noise_csd = deepcopy(noise_csd)
+        noise_csd.data /= noise_csd.n_fft
+
+        sol_single = []
+        sol_overlap = []
+        for i_time in range(n_time_steps):
+            win_tmin = tmin + i_time * tstep
+            win_tmax = win_tmin + win_length
+
+            # If in the last step the last time point was not covered in
+            # previous steps and will not be covered now, a solution needs to
+            # be calculated for an additional time window
+            if i_time == n_time_steps - 1 and win_tmax - tstep < tmax and\
+               win_tmax >= tmax + (epochs.times[-1] - epochs.times[-2]):
+                warnings.warn('Adding a time window to cover last time points')
+                win_tmin = tmax - win_length
+                win_tmax = tmax
+
+            if win_tmax < tmax + (epochs.times[-1] - epochs.times[-2]):
+                logger.info('Computing time-frequency DICS beamformer for '
+                            'time window %d to %d ms, in frequency range '
+                            '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
+                                             freq_bin[0], freq_bin[1]))
+
+                # Calculating data CSD in current time window
+                data_csd = compute_epochs_csd(epochs, mode=mode,
+                                              fmin=freq_bin[0],
+                                              fmax=freq_bin[1], fsum=True,
+                                              tmin=win_tmin, tmax=win_tmax,
+                                              n_fft=n_fft,
+                                              mt_bandwidth=mt_bandwidth,
+                                              mt_low_bias=mt_low_bias)
+
+                # Scale data CSD to allow data and noise CSDs to have different
+                # length
+                data_csd.data /= data_csd.n_fft
+
+                stc = dics_source_power(epochs.info, forward, noise_csd,
+                                        data_csd, reg=reg, label=label,
+                                        pick_ori=pick_ori)
+                sol_single.append(stc.data[:, 0])
+
+            # Average over all time windows that contain the current time
+            # point, which is the current time window along with
+            # n_overlap - 1 previous ones
+            if i_time - n_overlap < 0:
+                curr_sol = np.mean(sol_single[0:i_time + 1], axis=0)
+            else:
+                curr_sol = np.mean(sol_single[i_time - n_overlap + 1:
+                                              i_time + 1], axis=0)
+
+            # The final result for the current time point in the current
+            # frequency bin
+            sol_overlap.append(curr_sol)
+
+        # Gathering solutions for all time points for current frequency bin
+        sol_final.append(sol_overlap)
+
+    sol_final = np.array(sol_final)
+
+    # Creating stc objects containing all time points for each frequency bin
+    stcs = []
+    for i_freq, _ in enumerate(freq_bins):
+        stc = SourceEstimate(sol_final[i_freq, :, :].T, vertices=stc.vertno,
+                             tmin=tmin, tstep=tstep, subject=stc.subject)
+        stcs.append(stc)
+
+    return stcs
