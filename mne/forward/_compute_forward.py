@@ -21,15 +21,6 @@ _mag_factor = 1e-7  # \mu_0/4\pi
 ##############################################################################
 # Triangle utilities
 
-def _project_to_triangle(s, idx, p, q):
-    tri = s['tris'][idx]
-    r1 = s['rr'][tri[0]]
-    r12 = s['rr'][tri[1]] - r1
-    r13 = s['rr'][tri[2]] - r1
-    r = r1 + p * r12 + q * r13
-    return r
-
-
 def _triangle_coords(r, geom, best):
     r1 = geom['r1'][best]
     tri_nn = geom['nn'][best]
@@ -82,7 +73,7 @@ def _bem_one_lin_field_coeff_simple(dest, normal, tri_rr, tri_nn, tri_area):
 
 
 def _calc_beta(rk, rk1):
-    rkk1 = rk - rk1
+    rkk1 = rk1 - rk
     size = np.sqrt(np.sum(rkk1 * rkk1, axis=1))
     vlrk = np.sqrt(np.sum(rk * rk, axis=1))
     vlrk1 = np.sqrt(np.sum(rk1 * rk1, axis=1))
@@ -93,7 +84,7 @@ def _calc_beta(rk, rk1):
 def _one_field_coeff(dest, normal, tri_rr):
     """Compute the integral over one triangle"""
     # This looks magical but it is not.
-    yy = dest - tri_rr[[0, 1, 2, 0]]
+    yy = tri_rr[[0, 1, 2, 0]] - dest
     beta = _calc_beta(yy[:3], yy[1:])
     beta = np.array([beta[2] - beta[0], beta[0] - beta[1], beta[1] - beta[2]])
     return np.dot(np.sum(yy[:3] * beta, axis=0), normal)

@@ -14,15 +14,16 @@ from mne.datasets import sample
 data_path = sample.data_path()
 
 bem = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
-meas = data_path + '/MEG/sample/sample_audvis_raw.fif'
+raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 src = data_path + '/subjects/sample/bem/sample-oct-6-src.fif'
 mri = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 subjects_dir = data_path + '/subjects'
 fname = 'test-fwd.fif'
 
-fwd = mne.do_forward_solution('sample', meas, fname, bem=bem, src=src, mri=mri,
-                              subjects_dir=subjects_dir, meg=True, eeg=True,
-                              mindist=5.0, n_jobs=2, overwrite=True)
+fwd = mne.make_forward_solution('sample', raw_fname, mri=mri, src=src, bem=bem,
+                                fname=fname, meg=True, eeg=True, mindist=5.0,
+                                n_jobs=2, subjects_dir=subjects_dir,
+                                overwrite=True)
 
 # convert to surface orientation for better visualization
 fwd = mne.convert_forward_solution(fwd, surf_ori=True)

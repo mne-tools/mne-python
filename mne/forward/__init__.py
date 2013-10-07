@@ -9,4 +9,4 @@ from .forward import (read_forward_solution, write_forward_solution,
                       _fill_measurement_info, _apply_forward,
                       _subject_from_forward, convert_forward_solution,
                       _to_fixed_ori)
-from ._do_forward import make_forward_solution
+from ._make_forward import make_forward_solution

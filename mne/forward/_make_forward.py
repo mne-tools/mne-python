@@ -9,9 +9,7 @@ import os
 from os import path as op
 import numpy as np
 
-from ..fiff.raw import Raw
-from ..fiff.pick import pick_types, pick_info
-from ..fiff.constants import FIFF
+from ..fiff import read_info, pick_types, pick_info, FIFF
 from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forward
 from ..transforms import (invert_transform, transform_source_space_to,
@@ -174,9 +172,9 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
     subject : str
         Name of the subject.
     info : dict | str
-        If str, then it should be a filename to a Raw file with measurement
-        information. If dict, should be an info dict (such as one from Raw,
-        Epochs, or Evoked).
+        If str, then it should be a filename to a Raw, Epochs, or Evoked
+        file with measurement information. If dict, should be an info
+        dict (such as one from Raw, Epochs, or Evoked).
     mri : dict | str
         Either a transformation filename (usually made using mne_analyze)
         or an info dict (usually opened using read_trans()).
@@ -246,10 +244,9 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
         raise TypeError('info should be a dict or string')
     if isinstance(info, basestring):
         info_extra = info
-        info = Raw(info, verbose=False)
-        info = info.info
+        info = read_info(info, verbose=False)
     else:
-        info_extra = repr(info)
+        info_extra = 'info dict'
 
     # this could, in principle, be an option
     coord_frame = FIFF.FIFFV_COORD_HEAD
