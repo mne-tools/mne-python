@@ -246,7 +246,7 @@ def _bem_pot_or_field(rr, coils, bem, n_jobs, ctype):
     mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
                       [len(s['rr']) for s in bem['surfs']])
     solution = coils['solution'] * mults[np.newaxis, :]
-    dbg = dict(solution=solution)
+    dbg = dict(solution=coils['solution'], mults=mults)
 
     # The dipole location and orientation must be transformed
     mri_rr = apply_trans(bem['head_mri_t']['trans'], rr)
