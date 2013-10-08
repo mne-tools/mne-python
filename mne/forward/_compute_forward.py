@@ -114,8 +114,7 @@ def _bem_specify_coils(bem, coils, n_jobs):
     """Set up for computing the solution at a set of coils"""
     sol = _bem_lin_field_coeff(bem, coils, n_jobs, 'simple')
     sol = np.dot(sol, bem['solution'])
-    coils['user_data'] = dict(ncoil=coils['ncoil'], np=bem['nsol'],
-                              solution=sol)
+    coils['solution'] = sol
 
 
 def _bem_specify_els(bem, els):
@@ -139,7 +138,7 @@ def _bem_specify_els(bem, els):
             w = elw * np.array([(1.0 - x - y), x, y])
             amt = np.dot(w, bem['solution'][tri])
             sol[k] += amt
-    els['user_data'] = dict(ncoil=sol.shape[0], np=sol.shape[1], solution=sol)
+    els['solution'] = sol
 
 
 #############################################################################
@@ -220,12 +219,13 @@ def _bem_inf_fields(rr, rp, c):
 def _comp_field(rrs, coils, comp, n_jobs):
     """Calculate the compensated field"""
     # First compute the field in the primary set of coils
-    res = comp['field'](rrs, coils, comp['client'], n_jobs)
+    res, dbg = comp['field'](rrs, coils, comp['client'], n_jobs)
 
     # Compensation needed?
     if comp['set']['current'] is not None:
         # Compute the field in the compensation coils
-        work = comp['field'](rrs, comp['comp_coils'], comp['client'], n_jobs)
+        work, _ = comp['field'](rrs, comp['comp_coils'], comp['client'],
+                                n_jobs)  # XXX dbg
         # Combine solutions so we can do the compensation
         both = np.zeros((work.shape[0], res.shape[1] + work.shape[1]))
         picks = pick_types(comp['set']['info'], meg=True, ref_meg=False)
@@ -233,7 +233,7 @@ def _comp_field(rrs, coils, comp, n_jobs):
         picks = pick_types(comp['set']['info'], meg=False, ref_meg=True)
         both[:, picks] = work
         res = np.dot(both, comp['set']['current'].T)
-    return res
+    return res, dbg
 
 
 def _bem_pot_or_field(rr, coils, bem, n_jobs, ctype):
@@ -245,14 +245,19 @@ def _bem_pot_or_field(rr, coils, bem, n_jobs, ctype):
     # multiply solution by "mults" here for simplicity
     mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
                       [len(s['rr']) for s in bem['surfs']])
-    solution = coils['user_data']['solution'] * mults[np.newaxis, :]
+    solution = coils['solution'] * mults[np.newaxis, :]
+    dbg = dict(solution=solution)
 
     # The dipole location and orientation must be transformed
     mri_rr = apply_trans(bem['head_mri_t']['trans'], rr)
     mri_Q = apply_trans(bem['head_mri_t']['trans'], np.eye(3), False)
+    dbg['rr'] = rr.copy()
+    dbg['mri_rr'] = mri_rr.copy()
+    dbg['mri_Q'] = mri_Q.copy()
 
     # Both MEG and EEG have the inifinite-medium potentials
     srr = np.concatenate([s['rr'] for s in bem['surfs']])
+    dbg['srr'] = srr
     # This could be just vectorized, but eats too much memory, so instead we
     # reduce memory by chunking within _do_inf_pots and parallelize, too:
     parallel, p_fun, _ = parallel_func(_do_inf_pots, n_jobs)
@@ -260,6 +265,7 @@ def _bem_pot_or_field(rr, coils, bem, n_jobs, ctype):
     B = np.sum(parallel(p_fun(mri_rr, sr.copy(), mri_Q, sol.copy())
                         for sr, sol in zip(nas(srr, n_jobs),
                                            nas(solution.T, n_jobs))), axis=0)
+    dbg['B0'] = B.copy()
     # The copy()s above should make it so the whole objects don't need to be
     # pickled...
 
@@ -272,7 +278,8 @@ def _bem_pot_or_field(rr, coils, bem, n_jobs, ctype):
                                                               n_jobs)), axis=1)
         B += pcc
         B *= 1e-7  # MAG_FACTOR from C code
-    return B
+    dbg['B'] = B.copy()
+    return B, dbg
 
 
 def _do_prim_curr(rr, coils):
@@ -334,5 +341,5 @@ def _compute_forward(src, coils, comp_coils, info, bem, ctype, n_jobs):
     rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
     logger.info('Computing %s at %d source locations '
                 '(free orientations)...' % (ctype.upper(), len(rrs)))
-    res = field(rrs, coils, client, n_jobs)
-    return res
+    res, dbg = field(rrs, coils, client, n_jobs)
+    return res, dbg
