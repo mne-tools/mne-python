@@ -18,7 +18,7 @@ from ..transforms import (invert_transform, transform_source_space_to,
 from ..utils import logger, verbose
 from ..source_space import (read_source_spaces, _filter_source_spaces,
                             SourceSpaces)
-from ..surface import read_bem_solution
+from ..surface import read_bem_solution, _normalize_vectors
 
 
 def _read_coil_defs(fname):
@@ -114,35 +114,26 @@ def _create_eeg_el(ch, t):
     if t is not None and t['from'] != FIFF.FIFFV_COORD_HEAD:
         raise RuntimeError('Inappropriate coordinate transformation')
 
-    r0 = ch['eeg_loc'][:, 0].copy()
-    ex = ch['eeg_loc'][:, 1].copy()
-    ex_size = np.sqrt(np.sum(ex ** 2))
-    if ex_size < 1e-4:
+    r0ex = ch['eeg_loc'][:, :2]
+    if r0ex.shape[1] == 1:  # no reference
         w = np.array([1.])
-    else:
+    else:  # has reference
         w = np.array([1., -1.])
-    res = dict(chname=ch['ch_name'], desc='EEG electrode',
-               coil_class=FIFF.FWD_COILC_EEG,
-               accuracy=FIFF.FWD_COIL_ACCURACY_NORMAL,
-               base=0.0, size=0.0, type=ch['coil_type'], np=len(w), w=w)
 
     # Optional coordinate transformation
+    r0ex = r0ex.T.copy()
     if t is not None:
-        r0 = apply_trans(t['trans'], r0)
-        ex = apply_trans(t['trans'], ex)
-        res['coord_frame'] = t['to']
+        r0ex = apply_trans(t['trans'], r0ex)
+        coord_frame = t['to']
     else:
-        res['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+        coord_frame = FIFF.FIFFV_COORD_HEAD
 
     # The electrode location
-    res.update(dict(ex=ex, r0=r0))
-    res['rmag'] = r0.copy()
-    res['cosmag'] = r0.copy() / np.sqrt(np.sum(r0 ** 2))
-
-    # Add the reference electrode, if appropriate
-    if res['np'] == 2:
-        res['rmag'] = np.array([res['rmag'], ex])
-        res['cosmag'] = np.array([res['cosmag'], ex / ex_size])
+    cosmag = r0ex.copy()
+    _normalize_vectors(cosmag)
+    res = dict(chname=ch['ch_name'], coil_class=FIFF.FWD_COILC_EEG, w=w,
+               accuracy=FIFF.FWD_COIL_ACCURACY_NORMAL, type=ch['coil_type'],
+               coord_frame=coord_frame, rmag=r0ex, cosmag=cosmag)
     return res
 
 

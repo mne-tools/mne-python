@@ -274,8 +274,8 @@ def _bem_pot_or_field(rr, coils, bem, n_jobs, ctype):
         # Primary current contribution (can be calc. in coil/dipole coords)
         parallel, p_fun, _ = parallel_func(_do_prim_curr, n_jobs)
         pcc = np.concatenate(parallel(p_fun(rr, c)
-                                      for c in np.array_split(coils['coils'],
-                                                              n_jobs)), axis=1)
+                                      for c in nas(coils['coils'], n_jobs)),
+                             axis=1)
         B += pcc
         B *= 1e-7  # MAG_FACTOR from C code
     dbg['B'] = B.copy()
