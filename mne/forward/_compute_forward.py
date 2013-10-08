@@ -119,7 +119,7 @@ def _bem_specify_coils(bem, coils, n_jobs):
 
 def _bem_specify_els(bem, els):
     """Set up for computing the solution at a set of electrodes"""
-    sol = np.zeros((els['ncoil'], bem['nsol']))
+    sol = np.zeros((len(els['coils']), bem['nsol']))
     # Go through all coils
     scalp = bem['surfs'][0]
     scalp['geom'] = _get_tri_supp_geom(scalp['tris'], scalp['rr'])

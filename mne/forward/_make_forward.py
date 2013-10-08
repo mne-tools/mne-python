@@ -37,13 +37,14 @@ def _read_coil_defs(fname):
                 end = len(line.strip()) - 1
                 assert line.strip()[end] == '"'
                 desc = line[start:end]
-                coil = dict(coil_type=vals[1], coil_class=vals[0],
-                            accuracy=vals[2], np=int(vals[3]),
-                            size=vals[4], base=vals[5], desc=desc)
-                coil['rmag'] = np.zeros((coil['np'], 3))
-                coil['cosmag'] = np.zeros((coil['np'], 3))
-                coil['w'] = np.zeros(coil['np'])
-                for p in xrange(coil['np']):
+                npts = int(vals[3])
+                coil = dict(coil_type=vals[1], coil_class=vals[0], desc=desc,
+                            accuracy=vals[2], size=vals[4], base=vals[5])
+                # get parameters of each component
+                rmag = list()
+                cosmag = list()
+                w = list()
+                for p in xrange(npts):
                     # get next non-comment line
                     line = lines.pop()
                     while(line[0] == '#'):
@@ -51,18 +52,21 @@ def _read_coil_defs(fname):
                     vals = np.fromstring(line, sep=' ')
                     assert len(vals) == 7
                     # Read and verify data for each integration point
-                    coil['w'][p] = vals[0]
-                    coil['rmag'][p] = vals[[1, 2, 3]]
-                    coil['cosmag'][p] = vals[[4, 5, 6]]
-                    if np.sqrt(np.sum(coil['rmag'][p] ** 2)) > big_val:
-                        raise RuntimeError('Unreasonable integration point')
-                    size = np.sqrt(np.sum(coil['cosmag'][p]))
-                    if size <= 0:
-                        raise RuntimeError('Unreasonable normal')
-                    coil['cosmag'][p] /= size
+                    w.append(vals[0])
+                    rmag.append(vals[[1, 2, 3]])
+                    cosmag.append(vals[[4, 5, 6]])
+                w = np.array(w)
+                rmag = np.array(rmag)
+                cosmag = np.array(cosmag)
+                size = np.sqrt(np.sum(cosmag ** 2, axis=1))
+                if np.any(np.sqrt(np.sum(rmag ** 2, axis=1)) > big_val):
+                    raise RuntimeError('Unreasonable integration point')
+                if np.any(size <= 0):
+                    raise RuntimeError('Unreasonable normal')
+                cosmag /= size[:, np.newaxis]
+                coil.update(dict(w=w, cosmag=cosmag, rmag=rmag))
                 res['coils'].append(coil)
-    res['ncoil'] = len(res['coils'])
-    logger.info('%d coil definitions read', res['ncoil'])
+    logger.info('%d coil definitions read', len(res['coils']))
     return res
 
 
@@ -86,7 +90,7 @@ def _create_meg_coil(coilset, ch, acc, t):
     # Create the result
     res = dict(chname=ch['ch_name'], desc=None, coil_class=d['coil_class'],
                accuracy=d['accuracy'], base=d['base'], size=d['size'],
-               type=ch['coil_type'], np=d['np'], w=d['w'])
+               type=ch['coil_type'], w=d['w'])
 
     if d['desc']:
         res['desc'] = d['desc']
@@ -148,7 +152,7 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
             coils.append(_create_eeg_el(ch, t))
     else:
         raise RuntimeError('unknown coil type')
-    res = dict(coils=coils, ncoil=len(coils), coord_frame=t['to'])
+    res = dict(coils=coils, coord_frame=t['to'])
     return res
 
 
