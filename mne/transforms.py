@@ -186,7 +186,7 @@ def translation(x=0, y=0, z=0):
 
 def _get_mri_head_t_from_trans_file(fname):
     """Helper to convert "-trans.txt" to "-trans.fif" mri-type equivalent"""
-    """Read a Neuromag -> FreeSurfer transformation matrix"""
+    # Read a Neuromag -> FreeSurfer transformation matrix
     t = np.genfromtxt(fname)
     if t.ndim != 2 or t.shape != (4, 4):
         raise RuntimeError('File "%s" did not have 4x4 entries' % fname)
