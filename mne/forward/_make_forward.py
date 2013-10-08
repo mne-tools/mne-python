@@ -404,22 +404,19 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
 
     # Do the actual computation
     megfwd, megfwd_grad, eegfwd, eegfwd_grad = None, None, None, None
-    dbg_eeg, dbg_meg = None, None
     if nmeg > 0:
-        megfwd, dbg_meg = _compute_forward(src, megcoils, compcoils, meg_info,
-                                           bem_model, 'meg', n_jobs)
+        megfwd = _compute_forward(src, megcoils, compcoils, meg_info,
+                                  bem_model, 'meg', n_jobs)
         megfwd = _to_forward_dict(megfwd, None, megnames, coord_frame,
                                   FIFF.FIFFV_MNE_FREE_ORI)
     if neeg > 0:
-        eegfwd, dbg_eeg = _compute_forward(src, eegels, None, None,
-                                           bem_model, 'eeg', n_jobs)
+        eegfwd = _compute_forward(src, eegels, None, None,
+                                  bem_model, 'eeg', n_jobs)
         eegfwd = _to_forward_dict(eegfwd, None, eegnames, coord_frame,
                                   FIFF.FIFFV_MNE_FREE_ORI)
 
     # merge forwards into one
     fwd = _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=False)
-    fwd['dbg_meg'] = dbg_meg
-    fwd['dbg_eeg'] = dbg_eeg
     logger.info('')
 
     # pick out final dict info
