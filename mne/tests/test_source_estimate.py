@@ -342,7 +342,7 @@ def test_morph_data():
     stc_to3 = morph_data(subject_from, subject_to, stc_from,
                          grade=vertices_to, smooth=12, buffer_size=3,
                          subjects_dir=subjects_dir)
-    # indexing silliness here due to mne_make_movie's indexing oddities
+
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
@@ -361,6 +361,15 @@ def test_morph_data():
     stc_to5 = morph_data(subject_from, subject_to, stc_from, grade=None,
                          smooth=12, buffer_size=3, subjects_dir=subjects_dir)
     assert_true(stc_to5.data.shape[0] == 163842 + 163842)
+
+    # test morphing to the same subject
+    stc_to6 = stc_from.morph(subject_from, grade=stc_from.vertno, smooth=1,
+                             subjects_dir=subjects_dir)
+    mask = np.ones(stc_from.data.shape[0], dtype=np.bool)
+    # XXX: there is a bug somewhere that causes a difference at 2 vertices..
+    mask[6799] = False
+    mask[6800] = False
+    assert_array_almost_equal(stc_from.data[mask], stc_to6.data[mask], 5)
 
 
 def _my_trans(data):

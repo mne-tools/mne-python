@@ -71,6 +71,10 @@ class Label(object):
         if not isinstance(hemi, basestring):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
         vertices = np.asarray(vertices)
+        if np.any(np.diff(vertices.astype(int)) <= 0):
+            raise ValueError('Vertices must be ordered in increasing '
+                             'order.')
+
         if values is None:
             values = np.ones(len(vertices))
         if pos is None:
