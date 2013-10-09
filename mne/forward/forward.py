@@ -213,7 +213,7 @@ def read_forward_meas_info(tree, fid):
 
     Returns
     -------
-    info : dict
+    info : instance of mne.fiff.meas_info.Info
         The measurement info.
     """
     info = dict()
@@ -783,7 +783,7 @@ def write_forward_meas_info(fid, info):
     ----------
     fid : file id
         The file id
-    info : dict
+    info : instance of mne.fiff.meas_info.Info
         The measurement info.
     """
     #

@@ -139,7 +139,7 @@ def read_info(fname, verbose=None):
 
     Returns
     -------
-    info : dict
+    info : instance of mne.fiff.meas_info.Info
        Info on dataset.
     """
     f, tree, _ = fiff_open(fname)
@@ -163,7 +163,7 @@ def read_meas_info(fid, tree, verbose=None):
 
     Returns
     -------
-    info : dict
+    info : instance of mne.fiff.meas_info.Info
        Info on dataset.
     meas : dict
         Node in tree that contains the info.
@@ -424,7 +424,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     ----------
     fid : file
         Open file descriptor
-    info : dict
+    info : instance of mne.fiff.meas_info.Info
         The measurement info structure
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
