@@ -368,6 +368,7 @@ def _triangle_neighbors(tris, npts):
 
 
 def _triangle_coords(r, geom, best):
+    """Get coordinates of a vertex projected to a triangle"""
     r1 = geom['r1'][best]
     tri_nn = geom['nn'][best]
     r12 = geom['r12'][best]
@@ -432,14 +433,15 @@ def _complete_surface_info(this, do_neighbor_vert=False):
     return this
 
 
-def _get_surf_neighbors(this, k):
-    verts = np.concatenate([this['tris'][nt]
-                            for nt in this['neighbor_tri'][k]])
+def _get_surf_neighbors(surf, k):
+    """Calculate the surface neighbors based on triangulation"""
+    verts = np.concatenate([surf['tris'][nt]
+                            for nt in surf['neighbor_tri'][k]])
     verts = np.setdiff1d(verts, [k], assume_unique=False)
-    if np.any(verts >= this['np']):
+    if np.any(verts >= surf['np']):
         raise RuntimeError
     nneighbors = len(verts)
-    nneigh_max = len(this['neighbor_tri'][k])
+    nneigh_max = len(surf['neighbor_tri'][k])
     if nneighbors > nneigh_max:
         raise RuntimeError('Too many neighbors for vertex %d' % k)
     elif nneighbors != nneigh_max:
@@ -1183,6 +1185,7 @@ def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
 
 
 def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
+    """Get nearest location from a point to the edge of a set of triangles"""
     # We might do something intelligent here. However, for now
     # it is ok to do it in the hard way
     aa = tri_geom['a'][pt_tris]

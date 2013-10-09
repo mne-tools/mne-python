@@ -62,14 +62,23 @@ def _bem_one_lin_field_coeff_simple(dest, normal, tri_rr, tri_nn, tri_area):
     return out
 
 
-def _do_lin_field_coeff(surf, mult, rmags, cosmags, ws, lims, func):
+def _lin_field_coeff(s, mult, rmags, cosmags, ws, lims, func, n_jobs):
     """Use the linear field approximation to get field coefficients"""
-    coeff = np.zeros((len(lims) - 1, surf['np']))
-    for tri, tri_nn, tri_area in zip(surf['tris'],
-                                     surf['tri_nn'], surf['tri_area']):
+    parallel, p_fun, _ = parallel_func(_do_lin_field_coeff, n_jobs)
+    nas = np.array_split
+    coeffs = parallel(p_fun(s['rr'], t, tn, ta, rmags, cosmags, ws, lims, func)
+                      for t, tn, ta in zip(nas(s['tris'], n_jobs),
+                                           nas(s['tri_nn'], n_jobs),
+                                           nas(s['tri_area'], n_jobs)))
+    return mult * np.sum(coeffs, axis=0)
+
+
+def _do_lin_field_coeff(rr, t, tn, ta, rmags, cosmags, ws, lims, func):
+    coeff = np.zeros((len(lims) - 1, len(rr)))
+    for tri, tri_nn, tri_area in zip(t, tn, ta):
         # Accumulate the coefficients for each triangle node
         # and add to the corresponding coefficient matrix
-        tri_rr = surf['rr'][tri]
+        tri_rr = rr[tri]
 
         # The following is equivalent to:
         #for j, coil in enumerate(coils['coils']):
@@ -80,7 +89,7 @@ def _do_lin_field_coeff(surf, mult, rmags, cosmags, ws, lims, func):
 
         xx = func(rmags, cosmags, tri_rr, tri_nn, tri_area)
         yy = np.c_[np.zeros((3, 1)), np.cumsum(xx * ws, axis=1)]
-        zz = mult * np.diff(yy[:, lims], axis=1)
+        zz = np.diff(yy[:, lims], axis=1)
         coeff[:, tri] += zz.T
     return coeff
 
@@ -103,12 +112,12 @@ def _bem_specify_coils(bem, coils, coord_frame, n_jobs):
     lims = np.cumsum(np.r_[0, [len(coil['rmag']) for coil in coils]])
     ws = np.concatenate([coil['w'] for coil in coils])
 
-    # might as well parallelize over surfaces here
-    parallel, p_fun, _ = parallel_func(_do_lin_field_coeff, n_jobs)
-    coeff = parallel(p_fun(surf, mult, rmags, cosmags, ws, lims, func)
-                     for surf, mult in zip(bem['surfs'], bem['field_mult']))
-    # coeff checked against fwd_bem_lin_field_coeff, equiv to at least 7
-    coeff = np.concatenate(coeff, axis=1)
+    lens = np.cumsum(np.r_[0, [len(s['rr']) for s in bem['surfs']]])
+    coeff = np.empty((len(lims) - 1, lens[-1]))
+    for o1, o2, surf, mult in zip(lens[:-1], lens[1:],
+                                  bem['surfs'], bem['field_mult']):
+        coeff[:, o1:o2] = _lin_field_coeff(surf, mult, rmags, cosmags,
+                                           ws, lims, func, n_jobs)
     # put through the bem
     sol = np.dot(coeff, bem['solution'])
     return sol
@@ -211,23 +220,18 @@ def _bem_inf_fields(rr, rp, c):
     return np.rollaxis(x / diff_norm, 1)
 
 
-def _bem_pot_or_field(rr, coils, solution, bem, n_jobs, ctype):
+def _bem_pot_or_field(rr, mri_rr, mri_Q, mults, coils, solution, srr,
+                      n_jobs, coil_type):
     """Calculate the magnetic field or electric potential
 
     The code is very similar between EEG and MEG potentials, so we'll
     combine them.
     """
     # multiply solution by "mults" here for simplicity
-    mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
-                      [len(s['rr']) for s in bem['surfs']])
-    solution = solution * mults[np.newaxis, :]
-
-    # The dipole location and orientation must be transformed
-    mri_rr = apply_trans(bem['head_mri_t']['trans'], rr)
-    mri_Q = apply_trans(bem['head_mri_t']['trans'], np.eye(3), False)
+    # we can do this one in-place because it's not used elsewhere
+    solution *= mults
 
     # Both MEG and EEG have the inifinite-medium potentials
-    srr = np.concatenate([s['rr'] for s in bem['surfs']])
     # This could be just vectorized, but eats too much memory, so instead we
     # reduce memory by chunking within _do_inf_pots and parallelize, too:
     parallel, p_fun, _ = parallel_func(_do_inf_pots, n_jobs)
@@ -239,7 +243,7 @@ def _bem_pot_or_field(rr, coils, solution, bem, n_jobs, ctype):
     # pickled...
 
     # Only MEG gets the primary current distribution
-    if ctype.lower() == 'meg':
+    if coil_type == 'meg':
         # Primary current contribution (can be calc. in coil/dipole coords)
         parallel, p_fun, _ = parallel_func(_do_prim_curr, n_jobs)
         pcc = np.concatenate(parallel(p_fun(rr, c)
@@ -275,46 +279,67 @@ def _do_inf_pots(rr, srr, mri_Q, sol):
     return B
 
 
-def _compute_forward(src, coils, coord_frame, ccoils, ccoord_frame,
-                     info, bem, ctype, n_jobs):
-    """Compute the M/EEG forward solution"""
+def _compute_forwards(src, bem, coils_list, cfs, ccoils_list, ccfs,
+                      infos, coil_types, n_jobs):
+    """Compute the MEG and EEG forward solutions"""
     if bem['bem_method'] != 'linear collocation':
         raise RuntimeError('only linear collocation supported')
 
-    # Prepare the coil definitions and BEM
-    if ctype == 'meg':
-        # Compose a compensation data set if necessary
-        compensator = _make_ctf_comp_coils(info, coils)
+    # Precompute some things that are used for both MEG and EEG
+    rr = np.concatenate([s['rr'][s['vertno']] for s in src])
+    mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
+                      [len(s['rr']) for s in bem['surfs']])[np.newaxis, :]
+    # The dipole location and orientation must be transformed
+    mri_rr = apply_trans(bem['head_mri_t']['trans'], rr)
+    mri_Q = apply_trans(bem['head_mri_t']['trans'], np.eye(3), False)
+    srr = np.concatenate([s['rr'] for s in bem['surfs']])
 
-        # Field computation matrices...
-        logger.info('')
-        start = 'Composing the field computation matrix'
-        logger.info(start + '...')
-        solution = _bem_specify_coils(bem, coils, coord_frame, n_jobs)
-        if compensator is not None:
-            logger.info(start + ' (compensation coils)...')
-            csolution = _bem_specify_coils(bem, ccoils, ccoord_frame, n_jobs)
+    # Now, actually compute MEG and EEG solutions
+    Bs = list()
+    for coil_type, coils, cf, ccoils, ccf, info in zip(coil_types, coils_list,
+                                                       cfs, ccoils_list, ccfs,
+                                                       infos):
+        if coils is None:  # nothing to do
+            Bs.append(None)
+        else:
+            if coil_type == 'meg':
+                # Compose a compensation data set if necessary
+                compensator = _make_ctf_comp_coils(info, coils)
 
-    elif ctype == 'eeg':
-        solution = _bem_specify_els(bem, coils)
-        compensator = None
+                # Field computation matrices...
+                logger.info('')
+                start = 'Composing the field computation matrix'
+                logger.info(start + '...')
+                solution = _bem_specify_coils(bem, coils, cf, n_jobs)
+                if compensator is not None:
+                    logger.info(start + ' (compensation coils)...')
+                    csolution = _bem_specify_coils(bem, ccoils, ccf, n_jobs)
 
-    # Do the actual calculation
-    rrs = np.concatenate([s['rr'][s['vertno']] for s in src])
-    logger.info('Computing %s at %d source locations '
-                '(free orientations)...' % (ctype.upper(), len(rrs)))
-    B = _bem_pot_or_field(rrs, coils, solution, bem, n_jobs, ctype)
+            elif coil_type == 'eeg':
+                solution = _bem_specify_els(bem, coils)
+                compensator = None
 
-    # Compensate if needed (only done for MEG systems with compensation)
-    if compensator is not None:
-        # Compute the field in the compensation coils
-        work = _bem_pot_or_field(rrs, ccoils, csolution, bem, n_jobs, ctype)
-        # Combine solutions so we can do the compensation
-        both = np.zeros((work.shape[0], B.shape[1] + work.shape[1]))
-        picks = pick_types(info, meg=True, ref_meg=False)
-        both[:, picks] = B
-        picks = pick_types(info, meg=False, ref_meg=True)
-        both[:, picks] = work
-        B = np.dot(both, compensator.T)
+            # Do the actual calculation
+            logger.info('Computing %s at %d source locations '
+                        '(free orientations)...'
+                        % (coil_type.upper(), len(rr)))
+            # Note: this function modifies "solution" in-place
+            B = _bem_pot_or_field(rr, mri_rr, mri_Q, mults, coils,
+                                  solution, srr, n_jobs, coil_type)
 
-    return B
+            # Compensate if needed (only done for MEG systems w/compensation)
+            if compensator is not None:
+                # Compute the field in the compensation coils
+                work = _bem_pot_or_field(rr, mri_rr, mri_Q, mults,
+                                         ccoils, csolution, srr, n_jobs,
+                                         coil_type)
+                # Combine solutions so we can do the compensation
+                both = np.zeros((work.shape[0], B.shape[1] + work.shape[1]))
+                picks = pick_types(info, meg=True, ref_meg=False)
+                both[:, picks] = B
+                picks = pick_types(info, meg=False, ref_meg=True)
+                both[:, picks] = work
+                B = np.dot(both, compensator.T)
+            Bs.append(B)
+
+    return Bs

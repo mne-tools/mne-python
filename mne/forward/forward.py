@@ -296,6 +296,7 @@ def _subject_from_forward(forward):
 
 @verbose
 def _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=None):
+    """Merge loaded MEG and EEG forward dicts into one dict"""
     if megfwd is not None and eegfwd is not None:
         if (megfwd['sol']['data'].shape[1] != eegfwd['sol']['data'].shape[1] or
                 megfwd['source_ori'] != eegfwd['source_ori'] or
@@ -326,9 +327,6 @@ def _merge_meg_eeg_fwds(megfwd, eegfwd, verbose=None):
         fwd = megfwd
     else:
         fwd = eegfwd
-
-    del megfwd
-    del eegfwd
     return fwd
 
 
