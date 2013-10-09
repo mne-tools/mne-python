@@ -231,10 +231,12 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
     if not isinstance(src, basestring):
         if not isinstance(src, SourceSpaces):
             raise TypeError('src must be a string or SourceSpaces')
-        src = 'list'
-    elif not op.isfile(src):
-        raise IOError('Source space file "%s" not found' % src)
-    elif not op.isfile(bem):
+        src_extra = 'list'
+    else:
+        src_extra = src
+        if not op.isfile(src):
+            raise IOError('Source space file "%s" not found' % src)
+    if not op.isfile(bem):
         raise IOError('BEM file "%s" not found' % bem)
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'
@@ -248,8 +250,8 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
     else:
         info_extra = 'info dict'
         info_extra_long = info_extra
-    arg_list = [subject, info_extra, mri, src, bem, fname,  meg, eeg, mindist,
-                overwrite, n_jobs, verbose]
+    arg_list = [subject, info_extra, mri, src_extra, bem, fname,  meg, eeg,
+                mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
 
     # this could, in principle, be an option

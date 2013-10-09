@@ -44,8 +44,7 @@ def test_make_forward_solution_compensation():
                              subjects_dir=subjects_dir)
     fwd_py = make_forward_solution('sample', fname_ctf_raw, mindist=0.0,
                                    src=src, eeg=False, meg=True,
-                                   bem=fname_bem, mri=fname_mri,
-                                   subjects_dir=subjects_dir)
+                                   bem=fname_bem, mri=fname_mri)
 
     fwd = do_forward_solution('sample', fname_ctf_raw, src=fname_src,
                               mindist=0.0, bem=fname_bem, mri=fname_mri,
@@ -64,8 +63,7 @@ def test_make_forward_solution():
                         'sample-5120-5120-5120-bem-sol.fif')
     fwd_py = make_forward_solution('sample', fname_raw, mindist=5.0,
                                    src=fname_src, eeg=True, meg=True,
-                                   bem=fname_bem, mri=fname_mri,
-                                   subjects_dir=subjects_dir)
+                                   bem=fname_bem, mri=fname_mri)
     fwd = read_forward_solution(fname_meeg)
     # check MEG
     assert_allclose(fwd['sol']['data'][:306],

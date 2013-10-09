@@ -155,7 +155,7 @@ def get_machid():
     mac = ''.join([hex(x)[2:]
                    for x in (np.random.rand(6) * 256).astype(np.uint8)])
     # actually find the ethernet card
-    if sys.platform == 'win32':
+    if 'win' in sys.platform:
         for line in os.popen("ipconfig /all"):
             if line.lstrip().startswith('Physical Address'):
                 mac = line.split(':')[1].strip().replace('-', ':')
@@ -165,6 +165,7 @@ def get_machid():
             if line.find('Ether') > -1:
                 mac = line.split()[4]
                 break
+
     mac = mac.split(':') + ['00', '00']  # add two more fields
     # Convert to integer in reverse-order (for some reason)
     mac = ''.join([h.decode('hex') for h in mac[::-1]])
