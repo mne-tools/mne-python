@@ -25,10 +25,9 @@ from .source_estimate import mesh_dist
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
                    has_nibabel, logger, verbose, check_scipy_version
 from .fixes import in1d, partial
+from .parallel import parallel_func, check_n_jobs
 from .transforms import invert_transform, apply_trans, _print_coord_trans, \
                         combine_transforms
-from .parallel import parallel_func, check_n_jobs
-
 if has_nibabel():
     import nibabel as nib
 
@@ -1425,7 +1424,8 @@ def _add_interpolator(s, mri_name):
 
 
 @verbose
-def _filter_source_spaces(surf, limit, mri_head_t, src, verbose=None):
+def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
+                          verbose=None):
     """Remove all source space points closer than a given limit"""
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
         raise RuntimeError('Source spaces are in head coordinates and no '
@@ -1455,7 +1455,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, verbose=None):
             r1s = apply_trans(inv_trans['trans'], r1s)
 
         # Check that the source is inside surface (often the inner skull)
-        x = _sum_solids_div(r1s, surf)
+        x = _sum_solids_div(r1s, surf, n_jobs)
         outside = np.abs(x - 1.0) > 1e-5
         omit_outside = np.sum(outside)
 
@@ -1485,14 +1485,22 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, verbose=None):
     logger.info('Thank you for waiting.')
 
 
-def _sum_solids_div(fros, surf):
+def _sum_solids_div(fros, surf, n_jobs):
     """Compute sum of solid angles according to van Oosterom for all tris"""
+    parallel, p_fun, _ = parallel_func(_get_solids, n_jobs)
+    tot_angles = parallel(p_fun(surf['rr'][tris], fros)
+                          for tris in np.array_split(surf['tris'], n_jobs))
+    return np.sum(tot_angles, axis=0) / (2 * np.pi)
+
+
+def _get_solids(tri_rrs, fros):
+    """Helper for computing _sum_solids_div total angle in chunks"""
     # NOTE: This incorporates the division by 4PI that used to be separate
     tot_angle = np.zeros((len(fros)))
-    for tri in surf['tris']:
-        v1 = fros - surf['rr'][tri[0]]
-        v2 = fros - surf['rr'][tri[1]]
-        v3 = fros - surf['rr'][tri[2]]
+    for tri_rr in tri_rrs:
+        v1 = fros - tri_rr[0]
+        v2 = fros - tri_rr[1]
+        v3 = fros - tri_rr[2]
         triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
         l1 = np.sqrt(np.sum(v1 * v1, axis=1))
         l2 = np.sqrt(np.sum(v2 * v2, axis=1))
@@ -1502,7 +1510,7 @@ def _sum_solids_div(fros, surf):
              np.sum(v1 * v3, axis=1) * l2 +
              np.sum(v2 * v3, axis=1) * l1)
         tot_angle -= np.arctan2(triple, s)
-    return tot_angle / (2 * np.pi)
+    return tot_angle
 
 
 @verbose

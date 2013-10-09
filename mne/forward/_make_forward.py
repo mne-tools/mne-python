@@ -152,8 +152,7 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
             coils.append(_create_eeg_el(ch, t))
     else:
         raise RuntimeError('unknown coil type')
-    res = dict(coils=coils, coord_frame=t['to'])
-    return res
+    return coils, t['to']
 
 
 @verbose
@@ -353,18 +352,17 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
     extra_str = 'Head'
 
     if nmeg > 0:
-        megcoils = _create_coils(templates, megchs,
-                                 FIFF.FWD_COIL_ACCURACY_ACCURATE,
-                                 meg_xform, coil_type='meg')
+        megcoils, megcf = _create_coils(templates, megchs,
+                                        FIFF.FWD_COIL_ACCURACY_ACCURATE,
+                                        meg_xform, coil_type='meg')
+        compcoils, compcf = None, None
         if ncomp > 0:
-            compcoils = _create_coils(templates, compchs,
-                                      FIFF.FWD_COIL_ACCURACY_NORMAL,
-                                      meg_xform, coil_type='meg')
-        else:
-            compcoils = None
+            compcoils, compcf = _create_coils(templates, compchs,
+                                              FIFF.FWD_COIL_ACCURACY_NORMAL,
+                                              meg_xform, coil_type='meg')
     if neeg > 0:
-        eegels = _create_coils(templates, eegchs, None,
-                               eeg_xform, coil_type='eeg')
+        eegels, _ = _create_coils(templates, eegchs, None,
+                                  eeg_xform, coil_type='eeg')
     logger.info('%s coordinate coil definitions created.' % extra_str)
 
     # Transform the source spaces into the appropriate coordinates
@@ -399,19 +397,20 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
     if len(idx) != 1:
         raise RuntimeError('BEM model does not have the inner skull '
                            'triangulation')
-    _filter_source_spaces(bem_model['surfs'][idx], mindist, mri_head_t, src)
+    _filter_source_spaces(bem_model['surfs'][idx], mindist, mri_head_t, src,
+                          n_jobs)
     logger.info('')
 
     # Do the actual computation
     megfwd, megfwd_grad, eegfwd, eegfwd_grad = None, None, None, None
     if nmeg > 0:
-        megfwd = _compute_forward(src, megcoils, compcoils, meg_info,
-                                  bem_model, 'meg', n_jobs)
+        megfwd = _compute_forward(src, megcoils, megcf, compcoils, compcf,
+                                  meg_info, bem_model, 'meg', n_jobs)
         megfwd = _to_forward_dict(megfwd, None, megnames, coord_frame,
                                   FIFF.FIFFV_MNE_FREE_ORI)
     if neeg > 0:
-        eegfwd = _compute_forward(src, eegels, None, None,
-                                  bem_model, 'eeg', n_jobs)
+        eegfwd = _compute_forward(src, eegels, None, None, None,
+                                  None, bem_model, 'eeg', n_jobs)
         eegfwd = _to_forward_dict(eegfwd, None, eegnames, coord_frame,
                                   FIFF.FIFFV_MNE_FREE_ORI)
 
@@ -445,7 +444,7 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
 
 
 def _to_forward_dict(fwd, fwd_grad, names, coord_frame, source_ori):
-    """Convert forward solution matrices to mne-python dictionary"""
+    """Convert forward solution matrices to dicts"""
     sol = dict(data=fwd.T, nrow=fwd.shape[1], ncol=fwd.shape[0],
                row_names=names, col_names=[])
     fwd = dict(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
