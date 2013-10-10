@@ -826,7 +826,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         raise RuntimeError('Too many plots requested. Please pass fewer '
                            'than 20 time instants.')
     tmin, tmax = evoked.times[[0, -1]]
-    for ii, t in enumerate(times):
+    for t in times:
         if not tmin <= t <= tmax:
             raise ValueError('Times should be between %0.3f and %0.3f. (Got '
                              '%0.3f).' % (tmin, tmax, t))
@@ -1879,7 +1879,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
 def _prepare_topo_plot(obj, ch_type, layout):
     """"Aux Function"""
     info = copy.deepcopy(obj.info)
-    if layout is None:
+    if layout is None and ch_type is not 'eeg':
         from .layouts.layout import find_layout
         layout = find_layout(info['chs'])
     elif layout == 'auto':
@@ -1901,7 +1901,11 @@ def _prepare_topo_plot(obj, ch_type, layout):
         merge_grads = True
     else:
         merge_grads = False
-        picks = pick_types(info, meg=ch_type, exclude='bads')
+        if ch_type == 'eeg':
+            picks = pick_types(info, meg=False, eeg=True, exclude='bads')
+        else:
+            picks = pick_types(info, meg=ch_type, exclude='bads')
+
         if len(picks) == 0:
             raise ValueError("No channels of type %r" % ch_type)
 
