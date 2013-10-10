@@ -21,6 +21,7 @@ from .surface import read_surface, _create_surf_spacing, _get_ico_surface, \
                      _read_surface_geom, _normalize_vectors, \
                      _complete_surface_info, _compute_nearest, \
                      fast_cross_3d
+from .source_estimate import mesh_dist
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
                    has_nibabel, logger, verbose
 from .fixes import in1d
@@ -1499,8 +1500,8 @@ def _sum_solids_div(fros, surf):
     return tot_angle / (2 * np.pi)
 
 
-def get_source_space_distances(src, n_jobs=1, verbose=None):
-    """Get inter-source distances along the cortical surface
+def add_source_space_distances(src, n_jobs=1, verbose=None):
+    """Add inter-source distances along the cortical surface to source spaces
 
     Parameters
     ----------
@@ -1514,15 +1515,15 @@ def get_source_space_distances(src, n_jobs=1, verbose=None):
 
     Returns
     -------
-    dist : list
-        List of distance matrices for each source space.
+    src : instance of SourceSpaces
+        The original source spaces, with distance information added.
+        Note: this function operates in-place.
     """
     n_jobs = check_n_jobs(n_jobs)
     if not isinstance(src, SourceSpaces):
         raise ValueError('"src" must be an instance of SourceSpaces')
     parallel, p_fun, _ = parallel_func(_do_distances, n_jobs)
-    dists = parallel(p_fun(s) for s in src)
-    return dists
+    parallel(p_fun(s) for s in src)
 
 
 def _do_distances(src):
@@ -1531,6 +1532,7 @@ def _do_distances(src):
         raise RuntimeError('source space does not have triangulation '
                            'available')
     vert, tris = src['rr'][src['vertno']], src['use_tris']
-    connectivity = mne.source_estimate.mesh_dist(tris, vert).tocsr()
-    dists = skl_graph(connectivity, method='D')
-    return dists
+    connectivity = mesh_dist(tris, vert).tocsr()
+    dist = skl_graph(connectivity, method='D')
+    # XXX THIS IS WRONG, MUST BE EXPANDED TO BE ~160000 SQUARE AND SPARSE
+    src['dist'] = dist
