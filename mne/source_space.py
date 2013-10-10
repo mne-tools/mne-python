@@ -26,6 +26,9 @@ from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
 from .fixes import in1d
 from .transforms import invert_transform, apply_trans, _print_coord_trans, \
                         combine_transforms
+from .parallel import parallel_func, check_n_jobs
+from sklearn.utils.graph_shortest_path import graph_shortest_path as skl_graph
+
 if has_nibabel():
     import nibabel as nib
 
@@ -652,6 +655,9 @@ def _write_one_source_space(fid, this, verbose=None):
         write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT,
                            this['dist_limit'])
 
+
+##############################################################################
+# Surface to MNI conversion
 
 @verbose
 def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
@@ -1491,3 +1497,40 @@ def _sum_solids_div(fros, surf):
              np.sum(v2 * v3, axis=1) * l1)
         tot_angle -= np.arctan2(triple, s)
     return tot_angle / (2 * np.pi)
+
+
+def get_source_space_distances(src, n_jobs=1, verbose=None):
+    """Get inter-source distances along the cortical surface
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces
+        The source spaces to compute distances for.
+    n_jobs : int
+        Number of jobs to run in parallel. Will only use (up to) as many
+        cores as there are source spaces.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    dist : list
+        List of distance matrices for each source space.
+    """
+    n_jobs = check_n_jobs(n_jobs)
+    if not isinstance(src, SourceSpaces):
+        raise ValueError('"src" must be an instance of SourceSpaces')
+    parallel, p_fun, _ = parallel_func(_do_distances, n_jobs)
+    dists = parallel(p_fun(s) for s in src)
+    return dists
+
+
+def _do_distances(src):
+    """Get distances for one source space"""
+    if src['use_tris'] is None:
+        raise RuntimeError('source space does not have triangulation '
+                           'available')
+    vert, tris = src['rr'][src['vertno']], src['use_tris']
+    connectivity = mne.source_estimate.mesh_dist(tris, vert).tocsr()
+    dists = skl_graph(connectivity, method='D')
+    return dists
