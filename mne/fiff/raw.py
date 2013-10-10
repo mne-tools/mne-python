@@ -1628,7 +1628,7 @@ class Raw(ProjMixin):
         return "<Raw  |  %s>" % s
 
 
-def set_eeg_reference(raw, ref_channels):
+def set_eeg_reference(raw, ref_channels, copy=True):
     """Rereference eeg channels to new reference channel(s).
 
     If multiple reference channels are specified, they will be averaged.
@@ -1640,6 +1640,9 @@ def set_eeg_reference(raw, ref_channels):
 
     ref_channels : list of str
         The name(s) of the reference channel(s).
+
+    copy : boolean
+        Specifies whether instance of Raw will be copied or modified in place.
 
     Returns
     -------
@@ -1661,19 +1664,29 @@ def set_eeg_reference(raw, ref_channels):
     # Find the indices to the reference electrodes
     ref_idx = [raw.ch_names.index(c) for c in ref_channels]
 
-    # Get the reference data
+    # Get the reference array
     ref_data = raw._data[ref_idx].mean(0)
 
     # Get the indices to the eeg channels using the pick_types function
     eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False)
 
-    # Copy raw data (otherwise raw will be modified in place)
-    reref = raw.copy()
+    # Copy raw data or modify raw data in place
+    if copy:  # copy data
+        reref = raw.copy()
 
-    # Rereference the eeg channels
-    reref._data[eeg_idx] -= ref_data
+        # Rereference the eeg channels
+        reref._data[eeg_idx] -= ref_data
 
-    return reref, ref_data
+        # Return rereferenced data and reference array
+        return reref, ref_data
+
+    else:  # modify data in place
+
+        # Rereference the eeg channels
+        raw._data[eeg_idx] -= ref_data
+
+        # Return rereferenced data and reference array
+        return raw, ref_data
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
