@@ -1518,21 +1518,43 @@ def add_source_space_distances(src, n_jobs=1, verbose=None):
     src : instance of SourceSpaces
         The original source spaces, with distance information added.
         Note: this function operates in-place.
+
+    Notes
+    -----
+    This function can be memory- and CPU-intensive. On a high-end machine
+    (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
+    takes about 10 minutes to compute. We recommend computing distances and
+    saving the source space to disk, as distances will automatically be
+    stored along with the source space data.
     """
     n_jobs = check_n_jobs(n_jobs)
     if not isinstance(src, SourceSpaces):
         raise ValueError('"src" must be an instance of SourceSpaces')
-    parallel, p_fun, _ = parallel_func(_do_distances, n_jobs)
-    parallel(p_fun(s) for s in src)
+
+    parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
+    if not all([s['type'] == 'surf' for s in src]):
+        raise RuntimeError('Currently all source spaces must be of surface '
+                           'type')
+    for s in src:
+        vertno = s['vertno']
+        vert, tris = s['rr'], s['tris']
+        connectivity = mesh_dist(tris, vert)
+        d = parallel(p_fun(connectivity, vertno, r)
+                     for r in np.array_split(np.arange(len(vertno)), n_jobs))
+        d = np.concatenate(d, axis=0)
+        # convert to sparse representation
+        i, j = np.meshgrid(vertno, vertno)
+        d = sparse.csr_matrix((d.ravel(), (i.ravel(), j.ravel())),
+                              shape=(s['np'], s['np']), dtype=np.float32)
+        s['dist'] = d
+    return src
 
 
-def _do_distances(src):
-    """Get distances for one source space"""
-    if src['use_tris'] is None:
-        raise RuntimeError('source space does not have triangulation '
-                           'available')
-    vert, tris = src['rr'][src['vertno']], src['use_tris']
-    connectivity = mesh_dist(tris, vert).tocsr()
-    dist = skl_graph(connectivity, method='D')
-    # XXX THIS IS WRONG, MUST BE EXPANDED TO BE ~160000 SQUARE AND SPARSE
-    src['dist'] = dist
+def _do_src_distances(con, vertno, run_inds):
+    chunk_size = 100  # save memory by chunking (only a little slower)
+    lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
+    d = np.empty((len(run_inds), len(vertno)))
+    for l1, l2 in zip(lims[:-1], lims[1:]):
+        idx = vertno[run_inds[l1:l2]]
+        d[l1:l2] = sparse.csgraph.dijkstra(con, indices=idx)[:, vertno]
+    return d
