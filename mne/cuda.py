@@ -84,7 +84,7 @@ def init_cuda():
                 try:
                     from scikits.cuda import fft as cudafft
                 except ImportError:
-                    logger.warn('modudle scikits.cuda not found, CUDA not '
+                    logger.warn('module scikits.cuda not found, CUDA not '
                                 'enabled')
                 else:
                     # Make sure we can use 64-bit FFTs
