@@ -1501,7 +1501,7 @@ def _sum_solids_div(fros, surf):
 
 
 def add_source_space_distances(src, n_jobs=1, verbose=None):
-    """Add inter-source distances along the cortical surface to source spaces
+    """Compute inter-source distances along the cortical surface
 
     Parameters
     ----------
@@ -1517,6 +1517,7 @@ def add_source_space_distances(src, n_jobs=1, verbose=None):
     -------
     src : instance of SourceSpaces
         The original source spaces, with distance information added.
+        The distances are stored in src[n]['dist'].
         Note: this function operates in-place.
 
     Notes
