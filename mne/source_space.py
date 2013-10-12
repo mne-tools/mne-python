@@ -24,7 +24,7 @@ from .surface import read_surface, _create_surf_spacing, _get_ico_surface, \
                      fast_cross_3d
 from .source_estimate import mesh_dist
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
-                   has_nibabel, logger, verbose
+                   has_nibabel, logger, verbose, check_scipy_version
 from .fixes import in1d
 from .transforms import invert_transform, apply_trans, _print_coord_trans, \
                         combine_transforms
@@ -1513,7 +1513,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         cores as there are source spaces.
     dist_limit : float
         The upper limit of distances to include. Note: if limit < np.inf,
-        scipy > 0.13 (bleeding edge as of 10/2013) must be installed. 
+        scipy > 0.13 (bleeding edge as of 10/2013) must be installed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1526,10 +1526,12 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 
     Notes
     -----
+    Requires scipy >= 0.11 (> 0.13 for `dist_limit < np.inf`).
+
     This function can be memory- and CPU-intensive. On a high-end machine
     (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
     takes about 10 minutes to compute all distances (`limit = np.inf`).
-    We recommend computing distances once per source space and then saving 
+    We recommend computing distances once per source space and then saving
     the source space to disk, as the computed distances will automatically be
     stored along with the source space data for future use.
     """
@@ -1538,11 +1540,14 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         raise ValueError('"src" must be an instance of SourceSpaces')
     if not np.isscalar(dist_limit):
         raise ValueError('limit must be a scalar')
+    if not check_scipy_version('0.11'):
+        raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
+                           'if dist_limit < np.inf')
 
     if not all([s['type'] == 'surf' for s in src]):
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
-    # infinite limit: standard method
+
     if dist_limit < np.inf:
         # can't do introspection on dijkstra function because it's Cython,
         # so we'll just try quickly here
@@ -1552,7 +1557,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         except TypeError:
             raise RuntimeError('Cannot use "limit < np.inf" unless scipy '
                                '> 0.13 is installed')
-        
+
     parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     for s in src:
         vertno = s['vertno']

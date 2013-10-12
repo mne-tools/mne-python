@@ -12,7 +12,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  add_source_space_distances)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
-                       requires_mne)
+                       requires_mne, requires_scipy_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 
 from scipy.spatial.distance import cdist
@@ -27,6 +27,7 @@ fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 tempdir = _TempDir()
 
 
+@requires_scipy_version('0.11')
 def test_add_source_space_distances_limited():
     """Test adding distances to source space with a dist_limit"""
     src = read_source_spaces(fname)
@@ -58,13 +59,14 @@ def test_add_source_space_distances_limited():
         assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-9)
 
 
+@requires_scipy_version('0.11')
 def test_add_source_space_distances():
     """Test adding distances to source space"""
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
     del src_new[1]['dist']
-    n_do = 51  # limit this for speed
+    n_do = 50  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
     out_name = op.join(tempdir, 'temp.src')
