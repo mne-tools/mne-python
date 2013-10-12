@@ -1,13 +1,15 @@
 import os
 import os.path as op
 from nose.tools import assert_true, assert_raises
+from nose.plugins.skip import SkipTest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import warnings
 
 from mne.datasets import sample
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
-                 setup_source_space, setup_volume_source_space)
+                 setup_source_space, setup_volume_source_space,
+                 add_source_space_distances)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne)
@@ -23,6 +25,75 @@ fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 
 tempdir = _TempDir()
+
+
+def test_add_source_space_distances_limited():
+    """Test adding distances to source space with a dist_limit"""
+    src = read_source_spaces(fname)
+    src_new = read_source_spaces(fname)
+    del src_new[0]['dist']
+    del src_new[1]['dist']
+    out_name = op.join(tempdir, 'temp.src')
+    try:
+        add_source_space_distances(src_new, dist_limit=0.007)
+    except RuntimeError:  # what we throw when scipy version is wrong
+        raise SkipTest('dist_limit requires scipy > 0.13')
+    write_source_spaces(out_name, src_new)
+    src_new = read_source_spaces(out_name)
+
+    for so, sn in zip(src, src_new):
+        assert_array_equal(so['dist_limit'], np.array([-0.007], np.float32))
+        assert_array_equal(sn['dist_limit'], np.array([0.007], np.float32))
+        do = so['dist']
+        dn = sn['dist']
+        # clean out distances > 0.007 in C code
+        do.data[do.data > 0.007] = 0
+        do.eliminate_zeros()
+
+        # make sure we have some comparable distances
+        assert_true(np.sum(do.data < 0.007) > 400)
+
+        # do comparison
+        d = do[0] - dn[1]
+        assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-9)
+
+
+def test_add_source_space_distances():
+    """Test adding distances to source space"""
+    src = read_source_spaces(fname)
+    src_new = read_source_spaces(fname)
+    del src_new[0]['dist']
+    del src_new[1]['dist']
+    n_do = 51  # limit this for speed
+    src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
+    src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
+    out_name = op.join(tempdir, 'temp.src')
+    add_source_space_distances(src_new)
+    write_source_spaces(out_name, src_new)
+    src_new = read_source_spaces(out_name)
+
+    # iterate over both hemispheres
+    for so, sn in zip(src, src_new):
+        v = so['vertno'][:n_do]
+        assert_array_equal(so['dist_limit'], np.array([-0.007], np.float32))
+        assert_array_equal(sn['dist_limit'], np.array([np.inf], np.float32))
+        do = so['dist']
+        dn = sn['dist']
+
+        # clean out distances > 0.007 in C code (some residual), and Python
+        ds = list()
+        for d in [do, dn]:
+            d.data[d.data > 0.007] = 0
+            d = d[v][:, v].copy()
+            d.eliminate_zeros()
+            ds.append(d)
+
+        # make sure we actually calculated some comparable distances
+        assert_true(np.sum(ds[0].data < 0.007) > 30)
+
+        # do comparison
+        d = ds[0] - ds[1]
+        assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-9)
 
 
 @requires_mne

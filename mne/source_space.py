@@ -7,6 +7,7 @@ import numpy as np
 import os
 import os.path as op
 from scipy import sparse, linalg
+from functools import partial
 
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
@@ -28,7 +29,6 @@ from .fixes import in1d
 from .transforms import invert_transform, apply_trans, _print_coord_trans, \
                         combine_transforms
 from .parallel import parallel_func, check_n_jobs
-from sklearn.utils.graph_shortest_path import graph_shortest_path as skl_graph
 
 if has_nibabel():
     import nibabel as nib
@@ -1500,7 +1500,8 @@ def _sum_solids_div(fros, surf):
     return tot_angle / (2 * np.pi)
 
 
-def add_source_space_distances(src, n_jobs=1, verbose=None):
+@verbose
+def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """Compute inter-source distances along the cortical surface
 
     Parameters
@@ -1510,6 +1511,9 @@ def add_source_space_distances(src, n_jobs=1, verbose=None):
     n_jobs : int
         Number of jobs to run in parallel. Will only use (up to) as many
         cores as there are source spaces.
+    dist_limit : float
+        The upper limit of distances to include. Note: if limit < np.inf,
+        scipy > 0.13 (bleeding edge as of 10/2013) must be installed. 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1524,23 +1528,37 @@ def add_source_space_distances(src, n_jobs=1, verbose=None):
     -----
     This function can be memory- and CPU-intensive. On a high-end machine
     (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
-    takes about 10 minutes to compute. We recommend computing distances and
-    saving the source space to disk, as distances will automatically be
-    stored along with the source space data.
+    takes about 10 minutes to compute all distances (`limit = np.inf`).
+    We recommend computing distances once per source space and then saving 
+    the source space to disk, as the computed distances will automatically be
+    stored along with the source space data for future use.
     """
     n_jobs = check_n_jobs(n_jobs)
     if not isinstance(src, SourceSpaces):
         raise ValueError('"src" must be an instance of SourceSpaces')
+    if not np.isscalar(dist_limit):
+        raise ValueError('limit must be a scalar')
 
-    parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     if not all([s['type'] == 'surf' for s in src]):
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
+    # infinite limit: standard method
+    if dist_limit < np.inf:
+        # can't do introspection on dijkstra function because it's Cython,
+        # so we'll just try quickly here
+        try:
+            sparse.csgraph.dijkstra(sparse.csr_matrix(np.zeros((2, 2))),
+                                    limit=1.0)
+        except TypeError:
+            raise RuntimeError('Cannot use "limit < np.inf" unless scipy '
+                               '> 0.13 is installed')
+        
+    parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     for s in src:
         vertno = s['vertno']
         vert, tris = s['rr'], s['tris']
         connectivity = mesh_dist(tris, vert)
-        d = parallel(p_fun(connectivity, vertno, r)
+        d = parallel(p_fun(connectivity, vertno, r, dist_limit)
                      for r in np.array_split(np.arange(len(vertno)), n_jobs))
         d = np.concatenate(d, axis=0)
         # convert to sparse representation
@@ -1548,14 +1566,20 @@ def add_source_space_distances(src, n_jobs=1, verbose=None):
         d = sparse.csr_matrix((d.ravel(), (i.ravel(), j.ravel())),
                               shape=(s['np'], s['np']), dtype=np.float32)
         s['dist'] = d
+        s['dist_limit'] = np.array([dist_limit], np.float32)
     return src
 
 
-def _do_src_distances(con, vertno, run_inds):
+def _do_src_distances(con, vertno, run_inds, limit):
+    """Helper to compute source space distances in chunks"""
+    if limit < np.inf:
+        func = partial(sparse.csgraph.dijkstra, limit=limit)
+    else:
+        func = sparse.csgraph.dijkstra
     chunk_size = 100  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
     d = np.empty((len(run_inds), len(vertno)))
     for l1, l2 in zip(lims[:-1], lims[1:]):
         idx = vertno[run_inds[l1:l2]]
-        d[l1:l2] = sparse.csgraph.dijkstra(con, indices=idx)[:, vertno]
+        d[l1:l2] = func(con, indices=idx)[:, vertno]
     return d
