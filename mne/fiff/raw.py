@@ -567,11 +567,25 @@ class Raw(ProjMixin):
             l_freq = None
         if h_freq > (fs / 2.):
             h_freq = None
+        if l_freq is not None and not isinstance(l_freq, float):
+            l_freq = float(l_freq)
+        if h_freq is not None and not isinstance(h_freq, float):
+            h_freq = float(h_freq)
+
         if not self._preloaded:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            if 'ICA ' in ','.join(self.ch_names):
+                pick_patameters = dict(misc=True)
+            else:
+                pick_patameters = dict(meg=True, eeg=True)
+            picks = pick_types(self.info, exclude=[], **pick_patameters)
+            # let's be safe.
+            if len(picks) < 1:
+                raise RuntimeError('Could not find any valid channels for '
+                                   'your Raw object. Please contact the '
+                                   'MNE-Python developers.')
 
             # update info if filter is applied to all data channels,
             # and it's not a band-stop filter
@@ -682,7 +696,16 @@ class Raw(ProjMixin):
             verbose = self.verbose
         fs = float(self.info['sfreq'])
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            if 'ICA ' in ','.join(self.ch_names):
+                pick_patameters = dict(misc=True)
+            else:
+                pick_patameters = dict(meg=True, eeg=True)
+            picks = pick_types(self.info, exclude=[], **pick_patameters)
+            # let's be safe.
+            if len(picks) < 1:
+                raise RuntimeError('Could not find any valid channels for '
+                                   'your Raw object. Please contact the '
+                                   'MNE-Python developers.')
         if not self._preloaded:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
