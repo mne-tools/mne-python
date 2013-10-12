@@ -260,6 +260,14 @@ def test_ica_additional():
             assert_true(ica.exclude == [ica_raw.ch_names.index(e) for e in
                                         ica_raw.info['bads']])
 
+        # test filtering
+        d1 = ica_raw._data[0].copy()
+        ica_raw.filter(4, 20)
+        assert_true((d1 != ica_raw._data[0]).any())
+        d1 = ica_raw._data[0].copy()
+        ica_raw.notch_filter([10])
+        assert_true((d1 != ica_raw._data[0]).any())
+
         ica.n_pca_components = 2
         ica.save(test_ica_fname)
         ica_read = read_ica(test_ica_fname)
