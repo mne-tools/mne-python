@@ -577,10 +577,10 @@ class Raw(ProjMixin):
                                'preload=True (or string) in the constructor.')
         if picks is None:
             if 'ICA ' in ','.join(self.ch_names):
-                pick_patameters = dict(misc=True)
+                pick_parameters = dict(misc=True)
             else:
-                pick_patameters = dict(meg=True, eeg=True)
-            picks = pick_types(self.info, exclude=[], **pick_patameters)
+                pick_parameters = dict(meg=True, eeg=True)
+            picks = pick_types(self.info, exclude=[], **pick_parameters)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
@@ -697,10 +697,10 @@ class Raw(ProjMixin):
         fs = float(self.info['sfreq'])
         if picks is None:
             if 'ICA ' in ','.join(self.ch_names):
-                pick_patameters = dict(misc=True)
+                pick_parameters = dict(misc=True)
             else:
-                pick_patameters = dict(meg=True, eeg=True)
-            picks = pick_types(self.info, exclude=[], **pick_patameters)
+                pick_parameters = dict(meg=True, eeg=True)
+            picks = pick_types(self.info, exclude=[], **pick_parameters)
             # let's be safe.
             if len(picks) < 1:
                 raise RuntimeError('Could not find any valid channels for '
