@@ -581,6 +581,11 @@ class Raw(ProjMixin):
             else:
                 pick_patameters = dict(meg=True, eeg=True)
             picks = pick_types(self.info, exclude=[], **pick_patameters)
+            # let's be safe.
+            if len(picks) < 1:
+                raise RuntimeError('Could not find any valid channels for '
+                                   'your Raw object. Please contact the '
+                                   'MNE-Python developers.')
 
             # update info if filter is applied to all data channels,
             # and it's not a band-stop filter
@@ -696,6 +701,11 @@ class Raw(ProjMixin):
             else:
                 pick_patameters = dict(meg=True, eeg=True)
             picks = pick_types(self.info, exclude=[], **pick_patameters)
+            # let's be safe.
+            if len(picks) < 1:
+                raise RuntimeError('Could not find any valid channels for '
+                                   'your Raw object. Please contact the '
+                                   'MNE-Python developers.')
         if not self._preloaded:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
