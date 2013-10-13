@@ -87,4 +87,3 @@ title = 'MNE sample data (Left auditory between 40 and 60 ms)'
 pl.figtext(0.03, 0.93, title, color='w', fontsize=18)
 pl.axis('tight')
 pl.show()
-pl.show()
