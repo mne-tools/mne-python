@@ -45,7 +45,7 @@ tmin, tmax = 0, 60  # use the first 60s of data
 fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
 NFFT = 2048  # the FFT size (NFFT). Ideally a power of 2
 psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
-                              fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=2,
+                              fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1,
                               plot=False, proj=False)
 
 # And now do the same with SSP applied
