@@ -5,6 +5,7 @@ import numpy as np
 
 from ..parallel import parallel_func
 from ..fiff.proj import make_projector_info
+from ..fiff.pick import pick_types
 from ..utils import logger, verbose
 
 
@@ -18,10 +19,6 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     ----------
     raw : instance of Raw
         The raw data.
-    tmin : float
-        Min time instant to consider
-    tmax : float
-        Max time instant to consider
     picks : None or array of integers
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -80,3 +77,65 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     psd = psd[:, mask]
 
     return psd, freqs
+
+
+@verbose
+def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, NFFT=256,
+                       n_jobs=1, proj=False, verbose=None):
+    """Compute power spectral density with multi-taper
+
+    Parameters
+    ----------
+    epochs : instance of Epochss
+        The epochs.
+    tmin : float
+        Min time instant to consider
+    tmax : float
+        Max time instant to consider
+    picks : None or array of integers
+        The selection of channels to include in the computation.
+        If None, take all channels.
+    fmin : float
+        Min frequency of interest
+    fmax : float
+        Max frequency of interest
+    NFFT : int
+        The length of the tappers ie. the windows. The smaller
+        it is the smoother are the PSDs.
+    n_jobs : int
+        Number of CPUs to use in the computation.
+    plot : bool
+        Plot each PSD estimates
+    proj : bool
+        Apply SSP projection vectors
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    generator :  yields tuple of (psds, freqs)
+    """
+
+    NFFT = int(NFFT)
+    Fs = epochs.info['sfreq']
+    if picks is None:
+        picks = pick_types(epochs.info, meg=True, exclude='bads')
+
+    if proj and epochs.proj is not True:
+        epochs = epochs.copy().apply_proj()
+
+    logger.info("Effective window size : %0.3f (s)" % (NFFT / float(Fs)))
+    import pylab as pl
+    parallel, my_psd, _ = parallel_func(pl.psd, n_jobs,  verbose=verbose)
+    for data in epochs:
+        fig = pl.figure()  # threading will induce errors otherwise
+        out = parallel(my_psd(d, Fs=Fs, NFFT=NFFT) for d in data[picks])
+        pl.close(fig)
+        freqs = out[0][1]
+
+        psd = np.array(zip(*out)[0])
+
+        mask = (freqs >= fmin) & (freqs <= fmax)
+        freqs = freqs[mask]
+        psd = psd[:, mask]
+        yield psd, freqs
