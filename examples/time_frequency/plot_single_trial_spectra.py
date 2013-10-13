@@ -15,8 +15,6 @@ frequencies of interest for subsequent TFR analyses.
 print __doc__
 
 import numpy as np
-import scipy
-from scipy import fftpack
 
 import mne
 from mne import fiff
@@ -33,7 +31,7 @@ event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 raw = fiff.Raw(raw_fname, preload=True)
 events = mne.read_events(event_fname)
 
-tmin, tmax, event_id = -1, 1, 1
+tmin, tmax, event_id = -1., 1., 1
 include = []
 raw.info['bads'] += ['MEG 2443']  # bads
 
@@ -41,28 +39,17 @@ raw.info['bads'] += ['MEG 2443']  # bads
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                         stim=False, include=include, exclude='bads')
 
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=True,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
 
 
-# setup generator
-NFFT = 256  # the FFT size (NFFT). Ideally a power of 2
-n_jobs = 2
-generate_psd = compute_epochs_psd(epochs, fmin=2, fmax=200, NFFT=NFFT,
-                                  n_jobs=n_jobs, proj=True, verbose=False)
+n_fft = 256  # the FFT size. Ideally a power of 2
+psds, freqs = compute_epochs_psd(epochs, fmin=2, fmax=200, n_fft=n_fft)
 
-# accumulate psds and save psds from first trial separately
-average_psds, max_trial = None, 20
-for ii, (psds, freqs) in enumerate(generate_psd):
-    if ii > max_trial:
-        break
-    # use dB and
-    psds = 10 * np.log10(psds)  # compute it here to avoid artifacts
-    if ii == 0:
-        average_psds = np.empty_like(psds)
-        first_psds =  psds
-    average_psds += psds
-average_psds = average_psds / max_trial
+# average psds and save psds from first trial separately
+psds = 10 * np.log(psds)  # transform into dB
+average_psds = psds.mean(0)
+some_psds = psds[12]
 
 
 fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(10, 5))
@@ -73,7 +60,7 @@ freq_mask = freqs < 150
 freqs = freqs[freq_mask]
 
 ax1.set_title('single trial', fontsize=10)
-ax1.imshow(first_psds[:, freq_mask].T, aspect='auto', origin='lower')
+ax1.imshow(some_psds[:, freq_mask].T, aspect='auto', origin='lower')
 ax1.set_yticks(np.arange(0, len(freqs), 10))
 ax1.set_yticklabels(freqs[::10].round(1))
 ax1.set_ylabel('Frequency (Hz)')

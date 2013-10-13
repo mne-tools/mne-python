@@ -47,7 +47,6 @@ def test_psd():
     assert_true(np.sum(psds < 0) == 0)
 
 
-
 def test_psd_epochs():
     """Test PSD estimation on epochs
     """
@@ -61,7 +60,7 @@ def test_psd_epochs():
 
     picks = picks[:2]
 
-    NFFT = 124  # the FFT size (NFFT). Ideally a power of 2
+    n_fft = 124  # the FFT size (n_fft). Ideally a power of 2
 
     tmin, tmax, event_id = -1, 1, 1
     include = []
@@ -71,19 +70,19 @@ def test_psd_epochs():
     picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=False, include=include, exclude='bads')
 
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
-                    reject=dict(grad=4000e-13, eog=150e-6), proj=False)
+                    reject=dict(grad=4000e-13, eog=150e-6), proj=False,
+                    preload=True)
 
-    NFFT = 256  # the FFT size (NFFT). Ideally a power of 2
     picks = fiff.pick_types(epochs.info, meg='grad', eeg=False, eog=True,
                             stim=False, include=include, exclude='bads')
-    psds, freqs = compute_epochs_psd(epochs, fmin=2, fmax=300, NFFT=NFFT, picks=picks,
-                                     n_jobs=1).next()
-    psds_proj, _ = compute_epochs_psd(epochs, fmin=2, fmax=300, NFFT=NFFT, n_jobs=1,
-                                      picks=picks, proj=True).next()
+    psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300, n_fft=n_fft,
+                                     picks=picks)
+    psds_proj, _ = compute_epochs_psd(epochs[:1].apply_proj(), fmin=2,
+                                      fmax=300, n_fft=n_fft, picks=picks)
 
     assert_array_almost_equal(psds, psds_proj)
-    assert_true(psds.shape == (len(picks), len(freqs)))
+    assert_true(psds.shape == (1, len(picks), len(freqs)))
     assert_true(np.sum(freqs < 0) == 0)
     assert_true(np.sum(psds < 0) == 0)

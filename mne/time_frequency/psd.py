@@ -28,7 +28,7 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     fmax : float
         Max frequency of interest
     NFFT : int
-        The length of the tappers ie. the windows. The smaller
+        The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
     n_jobs : int
         Number of CPUs to use in the computation.
@@ -81,8 +81,8 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
 
 
 @verbose
-def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, NFFT=256,
-                       n_jobs=1, proj=False, verbose=None):
+def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
+                       verbose=None):
     """Compute power spectral density with multi-taper
 
     Parameters
@@ -100,11 +100,9 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, NFFT=256,
         Min frequency of interest
     fmax : float
         Max frequency of interest
-    NFFT : int
-        The length of the tappers ie. the windows. The smaller
+    n_fft : int
+        The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
-    n_jobs : int
-        Number of CPUs to use in the computation.
     plot : bool
         Plot each PSD estimates
     proj : bool
@@ -114,29 +112,27 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, NFFT=256,
 
     Returns
     -------
-    generator :  yields tuple of (psds, freqs)
+    psds : ndarray (m_epochs, n_channels, n_freqs)
+        The power spectral densities.
+    freqs : ndarray (n_freqs)
+        The frequencies.
     """
 
-    NFFT = int(NFFT)
+    n_fft = int(n_fft)
     Fs = epochs.info['sfreq']
     if picks is None:
         picks = pick_types(epochs.info, meg=True, exclude='bads')
 
-    if proj and epochs.proj is not True:
-        epochs = epochs.copy().apply_proj()
-
-    logger.info("Effective window size : %0.3f (s)" % (NFFT / float(Fs)))
+    logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
     import pylab as pl
-    parallel, my_psd, _ = parallel_func(pl.psd, n_jobs,  verbose=verbose)
+    psds = []
     for data in epochs:
         fig = pl.figure()  # threading will induce errors otherwise
-        out = parallel(my_psd(d, Fs=Fs, NFFT=NFFT) for d in data[picks])
+        out = [pl.psd(d, Fs=Fs, NFFT=n_fft) for d in data[picks]]
         pl.close(fig)
-        freqs = out[0][1]
-
         psd = np.array(zip(*out)[0])
-
+        freqs = out[0][1]
         mask = (freqs >= fmin) & (freqs <= fmax)
         freqs = freqs[mask]
-        psd = psd[:, mask]
-        yield psd, freqs
+        psds.append(psd[:, mask])
+    return np.array(psds), freqs
