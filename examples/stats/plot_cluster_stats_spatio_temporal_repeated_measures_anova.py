@@ -247,8 +247,9 @@ times = np.arange(X[0].shape[1]) * tstep * 1e3
 
 pl.clf()
 colors = ['y', 'b', 'g', 'purple']
-conditions = ['l_aud', 'r_aud', 'l_vis', 'r_vis']
-for ii, (condition, color, eve_id) in enumerate(zip(X, colors, conditions)):
+event_ids = ['l_aud', 'r_aud', 'l_vis', 'r_vis']
+
+for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_ids)):
     # extract time course at cluster vertices
     condition = condition[:, :, inds_v]
     # normally we would normalize values across subjects but
