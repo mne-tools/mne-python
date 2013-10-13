@@ -57,6 +57,8 @@ Changelog
    
    - Time-frequency beamforming to obtain spectrograms in source space using LCMV and DICS by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
 
+   - Compute epochs power spectral density function by `Denis Engemann`_
+
 API
 ~~~
 
