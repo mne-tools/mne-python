@@ -113,8 +113,8 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
-    plot : bool
-        Plot each PSD estimates
+    n_jobs : int
+        Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
