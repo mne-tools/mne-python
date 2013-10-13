@@ -28,7 +28,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname, preload=True)
+raw = fiff.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 tmin, tmax, event_id = -1., 1., 1
@@ -44,12 +44,13 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=True,
 
 
 n_fft = 256  # the FFT size. Ideally a power of 2
-psds, freqs = compute_epochs_psd(epochs, fmin=2, fmax=200, n_fft=n_fft)
+psds, freqs = compute_epochs_psd(epochs, fmin=2, fmax=200, n_fft=n_fft,
+                                 n_jobs=2)
 
 # average psds and save psds from first trial separately
-psds = 10 * np.log(psds)  # transform into dB
 average_psds = psds.mean(0)
-some_psds = psds[12]
+average_psds = 10 * np.log10(average_psds)  # transform into dB
+some_psds = 10 * np.log10(psds[12])
 
 
 fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True, sharey=True, figsize=(10, 5))

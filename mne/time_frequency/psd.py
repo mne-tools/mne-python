@@ -80,9 +80,19 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     return psd, freqs
 
 
+def _compute_psd(data, fmin, fmax, Fs, n_fft, psd):
+    """Compute the PSD"""
+    out = [psd(d, Fs=Fs, NFFT=n_fft) for d in data]
+    psd = np.array(zip(*out)[0])
+    freqs = out[0][1]
+    mask = (freqs >= fmin) & (freqs <= fmax)
+    freqs = freqs[mask]
+    return psd[:, mask], freqs
+
+
 @verbose
 def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
-                       verbose=None):
+                       n_jobs=1, verbose=None):
     """Compute power spectral density with multi-taper
 
     Parameters
@@ -105,14 +115,12 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
         it is the smoother are the PSDs.
     plot : bool
         Plot each PSD estimates
-    proj : bool
-        Apply SSP projection vectors
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    psds : ndarray (m_epochs, n_channels, n_freqs)
+    psds : ndarray (n_epochs, n_channels, n_freqs)
         The power spectral densities.
     freqs : ndarray (n_freqs)
         The frequencies.
@@ -121,18 +129,16 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     n_fft = int(n_fft)
     Fs = epochs.info['sfreq']
     if picks is None:
-        picks = pick_types(epochs.info, meg=True, exclude='bads')
+        picks = pick_types(epochs.info, meg=True, eeg=True, exclude='bads')
 
     logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
-    import pylab as pl
     psds = []
-    for data in epochs:
-        fig = pl.figure()  # threading will induce errors otherwise
-        out = [pl.psd(d, Fs=Fs, NFFT=n_fft) for d in data[picks]]
-        pl.close(fig)
-        psd = np.array(zip(*out)[0])
-        freqs = out[0][1]
-        mask = (freqs >= fmin) & (freqs <= fmax)
-        freqs = freqs[mask]
-        psds.append(psd[:, mask])
-    return np.array(psds), freqs
+    import matplotlib.pyplot as plt
+    parallel, my_psd, n_jobs = parallel_func(_compute_psd, n_jobs)
+    fig = plt.figure()  # threading will induce errors otherwise
+    out = parallel(my_psd(data[picks], fmin, fmax, Fs, n_fft, plt.psd)
+                   for data in epochs)
+    plt.close(fig)
+    psds, freqs = zip(*out)
+
+    return np.array(psds), freqs[0]

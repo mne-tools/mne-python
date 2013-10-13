@@ -33,7 +33,7 @@ def test_psd():
 
     tmin, tmax = 0, 10  # use the first 60s of data
     fmin, fmax = 2, 70  # look at frequencies between 5 and 70Hz
-    NFFT = 124  # the FFT size (NFFT). Ideally a power of 2
+    NFFT = 128  # the FFT size (NFFT). Ideally a power of 2
     psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
                                   fmin=fmin, fmax=fmax, NFFT=NFFT, n_jobs=1,
                                   proj=False)
