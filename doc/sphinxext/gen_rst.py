@@ -503,6 +503,8 @@ def generate_dir_rst(dir, fhindex, example_dir, root_dir, plot_gallery):
             return 'zz' + a
         return a
     for fname in sorted(os.listdir(src_dir), key=sort_key):
+        if not os.path.split(fname)[-1].startswith('plot_'):
+            continue
         if fname.endswith('py'):
             generate_file_rst(fname, target_dir, src_dir, plot_gallery)
             thumb = os.path.join(dir, 'images', 'thumb', fname[:-3] + '.png')
