@@ -68,11 +68,8 @@ development environments and functionality is best tested for them:
     * Debian / Ubuntu standard system Python + Scipy stack
 
 
-This does not mean that MNE-Python will not work with other setups.
-But unexpected behavior might occur for a few examples and functions. 
-We hence would strongly recommend to chose one of the setups listed above.
-If you're bound to another Python setup for some reason some debugging and
-communication might be required to add explicit support for your environment.
+If you use another Python setup and you encounter some difficulties please report
+them on the MNE mailing list or on github to get assistance.
 
 To test that everything works properly, open up IPython::
 
