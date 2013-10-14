@@ -1531,8 +1531,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 
     This function can be memory- and CPU-intensive. On a high-end machine
     (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
-    takes about 10 minutes to compute all distances (`dist_limit = np.inf`).
-    With `dist_limit = 0.007`, computing distances takes under 1 minute.
+    takes about 3 minutes to compute all distances (`dist_limit = np.inf`).
+    With `dist_limit = 0.007`, computing distances takes about 10 seconds.
 
     We recommend computing distances once per source space and then saving
     the source space to disk, as the computed distances will automatically be
@@ -1563,13 +1563,13 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 
     parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
     for s in src:
-        vertno = s['vertno']
         connectivity = mesh_dist(s['tris'], s['rr'])
-        d = parallel(p_fun(connectivity, vertno, r, dist_limit)
-                     for r in np.array_split(np.arange(len(vertno)), n_jobs))
+        d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
+                     for r in np.array_split(np.arange(len(s['vertno'])),
+                                             n_jobs))
         d = np.concatenate(d, axis=0)
         # convert to sparse representation
-        i, j = np.meshgrid(vertno, vertno)
+        i, j = np.meshgrid(s['vertno'], s['vertno'])
         d = d.ravel()
         i = i.ravel()
         j = j.ravel()
