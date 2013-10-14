@@ -8,8 +8,8 @@ from copy import deepcopy
 
 from nose.tools import assert_true, assert_equal, assert_raises
 
-from numpy.testing import assert_array_equal, assert_array_almost_equal, \
-                          assert_allclose
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose)
 import numpy as np
 import copy as cp
 import warnings
@@ -30,7 +30,7 @@ evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
-raw = fiff.Raw(raw_fname)
+raw = fiff.Raw(raw_fname, add_eeg_ref=False)
 events = read_events(event_name)
 picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
                         ecg=True, eog=True, include=['STI 014'],

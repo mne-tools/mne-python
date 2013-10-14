@@ -97,7 +97,7 @@ def _cwt_fft(X, Ws, mode="same"):
     Ws_max_size = max(W.size for W in Ws)
     size = n_times + Ws_max_size - 1
     # Always use 2**n-sized FFT
-    fsize = 2 ** np.ceil(np.log2(size))
+    fsize = int(2 ** np.ceil(np.log2(size)))
 
     # precompute FFTs of Ws
     fft_Ws = np.empty((n_freqs, fsize), dtype=np.complex128)

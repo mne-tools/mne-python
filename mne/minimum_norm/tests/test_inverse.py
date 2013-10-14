@@ -12,9 +12,11 @@ from mne.event import read_events
 from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import fiff, read_cov, read_forward_solution
-from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
-    apply_inverse_raw, apply_inverse_epochs, make_inverse_operator, \
-    write_inverse_operator, compute_rank_inverse
+from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
+                                      apply_inverse_raw, apply_inverse_epochs,
+                                      make_inverse_operator,
+                                      write_inverse_operator,
+                                      compute_rank_inverse)
 from mne.utils import _TempDir
 
 s_path = op.join(sample.data_path(), 'MEG', 'sample')

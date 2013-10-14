@@ -135,7 +135,7 @@ class Covariance(dict):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
         self['data'][:] = (((self['data'] * self['nfree']) +
-                            (cov['data'] * cov['nfree']))
+                            (cov['data'] * cov['nfree'])) /
                            (self['nfree'] + cov['nfree']))
         self['nfree'] += cov['nfree']
 
@@ -526,8 +526,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
         C_eeg = C[C_eeg_idx][:, C_eeg_idx]
         C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG')
         if not _has_eeg_average_ref_proj(info['projs']):
-            warnings.warn('No average EEG reference present in info["projs"],'
-                          ' covariance may be adversely affected. Consider '
+            warnings.warn('No average EEG reference present in info["projs"], '
+                          'covariance may be adversely affected. Consider '
                           'recomputing covariance using a raw file with an '
                           'average eeg reference projector added.')
 

@@ -800,7 +800,7 @@ class Raw(ProjMixin):
             # figure out which points in old data to subsample
             stim_inds = np.floor(np.arange(new_ntimes) / ratio).astype(int)
             for sp in stim_picks:
-                new_data[ri][sp] = data_chunk[sp][:, stim_inds]
+                new_data[ri][sp] = data_chunk[[sp]][:, stim_inds]
 
             self._first_samps[ri] = int(self._first_samps[ri] * ratio)
             self._last_samps[ri] = self._first_samps[ri] + new_ntimes - 1
