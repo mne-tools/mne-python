@@ -1674,19 +1674,11 @@ def set_eeg_reference(raw, ref_channels, copy=True):
     if copy:  # copy data
         raw = raw.copy()
 
-        # Rereference the eeg channels
-        raw._data[eeg_idx] -= ref_data
+    # Rereference the eeg channels
+    raw._data[eeg_idx] -= ref_data
 
-        # Return rereferenced data and reference array
-        return raw, ref_data
-
-    else:  # modify data in place
-
-        # Rereference the eeg channels
-        raw._data[eeg_idx] -= ref_data
-
-        # Return rereferenced data and reference array
-        return raw, ref_data
+    # Return rereferenced data and reference array
+    return raw, ref_data
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
