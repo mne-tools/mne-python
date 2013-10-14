@@ -820,7 +820,7 @@ def test_compensation_raw():
 def test_set_eeg_reference():
     """ Test rereference eeg data"""
     raw = Raw(fif_fname, preload=True)
-    
+
     # Rereference raw data by creating a copy of original data
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
 
@@ -832,7 +832,7 @@ def test_set_eeg_reference():
     # Get the raw EEG data and other channel data
     raw_eeg_data = raw[picks_eeg][0]
     raw_other_data = raw[picks_other][0]
-    
+
     # Get the rereferenced EEG data and channel other
     reref_eeg_data = reref[picks_eeg][0]
     unref_eeg_data = reref_eeg_data + ref_data
@@ -844,7 +844,6 @@ def test_set_eeg_reference():
     assert_array_equal(raw_other_data, reref_other_data)
 
     # Test that data is modified in place when copy=False
-    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=False)
-    assert(raw==reref)
-    
-    
+    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
+                                        copy=False)
+    assert(raw == reref)
