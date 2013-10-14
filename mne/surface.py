@@ -975,7 +975,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
             fname = op.join(subjects_dir, subject_from, 'surf',
                             '%s.sphere.reg' % hemi)
             from_pts = read_surface(fname, verbose=False)[0]
-            morph_maps.append(sparse.eye(len(from_pts), format='csr'))
+            n_pts = len(from_pts)
+            morph_maps.append(sparse.eye(n_pts, n_pts, format='csr'))
         return morph_maps
 
     for hemi in ['lh', 'rh']:

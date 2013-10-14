@@ -307,6 +307,16 @@ def read_source_estimate(fname, subject=None):
         kwargs['tmin'] = 0.0
         kwargs['tstep'] = 1.0
 
+    if ftype != 'volume':
+        # Make sure the vertices are ordered
+        vertices = kwargs['vertices']
+        if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
+            sidx = [np.argsort(verts) for verts in vertices]
+            vertices = [verts[idx] for verts, idx in zip(vertices, sidx)]
+            data = kwargs['data'][np.r_[sidx[0], len(sidx[0]) + sidx[1]]]
+            kwargs['vertices'] = vertices
+            kwargs['data'] = data
+
     kwargs['subject'] = subject
 
     if ftype == 'volume':
@@ -419,7 +429,7 @@ class _BaseSourceEstimate(object):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertno : array or list of arrays of shape (n_dipoles,)
+    vertices : array or list of arrays of shape (n_dipoles,)
         The indices of the dipoles in the different source spaces. Can
         be an array if there is only one source space (e.g., for volumes).
     data : array of shape (n_dipoles, n_times)
@@ -445,6 +455,11 @@ class _BaseSourceEstimate(object):
                     not all([isinstance(v, np.ndarray) for v in vertices]):
                 raise ValueError('Vertices, if a list, must contain one or '
                                  'two numpy arrays')
+
+            if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
+                raise ValueError('Vertices must be ordered in increasing '
+                                 'order.')
+
             n_src = sum([len(v) for v in vertices])
 
             if len(vertices) == 1:
@@ -1618,6 +1633,9 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
 
     n_iter = 99  # max nb of smoothing iterations (minus one)
     if smooth is not None:
+        if smooth <= 0:
+            raise ValueError('The number of smoothing operations ("smooth") '
+                             'has to be at least 1.')
         smooth -= 1
     # make sure we're in CSR format
     e = e.tocsr()
@@ -1922,6 +1940,8 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
                             for a in [lhs, rhs, ico['rr']]]
             vertices = parallel(my_compute_nearest(xhs, rr)
                                 for xhs in [lhs, rhs])
+            # Make sure the vertices are ordered
+            vertices = [np.sort(verts) for verts in vertices]
     else:  # potentially fill the surface
         vertices = [np.arange(lhs.shape[0]), np.arange(rhs.shape[0])]
 
