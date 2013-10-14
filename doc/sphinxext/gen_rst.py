@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8
+
 """
 Example generation modified from the scikit learn
 
@@ -873,7 +876,8 @@ def embed_code_links(app, exception):
                     with open(full_fname, 'wt') as fid:
                         for line in lines_in:
                             for name, link in str_repl.iteritems():
-                                line = line.replace(name, link)
+                                line = line.replace(name.encode('utf-8'),
+                                                    link.encode('utf-8'))
                             fid.write(line)
                     fid.close()
 
