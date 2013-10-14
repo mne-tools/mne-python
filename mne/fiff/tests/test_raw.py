@@ -844,6 +844,6 @@ def test_set_eeg_reference():
     assert_array_equal(raw_other_data, reref_other_data)
 
     # Test that data is modified in place when copy=False
-    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=False)
-    assert(raw==reref)
-
+    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
+                                        copy=False)
+    assert(raw == reref)
