@@ -1531,8 +1531,8 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
 
     This function can be memory- and CPU-intensive. On a high-end machine
     (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
-    takes about 3 minutes to compute all distances (`dist_limit = np.inf`).
-    With `dist_limit = 0.007`, computing distances takes about 10 seconds.
+    takes about 10 minutes to compute all distances (`dist_limit = np.inf`).
+    With `dist_limit = 0.007`, computing distances takes about 1 minute.
 
     We recommend computing distances once per source space and then saving
     the source space to disk, as the computed distances will automatically be
