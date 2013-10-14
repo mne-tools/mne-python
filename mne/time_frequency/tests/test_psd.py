@@ -60,7 +60,7 @@ def test_psd_epochs():
 
     picks = picks[:2]
 
-    n_fft = 124  # the FFT size (n_fft). Ideally a power of 2
+    n_fft = 128  # the FFT size (n_fft). Ideally a power of 2
 
     tmin, tmax, event_id = -1, 1, 1
     include = []

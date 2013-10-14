@@ -15,12 +15,12 @@ frequencies of interest for subsequent TFR analyses.
 print __doc__
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne import fiff
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_psd
-import matplotlib.pyplot as plt
 ###############################################################################
 # Set parameters
 data_path = sample.data_path()

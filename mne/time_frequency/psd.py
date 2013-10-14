@@ -97,7 +97,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
 
     Parameters
     ----------
-    epochs : instance of Epochss
+    epochs : instance of Epochs
         The epochs.
     tmin : float
         Min time instant to consider
