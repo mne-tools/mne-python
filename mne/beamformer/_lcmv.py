@@ -576,7 +576,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         provided for each frequency bin.
     freq_bins : list of tuples of float
         Start and end point of frequency bins of interest.
-    subtract_evoked : bool | False
+    subtract_evoked : bool
         If True, subtract the averaged evoked response prior to computing the
         tf source grid.
     reg : float

@@ -100,10 +100,12 @@ noise_reg = 0.03
 data_reg = 0.001
 
 # Subtract evoked response prior to computation?
-sub_evoked = False
+subtract_evoked = False
 
 # Calculating covariance from empty room noise. To use baseline data as noise
-# substitute raw for raw_noise
+# substitute raw for raw_noise, epochs for epochs_noise, and 0 for tmax.
+# Note, if using baseline data, the averaged evoked response in the baseline 
+# epoch should be flat.
 noise_covs = []
 for (l_freq, h_freq) in freq_bins:
     raw_band = raw_noise.copy()
@@ -111,8 +113,6 @@ for (l_freq, h_freq) in freq_bins:
     epochs_band = mne.Epochs(raw_band, epochs_noise.events, event_id,
                              tmin=tmin, tmax=tmax, picks=epochs.picks,
                              proj=True)
-    if sub_evoked:
-        epochs_band.subtract_evoked()
                              
     noise_cov = compute_covariance(epochs_band)
     noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=noise_reg,
@@ -123,8 +123,8 @@ for (l_freq, h_freq) in freq_bins:
 # Computing LCMV solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
 stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-               freq_bins=freq_bins, subtract_evoked=sub_evoked, reg=data_reg, 
-               label=label)
+               freq_bins=freq_bins, subtract_evoked=subtract_evoked, 
+               reg=data_reg, label=label)
 
 # Plotting source spectrogram for source with maximum activity
 plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=True)
