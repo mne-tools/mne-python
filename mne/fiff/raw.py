@@ -22,14 +22,15 @@ from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types, channel_type
-from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
+from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
+                   _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
 from .compensator import get_current_comp, make_compensator
 
-from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
-                     notch_filter, band_stop_filter, resample
+from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
+                      notch_filter, band_stop_filter, resample)
 from ..parallel import parallel_func
-from ..utils import _check_fname, estimate_rank, \
-                    _check_pandas_installed, logger, verbose
+from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
+                     logger, verbose)
 from ..viz import plot_raw, _mutable_defaults
 
 
@@ -62,6 +63,9 @@ class Raw(ProjMixin):
         If None the compensation in the data is not modified.
         If set to n, e.g. 3, apply gradient compensation of grade n as
         for CTF systems.
+    add_eeg_ref : bool
+        If True, add average EEG reference projector (if it's not already
+        present).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -78,7 +82,7 @@ class Raw(ProjMixin):
     """
     @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 proj=False, compensation=None,
+                 proj=False, compensation=None, add_eeg_ref=True,
                  verbose=None):
 
         if not isinstance(fnames, list):
@@ -106,6 +110,7 @@ class Raw(ProjMixin):
         self.info['filenames'] = fnames
         self.orig_format = raws[0].orig_format
         self.proj = False
+        self._add_eeg_ref(add_eeg_ref)
 
         if preload:
             self._preload_data(preload)
@@ -137,6 +142,15 @@ class Raw(ProjMixin):
             self.close()
         except:
             return exception_type, exception_val, trace
+
+    def _add_eeg_ref(self, add_eeg_ref):
+        """Helper to add an average EEG reference"""
+        if add_eeg_ref:
+            eegs = pick_types(self.info, meg=False, eeg=True)
+            projs = self.info['projs']
+            if len(eegs) > 0 and not _has_eeg_average_ref_proj(projs):
+                eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
+                projs.append(eeg_ref)
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
@@ -338,8 +352,8 @@ class Raw(ProjMixin):
 
         if isinstance(item[1], slice):
             time_slice = item[1]
-            start, stop, step = time_slice.start, time_slice.stop, \
-                                time_slice.step
+            start, stop, step = (time_slice.start, time_slice.stop,
+                                 time_slice.step)
         elif isinstance(item[1], int):
             start, stop, step = item[1], item[1] + 1, 1
         else:
@@ -365,8 +379,8 @@ class Raw(ProjMixin):
             data, times = self._data[sel, start:stop], self._times[start:stop]
         else:
             data, times = self._read_segment(start=start, stop=stop, sel=sel,
-                                            projector=self._projector,
-                                            verbose=self.verbose)
+                                             projector=self._projector,
+                                             verbose=self.verbose)
         return data, times
 
     def __setitem__(self, item, value):
@@ -1751,9 +1765,9 @@ class _RawShell():
 ###############################################################################
 # Writing
 
-from .write import start_file, end_file, start_block, end_block, \
-                   write_dau_pack16, write_float, write_double, \
-                   write_complex64, write_complex128, write_int, write_id
+from .write import (start_file, end_file, start_block, end_block,
+                    write_dau_pack16, write_float, write_double,
+                    write_complex64, write_complex128, write_int, write_id)
 
 
 def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
@@ -1803,7 +1817,7 @@ def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
         comps = copy.deepcopy(info['comps'])
         for c in comps:
             row_idx = [k for k, n in enumerate(c['data']['row_names'])
-                                                            if n in ch_names]
+                       if n in ch_names]
             row_names = [c['data']['row_names'][i] for i in row_idx]
             rowcals = c['rowcals'][row_idx]
             c['rowcals'] = rowcals
