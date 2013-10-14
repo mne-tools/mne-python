@@ -1628,6 +1628,59 @@ class Raw(ProjMixin):
         return "<Raw  |  %s>" % s
 
 
+def set_eeg_reference(raw, ref_channels, copy=True):
+    """Rereference eeg channels to new reference channel(s).
+
+    If multiple reference channels are specified, they will be averaged.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Instance of Raw with eeg channels and reference channel(s).
+
+    ref_channels : list of str
+        The name(s) of the reference channel(s).
+
+    copy : bool
+        Specifies whether instance of Raw will be copied or modified in place.
+
+    Returns
+    -------
+    raw : instance of Raw
+        Instance of Raw with eeg channels rereferenced.
+
+    ref_data : array
+        Array of reference data subtracted from eeg channels.
+    """
+    # Check to see that raw data is preloaded
+    if not raw._preloaded:
+        raise RuntimeError('Raw data needs to be preloaded. Use '
+                           'preload=True (or string) in the constructor.')
+    # Make sure that reference channels are loaded as list of string
+    if type(ref_channels) != list:
+        raise IOError('Reference channel(s) must be a list of string. '
+                      'If using a single reference channel, enter as '
+                      'a list with one element.')
+    # Find the indices to the reference electrodes
+    ref_idx = [raw.ch_names.index(c) for c in ref_channels]
+
+    # Get the reference array
+    ref_data = raw._data[ref_idx].mean(0)
+
+    # Get the indices to the eeg channels using the pick_types function
+    eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False)
+
+    # Copy raw data or modify raw data in place
+    if copy:  # copy data
+        raw = raw.copy()
+
+    # Rereference the eeg channels
+    raw._data[eeg_idx] -= ref_data
+
+    # Return rereferenced data and reference array
+    return raw, ref_data
+
+
 def _allocate_data(data, data_buffer, data_shape, dtype):
     if data is None:
         # if not already done, allocate array with right type

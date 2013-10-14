@@ -14,7 +14,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal, \
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws, FIFF, \
-                     get_chpi_positions
+                     get_chpi_positions, set_eeg_reference
 from mne import concatenate_events, find_events
 from mne.utils import _TempDir, requires_nitime, requires_pandas
 
@@ -815,3 +815,35 @@ def test_compensation_raw():
     data5, times5 = raw5[:, :]
     assert_array_equal(times1, times5)
     assert_allclose(data1, data5, rtol=1e-12, atol=1e-22)
+
+
+def test_set_eeg_reference():
+    """ Test rereference eeg data"""
+    raw = Raw(fif_fname, preload=True)
+
+    # Rereference raw data by creating a copy of original data
+    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
+
+    # Separate EEG channels from other channel types
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    picks_other = pick_types(raw.info, meg=True, eeg=False, eog=True,
+                             stim=True, exclude='bads')
+
+    # Get the raw EEG data and other channel data
+    raw_eeg_data = raw[picks_eeg][0]
+    raw_other_data = raw[picks_other][0]
+
+    # Get the rereferenced EEG data and channel other
+    reref_eeg_data = reref[picks_eeg][0]
+    unref_eeg_data = reref_eeg_data + ref_data
+    # Undo rereferencing of EEG channels
+    reref_other_data = reref[picks_other][0]
+
+    # Check that both EEG data and other data is the same
+    assert_array_equal(raw_eeg_data, unref_eeg_data)
+    assert_array_equal(raw_other_data, reref_other_data)
+
+    # Test that data is modified in place when copy=False
+    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
+                                        copy=False)
+    assert_true(raw is reref)
