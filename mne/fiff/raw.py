@@ -1618,7 +1618,7 @@ def set_eeg_reference(raw, ref_channels, copy=True):
     ref_channels : list of str
         The name(s) of the reference channel(s).
 
-    copy : boolean
+    copy : bool
         Specifies whether instance of Raw will be copied or modified in place.
 
     Returns
@@ -1649,13 +1649,13 @@ def set_eeg_reference(raw, ref_channels, copy=True):
 
     # Copy raw data or modify raw data in place
     if copy:  # copy data
-        reref = raw.copy()
+        raw = raw.copy()
 
         # Rereference the eeg channels
-        reref._data[eeg_idx] -= ref_data
+        raw._data[eeg_idx] -= ref_data
 
         # Return rereferenced data and reference array
-        return reref, ref_data
+        return raw, ref_data
 
     else:  # modify data in place
 
