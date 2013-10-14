@@ -34,6 +34,9 @@ def test_add_source_space_distances_limited():
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
     del src_new[1]['dist']
+    n_do = 200  # limit this for speed
+    src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
+    src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
     out_name = op.join(tempdir, 'temp.src')
     try:
         add_source_space_distances(src_new, dist_limit=0.007)
@@ -47,6 +50,7 @@ def test_add_source_space_distances_limited():
         assert_array_equal(sn['dist_limit'], np.array([0.007], np.float32))
         do = so['dist']
         dn = sn['dist']
+
         # clean out distances > 0.007 in C code
         do.data[do.data > 0.007] = 0
         do.eliminate_zeros()
@@ -54,9 +58,9 @@ def test_add_source_space_distances_limited():
         # make sure we have some comparable distances
         assert_true(np.sum(do.data < 0.007) > 400)
 
-        # do comparison
-        d = do[0] - dn[1]
-        assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-9)
+        # do comparison over the region computed
+        d = (do - dn)[:sn['vertno'][n_do - 1]][:, :sn['vertno'][n_do - 1]]
+        assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-6)
 
 
 @requires_scipy_version('0.11')
@@ -66,7 +70,7 @@ def test_add_source_space_distances():
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
     del src_new[1]['dist']
-    n_do = 50  # limit this for speed
+    n_do = 20  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
     out_name = op.join(tempdir, 'temp.src')
@@ -86,12 +90,12 @@ def test_add_source_space_distances():
         ds = list()
         for d in [do, dn]:
             d.data[d.data > 0.007] = 0
-            d = d[v][:, v].copy()
+            d = d[v][:, v]
             d.eliminate_zeros()
             ds.append(d)
 
         # make sure we actually calculated some comparable distances
-        assert_true(np.sum(ds[0].data < 0.007) > 30)
+        assert_true(np.sum(ds[0].data < 0.007) > 10)
 
         # do comparison
         d = ds[0] - ds[1]
