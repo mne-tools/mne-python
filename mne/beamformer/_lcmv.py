@@ -543,8 +543,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-            freq_bins, reg=0.01, label=None, pick_ori=None, n_jobs=1,
-            verbose=None):
+            freq_bins, subtract_evoked=False, reg=0.01, label=None, 
+            pick_ori=None, n_jobs=1, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -576,6 +576,9 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         provided for each frequency bin.
     freq_bins : list of tuples of float
         Start and end point of frequency bins of interest.
+    subtract_evoked : bool | False
+        If True, subtract the averaged evoked response prior to computing the
+        tf source grid.
     reg : float
         The regularization for the whitened data covariance.
     label : Label | None
@@ -643,6 +646,9 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                              picks=raw_picks, keep_comp=epochs.keep_comp,
                              dest_comp=epochs.dest_comp,
                              proj=epochs.proj, preload=True)
+        if subtract_evoked:
+            epochs_band.subtract_evoked()
+            
         del raw_band
 
         sol_single = []
