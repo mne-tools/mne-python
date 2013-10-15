@@ -645,12 +645,12 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                              tmin=epochs.tmin, tmax=epochs.tmax,
                              picks=raw_picks, keep_comp=epochs.keep_comp,
                              dest_comp=epochs.dest_comp,
-                             proj=epochs.proj, preload=True)
+                             proj=epochs.proj, preload=True)            
+        del raw_band
+
         if subtract_evoked:
             epochs_band.subtract_evoked()
             
-        del raw_band
-
         sol_single = []
         sol_overlap = []
         for i_time in range(n_time_steps):
