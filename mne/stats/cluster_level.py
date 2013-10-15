@@ -119,11 +119,12 @@ def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
     compared to with the square for the standard (graph) algorithm."""
     n_src = len(neighbors)
     n_times = len(keepers)
-    t_border = [0]
+    t_border = list()
+    t_border.append(0)
     for ki, k in enumerate(keepers):
         keepers[ki] = k + ki * n_src
-        t_border += [t_border[ki] + len(k)]
-    t_border = np.array(t_border)[:, np.newaxis]
+        t_border.append(t_border[ki] + len(k))
+    t_border = np.array(t_border)
     keepers = np.concatenate(keepers)
     v = keepers
     t, s = divmod(v, n_src)

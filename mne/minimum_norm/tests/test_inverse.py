@@ -4,6 +4,7 @@ from numpy.testing import assert_array_almost_equal, assert_equal
 from scipy import sparse
 from nose.tools import assert_true, assert_raises
 import copy
+import warnings
 
 from mne.datasets import sample
 from mne.label import read_label, label_sign_flip
@@ -11,9 +12,11 @@ from mne.event import read_events
 from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import fiff, read_cov, read_forward_solution
-from mne.minimum_norm.inverse import apply_inverse, read_inverse_operator, \
-    apply_inverse_raw, apply_inverse_epochs, make_inverse_operator, \
-    write_inverse_operator, compute_rank_inverse
+from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
+                                      apply_inverse_raw, apply_inverse_epochs,
+                                      make_inverse_operator,
+                                      write_inverse_operator,
+                                      compute_rank_inverse)
 from mne.utils import _TempDir
 
 s_path = op.join(sample.data_path(), 'MEG', 'sample')
@@ -27,6 +30,7 @@ fname_vol_inv = op.join(s_path, 'sample_audvis-meg-vol-7-meg-inv.fif')
 fname_data = op.join(s_path, 'sample_audvis-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis-cov.fif')
 fname_fwd = op.join(s_path, 'sample_audvis-meg-oct-6-fwd.fif')
+fname_fwd_meeg = op.join(s_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 fname_raw = op.join(s_path, 'sample_audvis_filt-0-40_raw.fif')
 fname_event = op.join(s_path, 'sample_audvis_filt-0-40_raw-eve.fif')
 fname_label = op.join(s_path, 'labels', '%s.label')
@@ -127,6 +131,17 @@ def _compare_io(inv_op, out_file_ext='.fif'):
     read_inv_op = read_inverse_operator(out_file)
     _compare(inv_init, read_inv_op)
     _compare(inv_init, inv_op)
+
+
+def test_warn_inverse_operator():
+    """Test MNE inverse warning without average EEG projection
+    """
+    bad_info = copy.deepcopy(evoked.info)
+    bad_info['projs'] = list()
+    fwd_op = read_forward_solution(fname_fwd_meeg, surf_ori=True)
+    with warnings.catch_warnings(True) as w:
+        make_inverse_operator(bad_info, fwd_op, noise_cov)
+    assert_equal(len(w), 1)
 
 
 def test_apply_inverse_operator():

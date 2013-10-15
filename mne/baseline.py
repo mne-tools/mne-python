@@ -63,7 +63,11 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
         else:
             imax = int(np.where(times <= bmax)[0][-1]) + 1
 
-        mean = np.mean(data[..., imin:imax], axis=-1)[..., None]
+        # avoid potential "empty slice" warning
+        if data.shape[-1] > 0:
+            mean = np.mean(data[..., imin:imax], axis=-1)[..., None]
+        else:
+            mean = 0  # otherwise we get an ugly nan
         if mode == 'mean':
             data -= mean
         if mode == 'logratio':

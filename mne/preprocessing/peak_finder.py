@@ -98,7 +98,7 @@ def peak_finder(x0, thresh=None, extrema=1, verbose=None):
                 length -= 1
 
         # Preallocate max number of maxima
-        maxPeaks = ceil(length / 2.0)
+        maxPeaks = int(ceil(length / 2.0))
         peak_loc = np.zeros(maxPeaks, dtype=np.int)
         peak_mag = np.zeros(maxPeaks)
         c_ind = 0

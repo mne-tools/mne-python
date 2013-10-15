@@ -228,7 +228,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
-    NFFT = 2 ** np.ceil(np.log2(rxx_size))
+    NFFT = 2 ** int(np.ceil(np.log2(rxx_size)))
     dpss_fft = fftpack.fft(dpss, NFFT)
     dpss_rxx = np.real(fftpack.ifft(dpss_fft * dpss_fft.conj()))
     dpss_rxx = dpss_rxx[:, :N]
@@ -325,8 +325,8 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
         err = np.zeros_like(xk)
         for n in range(max_iter):
-            d_k = psd_iter / (eigvals[:, np.newaxis] * psd_iter + \
-                  (1 - eigvals[:, np.newaxis]) * var)
+            d_k = (psd_iter / (eigvals[:, np.newaxis] * psd_iter +
+                   (1 - eigvals[:, np.newaxis]) * var))
             d_k *= rt_eig[:, np.newaxis]
             # Test for convergence -- this is overly conservative, since
             # iteration only stops when all frequencies have converged.
@@ -345,7 +345,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
         if n == max_iter - 1:
             warn('Iterative multi-taper PSD computation did not converge.',
-                  RuntimeWarning)
+                 RuntimeWarning)
 
         psd[i, :] = psd_iter
 
@@ -402,8 +402,8 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
 
     csd = np.sum(weights_x * x_mt * (weights_y * y_mt).conj(), axis=-2)
 
-    denom = np.sqrt(np.sum(np.abs(weights_x) ** 2, axis=-2))\
-             * np.sqrt(np.sum(np.abs(weights_y) ** 2, axis=-2))
+    denom = (np.sqrt(np.sum(np.abs(weights_x) ** 2, axis=-2))
+             * np.sqrt(np.sum(np.abs(weights_y) ** 2, axis=-2)))
 
     csd *= 2 / denom
 
