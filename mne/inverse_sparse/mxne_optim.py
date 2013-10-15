@@ -248,8 +248,11 @@ def _mixed_norm_solver_cd(M, G, alpha, maxit=10000, tol=1e-8,
         init = init.T
 
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol, normalize=False,
-                         fit_intercept=False, max_iter=maxit).fit(G, M,
-                         coef_init=init)
+                         fit_intercept=False, max_iter=maxit,
+                         warm_start=True)
+    clf.coef_ = init
+    clf.fit(G, M)
+
     X = clf.coef_.T
     active_set = np.any(X, axis=1)
     X = X[active_set]
