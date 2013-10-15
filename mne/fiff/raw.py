@@ -1657,7 +1657,7 @@ def set_eeg_reference(raw, ref_channels, copy=True):
         raise RuntimeError('Raw data needs to be preloaded. Use '
                            'preload=True (or string) in the constructor.')
     # Make sure that reference channels are loaded as list of string
-    if type(ref_channels) != list:
+    if not isinstance(ref_channels, list):
         raise IOError('Reference channel(s) must be a list of string. '
                       'If using a single reference channel, enter as '
                       'a list with one element.')
