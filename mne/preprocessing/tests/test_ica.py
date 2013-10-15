@@ -183,7 +183,7 @@ def test_ica_core():
 
 @requires_sklearn
 def test_ica_additional():
-    """Test additional functionality
+    """Test additional ICA functionality
     """
     stop2 = 500
     raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
@@ -262,10 +262,12 @@ def test_ica_additional():
 
         # test filtering
         d1 = ica_raw._data[0].copy()
-        ica_raw.filter(4, 20)
+        with warnings.catch_warnings(True):  # dB warning
+            ica_raw.filter(4, 20)
         assert_true((d1 != ica_raw._data[0]).any())
         d1 = ica_raw._data[0].copy()
-        ica_raw.notch_filter([10])
+        with warnings.catch_warnings(True):  # dB warning
+            ica_raw.notch_filter([10])
         assert_true((d1 != ica_raw._data[0]).any())
 
         ica.n_pca_components = 2

@@ -228,7 +228,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
-    NFFT = 2 ** np.ceil(np.log2(rxx_size))
+    NFFT = 2 ** int(np.ceil(np.log2(rxx_size)))
     dpss_fft = fftpack.fft(dpss, NFFT)
     dpss_rxx = np.real(fftpack.ifft(dpss_fft * dpss_fft.conj()))
     dpss_rxx = dpss_rxx[:, :N]

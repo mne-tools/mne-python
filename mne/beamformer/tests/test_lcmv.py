@@ -3,6 +3,7 @@ import os.path as op
 from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
+import warnings
 
 import mne
 from mne import compute_covariance
@@ -291,8 +292,9 @@ def test_tf_lcmv():
         raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1, picks=picks)
         epochs_band = mne.Epochs(raw_band, epochs.events, epochs.event_id,
                                  tmin=tmin, tmax=tmax, proj=True)
-        noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
-                                       win_length)
+        with warnings.catch_warnings(True):  # not enough samples
+            noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
+                                           win_length)
         noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=reg,
                                        grad=reg, eeg=reg, proj=True)
         noise_covs.append(noise_cov)
@@ -302,9 +304,10 @@ def test_tf_lcmv():
         # time windows to compare to tf_lcmv results and test overlapping
         if (l_freq, h_freq) == freq_bins[0]:
             for time_window in time_windows:
-                data_cov = compute_covariance(epochs_band,
-                                              tmin=time_window[0],
-                                              tmax=time_window[1])
+                with warnings.catch_warnings(True):
+                    data_cov = compute_covariance(epochs_band,
+                                                  tmin=time_window[0],
+                                                  tmax=time_window[1])
                 stc_source_power = _lcmv_source_power(epochs.info, forward,
                                                       noise_cov, data_cov,
                                                       reg=reg, label=label)
