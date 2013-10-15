@@ -219,7 +219,7 @@ def read_bem_solution(fname, verbose=None):
         # reorder surfaces as necessary (shouldn't need to?)
         reorder = [None] * 3
         for x in bem_surfs:
-            reorder[np.where(x['id'] == needed)[0]] = x
+            reorder[np.where(x['id'] == needed)[0][0]] = x
         bem_surfs = reorder
     elif len(bem_surfs) == 1:
         if not bem_surfs[0]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN:

@@ -408,7 +408,7 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
     if len(idx) != 1:
         raise RuntimeError('BEM model does not have the inner skull '
                            'triangulation')
-    _filter_source_spaces(bem['surfs'][idx], mindist, mri_head_t, src,
+    _filter_source_spaces(bem['surfs'][idx[0]], mindist, mri_head_t, src,
                           n_jobs)
     logger.info('')
 
