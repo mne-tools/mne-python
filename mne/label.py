@@ -449,8 +449,16 @@ def read_label(filename, subject=None):
                          ' with lh.label or rh.label')
     fid.close()
 
-    label = Label(vertices=np.array(data[0], dtype=np.int32),
-                  pos=1e-3 * data[1:4].T, values=data[4], hemi=hemi,
+    # let's make sure everything is ordered correctly
+    vertices = np.array(data[0], dtype=np.int32)
+    pos = 1e-3 * data[1:4].T
+    values = data[4]
+    order = np.argsort(vertices)
+    vertices = vertices[order]
+    pos = pos[order]
+    values = values[order]
+
+    label = Label(vertices=vertices, pos=pos, values=values, hemi=hemi,
                   comment=comment, filename=filename, subject=subject)
 
     return label

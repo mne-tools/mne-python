@@ -14,10 +14,11 @@ from scipy import linalg
 from . import fiff
 from .utils import logger, verbose
 from .fiff.write import start_file, end_file
-from .fiff.proj import make_projector, proj_equal, activate_proj
+from .fiff.proj import (make_projector, proj_equal, activate_proj,
+                        _has_eeg_average_ref_proj)
 from .fiff import fiff_open
-from .fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov,\
-                       pick_channels
+from .fiff.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
+                        pick_channels)
 from .fiff.constants import FIFF
 from .epochs import _is_good
 
@@ -121,9 +122,9 @@ class Covariance(dict):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
         this_cov = cp.deepcopy(cov)
-        this_cov['data'] = ((this_cov['data'] * this_cov['nfree']) +
-                            (self['data'] * self['nfree'])) / \
-                                (self['nfree'] + this_cov['nfree'])
+        this_cov['data'] = (((this_cov['data'] * this_cov['nfree']) +
+                             (self['data'] * self['nfree'])) /
+                            (self['nfree'] + this_cov['nfree']))
         this_cov['nfree'] += self['nfree']
 
         this_cov['bads'] = list(set(this_cov['bads']).union(self['bads']))
@@ -133,9 +134,9 @@ class Covariance(dict):
     def __iadd__(self, cov):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
-        self['data'][:] = ((self['data'] * self['nfree']) + \
-                            (cov['data'] * cov['nfree'])) / \
-                                (self['nfree'] + cov['nfree'])
+        self['data'][:] = (((self['data'] * self['nfree']) +
+                            (cov['data'] * cov['nfree'])) /
+                           (self['nfree'] + cov['nfree']))
         self['nfree'] += cov['nfree']
 
         self['bads'] = list(set(self['bads']).union(cov['bads']))
@@ -524,6 +525,11 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
     if has_eeg:
         C_eeg = C[C_eeg_idx][:, C_eeg_idx]
         C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG')
+        if not _has_eeg_average_ref_proj(info['projs']):
+            warnings.warn('No average EEG reference present in info["projs"], '
+                          'covariance may be adversely affected. Consider '
+                          'recomputing covariance using a raw file with an '
+                          'average eeg reference projector added.')
 
     n_chan = len(ch_names)
     eigvec = np.zeros((n_chan, n_chan), dtype=np.float)

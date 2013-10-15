@@ -54,10 +54,11 @@ Changelog
    - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
 
    - Add volume and discrete source space creation and I/O support by `Eric Larson`_
-   
+
    - Time-frequency beamforming to obtain spectrograms in source space using LCMV and DICS by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
 
    - Compute epochs power spectral density function by `Denis Engemann`_
+
 
 API
 ~~~
@@ -65,6 +66,8 @@ API
    - The pick_normal parameter for minimum norm solvers has been renamed as pick_ori and normal orientation picking is now achieved by passing the value "normal" for the pick_ori parameter.
 
    - ICA objects now expose the measurment info of the object fitted.
+
+   - Average EEG reference is now added by default to Raw instances.
 
 .. _changes_0_6:
 
