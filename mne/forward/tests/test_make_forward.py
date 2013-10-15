@@ -42,7 +42,7 @@ def test_make_forward_solution_compensation():
     fname_src = op.join(temp_dir, 'oct2-src.fif')
     src = setup_source_space('sample', fname_src, 'oct2',
                              subjects_dir=subjects_dir)
-    fwd_py = make_forward_solution('sample', fname_ctf_raw, mindist=0.0,
+    fwd_py = make_forward_solution(fname_ctf_raw, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=fname_mri)
 
@@ -61,7 +61,7 @@ def test_make_forward_solution():
     """
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
                         'sample-5120-5120-5120-bem-sol.fif')
-    fwd_py = make_forward_solution('sample', fname_raw, mindist=5.0,
+    fwd_py = make_forward_solution(fname_raw, mindist=5.0,
                                    src=fname_src, eeg=True, meg=True,
                                    bem=fname_bem, mri=fname_mri)
     fwd = read_forward_solution(fname_meeg)

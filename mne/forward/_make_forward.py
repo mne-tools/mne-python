@@ -156,15 +156,13 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
 
 
 @verbose
-def make_forward_solution(subject, info, mri, src, bem, fname=None,
-                          meg=True, eeg=True, mindist=0.0, overwrite=False,
-                          n_jobs=1, verbose=None):
+def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
+                          mindist=0.0, overwrite=False, n_jobs=1,
+                          verbose=None):
     """Calculate a forward solution for a subject
 
     Parameters
     ----------
-    subject : str
-        Name of the subject.
     info : instance of mne.fiff.info.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
@@ -250,7 +248,7 @@ def make_forward_solution(subject, info, mri, src, bem, fname=None,
     else:
         info_extra = 'info dict'
         info_extra_long = info_extra
-    arg_list = [subject, info_extra, mri, src_extra, bem, fname,  meg, eeg,
+    arg_list = [info_extra, mri, src_extra, bem, fname,  meg, eeg,
                 mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
 
