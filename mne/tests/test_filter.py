@@ -25,12 +25,12 @@ def test_notch_filters():
     # let's use an ugly, prime Fs for fun
     Fs = 487.0
     sig_len_secs = 20
-    t = np.arange(0, sig_len_secs * Fs) / Fs
+    t = np.arange(0, int(sig_len_secs * Fs)) / Fs
     freqs = np.arange(60, 241, 60)
 
     # make a "signal"
     rng = np.random.RandomState(0)
-    a = rng.randn(sig_len_secs * Fs)
+    a = rng.randn(int(sig_len_secs * Fs))
     orig_power = np.sqrt(np.mean(a ** 2))
     # make line noise
     a += np.sum([np.sin(2 * np.pi * f * t) for f in freqs], axis=0)
