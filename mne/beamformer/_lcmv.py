@@ -528,7 +528,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
         # Calculating source power
         sp_temp = np.dot(np.dot(Wk, Cm), Wk.T)
-        sp_temp /= noise_norm
+        sp_temp /= max(noise_norm, 1e-41) # Avoid division by 0
+        
         if pick_ori == 'normal':
             source_power[k, 0] = sp_temp[2, 2]
         else:
