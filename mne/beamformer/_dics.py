@@ -389,7 +389,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
             # Calculating source power
             sp_temp = np.dot(np.dot(Wk.conj(), data_csd.data), Wk.T)
-            sp_temp /= noise_norm
+            sp_temp /= max(noise_norm, 1e-40)  # Avoid division by 0
+
             if pick_ori == 'normal':
                 source_power[k, i] = np.abs(sp_temp)[2, 2]
             else:
@@ -404,8 +405,8 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
 @verbose
 def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
-            freq_bins, subtract_evoked=False, mode='fourier', n_ffts=None, 
-            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True, reg=0.01, 
+            freq_bins, subtract_evoked=False, mode='fourier', n_ffts=None,
+            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True, reg=0.01,
             label=None, pick_ori=None, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
@@ -440,7 +441,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         Start and end point of frequency bins of interest.
     subtract_evoked : bool
         If True, subtract the averaged evoked response prior to computing the
-        tf source grid. 
+        tf source grid.
     mode : str
         Spectrum estimation mode can be either: 'multitaper' or 'fourier'.
     mt_bandwidths : list of float
