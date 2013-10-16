@@ -185,6 +185,7 @@ Visualization
    plot_ica_panel
    plot_image_epochs
    plot_raw
+   plot_raw_psds
    plot_source_estimates
    plot_sparse_source_estimates
    plot_topo
