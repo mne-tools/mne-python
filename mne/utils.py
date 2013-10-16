@@ -423,8 +423,12 @@ requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
 
 
 def requires_nibabel(vox2ras_tkr=False):
+    if vox2ras_tkr:
+        extra = ' with vox2ras_tkr support'
+    else:
+        extra = ''
     return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
-                                 'Requires nibabel')
+                                 'Requires nibabel%s' % extra)
 
 requires_freesurfer = np.testing.dec.skipif(not has_freesurfer(),
                                             'Requires Freesurfer')
