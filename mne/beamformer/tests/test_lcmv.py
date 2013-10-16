@@ -349,3 +349,11 @@ def test_tf_lcmv():
                                   baseline=(None, 0), preload=True)
     assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward, noise_covs,
                   tmin, tmax, tstep, win_lengths, freq_bins)
+                  
+    # Pass only one epoch to test if subtracting evoked responses yields zeros    
+    stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep, 
+                   win_lengths, freq_bins, subtract_evoked=True, reg=reg, 
+                   label=label)
+    
+    assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))
+    
