@@ -284,3 +284,11 @@ def test_tf_dics():
     assert_raises(ValueError, tf_dics, epochs, forward, noise_csds, tmin, tmax,
                   tstep, win_lengths, freq_bins, mode='multitaper',
                   mt_bandwidths=[20])
+    
+    # Pass only one epoch to test if subtracting evoked responses yields zeros
+    stcs = tf_dics(epochs[0], forward, noise_csds, tmin, tmax, tstep, 
+                   win_lengths, freq_bins, subtract_evoked=True, reg=reg, 
+                   label=label)
+    
+    assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))
+                                      

@@ -404,9 +404,9 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
 @verbose
 def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
-            freq_bins, mode='fourier', n_ffts=None, mt_bandwidths=None,
-            mt_adaptive=False, mt_low_bias=True, reg=0.01, label=None,
-            pick_ori=None, verbose=None):
+            freq_bins, subtract_evoked=False, mode='fourier', n_ffts=None, 
+            mt_bandwidths=None, mt_adaptive=False, mt_low_bias=True, reg=0.01, 
+            label=None, pick_ori=None, verbose=None):
     """5D time-frequency beamforming based on DICS.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -438,6 +438,9 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         provided for each frequency bin.
     freq_bins : list of tuples of float
         Start and end point of frequency bins of interest.
+    subtract_evoked : bool
+        If True, subtract the averaged evoked response prior to computing the
+        tf source grid. 
     mode : str
         Spectrum estimation mode can be either: 'multitaper' or 'fourier'.
     mt_bandwidths : list of float
@@ -501,6 +504,10 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
 
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
+
+    # Subtract evoked response
+    if subtract_evoked:
+        epochs.subtract_evoked()
 
     sol_final = []
     for freq_bin, win_length, noise_csd, n_fft, mt_bandwidth in\

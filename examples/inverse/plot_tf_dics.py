@@ -92,6 +92,9 @@ tmin = -0.3  # s
 tmax = 0.5  # s
 tstep = 0.05  # s
 
+# Subtract evoked response prior to computation?
+subtract_evoked = False
+
 # Calculating noise cross-spectral density from empty room noise for each
 # frequency bin and the corresponding time window length. To calculate noise
 # from the baseline period in the data, change epochs_noise to epochs
@@ -106,7 +109,8 @@ for freq_bin, win_length, n_fft in zip(freq_bins, win_lengths, n_ffts):
 # Computing DICS solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
 stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
-               freq_bins=freq_bins, n_ffts=n_ffts, reg=0.001, label=label)
+               freq_bins=freq_bins, subtract_evoked=subtract_evoked, 
+               n_ffts=n_ffts, reg=0.001, label=label)
 
 # Plotting source spectrogram for source with maximum activity
 plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=True)
