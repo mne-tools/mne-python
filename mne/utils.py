@@ -395,10 +395,16 @@ requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
                                      'Requires MNE command line tools')
 
 
-def has_nibabel():
+def has_nibabel(vox2ras_tkr=False):
     try:
         import nibabel
-        return True
+        if vox2ras_tkr:  # we need MGHHeader to have vox2ras_tkr param
+            if hasattr(nibabel.MGHImage.header_class, 'get_vox2ras_tkr'):
+                return True
+            else:
+                return False
+        else:
+            return True
     except ImportError:
         return False
 
@@ -414,8 +420,12 @@ requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
                                                not has_freesurfer(),
                                                'Requires nibabel or '
                                                'Freesurfer')
-requires_nibabel = np.testing.dec.skipif(not has_nibabel(),
-                                         'Requires nibabel')
+
+
+def requires_nibabel(vox2ras_tkr=False):
+    return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
+                                 'Requires nibabel')
+
 requires_freesurfer = np.testing.dec.skipif(not has_freesurfer(),
                                             'Requires Freesurfer')
 
