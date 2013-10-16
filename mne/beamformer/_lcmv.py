@@ -528,7 +528,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
         # Calculating source power
         sp_temp = np.dot(np.dot(Wk, Cm), Wk.T)
-        sp_temp /= max(noise_norm, 1e-41) # Avoid division by 0
+        sp_temp /= max(noise_norm, 1e-40) # Avoid division by 0
         
         if pick_ori == 'normal':
             source_power[k, 0] = sp_temp[2, 2]
@@ -646,7 +646,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                              tmin=epochs.tmin, tmax=epochs.tmax,
                              picks=raw_picks, keep_comp=epochs.keep_comp,
                              dest_comp=epochs.dest_comp,
-                             proj=epochs.proj, preload=True)            
+                             proj=epochs.proj, preload=True)
         del raw_band
 
         if subtract_evoked:

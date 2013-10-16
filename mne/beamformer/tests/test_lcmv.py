@@ -356,4 +356,3 @@ def test_tf_lcmv():
                    label=label)
     
     assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))
-    
