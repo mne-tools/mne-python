@@ -43,9 +43,10 @@ def compare_forwards(f1, f2):
     assert_equal(f1['sol']['ncol'], f2['sol']['ncol'])
     assert_allclose(f1['source_nn'], f2['source_nn'])
     if f1['sol_grad'] is not None:
-        assert_equal(f2['sol_grad'], None)
         assert_allclose(f1['sol_grad']['data'], f2['sol_grad']['data'])
         assert_equal(f1['sol_grad']['ncol'], f2['sol_grad']['ncol'])
+    else:
+        assert_equal(f2['sol_grad'], None)
     assert_equal(f1['source_ori'], f2['source_ori'])
     assert_equal(f1['surf_ori'], f2['surf_ori'])
 

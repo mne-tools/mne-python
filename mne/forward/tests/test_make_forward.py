@@ -53,6 +53,7 @@ def test_make_forward_solution_compensation():
     # check MEG
     assert_allclose(fwd['sol']['data'], fwd_py['sol']['data'],
                     rtol=1e-4, atol=1e-9)
+    assert_equal(len(fwd_py['sol']['row_names']), 274)
     assert_equal(len(fwd['sol']['row_names']), 274)
 
 
@@ -75,6 +76,7 @@ def test_make_forward_solution():
                     rtol=1e-3, atol=1e-3)
     assert_equal(fwd_py['sol']['data'].shape, (366, 22494))
     assert_equal(len(fwd['sol']['row_names']), 366)
+    assert_equal(len(fwd_py['sol']['row_names']), 366)
 
 
 @requires_mne
