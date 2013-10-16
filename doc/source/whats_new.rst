@@ -51,13 +51,13 @@ Changelog
 
    - Add morph map calculation by `Eric Larson`_ and `Martin Luessi`_
 
-   - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
-
    - Add volume and discrete source space creation and I/O support by `Eric Larson`_
 
    - Time-frequency beamforming to obtain spectrograms in source space using LCMV and DICS by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
 
    - Compute epochs power spectral density function by `Denis Engemann`_
+
+   - Plot raw power spectral density by `Eric Larson`_
 
 
 API
@@ -68,6 +68,8 @@ API
    - ICA objects now expose the measurment info of the object fitted.
 
    - Average EEG reference is now added by default to Raw instances.
+
+   - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
 
 .. _changes_0_6:
 
