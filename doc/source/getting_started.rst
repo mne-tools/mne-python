@@ -64,8 +64,13 @@ development environments and functionality is best tested for them:
     * EPD 7.3 (Mac, Linux)
     
     * Canopy >= 1.0 (Mac, Linux)
+
+    * Anaconda (Mac)
     
     * Debian / Ubuntu standard system Python + Scipy stack
+
+
+Note. To make Anaconda working with examples and our test-suite a few manual adjustments might be necessary. Those include compiling the recent matplotlib development verion (https://github.com/matplotlib/matplotlib, https://github.com/matplotlib/matplotlib/blob/master/README.osx) and manually adjusting the python interpreter invoked by the nosetests `binary` (http://stackoverflow.com/questions/17824693/pyqtgraph-with-anaconda-python-on-mac-gives-nib-error).
 
 
 If you use another Python setup and you encounter some difficulties please report
