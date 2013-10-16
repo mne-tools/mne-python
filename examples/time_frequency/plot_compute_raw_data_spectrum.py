@@ -15,7 +15,7 @@ to the data to reduce ECG and EOG artifacts.
 print __doc__
 
 import numpy as np
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 
 from mne import fiff, read_proj, read_selection
 from mne.datasets import sample

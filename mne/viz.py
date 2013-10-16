@@ -3007,7 +3007,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    from matplotlib import pyplot as plt
+    import matplotlib.pyplot as plt
     if area_mode not in [None, 'std', 'range']:
         raise ValueError('"area_mode" must be "std", "range", or None')
     if picks is None:
