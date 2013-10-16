@@ -31,7 +31,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
 from ..parallel import parallel_func
 from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
                      logger, verbose)
-from ..viz import plot_raw, _mutable_defaults
+from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 
 
 class Raw(ProjMixin):
@@ -1082,6 +1082,49 @@ class Raw(ProjMixin):
         return plot_raw(raw, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
                         order, show_options, title, show, block)
+
+    @verbose
+    def plot_psds(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
+                  proj=False, n_fft=2048, picks=None, ax=None, color='black',
+                  area_mode='std', area_alpha=0.33, n_jobs=1, verbose=None):
+        """Plot the power spectral density across channels
+
+        Parameters
+        ----------
+        tmin : float
+            Start time for calculations.
+        tmax : float
+            End time for calculations.
+        fmin : float
+            Start frequency to consider.
+        fmax : float
+            End frequency to consider.
+        proj : bool
+            Apply projection.
+        n_fft : int
+            Number of points to use in Welch FFT calculations.
+        picks : list | None
+            List of channels to use. Cannot be None if `ax` is supplied. If
+            both `picks` and `ax` are None, separate subplots will be created
+            for each standard channel type (`mag`, `grad`, and `eeg`).
+        ax : instance of matplotlib Axes | None
+            Axes to plot into. If None, axes will be created.
+        color : str | tuple
+            A matplotlib-compatible color to use.
+        area_mode : str | None
+            How to plot area. If 'std', the mean +/- 1 STD (across channels)
+            will be plotted. If 'range', the min and max (across channels)
+            will be plotted. Bad channels will be excluded from these
+            calculations. If None, no area will be plotted.
+        area_alpha : float
+            Alpha for the area.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        """
+        return plot_raw_psds(self, tmin, tmax, fmin, fmax, proj, n_fft, picks,
+                             ax, color, area_mode, area_alpha, n_jobs)
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices
