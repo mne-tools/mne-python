@@ -996,8 +996,10 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     if mri is not None:
         if not op.isfile(mri):
             raise IOError('mri file "%s" not found' % mri)
-        if not has_nibabel():
-            raise RuntimeError('nibabel is required to process mri data')
+        if not has_nibabel(vox2ras_tkr=True):
+            raise RuntimeError('nibabel with "vox2ras_tkr" property is '
+                               'required to process mri data, consider '
+                               'installing and/or updating nibabel')
 
     sphere = np.asarray(sphere)
     if sphere.size != 4:

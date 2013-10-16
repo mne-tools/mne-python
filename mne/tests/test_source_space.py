@@ -62,6 +62,7 @@ def test_discrete_source_space():
 
 
 @requires_mne
+@requires_nibabel(vox2ras_tkr=True)
 def test_volume_source_space():
     """Test setting up volume source spaces
     """
@@ -303,7 +304,7 @@ def test_vertex_to_mni():
 
 
 @requires_freesurfer
-@requires_nibabel
+@requires_nibabel()
 def test_vertex_to_mni_fs_nibabel():
     """Test equivalence of vert_to_mni for nibabel and freesurfer
     """
