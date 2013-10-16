@@ -4,6 +4,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
 import os
@@ -3006,7 +3007,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    import pylab as pl
+    from matplotlib import pyplot as plt
     if area_mode not in [None, 'std', 'range']:
         raise ValueError('"area_mode" must be "std", "range", or None')
     if picks is None:
@@ -3032,15 +3033,15 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
 
     make_label = False
     if ax is None:
-        pl.figure()
+        plt.figure()
         ax_list = list()
         for ii in range(len(picks_list)):
             # Make x-axes change together
             if ii > 0:
-                ax_list.append(pl.subplot(len(picks_list), 1, ii + 1,
-                                          sharex=ax_list[0]))
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
+                                           sharex=ax_list[0]))
             else:
-                ax_list.append(pl.subplot(len(picks_list), 1, ii + 1))
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
         make_label = True
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
@@ -3073,7 +3074,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1)
-    pl.show()
+    plt.show()
 
 
 @verbose

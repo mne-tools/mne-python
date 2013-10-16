@@ -15,6 +15,7 @@ to the data to reduce ECG and EOG artifacts.
 print __doc__
 
 import numpy as np
+from matplotlib import pyplot as plt
 
 from mne import fiff, read_proj, read_selection
 from mne.datasets import sample
@@ -38,8 +39,7 @@ tmin, tmax = 0, 60  # use the first 60s of data
 fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
 n_fft = 2048  # the FFT size (NFFT). Ideally a power of 2
 
-import pylab as pl
-pl.ion()
+plt.ion()
 
 # Let's first check out all channel types
 raw.plot_psds(area_mode='range', tmax=10.0)
@@ -53,8 +53,8 @@ picks = fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False,
 # Let's just look at the first few channels for demonstration purposes
 picks = picks[:4]
 
-pl.figure()
-ax = pl.axes()
+plt.figure()
+ax = plt.axes()
 raw.plot_psds(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
               n_jobs=1, proj=False, ax=ax, color=(0, 0, 1),  picks=picks)
 
@@ -68,4 +68,4 @@ raw.plot_psds(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
               n_jobs=1, proj=True, ax=ax, color=(1, 0, 0), picks=picks)
 
 ax.set_title('Four left-temporal magnetometers')
-pl.legend(['Without SSP', 'With SSP', 'SSP + Notch'])
+plt.legend(['Without SSP', 'With SSP', 'SSP + Notch'])
