@@ -119,10 +119,12 @@ def read_elp(fname):
     pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     elp_points = pattern.findall(open(fname).read())
     elp_points = np.array(elp_points, dtype=float)
-    if elp_points.shape != (8, 3):
-        err = ("File %r does not contain correct number of points for a "
-               "fiducials file. Expected shape: (8 points, 3 "
-               "coordinates); got shape "
+    if elp_points.shape[1] != 3:
+        err = ("File %r does not contain 3 columns as required; got shape "
+               "%s." % (fname, elp_points.shape))
+        raise ValueError(err)
+    elif len(elp_points) < 8:
+        err = ("File %r contains fewer than 8 points; got shape "
                "%s." % (fname, elp_points.shape))
         raise ValueError(err)
     return elp_points
