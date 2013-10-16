@@ -391,7 +391,7 @@ class RawKIT(Raw):
             logger.warning(msg)
 
         if isinstance(elp, basestring):
-            elp = read_elp(elp)
+            elp = read_elp(elp)[:8]
 
         if isinstance(mrk, basestring):
             mrk = read_mrk(mrk)

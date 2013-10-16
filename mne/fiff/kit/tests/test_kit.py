@@ -11,8 +11,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 import scipy.io
 from mne.utils import _TempDir
 from mne.fiff import Raw, pick_types
-from mne.fiff.kit import read_raw_kit
-from mne.fiff.kit.coreg import read_hsp, write_hsp, read_sns
+from mne.fiff.kit import read_raw_kit, read_hsp, write_hsp
+from mne.fiff.kit.coreg import read_sns
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))

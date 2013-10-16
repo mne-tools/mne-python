@@ -8,8 +8,8 @@ import os
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from mne.fiff.kit.coreg import read_hsp, write_hsp, read_mrk, write_mrk, \
-                               get_head_coord_trans
+from mne.fiff.kit import read_hsp, write_hsp, read_mrk, write_mrk
+from mne.fiff.kit.coreg import get_head_coord_trans
 from mne.transforms import apply_trans, rotation, translation
 from mne.utils import _TempDir
 
