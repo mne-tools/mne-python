@@ -7,7 +7,7 @@ import os.path as op
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_almost_equal
 
 from mne import fiff, Epochs, read_events
 from mne.decoding.csp import CSP
@@ -46,7 +46,8 @@ def test_csp():
     X = csp.fit_transform(epochs_data, y)
     assert_true(csp.filters_.shape == (n_channels, n_channels))
     assert_true(csp.patterns_.shape == (n_channels, n_channels))
-    assert_array_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
+    assert_array_almost_equal(csp.fit(epochs_data, y).transform(epochs_data),
+                              X)
 
     # test init exception
     assert_raises(ValueError, csp.fit, epochs_data,
@@ -82,7 +83,8 @@ def test_regularized_csp():
         X = csp.fit_transform(epochs_data, y)
         assert_true(csp.filters_.shape == (n_channels, n_channels))
         assert_true(csp.patterns_.shape == (n_channels, n_channels))
-        assert_array_equal(csp.fit(epochs_data, y).transform(epochs_data), X)
+        assert_array_almost_equal(csp.fit(epochs_data, y).
+                                  transform(epochs_data), X)
 
         # test init exception
         assert_raises(ValueError, csp.fit, epochs_data,
@@ -93,4 +95,3 @@ def test_regularized_csp():
         csp.n_components = n_components
         sources = csp.transform(epochs_data)
         assert_true(sources.shape[1] == n_components)
-
