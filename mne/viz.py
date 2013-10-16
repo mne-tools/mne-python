@@ -4,6 +4,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
 import os
@@ -36,6 +37,7 @@ from .fiff import show_fiff, FIFF
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, setup_proj
 from .utils import create_chunks
+from .time_frequency import compute_raw_psd
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -2961,6 +2963,118 @@ def figure_nobar(*args, **kwargs):
     finally:
         pl.mpl.rcParams['toolbar'] = old_val
     return fig
+
+
+@verbose
+def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
+                  proj=False, n_fft=2048, picks=None, ax=None, color='black',
+                  area_mode='std', area_alpha=0.33, n_jobs=1, verbose=None):
+    """Plot the power spectral density across channels
+
+    Parameters
+    ----------
+    raw : instance of fiff.Raw
+        The raw instance to use.
+    tmin : float
+        Start time for calculations.
+    tmax : float
+        End time for calculations.
+    fmin : float
+        Start frequency to consider.
+    fmax : float
+        End frequency to consider.
+    proj : bool
+        Apply projection.
+    n_fft : int
+        Number of points to use in Welch FFT calculations.
+    picks : list | None
+        List of channels to use. Cannot be None if `ax` is supplied. If both
+        `picks` and `ax` are None, separate subplots will be created for
+        each standard channel type (`mag`, `grad`, and `eeg`).
+    ax : instance of matplotlib Axes | None
+        Axes to plot into. If None, axes will be created.
+    color : str | tuple
+        A matplotlib-compatible color to use.
+    area_mode : str | None
+        Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
+        will be plotted. If 'range', the min and max (across channels) will be
+        plotted. Bad channels will be excluded from these calculations.
+        If None, no area will be plotted.
+    area_alpha : float
+        Alpha for the area.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    import matplotlib.pyplot as plt
+    if area_mode not in [None, 'std', 'range']:
+        raise ValueError('"area_mode" must be "std", "range", or None')
+    if picks is None:
+        if ax is not None:
+            raise ValueError('If "ax" is not supplied (None), then "picks" '
+                             'must also be supplied')
+        megs = ['mag', 'grad', False]
+        eegs = [False, False, True]
+        names = ['Magnetometers', 'Gradiometers', 'EEG']
+        picks_list = list()
+        titles_list = list()
+        for meg, eeg, name in zip(megs, eegs, names):
+            picks = pick_types(raw.info, meg=meg, eeg=eeg)
+            if len(picks) > 0:
+                picks_list.append(picks)
+                titles_list.append(name)
+        if len(picks_list) == 0:
+            raise RuntimeError('No MEG or EEG channels found')
+    else:
+        picks_list = [picks]
+        titles_list = ['Selected channels']
+        ax_list = [ax]
+
+    make_label = False
+    if ax is None:
+        plt.figure()
+        ax_list = list()
+        for ii in range(len(picks_list)):
+            # Make x-axes change together
+            if ii > 0:
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
+                                           sharex=ax_list[0]))
+            else:
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
+        make_label = True
+
+    for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
+                                                ax_list)):
+        psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
+                                      fmin=fmin, fmax=fmax, NFFT=n_fft,
+                                      n_jobs=n_jobs, plot=False, proj=proj)
+
+        # Convert PSDs to dB
+        psds = 10 * np.log10(psds)
+        psd_mean = np.mean(psds, axis=0)
+        if area_mode == 'std':
+            psd_std = np.std(psds, axis=0)
+            hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
+        elif area_mode == 'range':
+            hyp_limits = (np.min(psds, axis=0), np.max(psds, axis=0))
+        else:  # area_mode is None
+            hyp_limits = None
+
+        ax.plot(freqs, psd_mean, color=color)
+        if hyp_limits is not None:
+            ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
+                            color=color, alpha=area_alpha)
+        if make_label:
+            if ii == len(picks_list) - 1:
+                ax.set_xlabel('Freq (Hz)')
+            if ii == len(picks_list) / 2:
+                ax.set_ylabel('Power Spectral Density (dB/Hz)')
+            ax.set_title(title)
+            ax.set_xlim(freqs[0], freqs[-1])
+    if make_label:
+        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1)
+    plt.show()
 
 
 @verbose
