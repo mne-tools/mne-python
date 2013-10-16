@@ -284,31 +284,10 @@ def test_tf_dics():
     assert_raises(ValueError, tf_dics, epochs, forward, noise_csds, tmin, tmax,
                   tstep, win_lengths, freq_bins, mode='multitaper',
                   mt_bandwidths=[20])
-
-def test_tf_dics_subtract_evoked():
-    """Test TF beamforming based on DICS after evoked-response subtraction 
-    """
-    tmin, tmax, tstep = -0.2, 0.2, 0.1
-    raw, epochs, _, _, _, label, forward, _, _, _ =\
-        _get_data(tmin, tmax, read_all_forward=False, compute_csds=False)
-
-    # Keep only one epoch    
-    epochs = epochs[0]
     
-    freq_bins = [(4, 20), (30, 55)]
-    win_lengths = [0.2, 0.2]
-    reg = 0.001
-
-    noise_csds = []
-    for freq_bin, win_length in zip(freq_bins, win_lengths):
-        noise_csd = compute_epochs_csd(epochs, mode='fourier',
-                                       fmin=freq_bin[0], fmax=freq_bin[1],
-                                       fsum=True, tmin=tmin,
-                                       tmax=tmin + win_length)
-        noise_csds.append(noise_csd)
-
-    stcs = tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
-                   freq_bins, subtract_evoked=True, reg=reg, label=label)
+    stcs = tf_dics(epochs[0], forward, noise_csds, tmin, tmax, tstep, 
+                   win_lengths, freq_bins, subtract_evoked=True, reg=reg, 
+                   label=label)
     
-    assert_array_almost_equal(stcs[0].data, np.zeros(np.shape(stcs[0].data)))
+    assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))
                                       
