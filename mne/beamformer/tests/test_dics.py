@@ -285,6 +285,7 @@ def test_tf_dics():
                   tstep, win_lengths, freq_bins, mode='multitaper',
                   mt_bandwidths=[20])
     
+    # Pass only one epoch to test if subtracting evoked responses yields zeros
     stcs = tf_dics(epochs[0], forward, noise_csds, tmin, tmax, tstep, 
                    win_lengths, freq_bins, subtract_evoked=True, reg=reg, 
                    label=label)
