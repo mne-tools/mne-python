@@ -70,7 +70,7 @@ development environments and functionality is best tested for them:
     * Debian / Ubuntu standard system Python + Scipy stack
 
 
-Note. To make Anaconda working with all examples and our test-suite a few manual adjustments might be necessary. Those include compiling the recent matplotlib development verion (https://github.com/matplotlib/matplotlib, https://github.com/matplotlib/matplotlib/blob/master/README.osx) and manually adjusting the python interpreter invoked by the nosetests ``binary`` (http://stackoverflow.com/questions/17824693/pyqtgraph-with-anaconda-python-on-mac-gives-nib-error). Tested on Mac OS X 10.8.
+Note. To make Anaconda working with all examples and our test-suite a few manual adjustments might be necessary. Those include compiling the recent matplotlib development verion (https://github.com/matplotlib/matplotlib, https://github.com/matplotlib/matplotlib/blob/master/README.osx) and manually adjusting the python interpreter invoked by the nosetests and the sphinx-build 'binaries' (http://stackoverflow.com/questions/17824693/pyqtgraph-with-anaconda-python-on-mac-gives-nib-error). Tested on Mac OS X 10.8.
 
 
 If you use another Python setup and you encounter some difficulties please report
