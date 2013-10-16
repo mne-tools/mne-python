@@ -11,7 +11,7 @@ from nose.tools import assert_true, assert_raises
 from mne.datasets import sample
 from mne import label_time_courses, read_label, stc_to_label, \
                read_source_estimate, read_source_spaces, grow_labels, \
-               labels_from_parc
+               labels_from_parc, parc_from_labels
 from mne.label import Label
 from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.fixes import in1d
@@ -125,7 +125,7 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 
 def test_labels_from_parc():
-    """Test reading labels from parcellation
+    """Test reading labels from FreeSurfer parcellation
     """
     # test some invalid inputs
     assert_raises(ValueError, labels_from_parc, 'sample', hemi='bla',
@@ -214,6 +214,51 @@ def test_labels_from_parc_annot2labels():
 
     # we have the same result, mne does not fill pos, so ignore it
     _assert_labels_equal(labels, labels_mne, ignore_pos=True)
+
+
+def test_parc_from_labels():
+    """Test writing FreeSurfer parcellation from labels"""
+
+    labels, colors = labels_from_parc('sample', subjects_dir=subjects_dir)
+
+    # write left and right hemi labels:
+    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
+
+    for fname in fnames:
+        parc_from_labels(labels, colors, annot_fname=fname)
+
+    # read it back
+    labels2, colors2 = labels_from_parc('sample', subjects_dir=subjects_dir,
+                                        annot_fname=fnames[0])
+    labels22, colors22 = labels_from_parc('sample', subjects_dir=subjects_dir,
+                                          annot_fname=fnames[1])
+    labels2.extend(labels22)
+    colors2.extend(colors22)
+
+    names = [label.name for label in labels2]
+
+    for label, color in zip(labels, colors):
+        idx = names.index(label.name)
+        assert_labels_equal(label, labels2[idx])
+        assert_array_almost_equal(np.array(color), np.array(colors2[idx]))
+
+    # make sure we can't overwrite things
+    assert_raises(ValueError, parc_from_labels, labels, colors,
+                  annot_fname=fnames[0])
+
+    # however, this works
+    parc_from_labels(labels, colors=None, annot_fname=fnames[0],
+                     overwrite=True)
+
+    # test some other invalid inputs
+    assert_raises(ValueError, parc_from_labels, labels[:-1], colors,
+                  annot_fname=fnames[0], overwrite=True)
+    colors2 = np.asarray(colors)
+    assert_raises(ValueError, parc_from_labels, labels, colors2[:, :3],
+                  annot_fname=fnames[0], overwrite=True)
+    colors2[0] = 1.1
+    assert_raises(ValueError, parc_from_labels, labels, colors2,
+                  annot_fname=fnames[0], overwrite=True)
 
 
 def test_stc_to_label():
