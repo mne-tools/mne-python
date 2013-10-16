@@ -959,7 +959,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                      annot_fname=None, regexp=None, subjects_dir=None,
                      verbose=None):
-    """ Read labels from FreeSurfer parcellation
+    """Read labels from FreeSurfer parcellation
 
     Note: Only cortical labels will be returned.
 
@@ -1058,7 +1058,8 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
 
 
 def _write_annot(fname, annot, ctab, names):
-    """"
+    """Write a Freesurfer annotation to a .annot file.
+
     Parameters
     ----------
     fname : str
@@ -1105,14 +1106,13 @@ def _write_annot(fname, annot, ctab, names):
             np.array(len(name), dtype='>i4').tofile(fid)
             np.fromstring(name, dtype=np.uint8).tofile(fid)
             np.array(color[:4], dtype='>i4').tofile(fid)
-        fid.close()
 
 
 @verbose
 def parc_from_labels(labels, colors, subject=None, parc=None,
                      annot_fname=None, overwrite=False, subjects_dir=None,
                      verbose=None):
-    """ Create a FreeSurfer parcellation from labels
+    """Create a FreeSurfer parcellation from labels
 
     Parameters
     ----------
