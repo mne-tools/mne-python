@@ -51,18 +51,30 @@ class _TriggerHandler(SocketServer.BaseRequestHandler):
 
             if data == 'add client':
                 # Add stim_server._client
-                self.server.stim_server._add_client(self.client_address[0],
-                                                    self)
+                client_id = self.server.stim_server.add_client(self.client_address[0],
+                                                               self)
+
+                # Instantiate queue for communication between threads
+                # Note: new queue for each handler
+                if not hasattr(self, '_tx_queue'):
+                    self._tx_queue = Queue.Queue()
+
                 self.request.sendall("Client added")
+
+                # Mark the client as running
+                for client in self.server.stim_server._clients:
+                    if client['id'] == client_id:
+                        client['running'] = True
 
             if data == 'get trigger':
 
                 # Pop triggers and send them
-                if (self.server.stim_server._tx_queue.qsize() > 0 and
-                        hasattr(self.server.stim_server, '_client')):
+                if (self._tx_queue.qsize() > 0 and
+                        self.server.stim_server, '_clients'):
 
-                    trigger = self.server.stim_server._tx_queue.get()
-                    logger.info("Trigger %s popped and sent" % (str(trigger)))
+                    trigger = self._tx_queue.get()
+                    logger.info("Trigger %s popped and sent to client %d" %
+                                (str(trigger), client_id))
                     self.request.sendall(str(trigger))
                 else:
                     self.request.sendall("Empty")
@@ -102,6 +114,7 @@ class StimServer(object):
         self._thread.start()
 
         self._running = False
+        self._clients = []
         return self
 
     def __exit__(self, type, value, traceback):
@@ -117,39 +130,35 @@ class StimServer(object):
             If not None, override default verbose level (see mne.verbose).
         """
 
-        # Instantiate queue for communication between threads
-        if not hasattr(self, '_tx_queue'):
-            self._tx_queue = Queue.Queue()
-
         # Start server
         if not self._running:
             logger.info('RtServer: Start')
             self._running = True
 
-            # wait till client is added
-            while not hasattr(self, '_client'):
+            # wait till atleast one client is added
+            while (len(self._clients) == 0):
                 time.sleep(0.1)
 
     @verbose
-    def _add_client(self, ip, sock, verbose=None):
-        """Add client and flag it as running.
+    def add_client(self, ip, sock, verbose=None):
+        """Add client.
 
         Parameters
         ----------
         ip : str
-            IP address of the host where StimServer is running.
+            IP address of the client.
         sock : instance of socket.socket
             The client socket.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
 
-        self._client = dict()
-
         logger.info("Adding client with ip = %s" % ip)
-        self._client['ip'] = ip
-        self._client['running'] = True
-        self._client['socket'] = sock
+
+        client = dict(ip=ip, id=len(self._clients), running=False, socket=sock)
+        self._clients.append(client)
+
+        return client['id']
 
     @verbose
     def shutdown(self, verbose=None):
@@ -163,10 +172,12 @@ class StimServer(object):
 
         logger.info("Shutting down ...")
 
-        self._running = False
+        # stop running all the clients
+        if hasattr(self, '_clients'):
+            for client in self._clients:
+                client['running'] = False
 
-        if hasattr(self, '_client'):
-            self._client['running'] = False
+        self._running = False
 
         self._data.shutdown()
         self._data.server_close()
@@ -185,7 +196,8 @@ class StimServer(object):
         """
 
         logger.info("Adding trigger %d" % trigger)
-        self._tx_queue.put(trigger)
+        for client in self._clients:
+            client['socket']._tx_queue.put(trigger)
 
 
 class StimClient(object):
