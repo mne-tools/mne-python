@@ -51,7 +51,7 @@ def _check_coil_frame(coils, coord_frame, bem):
     return coils, coord_frame
 
 
-def _bem_one_lin_field_coeff_simple(dest, normal, tri_rr, tri_nn, tri_area):
+def _bem_lin_field_coeffs_simple(dest, normal, tri_rr, tri_nn, tri_area):
     """Simple version..."""
     out = np.zeros((3, len(dest)))
     for rr, o in zip(tri_rr, out):
@@ -104,7 +104,7 @@ def _bem_specify_coils(bem, coils, coord_frame, n_jobs):
     #if method != 'simple':  # in ['ferguson', 'urankar']:
     #    raise NotImplementedError
     #else:
-    func = _bem_one_lin_field_coeff_simple
+    func = _bem_lin_field_coeffs_simple
 
     # Process each of the surfaces
     rmags = np.concatenate([coil['rmag'] for coil in coils])

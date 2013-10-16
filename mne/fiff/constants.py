@@ -263,7 +263,6 @@ FIFF.FIFF_BEM_POT_SOLUTION      = 3110  # float ** The solution matrix
 FIFF.FIFF_BEM_APPROX            = 3111  # int    approximation method, see below
 FIFF.FIFF_BEM_COORD_FRAME       = 3112  # The coordinate frame of the model
 FIFF.FIFF_BEM_SIGMA             = 3113  # Conductivity of a compartment
-FIFF.FIFF_BEM_APPROX            = 3111  # int    approixmation method
 FIFF.FIFFV_BEM_APPROX_CONST     = 1     # The constant potential approach
 FIFF.FIFFV_BEM_APPROX_LINEAR    = 2     # The linear potential approach
 
