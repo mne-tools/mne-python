@@ -124,7 +124,7 @@ def read_elp(fname):
                "%s." % (fname, elp_points.shape))
         raise ValueError(err)
     elif len(elp_points) < 8:
-        err = ("File %r does contains fewer than 8 points; got shape "
+        err = ("File %r contains fewer than 8 points; got shape "
                "%s." % (fname, elp_points.shape))
         raise ValueError(err)
     return elp_points
