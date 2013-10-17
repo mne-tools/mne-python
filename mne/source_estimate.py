@@ -1479,7 +1479,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         logger.info('[done]')
 
-    def save_as_volume(self, fname, src, dest='mri', mri_resolution=False):
+    def save_as_volume(self, fname, src, dest='mri', mri_resolution=False,
+                       time_index=None):
         """Save a volume source estimate in a nifti file
 
         Parameters
@@ -1496,6 +1497,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
             It True the image is saved in MRI resolution.
             WARNING: if you have many time points the file produced can be
             huge.
+        time_index: int | None
+            Only save the time point with the specified index. If None,
+            all time points are saved.
 
         Returns
         -------
@@ -1503,9 +1507,11 @@ class VolSourceEstimate(_BaseSourceEstimate):
             The image object.
         """
         save_stc_as_volume(fname, self, src, dest=dest,
-                           mri_resolution=mri_resolution)
+                           mri_resolution=mri_resolution,
+                           time_index=time_index)
 
-    def as_volume(self, src, dest='mri', mri_resolution=False):
+    def as_volume(self, src, dest='mri', mri_resolution=False,
+                  time_index=None):
         """Export volume source estimate as a nifti object
 
         Parameters
@@ -1520,6 +1526,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
             It True the image is saved in MRI resolution.
             WARNING: if you have many time points the file produced can be
             huge.
+        time_index: int | None
+            Only export the time point with the specified index. If None,
+            all time points are exported.
 
         Returns
         -------
@@ -1527,7 +1536,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
             The image object.
         """
         return save_stc_as_volume(None, self, src, dest=dest,
-                                  mri_resolution=mri_resolution)
+                                  mri_resolution=mri_resolution,
+                                  time_index=time_index)
 
     def __repr__(self):
         if isinstance(self.vertno, list):
@@ -2273,7 +2283,8 @@ def _get_ico_tris(grade, verbose=None, return_surf=False):
         return ico
 
 
-def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
+def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False,
+                       time_index=None):
     """Save a volume source estimate in a nifti file
 
     Parameters
@@ -2293,6 +2304,9 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
         It True the image is saved in MRI resolution.
         WARNING: if you have many time points the file produced can be
         huge.
+    time_index: int | None
+        Only save the time point with the specified index. If None,
+        all time points are saved.
 
     Returns
     -------
@@ -2306,22 +2320,33 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     n_times = stc.data.shape[1]
     shape = src[0]['shape']
     shape3d = (shape[2], shape[1], shape[0])
-    shape = (n_times, shape[2], shape[1], shape[0])
+    if time_index is None:
+        shape = (n_times, shape[2], shape[1], shape[0])
+    else:
+        shape = shape3d
     vol = np.zeros(shape)
     mask3d = src[0]['inuse'].reshape(shape3d).astype(np.bool)
 
     if mri_resolution:
         mri_shape3d = (src[0]['mri_height'], src[0]['mri_depth'],
                        src[0]['mri_width'])
-        mri_shape = (n_times, src[0]['mri_height'], src[0]['mri_depth'],
-                     src[0]['mri_width'])
+        if time_index is None:
+            mri_shape = (n_times, src[0]['mri_height'],
+                         src[0]['mri_depth'], src[0]['mri_width'])
+        else:
+            mri_shape = mri_shape3d
         mri_vol = np.zeros(mri_shape)
         interpolator = src[0]['interpolator']
 
-    for k, v in enumerate(vol):
-        v[mask3d] = stc.data[:, k]
+    if time_index is None:
+        for k, v in enumerate(vol):
+            v[mask3d] = stc.data[:, k]
+            if mri_resolution:
+                mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
+    else:
+        vol[mask3d] = stc.data[:, time_index]
         if mri_resolution:
-            mri_vol[k] = (interpolator * v.ravel()).reshape(mri_shape3d)
+            mri_vol[:] =(interpolator * vol.ravel()).reshape(mri_shape3d)
 
     if mri_resolution:
         vol = mri_vol
@@ -2343,7 +2368,10 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
 
     header = nib.nifti1.Nifti1Header()
     header.set_xyzt_units('mm', 'msec')
-    header['pixdim'][4] = 1e3 * stc.tstep
+
+    if time_index is None:
+        header['pixdim'][4] = 1e3 * stc.tstep
+
     img = nib.Nifti1Image(vol, affine, header=header)
     if fname is not None:
         nib.save(img, fname)
