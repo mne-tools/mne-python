@@ -85,7 +85,7 @@ def test_make_forward_solution_compensation():
 
 
 def test_make_forward_solution():
-    """Test making forward solution from python
+    """Test making M-EEG forward solution from python
     """
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
                         'sample-5120-5120-5120-bem-sol.fif')
@@ -94,7 +94,6 @@ def test_make_forward_solution():
                                    bem=fname_bem, mri=fname_mri)
     fwd = read_forward_solution(fname_meeg)
     _compare_forwards(fwd, fwd_py, 366, 22494)
-
 
 
 @requires_mne
