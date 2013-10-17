@@ -64,8 +64,18 @@ development environments and functionality is best tested for them:
     * EPD 7.3 (Mac, Linux)
     
     * Canopy >= 1.0 (Mac, Linux)
+
+    * Anaconda (Mac)
     
     * Debian / Ubuntu standard system Python + Scipy stack
+
+
+Note. To make Anaconda working with all examples and our test-suite a few
+manual adjustments might be necessary. Those include compiling the recent
+matplotlib development verion (http://goo.gl/bFZHhX, http://goo.gl/S81KHv)
+and manually adjusting the python interpreter invoked by the nosetests and
+the sphinx-build 'binaries' (http://goo.gl/Atqh26).
+Tested on a recent MacBook Pro running Mac OS X 10.8
 
 
 If you use another Python setup and you encounter some difficulties please report
