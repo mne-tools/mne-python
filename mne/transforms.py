@@ -7,13 +7,13 @@ import numpy as np
 from numpy import sin, cos
 from scipy import linalg
 
-from ..fiff import FIFF
-from ..fiff.open import fiff_open
-from ..fiff.tag import read_tag, find_tag
-from ..fiff.tree import dir_tree_find
-from ..fiff.write import (start_file, end_file, start_block, end_block,
+from .fiff import FIFF
+from .fiff.open import fiff_open
+from .fiff.tag import read_tag, find_tag
+from .fiff.tree import dir_tree_find
+from .fiff.write import (start_file, end_file, start_block, end_block,
                           write_coord_trans, write_dig_point, write_int)
-from ..utils import logger
+from .utils import logger
 
 
 # transformation from anterior/left/superior coordinate system to

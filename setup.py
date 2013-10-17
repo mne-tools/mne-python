@@ -10,14 +10,14 @@ from numpy.distutils.core import setup
 
 descr = """MNE python project for MEG and EEG data analysis."""
 
-DISTNAME            = 'mne'
-DESCRIPTION         = descr
-MAINTAINER          = 'Alexandre Gramfort'
-MAINTAINER_EMAIL    = 'gramfort@nmr.mgh.harvard.edu'
-URL                 = 'http://martinos.org/mne'
-LICENSE             = 'BSD (3-clause)'
-DOWNLOAD_URL        = 'http://github.com/mne-tools/mne-python'
-VERSION             = mne.__version__
+DISTNAME = 'mne'
+DESCRIPTION = descr
+MAINTAINER = 'Alexandre Gramfort'
+MAINTAINER_EMAIL = 'gramfort@nmr.mgh.harvard.edu'
+URL = 'http://martinos.org/mne'
+LICENSE = 'BSD (3-clause)'
+DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
+VERSION = mne.__version__
 
 
 if __name__ == "__main__":
@@ -48,7 +48,6 @@ if __name__ == "__main__":
           platforms='any',
           packages=['mne', 'mne.tests',
                     'mne.beamformer', 'mne.beamformer.tests',
-                    'mne.coreg',
                     'mne.connectivity', 'mne.connectivity.tests',
                     'mne.data',
                     'mne.datasets',
@@ -64,7 +63,6 @@ if __name__ == "__main__":
                     'mne.preprocessing', 'mne.preprocessing.tests',
                     'mne.simulation', 'mne.simulation.tests',
                     'mne.tests',
-                    'mne.transforms', 'mne.transforms.tests',
                     'mne.stats', 'mne.stats.tests',
                     'mne.time_frequency', 'mne.time_frequency.tests',
                     'mne.realtime', 'mne.realtime.tests', 'mne.decoding',
