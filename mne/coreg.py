@@ -23,8 +23,8 @@ from scipy.spatial.distance import cdist
 from .fiff.meas_info import read_fiducials, write_fiducials
 from .label import read_label, Label
 from .source_space import read_source_spaces, write_source_spaces
-from .surface import read_surface, write_surface, read_bem_surfaces, \
-                     write_bem_surface
+from .surface import (read_surface, write_surface, read_bem_surfaces,
+                      write_bem_surface)
 from .transforms import rotation, rotation3d, scaling, translation
 from .utils import get_config, get_subjects_dir
 
