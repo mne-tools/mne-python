@@ -318,8 +318,7 @@ def transform_source_space_to(src, dest, trans):
     """
 
     if src['coord_frame'] == dest:
-        res = src
-        return res
+        return src
 
     if trans['to'] == src['coord_frame'] and trans['from'] == dest:
         trans = invert_transform(trans)
@@ -328,12 +327,11 @@ def transform_source_space_to(src, dest, trans):
                          'coordinate transformation')
 
     t = trans['trans'][:3, :]
-    res = src
-    res['coord_frame'] = dest
+    src['coord_frame'] = dest
 
-    res['rr'] = np.dot(np.c_[res['rr'], np.ones((res['np'], 1))], t.T)
-    res['nn'] = np.dot(np.c_[res['nn'], np.zeros((res['np'], 1))], t.T)
-    return res
+    src['rr'] = np.dot(np.c_[src['rr'], np.ones((src['np'], 1))], t.T)
+    src['nn'] = np.dot(np.c_[src['nn'], np.zeros((src['np'], 1))], t.T)
+    return src
 
 
 def transform_coordinates(filename, pos, orig, dest):

@@ -436,10 +436,13 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     nsource = fwd['sol']['data'].shape[1] / 3
     source_nn = np.tile(np.eye(3), (nsource, 1))
 
-    # Transform the source spaces back into MRI coordinates
-    for s in src:
-        transform_source_space_to(s, FIFF.FIFFV_COORD_MRI, mri_head_t)
-
+    # Don't transform the source spaces back into MRI coordinates (which is
+    # done in the C code) because mne-python assumes forward solution source
+    # spaces are in head coords. We will delete some keys to clean up the
+    # source space, though:
+    for key in ['working_dir', 'command_line']:
+        if key in src.info:
+            del src.info[key]
     fwd.update(dict(nchan=fwd['sol']['data'].shape[0], nsource=nsource,
                     info=info, src=src, source_nn=source_nn,
                     source_rr=source_rr, surf_ori=False,

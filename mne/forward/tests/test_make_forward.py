@@ -8,9 +8,10 @@ from numpy.testing import (assert_equal, assert_allclose)
 from mne.datasets import sample
 from mne.fiff import Raw
 from mne import (read_forward_solution, make_forward_solution,
-                 do_forward_solution, setup_source_space)
-from mne import read_trans
+                 do_forward_solution, setup_source_space, read_trans,
+                 convert_forward_solution)
 from mne.utils import requires_mne, _TempDir
+from mne.tests.test_source_space import _compare_source_spaces
 
 data_path = sample.data_path()
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
@@ -32,6 +33,37 @@ with open(existing_file, 'wb') as fid:
     fid.write('aoeu')
 
 
+def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
+    """Helper to test forwards"""
+    # check source spaces
+    assert_equal(len(fwd['src']), len(fwd_py['src']))
+    _compare_source_spaces(fwd['src'], fwd_py['src'], mode='approx')
+    for surf_ori in [False, True]:
+        if surf_ori:
+            fwd = convert_forward_solution(fwd, surf_ori, copy=False)
+            fwd_py = convert_forward_solution(fwd, surf_ori, copy=False)
+
+        for key in ['nchan', 'source_nn', 'source_rr', 'source_ori',
+                    'surf_ori', 'coord_frame', 'nsource']:
+            print key
+            assert_allclose(fwd_py[key], fwd[key], rtol=1e-4, atol=1e-7)
+        assert_allclose(fwd_py['mri_head_t']['trans'],
+                        fwd['mri_head_t']['trans'], rtol=1e-5, atol=1e-8)
+
+        # check MEG
+        assert_allclose(fwd['sol']['data'][:306],
+                        fwd_py['sol']['data'][:306],
+                        rtol=1e-4, atol=1e-9)
+        # check EEG
+        if fwd['sol']['data'].shape[0] > 306:
+            assert_allclose(fwd['sol']['data'][306:],
+                            fwd_py['sol']['data'][306:],
+                            rtol=1e-3, atol=1e-3)
+        assert_equal(fwd_py['sol']['data'].shape, (n_sensors, n_src))
+        assert_equal(len(fwd['sol']['row_names']), n_sensors)
+        assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
+
+
 def test_make_forward_solution_compensation():
     """Test making forward solution from python with compensation
     """
@@ -49,12 +81,7 @@ def test_make_forward_solution_compensation():
     fwd = do_forward_solution('sample', fname_ctf_raw, src=fname_src,
                               mindist=0.0, bem=fname_bem, mri=fname_mri,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
-
-    # check MEG
-    assert_allclose(fwd['sol']['data'], fwd_py['sol']['data'],
-                    rtol=1e-4, atol=1e-9)
-    assert_equal(len(fwd_py['sol']['row_names']), 274)
-    assert_equal(len(fwd['sol']['row_names']), 274)
+    _compare_forwards(fwd, fwd_py, 274, 108)
 
 
 def test_make_forward_solution():
@@ -66,17 +93,8 @@ def test_make_forward_solution():
                                    src=fname_src, eeg=True, meg=True,
                                    bem=fname_bem, mri=fname_mri)
     fwd = read_forward_solution(fname_meeg)
-    # check MEG
-    assert_allclose(fwd['sol']['data'][:306],
-                    fwd_py['sol']['data'][:306],
-                    rtol=1e-4, atol=1e-9)
-    # check EEG
-    assert_allclose(fwd['sol']['data'][306:],
-                    fwd_py['sol']['data'][306:],
-                    rtol=1e-3, atol=1e-3)
-    assert_equal(fwd_py['sol']['data'].shape, (366, 22494))
-    assert_equal(len(fwd['sol']['row_names']), 366)
-    assert_equal(len(fwd_py['sol']['row_names']), 366)
+    _compare_forwards(fwd, fwd_py, 366, 22494)
+
 
 
 @requires_mne
