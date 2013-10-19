@@ -27,6 +27,8 @@ if __name__ == '__main__':
                       help='The name of the subject', type='str')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
                       help='Print the debug messages.')
+    parser.add_option('-f', '--force', dest='force', action='store_true',
+                      help='Print the debug messages.')
     options, args = parser.parse_args()
     env = os.environ
     subject = vars(options).get('subject', env.get('SUBJECT'))
@@ -36,6 +38,7 @@ if __name__ == '__main__':
 
     overwrite = options.overwrite
     verbose = options.verbose
+    force = '--force' if options.force else ''
 
     def my_run_cmd(cmd, err_msg):
         sig, out = getstatusoutput(cmd)
@@ -63,9 +66,9 @@ if __name__ == '__main__':
 
     subj_path = op.join(subj_dir, subject)
     if not op.exists(subj_path):
-    	print ('%s does not exits. Please check your subject directory '
-    	       'path.' % subj_path)
-    	sys.exit(1)
+        print ('%s does not exits. Please check your subject directory '
+               'path.' % subj_path)
+        sys.exit(1)
 
     if op.exists(op.join(subj_path, 'mri', 'T1.mgz')):
         mri = 'T1.mgz'
@@ -98,7 +101,7 @@ if __name__ == '__main__':
 
     fif = '{0}/{1}/bem/{1}-head-dense.fif'.format(subj_dir, subject)
     print '2. Creating $fif...'
-    cmd = 'mne_surf2bem --surf %s --id 4 --check --fif %s' % (surf, fif)
+    cmd = 'mne_surf2bem --surf %s --id 4 %s --fif %s' % (surf, force, fif)
     my_run_cmd(cmd, 'Failed to create %s, see above' % fif)
     levels = 'medium', 'sparse'
     for ii, (n_tri, level) in enumerate(zip([30000, 2500], levels), 3):
