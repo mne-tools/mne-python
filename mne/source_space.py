@@ -7,7 +7,6 @@ import numpy as np
 import os
 import os.path as op
 from scipy import sparse, linalg
-from functools import partial
 
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
@@ -25,7 +24,7 @@ from .surface import read_surface, _create_surf_spacing, _get_ico_surface, \
 from .source_estimate import mesh_dist
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
                    has_nibabel, logger, verbose, check_scipy_version
-from .fixes import in1d
+from .fixes import in1d, partial
 from .transforms import invert_transform, apply_trans, _print_coord_trans, \
                         combine_transforms
 from .parallel import parallel_func, check_n_jobs
