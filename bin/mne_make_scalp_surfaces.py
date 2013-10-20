@@ -25,9 +25,9 @@ if __name__ == '__main__':
                       help='Overwrite previously computed surface')
     parser.add_option('-s', '--subject', dest='subject',
                       help='The name of the subject', type='str')
-    parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
-                      help='Print the debug messages.')
     parser.add_option('-f', '--force', dest='force', action='store_true',
+                      help='Force transformation of surface into bem.')
+    parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
                       help='Print the debug messages.')
     options, args = parser.parse_args()
     env = os.environ
@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     overwrite = options.overwrite
     verbose = options.verbose
-    force = '--force' if options.force else ''
+    force = '--force' if options.force else '--check'
 
     def my_run_cmd(cmd, err_msg):
         sig, out = getstatusoutput(cmd)
@@ -100,7 +100,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     fif = '{0}/{1}/bem/{1}-head-dense.fif'.format(subj_dir, subject)
-    print '2. Creating $fif...'
+    print '2. Creating %s ...' % fif
     cmd = 'mne_surf2bem --surf %s --id 4 %s --fif %s' % (surf, force, fif)
     my_run_cmd(cmd, 'Failed to create %s, see above' % fif)
     levels = 'medium', 'sparse'
