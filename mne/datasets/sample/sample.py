@@ -58,6 +58,8 @@ def data_path(path=None, force_update=False, update_path=True, verbose=None):
         def_path = op.abspath(op.join(op.dirname(__file__), '..', '..',
                                       '..', 'examples'))
         path = get_config('MNE_DATASETS_SAMPLE_PATH', def_path)
+        if not os.path.exists(path):
+            path = def_path
 
     if not isinstance(path, basestring):
         raise ValueError('path must be a string or None')
