@@ -74,6 +74,7 @@ def _lin_field_coeff(s, mult, rmags, cosmags, ws, lims, func, n_jobs):
 
 
 def _do_lin_field_coeff(rr, t, tn, ta, rmags, cosmags, ws, lims, func):
+    """Actually get field coefficients (parallel-friendly)"""
     coeff = np.zeros((len(lims) - 1, len(rr)))
     for tri, tri_nn, tri_area in zip(t, tn, ta):
         # Accumulate the coefficients for each triangle node

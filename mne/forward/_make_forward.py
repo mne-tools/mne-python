@@ -163,7 +163,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     Parameters
     ----------
-    info : instance of mne.fiff.info.Info | str
+    info : instance of mne.fiff.meas_info.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
