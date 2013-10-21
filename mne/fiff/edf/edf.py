@@ -25,15 +25,19 @@ class RawEDF(Raw):
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
+
     hpts : str | None
         Path to the hpts file.
         If None, sensor locations are (0,0,0).
+
     annot : str | None
         Path of the annot file.
         Can be None for BDF only.
         If None for EDF, it will raise an error.
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -131,32 +135,6 @@ class RawEDF(Raw):
                                        self.last_samp - self.first_samp + 1))
         return "<RawEDF  |  %s>" % ', '.join(s)
 
-    def read_stim_ch(self, buffer_size=1e5):
-        """Read events from data
-
-        Parameter
-        ---------
-        buffer_size : int
-            The size of chunk to by which the data are scanned.
-
-        Returns
-        -------
-        events : array, [samples]
-           The event vector (1 x samples).
-        """
-        buffer_size = int(buffer_size)
-        start = int(self.first_samp)
-        stop = int(self.last_samp + 1)
-
-        pick = pick_types(self.info, meg=False, stim=True, exclude=[])
-        stim_ch = np.empty((1, stop), dtype=np.int)
-        for b_start in range(start, stop, buffer_size):
-            b_stop = b_start + buffer_size
-            x, _ = self._read_segment(start=b_start, stop=b_stop, sel=pick)
-            stim_ch[:, b_start:b_start + x.shape[1]] = x
-
-        return stim_ch
-
     def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
                       proj=None):
         """Read a chunk of raw data
@@ -166,13 +144,17 @@ class RawEDF(Raw):
         start : int, (optional)
             first sample to include (first is 0). If omitted, defaults to the
             first sample in data.
+
         stop : int, (optional)
             First sample to not include.
             If omitted, data is included to the end.
+
         sel : array, optional
             Indices of channels to select.
+
         proj : array
             SSP operator to apply to the data.
+
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -180,6 +162,7 @@ class RawEDF(Raw):
         -------
         data : array, [channels x samples]
            the data matrix (channels x samples).
+
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
@@ -225,12 +208,14 @@ class RawEDF(Raw):
                     for chan in range(nchan):
                         chan_data = fid.read(sfreq * data_size)
                         chan_data
-                        if type(chan_data) == str:
+                        if isinstance(chan_data, str):
                             chan_data = np.fromstring(chan_data, np.uint8)
                         else:
                             chan_data = np.asarray(chan_data, np.uint8)
                         chan_data = chan_data.reshape(-1, 3)
                         chan_data = chan_data.astype(np.int32)
+                        # this converts to 24-bit little endian integer
+                        # # no support in numpy
                         chan_data = (chan_data[:, 0] +
                                      (chan_data[:, 1] << 8) +
                                      (chan_data[:, 2] << 16))
@@ -253,6 +238,9 @@ class RawEDF(Raw):
         return data, times
 
     def _read_annot(self, annot):
+        """Reads an annotation file and converts it to a stimulus channel
+        """
+
         stim_channel = unicode(annot, 'utf-8').split('\x14') if annot else []
 
         return stim_channel
@@ -280,8 +268,8 @@ def get_edf_params(fname, hpts=None, annot=None):
 
         edf['subject_id'] = fid.read(80).strip()
         edf['recording_id'] = fid.read(80).strip()
-        (day, month, year) = [int(x) for x in re.findall('(\d+)', fid.read(8))]
-        (hour, minute, sec) = [int(x) for x in re.findall('(\d+)', fid.read(8))]
+        day, month, year = [int(x) for x in re.findall('(\d+)', fid.read(8))]
+        hour, minute, sec = [int(x) for x in re.findall('(\d+)', fid.read(8))]
         edf['date'] = str(datetime.datetime(year + 2000, month, day,
                                             hour, minute, sec))
         edf['data_offset'] = header_nbytes = int(fid.read(8))
@@ -328,9 +316,11 @@ def get_edf_params(fname, hpts=None, annot=None):
     else:
         edf['data_size'] = 2  # 16-bit (2 byte) integers
     if os.path.lexists(hpts):
-        locs = open(hpts, 'rb').readlines()
-        locs = [x.split() for x in locs]
-        locs = {x[1]: tuple(x[2:]) for x in locs}
+        locs_temp = open(hpts, 'rb').readlines()
+        locs_temp = [x.split() for x in locs]
+        locs = {}
+        for loc in locs_temp:
+            locs[loc[1]] = tuple(loc[2:])
     else:
         locs = {}
     locs = [locs[ch_name] if ch_name in locs.keys() else (0, 0, 0)
@@ -352,15 +342,19 @@ def read_raw_edf(input_fname, hpts=None, annot=None, preload=False,
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
+
     hpts : str | None
         Path to the hpts file.
         If None, sensor locations are (0,0,0).
+
     annot : str | None
         Path of the annot file.
         Can be None for BDF only.
         If None for EDF, it will raise an error.
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
