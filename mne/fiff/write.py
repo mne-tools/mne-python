@@ -153,8 +153,7 @@ def get_machid():
         The machine identifier used in MNE.
     """
     # in case there are no ethernet cards
-    mac = ''.join([hex(x)[2:]
-                   for x in (np.random.rand(6) * 256).astype(np.uint8)])
+    mac = None
     # actually find the ethernet card
     if 'win' == sys.platform[:3]:
         for line in os.popen('ipconfig /all'):
@@ -167,9 +166,12 @@ def get_machid():
                 mac = line.split()[4]
                 break
 
-    if len(mac) != 6:
-        warnings.warn('Bad MAC address: "%s"' % mac)
-        return np.array([0, 0], dtype=np.int32)
+    if mac is None or len(mac) != 6:
+        if len(mac) != 6:
+            warnings.warn('Bad MAC address: "%s"' % mac)
+        mac = ''.join([hex(x)[2:]
+                       for x in (np.random.rand(6) * 256).astype(np.uint8)])
+
     mac = mac.split(':') + ['00', '00']  # add two more fields
     # Convert to integer in reverse-order (for some reason)
     mac = ''.join([h.decode('hex') for h in mac[::-1]])
