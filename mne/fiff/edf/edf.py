@@ -26,6 +26,10 @@ class RawEDF(Raw):
     input_fname : str
         Path to the EDF+,BDF file.
 
+    stim_channel : str | int | None
+        The channel name or channel index (starting at 0).
+        If None, it will use the last channel in data.
+
     hpts : str | None
         Path to the hpts file.
         If None, sensor locations are (0,0,0).
@@ -47,7 +51,8 @@ class RawEDF(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, hpts, annot, preload=False, verbose=None):
+    def __init__(self, input_fname, stim_channel=None,
+                 hpts=None, annot=None, preload=False, verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self._edf_params = params = get_edf_params(input_fname, hpts)
@@ -88,6 +93,8 @@ class RawEDF(Raw):
         self.info['ch_names'] = ch_names = params['ch_names']
         chan_locs = coreg.transform_pts(params['sensor_locs'])
         self.info['chs'] = []
+        if stim_channel == None:
+            stim_channel = params['nchan'] - 1
         for idx, ch_info in enumerate(zip(ch_names, chan_locs), 1):
             ch_name, ch_loc = ch_info
             chan_info = {}
@@ -104,12 +111,16 @@ class RawEDF(Raw):
             chan_info['eeg_loc'] = ch_loc
             chan_info['loc'] = np.zeros(12)
             chan_info['loc'][:3] = ch_loc
-            if ch_name == 'Status':
+            check1 = stim_channel == ch_name
+            check2 = stim_channel == idx
+            stim_check = np.logical_or(check1, check2)
+            if stim_check:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 chan_info['unit'] = FIFF.FIFF_UNIT_NONE
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
-            elif ch_name.startswith('EX'):
-                chan_info['kind'] = FIFF.FIFFV_MISC_CH
+#            # deal with EOG, AUX channels
+#            elif ch_name.startswith('EX'):
+#                chan_info['kind'] = FIFF.FIFFV_MISC_CH
             self.info['chs'].append(chan_info)
 
         if preload:
