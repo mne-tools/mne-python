@@ -127,6 +127,28 @@ def write_fiducials(fname, pts, coord_frame=0):
 
 
 @verbose
+def read_info(fname, verbose=None):
+    """Read measurement info from a file
+
+    Parameters
+    ----------
+    fname : str
+        File name.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    info : instance of mne.fiff.meas_info.Info
+       Info on dataset.
+    """
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        info = read_meas_info(fid, tree)[0]
+    return info
+
+
+@verbose
 def read_meas_info(fid, tree, verbose=None):
     """Read the measurement info
 
@@ -141,7 +163,7 @@ def read_meas_info(fid, tree, verbose=None):
 
     Returns
     -------
-    info : dict
+    info : instance of mne.fiff.meas_info.Info
        Info on dataset.
     meas : dict
         Node in tree that contains the info.
@@ -402,7 +424,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     ----------
     fid : file
         Open file descriptor
-    info : dict
+    info : instance of mne.fiff.meas_info.Info
         The measurement info structure
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),

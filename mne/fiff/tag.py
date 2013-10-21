@@ -407,15 +407,19 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 loc = tag.data['loc']
                 kind = tag.data['kind']
                 if kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH:
+                    # deal with nasty OSX Anaconda bug by casting to float64
+                    loc = loc.astype(np.float64)
                     tag.data['coil_trans'] = np.concatenate(
                             [loc.reshape(4, 3).T[:, [1, 2, 3, 0]],
                              np.array([0, 0, 0, 1]).reshape(1, 4)])
                     tag.data['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 elif tag.data['kind'] == FIFF.FIFFV_EEG_CH:
+                    # deal with nasty OSX Anaconda bug by casting to float64
+                    loc = loc.astype(np.float64)
                     if linalg.norm(loc[3:6]) > 0.:
                         tag.data['eeg_loc'] = np.c_[loc[0:3], loc[3:6]]
                     else:
-                        tag.data['eeg_loc'] = loc[0:3]
+                        tag.data['eeg_loc'] = loc[0:3][:, np.newaxis].copy()
                     tag.data['coord_frame'] = FIFF.FIFFV_COORD_HEAD
                 #
                 #   Unit and exponent

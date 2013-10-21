@@ -12,7 +12,8 @@ from .fiff.proj import Projection
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
-from .forward import is_fixed_orient, _subject_from_forward
+from .forward import (is_fixed_orient, _subject_from_forward,
+                      convert_forward_solution)
 from .source_estimate import SourceEstimate
 from .fiff.proj import make_projector, make_eeg_average_ref_proj
 from .fiff import FIFF
@@ -248,7 +249,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     Parameters
     ----------
     fwd : dict
-        The forward operator. Must be free- and surface-oriented.
+        The forward operator.
     projs : list
         List of projection vectors.
     ch_type : 'grad' | 'mag' | 'eeg'
@@ -273,16 +274,19 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     # check strings
     if not ch_type in ['eeg', 'grad', 'mag']:
         raise ValueError("ch_type should be 'eeg', 'mag' or 'grad (got %s)"
-                          % ch_type)
+                         % ch_type)
     if not mode in ['free', 'fixed', 'ratio', 'radiality', 'angle',
                     'remaining', 'dampening']:
         raise ValueError('Unknown mode type (got %s)' % mode)
 
     # check forward
-    if not fwd['surf_ori']:
-        raise ValueError('fwd should be surface oriented')
-    if is_fixed_orient(fwd):
-        raise ValueError('fwd should not have fixed orientation')
+    if is_fixed_orient(fwd, orig=True):
+        raise ValueError('fwd should must be computed with free orientation')
+    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=False,
+                                   verbose=False)
+    if not fwd['surf_ori'] or is_fixed_orient(fwd):
+        raise RuntimeError('Error converting solution, please notify '
+                           'mne-python developers')
 
     # limit forward
     if ch_type == 'eeg':

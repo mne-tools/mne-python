@@ -54,7 +54,7 @@ def _print_coord_trans(t, prefix='Coordinate transformation: '):
                     (tt[0], tt[1], tt[2], 1000 * tt[3]))
 
 
-def apply_trans(trans, pts):
+def apply_trans(trans, pts, move=True):
     """Apply a transform matrix to an array of points
 
     Parameters
@@ -63,6 +63,8 @@ def apply_trans(trans, pts):
         Transform matrix.
     pts : array, shape = (3,) | (n, 3)
         Array with coordinates for one or n points.
+    move : bool
+        If True (default), apply translation.
 
     Returns
     -------
@@ -79,9 +81,10 @@ def apply_trans(trans, pts):
         out_pts = np.dot(pts, trans[:3, :3].T)
 
     # apply translation
-    transl = trans[:3, 3]
-    if np.any(transl != 0):
-        out_pts += transl
+    if move is True:
+        transl = trans[:3, 3]
+        if np.any(transl != 0):
+            out_pts += transl
 
     return out_pts
 
@@ -179,6 +182,16 @@ def translation(x=0, y=0, z=0):
                   [0, 0, 1, z],
                   [0, 0, 0, 1]], dtype=float)
     return m
+
+
+def _get_mri_head_t_from_trans_file(fname):
+    """Helper to convert "-trans.txt" to "-trans.fif" mri-type equivalent"""
+    # Read a Neuromag -> FreeSurfer transformation matrix
+    t = np.genfromtxt(fname)
+    if t.ndim != 2 or t.shape != (4, 4):
+        raise RuntimeError('File "%s" did not have 4x4 entries' % fname)
+    t = {'from': FIFF.FIFFV_COORD_HEAD, 'to': FIFF.FIFFV_COORD_MRI, 'trans': t}
+    return invert_transform(t)
 
 
 def combine_transforms(t_first, t_second, fro, to):
@@ -305,8 +318,7 @@ def transform_source_space_to(src, dest, trans):
     """
 
     if src['coord_frame'] == dest:
-        res = src
-        return res
+        return src
 
     if trans['to'] == src['coord_frame'] and trans['from'] == dest:
         trans = invert_transform(trans)
@@ -315,12 +327,11 @@ def transform_source_space_to(src, dest, trans):
                          'coordinate transformation')
 
     t = trans['trans'][:3, :]
-    res = src
-    res['coord_frame'] = dest
+    src['coord_frame'] = dest
 
-    res['rr'] = np.dot(np.c_[res['rr'], np.ones((res['np'], 1))], t.T)
-    res['nn'] = np.dot(np.c_[res['nn'], np.zeros((res['np'], 1))], t.T)
-    return res
+    src['rr'] = np.dot(np.c_[src['rr'], np.ones((src['np'], 1))], t.T)
+    src['nn'] = np.dot(np.c_[src['nn'], np.zeros((src['np'], 1))], t.T)
+    return src
 
 
 def transform_coordinates(filename, pos, orig, dest):

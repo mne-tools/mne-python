@@ -287,6 +287,10 @@ def test_write_source_space():
 
 
 def _compare_source_spaces(src0, src1, mode='exact'):
+    """Compare two source spaces
+
+    Note: this function is also used by forward/tests/test_make_forward.py
+    """
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'ntri', 'np', 'type', 'id']:
             print name
@@ -359,8 +363,11 @@ def _compare_source_spaces(src0, src1, mode='exact'):
         if mode == 'exact':
             assert_true(src0.info[name] == src1.info[name])
         elif mode == 'approx':
-            assert_true(name in src0.info)
-            assert_true(name in src1.info)
+            print name
+            if name in src0.info:
+                assert_true(name in src1.info)
+            else:
+                assert_true(name not in src1.info)
 
 
 @requires_fs_or_nibabel

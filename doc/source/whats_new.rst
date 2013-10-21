@@ -61,6 +61,10 @@ Changelog
 
    - Computing of distances along the cortical surface by `Eric Larson`_
 
+   - Add reading BEM solutions by `Eric Larson`_
+
+   - Add forward solution calculation in native Python by `Eric Larson`_
+
 
 API
 ~~~

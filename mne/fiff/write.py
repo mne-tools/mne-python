@@ -8,6 +8,10 @@ import numpy as np
 from scipy import linalg
 import os.path as op
 import gzip
+import sys
+import os
+import re
+import uuid
 
 from .constants import FIFF
 from ..utils import logger
@@ -141,13 +145,30 @@ def write_int_matrix(fid, kind, mat):
     fid.write(np.array(dims, dtype='>i4').tostring())
 
 
+def get_machid():
+    """Get (mostly) unique machine ID
+
+    Returns
+    -------
+    ids : array (length 2, int32)
+        The machine identifier used in MNE.
+    """
+    mac = re.findall('..', '%012x' % uuid.getnode())
+    mac += ['00', '00']  # add two more fields
+
+    # Convert to integer in reverse-order (for some reason)
+    mac = ''.join([h.decode('hex') for h in mac[::-1]])
+    ids = np.flipud(np.fromstring(mac, np.int32, count=2))
+    return ids
+
+
 def write_id(fid, kind, id_=None):
     """Writes fiff id"""
 
     if id_ is None:
         id_ = dict()
         id_['version'] = (1 << 16) | 2
-        id_['machid'] = 65536 * np.random.rand(2)  # Machine id (andom for now)
+        id_['machid'] = get_machid()
         id_['secs'] = time.time()
         id_['usecs'] = 0            # Do not know how we could get this XXX
 

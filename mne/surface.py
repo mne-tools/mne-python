@@ -22,21 +22,9 @@ from .fiff.write import (write_int, write_float, write_float_matrix,
                          write_float_sparse_rcs)
 from .utils import logger, verbose, get_subjects_dir
 
-#
-#   These fiff definitions are not needed elsewhere
-#
-FIFFB_BEM = 310  # BEM data
-FIFFB_BEM_SURF = 311  # One of the surfaces
-FIFF_BEM_SURF_ID = 3101  # int    surface number
-FIFF_BEM_SURF_NAME = 3102  # string surface name
-FIFF_BEM_SURF_NNODE = 3103  # int    number of nodes on a surface
-FIFF_BEM_SURF_NTRI = 3104  # int     number of triangles on a surface
-FIFF_BEM_SURF_NODES = 3105  # float  surface nodes (nnode,3)
-FIFF_BEM_SURF_TRIANGLES = 3106  # int    surface triangles (ntri,3)
-FIFF_BEM_SURF_NORMALS = 3107  # float  surface node normal unit vectors
-FIFF_BEM_COORD_FRAME = 3112  # The coordinate frame of the mode
-FIFF_BEM_SIGMA = 3113  # Conductivity of a compartment
 
+##############################################################################
+# BEM
 
 @verbose
 def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
@@ -72,7 +60,7 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
     #
     #   Find BEM
     #
-    bem = dir_tree_find(tree, FIFFB_BEM)
+    bem = dir_tree_find(tree, FIFF.FIFFB_BEM)
     if bem is None:
         fid.close()
         raise ValueError('BEM data not found')
@@ -81,7 +69,7 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
     #
     #   Locate all surfaces
     #
-    bemsurf = dir_tree_find(bem, FIFFB_BEM_SURF)
+    bemsurf = dir_tree_find(bem, FIFF.FIFFB_BEM_SURF)
     if bemsurf is None:
         fid.close()
         raise ValueError('BEM surface data not found')
@@ -90,7 +78,7 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
     #
     #   Coordinate frame possibly at the top level
     #
-    tag = find_tag(fid, bem, FIFF_BEM_COORD_FRAME)
+    tag = find_tag(fid, bem, FIFF.FIFF_BEM_COORD_FRAME)
     if tag is not None:
         coord_frame = tag.data
     #
@@ -128,7 +116,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     #
     #   Read all the interesting stuff
     #
-    tag = find_tag(fid, this, FIFF_BEM_SURF_ID)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_ID)
 
     if tag is None:
         res['id'] = FIFF.FIFFV_BEM_SURF_ID_UNKNOWN
@@ -139,20 +127,20 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
         if res['id'] != s_id:
             return None
 
-    tag = find_tag(fid, this, FIFF_BEM_SIGMA)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SIGMA)
     if tag is None:
         res['sigma'] = 1.0
     else:
         res['sigma'] = float(tag.data)
 
-    tag = find_tag(fid, this, FIFF_BEM_SURF_NNODE)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NNODE)
     if tag is None:
         fid.close()
         raise ValueError('Number of vertices not found')
 
     res['np'] = int(tag.data)
 
-    tag = find_tag(fid, this, FIFF_BEM_SURF_NTRI)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NTRI)
     if tag is None:
         fid.close()
         raise ValueError('Number of triangles not found')
@@ -161,7 +149,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
-        tag = find_tag(fid, this, FIFF_BEM_COORD_FRAME)
+        tag = find_tag(fid, this, FIFF.FIFF_BEM_COORD_FRAME)
         if tag is None:
             res['coord_frame'] = def_coord_frame
         else:
@@ -171,7 +159,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     #
     #   Vertices, normals, and triangles
     #
-    tag = find_tag(fid, this, FIFF_BEM_SURF_NODES)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NODES)
     if tag is None:
         fid.close()
         raise ValueError('Vertex data not found')
@@ -190,7 +178,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
             fid.close()
             raise ValueError('Vertex normal information is incorrect')
 
-    tag = find_tag(fid, this, FIFF_BEM_SURF_TRIANGLES)
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_TRIANGLES)
     if tag is None:
         fid.close()
         raise ValueError('Triangulation not found')
@@ -202,6 +190,103 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
 
     return res
 
+
+@verbose
+def read_bem_solution(fname, verbose=None):
+    """Read the BEM solution from a file
+
+    Parameters
+    ----------
+    fname : string
+        The file containing the BEM solution.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    bem : dict
+        The BEM solution.
+    """
+    logger.info('Loading surfaces...')
+    bem_surfs = read_bem_surfaces(fname, add_geom=True, verbose=False)
+    if len(bem_surfs) == 3:
+        logger.info('Three-layer model surfaces loaded.')
+        needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                           FIFF.FIFFV_BEM_SURF_ID_SKULL,
+                           FIFF.FIFFV_BEM_SURF_ID_BRAIN])
+        if not all([x['id'] in needed for x in bem_surfs]):
+            raise RuntimeError('Could not find necessary BEM surfaces')
+        # reorder surfaces as necessary (shouldn't need to?)
+        reorder = [None] * 3
+        for x in bem_surfs:
+            reorder[np.where(x['id'] == needed)[0][0]] = x
+        bem_surfs = reorder
+    elif len(bem_surfs) == 1:
+        if not bem_surfs[0]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN:
+            raise RuntimeError('BEM Surfaces not found')
+        logger.info('Homogeneous model surface loaded.')
+
+    # convert from surfaces to solution
+    bem = dict(surfs=bem_surfs)
+    logger.info('\nLoading the solution matrix...\n')
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        # Find the BEM data
+        nodes = dir_tree_find(tree, FIFF.FIFFB_BEM)
+        if len(nodes) == 0:
+            raise RuntimeError('No BEM data in %s' % fname)
+        bem_node = nodes[0]
+
+        # Approximation method
+        tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
+        method = tag.data[0]
+        if method == FIFF.FIFFV_BEM_APPROX_CONST:
+            method = 'constant collocation'
+        elif method == FIFF.FIFFV_BEM_APPROX_LINEAR:
+            method = 'linear collocation'
+        else:
+            raise RuntimeError('Cannot handle BEM approximation method : %d'
+                               % method)
+
+        tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
+        dims = tag.data.shape
+        if len(dims) != 2:
+            raise RuntimeError('Expected a two-dimensional solution matrix '
+                               'instead of a %d dimensional one' % dims[0])
+
+        dim = 0
+        for surf in bem['surfs']:
+            if method == 'linear collocation':
+                dim += surf['np']
+            else:
+                dim += surf['ntri']
+
+        if dims[0] != dim or dims[1] != dim:
+            raise RuntimeError('Expected a %d x %d solution matrix instead of '
+                               'a %d x %d one' % (dim, dim, dims[1], dims[0]))
+        sol = tag.data
+        nsol = dims[0]
+
+    # Gamma factors and multipliers
+    bem['sigma'] = np.array([surf['sigma'] for surf in bem['surfs']])
+    # Dirty trick for the zero conductivity outside
+    sigma = np.r_[0.0, bem['sigma']]
+    bem['source_mult'] = 2.0 / (sigma[1:] + sigma[:-1])
+    bem['field_mult'] = sigma[1:] - sigma[:-1]
+    # make sure subsequent "zip"s work correctly
+    assert len(bem['surfs']) == len(bem['field_mult'])
+    bem['gamma'] = ((sigma[1:] - sigma[:-1])[np.newaxis, :] /
+                    (sigma[1:] + sigma[:-1])[:, np.newaxis])
+    bem['sol_name'] = fname
+    bem['solution'] = sol
+    bem['nsol'] = nsol
+    bem['bem_method'] = method
+    logger.info('Loaded %s BEM solution from %s', bem['bem_method'], fname)
+    return bem
+
+
+###############################################################################
+# EFFICIENCY UTILITIES
 
 def fast_cross_3d(x, y):
     """Compute cross product between list of 3D vectors
@@ -282,6 +367,25 @@ def _triangle_neighbors(tris, npts):
     return neighbor_tri
 
 
+def _triangle_coords(r, geom, best):
+    """Get coordinates of a vertex projected to a triangle"""
+    r1 = geom['r1'][best]
+    tri_nn = geom['nn'][best]
+    r12 = geom['r12'][best]
+    r13 = geom['r13'][best]
+    a = geom['a'][best]
+    b = geom['b'][best]
+    c = geom['c'][best]
+    rr = r - r1
+    z = np.sum(rr * tri_nn)
+    v1 = np.sum(rr * r12)
+    v2 = np.sum(rr * r13)
+    det = a * b - c * c
+    x = (b * v1 - c * v2) / det
+    y = (a * v2 - c * v1) / det
+    return x, y, z
+
+
 def _complete_surface_info(this, do_neighbor_vert=False):
     """Complete surface info"""
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
@@ -329,14 +433,15 @@ def _complete_surface_info(this, do_neighbor_vert=False):
     return this
 
 
-def _get_surf_neighbors(this, k):
-    verts = np.concatenate([this['tris'][nt]
-                            for nt in this['neighbor_tri'][k]])
+def _get_surf_neighbors(surf, k):
+    """Calculate the surface neighbors based on triangulation"""
+    verts = np.concatenate([surf['tris'][nt]
+                            for nt in surf['neighbor_tri'][k]])
     verts = np.setdiff1d(verts, [k], assume_unique=False)
-    if np.any(verts >= this['np']):
+    if np.any(verts >= surf['np']):
         raise RuntimeError
     nneighbors = len(verts)
-    nneigh_max = len(this['neighbor_tri'][k])
+    nneigh_max = len(surf['neighbor_tri'][k])
     if nneighbors > nneigh_max:
         raise RuntimeError('Too many neighbors for vertex %d' % k)
     elif nneighbors != nneigh_max:
@@ -344,6 +449,66 @@ def _get_surf_neighbors(this, k):
                     ' %d (%d instead of %d) [fixed].' % (k, nneighbors,
                                                          nneigh_max))
     return verts
+
+
+def _normalize_vectors(rr):
+    """Normalize surface vertices"""
+    size = np.sqrt(np.sum(rr * rr, axis=1))
+    size[size == 0] = 1.0  # avoid divide-by-zero
+    rr /= size[:, np.newaxis]  # operate in-place
+
+
+def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
+    """Find nearest neighbors
+
+    Note: The rows in xhs and rr must all be unit-length vectors, otherwise
+    the result will be incorrect.
+
+    Parameters
+    ----------
+    xhs : array, shape=(n_samples, n_dim)
+        Points of data set.
+    rr : array, shape=(n_query, n_dim)
+        Points to find nearest neighbors for.
+    use_balltree : bool
+        Use fast BallTree based search from scikit-learn. If scikit-learn
+        is not installed it will fall back to the slow brute force search.
+
+    Returns
+    -------
+    nearest : array, shape=(n_query,)
+        Index of nearest neighbor in xhs for every point in rr.
+    """
+    if use_balltree:
+        try:
+            from sklearn.neighbors import BallTree
+        except ImportError:
+            logger.info('Nearest-neighbor searches will be significantly '
+                        'faster if scikit-learn is installed.')
+            use_balltree = False
+
+    if use_balltree is True:
+        ball_tree = BallTree(xhs)
+        if return_dists:
+            out = ball_tree.query(rr, k=1, return_distance=True)
+            return out[1][:, 0], out[0][:, 0]
+        else:
+            nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
+            return nearest
+    else:
+        if return_dists:
+            nearest = list()
+            dists = list()
+            for r in rr:
+                d = cdist(r[np.newaxis, :], xhs)
+                idx = np.argmin(d)
+                nearest.append(idx)
+                dists.append(d[0, idx])
+            return (np.array(nearest), np.array(dists))
+        else:
+            nearest = np.array([np.argmin(cdist(r[np.newaxis, :], xhs))
+                                for r in rr])
+            return nearest
 
 
 ###############################################################################
@@ -460,6 +625,9 @@ def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
     return s
 
 
+##############################################################################
+# SURFACE CREATION
+
 def _get_ico_surface(grade):
     """Return an icosahedral surface of the desired grade"""
     # always use verbose=False since users don't need to know we're pulling
@@ -468,80 +636,6 @@ def _get_ico_surface(grade):
                             'icos.fif.gz')
     ico = read_bem_surfaces(ico_file_name, s_id=9000 + grade, verbose=False)
     return ico
-
-
-def _normalize_vectors(rr):
-    """Normalize surface vertices"""
-    size = np.sqrt(np.sum(rr * rr, axis=1))
-    size[size == 0] = 1.0  # avoid divide-by-zero
-    rr /= size[:, np.newaxis]  # operate in-place
-
-
-def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
-    """Find nearest neighbors
-
-    Note: The rows in xhs and rr must all be unit-length vectors, otherwise
-    the result will be incorrect.
-
-    Parameters
-    ----------
-    xhs : array, shape=(n_samples, n_dim)
-        Points of data set.
-    rr : array, shape=(n_query, n_dim)
-        Points to find nearest neighbors for.
-    use_balltree : bool
-        Use fast BallTree based search from scikit-learn. If scikit-learn
-        is not installed it will fall back to the slow brute force search.
-
-    Returns
-    -------
-    nearest : array, shape=(n_query,)
-        Index of nearest neighbor in xhs for every point in rr.
-    """
-    if use_balltree:
-        try:
-            from sklearn.neighbors import BallTree
-        except ImportError:
-            logger.info('Nearest-neighbor searches will be significantly '
-                        'faster if scikit-learn is installed.')
-            use_balltree = False
-
-    if use_balltree is True:
-        ball_tree = BallTree(xhs)
-        if return_dists:
-            out = ball_tree.query(rr, k=1, return_distance=True)
-            return out[1][:, 0], out[0][:, 0]
-        else:
-            nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
-            return nearest
-    else:
-        if return_dists:
-            nearest = list()
-            dists = list()
-            for r in rr:
-                d = cdist(r[np.newaxis, :], xhs)
-                idx = np.argmin(d)
-                nearest.append(idx)
-                dists.append(d[0, idx])
-            return (np.array(nearest), np.array(dists))
-        else:
-            nearest = np.array([np.argmin(cdist(r[np.newaxis, :], xhs))
-                                for r in rr])
-            return nearest
-
-
-def _get_nearest(to, fro):
-    """For each point on 'fro', find closest on 'to'"""
-    # triage based on sklearn having ball_tree presence
-    try:
-        from sklearn.neighbors import NearestNeighbors
-        nbrs = NearestNeighbors(n_neighbors=1,
-                                algorithm='ball_tree').fit(fro)
-        from_to_map = nbrs.kneighbors(to)[1].ravel()
-    except:
-        from_to_map = np.array([np.argmin(cdist(t[:, np.newaxis], fro))
-                                for t in to])
-    return from_to_map
 
 
 def _tessellate_sphere_surf(level, rad=1.0):
@@ -657,7 +751,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
         # Make the maps
         logger.info('Mapping %s %s -> %s (%d) ...'
                     % (hemi, subject, stype, sval))
-        mmap = _get_nearest(ico_surf['rr'], from_surf['rr'])
+        mmap = _compute_nearest(from_surf['rr'], ico_surf['rr'])
         nmap = len(mmap)
         surf['inuse'] = np.zeros(surf['np'], int)
         for k in xrange(nmap):
@@ -752,24 +846,24 @@ def write_bem_surface(fname, surf):
     # Create the file and save the essentials
     fid = start_file(fname)
 
-    start_block(fid, FIFFB_BEM)
-    start_block(fid, FIFFB_BEM_SURF)
+    start_block(fid, FIFF.FIFFB_BEM)
+    start_block(fid, FIFF.FIFFB_BEM_SURF)
 
-    write_int(fid, FIFF_BEM_SURF_ID, surf['id'])
-    write_float(fid, FIFF_BEM_SIGMA, surf['sigma'])
-    write_int(fid, FIFF_BEM_SURF_NNODE, surf['np'])
-    write_int(fid, FIFF_BEM_SURF_NTRI, surf['ntri'])
-    write_int(fid, FIFF_BEM_COORD_FRAME, surf['coord_frame'])
-    write_float_matrix(fid, FIFF_BEM_SURF_NODES, surf['rr'])
+    write_int(fid, FIFF.FIFF_BEM_SURF_ID, surf['id'])
+    write_float(fid, FIFF.FIFF_BEM_SIGMA, surf['sigma'])
+    write_int(fid, FIFF.FIFF_BEM_SURF_NNODE, surf['np'])
+    write_int(fid, FIFF.FIFF_BEM_SURF_NTRI, surf['ntri'])
+    write_int(fid, FIFF.FIFF_BEM_COORD_FRAME, surf['coord_frame'])
+    write_float_matrix(fid, FIFF.FIFF_BEM_SURF_NODES, surf['rr'])
 
     if 'nn' in surf and surf['nn'] is not None and len(surf['nn']) > 0:
         write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS, surf['nn'])
 
     # index start at 0 in Python
-    write_int_matrix(fid, FIFF_BEM_SURF_TRIANGLES, surf['tris'] + 1)
+    write_int_matrix(fid, FIFF.FIFF_BEM_SURF_TRIANGLES, surf['tris'] + 1)
 
-    end_block(fid, FIFFB_BEM_SURF)
-    end_block(fid, FIFFB_BEM)
+    end_block(fid, FIFF.FIFFB_BEM_SURF)
+    end_block(fid, FIFF.FIFFB_BEM)
 
     end_file(fid)
 
@@ -954,6 +1048,23 @@ def _get_tri_dist(p, q, p0, q0, a, b, c, dist):
                    dist * dist)
 
 
+def _get_tri_supp_geom(tris, rr):
+    """Create supplementary geometry information using tris and rrs"""
+    r1 = rr[tris[:, 0], :]
+    r12 = rr[tris[:, 1], :] - r1
+    r13 = rr[tris[:, 2], :] - r1
+    r1213 = np.array([r12, r13]).swapaxes(0, 1)
+    a = np.sum(r12 * r12, axis=1)
+    b = np.sum(r13 * r13, axis=1)
+    c = np.sum(r12 * r13, axis=1)
+    mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
+    mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
+    nn = fast_cross_3d(r12, r13)
+    _normalize_vectors(nn)
+    return dict(r1=r1, r12=r12, r13=r13, r1213=r1213,
+                a=a, b=b, c=c, mat=mat, nn=nn)
+
+
 @verbose
 def _make_morph_map(subject_from, subject_to, subjects_dir=None):
     """Construct morph map from one subject to another
@@ -986,16 +1097,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         from_pts, from_tris = read_surface(fname, verbose=False)
         n_from_pts = len(from_pts)
         _normalize_vectors(from_pts)
-        r1 = from_pts[from_tris[:, 0], :]
-        r12 = r1 - from_pts[from_tris[:, 1], :]
-        r13 = r1 - from_pts[from_tris[:, 2], :]
-        r1213 = np.array([r12, r13]).swapaxes(0, 1)
-        a = np.sum(r12 * r12, axis=1)
-        b = np.sum(r13 * r13, axis=1)
-        c = np.sum(r12 * r13, axis=1)
-        mat = np.rollaxis(np.array([[b, -c], [-c, a]]), 2)
-        mat /= (a * b - c * c)[:, np.newaxis, np.newaxis]
-        tri_nn = fast_cross_3d(r12, r13)
+        tri_geom = _get_tri_supp_geom(from_tris, from_pts)
 
         fname = op.join(subjects_dir, subject_to, 'surf',
                         '%s.sphere.reg' % hemi)
@@ -1004,7 +1106,7 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         _normalize_vectors(to_pts)
 
         # from surface: get nearest neighbors, find triangles for each vertex
-        nn_pts_idx = _get_nearest(to_pts, from_pts)
+        nn_pts_idx = _compute_nearest(from_pts, to_pts)
         from_pt_tris = _triangle_neighbors(from_tris, len(from_pts))
         from_pt_tris = [from_pt_tris[pt_idx] for pt_idx in nn_pts_idx]
 
@@ -1012,67 +1114,8 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         nn_tri_inds = []
         nn_tris_weights = []
         for pt_tris, to_pt in zip(from_pt_tris, to_pts):
-            # The following dense code is equivalent to the following:
-            #   rr = r1[pt_tris] - to_pts[ii]
-            #   v1s = np.sum(rr * r12[pt_tris], axis=1)
-            #   v2s = np.sum(rr * r13[pt_tris], axis=1)
-            #   aas = a[pt_tris]
-            #   bbs = b[pt_tris]
-            #   ccs = c[pt_tris]
-            #   dets = aas * bbs - ccs * ccs
-            #   pp = (bbs * v1s - ccs * v2s) / dets
-            #   qq = (aas * v2s - ccs * v1s) / dets
-            #   pqs = np.array(pp, qq)
-
-            # This einsum is equivalent to doing:
-            # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
-            vect = np.einsum('ijk,ik->ij', r1213[pt_tris], r1[pt_tris] - to_pt)
-            mats = mat[pt_tris]
-            # This einsum is equivalent to doing:
-            # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
-            pqs = np.einsum('ijk,ik->ji', mats, vect)
-            found = False
-            for (pt, p, q) in zip(pt_tris, pqs[0], pqs[1]):
-                if 0. <= p <= 1. and 0. < q < 1. and p + q < 1.:
-                    found = True
-                    break
-            if found is False:
-                # Tough: must investigate the sides
-                # We might do something intelligent here. However, for now
-                # it is ok to do it in the hard way
-                rrs = r1[pt_tris] - to_pt
-                dist = np.sum(rrs * tri_nn[pt_tris], axis=1)
-                pp = pqs[0]
-                qq = pqs[1]
-                aa = a[pt_tris]
-                bb = b[pt_tris]
-                cc = c[pt_tris]
-                # Find the nearest point from a triangle:
-                #   Side 1 -> 2
-                p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa,
-                                           0.0), 1.0)
-                q0 = np.zeros_like(p0)
-                #   Side 2 -> 3
-                t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
-                             + (2.0 * bb - cc) * qq) / (aa + bb - cc))
-                t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
-                p1 = 1.0 - t1
-                q1 = t1
-                dist1 = _get_tri_dist(pp, qq, p1, q1, aa, bb, cc, dist)
-                dist0 = _get_tri_dist(pp, qq, p0, q0, aa, bb, cc, dist)
-                #   Side 1 -> 3
-                q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
-                                           / bb, 0.0), 1.0)
-                p2 = np.zeros_like(q2)
-                dist2 = _get_tri_dist(pp, qq, p2, q2, aa, bb, cc, dist)
-
-                # figure out which one had the lowest distance
-                pp = np.r_[p0, p1, p2]
-                qq = np.r_[q0, q1, q2]
-                idx = np.argmin(np.r_[dist0, dist1, dist2])
-                p, q, pt = pp[idx], qq[idx], pt_tris[idx % len(pt_tris)]
-
-            nn_tri_inds.append(pt)
+            p, q, idx, dist = _find_nearest_tri_pt(pt_tris, to_pt, tri_geom)
+            nn_tri_inds.append(idx)
             nn_tris_weights.extend([1. - (p + q), p, q])
 
         nn_tris = from_tris[nn_tri_inds]
@@ -1083,3 +1126,96 @@ def _make_morph_map(subject_from, subject_to, subjects_dir=None):
         morph_maps.append(this_map)
 
     return morph_maps
+
+
+def _find_nearest_tri_pt(pt_tris, to_pt, tri_geom, run_all=False):
+    """Find nearest point mapping to a set of triangles
+
+    If run_all is False, if the point lies within a triangle, it stops.
+    If run_all is True, edges of other triangles are checked in case
+    those (somehow) are closer.
+    """
+    # The following dense code is equivalent to the following:
+    #   rr = r1[pt_tris] - to_pts[ii]
+    #   v1s = np.sum(rr * r12[pt_tris], axis=1)
+    #   v2s = np.sum(rr * r13[pt_tris], axis=1)
+    #   aas = a[pt_tris]
+    #   bbs = b[pt_tris]
+    #   ccs = c[pt_tris]
+    #   dets = aas * bbs - ccs * ccs
+    #   pp = (bbs * v1s - ccs * v2s) / dets
+    #   qq = (aas * v2s - ccs * v1s) / dets
+    #   pqs = np.array(pp, qq)
+
+    # This einsum is equivalent to doing:
+    # pqs = np.array([np.dot(x, y) for x, y in zip(r1213, r1-to_pt)])
+    r1 = tri_geom['r1'][pt_tris]
+    rrs = to_pt - r1
+    tri_nn = tri_geom['nn'][pt_tris]
+    vect = np.einsum('ijk,ik->ij', tri_geom['r1213'][pt_tris], rrs)
+    mats = tri_geom['mat'][pt_tris]
+    # This einsum is equivalent to doing:
+    # pqs = np.array([np.dot(m, v) for m, v in zip(mats, vect)]).T
+    pqs = np.einsum('ijk,ik->ji', mats, vect)
+    found = False
+    dists = np.sum(rrs * tri_nn, axis=1)
+
+    # There can be multiple (sadness), find closest
+    idx = np.where(np.all(pqs >= 0., axis=0))[0]
+    idx = idx[np.where(np.all(pqs[:, idx] <= 1., axis=0))[0]]
+    idx = idx[np.where(np.sum(pqs[:, idx], axis=0) < 1.)[0]]
+    dist = np.inf
+    if len(idx) > 0:
+        found = True
+        pt = idx[np.argmin(np.abs(dists[idx]))]
+        p, q = pqs[:, pt]
+        dist = dists[pt]
+        # re-reference back to original numbers
+        pt = pt_tris[pt]
+
+    if found is False or run_all is True:
+        # don't include ones that we might have found before
+        s = np.setdiff1d(np.arange(len(pt_tris)), idx)  # ones to check sides
+        # Tough: must investigate the sides
+        pp, qq, ptt, distt = _nearest_tri_edge(pt_tris[s], to_pt, pqs[:, s],
+                                               dists[s], tri_geom)
+        if np.abs(distt) < np.abs(dist):
+            p, q, pt, dist = pp, qq, ptt, distt
+    return p, q, pt, dist
+
+
+def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
+    """Get nearest location from a point to the edge of a set of triangles"""
+    # We might do something intelligent here. However, for now
+    # it is ok to do it in the hard way
+    aa = tri_geom['a'][pt_tris]
+    bb = tri_geom['b'][pt_tris]
+    cc = tri_geom['c'][pt_tris]
+    pp = pqs[0]
+    qq = pqs[1]
+    # Find the nearest point from a triangle:
+    #   Side 1 -> 2
+    p0 = np.minimum(np.maximum(pp + 0.5 * (qq * cc) / aa,
+                               0.0), 1.0)
+    q0 = np.zeros_like(p0)
+    #   Side 2 -> 3
+    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
+                 + (2.0 * bb - cc) * qq) / (aa + bb - cc))
+    t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
+    p1 = 1.0 - t1
+    q1 = t1
+    #   Side 1 -> 3
+    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
+                               / bb, 0.0), 1.0)
+    p2 = np.zeros_like(q2)
+
+    # figure out which one had the lowest distance
+    dist0 = _get_tri_dist(pp, qq, p0, q0, aa, bb, cc, dist)
+    dist1 = _get_tri_dist(pp, qq, p1, q1, aa, bb, cc, dist)
+    dist2 = _get_tri_dist(pp, qq, p2, q2, aa, bb, cc, dist)
+    pp = np.r_[p0, p1, p2]
+    qq = np.r_[q0, q1, q2]
+    dists = np.r_[dist0, dist1, dist2]
+    ii = np.argmin(np.abs(dists))
+    p, q, pt, dist = pp[ii], qq[ii], pt_tris[ii % len(pt_tris)], dists[ii]
+    return p, q, pt, dist

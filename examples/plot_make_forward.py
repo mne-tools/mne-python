@@ -1,9 +1,9 @@
 """
-====================================================
-Read a forward operator and display sensitivity maps
-====================================================
+======================================================
+Create a forward operator and display sensitivity maps
+======================================================
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -13,10 +13,18 @@ import mne
 from mne.datasets import sample
 data_path = sample.data_path()
 
-fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
+raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
+mri = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+src = data_path + '/subjects/sample/bem/sample-oct-6-src.fif'
+bem = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
 subjects_dir = data_path + '/subjects'
 
-fwd = mne.read_forward_solution(fname, surf_ori=True)
+fwd = mne.make_forward_solution(raw_fname, mri=mri, src=src, bem=bem,
+                                fname=None, meg=True, eeg=True, mindist=5.0,
+                                n_jobs=2, overwrite=True)
+
+# convert to surface orientation for better visualization
+fwd = mne.convert_forward_solution(fwd, surf_ori=True)
 leadfield = fwd['sol']['data']
 
 print "Leadfield size : %d x %d" % leadfield.shape

@@ -15,8 +15,7 @@ from mne import stats, SourceEstimate, VolSourceEstimate, Label,\
 from mne import read_source_estimate, morph_data, extract_label_time_course
 from mne.source_estimate import spatio_temporal_tris_connectivity, \
                                 spatio_temporal_src_connectivity, \
-                                compute_morph_matrix, grade_to_vertices, \
-                                _compute_nearest
+                                compute_morph_matrix, grade_to_vertices
 
 from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip
@@ -302,20 +301,6 @@ def test_extract_label_time_course():
     label = Label(vertices=[], hemi='lh')
     x = label_sign_flip(label, src)
     assert_true(x.size == 0)
-
-
-def test_compute_nearest():
-    """Test nearest neighbor searches"""
-    x = np.random.randn(500, 3)
-    x /= np.sqrt(np.sum(x ** 2, axis=1))[:, None]
-    nn_true = np.random.permutation(np.arange(500, dtype=np.int))[:20]
-    y = x[nn_true]
-
-    nn1 = _compute_nearest(x, y, use_balltree=False)
-    nn2 = _compute_nearest(x, y, use_balltree=True)
-
-    assert_array_equal(nn_true, nn1)
-    assert_array_equal(nn_true, nn2)
 
 
 def test_morph_data():
