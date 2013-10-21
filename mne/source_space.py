@@ -1507,13 +1507,13 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     ----------
     src : instance of SourceSpaces
         The source spaces to compute distances for.
-    n_jobs : int
-        Number of jobs to run in parallel. Will only use (up to) as many
-        cores as there are source spaces.
     dist_limit : float
         The upper limit of distances to include (in meters).
         Note: if limit < np.inf, scipy > 0.13 (bleeding edge as of
         10/2013) must be installed.
+    n_jobs : int
+        Number of jobs to run in parallel. Will only use (up to) as many
+        cores as there are source spaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

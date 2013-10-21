@@ -25,7 +25,7 @@ import urllib
 import urllib2
 import ftplib
 import urlparse
-import scipy as sp
+import scipy
 from scipy import linalg
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -538,7 +538,7 @@ def check_scipy_version(min_version):
         The version string. Anything that matches
         ``'(\\d+ | [a-z]+ | \\.)'``
     """
-    this_version = LooseVersion(sp.__version__)
+    this_version = LooseVersion(scipy.__version__)
     return False if this_version < min_version else True
 
 
