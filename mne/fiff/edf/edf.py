@@ -1,4 +1,4 @@
-"""Conversion tool from EDF/+,BDF to FIF
+"""Conversion tool from EDF+,BDF to FIF
 
 """
 
@@ -7,13 +7,9 @@
 # License: BSD (3-clause)
 
 import os
-from os import SEEK_CUR
-from struct import unpack
 import datetime
 import re
-
 import numpy as np
-from scipy.linalg import norm
 
 from ...fiff import pick_types
 from ...utils import verbose, logger
@@ -22,15 +18,20 @@ from ..constants import FIFF
 from ..kit import coreg
 
 
-class RawBDF(Raw):
-    """Raw object from KIT bdf file adapted from bti/raw.py
+class RawEDF(Raw):
+    """Raw object from EDF+,BDF file
 
     Parameters
     ----------
     input_fname : str
-        Path to the bdf file.
-    input_fname : str
+        Path to the EDF+,BDF file.
+    hpts : str | None
         Path to the hpts file.
+        If None, sensor locations are (0,0,0).
+    annot : str | None
+        Path of the annot file.
+        Can be None for BDF only.
+        If None for EDF, it will raise an error.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     preload : bool
@@ -42,10 +43,10 @@ class RawBDF(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, hpts, preload=False, verbose=None):
-        logger.info('Extracting bdf Parameters from %s...' % input_fname)
+    def __init__(self, input_fname, hpts, annot, preload=False, verbose=None):
+        logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        self._bdf_params = params = get_bdf_params(input_fname, hpts)
+        self._bdf_params = params = get_edf_params(input_fname, hpts)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -58,7 +59,7 @@ class RawBDF(Raw):
         self.comp = None  # no compensation for KIT
         self.proj = False
 
-        # Create raw.info dict for raw fif object with bdf data
+        # Create raw.info dict for raw fif object with edf data
         self.info = {}
         self.info['meas_id'] = None
         self.info['file_id'] = None
@@ -96,12 +97,11 @@ class RawBDF(Raw):
             chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
             chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
             chan_info['kind'] = FIFF.FIFFV_EEG_CH
-            chan_info['loc'] = ch_loc
-            self.info['chs'].append(chan_info)
+            chan_info['eeg_loc'] = ch_loc
+            chan_info['loc'] = np.zeros(12)
+            chan_info['loc'][:3] = ch_loc
             if ch_name == 'Status':
-                chan_info = {}
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-                chan_info['loc'] = np.zeros(12)
                 chan_info['unit'] = FIFF.FIFF_UNIT_NONE
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
             elif ch_name.startswith('EX'):
@@ -158,7 +158,7 @@ class RawBDF(Raw):
         return stim_ch
 
     def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
-                      projector=None):
+                      proj=None):
         """Read a chunk of raw data
 
         Parameters
@@ -171,7 +171,7 @@ class RawBDF(Raw):
             If omitted, data is included to the end.
         sel : array, optional
             Indices of channels to select.
-        projector : array
+        proj : array
             SSP operator to apply to the data.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
@@ -187,7 +187,7 @@ class RawBDF(Raw):
             sel = range(self.info['nchan'])
         elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
             return (666, 666)
-        if projector is not None:
+        if proj is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
             stop = self.last_samp + 1
@@ -218,24 +218,33 @@ class RawBDF(Raw):
             fid.seek(data_offset + pointer)
             chan_block = buffer_size / sfreq
 
-            datas = []
-            for _ in range(chan_block):
-                data = np.empty((nchan, sfreq), dtype=np.int32)
-                for chan in range(nchan):
-                    chan_data = fid.read(sfreq * data_size)
-                    chan_data
-                    if type(chan_data) == str:
-                        chan_data = np.fromstring(chan_data, np.uint8)
-                    else:
-                        chan_data = np.asarray(chan_data, np.uint8)
-                    chan_data = chan_data.reshape(-1, 3).astype(np.int32)
-                    chan_data = (chan_data[:, 0] + (chan_data[:, 1] << 8) +
-                                 (chan_data[:, 2] << 16))
-                    chan_data[chan_data >= (1 << 23)] -= (1 << 24)
-                    data[chan, :] = chan_data
-                datas.append(data)
-            data = np.hstack(datas)
-            data = params['gains'] * data
+            if params['subtype'] == '24BIT':
+                datas = []
+                for _ in range(chan_block):
+                    data = np.empty((nchan, sfreq), dtype=np.int32)
+                    for chan in range(nchan):
+                        chan_data = fid.read(sfreq * data_size)
+                        chan_data
+                        if type(chan_data) == str:
+                            chan_data = np.fromstring(chan_data, np.uint8)
+                        else:
+                            chan_data = np.asarray(chan_data, np.uint8)
+                        chan_data = chan_data.reshape(-1, 3)
+                        chan_data = chan_data.astype(np.int32)
+                        chan_data = (chan_data[:, 0] +
+                                     (chan_data[:, 1] << 8) +
+                                     (chan_data[:, 2] << 16))
+                        chan_data[chan_data >= (1 << 23)] -= (1 << 24)
+                        data[chan, :] = chan_data
+                    datas.append(data)
+                data = np.hstack(datas)
+                data = params['gains'] * data
+            else:
+                data = np.fromfile(fid, dtype='<i2', count=buffer_size)
+                data = data.reshape((buffer_size, nchan)).T
+                data = ((data - params['digital_min']) * params['gains'] +
+                        params['physical_min'])
+                stim_channel = self._read_annot(params['annot'])
         data = data[sel]
 
         logger.info('[done]')
@@ -243,45 +252,53 @@ class RawBDF(Raw):
 
         return data, times
 
+    def _read_annot(self, annot):
+        stim_channel = unicode(annot, 'utf-8').split('\x14') if annot else []
 
-def get_bdf_params(fname, hpts):
-    """Extracts all the information from the bdf file.
+        return stim_channel
+
+
+def get_edf_params(fname, hpts=None, annot=None):
+    """Extracts all the information from the EDF+,BDF file.
 
     Parameters
     ----------
     rawfile : str
-        Raw bdf file to be read.
+        Raw EDF+,BDF file to be read.
 
     Returns
     -------
-    bdf : dict
-        A dict containing all the bdf parameter settings.
+    edf : dict
+        A dict containing all the EDF+,BDF parameter settings.
     """
 
-    bdf = dict()
-    bdf['fname'] = fname
+    edf = dict()
+    edf['fname'] = fname
     with open(fname, 'rb') as fid:
         assert(fid.tell() == 0)
         assert(fid.read(8) == '\xffBIOSEMI')
 
-        bdf['subject_id'] = fid.read(80).strip()
-        bdf['recording_id'] = fid.read(80).strip()
+        edf['subject_id'] = fid.read(80).strip()
+        edf['recording_id'] = fid.read(80).strip()
         (day, month, year) = [int(x) for x in re.findall('(\d+)', fid.read(8))]
         (hour, minute, sec) = [int(x) for x in re.findall('(\d+)', fid.read(8))]
-        bdf['date'] = str(datetime.datetime(year + 2000, month, day,
+        edf['date'] = str(datetime.datetime(year + 2000, month, day,
                                             hour, minute, sec))
-        bdf['data_offset'] = header_nbytes = int(fid.read(8))
-        format = fid.read(44).strip()
-        assert format == '24BIT'
+        edf['data_offset'] = header_nbytes = int(fid.read(8))
+        subtype = fid.read(44).strip()[:5]
+        assert subtype in ['EDF+C', 'EDF+D', '24BIT']
+        edf['subtype'] = subtype
+
         n_records = int(fid.read(8))
         record_length = int(fid.read(8))  # in seconds
-        bdf['nchan'] = int(fid.read(4))
+        edf['nchan'] = int(fid.read(4))
 
-        channels = range(bdf['nchan'])
-        bdf['ch_names'] = [fid.read(16).strip() for n in channels]
-        bdf['transducer_type'] = [fid.read(80).strip() for n in channels]
-        bdf['units'] = [fid.read(8).strip() for n in channels]
-        units = list(np.unique(bdf['units']))
+        channels = range(edf['nchan'])
+        edf['ch_names'] = [fid.read(16).strip() for n in channels]
+        edf['transducer_type'] = [fid.read(80).strip() for n in channels]
+        edf['units'] = [fid.read(8).strip() for n in channels]
+        not_stim_ch = np.where(np.array(edf['units']) != 'Boolean')[0]
+        units = list(np.unique(edf['units']))
         if 'Boolean' in units:
             units.remove('Boolean')
         assert len(units) == 1
@@ -289,74 +306,64 @@ def get_bdf_params(fname, hpts):
             scale = 1e-6
         elif units[0] == 'V':
             scale = 1
-        bdf['physical_min'] = np.array([int(fid.read(8)) for n in channels])
-        bdf['physical_max'] = np.array([int(fid.read(8)) for n in channels])
-        bdf['digital_min'] = np.array([int(fid.read(8)) for n in channels])
-        bdf['digital_max'] = np.array([int(fid.read(8)) for n in channels])
-        bdf['prefiltering'] = [fid.read(80).strip() for n in channels]
+        edf['physical_min'] = np.array([float(fid.read(8)) for n in channels])
+        edf['physical_max'] = np.array([float(fid.read(8)) for n in channels])
+        edf['digital_min'] = np.array([float(fid.read(8)) for n in channels])
+        edf['digital_max'] = np.array([float(fid.read(8)) for n in channels])
+        edf['prefiltering'] = [fid.read(80).strip() for n in channels]
         n_samples_per_record = [int(fid.read(8)) for n in channels]
         assert len(np.unique(n_samples_per_record)) == 1
 
         n_samples_per_record = n_samples_per_record[0]
-        fid.read(32 * bdf['nchan'])  # reserved
+        fid.read(32 * edf['nchan'])  # reserved
         assert fid.tell() == header_nbytes
-        physical_diff = bdf['physical_max'] - bdf['physical_min']
-        physical_diff = np.array(physical_diff, float)
-        digital_diff = bdf['digital_max'] - bdf['digital_min']
-        bdf['gains'] = np.array([physical_diff / digital_diff]).T
-        bdf['gains'] *= scale
-        bdf['sfreq'] = n_samples_per_record / record_length
-        bdf['nsamples'] = n_records * n_samples_per_record
-        bdf['data_size'] = 3  # 24-bit (3 byte) integers
-
+    physical_range = edf['physical_max'] - edf['physical_min']
+    digital_range = edf['digital_max'] - edf['digital_min']
+    edf['gains'] = np.array([physical_range / digital_range]).T
+    edf['gains'][not_stim_ch] *= scale
+    edf['sfreq'] = n_samples_per_record / record_length
+    edf['nsamples'] = n_records * n_samples_per_record
+    if edf['subtype'] == '24BIT':
+        edf['data_size'] = 3  # 24-bit (3 byte) integers
+    else:
+        edf['data_size'] = 2  # 16-bit (2 byte) integers
+    if os.path.lexists(hpts):
         locs = open(hpts, 'rb').readlines()
         locs = [x.split() for x in locs]
         locs = {x[1]: tuple(x[2:]) for x in locs}
-        locs = [locs[ch_name] if ch_name in locs.keys() else (0, 0, 0)
-                              for ch_name in bdf['ch_names']]
-        bdf['sensor_locs'] = np.array(locs, int)
+    else:
+        locs = {}
+    locs = [locs[ch_name] if ch_name in locs.keys() else (0, 0, 0)
+                          for ch_name in edf['ch_names']]
+    edf['sensor_locs'] = np.array(locs, int)
 
-    return bdf
+    if edf['subtype'] != '24BIT':
+        if os.path.lexists(annot):
+            raise ValueError('Missing required annotation file.')
+
+    return edf
 
 
-def read_raw_bdf(input_fname, mrk=None, elp=None, hsp=None, stim='>',
-                 slope='-', stimthresh=1, preload=False, verbose=None):
-    """Reader function for KIT conversion to FIF
+def read_raw_edf(input_fname, hpts=None, annot=None, preload=False,
+                 verbose=None):
+    """Reader function for EDF+, BDF conversion to FIF
 
     Parameters
     ----------
     input_fname : str
-        Path to the bdf file.
-    mrk : None | str | array_like, shape = (5, 3)
-        Marker points representing the location of the marker coils with
-        respect to the MEG Sensors, or path to a marker file.
-    elp : None | str | array_like, shape = (8, 3)
-        Digitizer points representing the location of the fiducials and the
-        marker coils with respect to the digitized head shape, or path to a
-        file containing these points.
-    hsp : None | str | array, shape = (n_points, 3)
-        Digitizer head shape points, or path to head shape file. If more than
-        10`000 points are in the head shape, they are automatically decimated.
-    stim : list of int | '<' | '>'
-        Channel-value correspondence when converting KIT trigger channels to a
-        Neuromag-style stim channel. For '<', the largest values are assigned
-        to the first channel (default). For '>', the largest values are
-        assigned to the last channel. Can also be specified as a list of
-        trigger channel indexes.
-    slope : '+' | '-'
-        How to interpret values on KIT trigger channels when synthesizing a
-        Neuromag-style stim channel. With '+', a positive slope (low-to-high)
-        is interpreted as an event. With '-', a negative slope (high-to-low)
-        is interpreted as an event.
-    stimthresh : float
-        The threshold level for accepting voltage changes in KIT trigger
-        channels as a trigger event.
+        Path to the EDF+,BDF file.
+    hpts : str | None
+        Path to the hpts file.
+        If None, sensor locations are (0,0,0).
+    annot : str | None
+        Path of the annot file.
+        Can be None for BDF only.
+        If None for EDF, it will raise an error.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
     """
-    return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
-                  stim=stim, slope=slope, stimthresh=stimthresh,
+    return RawEDF(input_fname=input_fname, hpts=hpts, annot=annot,
                   verbose=verbose, preload=preload)
