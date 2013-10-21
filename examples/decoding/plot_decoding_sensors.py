@@ -12,7 +12,7 @@ point.
 # License: BSD (3-clause)
 
 print __doc__
-import pylab as pl
+import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
@@ -21,7 +21,7 @@ from mne.datasets import sample
 
 data_path = sample.data_path()
 
-pl.close('all')
+plt.close('all')
 
 ###############################################################################
 # Set parameters
@@ -86,14 +86,14 @@ for t in xrange(n_times):
 times = 1e3 * epochs.times
 scores *= 100  # make it percentage
 std_scores *= 100
-pl.plot(times, scores, label="Classif. score")
-pl.axhline(50, color='k', linestyle='--', label="Chance level")
-pl.axvline(0, color='r', label='stim onset')
-pl.legend()
+plt.plot(times, scores, label="Classif. score")
+plt.axhline(50, color='k', linestyle='--', label="Chance level")
+plt.axvline(0, color='r', label='stim onset')
+plt.legend()
 hyp_limits = (scores - std_scores, scores + std_scores)
-pl.fill_between(times, hyp_limits[0], y2=hyp_limits[1], color='b', alpha=0.5)
-pl.xlabel('Times (ms)')
-pl.ylabel('CV classification score (% correct)')
-pl.ylim([30, 100])
-pl.title('Sensor space decoding')
-pl.show()
+plt.fill_between(times, hyp_limits[0], y2=hyp_limits[1], color='b', alpha=0.5)
+plt.xlabel('Times (ms)')
+plt.ylabel('CV classification score (% correct)')
+plt.ylim([30, 100])
+plt.title('Sensor space decoding')
+plt.show()

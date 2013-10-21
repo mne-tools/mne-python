@@ -310,13 +310,13 @@ def test_plot_raw():
 def test_plot_raw_psds():
     """Test plotting of raw psds
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
     # normal mode
     raw.plot_psds(tmax=2.0)
     # specific mode
     picks = fiff.pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psds(picks=picks, area_mode='range')
-    ax = pl.axes()
+    ax = plt.axes()
     # if ax is supplied, picks must be, too:
     assert_raises(ValueError, raw.plot_psds, ax=ax)
     raw.plot_psds(picks=picks, ax=ax)

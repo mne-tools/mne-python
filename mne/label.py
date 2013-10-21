@@ -1182,8 +1182,8 @@ def parc_from_labels(labels, colors, subject=None, parc=None,
             hemi_colors = [colors[names.index('%s-%s' % (label.name, hemi))]
                            for label in hemi_labels]
         else:
-            import pylab as pl
-            hemi_colors = pl.cm.spectral(np.linspace(0, 1, n_hemi_labels))
+            import matplotlib.pyplot as plt
+            hemi_colors = plt.cm.spectral(np.linspace(0, 1, n_hemi_labels))
 
         # Creat annot and color table array to write
         max_vert = 0

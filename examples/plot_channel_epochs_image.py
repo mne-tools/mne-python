@@ -24,7 +24,7 @@ print __doc__
 # License: BSD (3-clause)
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 
 import mne
 from mne import fiff
@@ -69,6 +69,6 @@ def order_func(times, data):
 good_pick = 97  # channel with a clear evoked response
 bad_pick = 98  # channel with no evoked response
 
-pl.close('all')
+plt.close('all')
 mne.viz.plot_image_epochs(epochs, [good_pick, bad_pick], sigma=0.5, vmin=-100,
-                    vmax=250, colorbar=True, order=order_func, show=True)
+                          vmax=250, colorbar=True, order=order_func, show=True)

@@ -72,8 +72,8 @@ con, freqs, times, _, _ = spectral_connectivity(epochs, indices=indices,
 con[np.where(indices[1] == seed)] = 1.0
 
 # Show topography of connectivity from seed
-import pylab as pl
+import matplotlib.pyplot as plt
 layout = read_layout('Vectorview-all')
 title = 'WPLI2 - Visual - Seed %s' % seed_ch
 plot_topo_tfr(epochs, con, freqs, layout, title=title)
-pl.show()
+plt.show()

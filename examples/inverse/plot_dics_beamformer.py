@@ -20,7 +20,7 @@ print __doc__
 
 import mne
 
-import pylab as pl
+import matplotlib.pyplot as plt
 import numpy as np
 
 from mne.fiff import Raw
@@ -69,14 +69,14 @@ evoked = epochs.average()
 # Compute DICS spatial filter and estimate source time courses on evoked data
 stc = dics(evoked, forward, noise_csd, data_csd)
 
-pl.figure()
+plt.figure()
 ts_show = -30  # show the 40 largest responses
-pl.plot(1e3 * stc.times,
-        stc.data[np.argsort(stc.data.max(axis=1))[ts_show:]].T)
-pl.xlabel('Time (ms)')
-pl.ylabel('DICS value')
-pl.title('DICS time course of the 30 largest sources.')
-pl.show()
+plt.plot(1e3 * stc.times,
+         stc.data[np.argsort(stc.data.max(axis=1))[ts_show:]].T)
+plt.xlabel('Time (ms)')
+plt.ylabel('DICS value')
+plt.title('DICS time course of the 30 largest sources.')
+plt.show()
 
 # Plot brain in 3D with PySurfer if available. Note that the subject name
 # is already known by the SourceEstimate stc object.

@@ -65,24 +65,25 @@ T_obs, clusters, cluster_p_values, H0 = \
 ###############################################################################
 # Plot
 times = epochs1.times
-import pylab as pl
-pl.close('all')
-pl.subplot(211)
-pl.title('Channel : ' + channel)
-pl.plot(times, condition1.mean(axis=0) - condition2.mean(axis=0),
-        label="ERF Contrast (Event 1 - Event 2)")
-pl.ylabel("MEG (T / m)")
-pl.legend()
-pl.subplot(212)
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.subplot(211)
+plt.title('Channel : ' + channel)
+plt.plot(times, condition1.mean(axis=0) - condition2.mean(axis=0),
+         label="ERF Contrast (Event 1 - Event 2)")
+plt.ylabel("MEG (T / m)")
+plt.legend()
+plt.subplot(212)
 for i_c, c in enumerate(clusters):
     c = c[0]
     if cluster_p_values[i_c] <= 0.05:
-        h = pl.axvspan(times[c.start], times[c.stop - 1], color='r', alpha=0.3)
+        h = plt.axvspan(times[c.start], times[c.stop - 1],
+                        color='r', alpha=0.3)
     else:
-        pl.axvspan(times[c.start], times[c.stop - 1], color=(0.3, 0.3, 0.3),
-                   alpha=0.3)
-hf = pl.plot(times, T_obs, 'g')
-pl.legend((h, ), ('cluster p-value < 0.05', ))
-pl.xlabel("time (ms)")
-pl.ylabel("f-values")
-pl.show()
+        plt.axvspan(times[c.start], times[c.stop - 1], color=(0.3, 0.3, 0.3),
+                    alpha=0.3)
+hf = plt.plot(times, T_obs, 'g')
+plt.legend((h, ), ('cluster p-value < 0.05', ))
+plt.xlabel("time (ms)")
+plt.ylabel("f-values")
+plt.show()

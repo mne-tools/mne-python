@@ -64,12 +64,12 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
 
     logger.info("Effective window size : %0.3f (s)" % (NFFT / float(Fs)))
 
-    import pylab as pl
-    parallel, my_psd, n_jobs = parallel_func(pl.psd, n_jobs)
-    fig = pl.figure()
+    import matplotlib.pyplot as plt
+    parallel, my_psd, n_jobs = parallel_func(plt.psd, n_jobs)
+    fig = plt.figure()
     out = parallel(my_psd(d, Fs=Fs, NFFT=NFFT) for d in data)
     if not plot:
-        pl.close(fig)
+        plt.close(fig)
     freqs = out[0][1]
     psd = np.array(zip(*out)[0])
 

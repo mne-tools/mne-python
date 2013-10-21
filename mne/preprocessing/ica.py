@@ -675,8 +675,8 @@ class ICA(object):
                              source_idx=source_idx, ncol=ncol, nrow=nrow,
                              title=title)
         if show:
-            import pylab as pl
-            pl.show()
+            import matplotlib.pyplot as plt
+            plt.show()
 
         return fig
 
@@ -995,7 +995,7 @@ class ICA(object):
         res : int
             The resolution of the topomap image (n pixels along each side).
         show : bool
-            Call pylab.show() at the end.
+            Call pyplot.show() at the end.
         """
         return plot_ica_topomap(self, source_idx=source_idx, ch_type=ch_type,
                                 res=res, layout=layout, vmax=vmax, cmap=cmap,

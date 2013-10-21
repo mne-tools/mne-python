@@ -130,25 +130,25 @@ print data.shape
 fvals, pvals = f_twoway_rm(data, factor_levels, effects=effects)
 
 effect_labels = ['modality', 'location', 'modality by location']
-import pylab as pl
+import matplotlib.pyplot as plt
 
 # let's visualize our effects by computing f-images
 for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
-    pl.figure()
+    plt.figure()
     # show naive F-values in gray
-    pl.imshow(effect.reshape(8, 211), cmap=pl.cm.gray, extent=[times[0],
-              times[-1], frequencies[0], frequencies[-1]], aspect='auto',
-              origin='lower')
+    plt.imshow(effect.reshape(8, 211), cmap=plt.cm.gray, extent=[times[0],
+               times[-1], frequencies[0], frequencies[-1]], aspect='auto',
+               origin='lower')
     # create mask for significant Time-frequency locations
     effect = np.ma.masked_array(effect, [sig > .05])
-    pl.imshow(effect.reshape(8, 211), cmap=pl.cm.jet, extent=[times[0],
-              times[-1], frequencies[0], frequencies[-1]], aspect='auto',
-              origin='lower')
-    pl.colorbar()
-    pl.xlabel('time (ms)')
-    pl.ylabel('Frequency (Hz)')
-    pl.title(r"Time-locked response for '%s' (%s)" % (effect_label, ch_name))
-    pl.show()
+    plt.imshow(effect.reshape(8, 211), cmap=plt.cm.jet, extent=[times[0],
+               times[-1], frequencies[0], frequencies[-1]], aspect='auto',
+               origin='lower')
+    plt.colorbar()
+    plt.xlabel('time (ms)')
+    plt.ylabel('Frequency (Hz)')
+    plt.title(r"Time-locked response for '%s' (%s)" % (effect_label, ch_name))
+    plt.show()
 
 # Note. As we treat trials as subjects, the test only accounts for
 # time locked responses despite the 'induced' approach.
@@ -195,32 +195,32 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
 good_clusers = np.where(cluster_p_values < .05)[0]
 T_obs_plot = np.ma.masked_array(T_obs, np.invert(clusters[good_clusers]))
 
-pl.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot], [pl.cm.gray, pl.cm.jet]):
-    pl.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
-              frequencies[0], frequencies[-1]], aspect='auto',
-              origin='lower')
-pl.xlabel('time (ms)')
-pl.ylabel('Frequency (Hz)')
-pl.title('Time-locked response for \'modality by location\' (%s)\n'
-         ' cluster-level corrected (p <= 0.05)' % ch_name)
-pl.show()
+plt.figure()
+for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, plt.cm.jet]):
+    plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
+               frequencies[0], frequencies[-1]], aspect='auto',
+               origin='lower')
+plt.xlabel('time (ms)')
+plt.ylabel('Frequency (Hz)')
+plt.title('Time-locked response for \'modality by location\' (%s)\n'
+          ' cluster-level corrected (p <= 0.05)' % ch_name)
+plt.show()
 
 # now using FDR
 mask, _ = fdr_correction(pvals[2])
 T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
 
-pl.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot2], [pl.cm.gray, pl.cm.jet]):
-    pl.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
-              frequencies[0], frequencies[-1]], aspect='auto',
-              origin='lower')
+plt.figure()
+for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, plt.cm.jet]):
+    plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
+               frequencies[0], frequencies[-1]], aspect='auto',
+               origin='lower')
 
-pl.xlabel('time (ms)')
-pl.ylabel('Frequency (Hz)')
-pl.title('Time-locked response for \'modality by location\' (%s)\n'
-         ' FDR corrected (p <= 0.05)' % ch_name)
-pl.show()
+plt.xlabel('time (ms)')
+plt.ylabel('Frequency (Hz)')
+plt.title('Time-locked response for \'modality by location\' (%s)\n'
+          ' FDR corrected (p <= 0.05)' % ch_name)
+plt.show()
 
 # Both, cluster level and FDR correction help getting rid of
 # putatively spots we saw in the naive f-images.

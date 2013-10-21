@@ -62,7 +62,7 @@ print "Sensors names : %s" % significant_sensors_names
 
 ###############################################################################
 # View location of significantly active sensors
-import pylab as pl
+import matplotlib.pyplot as plt
 
 # load sensor layout
 from mne.layouts import read_layout
@@ -77,13 +77,13 @@ mask_significant_sensors[idx_of_sensors] = True
 mask_non_significant_sensors = mask_significant_sensors == False
 
 # plot it
-pl.figure(facecolor='k')
-pl.axis('off')
-pl.scatter(layout.pos[mask_significant_sensors, 0],
-           layout.pos[mask_significant_sensors, 1], s=50, c='r')
-pl.scatter(layout.pos[mask_non_significant_sensors, 0],
-           layout.pos[mask_non_significant_sensors, 1], c='w')
+plt.figure(facecolor='k')
+plt.axis('off')
+plt.scatter(layout.pos[mask_significant_sensors, 0],
+            layout.pos[mask_significant_sensors, 1], s=50, c='r')
+plt.scatter(layout.pos[mask_non_significant_sensors, 0],
+            layout.pos[mask_non_significant_sensors, 1], c='w')
 title = 'MNE sample data (Left auditory between 40 and 60 ms)'
-pl.figtext(0.03, 0.93, title, color='w', fontsize=18)
-pl.axis('tight')
-pl.show()
+plt.figtext(0.03, 0.93, title, color='w', fontsize=18)
+plt.axis('tight')
+plt.show()

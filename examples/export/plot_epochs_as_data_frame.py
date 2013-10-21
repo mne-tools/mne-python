@@ -92,14 +92,14 @@ pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
 print __doc__
 
 import mne
-import pylab as pl
+import matplotlib.pyplot as plt
 import numpy as np
 from mne.fiff import Raw
 from mne.datasets import sample
 
 
 # turn on interactive mode
-pl.ion()
+plt.ion()
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -205,7 +205,7 @@ print max_latency
 # Then make the plot labels more readable let's edit the values of 'condition'.
 df.condition = df.condition.apply(lambda name: name + ' ')
 
-pl.figure()
+plt.figure()
 max_latency.plot(kind='barh', title='Latency of Maximum Reponse',
                  color=['steelblue'])
 mne.viz.tight_layout()

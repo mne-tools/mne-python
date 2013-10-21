@@ -54,7 +54,7 @@ new_id = 42  # the new event id for a hit. If None, reference_id is used.
 fill_na = 99  # the fill value for misses
 
 events_, lag = define_target_events(events, reference_id, target_id,
-                    sfreq, tmin, tmax, new_id, fill_na)
+                                    sfreq, tmin, tmax, new_id, fill_na)
 
 print events_  # The 99 indicates missing or too late button presses
 
@@ -81,18 +81,18 @@ early, late = [epochs[k].average() for k in event_id]
 ###############################################################################
 # View evoked response
 
-import pylab as pl
+import matplotlib.pyplot as plt
 
 times = 1e3 * epochs.times  # time in milliseconds
 title = 'Evoked response followed by %s button press'
 
-pl.clf()
-ax = pl.subplot(2, 1, 1)
+plt.clf()
+ax = plt.subplot(2, 1, 1)
 early.plot(axes=ax)
-pl.title(title % 'late')
-pl.ylabel('Evoked field (fT)')
-ax = pl.subplot(2, 1, 2)
+plt.title(title % 'late')
+plt.ylabel('Evoked field (fT)')
+ax = plt.subplot(2, 1, 2)
 late.plot(axes=ax)
-pl.title(title % 'early')
-pl.ylabel('Evoked field (fT)')
-pl.show()
+plt.title(title % 'early')
+plt.ylabel('Evoked field (fT)')
+plt.show()

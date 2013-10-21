@@ -16,7 +16,7 @@ Discrete Prolate Spheroidal Sequence (DPSS) windows.
 print __doc__
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.fiff import Raw, pick_types
@@ -82,8 +82,8 @@ for i, stc in enumerate(stcs):
 psd_avg /= n_epochs
 freqs = stc.times  # the frequencies are stored here
 
-pl.figure()
-pl.plot(freqs, psd_avg)
-pl.xlabel('Freq (Hz)')
-pl.ylabel('Power Spectral Density')
-pl.show()
+plt.figure()
+plt.plot(freqs, psd_avg)
+plt.xlabel('Freq (Hz)')
+plt.ylabel('Power Spectral Density')
+plt.show()

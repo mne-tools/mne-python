@@ -14,7 +14,7 @@ print __doc__
 from mne import fiff
 from mne.datasets import sample
 from nitime.viz import plot_tseries
-import pylab as pl
+import matplotlib.pyplot as plt
 
 
 data_path = sample.data_path()
@@ -31,4 +31,4 @@ evoked_ts = evoked.to_nitime(picks=picks)
 
 plot_tseries(evoked_ts)
 
-pl.show()
+plt.show()

@@ -64,32 +64,32 @@ power /= np.mean(power[:, :, times[::decim] < 0], axis=2)[:, :, None]
 
 ###############################################################################
 # View time-frequency plots
-import pylab as pl
-pl.clf()
-pl.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.63)
-pl.subplot(3, 1, 1)
-pl.plot(times, evoked_data.T)
-pl.title('Evoked response (%s)' % evoked.ch_names[97])
-pl.xlabel('time (ms)')
-pl.ylabel('Magnetic Field (fT/cm)')
-pl.xlim(times[0], times[-1])
-pl.ylim(-150, 300)
+import matplotlib.pyplot as plt
+plt.clf()
+plt.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.63)
+plt.subplot(3, 1, 1)
+plt.plot(times, evoked_data.T)
+plt.title('Evoked response (%s)' % evoked.ch_names[97])
+plt.xlabel('time (ms)')
+plt.ylabel('Magnetic Field (fT/cm)')
+plt.xlim(times[0], times[-1])
+plt.ylim(-150, 300)
 
-pl.subplot(3, 1, 2)
-pl.imshow(20 * np.log10(power[0]), extent=[times[0], times[-1],
-                                      frequencies[0], frequencies[-1]],
-          aspect='auto', origin='lower')
-pl.xlabel('Time (s)')
-pl.ylabel('Frequency (Hz)')
-pl.title('Induced power (%s)' % evoked.ch_names[97])
-pl.colorbar()
+plt.subplot(3, 1, 2)
+plt.imshow(20 * np.log10(power[0]),
+           extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+           aspect='auto', origin='lower')
+plt.xlabel('Time (s)')
+plt.ylabel('Frequency (Hz)')
+plt.title('Induced power (%s)' % evoked.ch_names[97])
+plt.colorbar()
 
-pl.subplot(3, 1, 3)
-pl.imshow(phase_lock[0], extent=[times[0], times[-1],
-                              frequencies[0], frequencies[-1]],
-          aspect='auto', origin='lower')
-pl.xlabel('Time (s)')
-pl.ylabel('Frequency (Hz)')
-pl.title('Phase-lock (%s)' % evoked.ch_names[97])
-pl.colorbar()
-pl.show()
+plt.subplot(3, 1, 3)
+plt.imshow(phase_lock[0],
+           extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+           aspect='auto', origin='lower')
+plt.xlabel('Time (s)')
+plt.ylabel('Frequency (Hz)')
+plt.title('Phase-lock (%s)' % evoked.ch_names[97])
+plt.colorbar()
+plt.show()

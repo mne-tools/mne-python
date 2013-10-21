@@ -14,7 +14,7 @@ and stores the solution in stc files for visualisation.
 
 print __doc__
 
-import pylab as pl
+import matplotlib.pyplot as plt
 from mne.datasets import sample
 from mne.fiff import Evoked
 from mne.minimum_norm import apply_inverse, read_inverse_operator
@@ -42,10 +42,10 @@ stc.save('mne_%s_inverse' % method)
 
 ###############################################################################
 # View activation time-series
-pl.plot(1e3 * stc.times, stc.data[::100, :].T)
-pl.xlabel('time (ms)')
-pl.ylabel('%s value' % method)
-pl.show()
+plt.plot(1e3 * stc.times, stc.data[::100, :].T)
+plt.xlabel('time (ms)')
+plt.ylabel('%s value' % method)
+plt.show()
 
 # Plot brain in 3D with PySurfer if available. Note that the subject name
 # is already known by the SourceEstimate stc object.

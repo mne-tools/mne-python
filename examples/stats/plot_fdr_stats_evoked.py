@@ -65,17 +65,17 @@ threshold_fdr = np.min(np.abs(T)[reject_fdr])
 # Plot
 times = 1e3 * epochs.times
 
-import pylab as pl
-pl.close('all')
-pl.plot(times, T, 'k', label='T-stat')
-xmin, xmax = pl.xlim()
-pl.hlines(threshold_uncorrected, xmin, xmax, linestyle='--', colors='k',
-          label='p=0.05 (uncorrected)', linewidth=2)
-pl.hlines(threshold_bonferroni, xmin, xmax, linestyle='--', colors='r',
-          label='p=0.05 (Bonferroni)', linewidth=2)
-pl.hlines(threshold_fdr, xmin, xmax, linestyle='--', colors='b',
-          label='p=0.05 (FDR)', linewidth=2)
-pl.legend()
-pl.xlabel("Time (ms)")
-pl.ylabel("T-stat")
-pl.show()
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.plot(times, T, 'k', label='T-stat')
+xmin, xmax = plt.xlim()
+plt.hlines(threshold_uncorrected, xmin, xmax, linestyle='--', colors='k',
+           label='p=0.05 (uncorrected)', linewidth=2)
+plt.hlines(threshold_bonferroni, xmin, xmax, linestyle='--', colors='r',
+           label='p=0.05 (Bonferroni)', linewidth=2)
+plt.hlines(threshold_fdr, xmin, xmax, linestyle='--', colors='b',
+           label='p=0.05 (FDR)', linewidth=2)
+plt.legend()
+plt.xlabel("Time (ms)")
+plt.ylabel("T-stat")
+plt.show()

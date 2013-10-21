@@ -120,6 +120,6 @@ plot_connectivity_circle(con, label_names, n_lines=300, node_angles=node_angles,
                          node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition')
-import pylab as pl
-pl.savefig('circle.png', facecolor='black')
-pl.show()
+import matplotlib.pyplot as plt
+plt.savefig('circle.png', facecolor='black')
+plt.show()

@@ -20,7 +20,7 @@ from mne.realtime import MockRtClient, RtEpochs
 from mne.datasets import sample
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 
 # Fiff file to simulate the realtime client
 data_path = sample.data_path()
@@ -92,20 +92,20 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
         scores_x.append(ev_num)
 
         # Plot accuracy
-        pl.clf()
+        plt.clf()
 
-        pl.plot(scores_x[-5:], scores[-5:], '+', label="Classif. score")
-        pl.hold(True)
-        pl.plot(scores_x[-5:], scores[-5:])
-        pl.axhline(50, color='k', linestyle='--', label="Chance level")
+        plt.plot(scores_x[-5:], scores[-5:], '+', label="Classif. score")
+        plt.hold(True)
+        plt.plot(scores_x[-5:], scores[-5:])
+        plt.axhline(50, color='k', linestyle='--', label="Chance level")
         hyp_limits = (np.asarray(scores[-5:]) - np.asarray(std_scores[-5:]),
                       np.asarray(scores[-5:]) + np.asarray(std_scores[-5:]))
-        pl.fill_between(scores_x[-5:], hyp_limits[0], y2=hyp_limits[1],
-                        color='b', alpha=0.5)
-        pl.xlabel('Trials')
-        pl.ylabel('Classification score (% correct)')
-        pl.ylim([30, 105])
-        pl.title('Real-time decoding')
-        pl.show()
+        plt.fill_between(scores_x[-5:], hyp_limits[0], y2=hyp_limits[1],
+                         color='b', alpha=0.5)
+        plt.xlabel('Trials')
+        plt.ylabel('Classification score (% correct)')
+        plt.ylim([30, 105])
+        plt.title('Real-time decoding')
+        plt.show()
 
         time.sleep(0.1)

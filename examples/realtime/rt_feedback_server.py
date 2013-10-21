@@ -35,7 +35,7 @@ import time
 import mne
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 
 from mne.datasets import sample
 from mne.realtime import StimServer
@@ -95,7 +95,8 @@ with StimServer('localhost', port=4218) as stim_server:
         else:
             X_temp = rt_client.get_event_data(event_id=ev_list[ii], tmin=-0.2,
                                               tmax=0.5, picks=picks,
-                                              stim_channel='STI 014')[None, ...]
+                                              stim_channel='STI 014')
+            X_temp = X_temp[np.newaxis, ...]
 
             X = np.concatenate((X, X_temp), axis=0)
 
@@ -125,19 +126,19 @@ with StimServer('localhost', port=4218) as stim_server:
                 ev_list.append(4)  # adding more RV to future simulated data
 
             # Clear the figure
-            pl.clf()
+            plt.clf()
 
             # The x-axis for the plot
             score_x.append(ii)
 
             # Now plot the accuracy
-            pl.plot(score_x[-5:], score_c1[-5:])
-            pl.hold(True)
-            pl.plot(score_x[-5:], score_c2[-5:])
-            pl.xlabel('Trials')
-            pl.ylabel('Classification score (% correct)')
-            pl.title('Real-time feedback')
-            pl.ylim([0, 100])
-            pl.xticks(score_x[-5:])
-            pl.legend(('LV', 'RV'), loc='upper left')
-            pl.show()
+            plt.plot(score_x[-5:], score_c1[-5:])
+            plt.hold(True)
+            plt.plot(score_x[-5:], score_c2[-5:])
+            plt.xlabel('Trials')
+            plt.ylabel('Classification score (% correct)')
+            plt.title('Real-time feedback')
+            plt.ylim([0, 100])
+            plt.xticks(score_x[-5:])
+            plt.legend(('LV', 'RV'), loc='upper left')
+            plt.show()
