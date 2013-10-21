@@ -32,7 +32,8 @@ from .surface import read_bem_surfaces, read_surface, write_bem_surface, \
                      write_surface, decimate_surface, read_morph_map
 from .source_space import read_source_spaces, vertex_to_mni, \
                           write_source_spaces, setup_source_space, \
-                          setup_volume_source_space
+                          setup_volume_source_space, \
+                          add_source_space_distances
 from .epochs import Epochs, read_epochs
 from .label import label_time_courses, read_label, label_sign_flip, \
                    write_label, stc_to_label, grow_labels, Label, \

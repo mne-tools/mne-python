@@ -25,6 +25,7 @@ import urllib
 import urllib2
 import ftplib
 import urlparse
+import scipy
 from scipy import linalg
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -169,26 +170,6 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         return rank, s
     else:
         return rank
-
-
-def check_sklearn_version(min_version):
-    """ Check minimum sklearn version required
-
-    Parameters
-    ----------
-    min_version : str
-        The version string. Anything that matches
-        ``'(\\d+ | [a-z]+ | \\.)'``
-    """
-    ok = True
-    try:
-        import sklearn
-        this_version = LooseVersion(sklearn.__version__)
-        if this_version < min_version:
-            ok = False
-    except ImportError:
-        ok = False
-    return ok
 
 
 def run_subprocess(command, *args, **kwargs):
@@ -527,9 +508,49 @@ def _mne_fs_not_in_env():
 
 requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env)
 
+
+def check_sklearn_version(min_version):
+    """ Check minimum sklearn version required
+
+    Parameters
+    ----------
+    min_version : str
+        The version string. Anything that matches
+        ``'(\\d+ | [a-z]+ | \\.)'``
+    """
+    ok = True
+    try:
+        import sklearn
+        this_version = LooseVersion(sklearn.__version__)
+        if this_version < min_version:
+            ok = False
+    except ImportError:
+        ok = False
+    return ok
+
+
+def check_scipy_version(min_version):
+    """ Check minimum sklearn version required
+
+    Parameters
+    ----------
+    min_version : str
+        The version string. Anything that matches
+        ``'(\\d+ | [a-z]+ | \\.)'``
+    """
+    this_version = LooseVersion(scipy.__version__)
+    return False if this_version < min_version else True
+
+
+def requires_scipy_version(min_version):
+    """Helper for testing"""
+    ok = check_scipy_version(min_version)
+    return np.testing.dec.skipif(not ok, 'Requires scipy version >= %s'
+                                 % min_version)
+
+
 ###############################################################################
 # LOGGING
-
 
 def set_log_level(verbose=None, return_old_level=False):
     """Convenience function for setting the logging level

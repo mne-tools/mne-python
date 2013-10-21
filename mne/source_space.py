@@ -21,11 +21,14 @@ from .surface import read_surface, _create_surf_spacing, _get_ico_surface, \
                      _read_surface_geom, _normalize_vectors, \
                      _complete_surface_info, _compute_nearest, \
                      fast_cross_3d
+from .source_estimate import mesh_dist
 from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
-                   has_nibabel, logger, verbose
-from .fixes import in1d
+                   has_nibabel, logger, verbose, check_scipy_version
+from .fixes import in1d, partial
 from .transforms import invert_transform, apply_trans, _print_coord_trans, \
                         combine_transforms
+from .parallel import parallel_func, check_n_jobs
+
 if has_nibabel():
     import nibabel as nib
 
@@ -652,6 +655,9 @@ def _write_one_source_space(fid, this, verbose=None):
         write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT,
                            this['dist_limit'])
 
+
+##############################################################################
+# Surface to MNI conversion
 
 @verbose
 def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
@@ -1491,3 +1497,100 @@ def _sum_solids_div(fros, surf):
              np.sum(v2 * v3, axis=1) * l1)
         tot_angle -= np.arctan2(triple, s)
     return tot_angle / (2 * np.pi)
+
+
+@verbose
+def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
+    """Compute inter-source distances along the cortical surface
+
+    Parameters
+    ----------
+    src : instance of SourceSpaces
+        The source spaces to compute distances for.
+    dist_limit : float
+        The upper limit of distances to include (in meters).
+        Note: if limit < np.inf, scipy > 0.13 (bleeding edge as of
+        10/2013) must be installed.
+    n_jobs : int
+        Number of jobs to run in parallel. Will only use (up to) as many
+        cores as there are source spaces.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    src : instance of SourceSpaces
+        The original source spaces, with distance information added.
+        The distances are stored in src[n]['dist'].
+        Note: this function operates in-place.
+
+    Notes
+    -----
+    Requires scipy >= 0.11 (> 0.13 for `dist_limit < np.inf`).
+
+    This function can be memory- and CPU-intensive. On a high-end machine
+    (2012) running 6 jobs in parallel, an ico-5 (10242 per hemi) source space
+    takes about 10 minutes to compute all distances (`dist_limit = np.inf`).
+    With `dist_limit = 0.007`, computing distances takes about 1 minute.
+
+    We recommend computing distances once per source space and then saving
+    the source space to disk, as the computed distances will automatically be
+    stored along with the source space data for future use.
+    """
+    n_jobs = check_n_jobs(n_jobs)
+    if not isinstance(src, SourceSpaces):
+        raise ValueError('"src" must be an instance of SourceSpaces')
+    if not np.isscalar(dist_limit):
+        raise ValueError('limit must be a scalar')
+    if not check_scipy_version('0.11'):
+        raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
+                           'if dist_limit < np.inf')
+
+    if not all([s['type'] == 'surf' for s in src]):
+        raise RuntimeError('Currently all source spaces must be of surface '
+                           'type')
+
+    if dist_limit < np.inf:
+        # can't do introspection on dijkstra function because it's Cython,
+        # so we'll just try quickly here
+        try:
+            sparse.csgraph.dijkstra(sparse.csr_matrix(np.zeros((2, 2))),
+                                    limit=1.0)
+        except TypeError:
+            raise RuntimeError('Cannot use "limit < np.inf" unless scipy '
+                               '> 0.13 is installed')
+
+    parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
+    for s in src:
+        connectivity = mesh_dist(s['tris'], s['rr'])
+        d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
+                     for r in np.array_split(np.arange(len(s['vertno'])),
+                                             n_jobs))
+        d = np.concatenate(d, axis=0)
+        # convert to sparse representation
+        i, j = np.meshgrid(s['vertno'], s['vertno'])
+        d = d.ravel()
+        i = i.ravel()
+        j = j.ravel()
+        idx = d > 0
+        d = sparse.csr_matrix((d[idx], (i[idx], j[idx])),
+                              shape=(s['np'], s['np']), dtype=np.float32)
+        s['dist'] = d
+        s['dist_limit'] = np.array([dist_limit], np.float32)
+    return src
+
+
+def _do_src_distances(con, vertno, run_inds, limit):
+    """Helper to compute source space distances in chunks"""
+    if limit < np.inf:
+        func = partial(sparse.csgraph.dijkstra, limit=limit)
+    else:
+        func = sparse.csgraph.dijkstra
+    chunk_size = 100  # save memory by chunking (only a little slower)
+    lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
+    d = np.empty((len(run_inds), len(vertno)))
+    for l1, l2 in zip(lims[:-1], lims[1:]):
+        idx = vertno[run_inds[l1:l2]]
+        d[l1:l2] = func(con, indices=idx)[:, vertno]
+    d[d == np.inf] = 0  # scipy will give us np.inf for uncalc. distances
+    return d

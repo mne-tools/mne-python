@@ -59,6 +59,8 @@ Changelog
 
    - Plot raw power spectral density by `Eric Larson`_
 
+   - Computing of distances along the cortical surface by `Eric Larson`_
+
 
 API
 ~~~

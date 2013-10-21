@@ -359,6 +359,7 @@ Forward Modeling
    :toctree: generated/
    :template: function.rst
 
+   add_source_space_distances
    apply_forward
    apply_forward_raw
    average_forward_solutions
@@ -370,6 +371,7 @@ Forward Modeling
    read_surface
    sensitivity_map
    setup_source_space
+   setup_volume_source_space
    write_bem_surface
    write_trans
 
