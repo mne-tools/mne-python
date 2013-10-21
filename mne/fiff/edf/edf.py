@@ -50,7 +50,7 @@ class RawEDF(Raw):
     def __init__(self, input_fname, hpts, annot, preload=False, verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        self._bdf_params = params = get_edf_params(input_fname, hpts)
+        self._edf_params = params = get_edf_params(input_fname, hpts)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -59,7 +59,7 @@ class RawEDF(Raw):
         self.fids = list()
         self._projector = None
         self.first_samp = 0
-        self.last_samp = self._bdf_params['nsamples'] - 1
+        self.last_samp = self._edf_params['nsamples'] - 1
         self.comp = None  # no compensation for KIT
         self.proj = False
 
@@ -130,7 +130,7 @@ class RawEDF(Raw):
         logger.info('Ready.')
 
     def __repr__(self):
-        s = ('%r' % os.path.basename(self._bdf_params['fname']),
+        s = ('%r' % os.path.basename(self._edf_params['fname']),
              "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                        self.last_samp - self.first_samp + 1))
         return "<RawEDF  |  %s>" % ', '.join(s)
@@ -187,7 +187,7 @@ class RawEDF(Raw):
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (start, stop - 1, start / float(self.info['sfreq']),
                                (stop - 1) / float(self.info['sfreq'])))
-        params = self._bdf_params
+        params = self._edf_params
         sfreq = params['sfreq']
         data_size = params['data_size']
         data_offset = params['data_offset']
@@ -224,12 +224,17 @@ class RawEDF(Raw):
                     datas.append(data)
                 data = np.hstack(datas)
                 data = params['gains'] * data
+                stim = np.array(data[-1], int)
+                mask = 255 * np.ones(stim.shape, int)
+                stim = np.bitwise_and(stim, mask)
+                data[-1] = stim
             else:
                 data = np.fromfile(fid, dtype='<i2', count=buffer_size)
                 data = data.reshape((buffer_size, nchan)).T
                 data = ((data - params['digital_min']) * params['gains'] +
                         params['physical_min'])
                 stim_channel = self._read_annot(params['annot'])
+                data = np.vstack((data, stim_channel))
         data = data[sel]
 
         logger.info('[done]')
@@ -317,7 +322,7 @@ def get_edf_params(fname, hpts=None, annot=None):
         edf['data_size'] = 2  # 16-bit (2 byte) integers
     if os.path.lexists(hpts):
         locs_temp = open(hpts, 'rb').readlines()
-        locs_temp = [x.split() for x in locs]
+        locs_temp = [x.split() for x in locs_temp]
         locs = {}
         for loc in locs_temp:
             locs[loc[1]] = tuple(loc[2:])
