@@ -524,11 +524,24 @@ else:
 
 
 def _reconstruct_partial(func, args, kwargs):
+    """Helper to pickle partial functions"""
     return partial(func, *args, **(kwargs or {}))
 
 
 def _reduce_partial(p):
+    """Helper to pickle partial functions"""
     return _reconstruct_partial, (p.func, p.args, p.keywords)
 
-
+# This adds pickling functionality to older Python 2.6
+# Please always import partial from here.
 copy_reg.pickle(partial, _reduce_partial)
+
+
+def normalize_colors(vmin, vmax, clip=False):
+    """Helper to handle matplotlib API"""
+    import matplotlib.pyplot as plt 
+    if 'Normalize' in vars(plt):
+        return plt.Normalize(vmin, vmax, clip=clip)
+    else:
+        return plt.normalize(vmin, vmax, clip=clip)
+

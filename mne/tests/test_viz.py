@@ -25,6 +25,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt
 
 lacks_mayavi = False
 try:
@@ -48,7 +49,7 @@ def requires_sklearn(function):
         ret = function(*args, **kwargs)
         return ret
     return dec
-
+    
 
 if not lacks_mayavi:
     mlab.options.backend = 'test'
@@ -86,6 +87,7 @@ ica_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
                             ecg=False, eog=False, exclude='bads')
 
 
+
 def test_plot_topo():
     """Test plotting of ERP topography
     """
@@ -112,6 +114,7 @@ def test_plot_topo_tfr():
     freqs = np.arange(n_freqs)
     # Show topography of connectivity from seed
     plot_topo_tfr(epochs, con, freqs, layout)
+    plt.close('all')
 
 
 def test_plot_topo_power():
@@ -129,6 +132,7 @@ def test_plot_topo_power():
     plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
                          baseline=baseline, mode='mean', decim=decim,
                          title=title)
+    plt.close('all')
 
 
 def test_plot_topo_image_epochs():
@@ -137,6 +141,7 @@ def test_plot_topo_image_epochs():
     title = 'ERF images - MNE sample data'
     plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200,
                            colorbar=True, title=title)
+    plt.close('all')
 
 
 def test_plot_evoked():
@@ -157,6 +162,7 @@ def test_plot_evoked():
     assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive')
     assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive',
                   axes='foo')
+    plt.close('all')
 
 
 def test_plot_epochs():
@@ -164,6 +170,7 @@ def test_plot_epochs():
     """
     epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
     epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
 
 
 @requires_mayavi
@@ -199,13 +206,14 @@ def test_plot_sparse_source_estimates():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                  opacity=0.5, high_resolution=True)
-
+    
 
 def test_plot_cov():
     """Test plotting of covariances
     """
     cov = read_cov(cov_fname)
     plot_cov(cov, raw.info, proj=True)
+    plt.close('all')
 
 
 @requires_sklearn
@@ -216,12 +224,14 @@ def test_plot_ica_panel():
               max_pca_components=3, n_pca_components=3)
     ica.decompose_raw(raw, picks=ica_picks)
     ica.plot_sources_raw(raw)
+    plt.close('all')
 
 
 def test_plot_image_epochs():
     """Test plotting of epochs image
     """
     plot_image_epochs(epochs, picks=[1, 2])
+    plt.close('all')
 
 
 def test_plot_connectivity_circle():
@@ -290,6 +300,7 @@ def test_plot_connectivity_circle():
     con = np.random.randn(68, 68)
     plot_connectivity_circle(con, label_names, n_lines=300,
                              node_angles=node_angles, title='test')
+    plt.close('all')
 
 
 def test_plot_drop_log():
@@ -299,12 +310,14 @@ def test_plot_drop_log():
     plot_drop_log([['One'], [], []])
     plot_drop_log([['One'], ['Two'], []])
     plot_drop_log([['One'], ['One', 'Two'], []])
+    plt.close('all')
 
 
 def test_plot_raw():
     """Test plotting of raw data
     """
     raw.plot(events=events, show_options=True)
+    plt.close('all')
 
 
 def test_plot_raw_psds():
@@ -320,6 +333,7 @@ def test_plot_raw_psds():
     # if ax is supplied, picks must be, too:
     assert_raises(ValueError, raw.plot_psds, ax=ax)
     raw.plot_psds(picks=picks, ax=ax)
+    plt.close('all')
 
 
 def test_plot_topomap():
@@ -344,12 +358,14 @@ def test_plot_topomap():
     # projs
     projs = read_proj(ecg_fname)[:7]
     plot_projs_topomap(projs)
+    plt.close('all')
 
 
 def test_compare_fiff():
     """Test comparing fiff files
     """
     compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)
+    plt.close('all')
 
 
 @requires_sklearn
@@ -363,3 +379,4 @@ def test_plot_ica_topomap():
         ica.plot_topomap(components)
     ica.info = None
     assert_raises(RuntimeError, ica.plot_topomap, 1)
+    plt.close('all')

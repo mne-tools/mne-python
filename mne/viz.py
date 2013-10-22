@@ -36,6 +36,7 @@ from .utils import (get_subjects_dir, get_config, set_config, _check_subject,
 from .fiff import show_fiff, FIFF
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, setup_proj
+from .fixes import normalize_colors
 from .utils import create_chunks
 from .time_frequency import compute_raw_psd
 
@@ -130,18 +131,19 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
         padding (height/width) between edges of adjacent subplots.
         Defaults to `pad_inches`.
     """
-    try:
-        import matplotlib.pyplot as plt  # XXX his is a hack, improve later
-        plt.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
-    except:
-        msg = ('Matplotlib function \'tight_layout\'%s.'
-               ' Skipping subpplot adjusment.')
-        if not hasattr(plt, 'tight_layout'):
-            case = ' is not available'
-        else:
-            case = (' is not supported by your backend: `%s`'
-                    % plt.get_backend())
-        warn(msg % case)
+    import matplotlib.pyplot as plt
+    if plt.get_backend().lower() != 'agg':
+        try:
+            plt.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+        except:
+            msg = ('Matplotlib function \'tight_layout\'%s.'
+                   ' Skipping subpplot adjusment.')
+            if not hasattr(plt, 'tight_layout'):
+                case = ' is not available'
+            else:
+                case = (' is not supported by your backend: `%s`'
+                        % plt.get_backend())
+            warn(msg % case)
 
 
 def _plot_topo(info=None, times=None, show_func=None, layout=None,
@@ -163,7 +165,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         if colorbar:
             pos[:, :2] *= layout_scale
             plt.rcParams['axes.edgecolor'] = 'k'
-            norm = plt.normalize(vmin=vmin, vmax=vmax)
+            norm = normalize_colors(vmin=vmin, vmax=vmax)
             sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
             sm.set_array(np.linspace(vmin, vmax))
             ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg='k')
@@ -1868,7 +1870,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
 
     tight_layout()
     if colorbar:
-        vmax_ = plt.normalize(vmin=-vmax, vmax=vmax)
+        vmax_ = normalize_colors(vmin=-vmax, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=vmax_)
         sm.set_array(np.linspace(-vmax, vmax))
         fig.subplots_adjust(right=0.8)
@@ -2381,7 +2383,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         plt.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.8)
 
     if colorbar:
-        norm = plt.normalize(vmin=vmin, vmax=vmax)
+        norm = normalize_colors(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
         sm.set_array(np.linspace(vmin, vmax))
         ax = fig.add_axes([.92, 0.03, .015, .25])
