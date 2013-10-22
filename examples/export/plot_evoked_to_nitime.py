@@ -29,6 +29,6 @@ picks = fiff.pick_types(evoked.info, meg='grad', eeg=False, exclude='bads')
 
 evoked_ts = evoked.to_nitime(picks=picks)
 
-# plot_tseries(evoked_ts)
+plot_tseries(evoked_ts)
 
-# plt.show()
+plt.show()
