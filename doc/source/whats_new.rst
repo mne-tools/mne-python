@@ -65,6 +65,8 @@ Changelog
 
    - Add forward solution calculation in native Python by `Eric Larson`_
 
+   - Add (Neuro)debian license compatibility by `Eric Larson`_
+
 
 API
 ~~~
