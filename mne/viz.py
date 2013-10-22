@@ -27,7 +27,7 @@ from matplotlib import delaunay
 from warnings import warn
 from collections import deque
 
-# XXX : don't import pylab here or you will break the doc
+# XXX : don't import pyplot here or you will break the doc
 
 from .fixes import tril_indices, Counter
 from .baseline import rescale
@@ -44,13 +44,15 @@ COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
 
 
 DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
-                    emg='k', ref_meg='steelblue', misc='k', stim='k',
-                    resp='k', chpi='k', exci='k', ias='k', syst='k'),
+                           emg='k', ref_meg='steelblue', misc='k', stim='k',
+                           resp='k', chpi='k', exci='k', ias='k', syst='k'),
                 units=dict(eeg='uV', grad='fT/cm', mag='fT', misc='AU'),
                 scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0),
                 scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6,
-                    eog=150e-6, ecg=5e-4, emg=1e-3, ref_meg=1e-12, misc=1e-3,
-                    stim=1, resp=1, chpi=1e-4, exci=1, ias=1, syst=1),
+                                       eog=150e-6, ecg=5e-4, emg=1e-3,
+                                       ref_meg=1e-12, misc=1e-3,
+                                       stim=1, resp=1, chpi=1e-4, exci=1,
+                                       ias=1, syst=1),
                 ylim=dict(mag=(-600., 600.), grad=(-200., 200.),
                           eeg=(-200., 200.), misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
@@ -117,7 +119,7 @@ def _check_delayed_ssp(container):
 def tight_layout(pad=1.2, h_pad=None, w_pad=None):
     """ Adjust subplot parameters to give specified padding.
 
-    Note. For plotting please use this function instead of pl.tight_layout
+    Note. For plotting please use this function instead of plt.tight_layout
 
     Parameters
     ----------
@@ -129,15 +131,16 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
         Defaults to `pad_inches`.
     """
     try:
-        import pylab as pl  # XXX his is a hack, improve later
-        pl.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+        import matplotlib.pyplot as plt  # XXX his is a hack, improve later
+        plt.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
     except:
         msg = ('Matplotlib function \'tight_layout\'%s.'
                ' Skipping subpplot adjusment.')
-        if not hasattr(pl, 'tight_layout'):
+        if not hasattr(plt, 'tight_layout'):
             case = ' is not available'
         else:
-            case = ' is not supported by your backend: `%s`' % pl.get_backend()
+            case = (' is not supported by your backend: `%s`'
+                    % plt.get_backend())
         warn(msg % case)
 
 
@@ -146,31 +149,31 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                border='none', cmap=None, layout_scale=None, title=None,
                x_label=None, y_label=None, vline=None):
     """Helper function to plot on sensor layout"""
-    import pylab as pl
-    orig_facecolor = pl.rcParams['axes.facecolor']
-    orig_edgecolor = pl.rcParams['axes.edgecolor']
+    import matplotlib.pyplot as plt
+    orig_facecolor = plt.rcParams['axes.facecolor']
+    orig_edgecolor = plt.rcParams['axes.edgecolor']
     try:
         if cmap is None:
-            cmap = pl.cm.jet
+            cmap = plt.cm.jet
         ch_names = _clean_names(info['ch_names'])
-        pl.rcParams['axes.facecolor'] = 'k'
-        fig = pl.figure(facecolor='k')
+        plt.rcParams['axes.facecolor'] = 'k'
+        fig = plt.figure(facecolor='k')
         pos = layout.pos.copy()
         tmin, tmax = times[0], times[-1]
         if colorbar:
             pos[:, :2] *= layout_scale
-            pl.rcParams['axes.edgecolor'] = 'k'
-            sm = pl.cm.ScalarMappable(cmap=cmap,
-                                      norm=pl.normalize(vmin=vmin, vmax=vmax))
+            plt.rcParams['axes.edgecolor'] = 'k'
+            norm = plt.normalize(vmin=vmin, vmax=vmax)
+            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
             sm.set_array(np.linspace(vmin, vmax))
-            ax = pl.axes([0.015, 0.025, 1.05, .8], axisbg='k')
+            ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg='k')
             cb = fig.colorbar(sm, ax=ax)
-            cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
-            pl.setp(cb_yticks, color='w')
-        pl.rcParams['axes.edgecolor'] = border
+            cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
+            plt.setp(cb_yticks, color='w')
+        plt.rcParams['axes.edgecolor'] = border
         for idx, name in enumerate(_clean_names(layout.names)):
             if name in ch_names:
-                ax = pl.axes(pos[idx], axisbg='k')
+                ax = plt.axes(pos[idx], axisbg='k')
                 ch_idx = ch_names.index(name)
                 # hack to inlcude channel idx and name, to use in callback
                 ax.__dict__['_mne_ch_name'] = name
@@ -188,9 +191,9 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                           vmax=vmax, ylim=ylim_)
 
                 if ylim_ and not any(v is None for v in ylim_):
-                    pl.ylim(*ylim_)
-                pl.xticks([], ())
-                pl.yticks([], ())
+                    plt.ylim(*ylim_)
+                plt.xticks([], ())
+                plt.yticks([], ())
 
         # register callback
         callback = partial(_plot_topo_onpick, show_func=show_func, tmin=tmin,
@@ -201,12 +204,12 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
 
         fig.canvas.mpl_connect('pick_event', callback)
         if title is not None:
-            pl.figtext(0.03, 0.9, title, color='w', fontsize=19)
+            plt.figtext(0.03, 0.9, title, color='w', fontsize=19)
 
     finally:
-        # Revert global pylab config
-        pl.rcParams['axes.facecolor'] = orig_facecolor
-        pl.rcParams['axes.edgecolor'] = orig_edgecolor
+        # Revert global pyplot config
+        plt.rcParams['axes.facecolor'] = orig_facecolor
+        plt.rcParams['axes.edgecolor'] = orig_edgecolor
 
     return fig
 
@@ -222,22 +225,22 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
 
     artist = event.artist
     try:
-        import pylab as pl
+        import matplotlib.pyplot as plt
         ch_idx = artist.axes._mne_ch_idx
-        fig, ax = pl.subplots(1)
+        fig, ax = plt.subplots(1)
         ax.set_axis_bgcolor('k')
-        show_func(pl, ch_idx, tmin, tmax, vmin, vmax, ylim=ylim,
+        show_func(plt, ch_idx, tmin, tmax, vmin, vmax, ylim=ylim,
                   vline=vline)
         if colorbar:
-            pl.colorbar()
+            plt.colorbar()
         if title is not None:
-            pl.title(title + ' ' + artist.axes._mne_ch_name)
+            plt.title(title + ' ' + artist.axes._mne_ch_name)
         else:
-            pl.title(artist.axes._mne_ch_name)
+            plt.title(artist.axes._mne_ch_name)
         if x_label is not None:
-            pl.xlabel(x_label)
+            plt.xlabel(x_label)
         if y_label is not None:
-            pl.ylabel(y_label)
+            plt.ylabel(y_label)
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers, so we print
         # it here to know what went wrong
@@ -265,8 +268,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.plot(times, data_[ch_idx], color_)
     if vline:
-        import pylab as pl
-        [pl.axvline(x, color='w', linewidth=0.5) for x in vline]
+        import matplotlib.pyplot as plt
+        [plt.axvline(x, color='w', linewidth=0.5) for x in vline]
 
 
 def _check_vlim(vlim):
@@ -466,7 +469,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
         Minimum value mapped to lowermost color
     vmax : float
         Minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pylab.colormap
+    cmap : instance of matplotlib.pyplot.colormap
         Colors to be mapped to the values
     layout_scale : float
         Scaling factor for adjusting the relative size of the layout
@@ -544,7 +547,7 @@ def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
         Minimum value mapped to lowermost color
     vmax : float
         Minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pylab.colormap
+    cmap : instance of matplotlib.pyplot.colormap
         Colors to be mapped to the values
     layout_scale : float
         Scaling factor for adjusting the relative size of the layout
@@ -631,7 +634,7 @@ def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
         Minimum value mapped to lowermost color
     vmax : float
         Minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pylab.colormap
+    cmap : instance of matplotlib.pyplot.colormap
         Colors to be mapped to the values
     layout_scale : float
         Scaling factor for adjusting the relative size of the layout
@@ -721,7 +724,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         the number of good epochs. If it's a callable the arguments
         passed are the times vector and the data as 2d array
         (data.shape[1] == len(times)).
-    cmap : instance of matplotlib.pylab.colormap
+    cmap : instance of matplotlib.pyplot.colormap
         Colors to be mapped to the values.
     layout_scale: float
         scaling factor for adjusting the relative size of the layout
@@ -808,9 +811,9 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         a check box for reversible selection of SSP projection vectors will
         be show.
     show : bool
-        Call pylab.show() at the end.
+        Call pyplot.show() at the end.
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
 
     if scale is None:
         if ch_type.startswith('planar'):
@@ -839,8 +842,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     nax = n + bool(colorbar)
     width = size * nax
     height = size * 1. + max(0, 0.1 * (3 - size))
-    fig = pl.figure(figsize=(width, height))
-    w_frame = pl.rcParams['figure.subplot.wspace'] / (2 * nax)
+    fig = plt.figure(figsize=(width, height))
+    w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
     top_frame = max(.05, .2 / size)
     fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
                         top=1 - top_frame)
@@ -858,14 +861,14 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     vmax = vmax or np.max(np.abs(data))
     images = []
     for i, t in enumerate(times):
-        pl.subplot(1, nax, i + 1)
+        plt.subplot(1, nax, i + 1)
         images.append(plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap,
                       sensors=sensors, res=res))
-        pl.title('%i ms' % (t * 1000))
+        plt.title('%i ms' % (t * 1000))
 
     if colorbar:
-        cax = pl.subplot(1, n + 1, n + 1)
-        pl.colorbar(cax=cax, ticks=[-vmax, 0, vmax], format=format)
+        cax = plt.subplot(1, n + 1, n + 1)
+        plt.colorbar(cax=cax, ticks=[-vmax, 0, vmax], format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         cpos.x0 = 1 - (.7 + .1 / size) / nax
@@ -885,7 +888,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         _draw_proj_checkbox(None, params)
 
     if show:
-        pl.show()
+        plt.show()
 
     return fig
 
@@ -953,7 +956,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     show : bool
         Show figures if True
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
 
     if layout is None:
         from .layouts import read_layout
@@ -966,7 +969,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
 
-    pl.clf()
+    plt.clf()
     for k, proj in enumerate(projs):
 
         ch_names = _clean_names(proj['data']['col_names'])
@@ -996,19 +999,19 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
 
             break
 
-        ax = pl.subplot(nrows, ncols, k + 1)
+        ax = plt.subplot(nrows, ncols, k + 1)
         ax.set_title(proj['desc'])
         if len(idx):
             plot_topomap(data, pos, vmax=None, cmap=cmap,
                          sensors=sensors, res=res)
             if colorbar:
-                pl.colorbar()
+                plt.colorbar()
         else:
             raise RuntimeError('Cannot find a proper layout for projection %s'
                                % proj['desc'])
 
     if show:
-        pl.show()
+        plt.show()
 
 
 def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
@@ -1034,7 +1037,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
     axis : instance of Axes | None
         The axis to plot to. If None, the current axis will be used.
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
 
     data = np.asarray(data)
     pos = np.asarray(pos)
@@ -1046,17 +1049,17 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
         err = ("Data and pos need to be of same length. Got data of shape %s, "
                "pos of shape %s." % (str(), str()))
 
-    axes = pl.gca()
+    axes = plt.gca()
     axes.set_frame_on(False)
 
     vmax = vmax or np.abs(data).max()
 
-    pl.xticks(())
-    pl.yticks(())
+    plt.xticks(())
+    plt.yticks(())
 
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
-    ax = axis if axis else pl
+    ax = axis if axis else plt
     if sensors:
         if sensors is True:
             sensors = 'k,'
@@ -1097,11 +1100,11 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
-        Call pylab.show() as the end or not.
+        Call pyplot.show() as the end or not.
     ylim : dict | None
         ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
         Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
-        for each channel equals the pylab default.
+        for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
         xlim for plots.
     proj : bool | 'interactive'
@@ -1124,7 +1127,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
@@ -1161,8 +1164,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
     axes_init = axes  # remember if axes where given as input
     if axes is None:
-        pl.clf()
-        axes = [pl.subplot(n_channel_types, 1, c + 1)
+        plt.clf()
+        axes = [plt.subplot(n_channel_types, 1, c + 1)
                 for c in range(n_channel_types)]
     if not isinstance(axes, list):
         axes = [axes]
@@ -1197,25 +1200,25 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ax._get_lines.color_cycle = cycle(['k'])
 
             D = this_scaling * evoked.data[idx, :]
-            pl.axes(ax)
+            plt.axes(ax)
             ax.plot(times, D.T)
             if xlim is not None:
                 if xlim == 'tight':
                     xlim = (times[0], times[-1])
-                pl.xlim(xlim)
+                plt.xlim(xlim)
             if ylim is not None and t in ylim:
-                pl.ylim(ylim[t])
-            pl.title(titles[t] + ' (%d channel%s)' % (
-                     len(D), 's' if len(D) > 1 else ''))
-            pl.xlabel('time (ms)')
-            pl.ylabel('data (%s)' % ch_unit)
+                plt.ylim(ylim[t])
+            plt.title(titles[t] + ' (%d channel%s)' % (
+                      len(D), 's' if len(D) > 1 else ''))
+            plt.xlabel('time (ms)')
+            plt.ylabel('data (%s)' % ch_unit)
 
             if hline is not None:
                 for h in hline:
-                    pl.axhline(h, color='r', linestyle='--', linewidth=2)
+                    plt.axhline(h, color='r', linestyle='--', linewidth=2)
 
     if axes_init is None:
-        pl.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
+        plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
         tight_layout()
 
     if proj == 'interactive':
@@ -1227,7 +1230,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         _draw_proj_checkbox(None, params)
 
     if show:
-        pl.show()
+        plt.show()
 
     return fig
 
@@ -1254,20 +1257,21 @@ def _plot_update_evoked(params, bools):
 
 def _draw_proj_checkbox(event, params, draw_current_state=True):
     """Toggle options (projectors) dialog"""
-    import pylab as pl
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
     projs = params['projs']
     # turn on options dialog
     fig_proj = figure_nobar()
     fig_proj.canvas.set_window_title('SSP projection vectors')
-    ax_temp = pl.axes((0, 0, 1, 1))
+    ax_temp = plt.axes((0, 0, 1, 1))
     ax_temp.get_yaxis().set_visible(False)
     ax_temp.get_xaxis().set_visible(False)
     fig_proj.add_axes(ax_temp)
     labels = [p['desc'] for p in projs]
     actives = [p['active'] for p in projs] if draw_current_state else \
               [True] * len(params['projs'])
-    proj_checks = pl.mpl.widgets.CheckButtons(ax_temp, labels=labels,
-                                              actives=actives)
+    proj_checks = mpl.widgets.CheckButtons(ax_temp, labels=labels,
+                                           actives=actives)
     # change already-applied projectors to red
     for ii, p in enumerate(projs):
         if p['active'] is True:
@@ -1389,10 +1393,10 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                    use_faces, color=brain_color,
                                    opacity=opacity, **kwargs)
 
-    import pylab as pl
+    import matplotlib.pyplot as plt
     # Show time courses
-    pl.figure(fig_number)
-    pl.clf()
+    plt.figure(fig_number)
+    plt.clf()
 
     colors = cycle(colors)
 
@@ -1430,17 +1434,17 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
             mask = (vertno == v)
             assert np.sum(mask) == 1
             linestyle = linestyles[k]
-            pl.plot(1e3 * stc.times, 1e9 * stcs[k].data[mask].ravel(), c=c,
-                    linewidth=linewidth, linestyle=linestyle)
+            plt.plot(1e3 * stc.times, 1e9 * stcs[k].data[mask].ravel(), c=c,
+                     linewidth=linewidth, linestyle=linestyle)
 
-    pl.xlabel('Time (ms)', fontsize=18)
-    pl.ylabel('Source amplitude (nAm)', fontsize=18)
+    plt.xlabel('Time (ms)', fontsize=18)
+    plt.ylabel('Source amplitude (nAm)', fontsize=18)
 
     if fig_name is not None:
-        pl.title(fig_name)
+        plt.title(fig_name)
 
     if show:
-        pl.show()
+        plt.show()
 
     surface.actor.property.backface_culling = True
     surface.actor.property.shading = True
@@ -1467,7 +1471,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     proj : bool
         Apply projections or not.
     show : bool
-        Call pylab.show() as the end or not.
+        Call pyplot.show() as the end or not.
     show_svd : bool
         Plot also singular values of the noise covariance for each sensor type.
         We show square roots ie. standard deviations.
@@ -1513,29 +1517,29 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             logger.info('    The projection vectors do not apply to these '
                         'channels.')
 
-    import pylab as pl
+    import matplotlib.pyplot as plt
 
-    pl.figure(figsize=(2.5 * len(idx_names), 2.7))
+    plt.figure(figsize=(2.5 * len(idx_names), 2.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
-        pl.subplot(1, len(idx_names), k + 1)
-        pl.imshow(C[idx][:, idx], interpolation="nearest")
-        pl.title(name)
-    pl.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
+        plt.subplot(1, len(idx_names), k + 1)
+        plt.imshow(C[idx][:, idx], interpolation="nearest")
+        plt.title(name)
+    plt.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout()
 
     if show_svd:
-        pl.figure()
+        plt.figure()
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             _, s, _ = linalg.svd(C[idx][:, idx])
-            pl.subplot(1, len(idx_names), k + 1)
-            pl.ylabel('Noise std (%s)' % unit)
-            pl.xlabel('Eigenvalue index')
-            pl.semilogy(np.sqrt(s) * scaling)
-            pl.title(name)
+            plt.subplot(1, len(idx_names), k + 1)
+            plt.ylabel('Noise std (%s)' % unit)
+            plt.xlabel('Eigenvalue index')
+            plt.semilogy(np.sqrt(s) * scaling)
+            plt.title(name)
             tight_layout()
 
     if show:
-        pl.show()
+        plt.show()
 
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
@@ -1695,14 +1699,14 @@ def _plot_ica_panel_onpick(event, sources=None, ylims=None):
 
     artist = event.artist
     try:
-        import pylab as pl
-        pl.figure()
+        import matplotlib.pyplot as plt
+        plt.figure()
         src_idx = artist._mne_src_idx
         component = artist._mne_component
-        pl.plot(sources[src_idx], 'r')
-        pl.ylim(ylims)
-        pl.grid(linestyle='-', color='gray', linewidth=.25)
-        pl.title(component)
+        plt.plot(sources[src_idx], 'r')
+        plt.ylim(ylims)
+        plt.grid(linestyle='-', color='gray', linewidth=.25)
+        plt.title(component)
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers, so we print
         # it here to know what went wrong
@@ -1746,7 +1750,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     -------
     fig : instance of pyplot.Figure
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
 
     if source_idx is None:
         source_idx = np.arange(len(sources))
@@ -1770,7 +1774,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     elif title:
         fig.suptitle(title, size=16)
 
-    pl.subplots_adjust(wspace=0.05, hspace=0.05)
+    plt.subplots_adjust(wspace=0.05, hspace=0.05)
 
     for idx, (ax, source) in enumerate(zip(axes, sources)):
         ax.grid(linestyle='-', color='gray', linewidth=.25)
@@ -1784,14 +1788,14 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         ax.set_ylim(ylims)
         ax.text(0.05, .95, component, transform=ax.transAxes,
                 verticalalignment='top')
-        pl.setp(ax.get_xticklabels(), visible=False)
-        pl.setp(ax.get_yticklabels(), visible=False)
+        plt.setp(ax.get_xticklabels(), visible=False)
+        plt.setp(ax.get_yticklabels(), visible=False)
     # register callback
     callback = partial(_plot_ica_panel_onpick, sources=sources, ylims=ylims)
     fig.canvas.mpl_connect('pick_event', callback)
 
     if show:
-        pl.show()
+        plt.show()
 
     return fig
 
@@ -1827,9 +1831,9 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     res : int
         The resolution of the topomap image (n pixels along each side).
     show : bool
-        Call pylab.show() at the end.
+        Call pyplot.show() at the end.
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
 
     if np.isscalar(source_idx):
         source_idx = [source_idx]
@@ -1864,8 +1868,8 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
 
     tight_layout()
     if colorbar:
-        vmax_ = pl.normalize(vmin=-vmax, vmax=vmax)
-        sm = pl.cm.ScalarMappable(cmap=cmap, norm=vmax_)
+        vmax_ = plt.normalize(vmin=-vmax, vmax=vmax)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=vmax_)
         sm.set_array(np.linspace(-vmax, vmax))
         fig.subplots_adjust(right=0.8)
         cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
@@ -1873,7 +1877,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
         cax.set_title('AU')
 
     if show is True:
-        pl.show()
+        plt.show()
 
     return fig
 
@@ -1968,7 +1972,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
     units, scalings = _mutable_defaults(('units', units),
                                         ('scalings', scalings))
 
-    import pylab as pl
+    import matplotlib.pyplot as plt
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, exclude='bads')
 
@@ -1985,7 +1989,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
 
     figs = list()
     for i, (this_data, idx) in enumerate(zip(np.swapaxes(data, 0, 1), picks)):
-        this_fig = pl.figure()
+        this_fig = plt.figure()
         figs.append(this_fig)
 
         ch_type = channel_type(epochs.info, idx)
@@ -2003,15 +2007,15 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
 
         this_data = ndimage.gaussian_filter1d(this_data, sigma=sigma, axis=0)
 
-        ax1 = pl.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
-        im = pl.imshow(this_data,
-                       extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
-                               0, len(data)],
-                       aspect='auto', origin='lower',
-                       vmin=vmin, vmax=vmax)
-        ax2 = pl.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
+        ax1 = plt.subplot2grid((3, 10), (0, 0), colspan=9, rowspan=2)
+        im = plt.imshow(this_data,
+                        extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
+                                0, len(data)],
+                        aspect='auto', origin='lower',
+                        vmin=vmin, vmax=vmax)
+        ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
-            ax3 = pl.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
+            ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
         ax1.set_title(epochs.ch_names[idx])
         ax1.set_ylabel('Epochs')
         ax1.axis('auto')
@@ -2023,11 +2027,11 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         ax2.set_ylim([vmin, vmax])
         ax2.axvline(0, color='m', linewidth=3, linestyle='--')
         if colorbar:
-            pl.colorbar(im, cax=ax3)
+            plt.colorbar(im, cax=ax3)
             tight_layout()
 
     if show:
-        pl.show()
+        plt.show()
 
     return figs
 
@@ -2046,7 +2050,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     Returns
     -------
-    cmap : instance of matplotlib.pylab.colormap | array
+    cmap : instance of matplotlib.pyplot.colormap | array
         A teal->blue->gray->red->yellow colormap.
 
     Notes
@@ -2206,7 +2210,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     fig : instance of pyplot.Figure
         The figure handle.
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
     import matplotlib.path as m_path
     import matplotlib.patches as m_patches
 
@@ -2232,7 +2236,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
             node_colors = cycle(node_colors)
     else:
         # assign colors using colormap
-        node_colors = [pl.cm.spectral(i / float(n_nodes))
+        node_colors = [plt.cm.spectral(i / float(n_nodes))
                        for i in range(n_nodes)]
 
     # handle 1D and 2D connectivity information
@@ -2250,20 +2254,20 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
     # get the colormap
     if isinstance(colormap, basestring):
-        colormap = pl.get_cmap(colormap)
+        colormap = plt.get_cmap(colormap)
 
     # Make figure background the same colors as axes
-    fig = pl.figure(figsize=(8, 8), facecolor=facecolor)
+    fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
 
     # Use a polar axes
-    axes = pl.subplot(111, polar=True, axisbg=facecolor)
+    axes = plt.subplot(111, polar=True, axisbg=facecolor)
 
     # No ticks, we'll put our own
-    pl.xticks([])
-    pl.yticks([])
+    plt.xticks([])
+    plt.yticks([])
 
     # Set y axes limit
-    pl.ylim(0, 10)
+    plt.ylim(0, 10)
 
     # Draw lines between connected nodes, only draw the strongest connections
     if n_lines is not None and len(con) > n_lines:
@@ -2366,24 +2370,24 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
             angle_deg += 180
             ha = 'right'
 
-        pl.text(angle_rad, 10.4, name, size=10, rotation=angle_deg,
-                rotation_mode='anchor', horizontalalignment=ha,
-                verticalalignment='center', color=textcolor)
+        plt.text(angle_rad, 10.4, name, size=10, rotation=angle_deg,
+                 rotation_mode='anchor', horizontalalignment=ha,
+                 verticalalignment='center', color=textcolor)
 
     if title is not None:
-        pl.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.75)
-        pl.figtext(0.03, 0.95, title, color=textcolor, fontsize=14)
+        plt.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.75)
+        plt.figtext(0.03, 0.95, title, color=textcolor, fontsize=14)
     else:
-        pl.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.8)
+        plt.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.8)
 
     if colorbar:
-        sm = pl.cm.ScalarMappable(cmap=colormap,
-                                  norm=pl.normalize(vmin=vmin, vmax=vmax))
+        norm = plt.normalize(vmin=vmin, vmax=vmax)
+        sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
         sm.set_array(np.linspace(vmin, vmax))
         ax = fig.add_axes([.92, 0.03, .015, .25])
         cb = fig.colorbar(sm, cax=ax)
-        cb_yticks = pl.getp(cb.ax.axes, 'yticklabels')
-        pl.setp(cb_yticks, color=textcolor)
+        cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
+        plt.setp(cb_yticks, color=textcolor)
 
     return fig
 
@@ -2415,7 +2419,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     """
     if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
         raise ValueError('drop_log must be a list of lists')
-    import pylab as pl
+    import matplotlib.pyplot as plt
     scores = Counter([ch for d in drop_log for ch in d])
     ch_names = np.array(scores.keys())
     perc = 100 * np.mean([len(d) > 0 for d in drop_log])
@@ -2424,17 +2428,17 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     counts = 100 * np.array(scores.values(), dtype=float) / len(drop_log)
     n_plot = min(n_max_plot, len(ch_names))
     order = np.flipud(np.argsort(counts))
-    pl.figure()
-    pl.title('%s: %0.1f%%' % (subject, perc))
+    plt.figure()
+    plt.title('%s: %0.1f%%' % (subject, perc))
     x = np.arange(n_plot)
-    pl.bar(x, counts[order[:n_plot]], color=color, width=width)
-    pl.xticks(x + width / 2.0, ch_names[order[:n_plot]], rotation=45,
-              horizontalalignment='right')
-    pl.tick_params(axis='x', which='major', labelsize=10)
-    pl.ylabel('% of epochs rejected')
-    pl.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
-    pl.grid(True, axis='y')
-    pl.show()
+    plt.bar(x, counts[order[:n_plot]], color=color, width=width)
+    plt.xticks(x + width / 2.0, ch_names[order[:n_plot]], rotation=45,
+               horizontalalignment='right')
+    plt.tick_params(axis='x', which='major', labelsize=10)
+    plt.ylabel('% of epochs rejected')
+    plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
+    plt.grid(True, axis='y')
+    plt.show()
     return perc
 
 
@@ -2501,7 +2505,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     of a channel's time series. The changes will be reflected immediately
     in the raw object's ``raw.info['bads']`` entry.
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
     color, scalings = _mutable_defaults(('color', color),
                                         ('scalings_plot_raw', scalings))
 
@@ -2583,14 +2588,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
             fig.set_size_inches(size, forward=True)
         except Exception:
             pass
-    ax = pl.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
+    ax = plt.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
     ax.set_title(title, fontsize=12)
-    ax_hscroll = pl.subplot2grid((10, 10), (9, 0), colspan=9)
+    ax_hscroll = plt.subplot2grid((10, 10), (9, 0), colspan=9)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Time (s)')
-    ax_vscroll = pl.subplot2grid((10, 10), (0, 9), rowspan=9)
+    ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
     ax_vscroll.set_axis_off()
-    ax_button = pl.subplot2grid((10, 10), (9, 9))
+    ax_button = plt.subplot2grid((10, 10), (9, 9))
     # store these so they can be fixed on resize
     params['fig'] = fig
     params['ax'] = ax
@@ -2604,15 +2609,15 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                       else color)
         if isinstance(this_color, dict):
             this_color = this_color[types[inds[ci]]]
-        ax_vscroll.add_patch(pl.mpl.patches.Rectangle((0, ci), 1, 1,
-                                                      facecolor=this_color,
-                                                      edgecolor=this_color))
-    vsel_patch = pl.mpl.patches.Rectangle((0, 0), 1, n_channels, facecolor='w',
-                                          edgecolor='w', alpha=0.5)
+        ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
+                                                   facecolor=this_color,
+                                                   edgecolor=this_color))
+    vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
+                                       facecolor='w', edgecolor='w')
     ax_vscroll.add_patch(vsel_patch)
     params['vsel_patch'] = vsel_patch
-    hsel_patch = pl.mpl.patches.Rectangle((start, 0), duration, 1, color='k',
-                                          edgecolor=None, alpha=0.5)
+    hsel_patch = mpl.patches.Rectangle((start, 0), duration, 1, color='k',
+                                       edgecolor=None, alpha=0.5)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
     ax_hscroll.set_xlim(0, n_times / float(info['sfreq']))
@@ -2634,7 +2639,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                                  event_line=event_line, offsets=offsets)
 
     # set up callbacks
-    opt_button = pl.mpl.widgets.Button(ax_button, 'Opt')
+    opt_button = mpl.widgets.Button(ax_button, 'Opt')
     callback_option = partial(_toggle_options, params=params)
     opt_button.on_clicked(callback_option)
     callback_key = partial(_plot_raw_onkey, params=params)
@@ -2665,19 +2670,19 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         _toggle_options(None, params)
 
     if show:
-        pl.show(block=block)
+        plt.show(block=block)
     return fig
 
 
 def _toggle_options(event, params):
     """Toggle options (projectors) dialog"""
-    import pylab as pl
+    import matplotlib.pyplot as plt
     if len(params['projs']) > 0:
         if params['fig_opts'] is None:
             _draw_proj_checkbox(event, params, draw_current_state=False)
         else:
             # turn off options dialog
-            pl.close(params['fig_opts'])
+            plt.close(params['fig_opts'])
             del params['proj_checks']
             params['fig_opts'] = None
 
@@ -2849,7 +2854,7 @@ def _plot_raw_time(value, params):
 
 def _plot_raw_onkey(event, params):
     """Interpret key presses"""
-    import pylab as pl
+    import matplotlib.pyplot as plt
     # check for initial plot
     plot_fun = params['plot_fun']
     if event is None:
@@ -2858,7 +2863,7 @@ def _plot_raw_onkey(event, params):
 
     # quit event
     if event.key == 'escape':
-        pl.close(params['fig'])
+        plt.close(params['fig'])
         return
 
     # change plotting params
@@ -2955,18 +2960,19 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
 
 def figure_nobar(*args, **kwargs):
     """Make matplotlib figure with no toolbar"""
-    import pylab as pl
-    old_val = pl.mpl.rcParams['toolbar']
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    old_val = mpl.rcParams['toolbar']
     try:
-        pl.mpl.rcParams['toolbar'] = 'none'
-        fig = pl.figure(*args, **kwargs)
+        mpl.rcParams['toolbar'] = 'none'
+        fig = plt.figure(*args, **kwargs)
         # remove button press catchers (for toolbar)
         for key in fig.canvas.callbacks.callbacks['key_press_event'].keys():
             fig.canvas.callbacks.disconnect(key)
     except Exception as ex:
         raise ex
     finally:
-        pl.mpl.rcParams['toolbar'] = old_val
+        mpl.rcParams['toolbar'] = old_val
     return fig
 
 
@@ -3135,7 +3141,7 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
 def _prepare_trellis(n_cells, max_col):
     """Aux function
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
     if n_cells == 1:
         nrow = ncol = 1
     elif n_cells <= max_col:
@@ -3143,7 +3149,7 @@ def _prepare_trellis(n_cells, max_col):
     else:
         nrow, ncol = int(math.ceil(n_cells / float(max_col))), max_col
 
-    fig, axes = pl.subplots(nrow, ncol)
+    fig, axes = plt.subplots(nrow, ncol)
     axes = [axes] if ncol == nrow == 1 else axes.flatten()
     for ax in axes[n_cells:]:  # hide unused axes
         ax.set_visible(False)
@@ -3195,7 +3201,7 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
 
 def _epochs_navigation_onclick(event, params):
     """Aux function"""
-    import pylab as pl
+    import matplotlib.pyplot as plt
     p = params
     here = None
     if event.inaxes == p['back'].ax:
@@ -3205,8 +3211,8 @@ def _epochs_navigation_onclick(event, params):
     elif event.inaxes == p['reject-quit'].ax:
         if p['reject_idx']:
             p['epochs'].drop_epochs(p['reject_idx'])
-        pl.close(p['fig'])
-        pl.close(event.inaxes.get_figure())
+        plt.close(p['fig'])
+        plt.close(event.inaxes.get_figure())
 
     if here is not None:
         p['idx_handler'].rotate(here)
@@ -3281,7 +3287,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     fig : Instance of matplotlib.figure.Figure
         The figure.
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
     scalings = _mutable_defaults(('scalings_plot_raw', None))[0]
     if np.isscalar(epoch_idx):
         epoch_idx = [epoch_idx]
@@ -3345,9 +3352,9 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     navigation = figure_nobar(figsize=(3, 1.5))
     from matplotlib import gridspec
     gs = gridspec.GridSpec(2, 2)
-    ax1 = pl.subplot(gs[0, 0])
-    ax2 = pl.subplot(gs[0, 1])
-    ax3 = pl.subplot(gs[1, :])
+    ax1 = plt.subplot(gs[0, 0])
+    ax2 = plt.subplot(gs[0, 1])
+    ax3 = plt.subplot(gs[1, :])
 
     params = {
         'fig': fig,
@@ -3361,9 +3368,9 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         'good_ch_idx': good_ch_idx,
         'bad_ch_idx': bad_ch_idx,
         'axes': axes,
-        'back': pl.mpl.widgets.Button(ax1, 'back'),
-        'next': pl.mpl.widgets.Button(ax2, 'next'),
-        'reject-quit': pl.mpl.widgets.Button(ax3, 'reject-quit'),
+        'back': mpl.widgets.Button(ax1, 'back'),
+        'next': mpl.widgets.Button(ax2, 'next'),
+        'reject-quit': mpl.widgets.Button(ax3, 'reject-quit'),
         'title_str': title_str,
         'reject_idx': [],
         'axes_handler': axes_handler
@@ -3374,7 +3381,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
                                   partial(_epochs_navigation_onclick,
                                           params=params))
     if show is True:
-        pl.show(block=block)
+        plt.show(block=block)
     return fig
 
 
@@ -3397,7 +3404,7 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     show : bool
         Show figure if True.
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
 
     # Gathering results for each time window
     source_power = np.array([stc.data for stc in stcs])
@@ -3427,14 +3434,14 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 
     # Plotting the results
-    pl.figure(figsize=(9, 6))
-    pl.pcolor(time_grid, freq_grid, source_power[:, max_source, :],
-              cmap=pl.cm.jet)
-    ax = pl.gca()
+    plt.figure(figsize=(9, 6))
+    plt.pcolor(time_grid, freq_grid, source_power[:, max_source, :],
+               cmap=plt.cm.jet)
+    ax = plt.gca()
 
-    pl.title('Time-frequency source power')
-    pl.xlabel('Time (s)')
-    pl.ylabel('Frequency (Hz)')
+    plt.title('Time-frequency source power')
+    plt.xlabel('Time (s)')
+    plt.ylabel('Frequency (Hz)')
 
     time_tick_labels = [str(np.round(t, 2)) for t in time_bounds]
     n_skip = 1 + len(time_bounds) // 10
@@ -3444,21 +3451,21 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
 
     ax.set_xticks(time_bounds)
     ax.set_xticklabels(time_tick_labels)
-    pl.xlim(time_bounds[0], time_bounds[-1])
-    pl.yscale('log')
+    plt.xlim(time_bounds[0], time_bounds[-1])
+    plt.yscale('log')
     ax.set_yticks(freq_ticks)
     ax.set_yticklabels([np.round(freq, 2) for freq in freq_ticks])
-    pl.ylim(freq_bounds[0], freq_bounds[-1])
+    plt.ylim(freq_bounds[0], freq_bounds[-1])
 
-    pl.grid(True, ls='-')
+    plt.grid(True, ls='-')
     if colorbar:
-        pl.colorbar()
+        plt.colorbar()
     tight_layout()
 
     # Covering frequency gaps with horizontal bars
     for lower_bound, upper_bound in gap_bounds:
-        pl.barh(lower_bound, time_bounds[-1] - time_bounds[0], upper_bound -
-                lower_bound, time_bounds[0], color='lightgray')
+        plt.barh(lower_bound, time_bounds[-1] - time_bounds[0], upper_bound -
+                 lower_bound, time_bounds[0], color='lightgray')
 
     if show:
-        pl.show()
+        plt.show()

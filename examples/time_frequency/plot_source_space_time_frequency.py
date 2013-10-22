@@ -57,11 +57,11 @@ for b, stc in stcs.iteritems():
 
 ###############################################################################
 # plot mean power
-import pylab as pl
-pl.plot(stcs['alpha'].times, stcs['alpha'].data.mean(axis=0), label='Alpha')
-pl.plot(stcs['beta'].times, stcs['beta'].data.mean(axis=0), label='Beta')
-pl.xlabel('Time (ms)')
-pl.ylabel('Power')
-pl.legend()
-pl.title('Mean source induced power')
-pl.show()
+import matplotlib.pyplot as plt
+plt.plot(stcs['alpha'].times, stcs['alpha'].data.mean(axis=0), label='Alpha')
+plt.plot(stcs['beta'].times, stcs['beta'].data.mean(axis=0), label='Beta')
+plt.xlabel('Time (ms)')
+plt.ylabel('Power')
+plt.legend()
+plt.title('Mean source induced power')
+plt.show()

@@ -239,13 +239,13 @@ brain.show_view('medial')
 # Finally, let's investigate interaction effect by reconstructing the time
 # courses
 
-import pylab as pl
+import matplotlib.pyplot as plt
 inds_t, inds_v = [(clusters[cluster_ind]) for ii, cluster_ind in
                   enumerate(good_cluster_inds)][0]  # first cluster
 
 times = np.arange(X[0].shape[1]) * tstep * 1e3
 
-pl.clf()
+plt.clf()
 colors = ['y', 'b', 'g', 'purple']
 event_ids = ['l_aud', 'r_aud', 'l_vis', 'r_vis']
 
@@ -257,15 +257,15 @@ for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_ids)):
     # create average time series across subjects and vertices.
     mean_tc = condition.mean(axis=2).mean(axis=0)
     std_tc = condition.std(axis=2).std(axis=0)
-    pl.plot(times, mean_tc.T, color=color, label=eve_id)
-    pl.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
-                    alpha=0.5, label='')
+    plt.plot(times, mean_tc.T, color=color, label=eve_id)
+    plt.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
+                     alpha=0.5, label='')
 
-pl.xlabel('Time (ms)')
-pl.ylabel('Activation (F-values)')
-pl.xlim(times[[0, -1]])
-pl.fill_betweenx(np.arange(*pl.ylim()), times[inds_t[0]],
-                 times[inds_t[-1]], color='orange', alpha=0.3)
-pl.legend()
-pl.title('Interaction between stimulus-modality and location.')
-pl.show()
+plt.xlabel('Time (ms)')
+plt.ylabel('Activation (F-values)')
+plt.xlim(times[[0, -1]])
+plt.fill_betweenx(np.arange(*plt.ylim()), times[inds_t[0]],
+                  times[inds_t[-1]], color='orange', alpha=0.3)
+plt.legend()
+plt.title('Interaction between stimulus-modality and location.')
+plt.show()

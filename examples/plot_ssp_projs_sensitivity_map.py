@@ -30,9 +30,9 @@ ssp_ecg_map = mne.sensitivity_map(fwd, ch_type='grad', projs=projs,
 ###############################################################################
 # Show sensitivy map
 
-import pylab as pl
-pl.hist(ssp_ecg_map.data.ravel())
-pl.show()
+import matplotlib.pyplot as plt
+plt.hist(ssp_ecg_map.data.ravel())
+plt.show()
 
 args = dict(fmin=0.2, fmid=0.6, fmax=1., smoothing_steps=7, hemi='rh')
 ssp_ecg_map.plot(subject='sample', time_label='ECG SSP sensitivity', **args)

@@ -61,8 +61,8 @@ n_cycles = frequencies / 3.  # different number of cycle per frequency
 # subtract the evoked response in order to exclude evoked activity
 epochs_induced = epochs.copy().subtract_evoked()
 
-import pylab as pl
-pl.close('all')
+import matplotlib.pyplot as plt
+plt.close('all')
 
 for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
                                               ['evoked + induced',
@@ -78,23 +78,23 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
 
     ##########################################################################
     # View time-frequency plots
-    pl.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.43)
-    pl.subplot(2, 2, 2 * ii + 1)
-    pl.imshow(20 * power, extent=[times[0], times[-1],
-                                  frequencies[0], frequencies[-1]],
-              aspect='auto', origin='lower', vmin=0., vmax=30.)
-    pl.xlabel('Time (s)')
-    pl.ylabel('Frequency (Hz)')
-    pl.title('Power (%s)' % title)
-    pl.colorbar()
+    plt.subplots_adjust(0.1, 0.08, 0.96, 0.94, 0.2, 0.43)
+    plt.subplot(2, 2, 2 * ii + 1)
+    plt.imshow(20 * power,
+               extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+               aspect='auto', origin='lower', vmin=0., vmax=30.)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Frequency (Hz)')
+    plt.title('Power (%s)' % title)
+    plt.colorbar()
 
-    pl.subplot(2, 2, 2 * ii + 2)
-    pl.imshow(phase_lock, extent=[times[0], times[-1],
-                                  frequencies[0], frequencies[-1]],
-              aspect='auto', origin='lower', vmin=0, vmax=0.7)
-    pl.xlabel('Time (s)')
-    pl.ylabel('Frequency (Hz)')
-    pl.title('Phase-lock (%s)' % title)
-    pl.colorbar()
+    plt.subplot(2, 2, 2 * ii + 2)
+    plt.imshow(phase_lock,
+               extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+               aspect='auto', origin='lower', vmin=0, vmax=0.7)
+    plt.xlabel('Time (s)')
+    plt.ylabel('Frequency (Hz)')
+    plt.title('Phase-lock (%s)' % title)
+    plt.colorbar()
 
-pl.show()
+plt.show()

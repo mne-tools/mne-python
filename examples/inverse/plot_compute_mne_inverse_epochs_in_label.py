@@ -15,7 +15,7 @@ to a brain label.
 print __doc__
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.fiff import Raw, pick_types
@@ -68,12 +68,12 @@ label_mean_flip = np.mean(flip[:, np.newaxis] * mean_stc.data, axis=0)
 
 ###############################################################################
 # View activation time-series
-pl.figure()
-h0 = pl.plot(1e3 * stcs[0].times, mean_stc.data.T, 'k')
-h1, = pl.plot(1e3 * stcs[0].times, label_mean, 'r', linewidth=3)
-h2, = pl.plot(1e3 * stcs[0].times, label_mean_flip, 'g', linewidth=3)
-pl.legend((h0[0], h1, h2), ('all dipoles in label', 'mean',
-                            'mean with sign flip'))
-pl.xlabel('time (ms)')
-pl.ylabel('dSPM value')
-pl.show()
+plt.figure()
+h0 = plt.plot(1e3 * stcs[0].times, mean_stc.data.T, 'k')
+h1, = plt.plot(1e3 * stcs[0].times, label_mean, 'r', linewidth=3)
+h2, = plt.plot(1e3 * stcs[0].times, label_mean_flip, 'g', linewidth=3)
+plt.legend((h0[0], h1, h2), ('all dipoles in label', 'mean',
+                             'mean with sign flip'))
+plt.xlabel('time (ms)')
+plt.ylabel('dSPM value')
+plt.show()

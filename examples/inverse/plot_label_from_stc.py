@@ -17,7 +17,7 @@ label yields higher values.
 # License: BSD (3-clause)
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 
 import mne
 from mne.minimum_norm import read_inverse_operator, apply_inverse
@@ -85,13 +85,13 @@ pca_func *= np.sign(pca_func[np.argmax(np.abs(pca_anat))])
 
 ###############################################################################
 # plot the time courses....
-pl.figure()
-pl.plot(1e3 * stc_anat_label.times, pca_anat, 'k',
-        label='Anatomical %s' % aparc_label_name)
-pl.plot(1e3 * stc_func_label.times, pca_func, 'b',
-        label='Functional %s' % aparc_label_name)
-pl.legend()
-pl.show()
+plt.figure()
+plt.plot(1e3 * stc_anat_label.times, pca_anat, 'k',
+         label='Anatomical %s' % aparc_label_name)
+plt.plot(1e3 * stc_func_label.times, pca_func, 'b',
+         label='Functional %s' % aparc_label_name)
+plt.legend()
+plt.show()
 
 ###############################################################################
 # Plot brain in 3D with PySurfer if available. Note that the subject name

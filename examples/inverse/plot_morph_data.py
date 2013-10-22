@@ -47,11 +47,11 @@ stc_to_2 = mne.morph_data_precomputed(subject_from, subject_to,
 stc_to_2.save('%s_audvis-meg_2' % subject_to)
 
 # View source activations
-import pylab as pl
-pl.plot(stc_from.times, stc_from.data.mean(axis=0), 'r', label='from')
-pl.plot(stc_to.times, stc_to.data.mean(axis=0), 'b', label='to')
-pl.plot(stc_to_2.times, stc_to.data.mean(axis=0), 'g', label='to_2')
-pl.xlabel('time (ms)')
-pl.ylabel('Mean Source amplitude')
-pl.legend()
-pl.show()
+import matplotlib.pyplot as plt
+plt.plot(stc_from.times, stc_from.data.mean(axis=0), 'r', label='from')
+plt.plot(stc_to.times, stc_to.data.mean(axis=0), 'b', label='to')
+plt.plot(stc_to_2.times, stc_to.data.mean(axis=0), 'g', label='to_2')
+plt.xlabel('time (ms)')
+plt.ylabel('Mean Source amplitude')
+plt.legend()
+plt.show()

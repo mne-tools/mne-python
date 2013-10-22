@@ -19,7 +19,7 @@ print __doc__
 # License: BSD (3-clause)
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 
 import mne
 from mne.fiff import Raw
@@ -122,7 +122,7 @@ ica.plot_sources_raw(raw, eog_source_idx, title=title, stop=3.0)
 title = 'Spatial patterns of ICA components for ECG+EOG (Magnetometers)'
 source_idx = range(15)
 ica.plot_topomap([ecg_source_idx, eog_source_idx], ch_type='mag')
-pl.suptitle(title, fontsize=12)
+plt.suptitle(title, fontsize=12)
 
 ###############################################################################
 # Show MEG data before and after ICA cleaning.
@@ -138,20 +138,20 @@ start_compare, stop_compare = raw.time_as_index([100, 106])
 data, times = raw[picks, start_compare:stop_compare]
 data_clean, _ = raw_ica[picks, start_compare:stop_compare]
 
-pl.figure()
-pl.plot(times, data.T)
-pl.xlabel('time (s)')
-pl.xlim(100, 106)
-pl.ylabel('Raw MEG data (T)')
-y0, y1 = pl.ylim()
+plt.figure()
+plt.plot(times, data.T)
+plt.xlabel('time (s)')
+plt.xlim(100, 106)
+plt.ylabel('Raw MEG data (T)')
+y0, y1 = plt.ylim()
 
-pl.figure()
-pl.plot(times, data_clean.T)
-pl.xlabel('time (s)')
-pl.xlim(100, 106)
-pl.ylabel('Denoised MEG data (T)')
-pl.ylim(y0, y1)
-pl.show()
+plt.figure()
+plt.plot(times, data_clean.T)
+plt.xlabel('time (s)')
+plt.xlim(100, 106)
+plt.ylabel('Denoised MEG data (T)')
+plt.ylim(y0, y1)
+plt.show()
 
 ###############################################################################
 # Compare the affected channel before and after ICA cleaning.
@@ -159,17 +159,17 @@ pl.show()
 affected_idx = raw.ch_names.index(ecg_ch_name)
 
 # plot the component that correlates most with the ECG
-pl.figure()
-pl.plot(times, data[affected_idx], color='k')
-pl.title('Affected channel MEG 1531 before cleaning.')
-y0, y1 = pl.ylim()
+plt.figure()
+plt.plot(times, data[affected_idx], color='k')
+plt.title('Affected channel MEG 1531 before cleaning.')
+y0, y1 = plt.ylim()
 
 # plot the component that correlates most with the ECG
-pl.figure()
-pl.plot(times, data_clean[affected_idx], color='k')
-pl.title('Affected channel MEG 1531 after cleaning.')
-pl.ylim(y0, y1)
-pl.show()
+plt.figure()
+plt.plot(times, data_clean[affected_idx], color='k')
+plt.title('Affected channel MEG 1531 after cleaning.')
+plt.ylim(y0, y1)
+plt.show()
 
 ###############################################################################
 # Export ICA as raw for subsequent processing steps in ICA space.

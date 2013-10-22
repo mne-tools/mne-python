@@ -70,10 +70,10 @@ con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
         method='wpli2_debiased', mode='multitaper', sfreq=sfreq, fmin=fmin,
         fmax=fmax, mt_adaptive=True, n_jobs=2)
 
-import pylab as pl
+import matplotlib.pyplot as plt
 n_rows, n_cols = con.shape[:2]
-fig, axes = pl.subplots(n_rows, n_cols, sharex=True, sharey=True)
-pl.suptitle('Between labels connectivity')
+fig, axes = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
+plt.suptitle('Between labels connectivity')
 for i in range(n_rows):
     for j in range(i + 1):
         if i == j:
@@ -95,4 +95,4 @@ for i in range(n_rows):
         for f in [8, 12, 18, 35]:
             axes[i, j].axvline(f, color='k')
             axes[j, i].axvline(f, color='k')
-pl.show()
+plt.show()

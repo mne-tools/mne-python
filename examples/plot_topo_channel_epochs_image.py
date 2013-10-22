@@ -16,7 +16,7 @@ print __doc__
 #
 # License: BSD (3-clause)
 
-import pylab as pl
+import matplotlib.pyplot as plt
 
 import mne
 from mne import fiff
@@ -52,4 +52,4 @@ layout = read_layout('Vectorview-all')
 title = 'ERF images - MNE sample data'
 mne.viz.plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200,
                                colorbar=True, title=title)
-pl.show()
+plt.show()

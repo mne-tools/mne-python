@@ -17,7 +17,7 @@ print __doc__
 #
 # License: BSD (3-clause)
 
-import matplotlib.pylab as pl
+import matplotlib.pyplot as plt
 import numpy as np
 import mne
 from mne.fiff import Raw
@@ -61,7 +61,7 @@ print ica
 title = 'Spatial patterns of ICA components (Magnetometers)'
 source_idx = range(35, 50)
 ica.plot_topomap(source_idx, ch_type='mag')
-pl.suptitle(title, fontsize=12)
+plt.suptitle(title, fontsize=12)
 
 
 ###############################################################################
@@ -109,7 +109,7 @@ epochs_ica = ica.pick_sources_epochs(epochs)
 
 # First show unprocessed, then cleaned epochs
 mags = mne.fiff.pick_types(epochs.info, meg='mag', exclude=[])
-fig, axes = pl.subplots(2, 2, sharex=True, sharey=True)
+fig, axes = plt.subplots(2, 2, sharex=True, sharey=True)
 times = epochs.times * 1e3
 scale = 1e15
 titles = ['raw - ', 'cleaned - ']
@@ -133,7 +133,7 @@ ica_epochs = ica.sources_as_epochs(epochs)
 # don't exclude bad sources by passing an empty list.
 ica_picks = mne.fiff.pick_types(ica_epochs.info, misc=True, exclude=[])
 ica_evoked = ica_epochs.average(ica_picks)
-pl.figure()
+plt.figure()
 ica_evoked.plot(titles=dict(misc='ICA sources'))
 
 # Tip: use this for epochs constructed around ECG r-peaks to check whether all

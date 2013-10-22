@@ -19,7 +19,7 @@ import os
 
 import mne
 from mne.datasets import sample
-import pylab as pl
+import matplotlib.pyplot as plt
 
 data_path = sample.data_path()
 os.environ['SUBJECTS_DIR'] = data_path + '/subjects'
@@ -44,19 +44,19 @@ vtx, _, t_rh = stc_rh.center_of_mass('sample')
 mni_rh = mne.vertex_to_mni(vtx, 1, 'sample')[0]
 
 # plot the activation
-pl.figure()
-pl.axes([.1, .275, .85, .625])
-hl = pl.plot(stc.times, stc_lh.data.mean(0), 'b')
-hr = pl.plot(stc.times, stc_rh.data.mean(0), 'g')
-hb = pl.plot(stc.times, stc_bh.data.mean(0), 'r')
-pl.xlabel('Time (s)')
-pl.ylabel('Source amplitude (dSPM)')
-pl.xlim(stc.times[0], stc.times[-1])
+plt.figure()
+plt.axes([.1, .275, .85, .625])
+hl = plt.plot(stc.times, stc_lh.data.mean(0), 'b')
+hr = plt.plot(stc.times, stc_rh.data.mean(0), 'g')
+hb = plt.plot(stc.times, stc_bh.data.mean(0), 'r')
+plt.xlabel('Time (s)')
+plt.ylabel('Source amplitude (dSPM)')
+plt.xlim(stc.times[0], stc.times[-1])
 
 # add a legend including center-of-mass mni coordinates to the plot
 labels = ['LH: center of mass = %s' % mni_lh.round(2),
           'RH: center of mass = %s' % mni_rh.round(2),
           'Combined LH & RH']
-pl.figlegend([hl, hr, hb], labels, 'lower center')
-pl.suptitle('Average activation in auditory cortex labels', fontsize=20)
-pl.show()
+plt.figlegend([hl, hr, hb], labels, 'lower center')
+plt.suptitle('Average activation in auditory cortex labels', fontsize=20)
+plt.show()

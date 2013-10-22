@@ -12,7 +12,7 @@ The projections used are the ones correcting for ECG artifacts.
 
 print __doc__
 
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 data_path = sample.data_path()
@@ -26,6 +26,6 @@ projs = mne.read_proj(ecg_fname)
 layouts = [mne.layouts.read_layout('Vectorview-all'),
            mne.layouts.make_eeg_layout(evoked.info)]
 
-pl.figure(figsize=(10, 6))
+plt.figure(figsize=(10, 6))
 mne.viz.plot_projs_topomap(projs, layout=layouts)
 mne.viz.tight_layout()

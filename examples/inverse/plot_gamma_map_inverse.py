@@ -13,7 +13,7 @@ NeuroImage, vol. 44, no. 3, pp. 947?66, Mar. 2009.
 print __doc__
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
@@ -32,7 +32,8 @@ evoked = mne.fiff.read_evoked(evoked_fname, setno=setno, baseline=(None, 0))
 evoked.crop(tmin=-50e-3, tmax=300e-3)
 
 # Read the forward solution
-forward = mne.read_forward_solution(fwd_fname, surf_ori=True, force_fixed=False)
+forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
+                                    force_fixed=False)
 
 # Read noise covariance matrix and regularize it
 cov = mne.read_cov(cov_fname)
@@ -56,11 +57,11 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
 evoked = mne.fiff.pick_types_evoked(evoked, meg='grad', exclude='bads')
-pl.figure()
+plt.figure()
 evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
             proj=True)
 
 residual = mne.fiff.pick_types_evoked(residual, meg='grad', exclude='bads')
-pl.figure()
+plt.figure()
 residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
               proj=True)

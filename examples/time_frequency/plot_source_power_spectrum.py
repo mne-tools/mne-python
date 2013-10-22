@@ -47,9 +47,9 @@ stc.save('psd_dSPM')
 
 ###############################################################################
 # View PSD of sources in label
-import pylab as pl
-pl.plot(1e3 * stc.times, stc.data.T)
-pl.xlabel('Frequency (Hz)')
-pl.ylabel('PSD (dB)')
-pl.title('Source Power Spectrum (PSD)')
-pl.show()
+import matplotlib.pyplot as plt
+plt.plot(1e3 * stc.times, stc.data.T)
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('PSD (dB)')
+plt.title('Source Power Spectrum (PSD)')
+plt.show()

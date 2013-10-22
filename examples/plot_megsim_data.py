@@ -15,7 +15,7 @@ Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
 Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
 
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 from mne.datasets.megsim import load_data
 
@@ -44,10 +44,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
-pl.figure()
+plt.figure()
 evoked.plot()
 
 # Compare to the simulated data
 evoked_sim = mne.fiff.Evoked(evoked_fnames[0])
-pl.figure()
+plt.figure()
 evoked_sim.plot()

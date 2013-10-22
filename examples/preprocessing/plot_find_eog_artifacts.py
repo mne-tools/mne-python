@@ -13,7 +13,7 @@ Locate peaks of EOG to spot blinks and general EOG artifacts.
 print __doc__
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 from mne import fiff
 from mne.datasets import sample
@@ -40,7 +40,7 @@ print "Number of detected EOG artifacts : %d" % len(data)
 
 ###############################################################################
 # Plot EOG artifacts
-pl.plot(1e3 * epochs.times, np.squeeze(data).T)
-pl.xlabel('Times (ms)')
-pl.ylabel('EOG (muV)')
-pl.show()
+plt.plot(1e3 * epochs.times, np.squeeze(data).T)
+plt.xlabel('Times (ms)')
+plt.ylabel('EOG (muV)')
+plt.show()

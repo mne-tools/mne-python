@@ -15,7 +15,7 @@ import mne
 if __name__ == '__main__':
 
     from optparse import OptionParser
-    import pylab as pl
+    import matplotlib.pyplot as plt
 
     parser = OptionParser()
     parser.add_option("--raw", dest="raw_in",
@@ -39,11 +39,11 @@ if __name__ == '__main__':
                       help="Order for plotting ('type' or 'original')",
                       default='type')
     parser.add_option("-p", "--preload", dest="preload",
-                    help="Preload raw data (for faster navigaton)",
-                    default=False)
+                      help="Preload raw data (for faster navigaton)",
+                      default=False)
     parser.add_option("-s", "--show_options", dest="show_options",
-                    help="Show projection options dialog",
-                    default=False)
+                      help="Show projection options dialog",
+                      default=False)
     options, args = parser.parse_args()
 
     raw_in = options.raw_in
@@ -70,4 +70,4 @@ if __name__ == '__main__':
         events = None
     fig = raw.plot(duration=duration, start=start, n_channels=n_channels,
                    order=order, show_options=show_options, events=events)
-    pl.show(block=True)
+    plt.show(block=True)

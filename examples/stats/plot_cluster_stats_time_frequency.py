@@ -116,19 +116,19 @@ T_obs, clusters, cluster_p_values, H0 = \
 
 ###############################################################################
 # View time-frequency plots
-import pylab as pl
-pl.clf()
-pl.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
-pl.subplot(2, 1, 1)
+import matplotlib.pyplot as plt
+plt.clf()
+plt.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
+plt.subplot(2, 1, 1)
 evoked_contrast = np.mean(data_condition_1, 0) - np.mean(data_condition_2, 0)
-pl.plot(times, evoked_contrast.T)
-pl.title('Contrast of evoked response (%s)' % ch_name)
-pl.xlabel('time (ms)')
-pl.ylabel('Magnetic Field (fT/cm)')
-pl.xlim(times[0], times[-1])
-pl.ylim(-100, 200)
+plt.plot(times, evoked_contrast.T)
+plt.title('Contrast of evoked response (%s)' % ch_name)
+plt.xlabel('time (ms)')
+plt.ylabel('Magnetic Field (fT/cm)')
+plt.xlim(times[0], times[-1])
+plt.ylim(-100, 200)
 
-pl.subplot(2, 1, 2)
+plt.subplot(2, 1, 2)
 
 # Create new stats image with only significant clusters
 T_obs_plot = np.nan * np.ones_like(T_obs)
@@ -136,14 +136,14 @@ for c, p_val in zip(clusters, cluster_p_values):
     if p_val <= 0.05:
         T_obs_plot[c] = T_obs[c]
 
-pl.imshow(T_obs, cmap=pl.cm.gray, extent=[times[0], times[-1],
-                                          frequencies[0], frequencies[-1]],
-                                  aspect='auto', origin='lower')
-pl.imshow(T_obs_plot, cmap=pl.cm.jet, extent=[times[0], times[-1],
-                                              frequencies[0], frequencies[-1]],
-                                  aspect='auto', origin='lower')
+plt.imshow(T_obs, cmap=plt.cm.gray,
+           extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+           aspect='auto', origin='lower')
+plt.imshow(T_obs_plot, cmap=plt.cm.jet,
+           extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+           aspect='auto', origin='lower')
 
-pl.xlabel('time (ms)')
-pl.ylabel('Frequency (Hz)')
-pl.title('Induced power (%s)' % ch_name)
-pl.show()
+plt.xlabel('time (ms)')
+plt.ylabel('Frequency (Hz)')
+plt.title('Induced power (%s)' % ch_name)
+plt.show()

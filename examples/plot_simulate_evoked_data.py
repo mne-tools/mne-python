@@ -10,7 +10,7 @@ Generate simulated evoked data
 # License: BSD (3-clause)
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 
 import mne
 from mne.fiff.pick import pick_types_evoked, pick_types_forward
@@ -76,10 +76,10 @@ evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
 ###############################################################################
 # Plot
 plot_sparse_source_estimates(fwd['src'], stc, bgcolor=(1, 1, 1),
-                                opacity=0.5, high_resolution=True)
+                             opacity=0.5, high_resolution=True)
 
-pl.figure()
-pl.psd(evoked.data[0])
+plt.figure()
+plt.psd(evoked.data[0])
 
-pl.figure()
+plt.figure()
 plot_evoked(evoked)

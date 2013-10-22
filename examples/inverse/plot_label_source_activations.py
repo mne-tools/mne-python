@@ -37,7 +37,7 @@ inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']
 
 # Compute inverse solution
-pick_ori = "normal" # Get signed values to see the effect of sign filp
+pick_ori = "normal"  # Get signed values to see the effect of sign filp
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
                     pick_ori=pick_ori)
 
@@ -51,14 +51,14 @@ pca = stc.extract_label_time_course(label, src, mode='pca_flip')
 print "Number of vertices : %d" % len(stc_label.data)
 
 # View source activations
-import pylab as pl
-pl.figure()
-pl.plot(1e3 * stc_label.times, stc_label.data.T, 'k', linewidth=0.5)
-h0, = pl.plot(1e3 * stc_label.times, mean.T, 'r', linewidth=3)
-h1, = pl.plot(1e3 * stc_label.times, mean_flip.T, 'g', linewidth=3)
-h2, = pl.plot(1e3 * stc_label.times, pca.T, 'b', linewidth=3)
-pl.legend([h0, h1, h2], ['mean', 'mean flip', 'PCA flip'])
-pl.xlabel('Time (ms)')
-pl.ylabel('Source amplitude')
-pl.title('Activations in Label : %s' % label)
-pl.show()
+import matplotlib.pyplot as plt
+plt.figure()
+plt.plot(1e3 * stc_label.times, stc_label.data.T, 'k', linewidth=0.5)
+h0, = plt.plot(1e3 * stc_label.times, mean.T, 'r', linewidth=3)
+h1, = plt.plot(1e3 * stc_label.times, mean_flip.T, 'g', linewidth=3)
+h2, = plt.plot(1e3 * stc_label.times, pca.T, 'b', linewidth=3)
+plt.legend([h0, h1, h2], ['mean', 'mean flip', 'PCA flip'])
+plt.xlabel('Time (ms)')
+plt.ylabel('Source amplitude')
+plt.title('Activations in Label : %s' % label)
+plt.show()

@@ -25,8 +25,8 @@ print "stc data size: %s (nb of vertices) x %s (nb of samples)" % (
                                                     n_vertices, n_samples)
 
 # View source activations
-import pylab as pl
-pl.plot(stc.times, stc.data[::100, :].T)
-pl.xlabel('time (ms)')
-pl.ylabel('Source amplitude')
-pl.show()
+import matplotlib.pyplot as plt
+plt.plot(stc.times, stc.data[::100, :].T)
+plt.xlabel('time (ms)')
+plt.ylabel('Source amplitude')
+plt.show()

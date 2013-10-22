@@ -10,7 +10,7 @@ Shifting time-scale in evoked data
 
 print __doc__
 
-import pylab as pl
+import matplotlib.pyplot as plt
 from mne import fiff
 from mne.datasets import sample
 
@@ -26,7 +26,7 @@ picks = fiff.pick_channels(ch_names=evoked.info['ch_names'],
                            include="MEG 2332", exclude="bad")
 
 # Create subplots
-f, axarr = pl.subplots(3)
+f, axarr = plt.subplots(3)
 evoked.plot(exclude=[], picks=picks, axes=axarr[0],
             titles=dict(grad='Before time shifting'))
 
