@@ -26,6 +26,9 @@ class RawEDF(Raw):
     input_fname : str
         Path to the EDF+,BDF file.
 
+    n_eeg : int
+        Number of EEG electrodes.
+
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         If None, it will use the last channel in data.
@@ -46,13 +49,19 @@ class RawEDF(Raw):
         If True, all data are loaded at initialization.
         If False, data are not read until save.
 
+    There is an assumption that the data are arrange such that EEG channels
+    appear first then miscellaneous channels (EOGs, AUX, STIM).
+    The stimulus channel is saved as 'STI 014'
+
     See Also
     --------
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, stim_channel=None,
+    def __init__(self, input_fname, n_eeg, stim_channel=None,
                  hpts=None, annot=None, preload=False, verbose=None):
+        if not isinstance(n_eeg, int):
+            ValueError('Must be an integer number.')
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self._edf_params = params = get_edf_params(input_fname, hpts)
@@ -114,13 +123,15 @@ class RawEDF(Raw):
             check1 = stim_channel == ch_name
             check2 = stim_channel == idx
             stim_check = np.logical_or(check1, check2)
+            # this deals with EOG, AUX channels
+            if idx > n_eeg:
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+                chan_info['kind'] = FIFF.FIFFV_MISC_CH
             if stim_check:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 chan_info['unit'] = FIFF.FIFF_UNIT_NONE
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
-#            # deal with EOG, AUX channels
-#            elif ch_name.startswith('EX'):
-#                chan_info['kind'] = FIFF.FIFFV_MISC_CH
+                chan_info['ch_name'] = 'STI 014'
             self.info['chs'].append(chan_info)
 
         if preload:
@@ -280,7 +291,7 @@ def get_edf_params(fname, hpts=None, annot=None):
     edf['fname'] = fname
     with open(fname, 'rb') as fid:
         assert(fid.tell() == 0)
-        assert(fid.read(8) == '\xffBIOSEMI')
+        fid.seek(8)
 
         edf['subject_id'] = fid.read(80).strip()
         edf['recording_id'] = fid.read(80).strip()
@@ -290,7 +301,10 @@ def get_edf_params(fname, hpts=None, annot=None):
                                             hour, minute, sec))
         edf['data_offset'] = header_nbytes = int(fid.read(8))
         subtype = fid.read(44).strip()[:5]
-        assert subtype in ['EDF+C', 'EDF+D', '24BIT']
+        supported = ['EDF+C', 'EDF+D', '24BIT']
+        if subtype not in supported:
+            raise ValueError('Filetype must be either %s, %s, or %s'
+                             % tuple(supported))
         edf['subtype'] = subtype
 
         n_records = int(fid.read(8))
@@ -298,9 +312,9 @@ def get_edf_params(fname, hpts=None, annot=None):
         edf['nchan'] = int(fid.read(4))
 
         channels = range(edf['nchan'])
-        edf['ch_names'] = [fid.read(16).strip() for n in channels]
-        edf['transducer_type'] = [fid.read(80).strip() for n in channels]
-        edf['units'] = [fid.read(8).strip() for n in channels]
+        edf['ch_names'] = [fid.read(16).strip() for _ in channels]
+        edf['transducer_type'] = [fid.read(80).strip() for _ in channels]
+        edf['units'] = [fid.read(8).strip() for _ in channels]
         not_stim_ch = np.where(np.array(edf['units']) != 'Boolean')[0]
         units = list(np.unique(edf['units']))
         if 'Boolean' in units:
@@ -310,12 +324,12 @@ def get_edf_params(fname, hpts=None, annot=None):
             scale = 1e-6
         elif units[0] == 'V':
             scale = 1
-        edf['physical_min'] = np.array([float(fid.read(8)) for n in channels])
-        edf['physical_max'] = np.array([float(fid.read(8)) for n in channels])
-        edf['digital_min'] = np.array([float(fid.read(8)) for n in channels])
-        edf['digital_max'] = np.array([float(fid.read(8)) for n in channels])
-        edf['prefiltering'] = [fid.read(80).strip() for n in channels]
-        n_samples_per_record = [int(fid.read(8)) for n in channels]
+        edf['physical_min'] = np.array([float(fid.read(8)) for _ in channels])
+        edf['physical_max'] = np.array([float(fid.read(8)) for _ in channels])
+        edf['digital_min'] = np.array([float(fid.read(8)) for _ in channels])
+        edf['digital_max'] = np.array([float(fid.read(8)) for _ in channels])
+        edf['prefiltering'] = [fid.read(80).strip() for _ in channels]
+        n_samples_per_record = [int(fid.read(8)) for _ in channels]
         assert len(np.unique(n_samples_per_record)) == 1
 
         n_samples_per_record = n_samples_per_record[0]
@@ -344,20 +358,27 @@ def get_edf_params(fname, hpts=None, annot=None):
     edf['sensor_locs'] = np.array(locs, int)
 
     if edf['subtype'] != '24BIT':
-        if os.path.lexists(annot):
+        if not os.path.lexists(annot):
             raise ValueError('Missing required annotation file.')
 
     return edf
 
 
-def read_raw_edf(input_fname, hpts=None, annot=None, preload=False,
-                 verbose=None):
+def read_raw_edf(input_fname, n_eeg, stim_channel=None, hpts=None, annot=None,
+                 preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
 
     Parameters
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
+
+    n_eeg : int
+        Number of EEG electrodes.
+
+    stim_channel : str | int | None
+        The channel name or channel index (starting at 0).
+        If None, it will use the last channel in data.
 
     hpts : str | None
         Path to the hpts file.
@@ -375,5 +396,6 @@ def read_raw_edf(input_fname, hpts=None, annot=None, preload=False,
         If True, all data are loaded at initialization.
         If False, data are not read until save.
     """
-    return RawEDF(input_fname=input_fname, hpts=hpts, annot=annot,
+    return RawEDF(input_fname=input_fname, n_eeg=n_eeg,
+                  stim_channel=stim_channel, hpts=hpts, annot=annot,
                   verbose=verbose, preload=preload)
