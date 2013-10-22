@@ -25,6 +25,8 @@ fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
 
 def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
               epochs_preload=True, data_cov=True):
@@ -357,9 +359,11 @@ def test_tf_lcmv():
     assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward, noise_covs,
                   tmin, tmax, tstep, win_lengths, freq_bins)
 
-    # Pass only one epoch to test if subtracting evoked responses yields zeros
-    stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep,
-                   win_lengths, freq_bins, subtract_evoked=True, reg=reg,
-                   label=label)
+    with warnings.catch_warnings(True):  # not enough samples
+        # Pass only one epoch to test if subtracting evoked
+        # responses yields zeros
+        stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep,
+                       win_lengths, freq_bins, subtract_evoked=True, reg=reg,
+                       label=label)
 
     assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))

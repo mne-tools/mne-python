@@ -17,6 +17,9 @@ from mne.surface import _accumulate_normals, _triangle_neighbors
 
 from scipy.spatial.distance import cdist
 
+# WARNING: test_source_space is imported by forward, so avoid_download=True
+# is critical here, otherwise on first import of MNE users will have to
+# download the whole sample dataset!
 data_path = sample.data_path(avoid_download=True)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
