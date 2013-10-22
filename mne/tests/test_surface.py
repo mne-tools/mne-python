@@ -13,7 +13,7 @@ from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
                          fast_cross_3d)
 from mne.utils import _TempDir, requires_tvtk
 
-data_path = sample.data_path()
+data_path = sample.data_path(avoid_download=True)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-5120-5120-5120-bem-sol.fif')
@@ -52,6 +52,7 @@ def test_compute_nearest():
         assert_array_equal(nn1, nn2)
 
 
+@sample.requires_sample_data
 def test_make_morph_maps():
     """Test reading and creating morph maps
     """
@@ -64,6 +65,7 @@ def test_make_morph_maps():
         assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
 
+@sample.requires_sample_data
 def test_io_bem_surfaces():
     """Test reading of bem surfaces
     """
@@ -79,6 +81,7 @@ def test_io_bem_surfaces():
         assert_array_almost_equal(surf[0][key], surf_read[0][key])
 
 
+@sample.requires_sample_data
 def test_io_surface():
     """Test reading and writing of Freesurfer surface mesh files
     """

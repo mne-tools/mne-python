@@ -11,13 +11,11 @@ from mne.datasets import sample
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
-data_path = sample.data_path()
+data_path = sample.data_path(avoid_download=True)
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
-# Setup for reading the raw data
-events = read_events(event_fname)
 
-
+@sample.requires_sample_data
 def test_psd():
     """Test PSD estimation
     """
@@ -47,6 +45,7 @@ def test_psd():
     assert_true(np.sum(psds < 0) == 0)
 
 
+@sample.requires_sample_data
 def test_psd_epochs():
     """Test PSD estimation on epochs
     """
@@ -70,6 +69,7 @@ def test_psd_epochs():
     picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=False, include=include, exclude='bads')
 
+    events = read_events(event_fname)
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(grad=4000e-13, eog=150e-6), proj=False,

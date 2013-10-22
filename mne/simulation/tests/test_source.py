@@ -10,17 +10,18 @@ from mne.label import Label
 from mne.simulation.source import generate_stc, generate_sparse_stc
 
 
-data_path = sample.data_path()
+data_path = sample.data_path(avoid_download=True)
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-fwd.fif')
-fwd = read_forward_solution(fname_fwd, force_fixed=True)
 label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']
 
 label_names_single_hemi = ['Aud-rh', 'Vis-rh']
 
 
+@sample.requires_sample_data
 def test_generate_stc():
     """ Test generation of source estimate """
+    fwd = read_forward_solution(fname_fwd, force_fixed=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
     mylabels = []
@@ -72,12 +73,14 @@ def test_generate_stc():
         if hemi_idx == 1:
             idx += len(stc.vertno[0])
 
-        assert_array_almost_equal(stc.data[idx],
-                        ((2. * i) ** 2.) * np.ones((len(idx), n_times)))
+        res = ((2. * i) ** 2.) * np.ones((len(idx), n_times))
+        assert_array_almost_equal(stc.data[idx], res)
 
 
+@sample.requires_sample_data
 def test_generate_sparse_stc():
     """ Test generation of sparse source estimate """
+    fwd = read_forward_solution(fname_fwd, force_fixed=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
 
@@ -85,8 +88,8 @@ def test_generate_sparse_stc():
     tmin = 0
     tstep = 1e-3
 
-    stc_data = np.ones((len(labels), n_times))\
-                     * np.arange(len(labels))[:, None]
+    stc_data = (np.ones((len(labels), n_times))
+                * np.arange(len(labels))[:, None])
     stc_1 = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep, 0)
 
     for i, label in enumerate(labels):
@@ -113,8 +116,10 @@ def test_generate_sparse_stc():
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
 
 
+@sample.requires_sample_data
 def test_generate_stc_single_hemi():
     """ Test generation of source estimate """
+    fwd = read_forward_solution(fname_fwd, force_fixed=True)
     labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample',
                                              'labels', '%s.label' % label))
                           for label in label_names_single_hemi]
@@ -167,13 +172,14 @@ def test_generate_stc_single_hemi():
         if hemi_idx == 1:
             idx += len(stc.vertno[0])
 
-        assert_array_almost_equal(stc.data[idx],
-                        ((2. * i) ** 2.) * np.ones((len(idx), n_times)))
+        res = ((2. * i) ** 2.) * np.ones((len(idx), n_times))
+        assert_array_almost_equal(stc.data[idx], res)
 
 
+@sample.requires_sample_data
 def test_generate_sparse_stc_single_hemi():
     """ Test generation of sparse source estimate """
-
+    fwd = read_forward_solution(fname_fwd, force_fixed=True)
     n_times = 10
     tmin = 0
     tstep = 1e-3
@@ -181,8 +187,8 @@ def test_generate_sparse_stc_single_hemi():
                                              'labels', '%s.label' % label))
                           for label in label_names_single_hemi]
 
-    stc_data = np.ones((len(labels_single_hemi), n_times))\
-                     * np.arange(len(labels_single_hemi))[:, None]
+    stc_data = (np.ones((len(labels_single_hemi), n_times))
+                * np.arange(len(labels_single_hemi))[:, None])
     stc_1 = generate_sparse_stc(fwd['src'], labels_single_hemi, stc_data,
                                 tmin, tstep, 0)
 

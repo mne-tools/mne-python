@@ -9,7 +9,7 @@ from mne.utils import sum_squared
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd, induced_power
 
-data_path = sample.data_path()
+data_path = sample.data_path(avoid_download=True)
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
@@ -41,6 +41,7 @@ def _get_data():
     return epochs, epochs_sin
 
 
+@sample.requires_sample_data
 def test_compute_epochs_csd():
     """Test computing cross-spectral density from epochs
     """
@@ -109,6 +110,7 @@ def test_compute_epochs_csd():
     assert_array_equal(csd_fsum.data, csd_sum)
 
 
+@sample.requires_sample_data
 def test_compute_epochs_csd_on_artificial_data():
     """Test computing CSD on artificial data
     """

@@ -3,6 +3,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
+import numpy as np
 import os
 import os.path as op
 import shutil
@@ -27,7 +28,8 @@ def _sample_version(path):
 
 
 @verbose
-def data_path(path=None, force_update=False, update_path=True, verbose=None):
+def data_path(path=None, force_update=False, update_path=True,
+              avoid_download=False, verbose=None):
     """Get path to local copy of Sample dataset
 
     Parameters
@@ -45,6 +47,11 @@ def data_path(path=None, force_update=False, update_path=True, verbose=None):
     update_path : bool | None
         If True, set the MNE_DATASETS_SAMPLE_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    avoid_download : bool
+        If True and the sample dataset has not been downloaded yet,
+        it will not be downloaded and the path will be returned as
+        '' (empty string). This is mostly used for debugging purposes
+        and can be safely ignored by most users.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -72,6 +79,9 @@ def data_path(path=None, force_update=False, update_path=True, verbose=None):
 
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
+
+    if not op.exists(folder_path) and avoid_download:
+        return ''
 
     if not op.exists(folder_path) or force_update:
         logger.info('Sample data archive %s not found at:\n%s\n'
@@ -140,3 +150,15 @@ def data_path(path=None, force_update=False, update_path=True, verbose=None):
                  % (sample_version, mne_version))
 
     return path
+
+
+def has_sample_data():
+    """Helper for sample dataset presence"""
+    if data_path(avoid_download=True).endswith('MNE-sample-data'):
+        return True
+    else:
+        return False
+
+
+requires_sample_data = np.testing.dec.skipif(not has_sample_data(),
+                                             'Requires sample dataset')

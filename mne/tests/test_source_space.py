@@ -17,7 +17,7 @@ from mne.surface import _accumulate_normals, _triangle_neighbors
 
 from scipy.spatial.distance import cdist
 
-data_path = sample.data_path()
+data_path = sample.data_path(avoid_download=True)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
@@ -27,6 +27,7 @@ fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 tempdir = _TempDir()
 
 
+@sample.requires_sample_data
 @requires_scipy_version('0.11')
 def test_add_source_space_distances_limited():
     """Test adding distances to source space with a dist_limit"""
@@ -63,6 +64,7 @@ def test_add_source_space_distances_limited():
         assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-6)
 
 
+@sample.requires_sample_data
 @requires_scipy_version('0.11')
 def test_add_source_space_distances():
     """Test adding distances to source space"""
@@ -102,6 +104,7 @@ def test_add_source_space_distances():
         assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-9)
 
 
+@sample.requires_sample_data
 @requires_mne
 def test_discrete_source_space():
     """Test setting up (and reading/writing) discrete source spaces
@@ -138,6 +141,7 @@ def test_discrete_source_space():
             os.remove(temp_name)
 
 
+@sample.requires_sample_data
 @requires_mne
 @requires_nibabel(vox2ras_tkr=True)
 def test_volume_source_space():
@@ -171,6 +175,7 @@ def test_volume_source_space():
             os.remove(temp_name)
 
 
+@sample.requires_sample_data
 def test_triangle_neighbors():
     """Test efficient vertex neighboring triangles for surfaces"""
     this = read_source_spaces(fname)[0]
@@ -213,6 +218,7 @@ def test_accumulate_normals():
     assert_allclose(nn, this['nn'], rtol=1e-7, atol=1e-7)
 
 
+@sample.requires_sample_data
 def test_setup_source_space():
     """Test setting up ico, oct, and all source spaces
     """
@@ -255,6 +261,7 @@ def test_setup_source_space():
     _compare_source_spaces(src, src_new, mode='approx')
 
 
+@sample.requires_sample_data
 def test_read_source_spaces():
     """Test reading of source space meshes
     """
@@ -277,6 +284,7 @@ def test_read_source_spaces():
     assert_true(rh_use_faces.max() <= rh_points.shape[0] - 1)
 
 
+@sample.requires_sample_data
 def test_write_source_space():
     """Test writing and reading of source spaces
     """
@@ -370,6 +378,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 assert_true(name not in src1.info)
 
 
+@sample.requires_sample_data
 @requires_fs_or_nibabel
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates
@@ -387,6 +396,7 @@ def test_vertex_to_mni():
         assert_allclose(coords, coords_2, atol=1.0)
 
 
+@sample.requires_sample_data
 @requires_freesurfer
 @requires_nibabel()
 def test_vertex_to_mni_fs_nibabel():

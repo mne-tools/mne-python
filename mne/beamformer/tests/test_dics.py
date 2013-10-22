@@ -15,7 +15,7 @@ from mne.time_frequency import compute_epochs_csd
 # tests in a full nosetest:
 warnings.simplefilter("always")  # ensure we can verify expected warnings
 
-data_path = sample.data_path()
+data_path = sample.data_path(avoid_download=True)
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
@@ -77,6 +77,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
         forward_surf_ori, forward_fixed, forward_vol
 
 
+@sample.requires_sample_data
 def test_dics():
     """Test DICS with evoked data and single trials
     """
@@ -145,6 +146,7 @@ def test_dics():
     assert_true(17.5 < np.max(max_stc) < 18.5)
 
 
+@sample.requires_sample_data
 def test_dics_source_power():
     """Test DICS source power computation
     """
@@ -209,6 +211,7 @@ def test_dics_source_power():
     assert len(w) == 1
 
 
+@sample.requires_sample_data
 def test_tf_dics():
     """Test TF beamforming based on DICS
     """
