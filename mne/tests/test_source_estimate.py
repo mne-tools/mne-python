@@ -4,18 +4,18 @@ import warnings
 from copy import deepcopy
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal, \
-                          assert_allclose
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_allclose)
 
 from scipy.fftpack import fft
 
 from mne.datasets import sample
-from mne import stats, SourceEstimate, VolSourceEstimate, Label,\
-                read_source_spaces
+from mne import (stats, SourceEstimate, VolSourceEstimate, Label,
+                 read_source_spaces)
 from mne import read_source_estimate, morph_data, extract_label_time_course
-from mne.source_estimate import spatio_temporal_tris_connectivity, \
-                                spatio_temporal_src_connectivity, \
-                                compute_morph_matrix, grade_to_vertices
+from mne.source_estimate import (spatio_temporal_tris_connectivity,
+                                 spatio_temporal_src_connectivity,
+                                 compute_morph_matrix, grade_to_vertices)
 
 from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip

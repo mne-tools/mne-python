@@ -297,8 +297,8 @@ def read_proj(fid, node, verbose=None):
 ###############################################################################
 # Write
 
-from .write import write_int, write_float, write_string, write_name_list, \
-                   write_float_matrix, end_block, start_block
+from .write import (write_int, write_float, write_string, write_name_list,
+                    write_float_matrix, end_block, start_block)
 
 
 def write_proj(fid, projs):

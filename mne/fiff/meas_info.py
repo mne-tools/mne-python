@@ -18,9 +18,9 @@ from .tag import read_tag
 from .proj import read_proj, write_proj
 from .ctf import read_ctf_comp, write_ctf_comp
 from .channels import read_bad_channels
-from .write import start_file, end_file, start_block, end_block, \
-                   write_string, write_dig_point, write_float, write_int, \
-                   write_coord_trans, write_ch_info, write_name_list
+from .write import (start_file, end_file, start_block, end_block,
+                    write_string, write_dig_point, write_float, write_int,
+                    write_coord_trans, write_ch_info, write_name_list)
 from ..utils import logger, verbose
 
 

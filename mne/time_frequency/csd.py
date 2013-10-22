@@ -10,8 +10,8 @@ from scipy.fftpack import fftfreq
 
 from ..fiff.pick import pick_types
 from ..utils import logger, verbose
-from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
-                                        _csd_from_mt, _psd_from_mt_adaptive
+from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
+                                         _csd_from_mt, _psd_from_mt_adaptive)
 
 
 class CrossSpectralDensity(object):

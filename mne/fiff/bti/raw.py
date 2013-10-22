@@ -16,9 +16,9 @@ from .. import Raw
 from .. import FIFF
 from .constants import BTI
 from .read import (read_int32, read_int16, read_str, read_float, read_double,
-                  read_transform, read_char, read_int64, read_uint16,
-                  read_uint32, read_double_matrix, read_float_matrix,
-                  read_int16_matrix)
+                   read_transform, read_char, read_int64, read_uint16,
+                   read_uint32, read_double_matrix, read_float_matrix,
+                   read_int16_matrix)
 from .transforms import (bti_identity_trans, bti_to_vv_trans,
                         bti_to_vv_coil_trans, inverse_trans, merge_trans)
 from ..meas_info import Info

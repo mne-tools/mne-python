@@ -27,10 +27,10 @@ import numpy as np
 from numpy.random import randn
 
 import mne
-from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
-    grade_to_tris
-from mne.stats import spatio_temporal_cluster_test, f_threshold_twoway_rm, \
-    f_twoway_rm, summarize_clusters_stc
+from mne import (fiff, spatial_tris_connectivity, compute_morph_matrix,
+                 grade_to_tris)
+from mne.stats import (spatio_temporal_cluster_test, f_threshold_twoway_rm,
+                       f_twoway_rm, summarize_clusters_stc)
 
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample

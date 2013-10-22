@@ -6,8 +6,8 @@ import numpy as np
 import warnings
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mne.inverse_sparse.mxne_optim import mixed_norm_solver, \
-                                          tf_mixed_norm_solver
+from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
+                                           tf_mixed_norm_solver)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 

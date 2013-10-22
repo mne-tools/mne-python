@@ -6,8 +6,8 @@
 import numpy as np
 
 from .constants import FIFF
-from .write import start_block, end_block, write_int, write_name_list, \
-                       write_double, write_float_matrix
+from .write import (start_block, end_block, write_int, write_name_list,
+                    write_double, write_float_matrix)
 from .tag import find_tag
 from .tree import dir_tree_find
 from .proj import read_proj, write_proj

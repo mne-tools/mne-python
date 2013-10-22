@@ -14,22 +14,22 @@ import warnings
 import numpy as np
 from copy import deepcopy
 
-from .fiff.write import start_file, start_block, end_file, end_block, \
-                        write_int, write_float_matrix, write_float, \
-                        write_id, write_string
+from .fiff.write import (start_file, start_block, end_file, end_block,
+                         write_int, write_float_matrix, write_float,
+                         write_id, write_string)
 from .fiff.meas_info import read_meas_info, write_meas_info
 from .fiff.open import fiff_open
 from .fiff.raw import _time_as_index, _index_as_time
 from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
-from .fiff.pick import pick_types, channel_indices_by_type, channel_type, \
-                       pick_channels
+from .fiff.pick import (pick_types, channel_indices_by_type, channel_type,
+                        pick_channels)
 from .fiff.proj import setup_proj, ProjMixin
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
-from .utils import check_random_state, _check_pandas_index_arguments, \
-                   _check_pandas_installed
+from .utils import (check_random_state, _check_pandas_index_arguments,
+                    _check_pandas_installed)
 from .filter import resample, detrend
 from .event import _read_events_fif
 from .fixes import in1d
@@ -1776,4 +1776,3 @@ def _check_add_drop_log(epochs, inds):
         new_drop_log.append(new_log)
     epochs.drop_log = new_drop_log
     return epochs
-

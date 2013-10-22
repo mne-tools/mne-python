@@ -21,23 +21,24 @@ from ..fiff.open import fiff_open
 from ..fiff.tree import dir_tree_find
 from ..fiff.channels import read_bad_channels
 from ..fiff.tag import find_tag, read_tag
-from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
-                          write_named_matrix
-from ..fiff.pick import pick_channels_forward, pick_info, pick_channels, \
-                        pick_types
-from ..fiff.write import write_int, start_block, end_block, \
-                         write_coord_trans, write_ch_info, write_name_list, \
-                         write_string, start_file, end_file, write_id
+from ..fiff.matrix import (_read_named_matrix, _transpose_named_matrix,
+                           write_named_matrix)
+from ..fiff.pick import (pick_channels_forward, pick_info, pick_channels,
+                         pick_types)
+from ..fiff.write import (write_int, start_block, end_block,
+                          write_coord_trans, write_ch_info, write_name_list,
+                          write_string, start_file, end_file, write_id)
 from ..fiff.raw import Raw
 from ..fiff.evoked import Evoked, write_evoked
 from ..event import make_fixed_length_events
 from ..epochs import Epochs
-from ..source_space import read_source_spaces_from_tree, \
-                          find_source_space_hemi, _write_source_spaces_to_fid
-from ..transforms import transform_source_space_to, invert_transform, \
-                         write_trans
-from ..utils import _check_fname, get_subjects_dir, has_command_line_tools, \
-                    run_subprocess, logger, verbose
+from ..source_space import (read_source_spaces_from_tree,
+                            find_source_space_hemi,
+                            _write_source_spaces_to_fid)
+from ..transforms import (transform_source_space_to, invert_transform,
+                          write_trans)
+from ..utils import (_check_fname, get_subjects_dir, has_command_line_tools,
+                     run_subprocess, logger, verbose)
 
 
 def _block_diag(A, n):

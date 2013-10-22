@@ -11,12 +11,12 @@ from scipy import linalg, signal, fftpack
 from ..fiff.constants import FIFF
 from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
-from ..time_frequency.multitaper import dpss_windows, _psd_from_mt,\
-                                        _psd_from_mt_adaptive, _mt_spectra
+from ..time_frequency.multitaper import (dpss_windows, _psd_from_mt,
+                                         _psd_from_mt_adaptive, _mt_spectra)
 from ..baseline import rescale
-from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
-                     _pick_channels_inverse_operator, _check_method, \
-                     _check_ori, _subject_from_inverse
+from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
+                      _pick_channels_inverse_operator, _check_method,
+                      _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
 from ..utils import logger, verbose
 

@@ -10,8 +10,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import Raw as Raw
-from mne.fiff.bti.raw import _read_config, _setup_head_shape,\
-                             read_raw_bti, _read_data, _read_bti_header
+from mne.fiff.bti.raw import (_read_config, _setup_head_shape,
+                              read_raw_bti, _read_data, _read_bti_header)
 from mne.utils import _TempDir
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')

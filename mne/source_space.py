@@ -12,22 +12,22 @@ from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
 from .fiff.tag import find_tag, read_tag
 from .fiff.open import fiff_open
-from .fiff.write import start_block, end_block, write_int, \
-                        write_float_sparse_rcs, write_string, \
-                        write_float_matrix, write_int_matrix, \
-                        write_coord_trans, start_file, end_file, write_id
-from .surface import read_surface, _create_surf_spacing, _get_ico_surface, \
-                     _tessellate_sphere_surf, read_bem_surfaces, \
-                     _read_surface_geom, _normalize_vectors, \
-                     _complete_surface_info, _compute_nearest, \
-                     fast_cross_3d
+from .fiff.write import (start_block, end_block, write_int,
+                         write_float_sparse_rcs, write_string,
+                         write_float_matrix, write_int_matrix,
+                         write_coord_trans, start_file, end_file, write_id)
+from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
+                      _tessellate_sphere_surf, read_bem_surfaces,
+                      _read_surface_geom, _normalize_vectors,
+                      _complete_surface_info, _compute_nearest,
+                      fast_cross_3d)
 from .source_estimate import mesh_dist
-from .utils import get_subjects_dir, run_subprocess, has_freesurfer, \
-                   has_nibabel, logger, verbose, check_scipy_version
+from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
+                    has_nibabel, logger, verbose, check_scipy_version)
 from .fixes import in1d, partial
 from .parallel import parallel_func, check_n_jobs
-from .transforms import invert_transform, apply_trans, _print_coord_trans, \
-                        combine_transforms
+from .transforms import (invert_transform, apply_trans, _print_coord_trans,
+                         combine_transforms)
 if has_nibabel():
     import nibabel as nib
 

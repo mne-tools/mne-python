@@ -9,9 +9,9 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
-from mne import label_time_courses, read_label, stc_to_label, \
-               read_source_estimate, read_source_spaces, grow_labels, \
-               labels_from_parc, parc_from_labels
+from mne import (label_time_courses, read_label, stc_to_label,
+                 read_source_estimate, read_source_spaces, grow_labels,
+                 labels_from_parc, parc_from_labels)
 from mne.label import Label
 from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.fixes import in1d
