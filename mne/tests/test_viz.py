@@ -49,7 +49,6 @@ def requires_sklearn(function):
         ret = function(*args, **kwargs)
         return ret
     return dec
-    
 
 if not lacks_mayavi:
     mlab.options.backend = 'test'
@@ -85,7 +84,6 @@ evoked_delayed_ssp = epochs_delayed_ssp.average()
 layout = read_layout('Vectorview-all')
 ica_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
                             ecg=False, eog=False, exclude='bads')
-
 
 
 def test_plot_topo():
@@ -206,7 +204,7 @@ def test_plot_sparse_source_estimates():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                  opacity=0.5, high_resolution=True)
-    
+
 
 def test_plot_cov():
     """Test plotting of covariances
