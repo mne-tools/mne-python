@@ -368,7 +368,7 @@ def test_ica_additional():
     ica_raw = ica.sources_as_raw(raw, start=0, stop=100)
     assert_true(ica_raw.last_samp - ica_raw.first_samp == 100)
     assert_true(isinstance(ica_raw.info.get('filenames', None),
-                           (list, type(None))))
+                           (list, type(None))))  # API consistency
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
     test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
