@@ -39,6 +39,10 @@ $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif:
 test: in sample_data
 	$(NOSETESTS) mne
 
+test-no-sample: in
+	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
+	$(NOSETESTS) mne
+
 test-doc: sample_data
 	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
 

@@ -160,5 +160,9 @@ def has_sample_data():
         return False
 
 
-requires_sample_data = np.testing.dec.skipif(not has_sample_data(),
+# Allow forcing of sample dataset skip (for tests) using:
+# `make test-no-sample`
+skip_sample = get_config('MNE_SKIP_SAMPLE_DATASET_TESTS', 'false') == 'true'
+requires_sample_data = np.testing.dec.skipif(not has_sample_data()
+                                             or skip_sample,
                                              'Requires sample dataset')
