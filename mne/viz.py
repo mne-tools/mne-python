@@ -2513,9 +2513,14 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # allow for raw objects without filename, e.g., ICA
     if title is None:
-        title = raw.info.get('filenames', None)
+        title = raw.info.get('filenames', None)  # should return a list
         if not title:  # empty list or absent key
             title = '<unknown>'
+        else:
+            if len(title) > 1:
+                title = '<unknown>'
+            else:
+                title = title[0]
     elif not isinstance(title, basestring):
         raise TypeError('title must be None or a string')
     if len(title) > 60:
