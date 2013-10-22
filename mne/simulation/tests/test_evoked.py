@@ -16,7 +16,7 @@ import mne
 from mne.fiff.pick import pick_types_evoked, pick_types_forward
 
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-eeg-oct-6-fwd.fif')
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
@@ -27,6 +27,7 @@ cov_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
                     'data', 'test-cov.fif')
 
 
+@sample.requires_sample_data
 def test_simulate_evoked():
     """ Test simulation of evoked data """
 
@@ -36,7 +37,7 @@ def test_simulate_evoked():
     cov = mne.read_cov(cov_fname)
     label_names = ['Aud-lh', 'Aud-rh']
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
-                        '%s.label' % label)) for label in label_names]
+                         '%s.label' % label)) for label in label_names]
 
     evoked_template = mne.fiff.read_evoked(ave_fname, setno=0, baseline=None)
     evoked_template = pick_types_evoked(evoked_template, meg=True, eeg=True,

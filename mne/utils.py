@@ -727,7 +727,8 @@ known_config_types = [
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
     'MNE_CACHE_DIR',
-    'MNE_MEMMAP_MIN_SIZE'
+    'MNE_MEMMAP_MIN_SIZE',
+    'MNE_SKIP_SAMPLE_DATASET_TESTS',
     ]
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key

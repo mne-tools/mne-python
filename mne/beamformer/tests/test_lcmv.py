@@ -13,7 +13,7 @@ from mne.beamformer._lcmv import _lcmv_source_power
 from mne.source_estimate import SourceEstimate, VolSourceEstimate
 
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
@@ -24,6 +24,8 @@ fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
 fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
@@ -82,6 +84,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori, forward_fixed, forward_vol
 
 
+@sample.requires_sample_data
 def test_lcmv():
     """Test LCMV with evoked data and single trials
     """
@@ -181,6 +184,7 @@ def test_lcmv():
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
 
+@sample.requires_sample_data
 def test_lcmv_raw():
     """Test LCMV with raw data
     """
@@ -211,6 +215,7 @@ def test_lcmv_raw():
     assert_true(len(stc.vertno[1]) == 0)
 
 
+@sample.requires_sample_data
 def test_lcmv_source_power():
     """Test LCMV source power computation
     """
@@ -251,6 +256,7 @@ def test_lcmv_source_power():
                   noise_cov, data_cov, pick_ori="normal")
 
 
+@sample.requires_sample_data
 def test_tf_lcmv():
     """Test TF beamforming based on LCMV
     """
@@ -353,9 +359,11 @@ def test_tf_lcmv():
     assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward, noise_covs,
                   tmin, tmax, tstep, win_lengths, freq_bins)
 
-    # Pass only one epoch to test if subtracting evoked responses yields zeros
-    stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep,
-                   win_lengths, freq_bins, subtract_evoked=True, reg=reg,
-                   label=label)
+    with warnings.catch_warnings(True):  # not enough samples
+        # Pass only one epoch to test if subtracting evoked
+        # responses yields zeros
+        stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep,
+                       win_lengths, freq_bins, subtract_evoked=True, reg=reg,
+                       label=label)
 
     assert_array_almost_equal(stcs[0].data, np.zeros_like(stcs[0].data))

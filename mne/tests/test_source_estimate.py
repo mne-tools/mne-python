@@ -23,7 +23,7 @@ from mne.utils import _TempDir, requires_pandas
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 fname_inv = op.join(data_path, 'MEG', 'sample',
@@ -37,6 +37,7 @@ fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 tempdir = _TempDir()
 
 
+@sample.requires_sample_data
 def test_volume_stc():
     """Test volume STCs
     """
@@ -99,6 +100,7 @@ def test_volume_stc():
         print 'Save as nifti test skipped, needs NiBabel'
 
 
+@sample.requires_sample_data
 def test_expand():
     """Test stc expansion
     """
@@ -115,6 +117,7 @@ def test_expand():
     assert_raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
 
+@sample.requires_sample_data
 def test_io_stc():
     """Test IO for STC files
     """
@@ -130,6 +133,7 @@ def test_io_stc():
     assert_array_almost_equal(stc.tstep, stc2.tstep)
 
 
+@sample.requires_sample_data
 def test_io_w():
     """Test IO for w files
     """
@@ -147,6 +151,7 @@ def test_io_w():
     assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
 
 
+@sample.requires_sample_data
 def test_stc_arithmetic():
     """Test arithmetic for STC files
     """
@@ -177,6 +182,7 @@ def test_stc_arithmetic():
     assert_array_equal(stc_mean.data, np.mean(stc.data, 1)[:, None])
 
 
+@sample.requires_sample_data
 def test_stc_methods():
     """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
     """
@@ -214,6 +220,7 @@ def test_stc_methods():
     assert_array_almost_equal(stc_new.data, stc.data, 5)
 
 
+@sample.requires_sample_data
 def test_extract_label_time_course():
     """Test extraction of label time courses from stc
     """
@@ -303,6 +310,7 @@ def test_extract_label_time_course():
     assert_true(x.size == 0)
 
 
+@sample.requires_sample_data
 def test_morph_data():
     """Test morphing of data
     """
@@ -435,6 +443,7 @@ def test_spatio_temporal_tris_connectivity():
         assert_array_equal(c, n)
 
 
+@sample.requires_sample_data
 def test_spatio_temporal_src_connectivity():
     """Test spatio-temporal connectivity from source spaces"""
     tris = np.array([[0, 1, 2], [3, 4, 5]])

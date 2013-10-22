@@ -528,8 +528,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
         # Calculating source power
         sp_temp = np.dot(np.dot(Wk, Cm), Wk.T)
-        sp_temp /= max(noise_norm, 1e-40) # Avoid division by 0
-        
+        sp_temp /= max(noise_norm, 1e-40)  # Avoid division by 0
+
         if pick_ori == 'normal':
             source_power[k, 0] = sp_temp[2, 2]
         else:
@@ -544,7 +544,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-            freq_bins, subtract_evoked=False, reg=0.01, label=None, 
+            freq_bins, subtract_evoked=False, reg=0.01, label=None,
             pick_ori=None, n_jobs=1, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
@@ -651,7 +651,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
 
         if subtract_evoked:
             epochs_band.subtract_evoked()
-            
+
         sol_single = []
         sol_overlap = []
         for i_time in range(n_time_steps):

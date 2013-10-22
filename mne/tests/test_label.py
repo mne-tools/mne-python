@@ -18,7 +18,7 @@ from mne.fixes import in1d
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 label = 'Aud-lh'
@@ -39,6 +39,7 @@ def assert_labels_equal(l0, l1, decimal=5):
         assert_array_almost_equal(a0, a1, decimal)
 
 
+@sample.requires_sample_data
 def test_label_subject():
     """Test label subject name extraction
     """
@@ -89,6 +90,7 @@ def test_label_addition():
     assert_labels_equal(bhl.lh, l01)
 
 
+@sample.requires_sample_data
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
@@ -97,6 +99,7 @@ def test_label_io_and_time_course_estimates():
     assert_true(len(vertices) == values.shape[0])
 
 
+@sample.requires_sample_data
 def test_label_io():
     """Test IO of label files
     """
@@ -124,6 +127,7 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
             assert_array_equal(label_a.pos, label_b.pos)
 
 
+@sample.requires_sample_data
 def test_labels_from_parc():
     """Test reading labels from FreeSurfer parcellation
     """
@@ -185,6 +189,7 @@ def test_labels_from_parc():
                 subjects_dir=subjects_dir)
 
 
+@sample.requires_sample_data
 @requires_mne
 def test_labels_from_parc_annot2labels():
     """Test reading labels from parc. by comparing with mne_annot2labels
@@ -216,6 +221,7 @@ def test_labels_from_parc_annot2labels():
     _assert_labels_equal(labels, labels_mne, ignore_pos=True)
 
 
+@sample.requires_sample_data
 def test_parc_from_labels():
     """Test writing FreeSurfer parcellation from labels"""
 
@@ -261,6 +267,7 @@ def test_parc_from_labels():
                   annot_fname=fnames[0], overwrite=True)
 
 
+@sample.requires_sample_data
 def test_stc_to_label():
     """Test stc_to_label
     """
@@ -285,6 +292,7 @@ def test_stc_to_label():
     assert_true(len(labels_rh) == 1)
 
 
+@sample.requires_sample_data
 def test_morph():
     """Test inter-subject label morphing
     """
@@ -314,6 +322,7 @@ def test_morph():
     label.smooth(subjects_dir=subjects_dir)
 
 
+@sample.requires_sample_data
 def test_grow_labels():
     """Test generation of circular source labels"""
     seeds = [0, 50000]
@@ -331,6 +340,7 @@ def test_grow_labels():
             assert(label.hemi == 'rh')
 
 
+@sample.requires_sample_data
 def test_label_time_course():
     """Test extracting label data from SourceEstimate"""
     values, times, vertices = label_time_courses(label_fname, stc_fname)

@@ -13,7 +13,7 @@ from mne import (read_forward_solution, make_forward_solution,
 from mne.utils import requires_mne, _TempDir
 from mne.tests.test_source_space import _compare_source_spaces
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis-meg-eeg-oct-6-fwd.fif')
@@ -64,6 +64,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
         assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
 
 
+@sample.requires_sample_data
 def test_make_forward_solution_compensation():
     """Test making forward solution from python with compensation
     """
@@ -84,6 +85,7 @@ def test_make_forward_solution_compensation():
     _compare_forwards(fwd, fwd_py, 274, 108)
 
 
+@sample.requires_sample_data
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python
     """
@@ -96,6 +98,7 @@ def test_make_forward_solution():
     _compare_forwards(fwd, fwd_py, 366, 22494)
 
 
+@sample.requires_sample_data
 @requires_mne
 def test_do_forward_solution():
     """Test wrapping forward solution from python
@@ -163,8 +166,8 @@ def test_do_forward_solution():
     # make a meas from raw (tests all steps in creating evoked),
     # don't do EEG or 5120-5120-5120 BEM because they're ~3x slower
     fwd_py = do_forward_solution('sample', raw, mindist=5, spacing='oct-6',
-                                   bem='sample-5120', mri=fname_mri, eeg=False,
-                                   subjects_dir=subjects_dir)
+                                 bem='sample-5120', mri=fname_mri, eeg=False,
+                                 subjects_dir=subjects_dir)
     fwd = read_forward_solution(fname)
     assert_allclose(fwd['sol']['data'], fwd_py['sol']['data'],
                     rtol=1e-5, atol=1e-8)

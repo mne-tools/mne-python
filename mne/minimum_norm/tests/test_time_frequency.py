@@ -17,14 +17,15 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
 
 from mne.time_frequency import multitaper_psd
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 fname_inv = op.join(data_path, 'MEG', 'sample',
-                                        'sample_audvis-meg-oct-6-meg-inv.fif')
+                    'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_data = op.join(data_path, 'MEG', 'sample',
-                                        'sample_audvis_raw.fif')
+                     'sample_audvis_raw.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 
+@sample.requires_sample_data
 def test_tfr_with_inverse_operator():
     """Test time freq with MNE inverse computation"""
 
@@ -81,6 +82,7 @@ def test_tfr_with_inverse_operator():
     assert_true(np.max(power) > 10)
 
 
+@sample.requires_sample_data
 def test_source_psd():
     """Test source PSD computation in label"""
     raw = fiff.Raw(fname_data)
@@ -100,6 +102,7 @@ def test_source_psd():
                       <= 61e-3)
 
 
+@sample.requires_sample_data
 def test_source_psd_epochs():
     """Test multi-taper source PSD computation in label from epochs"""
 
