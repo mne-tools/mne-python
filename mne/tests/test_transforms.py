@@ -8,7 +8,7 @@ from mne import read_trans, write_trans
 from mne.utils import _TempDir
 from mne.transforms import _get_mri_head_t_from_trans_file, invert_transform
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
 fname_trans = op.join(op.split(__file__)[0], '..', 'fiff', 'tests',
                       'data', 'sample-audvis-raw-trans.txt')

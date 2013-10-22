@@ -9,7 +9,7 @@ from mne.utils import sum_squared
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd, induced_power
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 

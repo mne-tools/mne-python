@@ -17,7 +17,7 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
 
 from mne.time_frequency import multitaper_psd
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_data = op.join(data_path, 'MEG', 'sample',

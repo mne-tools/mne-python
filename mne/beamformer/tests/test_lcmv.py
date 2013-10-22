@@ -13,7 +13,7 @@ from mne.beamformer._lcmv import _lcmv_source_power
 from mne.source_estimate import SourceEstimate, VolSourceEstimate
 
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')

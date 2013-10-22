@@ -10,7 +10,7 @@ from mne.label import Label
 from mne.simulation.source import generate_stc, generate_sparse_stc
 
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-fwd.fif')
 label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']

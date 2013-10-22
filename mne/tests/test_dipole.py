@@ -4,7 +4,7 @@ from nose.tools import assert_true
 from mne import read_dip
 from mne.datasets import sample
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 dip_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_set1.dip')
 

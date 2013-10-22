@@ -12,7 +12,7 @@ from mne.datasets import sample
 from mne import fiff, read_cov, read_forward_solution
 from mne.inverse_sparse import gamma_map
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 fname_evoked = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',

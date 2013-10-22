@@ -11,7 +11,7 @@ from mne.datasets import sample
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
 

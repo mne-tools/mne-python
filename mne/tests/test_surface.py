@@ -13,7 +13,7 @@ from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
                          fast_cross_3d)
 from mne.utils import _TempDir, requires_tvtk
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-5120-5120-5120-bem-sol.fif')

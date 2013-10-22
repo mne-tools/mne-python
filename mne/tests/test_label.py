@@ -18,7 +18,7 @@ from mne.fixes import in1d
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 label = 'Aud-lh'

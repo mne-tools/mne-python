@@ -13,7 +13,7 @@ from mne import (read_forward_solution, make_forward_solution,
 from mne.utils import requires_mne, _TempDir
 from mne.tests.test_source_space import _compare_source_spaces
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis-meg-eeg-oct-6-fwd.fif')

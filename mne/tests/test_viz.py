@@ -53,7 +53,7 @@ def requires_sklearn(function):
 if not lacks_mayavi:
     mlab.options.backend = 'test'
 
-data_dir = sample.data_path(avoid_download=True)
+data_dir = sample.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 evoked_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis-ave.fif')

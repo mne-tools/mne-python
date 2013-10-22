@@ -15,7 +15,7 @@ from mne.time_frequency import compute_epochs_csd
 # tests in a full nosetest:
 warnings.simplefilter("always")  # ensure we can verify expected warnings
 
-data_path = sample.data_path(avoid_download=True)
+data_path = sample.data_path(download=False)
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
