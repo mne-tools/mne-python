@@ -6,9 +6,9 @@ import os
 import warnings
 import urllib2
 
-from ..utils import set_log_level, set_log_file, _TempDir, \
-                    get_config, set_config, deprecated, _fetch_file, \
-                    sum_squared, requires_mem_gb
+from ..utils import (set_log_level, set_log_file, _TempDir,
+                     get_config, set_config, deprecated, _fetch_file,
+                     sum_squared, requires_mem_gb)
 from ..fiff import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings

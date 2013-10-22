@@ -7,8 +7,8 @@ import zipfile
 from sys import stdout
 
 from ...utils import _fetch_file, get_config, set_config, _url_to_local_path
-from .urls import url_match, valid_data_types, valid_data_formats, \
-                  valid_conditions
+from .urls import (url_match, valid_data_types, valid_data_formats,
+                   valid_conditions)
 
 
 def data_path(url, path=None, force_update=False, update_path=None):

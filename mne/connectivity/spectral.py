@@ -13,9 +13,9 @@ from ..fixes import tril_indices
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from .. import Epochs
-from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
-                                        _psd_from_mt, _csd_from_mt,\
-                                        _psd_from_mt_adaptive
+from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
+                                         _psd_from_mt, _csd_from_mt,
+                                         _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
 from ..utils import logger, verbose
 

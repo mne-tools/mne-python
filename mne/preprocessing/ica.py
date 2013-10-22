@@ -23,11 +23,11 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from .. import Covariance
-from ..fiff.pick import pick_types, pick_channels, pick_info, \
-                        channel_indices_by_type
-from ..fiff.write import write_double_matrix, write_string, \
-                         write_name_list, write_int, start_block, \
-                         end_block
+from ..fiff.pick import (pick_types, pick_channels, pick_info,
+                         channel_indices_by_type)
+from ..fiff.write import (write_double_matrix, write_string,
+                          write_name_list, write_int, start_block,
+                          end_block)
 from ..fiff.tree import dir_tree_find
 from ..fiff.open import fiff_open
 from ..fiff.tag import read_tag

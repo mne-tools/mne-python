@@ -5,10 +5,10 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_less
 
 from mne.transforms import apply_trans, rotation, translation, scaling
-from mne.coreg import fit_matched_points, fit_point_cloud, \
-                      _point_cloud_error, _decimate_points, \
-                      create_default_subject, scale_mri, \
-                      _is_mri_subject, scale_labels
+from mne.coreg import (fit_matched_points, fit_point_cloud,
+                       _point_cloud_error, _decimate_points,
+                       create_default_subject, scale_mri,
+                       _is_mri_subject, scale_labels)
 from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
 
 

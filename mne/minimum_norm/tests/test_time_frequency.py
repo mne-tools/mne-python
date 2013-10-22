@@ -7,11 +7,12 @@ from nose.tools import assert_true
 from mne.datasets import sample
 from mne import fiff, find_events, Epochs
 from mne.label import read_label
-from mne.minimum_norm.inverse import read_inverse_operator, \
-                                     apply_inverse_epochs
-from mne.minimum_norm.time_frequency import source_band_induced_power, \
-                            source_induced_power, compute_source_psd, \
-                            compute_source_psd_epochs
+from mne.minimum_norm.inverse import (read_inverse_operator,
+                                      apply_inverse_epochs)
+from mne.minimum_norm.time_frequency import (source_band_induced_power,
+                                             source_induced_power,
+                                             compute_source_psd,
+                                             compute_source_psd_epochs)
 
 
 from mne.time_frequency import multitaper_psd

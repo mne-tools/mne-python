@@ -5,8 +5,8 @@
 
 from .constants import FIFF
 from .tag import find_tag, has_tag
-from .write import write_int, start_block, end_block, write_float_matrix, \
-                   write_name_list
+from .write import (write_int, start_block, end_block, write_float_matrix,
+                    write_name_list)
 from ..utils import logger, verbose
 
 

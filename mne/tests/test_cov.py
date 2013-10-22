@@ -12,9 +12,9 @@ from scipy import linalg
 import warnings
 
 from mne.cov import regularize, whiten_evoked
-from mne import read_cov, Epochs, merge_events, \
-                find_events, compute_raw_data_covariance, \
-                compute_covariance
+from mne import (read_cov, Epochs, merge_events,
+                 find_events, compute_raw_data_covariance,
+                 compute_covariance)
 from mne.fiff import Raw, pick_channels_cov, pick_channels, Evoked, pick_types
 from mne.utils import _TempDir
 

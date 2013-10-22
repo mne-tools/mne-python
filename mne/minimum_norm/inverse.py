@@ -12,23 +12,23 @@ from scipy import linalg
 from ..fiff.constants import FIFF
 from ..fiff.open import fiff_open
 from ..fiff.tag import find_tag
-from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
-                          write_named_matrix
+from ..fiff.matrix import (_read_named_matrix, _transpose_named_matrix,
+                           write_named_matrix)
 from ..fiff.proj import read_proj, make_projector, write_proj
 from ..fiff.tree import dir_tree_find
-from ..fiff.write import write_int, write_float_matrix, start_file, \
-                         start_block, end_block, end_file, write_float, \
-                         write_coord_trans, write_string
+from ..fiff.write import (write_int, write_float_matrix, start_file,
+                          start_block, end_block, end_file, write_float,
+                          write_coord_trans, write_string)
 
 from ..fiff.cov import read_cov, write_cov
 from ..fiff.pick import channel_type, pick_info
 from ..cov import prepare_noise_cov
-from ..forward import compute_depth_prior, read_forward_meas_info, \
-                      write_forward_meas_info, is_fixed_orient, \
-                      compute_orient_prior, _to_fixed_ori
-from ..source_space import read_source_spaces_from_tree, \
-                           find_source_space_hemi, _get_vertno, \
-                           _write_source_spaces_to_fid, label_src_vertno_sel
+from ..forward import (compute_depth_prior, read_forward_meas_info,
+                       write_forward_meas_info, is_fixed_orient,
+                       compute_orient_prior, _to_fixed_ori)
+from ..source_space import (read_source_spaces_from_tree,
+                            find_source_space_hemi, _get_vertno,
+                            _write_source_spaces_to_fid, label_src_vertno_sel)
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import _make_stc
 from ..utils import logger, verbose

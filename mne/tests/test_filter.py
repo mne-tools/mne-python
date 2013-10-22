@@ -5,9 +5,9 @@ import os.path as op
 import warnings
 from scipy.signal import resample as sp_resample
 
-from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
-                       band_stop_filter, resample, construct_iir_filter, \
-                       notch_filter, detrend
+from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
+                        band_stop_filter, resample, construct_iir_filter,
+                        notch_filter, detrend)
 
 from mne import set_log_file
 from mne.utils import _TempDir, sum_squared
