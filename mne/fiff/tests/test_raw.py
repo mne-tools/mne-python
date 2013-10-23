@@ -606,6 +606,7 @@ def test_resample():
     sfreq = raw.info['sfreq']
     # test parallel on upsample
     raw_resamp.resample(sfreq * 2, n_jobs=2)
+    assert_true(raw_resamp.n_times == len(raw_resamp._times))
     raw_resamp.save(op.join(tempdir, 'raw_resamp.fif'))
     raw_resamp = Raw(op.join(tempdir, 'raw_resamp.fif'), preload=True)
     assert_true(sfreq == raw_resamp.info['sfreq'] / 2)
