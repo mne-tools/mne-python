@@ -828,10 +828,7 @@ class _BaseSourceEstimate(object):
 
         if return_stc:
             vertices = self.vertno
-            if tmin_idx is not None:
-                tmin = self.times[tmin_idx]
-            else:
-                tmin = self.tmin
+            tmin = self.times[tmin_idx] if tmin_idx is not None else self.tmin
             tstep = self.tstep
             subject = self.subject
             stc = SourceEstimate(data_t, vertices, tmin, tstep, subject)
