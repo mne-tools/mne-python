@@ -12,7 +12,7 @@ from mne.datasets import sample
 from mne.fiff import Raw, pick_types
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.fiff.proj import make_projector, activate_proj
-from mne.proj import read_proj, write_proj
+from mne.proj import read_proj, write_proj, make_eeg_average_ref_proj
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
 from mne.utils import _TempDir
 
@@ -68,6 +68,10 @@ def test_sensitivity_maps():
                 stc = sensitivity_map(fwd, projs=proj_eog, mode=mode,
                                       ch_type=ch_type, exclude='bads')
                 assert_array_almost_equal(stc.data, w, decim)
+
+    # test corner case for EEG
+    stc = sensitivity_map(fwd, projs=[make_eeg_average_ref_proj(fwd['info'])],
+                          ch_type='eeg', exclude='bads')
 
 
 def test_compute_proj_epochs():

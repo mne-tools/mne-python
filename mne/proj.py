@@ -8,7 +8,7 @@ from scipy import linalg
 from . import fiff, Epochs
 from .utils import logger, verbose
 from .fiff.pick import pick_types, pick_types_forward
-from .fiff.proj import Projection
+from .fiff.proj import Projection, _has_eeg_average_ref_proj
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
@@ -16,7 +16,6 @@ from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
 from .source_estimate import SourceEstimate
 from .fiff.proj import make_projector, make_eeg_average_ref_proj
-from .fiff import FIFF
 
 
 def read_proj(fname):
@@ -71,7 +70,8 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
 
     ch_names = info['ch_names']
     grad_names, mag_names, eeg_names = ([ch_names[k] for k in ind]
-                                     for ind in [grad_ind, mag_ind, eeg_ind])
+                                        for ind in [grad_ind, mag_ind,
+                                                    eeg_ind])
 
     projs = []
     for n, ind, names, desc in zip([n_grad, n_mag, n_eeg],
@@ -88,7 +88,8 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
             logger.info("Adding projection: %s" % this_desc)
-            proj = Projection(active=False, data=proj_data, desc=this_desc, kind=1)
+            proj = Projection(active=False, data=proj_data,
+                              desc=this_desc, kind=1)
             projs.append(proj)
 
     return projs
@@ -298,16 +299,16 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     # Make sure EEG has average
     if ch_type == 'eeg':
-        if projs is None or \
-                not any([p['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF
-                         for p in projs]):
+        if projs is None or not _has_eeg_average_ref_proj(projs):
             eeg_ave = [make_eeg_average_ref_proj(fwd['info'])]
+        else:
+            eeg_ave = []
         projs = eeg_ave if projs is None else projs + eeg_ave
 
     # Construct the projector
     if projs is not None:
         proj, ncomp, U = make_projector(projs, fwd['sol']['row_names'],
-                                              include_active=True)
+                                        include_active=True)
         # do projection for most types
         if mode not in ['angle', 'remaining', 'dampening']:
             gain = np.dot(proj, gain)
