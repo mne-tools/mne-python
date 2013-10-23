@@ -1193,7 +1193,7 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
     up=up/down and down=1.
     """
     # make sure our arithmetic will work
-    ratio = float(up) / down
+    ratio = float(up) / float(down)
     x, orig_shape = _prep_for_filtering(x, False)[:2]
 
     x_len = x.shape[1]

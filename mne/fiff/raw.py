@@ -776,8 +776,9 @@ class Raw(ProjMixin):
         """
         if not self._preloaded:
             raise RuntimeError('Can only resample preloaded data')
+        sfreq = float(sfreq)
+        o_sfreq = float(self.info['sfreq'])
 
-        o_sfreq = self.info['sfreq']
         offsets = np.concatenate(([0], np.cumsum(self._raw_lengths)))
         new_data = list()
         # set up stim channel processing
@@ -785,7 +786,7 @@ class Raw(ProjMixin):
             stim_picks = pick_types(self.info, meg=False, stim=True,
                                     exclude=[])
         stim_picks = np.asanyarray(stim_picks)
-        ratio = sfreq / float(o_sfreq)
+        ratio = sfreq / o_sfreq
         for ri in range(len(self._raw_lengths)):
             data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
             new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
@@ -811,6 +812,8 @@ class Raw(ProjMixin):
         self.first_samp = self._first_samps[0]
         self.last_samp = self.first_samp + self._data.shape[1] - 1
         self.info['sfreq'] = sfreq
+        self._times = (np.arange(self.n_times, dtype=np.float64)
+                       / self.info['sfreq'])
 
     def crop(self, tmin=0.0, tmax=None, copy=True):
         """Crop raw data file.
