@@ -43,18 +43,18 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     filtecg = band_pass_filter(ecg, sfreq, l_freq, h_freq,
                                filter_length=filter_length)
 
-    absecg = np.abs(filtecg)
+    ecg_abs = np.abs(filtecg)
     init = int(sfreq)
 
     n_samples_start = int(sfreq * tstart)
-    absecg = absecg[n_samples_start:]
+    ecg_abs = ecg_abs[n_samples_start:]
 
-    n_points = len(absecg)
+    n_points = len(ecg_abs)
 
     maxpt = np.empty(3)
-    maxpt[0] = np.max(absecg[:init])
-    maxpt[1] = np.max(absecg[init:init * 2])
-    maxpt[2] = np.max(absecg[init * 2:init * 3])
+    maxpt[0] = np.max(ecg_abs[:init])
+    maxpt[1] = np.max(ecg_abs[init:init * 2])
+    maxpt[2] = np.max(ecg_abs[init * 2:init * 3])
 
     init_max = np.mean(maxpt)
 
@@ -74,10 +74,10 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         rms = list()
         ii = 0
         while ii < (n_points - win_size):
-            window = absecg[ii:ii + win_size]
+            window = ecg_abs[ii:ii + win_size]
             if window[0] > thresh1:
-                maxTime = np.argmax(window)
-                time.append(ii + maxTime)
+                max_time = np.argmax(window)
+                time.append(ii + max_time)
                 nx = np.sum(np.diff((window > thresh1).astype(np.int) == 1))
                 numcross.append(nx)
                 rms.append(np.sqrt(sum_squared(window) / window.size))
