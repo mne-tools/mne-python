@@ -93,8 +93,9 @@ if __name__ == '__main__':
                     help="raw file to use for event detection", default=None)
     parser.add_option("--tstart", dest="tstart", type="float",
                     help="Start artifact detection after tstart seconds", default=0.)
-    parser.add_option("--qrsthr", dest="qrs_threshold", type="float",
-                    help="QRS detection threshold. Between 0 and 1.", default=0.6)
+    parser.add_option("--qrsthr", dest="qrs_threshold", type="string",
+                    help="QRS detection threshold. Between 0 and 1. Can also "
+                         "be 'auto' for automatic selection", default='auto')
 
     options, args = parser.parse_args()
 
@@ -130,6 +131,11 @@ if __name__ == '__main__':
     raw_event_fname = options.raw_event_fname
     tstart = options.tstart
     qrs_threshold = options.qrs_threshold
+    if qrs_threshold != 'auto':
+        try:
+            qrs_threshold = float(qrs_threshold)
+        except ValueError:
+            raise ValueError('qrsthr must be "auto" or a float')
 
     if bad_fname is not None:
         bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]

@@ -799,7 +799,11 @@ class Raw(ProjMixin):
             # of channels and then use np.insert() to restore the stims
 
             # figure out which points in old data to subsample
-            stim_inds = np.floor(np.arange(new_ntimes) / ratio).astype(int)
+            # protect against out-of-bounds, which can happen (having
+            # one sample more than expected) due to padding
+            stim_inds = np.minimum(np.floor(np.arange(new_ntimes)
+                                            / ratio).astype(int),
+                                   data_chunk.shape[1] - 1)
             for sp in stim_picks:
                 new_data[ri][sp] = data_chunk[[sp]][:, stim_inds]
 

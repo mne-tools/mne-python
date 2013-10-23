@@ -74,6 +74,8 @@ def test_filters():
                       filter_length=fl)
     for nj in ['blah', 0.5, 0]:
         assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8, n_jobs=nj)
+    assert_raises(ValueError, band_pass_filter, a, Fs, 4, Fs / 2.)  # > Nyq/2
+    assert_raises(ValueError, low_pass_filter, a, Fs, Fs / 2.)  # > Nyq/2
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation

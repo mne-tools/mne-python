@@ -23,11 +23,11 @@ def test_compute_proj_ecg():
     for average in [False, True]:
         # For speed, let's not filter here (must also not reject then)
         projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                    ch_name='MEG 1531', bads=['MEG 2443'],
-                                    average=average, avg_ref=True,
-                                    no_proj=True, l_freq=None, h_freq=None,
-                                    reject=None, tmax=dur_use,
-                                    qrs_threshold=0.5)
+                                         ch_name='MEG 1531', bads=['MEG 2443'],
+                                         average=average, avg_ref=True,
+                                         no_proj=True, l_freq=None,
+                                         h_freq=None, reject=None,
+                                         tmax=dur_use, qrs_threshold=0.5)
         assert_true(len(projs) == 7)
         # heart rate at least 0.5 Hz, but less than 3 Hz
         assert_true(events.shape[0] > 0.5 * dur_use and
@@ -37,10 +37,10 @@ def test_compute_proj_ecg():
         # without setting a bad channel, this should throw a warning
         with warnings.catch_warnings(record=True) as w:
             projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                            ch_name='MEG 1531', bads=[],
-                                            average=average, avg_ref=True,
-                                            no_proj=True, l_freq=None,
-                                            h_freq=None, tmax=dur_use)
+                                             ch_name='MEG 1531', bads=[],
+                                             average=average, avg_ref=True,
+                                             no_proj=True, l_freq=None,
+                                             h_freq=None, tmax=dur_use)
             assert_equal(len(w), 1)
         assert_equal(projs, None)
 
@@ -51,9 +51,10 @@ def test_compute_proj_eog():
     for average in [False, True]:
         n_projs_init = len(raw.info['projs'])
         projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                     bads=['MEG 2443'], average=average,
-                                     avg_ref=True, no_proj=False, l_freq=None,
-                                     h_freq=None, reject=None, tmax=dur_use)
+                                         bads=['MEG 2443'], average=average,
+                                         avg_ref=True, no_proj=False,
+                                         l_freq=None, h_freq=None,
+                                         reject=None, tmax=dur_use)
         assert_true(len(projs) == (7 + n_projs_init))
         assert_true(np.abs(events.shape[0] -
                     np.sum(np.less(eog_times, dur_use))) <= 1)
@@ -62,10 +63,10 @@ def test_compute_proj_eog():
         # This will throw a warning b/c simplefilter('always')
         with warnings.catch_warnings(record=True) as w:
             projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
-                                         average=average, bads=[],
-                                         avg_ref=True, no_proj=False,
-                                         l_freq=None, h_freq=None,
-                                         tmax=dur_use)
+                                             average=average, bads=[],
+                                             avg_ref=True, no_proj=False,
+                                             l_freq=None, h_freq=None,
+                                             tmax=dur_use)
             assert_equal(len(w), 1)
         assert_equal(projs, None)
 

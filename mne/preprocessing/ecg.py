@@ -17,8 +17,9 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
         Sampling rate
     ecg : array
         ECG signal
-    thresh_value : float
-        qrs detection threshold
+    thresh_value : float | str
+        qrs detection threshold. Can also be "auto" for automatic
+        selection of threshold.
     levels : float
         number of std from mean to include for detection
     n_thresh : int
@@ -45,7 +46,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
     absecg = np.abs(filtecg)
     init = int(sfreq)
 
-    n_samples_start = int(init * tstart)
+    n_samples_start = int(sfreq * tstart)
     absecg = absecg[n_samples_start:]
 
     n_points = len(absecg)
@@ -57,40 +58,65 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 
     init_max = np.mean(maxpt)
 
-    thresh1 = init_max * thresh_value
+    if thresh_value == 'auto':
+        thresh_runs = np.arange(0.3, 1.1, 0.05)
+    elif isinstance(thresh_value, basestring):
+        raise ValueError('threshold value must be "auto" or a float')
+    else:
+        thresh_runs = [thresh_value]
 
-    numcross = []
-    time = []
-    rms = []
-    i = 0
-    while i < (n_points - win_size):
-        window = absecg[i:i + win_size]
-        if window[0] > thresh1:
-            maxTime = np.argmax(window)
-            time.append(i + maxTime)
-            numcross.append(np.sum(np.diff((window > thresh1).astype(np.int)
-                                           == 1)))
-            rms.append(np.sqrt(sum_squared(window) / window.size))
-            i += win_size
-        else:
-            i += 1
+    # Try a few thresholds (or just one)
+    clean_events = list()
+    for thresh_value in thresh_runs:
+        thresh1 = init_max * thresh_value
+        numcross = list()
+        time = list()
+        rms = list()
+        ii = 0
+        while ii < (n_points - win_size):
+            window = absecg[ii:ii + win_size]
+            if window[0] > thresh1:
+                maxTime = np.argmax(window)
+                time.append(ii + maxTime)
+                nx = np.sum(np.diff((window > thresh1).astype(np.int) == 1))
+                numcross.append(nx)
+                rms.append(np.sqrt(sum_squared(window) / window.size))
+                ii += win_size
+            else:
+                ii += 1
 
-    time = np.array(time)
-    rms_mean = np.mean(rms)
-    rms_std = np.std(rms)
-    rms_thresh = rms_mean + (rms_std * levels)
-    b = np.where(rms < rms_thresh)[0]
-    a = np.array(numcross)[b]
-    clean_events = time[b[a < n_thresh]]
+        if len(rms) == 0:
+            rms.append(0.0)
+            time.append(0.0)
+        time = np.array(time)
+        rms_mean = np.mean(rms)
+        rms_std = np.std(rms)
+        rms_thresh = rms_mean + (rms_std * levels)
+        b = np.where(rms < rms_thresh)[0]
+        a = np.array(numcross)[b]
+        ce = time[b[a < n_thresh]]
 
-    clean_events += n_samples_start
+        ce += n_samples_start
+        clean_events.append(ce)
 
+    # pick the best threshold; first get effective heart rates
+    rates = np.array([60. * len(ce) / (len(ecg) / float(sfreq))
+                      for ce in clean_events])
+
+    # now find heart rates that seem reasonable (infant thru adult athlete)
+    idx = np.where(np.logical_and(rates <= 160., rates >= 40.))[0]
+    if len(idx) > 0:
+        ideal_rate = np.median(rates[idx])  # get close to the median
+    else:
+        ideal_rate = 80.  # get close to a reasonable default
+    idx = np.argmin(np.abs(rates - ideal_rate))
+    clean_events = clean_events[idx]
     return clean_events
 
 
 @verbose
 def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
-                    l_freq=5, h_freq=35, qrs_threshold=0.6,
+                    l_freq=5, h_freq=35, qrs_threshold='auto',
                     filter_length='10s', verbose=None):
     """Find ECG peaks
 
@@ -111,8 +137,10 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         Low pass frequency.
     h_freq : float
         High pass frequency.
-    qrs_threshold : float
-        Between 0 and 1. qrs detection threshold.
+    qrs_threshold : float | str
+        Between 0 and 1. qrs detection threshold. Can also be "auto" to
+        automatically choose the threshold that generates a reasonable
+        number of heartbeats (40-160 beats / min).
     filter_length : str | int | None
         Number of taps to use for filtering.
     verbose : bool, str, int, or None
