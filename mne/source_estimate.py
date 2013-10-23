@@ -739,7 +739,8 @@ class _BaseSourceEstimate(object):
         return stc
 
     def transform_data(self, transform_fun, fun_args=None,
-                       idx=None, tmin_idx=None, tmax_idx=None, **kwargs):
+                       idx=None, tmin_idx=None, tmax_idx=None,
+                       return_stc=False, **kwargs):
         """Get data after a linear (time) transform has been applied
 
         The transorm is applied to each source time course independently.
@@ -764,11 +765,19 @@ class _BaseSourceEstimate(object):
         tmax_idx : int | None
             Index of the first time point not to include. If None, time points
             up to (and including) the last time point are included.
+        return_stc: bool
+            If True, returns SourceEstimate with transformed data rather than
+            data array, per se.
         **kwargs : dict
             Keyword arguments to be passed to transform_fun.
 
         Returns
         -------
+        stc : SourceEstimate
+            stc with transformed data
+
+        or
+
         data_t : ndarray
             The transformed data.
 
@@ -817,7 +826,18 @@ class _BaseSourceEstimate(object):
             if len(data_shape) > 2:
                 data_t = data_t.reshape(data_t.shape[0], *data_shape[1:])
 
-        return data_t
+        if return_stc:
+            vertices = self.vertno
+            if tmin_idx is not None:
+                tmin = self.times[tmin_idx]
+            else:
+                tmin = self.tmin
+            tstep = self.tstep
+            subject = self.subject
+            stc = SourceEstimate(data_t, vertices, tmin, tstep, subject)
+            return stc
+        else:
+            return data_t
 
     def as_data_frame(self, index=None, scale_time=1e3, copy=True):
         """Represent source estimates as Pandas DataFrame
