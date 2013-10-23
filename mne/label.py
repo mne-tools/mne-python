@@ -187,6 +187,9 @@ class Label(object):
         name0 = self.name if self.name else 'unnamed'
         name1 = other.name if other.name else 'unnamed'
 
+        indcs = np.argsort(vertices)
+        vertices, pos, values = vertices[indcs], pos[indcs, :], values[indcs]
+
         label = Label(vertices, pos=pos, values=values, hemi=self.hemi,
                       comment="%s + %s" % (self.comment, other.comment),
                       name="%s + %s" % (name0, name1))
