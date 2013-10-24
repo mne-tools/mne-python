@@ -739,8 +739,7 @@ class _BaseSourceEstimate(object):
         return stc
 
     def transform_data(self, transform_fun, fun_args=None,
-                       idx=None, tmin_idx=None, tmax_idx=None,
-                       return_stc=False, **kwargs):
+                       idx=None, tmin_idx=None, tmax_idx=None, **kwargs):
         """Get data after a linear (time) transform has been applied
 
         The transorm is applied to each source time course independently.
@@ -765,19 +764,11 @@ class _BaseSourceEstimate(object):
         tmax_idx : int | None
             Index of the first time point not to include. If None, time points
             up to (and including) the last time point are included.
-        return_stc: bool
-            If True, returns SourceEstimate with transformed data rather than
-            data array, per se.
         **kwargs : dict
             Keyword arguments to be passed to transform_fun.
 
         Returns
         -------
-        stc : SourceEstimate
-            stc with transformed data
-
-        or
-
         data_t : ndarray
             The transformed data.
 
@@ -826,15 +817,118 @@ class _BaseSourceEstimate(object):
             if len(data_shape) > 2:
                 data_t = data_t.reshape(data_t.shape[0], *data_shape[1:])
 
-        if return_stc:
-            vertices = self.vertno
-            tmin = self.times[tmin_idx] if tmin_idx is not None else self.tmin
-            tstep = self.tstep
-            subject = self.subject
-            stc = SourceEstimate(data_t, vertices, tmin, tstep, subject)
-            return stc
+        return data_t
+
+    def transform(self, transform_fun, fun_args=None,
+                  idx=None, tmin=None, tmax=None, copy=False, **kwargs):
+        """Apply linear transform
+
+        The transorm is applied to each source time course independently.
+
+
+        Parameters
+        ----------
+        transform_fun : callable
+            The transform to be applied. The first parameter of the function
+            is the input data. The first return value is the transformed
+            data, remaining outputs are ignored. The first dimension of the
+            transformed data has to be the same as the first dimension of
+            the input data.
+        fun_args : tuple | None
+            Additional parameters to be passed to transform_fun.
+        idx : array | None
+            Indicices of source time courses for which to compute transform.
+            If None, all time courses are used.
+        tmin : int | None
+            First time point to include (ms). If None, self.tmin is used.
+        tmax : int | None
+            Last time point to include (ms). If None, self.tmax is used.
+        copy: bool
+            If True, returns copy instead of modifying inplace the input stc.
+        **kwargs : dict
+            Keyword arguments to be passed to transform_fun.
+
+        Returns
+        -------
+        stcs : SourceEstimate | list
+            The transformed stc or, in the case of transforms which yield
+            N-dimensional output (where N > 2), a list of stcs.  For a list,
+            copy must be True.
+
+
+        .. note::
+            Applying transforms can be significantly faster if the
+            SourceEstimate object was created using "(kernel, sens_data)", for
+            the "data" parameter as the transform is applied in sensor space.
+            Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
+            this automatically (if possible).
+        """
+
+        if fun_args is None:
+            fun_args = tuple()
+
+        if idx is None:
+            # use all time courses by default
+            idx = slice(None, None)
+
+        if tmin is None:
+            tmin_idx = None
         else:
-            return data_t
+            tmin_idx = np.where(self.times >= tmin/1000.)[0][0]
+
+        if tmax is None:
+            tmax_idx = None
+        else:
+            tmax_idx = np.where(self.times <= tmax/1000.)[0][-1]
+
+        if self._kernel is None and self._sens_data is None:
+            # transform source space data directly
+            data_t = transform_fun(self.data[idx, tmin_idx:tmax_idx],
+                                   *fun_args, **kwargs)
+
+            if isinstance(data_t, tuple):
+                # use only first return value
+                data_t = data_t[0]
+        else:
+            # apply transform in sensor space
+            sens_data_t = transform_fun(self._sens_data[:, tmin_idx:tmax_idx],
+                                        *fun_args, **kwargs)
+
+            if isinstance(sens_data_t, tuple):
+                # use only first return value
+                sens_data_t = sens_data_t[0]
+
+            # apply inverse
+            data_shape = sens_data_t.shape
+            if len(data_shape) > 2:
+                # flatten the last dimensions
+                sens_data_t = sens_data_t.reshape(data_shape[0],
+                                                  np.prod(data_shape[1:]))
+
+            data_t = np.dot(self._kernel[idx, :], sens_data_t)
+
+            # restore original shape if necessary
+            if len(data_shape) > 2:
+                data_t = data_t.reshape(data_t.shape[0], *data_shape[1:])
+
+        tmin = tmin if tmin is not None else self.tmin
+        if len(data_t.shape) > 2:
+            if copy:
+                stcs = [SourceEstimate(data_t[:, :, a], self.vertno, tmin,
+                                       self.tstep, self.subject)
+                                       for a in range(data_t.shape[-1])]
+                return stcs
+            else:
+                raise ValueError('copy must be True if transformed data has '
+                                 'more than 2 dimensions')
+        else:
+            if copy:
+                stc = SourceEstimate(data_t, self.vertno, tmin, self.tstep,
+                                     self.subject)
+                return stc
+            else:
+                self._data = data_t
+                return self
 
     def as_data_frame(self, index=None, scale_time=1e3, copy=True):
         """Represent source estimates as Pandas DataFrame
