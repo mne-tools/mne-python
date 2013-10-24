@@ -278,7 +278,7 @@ def pick_info(info, sel=[]):
     return res
 
 
-def pick_channels_evoked(orig, include=[], exclude=[]):
+def pick_channels_evoked(orig, include=[], exclude='bads'):
     """Pick channels from evoked data
 
     Parameters
@@ -322,7 +322,7 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
 def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=False, misc=False,
                       resp=False, chpi=False, exci=False, ias=False,
-                      syst=False, include=[], exclude=None):
+                      syst=False, include=[], exclude='bads'):
     """Pick by channel type and names from evoked data
 
     Parameters
@@ -379,7 +379,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
 
 
 @verbose
-def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
+def pick_channels_forward(orig, include=[], exclude='bads', verbose=None):
     """Pick channels from forward operator
 
     Parameters
@@ -441,7 +441,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
 
 def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
-                       exclude=[]):
+                       exclude='bads'):
     """Pick by channel type and names from a forward operator
 
     Parameters
@@ -488,7 +488,7 @@ def channel_indices_by_type(info):
     return idx
 
 
-def pick_channels_cov(orig, include=[], exclude=[]):
+def pick_channels_cov(orig, include=[], exclude='bads'):
     """Pick channels from covariance matrix
 
     Parameters
