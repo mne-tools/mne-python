@@ -380,7 +380,9 @@ def has_nibabel(vox2ras_tkr=False):
     try:
         import nibabel
         if vox2ras_tkr:  # we need MGHHeader to have vox2ras_tkr param
-            if hasattr(nibabel.MGHImage.header_class, 'get_vox2ras_tkr'):
+            mgh_ihdr = getattr(nibabel, 'MGHImage.header_class', None)
+            get_vox2ras_tkr = getattr(mgh_ihdr, 'get_vox2ras_tkr', None)
+            if get_vox2ras_tkr is not None:
                 return True
             else:
                 return False

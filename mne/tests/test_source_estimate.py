@@ -19,7 +19,7 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
 
 from mne.minimum_norm import read_inverse_operator
 from mne.label import labels_from_parc, label_sign_flip
-from mne.utils import _TempDir, requires_pandas
+from mne.utils import _TempDir, requires_pandas, requires_sklearn
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -427,6 +427,7 @@ def test_notify_array_source_estimate():
     assert_true(stc._sens_data is None)
 
 
+@requires_sklearn
 def test_spatio_temporal_tris_connectivity():
     """Test spatio-temporal connectivity from triangles"""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
