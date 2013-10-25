@@ -819,12 +819,11 @@ class _BaseSourceEstimate(object):
 
         return data_t
 
-    def transform(self, transform_fun, fun_args=None,
+    def transform(self, func, func_args=None,
                   idx=None, tmin=None, tmax=None, copy=False, **kwargs):
         """Apply linear transform
 
         The transorm is applied to each source time course independently.
-
 
         Parameters
         ----------
@@ -850,13 +849,13 @@ class _BaseSourceEstimate(object):
 
         Returns
         -------
-        stcs : SourceEstimate | list
+        stcs : instance of SourceEstimate | list
             The transformed stc or, in the case of transforms which yield
             N-dimensional output (where N > 2), a list of stcs.  For a list,
             copy must be True.
 
-
-        .. note::
+        Notes
+        -----
             Applying transforms can be significantly faster if the
             SourceEstimate object was created using "(kernel, sens_data)", for
             the "data" parameter as the transform is applied in sensor space.
@@ -864,71 +863,49 @@ class _BaseSourceEstimate(object):
             this automatically (if possible).
         """
 
-        if fun_args is None:
-            fun_args = tuple()
-
-        if idx is None:
-            # use all time courses by default
-            idx = slice(None, None)
-
         if tmin is None:
             tmin_idx = None
         else:
-            tmin_idx = np.where(self.times >= tmin/1000.)[0][0]
+            tmin_idx = np.where(self.times >= tmin / 1000.)[0][0]
 
         if tmax is None:
             tmax_idx = None
         else:
-            tmax_idx = np.where(self.times <= tmax/1000.)[0][-1]
+            tmax_idx = np.where(self.times <= tmax / 1000.)[0][-1]
 
-        if self._kernel is None and self._sens_data is None:
-            # transform source space data directly
-            data_t = transform_fun(self.data[idx, tmin_idx:tmax_idx],
-                                   *fun_args, **kwargs)
+        data_t = self.transform_data(func, fun_args=func_args, idx=idx,
+                                     tmin_idx=tmin_idx, tmax_idx=tmax_idx,
+                                     **kwargs)
 
-            if isinstance(data_t, tuple):
-                # use only first return value
-                data_t = data_t[0]
+        if idx is not None:
+            idx_lh = idx[idx < len(self.lh_vertno)]
+            idx_rh = idx[idx >= len(self.lh_vertno)] - len(self.lh_vertno)
+            verts_lh = self.lh_vertno[idx_lh]
+            verts_rh = self.rh_vertno[idx_rh]
         else:
-            # apply transform in sensor space
-            sens_data_t = transform_fun(self._sens_data[:, tmin_idx:tmax_idx],
-                                        *fun_args, **kwargs)
-
-            if isinstance(sens_data_t, tuple):
-                # use only first return value
-                sens_data_t = sens_data_t[0]
-
-            # apply inverse
-            data_shape = sens_data_t.shape
-            if len(data_shape) > 2:
-                # flatten the last dimensions
-                sens_data_t = sens_data_t.reshape(data_shape[0],
-                                                  np.prod(data_shape[1:]))
-
-            data_t = np.dot(self._kernel[idx, :], sens_data_t)
-
-            # restore original shape if necessary
-            if len(data_shape) > 2:
-                data_t = data_t.reshape(data_t.shape[0], *data_shape[1:])
+            verts_lh = self.lh_vertno
+            verts_rh = self.rh_vertno
+        verts = [verts_lh, verts_rh]
 
         tmin = tmin if tmin is not None else self.tmin
+
         if len(data_t.shape) > 2:
             if copy:
-                stcs = [SourceEstimate(data_t[:, :, a], self.vertno, tmin,
+                stcs = [SourceEstimate(data_t[:, :, a], verts, tmin,
                                        self.tstep, self.subject)
                                        for a in range(data_t.shape[-1])]
-                return stcs
             else:
                 raise ValueError('copy must be True if transformed data has '
                                  'more than 2 dimensions')
         else:
             if copy:
-                stc = SourceEstimate(data_t, self.vertno, tmin, self.tstep,
-                                     self.subject)
-                return stc
+                stcs = SourceEstimate(data_t, verts, tmin, self.tstep,
+                                      self.subject)
             else:
-                self._data = data_t
-                return self
+                self._data, self.vertno = data_t, verts
+                stcs = self
+
+        return stcs
 
     def as_data_frame(self, index=None, scale_time=1e3, copy=True):
         """Represent source estimates as Pandas DataFrame
