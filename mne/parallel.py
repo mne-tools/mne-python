@@ -7,10 +7,14 @@
 
 import inspect
 import logging
+import os
 
 from . import get_config
 from .utils import logger, verbose
 
+if 'MNE_FORCE_SERIAL' in os.environ:
+    logger.info('... forcing serial processing mode.')
+    force_serial = True
 
 @verbose
 def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
@@ -90,9 +94,9 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
         kwargs['temp_folder'] = cache_dir
         kwargs['max_nbytes'] = max_nbytes
 
+    n_jobs = check_n_jobs(n_jobs)
     parallel = Parallel(n_jobs, **kwargs)
     my_func = delayed(func)
-    n_jobs = check_n_jobs(n_jobs)
     return parallel, my_func, n_jobs
 
 
@@ -112,7 +116,10 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         The checked number of jobs. Always positive (or 'cuda' if
         applicable.)
     """
-    if not isinstance(n_jobs, int):
+    if force_serial:
+        n_jobs = 1
+    
+    elif not isinstance(n_jobs, int):
         if not allow_cuda:
             raise ValueError('n_jobs must be an integer')
         elif not isinstance(n_jobs, basestring) or n_jobs != 'cuda':

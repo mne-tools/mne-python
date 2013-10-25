@@ -45,7 +45,8 @@ test-no-sample: in
 
 
 test-no-sample-with-coverage: in
-	rm -rf coverage .coverage
+	rm -f coverage .coverage
+	@MNE_FORCE_SERIAL=1
 	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
 	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
