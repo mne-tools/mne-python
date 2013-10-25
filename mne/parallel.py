@@ -13,7 +13,6 @@ from . import get_config
 from .utils import logger, verbose
 
 if 'MNE_FORCE_SERIAL' in os.environ:
-    logger.info('... forcing serial processing mode.')
     force_serial = True
 
 @verbose
@@ -118,7 +117,8 @@ def check_n_jobs(n_jobs, allow_cuda=False):
     """
     if force_serial:
         n_jobs = 1
-    
+        logger.info('... MNE_FORCE_SERIAL set. Processing in forced serial mode.')
+
     elif not isinstance(n_jobs, int):
         if not allow_cuda:
             raise ValueError('n_jobs must be an integer')
