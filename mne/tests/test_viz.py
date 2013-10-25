@@ -373,7 +373,7 @@ def test_plot_raw_psds():
     plt.close('all')
 
 
-@sample.requires_sample_dataset
+@sample.requires_sample_data
 def test_plot_topomap():
     """Testing topomap plotting
     """

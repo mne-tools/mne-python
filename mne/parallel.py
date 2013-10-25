@@ -13,7 +13,9 @@ from . import get_config
 from .utils import logger, verbose
 
 if 'MNE_FORCE_SERIAL' in os.environ:
-    force_serial = True
+    _force_serial = True
+else:
+    _force_serial = None
 
 @verbose
 def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
@@ -115,7 +117,7 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         The checked number of jobs. Always positive (or 'cuda' if
         applicable.)
     """
-    if force_serial:
+    if _force_serial:
         n_jobs = 1
         logger.info('... MNE_FORCE_SERIAL set. Processing in forced serial mode.')
 
