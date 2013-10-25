@@ -56,9 +56,9 @@ if not lacks_mayavi:
 data_dir = sample.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
-evoked_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis-ave.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+evoked_fname = op.join(base_dir, 'test-ave.fif')
 fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -373,7 +373,6 @@ def test_plot_raw_psds():
     plt.close('all')
 
 
-@sample.requires_sample_data
 def test_plot_topomap():
     """Testing topomap plotting
     """
@@ -389,6 +388,9 @@ def test_plot_topomap():
     plot_evoked_topomap(evoked, times, ch_type='planar2')
     with warnings.catch_warnings(True):  # delaunay triangulation warning
         plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
+    assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
+                  proj='interactive')  # projs have already been applied
+    evoked.proj = False  # let's fake it like they haven't been applied
     plot_evoked_topomap(evoked, 0.1, 'mag', proj='interactive')
     assert_raises(RuntimeError, plot_evoked_topomap, evoked, np.repeat(.1, 50))
     assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])

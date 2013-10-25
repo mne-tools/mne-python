@@ -21,13 +21,23 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
-label = 'Aud-lh'
-label_fname = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
-label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-rh.label')
+real_label_fname = op.join(data_path, 'MEG', 'sample', 'labels',
+                           'Aud-lh.label')
+real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
+                              'Aud-rh.label')
 src_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
 
+test_path = op.join(op.split(__file__)[0], '..', 'fiff', 'tests', 'data')
+label_fname = op.join(test_path, 'test-lh.label')
+label_rh_fname = op.join(test_path, 'test-rh.label')
 tempdir = _TempDir()
+
+# This code was used to generate the "fake" test labels:
+#for hemi in ['lh', 'rh']:
+#    label = Label(np.unique((np.random.rand(100) * 10242).astype(int)),
+#                  hemi=hemi, comment='Test ' + hemi, subject='fsaverage')
+#    label.save(op.join(test_path, 'test-%s.label' % hemi))
 
 
 def assert_labels_equal(l0, l1, decimal=5):
@@ -39,7 +49,6 @@ def assert_labels_equal(l0, l1, decimal=5):
         assert_array_almost_equal(a0, a1, decimal)
 
 
-@sample.requires_sample_data
 def test_label_subject():
     """Test label subject name extraction
     """
@@ -94,12 +103,11 @@ def test_label_addition():
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
-    values, times, vertices = label_time_courses(label_fname, stc_fname)
+    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
     assert_true(len(times) == values.shape[1])
     assert_true(len(vertices) == values.shape[0])
 
 
-@sample.requires_sample_data
 def test_label_io():
     """Test IO of label files
     """
@@ -178,15 +186,16 @@ def test_labels_from_parc():
 
     # test regexp
     label = labels_from_parc('sample', parc='aparc.a2009s', regexp='Angu',
-                subjects_dir=subjects_dir)[0][0]
+                             subjects_dir=subjects_dir)[0][0]
     assert_true(label.name == 'G_pariet_inf-Angular-lh')
+    # silly, but real regexp:
     label = labels_from_parc('sample', parc='aparc.a2009s',
-                regexp='.*-.{4,}_.{3,3}-L',  # silly, but real regexp
-                subjects_dir=subjects_dir)[0][0]
+                             regexp='.*-.{4,}_.{3,3}-L',
+                             subjects_dir=subjects_dir)[0][0]
     assert_true(label.name == 'G_oc-temp_med-Lingual-lh')
     assert_raises(RuntimeError, labels_from_parc, 'sample', parc='aparc',
-                annot_fname=annot_fname, regexp='JackTheRipper',
-                subjects_dir=subjects_dir)
+                  annot_fname=annot_fname, regexp='JackTheRipper',
+                  subjects_dir=subjects_dir)
 
 
 @sample.requires_sample_data
@@ -296,7 +305,7 @@ def test_stc_to_label():
 def test_morph():
     """Test inter-subject label morphing
     """
-    label_orig = read_label(label_fname)
+    label_orig = read_label(real_label_fname)
     label_orig.subject = 'sample'
     # should work for specifying vertices for both hemis, or just the
     # hemi of the given label
@@ -343,15 +352,15 @@ def test_grow_labels():
 @sample.requires_sample_data
 def test_label_time_course():
     """Test extracting label data from SourceEstimate"""
-    values, times, vertices = label_time_courses(label_fname, stc_fname)
+    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
     stc = read_source_estimate(stc_fname)
-    label_lh = read_label(label_fname)
+    label_lh = read_label(real_label_fname)
     stc_lh = stc.in_label(label_lh)
     assert_array_almost_equal(stc_lh.data, values)
     assert_array_almost_equal(stc_lh.times, times)
     assert_array_almost_equal(stc_lh.vertno[0], vertices)
 
-    label_rh = read_label(label_rh_fname)
+    label_rh = read_label(real_label_rh_fname)
     stc_rh = stc.in_label(label_rh)
     label_bh = label_rh + label_lh
     stc_bh = stc.in_label(label_bh)
