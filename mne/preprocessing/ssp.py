@@ -86,8 +86,10 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         High pass frequency applied for filtering EXG channel.
     tstart : float
         Start artifact detection after tstart seconds.
-    qrs_threshold : float
-        Between 0 and 1. qrs detection threshold (only for ECG).
+    qrs_threshold : float | str
+        Between 0 and 1. qrs detection threshold. Can also be "auto" to
+        automatically choose the threshold that generates a reasonable
+        number of heartbeats (40-160 beats / min). Only for ECG.
     filter_method : str
         Method for filtering ('iir' or 'fft').
     iir_params : dict
@@ -131,9 +133,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     elif mode == 'EOG':
         logger.info('Running EOG SSP computation')
         events = find_eog_events(raw_event, event_id=event_id,
-                           l_freq=exg_l_freq, h_freq=exg_h_freq,
-                           filter_length=filter_length, ch_name=ch_name,
-                           tstart=tstart)
+                                 l_freq=exg_l_freq, h_freq=exg_h_freq,
+                                 filter_length=filter_length, ch_name=ch_name,
+                                 tstart=tstart)
     else:
         raise ValueError("mode must be 'ECG' or 'EOG'")
 
@@ -210,9 +212,10 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length='10s', n_jobs=1,
                      ch_name=None, reject=dict(grad=2000e-13, mag=3000e-15,
-                     eeg=50e-6, eog=250e-6), flat=None, bads=[], avg_ref=False,
+                                               eeg=50e-6, eog=250e-6),
+                     flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
-                     tstart=0., qrs_threshold=0.6, filter_method='fft',
+                     tstart=0., qrs_threshold='auto', filter_method='fft',
                      iir_params=dict(order=4, ftype='butter'),
                      copy=True, verbose=None):
     """Compute SSP/PCA projections for ECG artifacts
@@ -266,8 +269,10 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         High pass frequency applied for filtering ECG channel.
     tstart : float
         Start artifact detection after tstart seconds.
-    qrs_threshold : float
-        Between 0 and 1. qrs detection threshold.
+    qrs_threshold : float | str
+        Between 0 and 1. qrs detection threshold. Can also be "auto" to
+        automatically choose the threshold that generates a reasonable
+        number of heartbeats (40-160 beats / min).
     filter_method : str
         Method for filtering ('iir' or 'fft').
     iir_params : dict
@@ -289,11 +294,12 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         raw = raw.copy()
 
     projs, ecg_events = _compute_exg_proj('ECG', raw, raw_event, tmin, tmax,
-                        n_grad, n_mag, n_eeg, l_freq, h_freq,
-                        average, filter_length, n_jobs, ch_name,
-                        reject, flat, bads, avg_ref, no_proj, event_id,
-                        ecg_l_freq, ecg_h_freq, tstart, qrs_threshold,
-                        filter_method, iir_params)
+                                          n_grad, n_mag, n_eeg, l_freq, h_freq,
+                                          average, filter_length, n_jobs,
+                                          ch_name, reject, flat, bads, avg_ref,
+                                          no_proj, event_id, ecg_l_freq,
+                                          ecg_h_freq, tstart, qrs_threshold,
+                                          filter_method, iir_params)
 
     return projs, ecg_events
 
@@ -303,9 +309,9 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                      n_grad=2, n_mag=2, n_eeg=2, l_freq=1.0, h_freq=35.0,
                      average=False, filter_length='10s', n_jobs=1,
                      reject=dict(grad=2000e-13, mag=3000e-15, eeg=500e-6,
-                     eog=np.inf), flat=None, bads=[], avg_ref=False,
-                     no_proj=False, event_id=998, eog_l_freq=1, eog_h_freq=10,
-                     tstart=0., filter_method='fft',
+                                 eog=np.inf), flat=None, bads=[],
+                     avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
+                     eog_h_freq=10, tstart=0., filter_method='fft',
                      iir_params=dict(order=4, ftype='butter'), ch_name=None,
                      copy=True, verbose=None):
     """Compute SSP/PCA projections for EOG artifacts
@@ -378,10 +384,13 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
     if copy is True:
         raw = raw.copy()
     projs, eog_events = _compute_exg_proj('EOG', raw, raw_event, tmin, tmax,
-                        n_grad, n_mag, n_eeg, l_freq, h_freq,
-                        average, filter_length, n_jobs, ch_name,
-                        reject, flat, bads, avg_ref, no_proj, event_id,
-                        eog_l_freq, eog_h_freq, tstart, qrs_threshold=0.6,
-                        filter_method=filter_method, iir_params=iir_params)
+                                          n_grad, n_mag, n_eeg, l_freq, h_freq,
+                                          average, filter_length, n_jobs,
+                                          ch_name, reject, flat, bads, avg_ref,
+                                          no_proj, event_id, eog_l_freq,
+                                          eog_h_freq, tstart,
+                                          qrs_threshold='auto',
+                                          filter_method=filter_method,
+                                          iir_params=iir_params)
 
     return projs, eog_events

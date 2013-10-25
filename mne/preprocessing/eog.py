@@ -90,7 +90,8 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
                 'distinguish blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
-    filteog = np.array([band_pass_filter(x, sampling_rate, 2, 45,
+    fmax = np.minimum(45, sampling_rate / 2.0 - 0.75)  # protect Nyquist
+    filteog = np.array([band_pass_filter(x, sampling_rate, 2, fmax,
                                          filter_length=filter_length)
                         for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))

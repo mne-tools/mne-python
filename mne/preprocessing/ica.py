@@ -1244,7 +1244,7 @@ def _check_start_stop(raw, start, stop):
 
 @verbose
 def ica_find_ecg_events(raw, ecg_source, event_id=999,
-                        tstart=0.0, l_freq=5, h_freq=35, qrs_threshold=0.6,
+                        tstart=0.0, l_freq=5, h_freq=35, qrs_threshold='auto',
                         verbose=None):
     """Find ECG peaks from one selected ICA source
 
@@ -1263,8 +1263,10 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
         Low pass frequency.
     h_freq : float
         High pass frequency.
-    qrs_threshold : float
-        Between 0 and 1. qrs detection threshold.
+    qrs_threshold : float | str
+        Between 0 and 1. qrs detection threshold. Can also be "auto" to
+        automatically choose the threshold that generates a reasonable
+        number of heartbeats (40-160 beats / min).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

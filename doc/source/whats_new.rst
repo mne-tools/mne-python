@@ -67,6 +67,8 @@ Changelog
 
    - Add (Neuro)debian license compatibility by `Eric Larson`_
 
+   - Automatic QRS threshold selection for ECG events by `Eric Larson`_
+
 
 API
 ~~~
