@@ -70,6 +70,7 @@ if __name__ == "__main__":
                     'mne.decoding.tests'],
           package_data={'mne': ['data/*.sel',
                                 'data/icos.fif.gz',
+                                'data/coil_def.dat',
                                 'layouts/*.lout']},
           scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py',
                    'bin/mne_surf2bem.py', 'bin/mne_compute_proj_ecg.py',
