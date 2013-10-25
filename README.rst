@@ -1,4 +1,12 @@
+
 .. -*- mode: rst -*-
+
+
+|Travis|_
+
+.. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
+.. _Travis: https://travis-ci.org/mne-tools/mne-python
+
 
 `mne-python <http://martinos.org/mne/mne-python.html>`_
 =======================================================
