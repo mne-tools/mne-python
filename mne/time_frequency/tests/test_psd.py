@@ -7,15 +7,12 @@ from mne import fiff
 from mne import Epochs
 from mne import read_events
 from mne.time_frequency import compute_raw_psd, compute_epochs_psd
-from mne.datasets import sample
 
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
-                    'test_raw.fif')
-data_path = sample.data_path(download=False)
-event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
+base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+event_fname = op.join(base_dir, 'test-eve.fif')
 
 
-@sample.requires_sample_data
 def test_psd():
     """Test PSD estimation
     """
@@ -45,7 +42,6 @@ def test_psd():
     assert_true(np.sum(psds < 0) == 0)
 
 
-@sample.requires_sample_data
 def test_psd_epochs():
     """Test PSD estimation on epochs
     """

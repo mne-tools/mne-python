@@ -1,17 +1,17 @@
 import numpy as np
 from nose.tools import assert_raises, assert_equal, assert_almost_equal
 from numpy.testing import assert_array_equal
+from os import path as op
 
 import mne
 
 from mne.fiff import Raw
 from mne.utils import sum_squared
-from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd, induced_power
 
-data_path = sample.data_path(download=False)
-raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
+base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+event_fname = op.join(base_dir, 'test-eve.fif')
 
 
 def _get_data():
@@ -41,7 +41,6 @@ def _get_data():
     return epochs, epochs_sin
 
 
-@sample.requires_sample_data
 def test_compute_epochs_csd():
     """Test computing cross-spectral density from epochs
     """
@@ -110,7 +109,6 @@ def test_compute_epochs_csd():
     assert_array_equal(csd_fsum.data, csd_sum)
 
 
-@sample.requires_sample_data
 def test_compute_epochs_csd_on_artificial_data():
     """Test computing CSD on artificial data
     """
