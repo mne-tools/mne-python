@@ -441,7 +441,7 @@ def pick_channels_forward(orig, include=[], exclude='bads', verbose=None):
 
 
 def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
-                       exclude='bads'):
+                       exclude=[]):
     """Pick by channel type and names from a forward operator
 
     Parameters

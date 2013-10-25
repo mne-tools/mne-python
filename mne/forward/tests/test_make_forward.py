@@ -65,6 +65,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
 
 
 @sample.requires_sample_data
+@requires_mne
 def test_make_forward_solution_compensation():
     """Test making forward solution from python with compensation
     """
