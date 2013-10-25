@@ -9,7 +9,7 @@ before_install:
     - sudo apt-get update -qq
     - sudo apt-get install -qq python-scipy python-nose 
     - sudo apt-get install python-pip
-    - sudo apt-get install python-nibabel python-surfer python-nitime python-pandas
+    - sudo apt-get install python-nibabel python-nitime python-pandas
 install:
     - python setup.py build_ext --inplace
     - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coverage; fi
