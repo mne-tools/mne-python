@@ -69,6 +69,9 @@ Changelog
 
    - Automatic QRS threshold selection for ECG events by `Eric Larson`_
 
+   - Add Travis continuous integration service by `Denis Engemann`_
+
+   - Add SPM face data set by `Denis Engemann`_ `Martin Luessi`_ and `Alex Gramfort`_
 
 API
 ~~~

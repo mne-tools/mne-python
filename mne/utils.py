@@ -393,6 +393,7 @@ def has_nibabel(vox2ras_tkr=False):
 
 
 def has_freesurfer():
+    """Aux function"""
     if not 'FREESURFER_HOME' in os.environ:
         return False
     else:
@@ -406,6 +407,7 @@ requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
 
 
 def requires_nibabel(vox2ras_tkr=False):
+    """Aux function"""
     if vox2ras_tkr:
         extra = ' with vox2ras_tkr support'
     else:
@@ -505,6 +507,7 @@ requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
 
 
 def _mne_fs_not_in_env():
+    """Aux function"""
     return (('FREESURFER_HOME' not in os.environ) or
             ('MNE_ROOT' not in os.environ))
 
@@ -725,12 +728,14 @@ known_config_types = [
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
+    'MNE_DATASETS_SPM_FACE_PATH'
     'MNE_LOGGING_LEVEL',
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
     'MNE_CACHE_DIR',
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_SAMPLE_DATASET_TESTS',
+    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
     ]
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
@@ -1165,6 +1170,7 @@ def _check_subject(class_subject, input_subject, raise_error=True):
 
 
 def _check_pandas_installed():
+    """Aux function"""
     try:
         import pandas as pd
         return pd
