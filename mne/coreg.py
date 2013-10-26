@@ -364,7 +364,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         raise ValueError(err)
 
 
-def get_neuromag_trans(nasion, lpa, rpa):
+def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     """Construct a transformation matrix to the MNE head coordinate system
 
     Construct a transformation matrix from an arbitrary RAS coordinate system

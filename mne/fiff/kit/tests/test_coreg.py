@@ -9,7 +9,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.fiff.kit import read_hsp, write_hsp, read_mrk, write_mrk
-from mne.fiff.kit.coreg import get_head_coord_trans
+from mne.coreg import get_ras_to_neuromag_trans
 from mne.transforms import apply_trans, rotation, translation
 from mne.utils import _TempDir
 
@@ -68,7 +68,7 @@ def test_hsp_trans():
 
     # transform back into original space
     nas, lpa, rpa = pts_changed[:3]
-    hsp_trans = get_head_coord_trans(nas, lpa, rpa)
+    hsp_trans = get_ras_to_neuromag_trans(nas, lpa, rpa)
     pts_restored = apply_trans(hsp_trans, pts_changed)
 
     assert_array_almost_equal(pts_restored, pts, 6, "Neuromag transformation "
