@@ -16,12 +16,15 @@ print __doc__
 #
 # License: BSD (3-clause)
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import spm_face
+from mne.preprocessing import ICA
 from mne import fiff
 from mne.minimum_norm import make_inverse_operator, apply_inverse
+
 
 data_path = spm_face.data_path()
 subjects_dir = data_path + '/subjects'
@@ -30,10 +33,11 @@ subjects_dir = data_path + '/subjects'
 # Set parameters
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
 
-# Or just one:
+# Take first run
 raw = fiff.Raw(raw_fname % 1, preload=True)
 
 raw.filter(1, 45, method='iir')
+
 
 events = mne.find_events(raw, stim_channel='UPPT001')
 
@@ -44,8 +48,18 @@ baseline = None  # no baseline as high-pass is applied
 
 reject = dict(mag=1.5e-12)
 
-epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, proj=True,
+epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, proj=False,
                     baseline=baseline, preload=True, reject=reject)
+
+# Compute a fast fit and remove major artifacts
+ica = ICA(None, 50).decompose_epochs(epochs, decim=2)
+for ch_name in ['MRT51-2908', 'MRT31-2908']:  # EOG, ECG channels
+    scores = ica.find_sources_epochs(epochs, ch_name)
+    ica.exclude.extend(np.argsort(np.abs(scores))[-2:])
+ica.plot_topomap(np.unique(ica.exclude))  # plot components found
+epochs = ica.pick_sources_epochs(epochs, n_pca_components=50)
+
+
 evoked = [epochs[k].average() for k in event_ids]
 noise_cov = mne.compute_covariance(epochs.crop(None, 0))
 
@@ -64,7 +78,8 @@ plt.show()
 # Compute forward model
 
 # Make source space
-src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir)
+src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
+                             overwrite=True)
 
 mri = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'

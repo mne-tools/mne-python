@@ -951,6 +951,9 @@ class ICA(object):
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
+        if n_pca_components is not None:
+            self.n_pca_components = n_pca_components
+
         data = np.hstack(epochs.get_data()[:, picks])
         data, _ = self._pre_whiten(data, epochs.info, picks)
         data = self._pick_sources(data, include=include,
