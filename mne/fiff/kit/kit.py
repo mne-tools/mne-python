@@ -17,7 +17,8 @@ import numpy as np
 from scipy.linalg import norm
 
 from ...fiff import pick_types
-from ...coreg import fit_matched_points, _decimate_points, get_neuromag_trans
+from ...coreg import fit_matched_points, _decimate_points
+from ...coreg import get_ras_to_neuromag_trans
 from ...utils import verbose, logger
 from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..raw import Raw
@@ -401,7 +402,7 @@ class RawKIT(Raw):
         mrk = apply_trans(als_ras_trans, mrk)
 
         nasion, lpa, rpa = elp[:3]
-        nmtrans = get_neuromag_trans(nasion, lpa, rpa)
+        nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         elp = apply_trans(nmtrans, elp)
         hsp = apply_trans(nmtrans, hsp)
 
