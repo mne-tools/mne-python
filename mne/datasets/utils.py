@@ -61,16 +61,16 @@ def _dataset_version(path, name):
 
 
 def _data_path(path=None, force_update=False, update_path=True,
-              download=True, name=None, verbose=None):
+               download=True, name=None, verbose=None):
     """Aux function
     """
+    key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
+           'spm': 'MNE_DATASETS_SPM_FACE_PATH'}[name]
+
     if path is None:
         # use an intelligent guess if it's not defined
-        def_path = op.abspath(op.join(op.dirname(__file__), '..',
+        def_path = op.abspath(op.join(op.dirname(__file__),
                                       '..', 'examples'))
-
-        key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
-               'spm': 'MNE_DATASETS_SPM_FACE_PATH'}[name]
 
         path = get_config(key, def_path)
         # use the same for all datasets
@@ -148,6 +148,7 @@ def _data_path(path=None, force_update=False, update_path=True,
                 update_path = False
         else:
             update_path = False
+
     if update_path is True:
         set_config(key, path)
 

@@ -1,5 +1,4 @@
-# Authors: Denis Egnemann <d.engemann@fz-juelich.de>
-#
+# Authors: Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD Style.
 
@@ -9,7 +8,7 @@ from ...utils import get_config, verbose
 from ...fixes import partial
 from ..utils import has_dataset, _data_path, _doc
 
-has_spm_data = partial(has_dataset, name='sample')
+has_spm_data = partial(has_dataset, name='spm')
 
 @verbose
 def data_path(path=None, force_update=False, update_path=True,
