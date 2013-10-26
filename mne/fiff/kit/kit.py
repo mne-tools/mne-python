@@ -17,14 +17,14 @@ import numpy as np
 from scipy.linalg import norm
 
 from ...fiff import pick_types
-from ...coreg import fit_matched_points, _decimate_points
+from ...coreg import fit_matched_points, _decimate_points, get_neuromag_trans
 from ...utils import verbose, logger
 from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..raw import Raw
 from ..constants import FIFF
 from ..meas_info import Info
 from .constants import KIT, KIT_NY, KIT_AD
-from .coreg import read_elp, read_hsp, read_mrk, get_head_coord_trans
+from .coreg import read_elp, read_hsp, read_mrk
 
 
 class RawKIT(Raw):
@@ -401,7 +401,7 @@ class RawKIT(Raw):
         mrk = apply_trans(als_ras_trans, mrk)
 
         nasion, lpa, rpa = elp[:3]
-        nmtrans = get_head_coord_trans(nasion, lpa, rpa)
+        nmtrans = get_neuromag_trans(nasion, lpa, rpa)
         elp = apply_trans(nmtrans, elp)
         hsp = apply_trans(nmtrans, hsp)
 
