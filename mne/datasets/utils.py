@@ -7,6 +7,7 @@
 import os
 import os.path as op
 import shutil
+import tarfile
 from warnings import warn
 
 from .. import __version__ as mne_version
@@ -89,7 +90,7 @@ def _data_path(path=None, force_update=False, update_path=True,
     elif name == 'spm':
         archive_name = 'MNE-spm-face.tar.gz'
         url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
-        folder_name = "MNE-spm-face-data"
+        folder_name = "MNE-spm-face"
         folder_path = op.join(path, folder_name)
         rm_archive = False
     else:
@@ -128,12 +129,9 @@ def _data_path(path=None, force_update=False, update_path=True,
         if op.exists(folder_path):
             shutil.rmtree(folder_path)
 
-        import tarfile
-        # note that we use print statements here because these processes
-        # are interactive
         logger.info('Decompressiong the archive: ' + archive_name)
         logger.info('... please be patient, this can take some time')
-        for ext in ['gz', 'bz2']:
+        for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
             try:
                 tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)
             except tarfile.ReadError, err:
