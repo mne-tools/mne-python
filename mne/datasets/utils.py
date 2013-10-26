@@ -132,7 +132,13 @@ def _data_path(path=None, force_update=False, update_path=True,
         # note that we use print statements here because these processes
         # are interactive
         logger.info('Decompressiong the archive: ' + archive_name)
-        tarfile.open(archive_name, 'r:gz').extractall(path=path)
+        logger.info('... pleasd be patient, this can take some time')
+        for ext in ['gz', 'bz2']:
+            try:
+                tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)
+            except tarfile.ReadError, err:
+                logger.info('%s is %s trying "bz2"' % (archive_name, ext))
+
         if rm_archive:
             os.remove(archive_name)
 
