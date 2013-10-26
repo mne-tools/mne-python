@@ -177,7 +177,7 @@ class ICA(object):
     """
     @verbose
     def __init__(self, n_components, max_pca_components=100,
-                 n_pca_components=64, noise_cov=None, random_state=0,
+                 n_pca_components=64, noise_cov=None, random_state=None,
                  algorithm='parallel', fun='logcosh', fun_args=None,
                  verbose=None):
 
@@ -203,7 +203,7 @@ class ICA(object):
         self.max_pca_components = max_pca_components
         self.n_pca_components = n_pca_components
         self.ch_names = None
-        self.random_state = random_state
+        self.random_state = random_state if random_state is not None else 0
         self.algorithm = algorithm
         self.fun = fun
         self.fun_args = fun_args
@@ -1160,6 +1160,8 @@ class ICA(object):
         del pca
         # update number of components
         self.n_components_ = sel.stop
+        if self.n_pca_components > len(self.pca_components_):
+            self.n_pca_components = len(self.pca_components_)
 
         # Take care of ICA
         from sklearn.decomposition import FastICA  # to avoid strong dep.

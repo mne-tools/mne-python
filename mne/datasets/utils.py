@@ -88,7 +88,7 @@ def _data_path(path=None, force_update=False, update_path=True,
         folder_path = op.join(path, folder_name)
         rm_archive = False
     elif name == 'spm':
-        archive_name = 'MNE-spm-face.tar.gz'
+        archive_name = 'MNE-spm-face.tar.bz2'
         url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         folder_name = "MNE-spm-face"
         folder_path = op.join(path, folder_name)
