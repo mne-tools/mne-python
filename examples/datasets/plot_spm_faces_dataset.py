@@ -45,29 +45,34 @@ event_ids = {"faces":1, "scrambled":2}
 
 tmin, tmax = -0.2, 0.6
 baseline = None  # no baseline as high-pass is applied
-
 reject = dict(mag=1.5e-12)
+picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
 
-epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, proj=False,
-                    baseline=baseline, preload=True, reject=reject)
+epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
+                    proj=False, baseline=baseline, preload=True,
+                    reject=reject)
 
 # Compute a fast fit and remove major artifacts
-ica = ICA(None, 50).decompose_epochs(epochs, decim=2)
+plt.close('all')
+
+ica = ICA(0.95, None).decompose_raw(raw, decim=6, reject={'mag': 3e-12})
+
 for ch_name in ['MRT51-2908', 'MRT31-2908']:  # EOG, ECG channels
-    scores = ica.find_sources_epochs(epochs, ch_name)
-    ica.exclude.extend(np.argsort(np.abs(scores))[-2:])
+    scores = ica.find_sources_raw(raw, ch_name)
+    ica.exclude += list(np.argsort(np.abs(scores))[-2:])
+
 ica.plot_topomap(np.unique(ica.exclude))  # plot components found
-epochs = ica.pick_sources_epochs(epochs, n_pca_components=50)
 
+# select ICA sources and reconstruct MEG signals
+epochs = ica.pick_sources_epochs(epochs, n_pca_components=100)
 
-evoked = [epochs[k].average() for k in event_ids]
 noise_cov = mne.compute_covariance(epochs.crop(None, 0))
+evoked = [epochs[k].average() for k in event_ids]
 
 constrast = evoked[1] - evoked[0]
 
 evoked.append(constrast)
 
-plt.close('all')
 for e in evoked:
     plt.figure()
     e.plot(ylim=dict(mag=[-400, 400]))

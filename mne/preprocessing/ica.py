@@ -177,7 +177,7 @@ class ICA(object):
     """
     @verbose
     def __init__(self, n_components, max_pca_components=100,
-                 n_pca_components=64, noise_cov=None, random_state=None,
+                 n_pca_components=64, noise_cov=None, random_state=0,
                  algorithm='parallel', fun='logcosh', fun_args=None,
                  verbose=None):
 
