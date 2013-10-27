@@ -7,6 +7,7 @@
 # License: BSD (3-clause)
 
 import os
+import time
 import datetime
 import re
 import numpy as np
@@ -102,7 +103,7 @@ class RawEDF(Raw):
         return "<RawEDF  |  %s>" % ', '.join(s)
 
     def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
-                      proj=None):
+                      projector=None):
         """Read a chunk of raw data
 
         Parameters
@@ -118,7 +119,7 @@ class RawEDF(Raw):
         sel : array, optional
             Indices of channels to select.
 
-        proj : array
+        projector : array
             SSP operator to apply to the data.
 
         verbose : bool, str, int, or None
@@ -136,7 +137,7 @@ class RawEDF(Raw):
             sel = range(self.info['nchan'])
         elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
             return (666, 666)
-        if proj is not None:
+        if projector is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
             stop = self.last_samp + 1
@@ -269,8 +270,9 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
         _ = fid.read(80).strip()  # recording id
         day, month, year = [int(x) for x in re.findall('(\d+)', fid.read(8))]
         hour, minute, sec = [int(x) for x in re.findall('(\d+)', fid.read(8))]
-        info['meas_date'] = str(datetime.datetime(year + 2000, month, day,
-                                                 hour, minute, sec))
+        date = str(datetime.datetime(year + 2000, month, day,
+                                     hour, minute, sec))
+        info['meas_date'] = int(time.time())
         info['data_offset'] = header_nbytes = int(fid.read(8))
         subtype = fid.read(44).strip()[:5]
         supported = ['EDF+C', 'EDF+D', '24BIT']
