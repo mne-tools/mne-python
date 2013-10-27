@@ -1,0 +1,8 @@
+MNE-Python for Debian
+-----------------------
+
+For flexibility and easier interaction with upstream, sources are
+obtained directly from upstream git repository, releases "merged" into
+dfsg branch and packaged into .orig.tar.gz using git-buildpackage.
+
+ -- Alexandre Gramfort <alexandre.gramfort@m4x.org>, Sun, 27 Oct 2013 21:21:57 -0400

@@ -1,0 +1,34 @@
+Source: mne
+Section: python
+Priority: optional
+Maintainer: Alexandre Gramfort <alexandre.gramfort@m4x.org>
+Uploaders: Yaroslav Halchenko <debian@onerussian.com>, Michael Hanke <michael.hanke@gmail.com>
+Build-Depends: debhelper (>= 7.0.50), python-all-dev (>= 2.5), python-support (>= 0.6), python-numpy, python-scipy, python-sphinx (>= 1.0~), python-nose, python-setuptools, python-matplotlib, python-joblib (>= 0.4.5), python-sklearn, python-mayavi2
+Standards-Version: 3.9.3
+XS-Python-Version: >= 2.6
+Homepage: http://martinos.org/mne
+Vcs-Browser: http://github.com/mne-tools/mne-python
+Vcs-Git: git://github.com/mne-tools/mne-python.git
+XS-DM-Upload-Allowed: yes
+
+Package: python-mne
+Replaces: python-mne (<< 0.7~)
+Breaks: python-mne (<< 0.7~)
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, python-numpy, python-scipy, python-sklearn, python-matplotlib, python-joblib (>= 0.4.5), python-mayavi2
+Provides: ${python:Provides}
+XB-Python-Version: ${python:Versions}
+Recommends: python-nose
+Suggests: python-dap, ipython
+Description: Python modules for MEG and EEG data analysis
+
+Package: python-mne-doc
+Conflicts: python-mne-doc
+Replaces: python-mne-doc
+Architecture: all
+Section: doc
+Depends: ${misc:Depends}, libjs-jquery
+Suggests: python-mne
+Description: documentation and examples for MNE-Python
+ This package contains documentation and example scripts for
+ python-mne.
