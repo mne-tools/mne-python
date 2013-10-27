@@ -18,7 +18,7 @@ from ...utils import verbose, logger
 from ..raw import Raw
 from ..meas_info import Info
 from ..constants import FIFF
-from ..kit.coreg import get_head_coord_trans
+from ...coreg import get_ras_to_neuromag_trans
 
 
 class RawEDF(Raw):
@@ -40,11 +40,6 @@ class RawEDF(Raw):
         Path to the hpts file containing electrode positions.
         If None, sensor locations are (0,0,0).
 
-    annot : str | None
-        Path of the annot file containing the triggering information for EDF+.
-        Can be None for BDF only.
-        If None for EDF+, it will raise an error.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -61,8 +56,8 @@ class RawEDF(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, n_eeg, stim_channel=None,
-                 hpts=None, annot=None, preload=False, verbose=None):
+    def __init__(self, input_fname, n_eeg, stim_channel=None, hpts=None,
+                 preload=False, verbose=None):
         if not isinstance(n_eeg, int):
             ValueError('Must be an integer number.')
         logger.info('Extracting edf Parameters from %s...' % input_fname)
@@ -101,7 +96,7 @@ class RawEDF(Raw):
     def __repr__(self):
         nchan = self.info['nchan']
         data_range = self.last_samp - self.first_samp + 1
-        s = ('%r' % os.path.basename(self._edf_self.info['fname']),
+        s = ('%r' % os.path.basename(self.info['file_id']),
              "n_channels x n_times : %s x %s" % (nchan, data_range))
         return "<RawEDF  |  %s>" % ', '.join(s)
 
@@ -152,8 +147,8 @@ class RawEDF(Raw):
         stop = int(stop)
 
         sfreq = self.info['sfreq']
-        data_size = self.info['data_size']
-        data_offset = self.info['data_offset']
+        data_size = self._edf_info['data_size']
+        data_offset = self._edf_info['data_offset']
 
         if start >= stop:
             raise ValueError('No data in this range')
@@ -170,14 +165,19 @@ class RawEDF(Raw):
             pointer = start * nchan
             fid.seek(data_offset + pointer)
             chan_block = buffer_size / sfreq
-
-            if self._edf_info['subtype'] == '24BIT':
-                datas = []
-                for _ in range(chan_block):
-                    data = np.empty((nchan, sfreq), dtype=np.int32)
-                    for chan in range(nchan):
+            datas = []
+            gains = []
+            for chan in range(nchan):
+                # gain constructor
+                physical_range = self.info['chs'][chan]['range']
+                cal = float(self.info['chs'][chan]['cal'])
+                unit_mul = 10 ** self.info['chs'][chan]['unit_mul']
+                gains.append(unit_mul * (physical_range / cal))
+            for _ in range(chan_block):
+                data = np.empty((nchan, sfreq), dtype=np.int32)
+                for chan in range(nchan):
+                    if self._edf_info['subtype'] == '24BIT':
                         chan_data = fid.read(sfreq * data_size)
-                        chan_data
                         if isinstance(chan_data, str):
                             chan_data = np.fromstring(chan_data, np.uint8)
                         else:
@@ -191,22 +191,16 @@ class RawEDF(Raw):
                                      (chan_data[:, 2] << 16))
                         chan_data[chan_data >= (1 << 23)] -= (1 << 24)
                         data[chan, :] = chan_data
-                    datas.append(data)
-                data = np.hstack(datas)
-                data = self._edf_info['gains'] * data
-                stim = np.array(data[-1], int)
-                mask = 255 * np.ones(stim.shape, int)
-                stim = np.bitwise_and(stim, mask)
-                data[-1] = stim
-            else:
-                data = np.fromfile(fid, dtype='<i2', count=buffer_size)
-                data = data.reshape((buffer_size, nchan)).T
-                # XXX : mess with digital_min and gains:
-                # You should use cal and range keys in chs for fif files.
-                data = ((data - self.info['digital_min']) * self._edf_info['gains']
-                        + self.info['physical_min'])
-                stim_channel = self._read_annot(self.info['annot'])
-                data = np.vstack((data, stim_channel))
+                    else:
+                        data[chan] = np.fromfile(fid, dtype='<i2', count=sfreq)
+                datas.append(data)
+        data = np.hstack(datas)
+        gains = np.array([gains])
+        data = gains.T * data
+        stim = np.array(data[-1], int)
+        mask = 255 * np.ones(stim.shape, int)
+        stim = np.bitwise_and(stim, mask)
+        data[-1] = stim
         data = data[sel]
 
         logger.info('[done]')
@@ -214,16 +208,8 @@ class RawEDF(Raw):
 
         return data, times
 
-    def _read_annot(self, annot):
-        """Reads an annotation file and converts it to a stimulus channel
-        """
 
-        stim_channel = unicode(annot, 'utf-8').split('\x14') if annot else []
-
-        return stim_channel
-
-
-def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
+def _get_edf_info(fname, n_eeg, stim_channel, hpts=None):
     """Extracts all the information from the EDF+,BDF file.
 
     Parameters
@@ -241,11 +227,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
     hpts : str | None
         Path to the hpts file containing electrode positions.
         If None, sensor locations are (0,0,0).
-
-    annot : str | None
-        Path of the annot file containing the triggering information for EDF+.
-        Can be None for BDF only.
-        If None for EDF+, it will raise an error.
 
     Returns
     -------
@@ -288,10 +269,10 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
 
         edf_info['data_offset'] = header_nbytes = int(fid.read(8))
         subtype = fid.read(44).strip()[:5]
-        supported = ['EDF+C', 'EDF+D', '24BIT']
-        if subtype not in supported:
-            raise ValueError('Filetype must be either %s, %s, or %s'
-                             % tuple(supported))
+#        supported = ['24BIT', 'BIOSE']
+#        if subtype not in supported:
+#            raise ValueError('Filetype must be either %s, or %s'
+#                             % tuple(supported))
         edf_info['subtype'] = subtype
 
         n_records = int(fid.read(8))
@@ -302,29 +283,31 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
         ch_names = [fid.read(16).strip() for _ in channels]
         _ = [fid.read(80).strip() for _ in channels]  # transducer type
         edf_info['units'] = [fid.read(8).strip() for _ in channels]
-        not_stim_ch = np.where(np.array(edf_info['units']) != 'Boolean')[0]
-        units = list(np.unique(edf_info['units']))
-        if 'Boolean' in units:
-            units.remove('Boolean')
-        assert len(units) == 1
-        if units[0] == 'uV':
-            scale = 1e-6
-        elif units[0] == 'V':
-            scale = 1
+        if all(edf_info['units'][:n_eeg]):
+            if edf_info['units'][0] == 'uV':
+                unit_mul = -6
+            elif edf_info['units'][0] == 'V':
+                unit_mul = 0
+        else:
+            raise ValueError('Inconsistent units in EEG data.')
         physical_min = np.array([float(fid.read(8)) for _ in channels])
         physical_max = np.array([float(fid.read(8)) for _ in channels])
         digital_min = np.array([float(fid.read(8)) for _ in channels])
         digital_max = np.array([float(fid.read(8)) for _ in channels])
-        prefiltering = [fid.read(80).strip() for _ in channels]
-        prefiltering = [re.findall('HP:\s(\w+);\sLP:\s(\d+)', filt)
-                        for filt in prefiltering[:-1]]
-        if all(prefiltering):
-            filt = prefiltering[0][0]
-            if filt[0] == 'DC':
+        prefiltering = [fid.read(80).strip() for _ in channels][:-1]
+        highpass = [re.findall('HP:\s+(\w+)', filt) for filt in prefiltering]
+        lowpass = [re.findall('LP:\s+(\w+)', filt) for filt in prefiltering]
+        if all(highpass) and all(lowpass):
+            if highpass[0][0] == 'DC':
                 info['highpass'] = 0
+            elif highpass[0][0] == 'NaN':
+                info['highpass'] = None
             else:
-                info['highpass'] = int(filt[0])
-            info['lowpass'] = int(filt[1])
+                info['highpass'] = int(highpass[0][0])
+            if lowpass[0][0] == 'NaN':
+                info['lowpass'] = None
+            else:
+                info['lowpass'] = int(lowpass[0][0])
         else:
             raise NotImplementedError('Channels contain different filtering.')
         n_samples_per_record = [int(fid.read(8)) for _ in channels]
@@ -335,8 +318,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
         assert fid.tell() == header_nbytes
     physical_range = physical_max - physical_min
     cal = digital_max - digital_min
-    info['gains'] = np.array([physical_range / cal]).T
-    info['gains'][not_stim_ch] *= scale
     info['sfreq'] = int(n_samples_per_record / record_length)
     edf_info['nsamples'] = n_records * n_samples_per_record
 
@@ -361,8 +342,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
             coord = np.array(map(int, loc[1:]))
             coord = apply_trans(als_ras_trans_mm, coord)
             locs[loc[0].lower()] = coord
-        trans = get_head_coord_trans(nasion=locs['2'], lpa=locs['1'],
-                                     rpa=locs['3'])
+        trans = get_ras_to_neuromag_trans(nasion=locs['2'], lpa=locs['1'],
+                                          rpa=locs['3'])
         for loc in locs:
             locs[loc] = apply_trans(trans, locs[loc])
         info['dig'] = []
@@ -394,15 +375,12 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
             else (0, 0, 0) for ch_name in ch_names]
     sensor_locs = np.array(locs)
 
-    if edf_info['subtype'] != '24BIT':
-        if not os.path.lexists(annot):
-            raise ValueError('Missing required annotation file.')
-
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
     if stim_channel is None:
-        stim_channel = info['nchan'] - 1
+        stim_channel = info['nchan']
+    info['ch_names'] = ch_names
     for idx, ch_info in enumerate(zip(ch_names, sensor_locs,
                                       physical_range, cal), 1):
         ch_name, ch_loc, physical_range, cal = ch_info
@@ -411,7 +389,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
         chan_info['logno'] = idx
         chan_info['scanno'] = idx
         chan_info['range'] = physical_range
-        chan_info['unit_mul'] = 0
+        chan_info['unit_mul'] = unit_mul
         chan_info['ch_name'] = ch_name
         chan_info['unit'] = FIFF.FIFF_UNIT_V
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
@@ -428,6 +406,9 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
         if stim_check:
+            chan_info['range'] = 1
+            chan_info['cal'] = 1
+            chan_info['unit_mul'] = 0
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -435,11 +416,10 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
             info['ch_names'][idx - 1] = chan_info['ch_name']
         info['chs'].append(chan_info)
 
-    # info['locs'] = sensor_locs
     return info, edf_info
 
 
-def read_raw_edf(input_fname, n_eeg, stim_channel=None, hpts=None, annot=None,
+def read_raw_edf(input_fname, n_eeg, stim_channel=None, hpts=None,
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
 
@@ -459,11 +439,6 @@ def read_raw_edf(input_fname, n_eeg, stim_channel=None, hpts=None, annot=None,
         Path to the hpts file containing electrode positions.
         If None, sensor locations are (0,0,0).
 
-    annot : str | None
-        Path of the annot file containing the triggering information for EDF+.
-        Can be None for BDF only.
-        If None for EDF+, it will raise an error.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -472,5 +447,5 @@ def read_raw_edf(input_fname, n_eeg, stim_channel=None, hpts=None, annot=None,
         If False, data are not read until save.
     """
     return RawEDF(input_fname=input_fname, n_eeg=n_eeg,
-                  stim_channel=stim_channel, hpts=hpts, annot=annot,
+                  stim_channel=stim_channel, hpts=hpts,
                   verbose=verbose, preload=preload)

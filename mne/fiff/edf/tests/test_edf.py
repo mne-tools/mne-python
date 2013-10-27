@@ -19,13 +19,15 @@ FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 hpts_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
-matlab_path = op.join(data_dir, 'test_eeglab.mat')
+edf_path = op.join(data_dir, 'test.edf')
+bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
+edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 
 tempdir = _TempDir()
 
 
-def test_data():
-    """Test reading raw edf files
+def test_bdf_data():
+    """Test reading raw bdf files
     """
     raw_py = read_raw_edf(bdf_path, n_eeg=72, hpts=hpts_path, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
@@ -35,11 +37,29 @@ def test_data():
     print raw_py.info  # to test Info repr
 
     # this .mat was generated using the EEG Lab Biosemi Reader
-    raw_eeglab = io.loadmat(matlab_path)
+    raw_eeglab = io.loadmat(bdf_eeglab_path)
     raw_eeglab = raw_eeglab['data'] * 1e-6  # data are stored in microvolts
     data_eeglab = raw_eeglab[picks]
 
-    assert_array_almost_equal(data_py, data_eeglab, decimal=6)
+    assert_array_almost_equal(data_py, data_eeglab)
+
+
+def test_edf_data():
+    """Test reading raw edf files
+    """
+    raw_py = read_raw_edf(edf_path, n_eeg=136, preload=True)
+    picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
+    data_py, _ = raw_py[picks]
+
+    print raw_py  # to test repr
+    print raw_py.info  # to test Info repr
+
+    # this .mat was generated using the EEG Lab Biosemi Reader
+    raw_eeglab = io.loadmat(edf_eeglab_path)
+    raw_eeglab = raw_eeglab['data'] * 1e-6  # data are stored in microvolts
+    data_eeglab = raw_eeglab[picks]
+
+    assert_array_almost_equal(data_py, data_eeglab)
 
 
 def test_read_segment():
