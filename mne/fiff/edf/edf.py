@@ -7,15 +7,16 @@
 # License: BSD (3-clause)
 
 import os
-import time
+import calendar
 import datetime
 import re
+
 import numpy as np
 
 from ...transforms import als_ras_trans_mm, apply_trans
-from ...fiff import pick_types
 from ...utils import verbose, logger
 from ..raw import Raw
+from ..meas_info import Info
 from ..constants import FIFF
 from ..kit.coreg import get_head_coord_trans
 
@@ -66,7 +67,8 @@ class RawEDF(Raw):
             ValueError('Must be an integer number.')
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        self.info = _get_edf_info(input_fname, n_eeg, stim_channel, hpts)
+        self.info, self._edf_info = _get_edf_info(input_fname, n_eeg,
+                                                  stim_channel, hpts)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -75,7 +77,7 @@ class RawEDF(Raw):
         self.fids = list()
         self._projector = None
         self.first_samp = 0
-        self.last_samp = self.info['nsamples'] - 1
+        self.last_samp = self._edf_info['nsamples'] - 1
         self.comp = None  # no compensation for KIT
         self.proj = False
 
@@ -97,8 +99,8 @@ class RawEDF(Raw):
         logger.info('Ready.')
 
     def __repr__(self):
-        s = ('%r' % os.path.basename(self._edf_self.info['fname']),
-             "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
+        s = ('%r' % os.path.basename(self.info['filename']),
+             "n_channels x n_times : %s x %s" % (len(self.ch_names),
                                        self.last_samp - self.first_samp + 1))
         return "<RawEDF  |  %s>" % ', '.join(s)
 
@@ -155,8 +157,8 @@ class RawEDF(Raw):
                     (start, stop - 1, start / float(self.info['sfreq']),
                                (stop - 1) / float(self.info['sfreq'])))
         sfreq = self.info['sfreq']
-        data_size = self.info['data_size']
-        data_offset = self.info['data_offset']
+        data_size = self._edf_info['data_size']
+        data_offset = self._edf_info['data_offset']
 
         with open(self.info['file_id'], 'rb') as fid:
             # extract data
@@ -167,7 +169,7 @@ class RawEDF(Raw):
             fid.seek(data_offset + pointer)
             chan_block = buffer_size / sfreq
 
-            if self.info['subtype'] == '24BIT':
+            if self._edf_info['subtype'] == '24BIT':
                 datas = []
                 for _ in range(chan_block):
                     data = np.empty((nchan, sfreq), dtype=np.int32)
@@ -189,7 +191,7 @@ class RawEDF(Raw):
                         data[chan, :] = chan_data
                     datas.append(data)
                 data = np.hstack(datas)
-                data = self.info['gains'] * data
+                data = self._edf_info['gains'] * data
                 stim = np.array(data[-1], int)
                 mask = 255 * np.ones(stim.shape, int)
                 stim = np.bitwise_and(stim, mask)
@@ -197,7 +199,9 @@ class RawEDF(Raw):
             else:
                 data = np.fromfile(fid, dtype='<i2', count=buffer_size)
                 data = data.reshape((buffer_size, nchan)).T
-                data = ((data - self.info['digital_min']) * self.info['gains']
+                # XXX : mess with digital_min and gains:
+                # You should use cal and range keys in chs for fif files.
+                data = ((data - self.info['digital_min']) * self._edf_info['gains']
                         + self.info['physical_min'])
                 stim_channel = self._read_annot(self.info['annot'])
                 data = np.vstack((data, stim_channel))
@@ -243,11 +247,13 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
 
     Returns
     -------
-    edf : dict
-        A dict containing all the EDF+,BDF parameter settings.
+    info : instance of Info
+        The measurement info.
+    edf_info : dict
+        A dict containing all the EDF+,BDF  specific parameters.
     """
 
-    info = dict()
+    info = Info()
     info['file_id'] = fname
     # Add info for fif object
     info['meas_id'] = None
@@ -255,12 +261,17 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
     info['comps'] = []
     info['bads'] = []
     info['acq_pars'], info['acq_stim'] = None, None
-    info['filename'] = None
+    info['filename'] = fname
     info['ctf_head_t'] = None
     info['dev_ctf_t'] = []
     info['filenames'] = []
     info['dig'] = None
     info['dev_head_t'] = None
+    info['proj_id'] = None
+    info['proj_name'] = None
+    info['experimenter'] = None
+
+    edf_info = dict()
 
     with open(fname, 'rb') as fid:
         assert(fid.tell() == 0)
@@ -270,27 +281,27 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
         _ = fid.read(80).strip()  # recording id
         day, month, year = [int(x) for x in re.findall('(\d+)', fid.read(8))]
         hour, minute, sec = [int(x) for x in re.findall('(\d+)', fid.read(8))]
-        date = str(datetime.datetime(year + 2000, month, day,
-                                     hour, minute, sec))
-        info['meas_date'] = int(time.time())
-        info['data_offset'] = header_nbytes = int(fid.read(8))
+        date = datetime.datetime(year + 2000, month, day, hour, minute, sec)
+        info['meas_date'] = calendar.timegm(date.utctimetuple())
+
+        edf_info['data_offset'] = header_nbytes = int(fid.read(8))
         subtype = fid.read(44).strip()[:5]
         supported = ['EDF+C', 'EDF+D', '24BIT']
         if subtype not in supported:
             raise ValueError('Filetype must be either %s, %s, or %s'
                              % tuple(supported))
-        info['subtype'] = subtype
+        edf_info['subtype'] = subtype
 
         n_records = int(fid.read(8))
         record_length = int(fid.read(8))  # in seconds
         info['nchan'] = int(fid.read(4))
 
         channels = range(info['nchan'])
-        info['ch_names'] = [fid.read(16).strip() for _ in channels]
+        ch_names = [fid.read(16).strip() for _ in channels]
         _ = [fid.read(80).strip() for _ in channels]  # transducer type
-        info['units'] = [fid.read(8).strip() for _ in channels]
-        not_stim_ch = np.where(np.array(info['units']) != 'Boolean')[0]
-        units = list(np.unique(info['units']))
+        edf_info['units'] = [fid.read(8).strip() for _ in channels]
+        not_stim_ch = np.where(np.array(edf_info['units']) != 'Boolean')[0]
+        units = list(np.unique(edf_info['units']))
         if 'Boolean' in units:
             units.remove('Boolean')
         assert len(units) == 1
@@ -322,14 +333,21 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
         assert fid.tell() == header_nbytes
     physical_range = physical_max - physical_min
     digital_range = digital_max - digital_min
-    info['gains'] = np.array([physical_range / digital_range]).T
-    info['gains'][not_stim_ch] *= scale
+    edf_info['gains'] = np.array([physical_range / digital_range]).T
+    edf_info['gains'][not_stim_ch] *= scale
     info['sfreq'] = int(n_samples_per_record / record_length)
-    info['nsamples'] = n_records * n_samples_per_record
-    if info['subtype'] == '24BIT':
-        info['data_size'] = 3  # 24-bit (3 byte) integers
+    edf_info['nsamples'] = n_records * n_samples_per_record
+
+    # Some keys to be consistent with FIF measurement info
+    info['description'] = None
+    info['buffer_size_sec'] = 10.
+    info['orig_blocks'] = None
+    info['orig_fid_str'] = None
+
+    if edf_info['subtype'] == '24BIT':
+        edf_info['data_size'] = 3  # 24-bit (3 byte) integers
     else:
-        info['data_size'] = 2  # 16-bit (2 byte) integers
+        edf_info['data_size'] = 2  # 16-bit (2 byte) integers
 
     if hpts and os.path.lexists(hpts):
         fid = open(hpts, 'rb').read()
@@ -371,19 +389,20 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
     else:
         locs = {}
     locs = [locs[ch_name.lower()] if ch_name.lower() in locs.keys()
-            else (0, 0, 0) for ch_name in info['ch_names']]
+            else (0, 0, 0) for ch_name in ch_names]
     sensor_locs = np.array(locs)
 
-    if info['subtype'] != '24BIT':
+    if edf_info['subtype'] != '24BIT':
         if not os.path.lexists(annot):
             raise ValueError('Missing required annotation file.')
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
-    info['ch_names'] = ch_names = info['ch_names']
     info['chs'] = []
     if stim_channel == None:
         stim_channel = info['nchan'] - 1
+
+    info['ch_names'] = ch_names
     for idx, ch_info in enumerate(zip(ch_names, sensor_locs), 1):
         ch_name, ch_loc = ch_info
         chan_info = {}
@@ -414,8 +433,9 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
             chan_info['ch_name'] = 'STI 014'
             info['ch_names'][idx - 1] = chan_info['ch_name']
         info['chs'].append(chan_info)
-        info['locs'] = sensor_locs
-    return info
+
+    # info['locs'] = sensor_locs
+    return info, edf_info
 
 
 def read_raw_edf(input_fname, n_eeg, stim_channel=None, hpts=None, annot=None,
