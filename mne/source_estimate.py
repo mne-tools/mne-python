@@ -823,29 +823,29 @@ class _BaseSourceEstimate(object):
                   idx=None, tmin=None, tmax=None, copy=False, **kwargs):
         """Apply linear transform
 
-        The transorm is applied to each source time course independently.
+        The transform is applied to each source time course independently.
 
         Parameters
         ----------
-        transform_fun : callable
+        func : callable
             The transform to be applied. The first parameter of the function
             is the input data. The first return value is the transformed
             data, remaining outputs are ignored. The first dimension of the
             transformed data has to be the same as the first dimension of
             the input data.
-        fun_args : tuple | None
-            Additional parameters to be passed to transform_fun.
+        func_args : tuple | None
+            Additional parameters to be passed to func.
         idx : array | None
-            Indicices of source time courses for which to compute transform.
+            Indices of source time courses for which to compute transform.
             If None, all time courses are used.
-        tmin : int | None
+        tmin : float | int | None
             First time point to include (ms). If None, self.tmin is used.
-        tmax : int | None
+        tmax : float | int | None
             Last time point to include (ms). If None, self.tmax is used.
         copy: bool
             If True, returns copy instead of modifying inplace the input stc.
         **kwargs : dict
-            Keyword arguments to be passed to transform_fun.
+            Keyword arguments to be passed to func.
 
         Returns
         -------
@@ -863,20 +863,24 @@ class _BaseSourceEstimate(object):
             this automatically (if possible).
         """
 
+        # min and max data indices to include
         if tmin is None:
             tmin_idx = None
         else:
-            tmin_idx = np.where(self.times >= tmin / 1000.)[0][0]
+            tmin = float(tmin)
+            tmin_idx = np.where(self.times >= tmin / 1000)[0][0]
 
         if tmax is None:
             tmax_idx = None
         else:
-            tmax_idx = np.where(self.times <= tmax / 1000.)[0][-1]
+            tmax = float(tmax)
+            tmax_idx = np.where(self.times <= tmax / 1000)[0][-1]
 
         data_t = self.transform_data(func, fun_args=func_args, idx=idx,
                                      tmin_idx=tmin_idx, tmax_idx=tmax_idx,
                                      **kwargs)
 
+        # account for change in n_vertices
         if idx is not None:
             idx_lh = idx[idx < len(self.lh_vertno)]
             idx_rh = idx[idx >= len(self.lh_vertno)] - len(self.lh_vertno)
@@ -887,9 +891,12 @@ class _BaseSourceEstimate(object):
             verts_rh = self.rh_vertno
         verts = [verts_lh, verts_rh]
 
-        tmin = tmin if tmin is not None else self.tmin
+        tmin = self.times[tmin_idx]
+        times = np.arange(self.times[tmin_idx], self.times[tmax_idx+1],
+                          self.tstep)
 
-        if len(data_t.shape) > 2:
+        if data_t.ndim > 2:
+            # return list of stcs if transformed data has dimensionality > 2
             if copy:
                 stcs = [SourceEstimate(data_t[:, :, a], verts, tmin,
                                        self.tstep, self.subject)
@@ -898,12 +905,11 @@ class _BaseSourceEstimate(object):
                 raise ValueError('copy must be True if transformed data has '
                                  'more than 2 dimensions')
         else:
-            if copy:
-                stcs = SourceEstimate(data_t, verts, tmin, self.tstep,
-                                      self.subject)
-            else:
-                self._data, self.vertno = data_t, verts
-                stcs = self
+            # return new or overwritten stc
+            stcs = self if not copy else self.copy()
+            stcs._data, stcs.vertno = data_t, verts
+            stcs.tmin, stcs.times = tmin, times
+            print stcs.tmin, stcs.times
 
         return stcs
 
