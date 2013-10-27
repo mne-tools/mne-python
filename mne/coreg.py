@@ -19,6 +19,7 @@ import numpy as np
 from numpy import dot
 from scipy.optimize import leastsq
 from scipy.spatial.distance import cdist
+from scipy.linalg import norm
 
 from .fiff.meas_info import read_fiducials, write_fiducials
 from .label import read_label, Label
