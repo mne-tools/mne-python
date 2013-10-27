@@ -99,9 +99,10 @@ class RawEDF(Raw):
         logger.info('Ready.')
 
     def __repr__(self):
-        s = ('%r' % os.path.basename(self.info['filename']),
-             "n_channels x n_times : %s x %s" % (len(self.ch_names),
-                                       self.last_samp - self.first_samp + 1))
+        nchan = self.info['nchan']
+        data_range = self.last_samp - self.first_samp + 1
+        s = ('%r' % os.path.basename(self._edf_self.info['fname']),
+             "n_channels x n_times : %s x %s" % (nchan, data_range))
         return "<RawEDF  |  %s>" % ', '.join(s)
 
     def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
@@ -150,15 +151,16 @@ class RawEDF(Raw):
         start = int(start)
         stop = int(stop)
 
+        sfreq = self.info['sfreq']
+        data_size = self.info['data_size']
+        data_offset = self.info['data_offset']
+
         if start >= stop:
             raise ValueError('No data in this range')
 
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(self.info['sfreq']),
-                               (stop - 1) / float(self.info['sfreq'])))
-        sfreq = self.info['sfreq']
-        data_size = self._edf_info['data_size']
-        data_offset = self._edf_info['data_offset']
+                    (start, stop - 1, start / float(sfreq),
+                     (stop - 1) / float(sfreq)))
 
         with open(self.info['file_id'], 'rb') as fid:
             # extract data
@@ -315,7 +317,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
         digital_max = np.array([float(fid.read(8)) for _ in channels])
         prefiltering = [fid.read(80).strip() for _ in channels]
         prefiltering = [re.findall('HP:\s(\w+);\sLP:\s(\d+)', filt)
-                                   for filt in prefiltering[:-1]]
+                        for filt in prefiltering[:-1]]
         if all(prefiltering):
             filt = prefiltering[0][0]
             if filt[0] == 'DC':
@@ -332,9 +334,9 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
         fid.read(32 * info['nchan'])  # reserved
         assert fid.tell() == header_nbytes
     physical_range = physical_max - physical_min
-    digital_range = digital_max - digital_min
-    edf_info['gains'] = np.array([physical_range / digital_range]).T
-    edf_info['gains'][not_stim_ch] *= scale
+    cal = digital_max - digital_min
+    info['gains'] = np.array([physical_range / cal]).T
+    info['gains'][not_stim_ch] *= scale
     info['sfreq'] = int(n_samples_per_record / record_length)
     edf_info['nsamples'] = n_records * n_samples_per_record
 
@@ -399,17 +401,16 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, annot=None):
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    if stim_channel == None:
+    if stim_channel is None:
         stim_channel = info['nchan'] - 1
-
-    info['ch_names'] = ch_names
-    for idx, ch_info in enumerate(zip(ch_names, sensor_locs), 1):
-        ch_name, ch_loc = ch_info
+    for idx, ch_info in enumerate(zip(ch_names, sensor_locs,
+                                      physical_range, cal), 1):
+        ch_name, ch_loc, physical_range, cal = ch_info
         chan_info = {}
-        chan_info['cal'] = 1.
+        chan_info['cal'] = cal
         chan_info['logno'] = idx
         chan_info['scanno'] = idx
-        chan_info['range'] = 1
+        chan_info['range'] = physical_range
         chan_info['unit_mul'] = 0
         chan_info['ch_name'] = ch_name
         chan_info['unit'] = FIFF.FIFF_UNIT_V

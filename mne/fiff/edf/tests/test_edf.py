@@ -1,4 +1,4 @@
-"""Data and Channel Location Equivalence Tests"""
+"""Data Equivalence Tests"""
 
 # Author: Teon Brooks <teon@nyu.edu>
 #
