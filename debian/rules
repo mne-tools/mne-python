@@ -7,6 +7,9 @@ PACKAGE_ROOT_DIR = debian/${PACKAGE_NAME}
 PYVERS = $(shell pyversions -vr)
 PYVER = $(shell pyversions  -vd)
 
+export  http_proxy=http://127.0.0.1:9/
+export  https_proxy=http://127.0.0.1:9/
+
 # Mega rule
 %:
 	: # Explicit build system to avoid use of all-in-1 Makefile
