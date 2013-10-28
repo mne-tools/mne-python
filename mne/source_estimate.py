@@ -856,22 +856,22 @@ class _BaseSourceEstimate(object):
 
         Notes
         -----
-            Applying transforms can be significantly faster if the
-            SourceEstimate object was created using "(kernel, sens_data)", for
-            the "data" parameter as the transform is applied in sensor space.
-            Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
-            this automatically (if possible).
+        Applying transforms can be significantly faster if the
+        SourceEstimate object was created using "(kernel, sens_data)", for
+        the "data" parameter as the transform is applied in sensor space.
+        Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
+        this automatically (if possible).
         """
 
         # min and max data indices to include
         if tmin is None:
-            tmin_idx = None
+            tmin_idx = 0
         else:
             tmin = float(tmin)
             tmin_idx = np.where(self.times >= tmin / 1000)[0][0]
 
         if tmax is None:
-            tmax_idx = None
+            tmax_idx = -1
         else:
             tmax = float(tmax)
             tmax_idx = np.where(self.times <= tmax / 1000)[0][-1]
@@ -892,8 +892,8 @@ class _BaseSourceEstimate(object):
         verts = [verts_lh, verts_rh]
 
         tmin = self.times[tmin_idx]
-        times = np.arange(self.times[tmin_idx], self.times[tmax_idx+1],
-                          self.tstep)
+        times = np.arange(self.times[tmin_idx],
+                          self.times[tmax_idx]+self.tstep, self.tstep)
 
         if data_t.ndim > 2:
             # return list of stcs if transformed data has dimensionality > 2
@@ -909,7 +909,6 @@ class _BaseSourceEstimate(object):
             stcs = self if not copy else self.copy()
             stcs._data, stcs.vertno = data_t, verts
             stcs.tmin, stcs.times = tmin, times
-            print stcs.tmin, stcs.times
 
         return stcs
 
