@@ -53,6 +53,7 @@ if __name__ == "__main__":
                     'mne.datasets',
                     'mne.datasets.sample',
                     'mne.datasets.megsim',
+                    'mne.datasets.spm_face',
                     'mne.fiff', 'mne.fiff.tests',
                     'mne.fiff.bti', 'mne.fiff.bti.tests',
                     'mne.fiff.kit', 'mne.fiff.kit.tests',
