@@ -40,12 +40,12 @@ class RawEDF(Raw):
         Path to the hpts file containing electrode positions.
         If None, sensor locations are (0,0,0).
 
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     There is an assumption that the data are arrange such that EEG channels
     appear first then miscellaneous channels (EOGs, AUX, STIM).
