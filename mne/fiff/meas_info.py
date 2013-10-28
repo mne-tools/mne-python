@@ -125,6 +125,13 @@ def write_fiducials(fname, pts, coord_frame=0):
         The coordinate frame of the points (one of
         mne.fiff.FIFF.FIFFV_COORD_...)
     """
+    pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
+    bad_frames = pts_frames - set((coord_frame,))
+    if len(bad_frames) > 0:
+        err = ("Points have coord_frame entries that are incompatible with "
+               "coord_frame=%i: %s." % (coord_frame, str(tuple(bad_frames))))
+        raise ValueError(err)
+
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_ISOTRAK)
     write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
