@@ -864,17 +864,19 @@ class _BaseSourceEstimate(object):
         """
 
         # min and max data indices to include
+        times = np.round(1000 * self.times)
+
         if tmin is None:
-            tmin_idx = 0
+            tmin_idx = None
         else:
             tmin = float(tmin)
-            tmin_idx = np.where(self.times >= tmin / 1000)[0][0]
+            tmin_idx = np.where(times >= tmin)[0][0]
 
         if tmax is None:
-            tmax_idx = -1
+            tmax_idx = None
         else:
             tmax = float(tmax)
-            tmax_idx = np.where(self.times <= tmax / 1000)[0][-1]
+            tmax_idx = np.where(times <= tmax)[0][-1]
 
         data_t = self.transform_data(func, fun_args=func_args, idx=idx,
                                      tmin_idx=tmin_idx, tmax_idx=tmax_idx,
@@ -891,9 +893,13 @@ class _BaseSourceEstimate(object):
             verts_rh = self.rh_vertno
         verts = [verts_lh, verts_rh]
 
+        tmin_idx = 0 if tmin_idx is None else tmin_idx
+        tmax_idx = -1 if tmax_idx is None else tmax_idx
+
         tmin = self.times[tmin_idx]
+
         times = np.arange(self.times[tmin_idx],
-                          self.times[tmax_idx]+self.tstep, self.tstep)
+                          self.times[tmax_idx] + self.tstep / 2, self.tstep)
 
         if data_t.ndim > 2:
             # return list of stcs if transformed data has dimensionality > 2
