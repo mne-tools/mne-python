@@ -51,7 +51,7 @@ class _TriggerHandler(SocketServer.BaseRequestHandler):
 
             if data == 'add client':
                 # Add stim_server._client
-                client_id = self.server.stim_server.add_client(self.client_address[0],
+                client_id = self.server.stim_server._add_client(self.client_address[0],
                                                                self)
 
                 # Instantiate queue for communication between threads
@@ -73,8 +73,6 @@ class _TriggerHandler(SocketServer.BaseRequestHandler):
                         self.server.stim_server, '_clients'):
 
                     trigger = self._tx_queue.get()
-                    logger.info("Trigger %s popped and sent to client %d" %
-                                (str(trigger), client_id))
                     self.request.sendall(str(trigger))
                 else:
                     self.request.sendall("Empty")
@@ -91,13 +89,16 @@ class StimServer(object):
         IP address of the host where StimServer is running.
     port : int
         The port to which the stimulation server must bind to
+    numclients : int
+        The number of clients which will connect to the server
     """
 
-    def __init__(self, ip='localhost', port=4218):
+    def __init__(self, ip='localhost', port=4218, numclients=1):
 
         # Start a threaded TCP server, binding to localhost on specified port
         self._data = _ThreadedTCPServer((ip, port),
                                         _TriggerHandler, self)
+        self._numclients = numclients
 
     def __enter__(self):
         # This is done to avoid "[Errno 98] Address already in use"
@@ -135,12 +136,12 @@ class StimServer(object):
             logger.info('RtServer: Start')
             self._running = True
 
-            # wait till atleast one client is added
-            while (len(self._clients) == 0):
+            # wait till numclient is added
+            while (len(self._clients) < self._numclients):
                 time.sleep(0.1)
 
     @verbose
-    def add_client(self, ip, sock, verbose=None):
+    def _add_client(self, ip, sock, verbose=None):
         """Add client.
 
         Parameters
@@ -195,8 +196,10 @@ class StimServer(object):
             If not None, override default verbose level (see mne.verbose).
         """
 
-        logger.info("Adding trigger %d" % trigger)
         for client in self._clients:
+            client_id = client['id']
+            logger.info("Sending trigger %d to client %d"
+                        % (trigger, client_id))
             client['socket']._tx_queue.put(trigger)
 
 
