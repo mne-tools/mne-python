@@ -1294,7 +1294,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     spacing : str
         The spacing to use. Can be ``'#'`` for spacing in mm, ``'ico#'`` for a
         recursively subdivided icosahedron, or ``'oct#'`` for a recursively
-        subdivided octahedron. Default is 7 mm.
+        subdivided octahedron (e.g., ``spacing='ico4'``). Default is 7 mm.
     mindist : float | str | None
         Minimum distance of sources from inner skull surface (in mm).
         If None, the MNE default value is used. If string, 'all'
