@@ -5,7 +5,7 @@ from copy import deepcopy
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose)
+                           assert_allclose, assert_equal)
 
 from scipy.fftpack import fft
 
@@ -400,6 +400,57 @@ def test_transform_data():
                                             tmin_idx=tmin_idx,
                                             tmax_idx=tmax_idx)
             assert_allclose(data_f, stc_data_t)
+
+
+def test_transform():
+    """Test applying linear (time) transform to data"""
+    # make up some data
+    n_sensors, n_verts_lh, n_verts_rh, n_times = 10, 10, 10, 10
+    vertices = [np.arange(n_verts_lh), n_verts_lh + np.arange(n_verts_rh)]
+    data = np.random.randn(n_verts_lh + n_verts_rh, n_times)
+    stc = SourceEstimate(data, vertices=vertices, tmin=-0.1, tstep=0.1)
+
+    # data_t.ndim > 2 & copy is True
+    stcs_t = stc.transform(_my_trans, copy=True)
+    assert_true(isinstance(stcs_t, list))
+    assert_array_equal(stc.times, stcs_t[0].times)
+    assert_equal(stc.vertno, stcs_t[0].vertno)
+
+    data = np.concatenate((stcs_t[0].data[:, :, None],
+                           stcs_t[1].data[:, :, None]), axis=2)
+    data_t = stc.transform_data(_my_trans)
+    assert_array_equal(data, data_t) # check against stc.transform_data()
+
+    # data_t.ndim > 2 & copy is False
+    assert_raises(ValueError, stc.transform, _my_trans, copy=False)
+
+    # data_t.ndim = 2 & copy is True
+    tmp = deepcopy(stc)
+    stc_t = stc.transform(np.abs, copy=True)
+    assert_true(isinstance(stc_t, SourceEstimate))
+    assert_array_equal(stc.data, tmp.data) # xfrm doesn't modify original?
+
+    # data_t.ndim = 2 & copy is False
+    times = np.round(1000 * stc.times)
+    verts = np.arange(len(stc.lh_vertno),
+                      len(stc.lh_vertno) + len(stc.rh_vertno), 1)
+    verts_rh = stc.rh_vertno
+    t_idx = [np.where(times >= -50)[0][0], np.where(times <= 500)[0][-1]]
+    data_t = stc.transform_data(np.abs, idx=verts, tmin_idx=t_idx[0],
+                                tmax_idx=t_idx[-1])
+    stc.transform(np.abs, idx=verts, tmin=-50, tmax=500, copy=False)
+    assert_true(isinstance(stc, SourceEstimate))
+    assert_true((stc.tmin == 0.) & (stc.times[-1] == 0.5))
+    assert_true(len(stc.vertno[0]) == 0)
+    assert_equal(stc.vertno[1], verts_rh)
+    assert_array_equal(stc.data, data_t)
+
+    times = np.round(1000 * stc.times)
+    t_idx = [np.where(times >= 0)[0][0], np.where(times <= 250)[0][-1]]
+    data_t = stc.transform_data(np.abs, tmin_idx=t_idx[0], tmax_idx=t_idx[-1])
+    stc.transform(np.abs, tmin=0, tmax=250, copy=False)
+    assert_true((stc.tmin == 0.) & (stc.times[-1] == 0.2))
+    assert_array_equal(stc.data, data_t)
 
 
 def test_notify_array_source_estimate():
