@@ -1909,6 +1909,7 @@ def _prepare_topo_plot(obj, ch_type, layout):
         merge_grads = True
     else:
         merge_grads = False
+
         if ch_type == 'eeg':
             picks = pick_types(info, meg=False, eeg=True, exclude='bads')
         else:
