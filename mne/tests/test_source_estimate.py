@@ -5,7 +5,7 @@ from copy import deepcopy
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose)
+                           assert_allclose, assert_equal)
 
 from scipy.fftpack import fft
 
@@ -414,7 +414,7 @@ def test_transform():
     stcs_t = stc.transform(_my_trans, copy=True)
     assert_true(isinstance(stcs_t, list))
     assert_array_equal(stc.times, stcs_t[0].times)
-    assert_array_equal(stc.vertno, stcs_t[0].vertno)
+    assert_equal(stc.vertno, stcs_t[0].vertno)
 
     data = np.concatenate((stcs_t[0].data[:, :, None],
                            stcs_t[1].data[:, :, None]), axis=2)
@@ -442,7 +442,7 @@ def test_transform():
     assert_true(isinstance(stc, SourceEstimate))
     assert_true((stc.tmin == 0.) & (stc.times[-1] == 0.5))
     assert_true(len(stc.vertno[0]) == 0)
-    assert_array_equal(stc.vertno[1], verts_rh)
+    assert_equal(stc.vertno[1], verts_rh)
     assert_array_equal(stc.data, data_t)
 
     times = np.round(1000 * stc.times)
