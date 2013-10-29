@@ -829,10 +829,17 @@ class _BaseSourceEstimate(object):
         ----------
         func : callable
             The transform to be applied. The first parameter of the function
-            is the input data. The first return value is the transformed
-            data, remaining outputs are ignored. The first dimension of the
-            transformed data has to be the same as the first dimension of
-            the input data.
+            is the input data. The first two dimensions of the transformed
+            data should be (i) vertices and (ii) time.  Transforms which yield
+            3D output (e.g. time-frequency transforms) are valid, so long as
+            the first two dimensions are vertices and time.  In this case, the
+            copy parameter must be True and a list of SourceEstimates, rather
+            than a single SourceEstimate, will be returned, one for each index
+            of the 3rd dimension of the transformed data.  In the case of
+            transforms yielding 2D output (e.g. filtering), the user has the
+            option of modifying the input inplace (copy = False) or returning
+            a new instance of SourceEstimate (copy = True) with the
+            transformed data.
         func_args : tuple | None
             Additional parameters to be passed to func.
         idx : array | None
@@ -842,8 +849,9 @@ class _BaseSourceEstimate(object):
             First time point to include (ms). If None, self.tmin is used.
         tmax : float | int | None
             Last time point to include (ms). If None, self.tmax is used.
-        copy: bool
-            If True, returns copy instead of modifying inplace the input stc.
+        copy : bool
+            If True, return a new instance of SourceEstimate instead of
+            modifying the input inplace.
         **kwargs : dict
             Keyword arguments to be passed to func.
 
@@ -851,7 +859,7 @@ class _BaseSourceEstimate(object):
         -------
         stcs : instance of SourceEstimate | list
             The transformed stc or, in the case of transforms which yield
-            N-dimensional output (where N > 2), a list of stcs.  For a list,
+            N-dimensional output (where N > 2), a list of stcs. For a list,
             copy must be True.
 
         Notes

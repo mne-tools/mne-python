@@ -5,7 +5,7 @@ from copy import deepcopy
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose, assert_equal)
+                           assert_allclose)
 
 from scipy.fftpack import fft
 
@@ -413,20 +413,22 @@ def test_transform():
     # data_t.ndim > 2 & copy is True
     stcs_t = stc.transform(_my_trans, copy=True)
     assert_true(isinstance(stcs_t, list))
-    assert_equal(stc.times, stcs_t[0].times)
-    assert_equal(stc.vertno, stcs_t[0].vertno)
+    assert_array_equal(stc.times, stcs_t[0].times)
+    assert_array_equal(stc.vertno, stcs_t[0].vertno)
 
     data = np.concatenate((stcs_t[0].data[:, :, None],
                            stcs_t[1].data[:, :, None]), axis=2)
     data_t = stc.transform_data(_my_trans)
-    assert_equal(data, data_t) # check against stc.transform_data()
+    assert_array_equal(data, data_t) # check against stc.transform_data()
 
     # data_t.ndim > 2 & copy is False
     assert_raises(ValueError, stc.transform, _my_trans, copy=False)
 
     # data_t.ndim = 2 & copy is True
+    tmp = deepcopy(stc)
     stc_t = stc.transform(np.abs, copy=True)
     assert_true(isinstance(stc_t, SourceEstimate))
+    assert_array_equal(stc.data, tmp.data) # xfrm doesn't modify original?
 
     # data_t.ndim = 2 & copy is False
     times = np.round(1000 * stc.times)
@@ -440,15 +442,15 @@ def test_transform():
     assert_true(isinstance(stc, SourceEstimate))
     assert_true((stc.tmin == 0.) & (stc.times[-1] == 0.5))
     assert_true(len(stc.vertno[0]) == 0)
-    assert_equal(stc.vertno[1], verts_rh)
-    assert_equal(stc.data, data_t)
+    assert_array_equal(stc.vertno[1], verts_rh)
+    assert_array_equal(stc.data, data_t)
 
     times = np.round(1000 * stc.times)
     t_idx = [np.where(times >= 0)[0][0], np.where(times <= 250)[0][-1]]
     data_t = stc.transform_data(np.abs, tmin_idx=t_idx[0], tmax_idx=t_idx[-1])
     stc.transform(np.abs, tmin=0, tmax=250, copy=False)
     assert_true((stc.tmin == 0.) & (stc.times[-1] == 0.2))
-    assert_equal(stc.data, data_t)
+    assert_array_equal(stc.data, data_t)
 
 
 def test_notify_array_source_estimate():
