@@ -161,7 +161,7 @@ def test_do_forward_solution():
     # let's catch an MNE error, this time about trans being wrong
     assert_raises(CalledProcessError, do_forward_solution, 'sample',
                   fname_raw, existing_file, trans=fname_mri, overwrite=True,
-                  spacing='oct-6', subjects_dir=subjects_dir)
+                  spacing='oct6', subjects_dir=subjects_dir)
 
     # ## Actually calculate one and check
     # make a meas from raw (tests all steps in creating evoked),
