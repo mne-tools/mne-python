@@ -7,6 +7,7 @@
 from time import time
 import warnings
 from copy import deepcopy
+import re
 
 import numpy as np
 from scipy import linalg, sparse
@@ -1290,8 +1291,10 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         will be created in a temporary directory, loaded, and deleted.
     src : str | None
         Source space name. If None, the MNE default is used.
-    spacing : str | None
-        Source space spacing to use. If None, the MNE default is used.
+    spacing : str
+        The spacing to use. Can be ``'#'`` for spacing in mm, ``'ico#'`` for a
+        recursively subdivided icosahedron, or ``'oct#'`` for a recursively
+        subdivided octahedron (e.g., ``spacing='ico4'``). Default is 7 mm.
     mindist : float | str | None
         Minimum distance of sources from inner skull surface (in mm).
         If None, the MNE default value is used. If string, 'all'
@@ -1428,6 +1431,14 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     if src is not None:
         cmd += ['--src', src]
     if spacing is not None:
+        if spacing.isdigit():
+            pass  # spacing in mm
+        else:
+            # allow both "ico4" and "ico-4" style values
+            match = re.match("(oct|ico)-?(\d+)$", spacing)
+            if match is None:
+                raise ValueError("Invalid spacing parameter: %r" % spacing)
+            spacing = '-'.join(match.groups())
         cmd += ['--spacing', spacing]
     if mindist is not None:
         cmd += mindist
