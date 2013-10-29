@@ -160,7 +160,7 @@ class CSP(TransformerMixin):
         lambda2_ = lambda_[ind]
 
         u = u[:, ind]
-        p = np.sqrt(linalg.pinv(np.diag(lambda2_))) * u.T
+        p = np.dot(np.sqrt(linalg.pinv(np.diag(lambda2_))), u.T)
 
         # Compute the generalized eigen value problem
         w_a = np.dot(np.dot(p, cov_a), p.T)
