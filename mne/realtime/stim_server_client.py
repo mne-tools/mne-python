@@ -89,16 +89,16 @@ class StimServer(object):
         IP address of the host where StimServer is running.
     port : int
         The port to which the stimulation server must bind to
-    numclients : int
+    n_clients : int
         The number of clients which will connect to the server
     """
 
-    def __init__(self, ip='localhost', port=4218, numclients=1):
+    def __init__(self, ip='localhost', port=4218, n_clients=1):
 
         # Start a threaded TCP server, binding to localhost on specified port
         self._data = _ThreadedTCPServer((ip, port),
                                         _TriggerHandler, self)
-        self._numclients = numclients
+        self.n_clients = n_clients
 
     def __enter__(self):
         # This is done to avoid "[Errno 98] Address already in use"
@@ -136,8 +136,8 @@ class StimServer(object):
             logger.info('RtServer: Start')
             self._running = True
 
-            # wait till numclient is added
-            while (len(self._clients) < self._numclients):
+            # wait till n_clients are added
+            while (len(self._clients) < self.n_clients):
                 time.sleep(0.1)
 
     @verbose

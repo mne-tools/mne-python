@@ -30,7 +30,7 @@ def test_connection():
     thread2.daemon = True
     thread2.start()
 
-    with StimServer('localhost', port=4218, numclients=2) as stim_server:
+    with StimServer('localhost', port=4218, n_clients=2) as stim_server:
         stim_server.start()
 
         # Add the trigger to the queue for both clients
