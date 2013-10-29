@@ -1901,7 +1901,11 @@ def _prepare_topo_plot(obj, ch_type, layout):
         merge_grads = True
     else:
         merge_grads = False
-        picks = pick_types(info, meg=ch_type, exclude='bads')
+        if ch_type == 'eeg':
+            picks = pick_types(info, eeg=True, exclude='bads')
+        else:
+            picks = pick_types(info, meg=ch_type, exclude='bads')
+        
         if len(picks) == 0:
             raise ValueError("No channels of type %r" % ch_type)
 
