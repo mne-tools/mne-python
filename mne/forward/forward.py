@@ -1291,8 +1291,10 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         will be created in a temporary directory, loaded, and deleted.
     src : str | None
         Source space name. If None, the MNE default is used.
-    spacing : str | None
-        Source space spacing to use. If None, the MNE default is used.
+    spacing : str
+        The spacing to use. Can be ``'#'`` for spacing in mm, ``'ico#'`` for a
+        recursively subdivided icosahedron, or ``'oct#'`` for a recursively
+        subdivided octahedron. Default is 7 mm.
     mindist : float | str | None
         Minimum distance of sources from inner skull surface (in mm).
         If None, the MNE default value is used. If string, 'all'
