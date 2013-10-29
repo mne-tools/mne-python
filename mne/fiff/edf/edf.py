@@ -29,8 +29,9 @@ class RawEDF(Raw):
     input_fname : str
         Path to the EDF+,BDF file.
 
-    n_eeg : int
+    n_eeg : int | None
         Number of EEG electrodes.
+        If None, all channels are considered EEG.        
 
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
@@ -56,10 +57,8 @@ class RawEDF(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, n_eeg, stim_channel=None, hpts=None,
+    def __init__(self, input_fname, n_eeg=None, stim_channel=None, hpts=None,
                  preload=False, verbose=None):
-        if not isinstance(n_eeg, int):
-            ValueError('Must be an integer number.')
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self.info, self._edf_info = _get_edf_info(input_fname, n_eeg,
@@ -197,10 +196,11 @@ class RawEDF(Raw):
         data = np.hstack(datas)
         gains = np.array([gains])
         data = gains.T * data
-        stim = np.array(data[-1], int)
-        mask = 255 * np.ones(stim.shape, int)
-        stim = np.bitwise_and(stim, mask)
-        data[-1] = stim
+        if self._edf_info['stim_channel']:
+            stim = np.array(data[-1], int)
+            mask = 255 * np.ones(stim.shape, int)
+            stim = np.bitwise_and(stim, mask)
+            data[-1] = stim
         data = data[sel]
 
         logger.info('[done]')
@@ -216,9 +216,10 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None):
     ----------
     rawfile : str
         Raw EDF+,BDF file to be read.
-
-    n_eeg : int
+        
+    n_eeg : int | None
         Number of EEG electrodes.
+        If None, all channels are considered EEG.
 
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
@@ -276,8 +277,10 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None):
         edf_info['subtype'] = subtype
 
         n_records = int(fid.read(8))
-        record_length = int(fid.read(8))  # in seconds
+        record_length = int(float(fid.read(8)))  # in seconds
         info['nchan'] = int(fid.read(4))
+        if n_eeg is None:
+            n_eeg = info['chan']
 
         channels = range(info['nchan'])
         ch_names = [fid.read(16).strip() for _ in channels]
@@ -295,19 +298,25 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None):
         digital_min = np.array([float(fid.read(8)) for _ in channels])
         digital_max = np.array([float(fid.read(8)) for _ in channels])
         prefiltering = [fid.read(80).strip() for _ in channels][:-1]
-        highpass = [re.findall('HP:\s+(\w+)', filt) for filt in prefiltering]
-        lowpass = [re.findall('LP:\s+(\w+)', filt) for filt in prefiltering]
+        highpass = np.ravel([re.findall('HP:\s+(\w+)', filt) 
+                             for filt in prefiltering])
+        lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt) 
+                            for filt in prefiltering])
         if all(highpass) and all(lowpass):
-            if highpass[0][0] == 'DC':
-                info['highpass'] = 0
-            elif highpass[0][0] == 'NaN':
+            if highpass.size == 0:
                 info['highpass'] = None
+            elif highpass[0] == 'NaN':
+                info['highpass'] = None
+            elif highpass[0] == 'DC':
+                info['highpass'] = 0
             else:
-                info['highpass'] = int(highpass[0][0])
-            if lowpass[0][0] == 'NaN':
+                info['highpass'] = int(highpass[0])
+            if lowpass.size == 0:
+                info['lowpass'] = None
+            elif lowpass[0] == 'NaN':
                 info['lowpass'] = None
             else:
-                info['lowpass'] = int(lowpass[0][0])
+                info['lowpass'] = int(lowpass[0])
         else:
             raise NotImplementedError('Channels contain different filtering.')
         n_samples_per_record = [int(fid.read(8)) for _ in channels]
@@ -379,7 +388,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None):
     logger.info('Setting channel info structure...')
     info['chs'] = []
     if stim_channel is None:
-        stim_channel = info['nchan']
+        stim_channel = edf_info['stim_channel'] = info['nchan']
     info['ch_names'] = ch_names
     for idx, ch_info in enumerate(zip(ch_names, sensor_locs,
                                       physical_range, cal), 1):
@@ -400,11 +409,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None):
         chan_info['loc'][:3] = ch_loc
         check1 = stim_channel == ch_name
         check2 = stim_channel == idx
-        stim_check = np.logical_or(check1, check2)
-        # this deals with EOG, AUX channels
-        if idx > n_eeg:
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+        check3 = info['nchan'] > 1 
+        stim_check = reduce(np.logical_or, [check1, check2, check3])
         if stim_check:
             chan_info['range'] = 1
             chan_info['cal'] = 1
@@ -419,7 +425,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None):
     return info, edf_info
 
 
-def read_raw_edf(input_fname, n_eeg, stim_channel=None, hpts=None,
+def read_raw_edf(input_fname, n_eeg=None, stim_channel=None, hpts=None,
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
 
@@ -427,10 +433,11 @@ def read_raw_edf(input_fname, n_eeg, stim_channel=None, hpts=None,
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
-
-    n_eeg : int
+        
+    n_eeg : int | None
         Number of EEG electrodes.
-
+        If None, all channels are considered EEG.
+        
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         If None, it will use the last channel in data.
@@ -446,6 +453,6 @@ def read_raw_edf(input_fname, n_eeg, stim_channel=None, hpts=None,
         If True, all data are loaded at initialization.
         If False, data are not read until save.
     """
-    return RawEDF(input_fname=input_fname, n_eeg=n_eeg,
+    return RawEDF(input_fname=input_fname, n_eeg=n_eeg, 
                   stim_channel=stim_channel, hpts=hpts,
                   verbose=verbose, preload=preload)
