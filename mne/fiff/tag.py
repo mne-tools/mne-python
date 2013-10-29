@@ -371,7 +371,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data['ident'] = int(np.fromstring(fid.read(4),
                                                       dtype=">i4"))
                 tag.data['r'] = np.fromstring(fid.read(12), dtype=">f4")
-                tag.data['coord_frame'] = 0
+                tag.data['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
             elif tag.type == FIFF.FIFFT_COORD_TRANS_STRUCT:
                 tag.data = dict()
                 tag.data['from'] = int(np.fromstring(fid.read(4), dtype=">i4"))
