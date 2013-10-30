@@ -20,6 +20,7 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 hpts_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
+unequal_edf_path = op.join(data_dir, 'test_unequal.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 
@@ -29,7 +30,7 @@ tempdir = _TempDir()
 def test_bdf_data():
     """Test reading raw bdf files
     """
-    raw_py = read_raw_edf(bdf_path, n_eeg=72, hpts=hpts_path, preload=True)
+    raw_py = read_raw_edf(bdf_path, hpts=hpts_path, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
@@ -47,7 +48,7 @@ def test_bdf_data():
 def test_edf_data():
     """Test reading raw edf files
     """
-    raw_py = read_raw_edf(edf_path, n_eeg=136, preload=True)
+    raw_py = read_raw_edf(edf_path, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
@@ -65,7 +66,7 @@ def test_edf_data():
 def test_read_segment():
     """Test writing raw edf files when preload is False
     """
-    raw1 = read_raw_edf(bdf_path, n_eeg=72, hpts=hpts_path, preload=False)
+    raw1 = read_raw_edf(bdf_path, hpts=hpts_path, preload=False)
     raw1_file = op.join(tempdir, 'raw1.fif')
     raw1.save(raw1_file, overwrite=True)
     raw11 = Raw(raw1_file, preload=True)
@@ -75,7 +76,7 @@ def test_read_segment():
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
-    raw2 = read_raw_edf(bdf_path, n_eeg=72, hpts=hpts_path, preload=True)
+    raw2 = read_raw_edf(bdf_path, hpts=hpts_path, preload=True)
     raw2_file = op.join(tempdir, 'raw2.fif')
     raw2.save(raw2_file, overwrite=True)
     data2, times2 = raw2[:, :]
