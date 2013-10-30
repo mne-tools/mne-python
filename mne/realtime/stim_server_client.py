@@ -7,6 +7,8 @@ import socket
 import SocketServer
 import threading
 
+import numpy as np
+
 from ..utils import logger, verbose
 
 
@@ -51,8 +53,9 @@ class _TriggerHandler(SocketServer.BaseRequestHandler):
 
             if data == 'add client':
                 # Add stim_server._client
-                client_id = self.server.stim_server._add_client(self.client_address[0],
-                                                               self)
+                client_id = self.server.stim_server \
+                                ._add_client(self.client_address[0],
+                                             self)
 
                 # Instantiate queue for communication between threads
                 # Note: new queue for each handler
@@ -88,9 +91,9 @@ class StimServer(object):
     ip : str
         IP address of the host where StimServer is running.
     port : int
-        The port to which the stimulation server must bind to
+        The port to which the stimulation server must bind to.
     n_clients : int
-        The number of clients which will connect to the server
+        The number of clients which will connect to the server.
     """
 
     def __init__(self, ip='localhost', port=4218, n_clients=1):
@@ -115,18 +118,20 @@ class StimServer(object):
         self._thread.start()
 
         self._running = False
-        self._clients = []
+        self._clients = list()
         return self
 
     def __exit__(self, type, value, traceback):
         self.shutdown()
 
     @verbose
-    def start(self, verbose=None):
+    def start(self, timeout=np.inf, verbose=None):
         """Method to start the server.
 
         Parameters
         ----------
+        timeout : float
+            Maximum time to wait for clients to be added.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
@@ -136,8 +141,15 @@ class StimServer(object):
             logger.info('RtServer: Start')
             self._running = True
 
+            start_time = time.time()  # init delay counter.
+
             # wait till n_clients are added
             while (len(self._clients) < self.n_clients):
+                current_time = time.time()
+
+                if (current_time > start_time + timeout):
+                    raise StopIteration
+
                 time.sleep(0.1)
 
     @verbose

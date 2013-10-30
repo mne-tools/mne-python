@@ -3,7 +3,7 @@ import time
 import Queue
 
 from mne.realtime import StimServer, StimClient
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_raises
 
 
 def test_connection():
@@ -22,8 +22,6 @@ def test_connection():
     thread1 = threading.Thread(target=connect_client, args=(trig_queue1,))
     thread1.daemon = True
     thread1.start()
-
-    time.sleep(0.1)  # wait till the first client is connected
 
     # start another thread to emulate 2nd client
     thread2 = threading.Thread(target=connect_client, args=(trig_queue2,))
@@ -44,6 +42,10 @@ def test_connection():
 
         # test if both clients receive the same trigger
         assert_equal(trig1, trig2)
+
+    # test timeout for stim_server
+    with StimServer('localhost', port=4218) as stim_server:
+        assert_raises(StopIteration, stim_server.start, 1.0)
 
 
 def connect_client(trig_queue):
