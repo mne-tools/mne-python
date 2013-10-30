@@ -25,7 +25,7 @@ data_path.__doc__ = _doc.format(name='sample',
 # Allow forcing of sample dataset skip (for tests) using:
 # `make test-no-sample`
 has_sample_data = has_dataset('sample')
-skip_sample = get_config('MNE_SKIP_SPM_DATASET_TESTS', 'false') == 'true'
+skip_sample = get_config('MNE_SKIP_SAMPLE_DATASET_TESTS', 'false') == 'true'
 requires_sample_data = np.testing.dec.skipif(not has_sample_data
                                           or skip_sample,
                                           'Requires sample dataset')
