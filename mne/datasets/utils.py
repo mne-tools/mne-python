@@ -178,7 +178,7 @@ def _data_path(path=None, force_update=False, update_path=True,
 def has_dataset(name):
     """Helper for sample dataset presence"""
     endswith = {'sample': 'MNE-sample-data',
-                'spm': 'MNE-spm-face-data'}[name]
+                'spm': 'MNE-spm-face'}[name]
     if _data_path(download=False, name=name).endswith(endswith):
         return True
     else:
