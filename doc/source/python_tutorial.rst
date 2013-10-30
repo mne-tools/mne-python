@@ -93,9 +93,9 @@ From raw data to evoked data
 
 .. _ipython: http://ipython.scipy.org/
 
-Now, launch `ipython`_ (Advanced Python shell)::
+Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best supported across systems::
 
-  $ ipython -pylab -wthread
+  $ ipython -pylab -qt
 
 First, load the mne package:
 
