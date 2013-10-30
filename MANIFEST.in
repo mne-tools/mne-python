@@ -4,8 +4,8 @@ include mne/__init__.py
 recursive-include examples *.py
 recursive-include examples *.txt
 recursive-include mne *.py
-# recursive-include mne/fiff/tests/data *
-recursive-exclude mne/fiff/tests/data *
+recursive-include mne/fiff/tests/data *
+# recursive-exclude mne/fiff/tests/data *
 recursive-exclude mne/fiff/bti/tests/data *
 recursive-include mne/data *.sel
 recursive-include mne/data *.fif.gz
