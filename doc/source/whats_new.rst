@@ -174,7 +174,7 @@ Changelog
 
    - Add example of decoding/MVPA on MEG source space data by `Denis Engemann`_
 
-   - Add support for --tstart option in mne_compute_proj_eog.py by `Alex Gramfort`_
+   - Add support for --tstart option in mne_compute_proj_eog by `Alex Gramfort`_
 
    - Add two-way repeated measures ANOVA for mass-univariate statistics by `Denis Engemann`_, `Eric Larson`_ and `Alex Gramfort`_
 
@@ -403,9 +403,9 @@ Changelog
 
    - Read and write measurement info in forward and inverse operators for interactive visualization in mne_analyze by `Alex Gramfort`_.
 
-   - New mne_compute_proj_ecg.py and mne_compute_proj_eog.py scripts to estimate ECG/EOG PCA/SSP vectors by `Alex Gramfort`_ and `Martin Luessi`_.
+   - New mne_compute_proj_ecg and mne_compute_proj_eog scripts to estimate ECG/EOG PCA/SSP vectors by `Alex Gramfort`_ and `Martin Luessi`_.
 
-   - Wrapper function and script (mne_maxfilter.py) for Elekta Neuromag MaxFilter(TM) by `Martin Luessi`_
+   - Wrapper function and script (mne_maxfilter) for Elekta Neuromag MaxFilter(TM) by `Martin Luessi`_
 
    - Add method to eliminate stimulation artifacts from raw data by linear interpolation or windowing by `Daniel Strohmeier`_.
 
