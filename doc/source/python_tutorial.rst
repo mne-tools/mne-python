@@ -73,7 +73,7 @@ Make life easier
 ~~~~~~~~~~~~~~~~
 
   For optimal performance we recommend using numpy / scipy with the multi-threaded
-  ATLAS, gotoblas2, or intel MKL. The Enthought Canopy and the Anaconda distribution for example
+  ATLAS, gotoblas2, or intel MKL. For example, the Enthought Canopy and the Anaconda distributions
   ship with tested MKL-compiled numpy / scipy versions. Depending on the use case and your system
   this may speed up operations by a factor greater than 10.
 
