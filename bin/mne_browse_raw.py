@@ -8,6 +8,7 @@ $mne_browse_raw.py --raw sample_audvis_raw.fif --proj sample_audvis_ecg_proj.fif
 
 # Authors : Eric Larson, PhD
 
+import os
 import sys
 import mne
 
@@ -44,7 +45,15 @@ if __name__ == '__main__':
     parser.add_option("-s", "--show_options", dest="show_options",
                       help="Show projection options dialog",
                       default=False)
+    parser.add_option("--version", dest="version", action="store_true",
+                      help="Return script version",
+                      default=False)
+
     options, args = parser.parse_args()
+
+    if options.version:
+        print "%s %s" % (os.path.basename(__file__), mne.__version__)
+        sys.exit(0)
 
     raw_in = options.raw_in
     duration = options.duration

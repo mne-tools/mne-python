@@ -25,9 +25,11 @@ are present in your dataset but 'ECG 01' and 'EOG 01', 'EOG 02' don't
 appear in the channel names of the raw object.
 """
 
-from mne.fiff.bti import read_raw_bti
-# from mne import verbose
+import os
 import sys
+
+from mne.fiff.bti import read_raw_bti
+
 
 if __name__ == '__main__':
 
@@ -56,8 +58,15 @@ if __name__ == '__main__':
     parser.add_option('--eog_ch', dest='eog_ch', type='str',
                     help='4D EOG channel names',
                     default='E63,E64')
+    parser.add_option("--version", dest="version", action="store_true",
+                    help="Return script version",
+                    default=False)
 
     options, args = parser.parse_args()
+
+    if options.version:
+        print "%s %s" % (os.path.basename(__file__), mne.__version__)
+        sys.exit(0)
 
     pdf_fname = options.pdf_fname
     if pdf_fname is None:

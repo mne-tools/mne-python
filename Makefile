@@ -78,3 +78,12 @@ codespell:
 	# The *.fif had to be there twice to be properly ignored (!)
 	codespell.py -w -i 3 -S="*.fif,*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.coverage,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii" ./dictionary.txt -r .
 
+manpages:
+	@echo "I: generating manpages"
+	set -e; mkdir -p build/manpages && \
+	cd bin && for f in *; do \
+			descr=$$(grep -h -e "^ *'''" -e 'DESCRIP =' $$f -h | sed -e "s,.*' *\([^'][^']*\)'.*,\1,g" | head -n 1); \
+	PYTHONPATH=../ \
+			help2man -n "$$descr" --no-discard-stderr --no-info --version-string "$(uver)" ./$$f \
+			>| ../build/manpages/$$f.1; \
+	done

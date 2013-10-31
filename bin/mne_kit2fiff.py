@@ -7,6 +7,7 @@ example usage: mne_kit2fiff.py --input input.sqd --output output.fif
 
 """
 
+import os
 import sys
 from mne.fiff.kit import read_raw_kit
 
@@ -34,8 +35,15 @@ if __name__ == '__main__':
     parser.add_option('--output', dest='out_fname',
                       help='Name of the resulting fiff file',
                       metavar='filename')
+    parser.add_option("--version", dest="version", action="store_true",
+                      help="Return script version",
+                      default=False)
 
     options, args = parser.parse_args()
+
+    if options.version:
+        print "%s %s" % (os.path.basename(__file__), mne.__version__)
+        sys.exit(0)
 
     input_fname = options.input_fname
     if input_fname is None:

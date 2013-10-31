@@ -29,7 +29,16 @@ if __name__ == '__main__':
                       help='Force transformation of surface into bem.')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
                       help='Print the debug messages.')
+    parser.add_option("--version", dest="version", action="store_true",
+                      help="Return script version",
+                      default=False)
+
     options, args = parser.parse_args()
+
+    if options.version:
+        print "%s %s" % (os.path.basename(__file__), mne.__version__)
+        sys.exit(0)
+
     env = os.environ
     subject = vars(options).get('subject', env.get('SUBJECT'))
     if subject is None:

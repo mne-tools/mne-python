@@ -87,8 +87,15 @@ if __name__ == '__main__':
     parser.add_option("--args", dest="mx_args", type="string",
                     help="Additional command line arguments to pass to MaxFilter",
                     default="")
+    parser.add_option("--version", dest="version", action="store_true",
+                    help="Return script version",
+                    default=False)
 
     options, args = parser.parse_args()
+
+    if options.version:
+        print "%s %s" % (os.path.basename(__file__), mne.__version__)
+        sys.exit(0)
 
     in_fname = options.in_fname
 
