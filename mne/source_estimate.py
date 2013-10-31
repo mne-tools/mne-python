@@ -739,7 +739,7 @@ class _BaseSourceEstimate(object):
         return stc
 
     def transform_data(self, transform_fun, fun_args=None,
-                       idx=None, tmin_idx=None, tmax_idx=None, **kwargs):
+                       idx=None, tmin_idx=None, tmax_idx=None):
         """Get data after a linear (time) transform has been applied
 
         The transorm is applied to each source time course independently.
@@ -764,8 +764,6 @@ class _BaseSourceEstimate(object):
         tmax_idx : int | None
             Index of the first time point not to include. If None, time points
             up to (and including) the last time point are included.
-        **kwargs : dict
-            Keyword arguments to be passed to transform_fun.
 
         Returns
         -------
@@ -790,7 +788,7 @@ class _BaseSourceEstimate(object):
         if self._kernel is None and self._sens_data is None:
             # transform source space data directly
             data_t = transform_fun(self.data[idx, tmin_idx:tmax_idx],
-                                   *fun_args, **kwargs)
+                                   *fun_args)
 
             if isinstance(data_t, tuple):
                 # use only first return value
@@ -798,7 +796,7 @@ class _BaseSourceEstimate(object):
         else:
             # apply transform in sensor space
             sens_data_t = transform_fun(self._sens_data[:, tmin_idx:tmax_idx],
-                                        *fun_args, **kwargs)
+                                        *fun_args)
 
             if isinstance(sens_data_t, tuple):
                 # use only first return value
@@ -819,8 +817,8 @@ class _BaseSourceEstimate(object):
 
         return data_t
 
-    def transform(self, func, func_args=None,
-                  idx=None, tmin=None, tmax=None, copy=False, **kwargs):
+    def transform(self, func, func_args=None, idx=None, tmin=None, tmax=None,
+                  copy=False):
         """Apply linear transform
 
         The transform is applied to each source time course independently.
@@ -852,8 +850,6 @@ class _BaseSourceEstimate(object):
         copy : bool
             If True, return a new instance of SourceEstimate instead of
             modifying the input inplace.
-        **kwargs : dict
-            Keyword arguments to be passed to func.
 
         Returns
         -------
@@ -887,8 +883,7 @@ class _BaseSourceEstimate(object):
             tmax_idx = np.where(times <= tmax)[0][-1]
 
         data_t = self.transform_data(func, fun_args=func_args, idx=idx,
-                                     tmin_idx=tmin_idx, tmax_idx=tmax_idx,
-                                     **kwargs)
+                                     tmin_idx=tmin_idx, tmax_idx=tmax_idx)
 
         # account for change in n_vertices
         if idx is not None:
