@@ -21,7 +21,7 @@ What you can do with MNE Python
     - **Compute ICA** to remove artifacts or select latent sources.
     - **Forward modeling**: BEM computation and mesh creation (see :ref:`ch_forward`)
     - **Linear inverse solvers** (dSPM, sLORETA, MNE, LCMV, DICS)
-    - **Sparse inverse solvers** (L1/L2 mixed norm MNE, Gamma Map)
+    - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map, Time-Frequency MxNE)
     - **Connectivity estimation** in sensor and source space
     - **Visualization of sensor and source space data**
     - **Time-frequency** analysis with Morlet wavelets (induced power, phase lock value) also in the source space
@@ -73,8 +73,8 @@ Make life easier
 ~~~~~~~~~~~~~~~~
 
   For optimal performance we recommend using numpy / scipy with the multi-threaded
-  ATLAS, gotoblas2, or intel MKL. The Enthought Canopy distribution for example ships with
-  tested MKL-compiled numpy / scipy versions. Depending on the use case and your system
+  ATLAS, gotoblas2, or intel MKL. The Enthought Canopy and the Anaconda distribution for example
+  ship with tested MKL-compiled numpy / scipy versions. Depending on the use case and your system
   this may speed up operations by a factor greater than 10.
 
   The expected location for the MNE-sample data is my-path-to/mne-python/examples.
@@ -411,10 +411,10 @@ What else can you do?
     - estimate noise covariance matrix from Raw and Epochs
     - visualize cross-trial response dynamics using epochs images
     - compute forward solutions
-	- estimate power in the source space
+    - estimate power in the source space
     - estimate connectivity in sensor and source space
     - morph stc from one brain to another for group studies
-	- compute mass univariate statistics base on custom contrasts
+    - compute mass univariate statistics base on custom contrasts
     - visualize source estimates
     - export raw, epochs, and evoked data to other python data analysis libraries i.e. pandas and nitime
 
