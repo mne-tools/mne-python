@@ -11,11 +11,6 @@ contrasts, statistics, time-frequency analysis etc.)
 It uses the same files as standard MNE unix commands:
 no need to convert your files to a new system or database.
 
-What you're not supposed to do with MNE Python
-----------------------------------------------
-
-    - **Forward modeling**: BEM computation and mesh creation (see :ref:`ch_forward`)
-
 What you can do with MNE Python
 -------------------------------
 
@@ -24,14 +19,23 @@ What you can do with MNE Python
     - **Averaging** to get Evoked data
     - **Compute SSP pojectors** to remove ECG and EOG artifacts
     - **Compute ICA** to remove artifacts or select latent sources.
-    - **Linear inverse solvers** (dSPM, MNE)
+    - **Forward modeling**: BEM computation and mesh creation (see :ref:`ch_forward`)
+    - **Linear inverse solvers** (dSPM, sLORETA, MNE, LCMV, DICS)
+    - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map, Time-Frequency MxNE)
     - **Connectivity estimation** in sensor and source space
-    - **MNE source estimates visualization**
+    - **Visualization of sensor and source space data**
     - **Time-frequency** analysis with Morlet wavelets (induced power, phase lock value) also in the source space
     - **Spectrum estimation** using multi-taper method
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
     - **Non-parametric statistics** in time, space and frequency (including cluster-level)
     - **Scripting** (batch and parallel computing)
+
+What you're not supposed to do with MNE Python
+----------------------------------------------
+
+	- **Dipole fitting** use MNE or other designated software instead.
+	- **Boundary Element Modeling** use MNE and Freesurfer.
+
 
 .. note:: Package based on the FIF file format from Neuromag but can work with CTF and 4D after conversion to FIF.
 
@@ -69,8 +73,8 @@ Make life easier
 ~~~~~~~~~~~~~~~~
 
   For optimal performance we recommend using numpy / scipy with the multi-threaded
-  ATLAS, gotoblas2, or intel MKL. The EPD python distribution for example ships with
-  tested MKL-compiled numpy / scipy versions. Depending on the use case and your system
+  ATLAS, gotoblas2, or intel MKL. For example, the Enthought Canopy and the Anaconda distributions
+  ship with tested MKL-compiled numpy / scipy versions. Depending on the use case and your system
   this may speed up operations by a factor greater than 10.
 
   The expected location for the MNE-sample data is my-path-to/mne-python/examples.
@@ -89,9 +93,9 @@ From raw data to evoked data
 
 .. _ipython: http://ipython.scipy.org/
 
-Now, launch `ipython`_ (Advanced Python shell)::
+Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best supported across systems::
 
-  $ ipython -pylab -wthread
+  $ ipython -pylab -qt
 
 First, load the mne package:
 
@@ -406,9 +410,11 @@ What else can you do?
     - compute Independent Component Analysis (ICA) to remove artifacts or select latent sources
     - estimate noise covariance matrix from Raw and Epochs
     - visualize cross-trial response dynamics using epochs images
+    - compute forward solutions
     - estimate power in the source space
     - estimate connectivity in sensor and source space
     - morph stc from one brain to another for group studies
+    - compute mass univariate statistics base on custom contrasts
     - visualize source estimates
     - export raw, epochs, and evoked data to other python data analysis libraries i.e. pandas and nitime
 
