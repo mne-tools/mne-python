@@ -73,8 +73,8 @@ if __name__ == "__main__":
                                 'data/icos.fif.gz',
                                 'data/coil_def.dat',
                                 'layouts/*.lout']},
-          scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py',
-                   'bin/mne_surf2bem.py', 'bin/mne_compute_proj_ecg.py',
-                   'bin/mne_compute_proj_eog.py', 'bin/mne_maxfilter.py',
-                   'bin/mne_bti2fiff.py', 'bin/mne_kit2fiff.py',
-                   'bin/mne_browse_raw.py', 'bin/mne_make_scalp_surfaces.py'])
+          scripts=['bin/mne_clean_eog_ecg', 'bin/mne_flash_bem_model',
+                   'bin/mne_surf2bem', 'bin/mne_compute_proj_ecg',
+                   'bin/mne_compute_proj_eog', 'bin/mne_maxfilter',
+                   'bin/mne_bti2fiff', 'bin/mne_kit2fiff',
+                   'bin/mne_browse_raw', 'bin/mne_make_scalp_surfaces'])

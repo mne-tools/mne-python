@@ -1,6 +1,6 @@
 """Conversion tool from SQD to FIF
 
-RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
+RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff
 
 """
 

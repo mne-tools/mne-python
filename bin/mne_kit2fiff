@@ -3,7 +3,7 @@
 
 """ Import KIT / NYU data to fif file.
 
-example usage: mne_kit2fiff.py --input input.sqd --output output.fif
+example usage: mne_kit2fiff --input input.sqd --output output.fif
 
 """
 
