@@ -81,7 +81,7 @@ codespell:
 manpages:
 	@echo "I: generating manpages"
 	set -e; mkdir -p build/manpages && \
-	cd bin && for f in *; do \
+	cd bin && for f in mne*; do \
 			descr=$$(grep -h -e "^ *'''" -e 'DESCRIP =' $$f -h | sed -e "s,.*' *\([^'][^']*\)'.*,\1,g" | head -n 1); \
 	PYTHONPATH=../ \
 			help2man -n "$$descr" --no-discard-stderr --no-info --version-string "$(uver)" ./$$f \
