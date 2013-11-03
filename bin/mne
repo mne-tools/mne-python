@@ -33,14 +33,4 @@ elif sys.argv[1] not in valid_commands:
 else:
     cmd = sys.argv[1]
     cmd_path = op.join(mne_bin_dir, 'commands', 'mne_%s.py' % cmd)
-    p = subprocess.Popen([cmd_path] + sys.argv[2:],
-                         stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
-    if stdout.startswith('Usage'):
-        stdout = stdout.replace("mne_", "mne ")
-        stdout = stdout.replace(".py", "")
-    if p.returncode:
-        print stderr, stdout
-    else:
-        print stdout
+    sys.exit(subprocess.call([cmd_path] + sys.argv[2:]))

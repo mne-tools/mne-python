@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-"""Example usage
+"""Convert surface to BEM FIF file
 
-mne_surf2bem.py --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead --fif \
+Example usage
+
+mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead --fif \
     ${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif --id=4
 
 """
@@ -15,24 +17,18 @@ import mne
 
 if __name__ == '__main__':
 
-    from optparse import OptionParser
+    from mne.commands.utils import get_optparser
 
-    parser = OptionParser()
+    parser = get_optparser(__file__)
+
     parser.add_option("-s", "--surf", dest="surf",
                     help="Surface in Freesurfer format", metavar="FILE")
     parser.add_option("-f", "--fif", dest="fif",
                     help="FIF file produced", metavar="FILE")
     parser.add_option("-i", "--id", dest="id", default=4,
                     help=("Surface Id (e.g. 4 sur head surface)"))
-    parser.add_option("--version", dest="version", action="store_true",
-                    help="Return script version",
-                    default=False)
 
     options, args = parser.parse_args()
-
-    if options.version:
-        print "%s %s" % (os.path.basename(__file__), mne.__version__)
-        sys.exit(0)
 
     print "Converting %s to BEM FIF file." % options.surf
 
