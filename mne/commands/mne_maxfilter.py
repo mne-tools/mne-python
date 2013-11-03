@@ -3,7 +3,7 @@
 
 Example usage:
 
-$mne_maxfilter.py -i sample_audvis_raw.fif --st
+$ mne maxfilter -i sample_audvis_raw.fif --st
 
 This will apply MaxFilter with the MaxSt extension. The origin used
 by MaxFilter is computed by mne-python by fitting a sphere to the

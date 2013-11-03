@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Example usage
 
-mne_surf2bem.py --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead --fif \
+mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead --fif \
     ${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif --id=4
 
 """
