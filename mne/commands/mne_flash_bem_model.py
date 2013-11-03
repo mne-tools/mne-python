@@ -20,7 +20,6 @@ directory.
 
 import math
 import os
-import sys
 import mne
 
 
@@ -102,12 +101,13 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
 
 if __name__ == '__main__':
 
-    from optparse import OptionParser
+    from mne.commands.utils import get_optparser
+
+    parser = get_optparser(__file__)
 
     subject = os.environ.get('SUBJECT')
     subjects_dir = os.environ.get('SUBJECTS_DIR')
 
-    parser = OptionParser()
     parser.add_option("-s", "--subject", dest="subject",
                     help="Subject name", default=subject)
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
@@ -121,15 +121,8 @@ if __name__ == '__main__':
     parser.add_option("-v", "--view", dest="show", action="store_true",
                       help="Show BEM model in 3D for visual inspection",
                       default=False)
-    parser.add_option("--version", dest="version", action="store_true",
-                      help="Return script version",
-                      default=False)
 
     options, args = parser.parse_args()
-
-    if options.version:
-        print "%s %s" % (os.path.basename(__file__), mne.__version__)
-        sys.exit(0)
 
     subject = options.subject
     subjects_dir = options.subjects_dir

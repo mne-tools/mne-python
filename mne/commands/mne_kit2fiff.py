@@ -7,15 +7,16 @@ example usage: mne kit2fiff --input input.sqd --output output.fif
 
 """
 
-import os
 import sys
+
 from mne.fiff.kit import read_raw_kit
 
 if __name__ == '__main__':
 
-    from optparse import OptionParser
+    from mne.commands.utils import get_optparser
 
-    parser = OptionParser()
+    parser = get_optparser(__file__)
+
     parser.add_option('--input', dest='input_fname',
                       help='Input data file name', metavar='filename')
     parser.add_option('--mrk', dest='mrk_fname',
@@ -35,20 +36,13 @@ if __name__ == '__main__':
     parser.add_option('--output', dest='out_fname',
                       help='Name of the resulting fiff file',
                       metavar='filename')
-    parser.add_option("--version", dest="version", action="store_true",
-                      help="Return script version",
-                      default=False)
 
     options, args = parser.parse_args()
-
-    if options.version:
-        print "%s %s" % (os.path.basename(__file__), mne.__version__)
-        sys.exit(0)
 
     input_fname = options.input_fname
     if input_fname is None:
         parser.print_help()
-        sys.exit(-1)
+        sys.exit(1)
 
     hsp_fname = options.hsp_fname
     elp_fname = options.elp_fname

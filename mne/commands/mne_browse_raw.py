@@ -8,17 +8,18 @@ $ mne browse_raw --raw sample_audvis_raw.fif --proj sample_audvis_ecg_proj.fif -
 
 # Authors : Eric Larson, PhD
 
-import os
 import sys
 import mne
 
 
 if __name__ == '__main__':
 
-    from optparse import OptionParser
     import matplotlib.pyplot as plt
 
-    parser = OptionParser()
+    from mne.commands.utils import get_optparser
+
+    parser = get_optparser(__file__)
+
     parser.add_option("--raw", dest="raw_in",
                       help="Input raw FIF file", metavar="FILE")
     parser.add_option("--proj", dest="proj_in",
@@ -45,15 +46,8 @@ if __name__ == '__main__':
     parser.add_option("-s", "--show_options", dest="show_options",
                       help="Show projection options dialog",
                       default=False)
-    parser.add_option("--version", dest="version", action="store_true",
-                      help="Return script version",
-                      default=False)
 
     options, args = parser.parse_args()
-
-    if options.version:
-        print "%s %s" % (os.path.basename(__file__), mne.__version__)
-        sys.exit(0)
 
     raw_in = options.raw_in
     duration = options.duration
@@ -67,7 +61,7 @@ if __name__ == '__main__':
 
     if raw_in is None:
         parser.print_help()
-        sys.exit(-1)
+        sys.exit(1)
 
     raw = mne.fiff.Raw(raw_in, preload=preload)
     if len(proj_in) > 0:

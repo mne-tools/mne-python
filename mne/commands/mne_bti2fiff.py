@@ -1,15 +1,5 @@
 #!/usr/bin/env python
-
-# Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
-#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Yuval Harpaz <yuvharpaz@gmail.com>
-#
-#          simplified bsd-3 license
-
 """
-
 Import BTi / 4D MagnesWH3600 data to fif file.
 
 example usage: mne bti2fiff -pdf C,rfDC -o my_raw.fif
@@ -25,7 +15,15 @@ are present in your dataset but 'ECG 01' and 'EOG 01', 'EOG 02' don't
 appear in the channel names of the raw object.
 """
 
-import os
+# Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Yuval Harpaz <yuvharpaz@gmail.com>
+#
+#          simplified bsd-3 license
+
+
 import sys
 
 from mne.fiff.bti import read_raw_bti
@@ -33,9 +31,10 @@ from mne.fiff.bti import read_raw_bti
 
 if __name__ == '__main__':
 
-    from optparse import OptionParser
+    from mne.commands.utils import get_optparser
 
-    parser = OptionParser()
+    parser = get_optparser(__file__)
+
     parser.add_option('-p', '--pdf', dest='pdf_fname',
                     help='Input data file name', metavar='FILE')
     parser.add_option('-c', '--config', dest='config_fname',
@@ -58,20 +57,13 @@ if __name__ == '__main__':
     parser.add_option('--eog_ch', dest='eog_ch', type='str',
                     help='4D EOG channel names',
                     default='E63,E64')
-    parser.add_option("--version", dest="version", action="store_true",
-                    help="Return script version",
-                    default=False)
 
     options, args = parser.parse_args()
-
-    if options.version:
-        print "%s %s" % (os.path.basename(__file__), mne.__version__)
-        sys.exit(0)
 
     pdf_fname = options.pdf_fname
     if pdf_fname is None:
         parser.print_help()
-        sys.exit(-1)
+        sys.exit(1)
 
     config_fname = options.config_fname
     head_shape_fname = options.head_shape_fname

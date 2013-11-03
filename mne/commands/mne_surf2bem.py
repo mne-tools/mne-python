@@ -4,15 +4,15 @@
 Example usage
 
 mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead --fif \
-    ${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif --id=4
+${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif --id=4
 
 """
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-import os
 import sys
+
 import mne
 
 if __name__ == '__main__':
@@ -29,6 +29,10 @@ if __name__ == '__main__':
                     help=("Surface Id (e.g. 4 sur head surface)"))
 
     options, args = parser.parse_args()
+
+    if options.surf is None:
+        parser.print_help()
+        sys.exit(1)
 
     print "Converting %s to BEM FIF file." % options.surf
 
