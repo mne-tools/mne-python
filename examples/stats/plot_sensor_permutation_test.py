@@ -77,13 +77,12 @@ mask_significant_sensors[idx_of_sensors] = True
 mask_non_significant_sensors = mask_significant_sensors == False
 
 # plot it
-plt.figure(facecolor='k')
+plt.figure(figsize=(5, 3.5), facecolor='k')
 plt.axis('off')
 plt.scatter(layout.pos[mask_significant_sensors, 0],
             layout.pos[mask_significant_sensors, 1], s=50, c='r')
 plt.scatter(layout.pos[mask_non_significant_sensors, 0],
             layout.pos[mask_non_significant_sensors, 1], c='w')
-title = 'MNE sample data (Left auditory between 40 and 60 ms)'
+title = 'Left auditory between 40 and 60 ms'
 plt.figtext(0.03, 0.93, title, color='w', fontsize=18)
-plt.axis('tight')
 plt.show()
