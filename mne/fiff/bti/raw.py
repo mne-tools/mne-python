@@ -950,7 +950,7 @@ class RawBTi(Raw):
       The 4D names of the EOG channels. If None, the channels will be treated
       as regular EEG channels.
     rename_channels: bool
-      If True, rename channels Neuromag format, else leave 4-D format
+      If True, rename channel names to Neuromag format, else leave in 4-D format
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1213,7 +1213,7 @@ def read_raw_bti(pdf_fname, config_fname='config',
       The 4D names of the EOG channels. If None, the channels will be treated
       as regular EEG channels.
     rename_channels: bool
-      If True, rename channels Neuromag format, else leave 4-D format
+      If True, rename channel names to Neuromag format, else leave in 4-D format
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
