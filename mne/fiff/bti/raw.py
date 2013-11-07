@@ -949,6 +949,8 @@ class RawBTi(Raw):
     eog_ch: tuple of str | None
       The 4D names of the EOG channels. If None, the channels will be treated
       as regular EEG channels.
+    rename_channels: bool
+      If True, rename channel names to Neuromag format, else leave in 4-D format
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -961,7 +963,7 @@ class RawBTi(Raw):
     def __init__(self, pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
                  translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=None):
+                 eog_ch=('E63', 'E64'), rename_channels=True, verbose=None):
 
         if not op.isabs(pdf_fname):
             pdf_fname = op.abspath(pdf_fname)
@@ -1023,7 +1025,7 @@ class RawBTi(Raw):
         chs = []
 
         ch_names = [ch['name'] for ch in bti_info['chs']]
-        info['ch_names'] = _rename_channels(ch_names)
+        info['ch_names'] = _rename_channels(ch_names) if rename_channels else ch_names
         ch_mapping = zip(ch_names, info['ch_names'])
         logger.info('... Setting channel info structure.')
         for idx, (chan_4d, chan_vv) in enumerate(ch_mapping):
@@ -1174,7 +1176,8 @@ class RawBTi(Raw):
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
                  translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=True):
+                 eog_ch=('E63', 'E64'), rename_channels=True, 
+                 verbose=True):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     Note.
@@ -1209,10 +1212,12 @@ def read_raw_bti(pdf_fname, config_fname='config',
     eog_ch: tuple of str | None
       The 4D names of the EOG channels. If None, the channels will be treated
       as regular EEG channels.
+    rename_channels: bool
+      If True, rename channel names to Neuromag format, else leave in 4-D format
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
-                  verbose=verbose)
+                  rename_channels=rename_channels, verbose=verbose)
