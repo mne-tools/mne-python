@@ -217,7 +217,7 @@ def test_plot_sparse_source_estimates():
     colormap = mne_analyze_colormap()
     plot_source_estimates(stc, 'sample', colormap=colormap,
                           config_opts={'background': (1, 1, 0)},
-                          subjects_dir=subjects_dir)
+                          subjects_dir=subjects_dir, colorbar=True)
     assert_raises(TypeError, plot_source_estimates, stc, 'sample',
                   figure='foo', hemi='both')
 
