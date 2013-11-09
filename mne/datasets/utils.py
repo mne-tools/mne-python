@@ -45,6 +45,7 @@ _doc = """Get path to local copy of {name} dataset
         Path to {name} dataset directory.
 """
 
+
 def _dataset_version(path, name):
     """Get the version of the dataset"""
     ver_fname = op.join(path, 'version.txt')
@@ -60,7 +61,6 @@ def _dataset_version(path, name):
     return version
 
 
-
 def _data_path(path=None, force_update=False, update_path=True,
                download=True, name=None, verbose=None):
     """Aux function
@@ -70,8 +70,8 @@ def _data_path(path=None, force_update=False, update_path=True,
 
     if path is None:
         # use an intelligent guess if it's not defined
-        def_path = op.abspath(op.join(op.dirname(__file__),
-                                      '..', '..', 'examples'))
+        def_path = op.realpath(op.join(op.dirname(__file__),
+                                       '..', '..', 'examples'))
 
         path = get_config(key, def_path)
         # use the same for all datasets
