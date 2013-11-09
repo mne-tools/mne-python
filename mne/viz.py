@@ -1549,7 +1549,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
                           transparent=True, alpha=1.0, time_viewer=False,
                           config_opts={}, subjects_dir=None, figure=None,
-                          views='lat'):
+                          views='lat', colorbar=True):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1604,6 +1604,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         figure by it's id or create a new figure with the given id.
     views : str | list
         View to use. See surfer.Brain().
+    colorbar : bool
+        If True, display colorbar on scene.
 
     Returns
     -------
@@ -1680,7 +1682,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         time = 1e3 * stc.times
         brain.add_data(data, colormap=colormap, vertices=vertices,
                        smoothing_steps=smoothing_steps, time=time,
-                       time_label=time_label, alpha=alpha, hemi=hemi)
+                       time_label=time_label, alpha=alpha, hemi=hemi,
+                       colorbar=colorbar)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,

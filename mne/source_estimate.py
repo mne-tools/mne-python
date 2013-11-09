@@ -1362,7 +1362,7 @@ class SourceEstimate(_BaseSourceEstimate):
              smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
              transparent=True, alpha=1.0, time_viewer=False,
              config_opts={}, subjects_dir=None, figure=None,
-             views='lat'):
+             views='lat', colorbar=True):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1415,6 +1415,8 @@ class SourceEstimate(_BaseSourceEstimate):
             be created.
         views : str | list
             View to use. See surfer.Brain().
+        colorbar : bool
+            If True, display colorbar on scene.
 
         Returns
         -------
@@ -1426,7 +1428,8 @@ class SourceEstimate(_BaseSourceEstimate):
                         smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
                         fmax=fmax, transparent=transparent, alpha=alpha,
                         time_viewer=time_viewer, config_opts=config_opts,
-                        subjects_dir=subjects_dir, figure=figure, views=views)
+                        subjects_dir=subjects_dir, figure=figure, views=views,
+                        colorbar=colorbar)
         return brain
 
     @verbose
