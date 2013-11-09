@@ -7,6 +7,8 @@ import socket
 import SocketServer
 import threading
 
+import numpy as np
+
 from ..utils import logger, verbose
 
 
@@ -51,18 +53,29 @@ class _TriggerHandler(SocketServer.BaseRequestHandler):
 
             if data == 'add client':
                 # Add stim_server._client
-                self.server.stim_server._add_client(self.client_address[0],
-                                                    self)
+                client_id = self.server.stim_server \
+                                ._add_client(self.client_address[0],
+                                             self)
+
+                # Instantiate queue for communication between threads
+                # Note: new queue for each handler
+                if not hasattr(self, '_tx_queue'):
+                    self._tx_queue = Queue.Queue()
+
                 self.request.sendall("Client added")
+
+                # Mark the client as running
+                for client in self.server.stim_server._clients:
+                    if client['id'] == client_id:
+                        client['running'] = True
 
             if data == 'get trigger':
 
                 # Pop triggers and send them
-                if (self.server.stim_server._tx_queue.qsize() > 0 and
-                        hasattr(self.server.stim_server, '_client')):
+                if (self._tx_queue.qsize() > 0 and
+                        self.server.stim_server, '_clients'):
 
-                    trigger = self.server.stim_server._tx_queue.get()
-                    logger.info("Trigger %s popped and sent" % (str(trigger)))
+                    trigger = self._tx_queue.get()
                     self.request.sendall(str(trigger))
                 else:
                     self.request.sendall("Empty")
@@ -78,14 +91,17 @@ class StimServer(object):
     ip : str
         IP address of the host where StimServer is running.
     port : int
-        The port to which the stimulation server must bind to
+        The port to which the stimulation server must bind to.
+    n_clients : int
+        The number of clients which will connect to the server.
     """
 
-    def __init__(self, ip='localhost', port=4218):
+    def __init__(self, ip='localhost', port=4218, n_clients=1):
 
         # Start a threaded TCP server, binding to localhost on specified port
         self._data = _ThreadedTCPServer((ip, port),
                                         _TriggerHandler, self)
+        self.n_clients = n_clients
 
     def __enter__(self):
         # This is done to avoid "[Errno 98] Address already in use"
@@ -102,54 +118,60 @@ class StimServer(object):
         self._thread.start()
 
         self._running = False
+        self._clients = list()
         return self
 
     def __exit__(self, type, value, traceback):
         self.shutdown()
 
     @verbose
-    def start(self, verbose=None):
+    def start(self, timeout=np.inf, verbose=None):
         """Method to start the server.
 
         Parameters
         ----------
+        timeout : float
+            Maximum time to wait for clients to be added.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-
-        # Instantiate queue for communication between threads
-        if not hasattr(self, '_tx_queue'):
-            self._tx_queue = Queue.Queue()
 
         # Start server
         if not self._running:
             logger.info('RtServer: Start')
             self._running = True
 
-            # wait till client is added
-            while not hasattr(self, '_client'):
+            start_time = time.time()  # init delay counter.
+
+            # wait till n_clients are added
+            while (len(self._clients) < self.n_clients):
+                current_time = time.time()
+
+                if (current_time > start_time + timeout):
+                    raise StopIteration
+
                 time.sleep(0.1)
 
     @verbose
     def _add_client(self, ip, sock, verbose=None):
-        """Add client and flag it as running.
+        """Add client.
 
         Parameters
         ----------
         ip : str
-            IP address of the host where StimServer is running.
+            IP address of the client.
         sock : instance of socket.socket
             The client socket.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
 
-        self._client = dict()
-
         logger.info("Adding client with ip = %s" % ip)
-        self._client['ip'] = ip
-        self._client['running'] = True
-        self._client['socket'] = sock
+
+        client = dict(ip=ip, id=len(self._clients), running=False, socket=sock)
+        self._clients.append(client)
+
+        return client['id']
 
     @verbose
     def shutdown(self, verbose=None):
@@ -163,10 +185,12 @@ class StimServer(object):
 
         logger.info("Shutting down ...")
 
-        self._running = False
+        # stop running all the clients
+        if hasattr(self, '_clients'):
+            for client in self._clients:
+                client['running'] = False
 
-        if hasattr(self, '_client'):
-            self._client['running'] = False
+        self._running = False
 
         self._data.shutdown()
         self._data.server_close()
@@ -184,8 +208,11 @@ class StimServer(object):
             If not None, override default verbose level (see mne.verbose).
         """
 
-        logger.info("Adding trigger %d" % trigger)
-        self._tx_queue.put(trigger)
+        for client in self._clients:
+            client_id = client['id']
+            logger.info("Sending trigger %d to client %d"
+                        % (trigger, client_id))
+            client['socket']._tx_queue.put(trigger)
 
 
 class StimClient(object):
