@@ -299,10 +299,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, preload=False):
 
         edf_info['data_offset'] = header_nbytes = int(fid.read(8))
         subtype = fid.read(44).strip()[:5]
-#        supported = ['24BIT', 'BIOSE']
-#        if subtype not in supported:
-#            raise ValueError('Filetype must be either %s, or %s'
-#                             % tuple(supported))
         edf_info['subtype'] = subtype
 
         n_records = int(fid.read(8))

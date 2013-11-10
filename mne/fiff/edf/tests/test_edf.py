@@ -20,7 +20,6 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 hpts_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
-unequal_edf_path = op.join(data_dir, 'test_unequal.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 
