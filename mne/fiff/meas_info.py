@@ -424,7 +424,7 @@ def read_extra_meas_info(fid, tree, info):
 def write_extra_meas_info(fid, info):
     """Write otherwise left out blocks of data"""
     # uses cStringIO fake file to read the appropriate blocks
-    if 'orig_blocks' in info:
+    if 'orig_blocks' in info and info['orig_blocks'] is not None:
         # Blocks from the original
         blocks = info['orig_blocks']
         fid_str, tree, _ = fiff_open(info['orig_fid_str'])
