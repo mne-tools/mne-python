@@ -73,6 +73,8 @@ Changelog
 
    - Add SPM face data set by `Denis Engemann`_ `Martin Luessi`_ and `Alex Gramfort`_
 
+   - Support reading of EDF+,BDF data by `Teon Brooks`_
+
 API
 ~~~
 
