@@ -224,6 +224,12 @@ def test_ica_additional():
     ica.decompose_raw(raw, picks=None, decim=3)
     assert_true(raw_._data.shape[1], n_samples)
 
+    # test expl var
+    ica = ICA(n_components=1.0, max_pca_components=4,
+              n_pca_components=4)
+    ica.decompose_raw(raw, picks=None, decim=3)
+    assert_true(ica.n_components_ == 4)
+
     # epochs extraction from raw fit
     assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
     # test reading and writing

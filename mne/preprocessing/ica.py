@@ -1141,7 +1141,7 @@ class ICA(object):
         if isinstance(self.n_components, float):
             logger.info('Selecting PCA components by explained variance.')
             n_components_ = np.sum(pca.explained_variance_ratio_.cumsum()
-                                   < self.n_components)
+                                   <= self.n_components)
             sel = slice(n_components_)
         else:
             logger.info('Selecting PCA components by number.')
