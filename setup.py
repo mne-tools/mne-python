@@ -57,7 +57,7 @@ if __name__ == "__main__":
                     'mne.fiff', 'mne.fiff.tests',
                     'mne.fiff.bti', 'mne.fiff.bti.tests',
                     'mne.fiff.kit', 'mne.fiff.kit.tests',
-                    'mne.fiff.edf', 'mne.fiff.edf.tests',                    
+                    'mne.fiff.edf', 'mne.fiff.edf.tests',
                     'mne.forward', 'mne.forward.tests',
                     'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',
@@ -74,5 +74,6 @@ if __name__ == "__main__":
           package_data={'mne': ['data/*.sel',
                                 'data/icos.fif.gz',
                                 'data/coil_def.dat',
-                                'layouts/*.lout']},
+                                'layouts/*.lout',
+                                'layouts/*.lay']},
           scripts=['bin/mne'])
