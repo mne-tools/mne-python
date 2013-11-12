@@ -1,7 +1,6 @@
 language: python
 env:
-    - COVERAGE=--with-coverage MNE_FORCE_SERIAL=1
-    - MNE_SKIP_SAMPLE_DATASET_TESTS=1
+    - COVERAGE=--with-coverage MNE_FORCE_SERIAL=1 MNE_SKIP_SAMPLE_DATASET_TESTS=1
 python:
     - "2.7"
 virtualenv:
