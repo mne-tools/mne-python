@@ -42,7 +42,7 @@ from ..utils import (_check_fname, get_subjects_dir, has_command_line_tools,
                      run_subprocess, logger, verbose)
 
 
-def prepare_bem_model(bem, method='linear'):
+def prepare_bem_model(bem, sol=None, method='linear'):
     """Wrapper for the mne_prepare_bem_model command line utility
 
     Parameters
@@ -52,10 +52,15 @@ def prepare_bem_model(bem, method='linear'):
         and the conductivities of the compartments. The standard ending for
         this file is -bem.fif and it is produced either with the utility
         mne_surf2bem or the convenience script mne_setup_forward_model.
+    sol : None | str
+        The output file. None (the default) will employ the standard naming
+        scheme.
     method : 'linear' | 'constant'
         The BEM approach.
     """
     cmd = ['mne_prepare_bem_model', '--bem', bem, '--method', method]
+    if sol is not None:
+        cmd.extend(('--sol', sol))
     run_subprocess(cmd)
 
 
