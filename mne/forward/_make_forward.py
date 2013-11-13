@@ -193,9 +193,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     ignore_ref : bool
         If True, do not include reference channels in compensation. This
         option should be True for KIT files, since forward computation
-        with reference channels is not currently supported (and the
-        correction would be small due to the relatively large distance
-        between the compensation channels and the brain for KIT systems).
+        with reference channels is not currently supported.
     overwrite : bool
         If True, the destination file (if it exists) will be overwritten.
         If False (default), an error will be raised if the file exists.
@@ -332,10 +330,10 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
                             % (ncomp, info_extra))
                 # We need to check to make sure these are NOT KIT refs
                 if _has_kit_refs(info, picks):
-                    raise RuntimeError('Cannot create forward solution with '
-                                       'KIT reference channels. Consider '
-                                       'using "ignore_ref=True" in '
-                                       'calculation')
+                    err = ('Cannot create forward solution with KIT '
+                           'reference channels. Consider using '
+                           '"ignore_ref=True" in calculation')
+                    raise NotImplementedError(err)
             _print_coord_trans(meg_head_t)
             # make info structure to allow making compensator later
         else:

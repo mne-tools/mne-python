@@ -115,7 +115,7 @@ def test_make_forward_solution_kit():
     # now let's use mne-python all the way
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     # without ignore_ref=True, this should throw an error:
-    assert_raises(RuntimeError, make_forward_solution, raw_py.info,
+    assert_raises(NotImplementedError, make_forward_solution, raw_py.info,
                   mindist=0.0, src=src, eeg=False, meg=True,
                   bem=fname_bem, mri=mri_path)
     fwd_py = make_forward_solution(raw_py.info, mindist=0.0,
