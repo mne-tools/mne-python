@@ -84,7 +84,6 @@ class SourceSpaces(list):
             The copied source spaces.
         """
         src = deepcopy(self)
-        src.info = deepcopy(self.info)
         return src
 
     def save(self, fname):
