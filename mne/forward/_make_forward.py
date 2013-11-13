@@ -9,7 +9,7 @@ import os
 from os import path as op
 import numpy as np
 
-from ..fiff import read_info, pick_types, pick_info, FIFF
+from ..fiff import read_info, pick_types, pick_info, FIFF, _has_kit_refs
 from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (invert_transform, transform_source_space_to,
@@ -279,6 +279,9 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     if isinstance(src, basestring):
         logger.info('Reading %s...' % src)
         src = read_source_spaces(src, verbose=False)
+    else:
+        # let's make a copy in case we modify something
+        src = src.copy()
     nsource = sum(s['nuse'] for s in src)
     if nsource == 0:
         raise RuntimeError('No sources are active in these source spaces. '
@@ -327,6 +330,12 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
                 compchs = pick_info(info, picks)['chs']
                 logger.info('Read %3d MEG compensation channels from %s'
                             % (ncomp, info_extra))
+                # We need to check to make sure these are NOT KIT refs
+                if _has_kit_refs(info, picks):
+                    raise RuntimeError('Cannot create forward solution with '
+                                       'KIT reference channels. Consider '
+                                       'using "ignore_ref=True" in '
+                                       'calculation')
             _print_coord_trans(meg_head_t)
             # make info structure to allow making compensator later
         else:
