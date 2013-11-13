@@ -146,7 +146,7 @@ class RawKIT(Raw):
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_GRAD
                 chan_info['kind'] = FIFF.FIFFV_MEG_CH
             else:
-                chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_REF_MAG
                 chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
 
             # create three orthogonal vector
