@@ -20,13 +20,13 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_uint32, read_double_matrix, read_float_matrix,
                    read_int16_matrix)
 from .transforms import (bti_identity_trans, bti_to_vv_trans,
-                        bti_to_vv_coil_trans, inverse_trans, merge_trans)
+                         bti_to_vv_coil_trans, inverse_trans, merge_trans)
 from ..meas_info import Info
 
 
 FIFF_INFO_CHS_FIELDS = ('loc', 'ch_name', 'unit_mul', 'coil_trans',
-    'coord_frame', 'coil_type', 'range', 'unit', 'cal', 'eeg_loc',
-    'scanno', 'kind', 'logno')
+                        'coord_frame', 'coil_type', 'range', 'unit', 'cal',
+                        'eeg_loc', 'scanno', 'kind', 'logno')
 
 FIFF_INFO_CHS_DEFAULTS = (np.array([0, 0, 0, 1] * 3, dtype='f4'),
                           None, 0, None, 0, 0, 1.0,
@@ -394,9 +394,9 @@ def _read_config(fname):
                 if dta['hdr']['version'] == 2:
                     size = 16
                     dta['ch_names'] = [read_str(fid, size) for ch in
-                                          range(dta['hdr']['n_entries'])]
+                                       range(dta['hdr']['n_entries'])]
                     dta['e_ch_names'] = [read_str(fid, size) for ch in
-                                          range(dta['hdr']['n_e_values'])]
+                                         range(dta['hdr']['n_e_values'])]
 
                     rows = dta['hdr']['n_entries']
                     cols = dta['hdr']['n_e_values']
@@ -444,9 +444,11 @@ def _read_config(fname):
                     dta['dsp_ch_names'] = BTI_WH2500_REF_GRAD
                     dta['hdr.n_dsp'] = len(dta['dsp_ch_names'])
                     dta['anlg_wts'] = np.zeros((dta['hdr']['n_entries'],
-                                            dta['hdr']['n_anlg']), dtype='i2')
+                                                dta['hdr']['n_anlg']),
+                                               dtype='i2')
                     dta['dsp_wts'] = np.zeros((dta['hdr']['n_entries'],
-                                            dta['hdr']['n_dsp']), dtype='f4')
+                                               dta['hdr']['n_dsp']),
+                                              dtype='f4')
                     for n in range(dta['hdr']['n_entries']):
                         dta['anlg_wts'][d] = read_int16_matrix(fid, 1,
                                                     dta['hdr']['n_anlg'])
@@ -728,7 +730,7 @@ def _read_ch_config(fid):
                    'reserved': read_str(fid, 32)}
     if ch_type in [BTI.CHTYPE_MEG, BTI.CHTYPE_REF]:
         chan['loops'] = [_read_coil_def(fid) for d in
-                        range(chan['dev']['total_loops'])]
+                         range(chan['dev']['total_loops'])]
 
     elif ch_type == BTI.CHTYPE_EEG:
         chan['impedance'] = read_float(fid)
@@ -774,9 +776,9 @@ def _read_bti_header(pdf_fname, config_fname):
 
     # actual header starts here
     info = {'version': read_int16(fid),
-           'file_type': read_str(fid, 5),
-           'hdr_size': start - header_position,  # add to info for convenience
-           'start': start}
+            'file_type': read_str(fid, 5),
+            'hdr_size': start - header_position,  # add to info for convenience
+            'start': start}
 
     fid.seek(1, 1)
 
@@ -804,7 +806,7 @@ def _read_bti_header(pdf_fname, config_fname):
     # actual header ends here, so dar seems ok.
 
     info['epochs'] = [_read_epoch(fid) for epoch in
-                       range(info['total_epochs'])]
+                      range(info['total_epochs'])]
 
     info['chs'] = [_read_channel(fid) for ch in
                    range(info['total_chans'])]
@@ -1159,13 +1161,13 @@ class RawBTi(Raw):
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
 
         assert len(self._data) == len(self.info['ch_names'])
-        self._times = np.arange(self.first_samp, \
+        self._times = np.arange(self.first_samp,
                                 self.last_samp + 1) / info['sfreq']
         self._projectors = [None]
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
-                   self.first_samp, self.last_samp,
-                   float(self.first_samp) / info['sfreq'],
-                   float(self.last_samp) / info['sfreq']))
+                    self.first_samp, self.last_samp,
+                    float(self.first_samp) / info['sfreq'],
+                    float(self.last_samp) / info['sfreq']))
 
         logger.info('Ready.')
 

@@ -7,6 +7,7 @@ from numpy.testing import (assert_equal, assert_allclose)
 
 from mne.datasets import sample
 from mne.fiff import Raw
+from mne.fiff.kit import read_raw_kit
 from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
                  convert_forward_solution)
@@ -40,8 +41,9 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
     _compare_source_spaces(fwd['src'], fwd_py['src'], mode='approx')
     for surf_ori in [False, True]:
         if surf_ori:
-            fwd = convert_forward_solution(fwd, surf_ori, copy=False)
-            fwd_py = convert_forward_solution(fwd, surf_ori, copy=False)
+            # use copy here to leave our originals unmodified
+            fwd = convert_forward_solution(fwd, surf_ori, copy=True)
+            fwd_py = convert_forward_solution(fwd, surf_ori, copy=True)
 
         for key in ['nchan', 'source_nn', 'source_rr', 'source_ori',
                     'surf_ori', 'coord_frame', 'nsource']:
@@ -50,18 +52,65 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
         assert_allclose(fwd_py['mri_head_t']['trans'],
                         fwd['mri_head_t']['trans'], rtol=1e-5, atol=1e-8)
 
+        assert_equal(fwd_py['sol']['data'].shape, (n_sensors, n_src))
+        assert_equal(len(fwd['sol']['row_names']), n_sensors)
+        assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
+
         # check MEG
+        print 'check MEG'
         assert_allclose(fwd['sol']['data'][:306],
                         fwd_py['sol']['data'][:306],
                         rtol=1e-4, atol=1e-9)
         # check EEG
         if fwd['sol']['data'].shape[0] > 306:
+            print 'check EEG'
             assert_allclose(fwd['sol']['data'][306:],
                             fwd_py['sol']['data'][306:],
                             rtol=1e-3, atol=1e-3)
-        assert_equal(fwd_py['sol']['data'].shape, (n_sensors, n_src))
-        assert_equal(len(fwd['sol']['row_names']), n_sensors)
-        assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
+
+
+@sample.requires_sample_data
+@requires_mne
+def test_make_forward_solution_kit():
+    """Test making forward solution using KIT files
+    """
+    fname_bem = op.join(subjects_dir, 'sample', 'bem',
+                        'sample-5120-bem-sol.fif')
+    kit_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'kit',
+                      'tests', 'data')
+    sqd_path = op.join(kit_dir, 'test.sqd')
+    mrk_path = op.join(kit_dir, 'test_mrk.sqd')
+    elp_path = op.join(kit_dir, 'test_elp.txt')
+    hsp_path = op.join(kit_dir, 'test_hsp.txt')
+    mri_path = op.join(kit_dir, 'trans-sample.fif')
+    fname_kit_path = op.join(kit_dir, 'test_bin.fif')
+
+    # set up a testing source space
+    fname_src = op.join(temp_dir, 'oct2-src.fif')
+    src = setup_source_space('sample', fname_src, 'oct2',
+                             subjects_dir=subjects_dir)
+
+    # first use mne-C: convert file, make forward solution
+    fwd = do_forward_solution('sample', fname_kit_path, src=fname_src,
+                              mindist=0.0, bem=fname_bem, mri=mri_path,
+                              eeg=False, meg=True, subjects_dir=subjects_dir)
+
+    # now let's use python with the same raw file
+    fwd_py = make_forward_solution(fname_kit_path, mindist=0.0,
+                                   src=src, eeg=False, meg=True,
+                                   bem=fname_bem, mri=mri_path)
+    _compare_forwards(fwd, fwd_py, 157, 108)
+
+    # now let's use mne-python all the way
+    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
+                          stim=range(167, 159, -1), slope='+', stimthresh=1,
+                          preload=True)
+    #fwd_py = make_forward_solution(raw_py.info, mindist=0.0,
+    fwd_py = make_forward_solution(fname_kit_path, mindist=0.0,
+                                   src=src, eeg=False, meg=True,
+                                   bem=fname_bem, mri=mri_path,
+                                   ignore_ref=True)
+    _compare_forwards(fwd, fwd_py, 157, 108)
 
 
 @sample.requires_sample_data
@@ -75,7 +124,7 @@ def test_make_forward_solution_compensation():
                         'sample-5120-bem-sol.fif')
     fname_src = op.join(temp_dir, 'oct2-src.fif')
     src = setup_source_space('sample', fname_src, 'oct2',
-                             subjects_dir=subjects_dir)
+                             subjects_dir=subjects_dir, overwrite=True)
     fwd_py = make_forward_solution(fname_ctf_raw, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=fname_mri)

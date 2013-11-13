@@ -173,6 +173,15 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
     return out
 
 
+def _loc_to_trans(loc):
+    """Helper to convert loc vector to coil_trans"""
+    # deal with nasty OSX Anaconda bug by casting to float64
+    loc = loc.astype(np.float64)
+    coil_trans = np.concatenate([loc.reshape(4, 3).T[:, [1, 2, 3, 0]],
+                                 np.array([0, 0, 0, 1]).reshape(1, 4)])
+    return coil_trans
+
+
 def read_tag(fid, pos=None, shape=None, rlims=None):
     """Read a Tag from a file at a given position
 
@@ -406,12 +415,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 #
                 loc = tag.data['loc']
                 kind = tag.data['kind']
-                if kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH:
-                    # deal with nasty OSX Anaconda bug by casting to float64
-                    loc = loc.astype(np.float64)
-                    tag.data['coil_trans'] = np.concatenate(
-                            [loc.reshape(4, 3).T[:, [1, 2, 3, 0]],
-                             np.array([0, 0, 0, 1]).reshape(1, 4)])
+                if kind in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
+                    tag.data['coil_trans'] = _loc_to_trans(loc)
                     tag.data['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 elif tag.data['kind'] == FIFF.FIFFV_EEG_CH:
                     # deal with nasty OSX Anaconda bug by casting to float64
