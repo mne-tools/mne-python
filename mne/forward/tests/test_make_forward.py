@@ -34,7 +34,8 @@ with open(existing_file, 'wb') as fid:
     fid.write('aoeu')
 
 
-def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
+def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
+                      meg_rtol=1e-4, meg_atol=1e-9):
     """Helper to test forwards"""
     # check source spaces
     assert_equal(len(fwd['src']), len(fwd_py['src']))
@@ -60,7 +61,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
         print 'check MEG'
         assert_allclose(fwd['sol']['data'][:306],
                         fwd_py['sol']['data'][:306],
-                        rtol=1e-4, atol=1e-9)
+                        rtol=meg_rtol, atol=meg_atol)
         # check EEG
         if fwd['sol']['data'].shape[0] > 306:
             print 'check EEG'
@@ -72,7 +73,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
 @sample.requires_sample_data
 @requires_mne
 def test_make_forward_solution_kit():
-    """Test making forward solution using KIT files
+    """Test making fwd using KIT and CTF (compensated) files
     """
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
                         'sample-5120-bem-sol.fif')
@@ -85,7 +86,10 @@ def test_make_forward_solution_kit():
     mri_path = op.join(kit_dir, 'trans-sample.fif')
     fname_kit_path = op.join(kit_dir, 'test_bin.fif')
 
-    # set up a testing source space
+    fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+                            'data', 'test_ctf_comp_raw.fif')
+
+    # first set up a testing source space
     fname_src = op.join(temp_dir, 'oct2-src.fif')
     src = setup_source_space('sample', fname_src, 'oct2',
                              subjects_dir=subjects_dir)
@@ -102,29 +106,15 @@ def test_make_forward_solution_kit():
     _compare_forwards(fwd, fwd_py, 157, 108)
 
     # now let's use mne-python all the way
-    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
-                          stim=range(167, 159, -1), slope='+', stimthresh=1,
-                          preload=True)
-    #fwd_py = make_forward_solution(raw_py.info, mindist=0.0,
-    fwd_py = make_forward_solution(fname_kit_path, mindist=0.0,
+    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    fwd_py = make_forward_solution(raw_py.info, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=mri_path,
                                    ignore_ref=True)
-    _compare_forwards(fwd, fwd_py, 157, 108)
+    _compare_forwards(fwd, fwd_py, 157, 108,
+                      meg_rtol=1e-3, meg_atol=1e-7)
 
-
-@sample.requires_sample_data
-@requires_mne
-def test_make_forward_solution_compensation():
-    """Test making forward solution from python with compensation
-    """
-    fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
-                            'data', 'test_ctf_comp_raw.fif')
-    fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-5120-bem-sol.fif')
-    fname_src = op.join(temp_dir, 'oct2-src.fif')
-    src = setup_source_space('sample', fname_src, 'oct2',
-                             subjects_dir=subjects_dir, overwrite=True)
+    # now let's test CTF w/compensation
     fwd_py = make_forward_solution(fname_ctf_raw, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=fname_mri)
