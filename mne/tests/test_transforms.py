@@ -1,3 +1,4 @@
+from math import pi
 import os.path as op
 
 from nose.tools import assert_true
@@ -6,7 +7,8 @@ from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 from mne.datasets import sample
 from mne import read_trans, write_trans
 from mne.utils import _TempDir
-from mne.transforms import _get_mri_head_t_from_trans_file, invert_transform
+from mne.transforms import (_get_mri_head_t_from_trans_file, invert_transform,
+                            rotation, rotation3d, rotation_angles)
 
 data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
@@ -44,3 +46,17 @@ def test_io_trans():
         assert_array_equal(d0['r'], d1['r'])
         for name in ['kind', 'ident', 'coord_frame']:
             assert_true(d0[name] == d1[name])
+
+
+def test_rotation():
+    """Test conversion between rotation angles and transformation matrix"""
+    tests = [(0, 0, 1), (.5, .5, .5), (pi, 0, -1.5)]
+    for rot in tests:
+        x, y, z = rot
+        m = rotation3d(x, y, z)
+        m4 = rotation(x, y, z)
+        assert_array_equal(m, m4[:3, :3])
+        back = rotation_angles(m)
+        assert_equal(back, rot)
+        back4 = rotation_angles(m4)
+        assert_equal(back4, rot)
