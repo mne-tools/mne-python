@@ -8,7 +8,7 @@ from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _point_cloud_error, _decimate_points,
                        create_default_subject, scale_mri,
-                       _is_mri_subject, scale_labels)
+                       _is_mri_subject, scale_labels, scale_source_space)
 from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
 
 
@@ -42,7 +42,16 @@ def test_scale_mri():
     scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True, subjects_dir=tempdir)
     is_mri = _is_mri_subject('flachkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
+    src_path = os.path.join(tempdir, 'flachkopf', 'bem',
+                            'flachkopf-ico-6-src.fif')
+    assert_true(os.path.exists(src_path), "Source space was not scaled")
     scale_labels('flachkopf', subjects_dir=tempdir)
+
+    # scale source space separately
+    os.remove(src_path)
+    scale_source_space('flachkopf', 'ico-6', subjects_dir=tempdir)
+    assert_true(os.path.exists(src_path), "Source space was not scaled")
+
 
 
 def test_fit_matched_points():

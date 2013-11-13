@@ -12,6 +12,7 @@ import os
 import os.path as op
 from functools import wraps
 import inspect
+from string import Formatter
 import subprocess
 import sys
 from sys import stdout
@@ -224,6 +225,25 @@ def run_subprocess(command, *args, **kwargs):
         raise subprocess.CalledProcessError(p.returncode, command, output)
 
     return output
+
+
+class _FormatDict(dict):
+    """Helper for pformat()"""
+    def __missing__(self, key):
+        return "{" + key + "}"
+
+
+def pformat(temp, **fmt):
+    """Partially format a template string.
+
+    Examples
+    --------
+    >>> pformat("{a}_{b}", a='x')
+    'x_{b}'
+    """
+    formatter = Formatter()
+    mapping = _FormatDict(fmt)
+    return formatter.vformat(temp, (), mapping)
 
 
 ###############################################################################

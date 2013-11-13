@@ -41,7 +41,8 @@ from .label import (label_time_courses, read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label,
                     BiHemiLabel, labels_from_parc, parc_from_labels)
 from .misc import parse_config, read_reject_parameters
-from .coreg import create_default_subject, scale_mri, scale_labels
+from .coreg import (create_default_subject, scale_mri, scale_labels,
+                    scale_source_space)
 from .transforms import transform_coordinates, read_trans, write_trans
 from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
