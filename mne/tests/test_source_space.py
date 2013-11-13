@@ -305,11 +305,11 @@ def _compare_source_spaces(src0, src1, mode='exact'):
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'ntri', 'np', 'type', 'id']:
             print name
-            assert_true(s0[name] == s1[name])
+            assert_equal(s0[name], s1[name])
         for name in ['subject_his_id']:
             if name in s0 or name in s1:
                 print name
-                assert_true(s0[name] == s1[name])
+                assert_equal(s0[name], s1[name])
         for name in ['interpolator']:
             if name in s0 or name in s1:
                 print name
@@ -342,7 +342,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 assert_true(s0[name] == s1[name])
             for name in ['dist']:
                 if s0[name] is not None:
-                    assert_true(s1[name].shape == s0[name].shape)
+                    assert_equal(s1[name].shape, s0[name].shape)
                     assert_true(len((s0['dist'] - s1['dist']).data) == 0)
             for name in ['pinfo']:
                 if s0[name] is not None:
@@ -372,7 +372,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
     # dataset is updated to have a source space with distance info
     for name in ['working_dir', 'command_line']:
         if mode == 'exact':
-            assert_true(src0.info[name] == src1.info[name])
+            assert_equal(src0.info[name], src1.info[name])
         elif mode == 'approx':
             print name
             if name in src0.info:

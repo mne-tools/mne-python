@@ -164,13 +164,7 @@ def get_machid():
 
 def write_id(fid, kind, id_=None):
     """Writes fiff id"""
-
-    if id_ is None:
-        id_ = dict()
-        id_['version'] = (1 << 16) | 2
-        id_['machid'] = get_machid()
-        id_['secs'] = time.time()
-        id_['usecs'] = 0            # Do not know how we could get this XXX
+    id_ = _generate_meas_id() if id_ is None else id_
 
     FIFFT_ID_STRUCT = 31
     FIFFV_NEXT_SEQ = 0
@@ -372,3 +366,13 @@ def write_float_sparse_rcs(fid, kind, mat):
 
     dims = [nnzm, mat.shape[0], mat.shape[1], 2]
     fid.write(np.array(dims, dtype='>i4').tostring())
+
+
+def _generate_meas_id():
+    """Helper to generate a new meas_id dict"""
+    id_ = dict()
+    id_['version'] = (1 << 16) | 2
+    id_['machid'] = get_machid()
+    id_['secs'] = time.time()
+    id_['usecs'] = 0            # Do not know how we could get this XXX
+    return id_

@@ -997,7 +997,8 @@ class Raw(ProjMixin):
         if self.comp is not None:
             inv_comp = linalg.inv(self.comp)
 
-        write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
+        if first_samp != 0:
+            write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
         for first in range(start, stop, buffer_size):
             last = first + buffer_size
             if last >= stop:

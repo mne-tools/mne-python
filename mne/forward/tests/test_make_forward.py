@@ -6,7 +6,8 @@ from nose.tools import assert_raises
 from numpy.testing import (assert_equal, assert_allclose)
 
 from mne.datasets import sample
-from mne.fiff import Raw
+from mne.fiff.kit import read_raw_kit
+from mne.fiff.bti import read_raw_bti
 from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
                  convert_forward_solution)
@@ -25,23 +26,25 @@ fname_evoked = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
                        'data', 'test-ave.fif')
 fname_mri = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
-fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 temp_dir = _TempDir()
+
 # make a file that exists with some data in it
 existing_file = op.join(temp_dir, 'test.fif')
 with open(existing_file, 'wb') as fid:
     fid.write('aoeu')
 
 
-def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
+def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
+                      meg_rtol=1e-4, meg_atol=1e-9):
     """Helper to test forwards"""
     # check source spaces
     assert_equal(len(fwd['src']), len(fwd_py['src']))
     _compare_source_spaces(fwd['src'], fwd_py['src'], mode='approx')
     for surf_ori in [False, True]:
         if surf_ori:
-            fwd = convert_forward_solution(fwd, surf_ori, copy=False)
-            fwd_py = convert_forward_solution(fwd, surf_ori, copy=False)
+            # use copy here to leave our originals unmodified
+            fwd = convert_forward_solution(fwd, surf_ori, copy=True)
+            fwd_py = convert_forward_solution(fwd, surf_ori, copy=True)
 
         for key in ['nchan', 'source_nn', 'source_rr', 'source_ori',
                     'surf_ori', 'coord_frame', 'nsource']:
@@ -50,32 +53,89 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src):
         assert_allclose(fwd_py['mri_head_t']['trans'],
                         fwd['mri_head_t']['trans'], rtol=1e-5, atol=1e-8)
 
-        # check MEG
-        assert_allclose(fwd['sol']['data'][:306],
-                        fwd_py['sol']['data'][:306],
-                        rtol=1e-4, atol=1e-9)
-        # check EEG
-        if fwd['sol']['data'].shape[0] > 306:
-            assert_allclose(fwd['sol']['data'][306:],
-                            fwd_py['sol']['data'][306:],
-                            rtol=1e-3, atol=1e-3)
         assert_equal(fwd_py['sol']['data'].shape, (n_sensors, n_src))
         assert_equal(len(fwd['sol']['row_names']), n_sensors)
         assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
 
+        # check MEG
+        print 'check MEG'
+        assert_allclose(fwd['sol']['data'][:306],
+                        fwd_py['sol']['data'][:306],
+                        rtol=meg_rtol, atol=meg_atol)
+        # check EEG
+        if fwd['sol']['data'].shape[0] > 306:
+            print 'check EEG'
+            assert_allclose(fwd['sol']['data'][306:],
+                            fwd_py['sol']['data'][306:],
+                            rtol=1e-3, atol=1e-3)
+
 
 @sample.requires_sample_data
 @requires_mne
-def test_make_forward_solution_compensation():
-    """Test making forward solution from python with compensation
+def test_make_forward_solution_kit():
+    """Test making fwd using KIT, BTI, and CTF (compensated) files
     """
-    fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
-                            'data', 'test_ctf_comp_raw.fif')
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
                         'sample-5120-bem-sol.fif')
+    kit_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'kit',
+                      'tests', 'data')
+    sqd_path = op.join(kit_dir, 'test.sqd')
+    mrk_path = op.join(kit_dir, 'test_mrk.sqd')
+    elp_path = op.join(kit_dir, 'test_elp.txt')
+    hsp_path = op.join(kit_dir, 'test_hsp.txt')
+    mri_path = op.join(kit_dir, 'trans-sample.fif')
+    fname_kit_raw = op.join(kit_dir, 'test_bin.fif')
+
+    bti_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'bti',
+                      'tests', 'data')
+    bti_pdf = op.join(bti_dir, 'test_pdf_linux')
+    bti_config = op.join(bti_dir, 'test_config_linux')
+    bti_hs = op.join(bti_dir, 'test_hs_linux')
+    fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
+
+    fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+                            'data', 'test_ctf_comp_raw.fif')
+
+    # first set up a testing source space
     fname_src = op.join(temp_dir, 'oct2-src.fif')
     src = setup_source_space('sample', fname_src, 'oct2',
                              subjects_dir=subjects_dir)
+
+    # first use mne-C: convert file, make forward solution
+    fwd = do_forward_solution('sample', fname_kit_raw, src=fname_src,
+                              mindist=0.0, bem=fname_bem, mri=mri_path,
+                              eeg=False, meg=True, subjects_dir=subjects_dir)
+
+    # now let's use python with the same raw file
+    fwd_py = make_forward_solution(fname_kit_raw, mindist=0.0,
+                                   src=src, eeg=False, meg=True,
+                                   bem=fname_bem, mri=mri_path)
+    _compare_forwards(fwd, fwd_py, 157, 108)
+
+    # now let's use mne-python all the way
+    raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    # without ignore_ref=True, this should throw an error:
+    assert_raises(NotImplementedError, make_forward_solution, raw_py.info,
+                  mindist=0.0, src=src, eeg=False, meg=True,
+                  bem=fname_bem, mri=mri_path)
+    fwd_py = make_forward_solution(raw_py.info, mindist=0.0,
+                                   src=src, eeg=False, meg=True,
+                                   bem=fname_bem, mri=mri_path,
+                                   ignore_ref=True)
+    _compare_forwards(fwd, fwd_py, 157, 108,
+                      meg_rtol=1e-3, meg_atol=1e-7)
+
+    # BTI python end-to-end versus C
+    fwd = do_forward_solution('sample', fname_bti_raw, src=fname_src,
+                              mindist=0.0, bem=fname_bem, mri=mri_path,
+                              eeg=False, meg=True, subjects_dir=subjects_dir)
+    raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs)
+    fwd_py = make_forward_solution(raw_py.info, mindist=0.0,
+                                   src=src, eeg=False, meg=True,
+                                   bem=fname_bem, mri=mri_path)
+    _compare_forwards(fwd, fwd_py, 248, 108)
+
+    # now let's test CTF w/compensation
     fwd_py = make_forward_solution(fname_ctf_raw, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=fname_mri)
@@ -90,6 +150,7 @@ def test_make_forward_solution_compensation():
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python
     """
+    fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
                         'sample-5120-5120-5120-bem-sol.fif')
     fwd_py = make_forward_solution(fname_raw, mindist=5.0,
@@ -104,7 +165,6 @@ def test_make_forward_solution():
 def test_do_forward_solution():
     """Test wrapping forward solution from python
     """
-    raw = Raw(fname_raw)
     mri = read_trans(fname_mri)
     fname_fake = op.join(temp_dir, 'no_have.fif')
 
@@ -163,14 +223,5 @@ def test_do_forward_solution():
                   fname_raw, existing_file, trans=fname_mri, overwrite=True,
                   spacing='oct6', subjects_dir=subjects_dir)
 
-    # ## Actually calculate one and check
-    # make a meas from raw (tests all steps in creating evoked),
-    # don't do EEG or 5120-5120-5120 BEM because they're ~3x slower
-    fwd_py = do_forward_solution('sample', raw, mindist=5, spacing='oct-6',
-                                 bem='sample-5120', mri=fname_mri, eeg=False,
-                                 subjects_dir=subjects_dir)
-    fwd = read_forward_solution(fname)
-    assert_allclose(fwd['sol']['data'], fwd_py['sol']['data'],
-                    rtol=1e-5, atol=1e-8)
-    assert_equal(fwd_py['sol']['data'].shape, (306, 22494))
-    assert_equal(len(fwd['sol']['row_names']), 306)
+    # No need to actually calculate and check here, since it's effectively
+    # done in previous tests.

@@ -14,7 +14,7 @@ from struct import unpack
 import time
 
 import numpy as np
-from scipy.linalg import norm
+from scipy import linalg
 
 from ...fiff import pick_types
 from ...coreg import fit_matched_points, _decimate_points
@@ -24,6 +24,7 @@ from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..raw import Raw
 from ..constants import FIFF
 from ..meas_info import Info
+from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_elp, read_hsp, read_mrk
 
@@ -121,10 +122,9 @@ class RawKIT(Raw):
         logger.info('Setting channel info structure...')
         ch_names = {}
         ch_names['MEG'] = ['MEG %03d' % ch for ch
-                                in range(1, self._sqd_params['n_sens'] + 1)]
+                           in range(1, self._sqd_params['n_sens'] + 1)]
         ch_names['MISC'] = ['MISC %03d' % ch for ch
-                                 in range(1, self._sqd_params['nmiscchan']
-                                          + 1)]
+                            in range(1, self._sqd_params['nmiscchan'] + 1)]
         ch_names['STIM'] = ['STI 014']
         locs = self._sqd_params['sensor_locs']
         chan_locs = apply_trans(als_ras_trans, locs[:, :3])
@@ -148,6 +148,7 @@ class RawKIT(Raw):
             else:
                 chan_info['coil_type'] = FIFF.FIFFV_COIL_KIT_REF_MAG
                 chan_info['kind'] = FIFF.FIFFV_REF_MEG_CH
+            chan_info['eeg_loc'] = None
 
             # create three orthogonal vector
             # ch_angles[0]: theta, ch_angles[1]: phi
@@ -156,7 +157,7 @@ class RawKIT(Raw):
             y = np.sin(ch_angles[0]) * np.sin(ch_angles[1])
             z = np.cos(ch_angles[0])
             vec_z = np.array([x, y, z])
-            length = norm(vec_z)
+            length = linalg.norm(vec_z)
             vec_z /= length
             vec_x = np.zeros(vec_z.size, dtype=np.float)
             if vec_z[1] < vec_z[2]:
@@ -169,13 +170,14 @@ class RawKIT(Raw):
             else:
                 vec_x[2] = 1.0
             vec_x -= np.sum(vec_x * vec_z) * vec_z
-            length = norm(vec_x)
+            length = linalg.norm(vec_x)
             vec_x /= length
             vec_y = np.cross(vec_z, vec_x)
             # transform to Neuromag like coordinate space
             vecs = np.vstack((vec_x, vec_y, vec_z))
             vecs = apply_trans(als_ras_trans, vecs)
             chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
+            chan_info['coil_trans'] = _loc_to_trans(chan_info['loc'])
             self.info['chs'].append(chan_info)
 
         # label trigger and misc channels

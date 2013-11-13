@@ -7,6 +7,7 @@ import numpy as np
 import os
 import os.path as op
 from scipy import sparse, linalg
+from copy import deepcopy
 
 from .fiff.constants import FIFF
 from .fiff.tree import dir_tree_find
@@ -73,6 +74,17 @@ class SourceSpaces(list):
             ss_repr.append('<%s>' % r)
         ss_repr = ', '.join(ss_repr)
         return "<SourceSpaces: [{ss}]>".format(ss=ss_repr)
+
+    def copy(self):
+        """Make a copy of the source spaces
+
+        Returns
+        -------
+        src : instance of SourceSpaces
+            The copied source spaces.
+        """
+        src = deepcopy(self)
+        return src
 
     def save(self, fname):
         """Save the source spaces to a fif file

@@ -9,7 +9,7 @@ import os
 from os import path as op
 import numpy as np
 
-from ..fiff import read_info, pick_types, pick_info, FIFF
+from ..fiff import read_info, pick_types, pick_info, FIFF, _has_kit_refs
 from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (invert_transform, transform_source_space_to,
@@ -83,6 +83,7 @@ def _create_meg_coil(coilset, ch, acc, t):
         if coil['coil_type'] == (ch['coil_type'] & 0xFFFF) and \
                 coil['accuracy'] == acc:
             d = coil
+
     if d is None:
         raise RuntimeError('Desired coil definition not found '
                            '(type = %d acc = %d)' % (ch['coil_type'], acc))
@@ -157,8 +158,8 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
 
 @verbose
 def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
-                          mindist=0.0, overwrite=False, n_jobs=1,
-                          verbose=None):
+                          mindist=0.0, ignore_ref=False, overwrite=False,
+                          n_jobs=1, verbose=None):
     """Calculate a forward solution for a subject
 
     Parameters
@@ -189,6 +190,10 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
         If True (Default), include EEG computations.
     mindist : float
         Minimum distance of sources from inner skull surface (in mm).
+    ignore_ref : bool
+        If True, do not include reference channels in compensation. This
+        option should be True for KIT files, since forward computation
+        with reference channels is not currently supported.
     overwrite : bool
         If True, the destination file (if it exists) will be overwritten.
         If False (default), an error will be raised if the file exists.
@@ -272,6 +277,9 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     if isinstance(src, basestring):
         logger.info('Reading %s...' % src)
         src = read_source_spaces(src, verbose=False)
+    else:
+        # let's make a copy in case we modify something
+        src = src.copy()
     nsource = sum(s['nuse'] for s in src)
     if nsource == 0:
         raise RuntimeError('No sources are active in these source spaces. '
@@ -313,16 +321,26 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
                         % (len(picks), info_extra))
 
         # comp channels
-        picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
-        ncomp = len(picks)
-        if (ncomp > 0):
-            compchs = pick_info(info, picks)['chs']
-            logger.info('Read %3d MEG compensation channels from %s'
-                        % (ncomp, info_extra))
-        _print_coord_trans(meg_head_t)
-        # make info structure to allow making compensator later
+        if not ignore_ref:
+            picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
+            ncomp = len(picks)
+            if (ncomp > 0):
+                compchs = pick_info(info, picks)['chs']
+                logger.info('Read %3d MEG compensation channels from %s'
+                            % (ncomp, info_extra))
+                # We need to check to make sure these are NOT KIT refs
+                if _has_kit_refs(info, picks):
+                    err = ('Cannot create forward solution with KIT '
+                           'reference channels. Consider using '
+                           '"ignore_ref=True" in calculation')
+                    raise NotImplementedError(err)
+            _print_coord_trans(meg_head_t)
+            # make info structure to allow making compensator later
+        else:
+            ncomp = 0
         ncomp_data = len(info['comps'])
-        picks = pick_types(info, meg=True, ref_meg=True, exclude=[])
+        ref_meg = True if not ignore_ref else False
+        picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=[])
         meg_info = pick_info(info, picks)
     else:
         logger.info('MEG not requested. MEG channels omitted.')

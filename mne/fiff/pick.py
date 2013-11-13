@@ -278,6 +278,18 @@ def pick_info(info, sel=[]):
     return res
 
 
+def _has_kit_refs(info, picks):
+    """Helper to determine if KIT ref channels are chosen
+
+    This is currently only used by make_forward_solution, which cannot
+    run when KIT reference channels are included.
+    """
+    for p in picks:
+        if info['chs'][p]['coil_type'] == FIFF.FIFFV_COIL_KIT_REF_MAG:
+            return True
+    return False
+
+
 def pick_channels_evoked(orig, include=[], exclude='bads'):
     """Pick channels from evoked data
 
