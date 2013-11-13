@@ -8,5 +8,5 @@ from .forward import (read_forward_solution, write_forward_solution,
                       _restrict_gain_matrix, _stc_src_sel,
                       _fill_measurement_info, _apply_forward,
                       _subject_from_forward, convert_forward_solution,
-                      _to_fixed_ori)
+                      _to_fixed_ori, prepare_bem_model)
 from ._make_forward import make_forward_solution
