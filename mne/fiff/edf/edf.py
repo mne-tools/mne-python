@@ -153,6 +153,7 @@ class RawEDF(Raw):
         data_size = self._edf_info['data_size']
         data_offset = self._edf_info['data_offset']
         stim_channel = self._edf_info['stim_channel']
+        n_chan = self.info['nchan']
 
         if start >= stop:
             raise ValueError('No data in this range')
@@ -161,22 +162,28 @@ class RawEDF(Raw):
                     (start, stop - 1, start / float(sfreq),
                      (stop - 1) / float(sfreq)))
 
+        gains = []
+        for chan in range(n_chan):
+            # gain constructor
+            physical_range = self.info['chs'][chan]['range']
+            cal = float(self.info['chs'][chan]['cal'])
+            unit_mul = 10 ** self.info['chs'][chan]['unit_mul']
+            gains.append(unit_mul * (physical_range / cal))
+
         with open(self.info['file_id'], 'rb') as fid:
             # extract data
             fid.seek(data_offset)
-            n_chan = self.info['nchan']
-            buffer_size = (stop - start)
+            buffer_size = stop - start
             pointer = start * n_chan
             fid.seek(data_offset + pointer)
-            blocks = buffer_size / sfreq
+
+            if 'n_samps' in self._edf_info:
+                n_samps = self._edf_info['n_samps']
+                max_samp = float(np.max(n_samps))
+                blocks = int(buffer_size / max_samp)
+            else:
+                blocks = int(buffer_size / sfreq)
             datas = []
-            gains = []
-            for chan in range(n_chan):
-                # gain constructor
-                physical_range = self.info['chs'][chan]['range']
-                cal = float(self.info['chs'][chan]['cal'])
-                unit_mul = 10 ** self.info['chs'][chan]['unit_mul']
-                gains.append(unit_mul * (physical_range / cal))
             # bdf data: 24bit data
             if self._edf_info['subtype'] == '24BIT':
                 data = fid.read(buffer_size * n_chan * data_size)
@@ -192,8 +199,6 @@ class RawEDF(Raw):
                     datas.append(data[:, :, i].T)
             else:
                 if 'n_samps' in self._edf_info:
-                    n_samps = self._edf_info['n_samps']
-                    max_samp = float(np.max(n_samps))
                     data = []
                     for _ in range(blocks):
                         for samp in n_samps:
@@ -301,7 +306,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, preload=False):
         subtype = fid.read(44).strip()[:5]
         edf_info['subtype'] = subtype
 
-        n_records = int(fid.read(8))
+        edf_info['n_records'] = n_records = int(fid.read(8))
         # record length in seconds
         edf_info['record_length'] = record_length = float(fid.read(8))
         info['nchan'] = int(fid.read(4))
