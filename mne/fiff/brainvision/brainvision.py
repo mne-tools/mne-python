@@ -56,7 +56,7 @@ class RawEEG(Raw):
                  preload=False, verbose=None):
         logger.info('Extracting eeg Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        self.info = _get_eeg_info(input_fname, elp, elp_chs)
+        self.info, self._marker_id = _get_eeg_info(input_fname, elp, elp_chs)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -70,7 +70,7 @@ class RawEEG(Raw):
         f = open(self.info['file_id'])
         f.seek(0, os.SEEK_END)
         nsamples = f.tell()
-        self.last_samp = nsamples / (2 * (self.info['nchan'] - 1))
+        self.last_samp = (nsamples / (2 * (self.info['nchan'] - 1))) - 1
 
         if preload:
             self._preloaded = preload
@@ -79,7 +79,7 @@ class RawEEG(Raw):
             assert len(self._data) == self.info['nchan']
 
             # Add time info
-            self._times = np.arange(self.first_samp, self.last_samp,
+            self._times = np.arange(self.first_samp, self.last_samp + 1,
                                     dtype=np.float64)
             self._times /= self.info['sfreq']
             logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
@@ -170,7 +170,7 @@ class RawEEG(Raw):
             data = data * gains.T
 
         stim_channel = np.zeros(data.shape[1])
-        evts = _read_vmrk(self.info['marker_id'])
+        evts = _read_vmrk(self._marker_id)
         stim_channel[:evts.size] = evts
         stim_channel = stim_channel[start:stop]
 
@@ -325,8 +325,7 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     # locate EEG and marker files
     path = os.path.dirname(fname)
     info['file_id'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
-    info['marker_id'] = os.path.join(path, cfg.get('Common Infos',
-                                                   'MarkerFile'))
+    marker_id = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
     info['meas_date'] = int(time.time())
 
     settings = settings.splitlines()
@@ -389,20 +388,22 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
                        {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD}]
+    else:
+        ch_locs = None
 
     for idx, ch_info in enumerate(zip(ch_names, cals, units), 1):
         ch_name, cal, unit_mul = ch_info
         chan_info = {}
-        chan_info['cal'] = cal
-        chan_info['range'] = 1.
+        chan_info['ch_name'] = ch_name
+        chan_info['kind'] = FIFF.FIFFV_EEG_CH
+        chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['logno'] = idx
         chan_info['scanno'] = idx
+        chan_info['cal'] = cal
+        chan_info['range'] = 1.
         chan_info['unit_mul'] = unit_mul
-        chan_info['ch_name'] = ch_name
         chan_info['unit'] = FIFF.FIFF_UNIT_V
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
-        chan_info['kind'] = FIFF.FIFFV_EEG_CH
         if ch_locs:
             if ch_name in ch_locs:
                 chan_info['eeg_loc'] = ch_locs['ch_name']
@@ -413,17 +414,21 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
         info['chs'].append(chan_info)
     # for stim channel
     chan_info = {}
-    chan_info['range'] = 1
-    chan_info['cal'] = 1
-    chan_info['unit_mul'] = 0
-    chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-    chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-    chan_info['kind'] = FIFF.FIFFV_STIM_CH
     chan_info['ch_name'] = 'STI 014'
+    chan_info['kind'] = FIFF.FIFFV_STIM_CH
+    chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+    chan_info['logno'] = idx + 1
+    chan_info['scanno'] = idx + 1
+    chan_info['cal'] = 1
+    chan_info['range'] = 1
+    chan_info['unit_mul'] = 0
+    chan_info['unit'] = FIFF.FIFF_UNIT_NONE
+    chan_info['eeg_loc'] = np.zeros(3)
+    chan_info['loc'] = np.zeros(12)
     info['ch_names'].append(chan_info['ch_name'])
     info['chs'].append(chan_info)
 
-    return info
+    return info, marker_id
 
 
 def read_raw_eeg(input_fname, elp=None, elp_chs=None,
