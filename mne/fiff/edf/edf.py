@@ -303,7 +303,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, preload=False):
 
         n_records = int(fid.read(8))
         # record length in seconds
-        edf_info['record_length'] = record_length = int(float(fid.read(8)))
+        edf_info['record_length'] = record_length = float(fid.read(8))
         info['nchan'] = int(fid.read(4))
         if n_eeg is None:
             n_eeg = info['nchan']
