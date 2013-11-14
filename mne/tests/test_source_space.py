@@ -173,6 +173,13 @@ def test_volume_source_space():
                                             mri=fname_mri,
                                             subjects_dir=subjects_dir)
         _compare_source_spaces(src, src_new, mode='approx')
+
+        # now without MRI argumment, it should give an error when we try
+        # to read it
+        run_subprocess(['mne_volume_source_space',
+                        '--grid',  '15.0',
+                        '--src', temp_name])
+        assert_raises(ValueError, read_source_spaces, temp_name)
     finally:
         if op.isfile(temp_name):
             os.remove(temp_name)
