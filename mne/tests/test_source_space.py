@@ -174,7 +174,7 @@ def test_volume_source_space():
                                             subjects_dir=subjects_dir)
         _compare_source_spaces(src, src_new, mode='approx')
 
-        # now without MRI argumment, it should give an error when we try
+        # now without MRI argument, it should give an error when we try
         # to read it
         run_subprocess(['mne_volume_source_space',
                         '--grid',  '15.0',
