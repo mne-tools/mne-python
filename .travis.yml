@@ -23,6 +23,7 @@ install:
     - ln -s ${SRC_DIR}/mne/fiff/bti/tests/data ${MNE_DIR}/fiff/bti/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/edf/tests/data ${MNE_DIR}/fiff/edf/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/kit/tests/data ${MNE_DIR}/fiff/kit/tests/data
+    - ln -s ${SRC_DIR}/mne/fiff/brainvision/tests/data ${MNE_DIR}/fiff/brainvision/tests/data
 script:
     - cd ${MNE_DIR}/../
     - TEST="nosetests -v --exe mne"
