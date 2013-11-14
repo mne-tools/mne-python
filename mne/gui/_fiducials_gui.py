@@ -416,6 +416,13 @@ class FiducialsFrame(HasTraits):
         nasion_color = defaults['nasion_color']
         rpa_color = defaults['rpa_color']
 
+        # bem
+        color = defaults['mri_color']
+        self.mri_obj = SurfaceObject(points=self.model.points, color=color,
+                                     tri=self.model.tris, scene=self.scene)
+        self.model.on_trait_change(self._on_mri_src_change, 'tris')
+        self.panel.hsp_obj = self.mri_obj
+
         # fiducials
         self.lpa_obj = PointObject(scene=self.scene, color=lpa_color,
                                    point_scale=self.point_scale)
@@ -433,15 +440,8 @@ class FiducialsFrame(HasTraits):
         self.panel.sync_trait('rpa', self.rpa_obj, 'points', mutual=False)
         self.sync_trait('point_scale', self.rpa_obj, mutual=False)
 
-        # bem
-        color = defaults['mri_color']
-        self.mri_obj = SurfaceObject(points=self.model.points, color=color,
-                                     tri=self.model.tris, scene=self.scene)
-        self.model.on_trait_change(self._on_mri_src_change, 'tris')
-        self.panel.hsp_obj = self.mri_obj
-
+        self.headview.left = True
         self.scene.disable_render = False
-        self.headview.front = True
 
         # picker
         self.scene.mayavi_scene.on_mouse_pick(self.panel._on_pick, type='cell')
