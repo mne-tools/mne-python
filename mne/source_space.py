@@ -977,7 +977,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
         volume source space can then be morphed onto the MRI volume
-        using this interpolator. If pos is supplied, this can be None.
+        using this interpolator. If pos is a dict, this can be None.
     sphere : array_like (length 4)
         Define spherical source space bounds using origin and radius given
         by (ox, oy, oz, rad) in mm. Only used if `bem` and `surface` are
