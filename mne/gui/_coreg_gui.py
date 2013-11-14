@@ -110,15 +110,15 @@ class CoregModel(HasPrivateTraits):
     n_scale_params = Enum(0, 1, 3, desc="Scale the MRI to better fit the "
                           "subject's head shape (a new MRI subject will be "
                           "created with a name specified upon saving)")
-    scale_x = Float(1, label="Right")
-    scale_y = Float(1, label="Anterior")
-    scale_z = Float(1, label="Superior")
-    rot_x = Float(0, label="Right")
-    rot_y = Float(0, label="Anterior")
-    rot_z = Float(0, label="Superior")
-    trans_x = Float(0, label="Right")
-    trans_y = Float(0, label="Anterior")
-    trans_z = Float(0, label="Superior")
+    scale_x = Float(1, label="Right (X)")
+    scale_y = Float(1, label="Anterior (Y)")
+    scale_z = Float(1, label="Superior (Z)")
+    rot_x = Float(0, label="Right (X)")
+    rot_y = Float(0, label="Anterior (Y)")
+    rot_z = Float(0, label="Superior (Z)")
+    trans_x = Float(0, label="Right (X)")
+    trans_y = Float(0, label="Anterior (Y)")
+    trans_z = Float(0, label="Superior (Z)")
 
     # secondary to parameters
     scale = Property(depends_on=['n_scale_params', 'scale_x', 'scale_y',
