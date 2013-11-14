@@ -59,6 +59,7 @@ if __name__ == "__main__":
                     'mne.fiff.kit', 'mne.fiff.kit.tests',
                     'mne.fiff.edf', 'mne.fiff.edf.tests',
                     'mne.forward', 'mne.forward.tests',
+                    'mne.gui', 'mne.gui.tests',
                     'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',
                     'mne.mixed_norm',

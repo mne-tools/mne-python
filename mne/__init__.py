@@ -56,6 +56,7 @@ from . import datasets
 from . import epochs
 from . import fiff
 from . import filter
+from . import gui
 from . import layouts
 from . import minimum_norm
 from . import mixed_norm

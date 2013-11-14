@@ -246,6 +246,10 @@ def pformat(temp, **fmt):
     return formatter.vformat(temp, (), mapping)
 
 
+def trait_wraith(*args, **kwargs):
+    return lambda x: x
+
+
 ###############################################################################
 # DECORATORS
 
@@ -525,6 +529,7 @@ def make_skipper_dec(module, skip_str):
 
 requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
+requires_traits = make_skipper_dec('traits', 'traits not installed')
 
 
 def _mne_fs_not_in_env():
