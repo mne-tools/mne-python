@@ -178,7 +178,7 @@ class RawEEG(Raw):
 
         stim_channel = np.zeros(data.shape[1])
         evts = _read_vmrk(eeg_info['marker_id'])
-        if evts:
+        if evts is not None:
             stim_channel[:evts.size] = evts
         stim_channel = stim_channel[start:stop]
 
@@ -312,7 +312,7 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
                 'Brain Vision Data Exchange Header File Version 1.0')
         settings = f.read()
 
-    params, _ = settings.split('[Comment]')
+    params, settings = settings.split('[Comment]')
     cfg = SafeConfigParser()
     cfg.readfp(StringIO(params))
 
@@ -356,6 +356,48 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
             units.append(0)
         else:
             units.append(unit)
+
+    # Attempts to extract filtering info from header. If not found, both are
+    # set to zero.
+    settings = settings.splitlines()
+    idx = settings.index('Channels') + 2
+    header = settings[idx].split()
+    if '#' in header:
+        lowpass = []
+        highpass = []
+        for i, ch in enumerate(ch_names, 1):
+            line = settings[idx + i].split()
+            assert ch in line
+            highpass.append(line[5])
+            lowpass.append(line[6])
+        if len(highpass) == 0:
+            info['highpass'] = None
+        elif all(highpass):
+            if highpass[0] == 'NaN':
+                info['highpass'] = None
+            elif highpass[0] == 'DC':
+                info['highpass'] = 0
+            else:
+                info['highpass'] = int(highpass[0])
+        else:
+            info['highpass'] = np.min(highpass)
+            warnings.warn('%s' % ('Channels contain different highpass '
+                                  'filters. Highest filter setting will '
+                                  'be stored.'))
+        if len(lowpass) == 0:
+            info['lowpass'] = None
+        elif all(lowpass):
+            if lowpass[0] == 'NaN':
+                info['lowpass'] = None
+            else:
+                info['lowpass'] = int(lowpass[0])
+        else:
+            info['lowpass'] = np.min(lowpass)
+            warnings.warn('%s' % ('Channels contain different lowpass filters.'
+                                  ' Lowest filter setting will be stored.'))
+    else:
+        info['highpass'] = None
+        info['lowpass'] = None
 
     # locate EEG and marker files
     path = os.path.dirname(fname)
