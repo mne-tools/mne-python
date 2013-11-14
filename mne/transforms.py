@@ -144,6 +144,28 @@ def rotation3d(x=0, y=0, z=0):
     return r
 
 
+def rotation_angles(m):
+    """Find rotation angles from a transformation matrix
+
+    Parameters
+    ----------
+    m : array, shape >= (3, 3)
+        Rotation matrix. Only the top left 3 x 3 partition is accessed.
+
+    Returns
+    -------
+    x, y, z : float
+        Rotation around x, y and z axes.
+    """
+    x = np.arctan2(m[2, 1], m[2, 2])
+    c2 = np.sqrt(m[0, 0] ** 2 + m[1, 0] ** 2)
+    y = np.arctan2(-m[2, 0], c2)
+    s1 = np.sin(x)
+    c1 = np.cos(x)
+    z = np.arctan2(s1 * m[0, 2] - c1 * m[0, 1], c1 * m[1, 1] - s1 * m[1, 2])
+    return x, y, z
+
+
 def scaling(x=1, y=1, z=1):
     """Create an array with a scaling matrix
 
