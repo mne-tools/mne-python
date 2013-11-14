@@ -65,6 +65,8 @@ from . import stats
 from . import tests
 from . import time_frequency
 from . import viz
+from . import decoding
+from . import realtime
 
 # initialize logging
 set_log_level(None, False)
