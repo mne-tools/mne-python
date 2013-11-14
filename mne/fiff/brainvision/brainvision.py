@@ -409,7 +409,7 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    info['nchan'] = n_chan + 1
+    info['nchan'] = n_chan
     info['ch_names'] = ch_names
     info['sfreq'] = sfreq
     if elp and elp_chs:
@@ -448,21 +448,25 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
         chan_info['loc'] = np.zeros(12)
         chan_info['loc'][:3] = chan_info['eeg_loc']
         info['chs'].append(chan_info)
+
     # for stim channel
-    chan_info = {}
-    chan_info['ch_name'] = 'STI 014'
-    chan_info['kind'] = FIFF.FIFFV_STIM_CH
-    chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-    chan_info['logno'] = idx + 1
-    chan_info['scanno'] = idx + 1
-    chan_info['cal'] = 1
-    chan_info['range'] = 1
-    chan_info['unit_mul'] = 0
-    chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-    chan_info['eeg_loc'] = np.zeros(3)
-    chan_info['loc'] = np.zeros(12)
-    info['ch_names'].append(chan_info['ch_name'])
-    info['chs'].append(chan_info)
+    stim_channel = _read_vmrk(eeg_info['marker_id'])
+    if stim_channel is not None:
+        chan_info = {}
+        chan_info['ch_name'] = 'STI 014'
+        chan_info['kind'] = FIFF.FIFFV_STIM_CH
+        chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+        chan_info['logno'] = idx + 1
+        chan_info['scanno'] = idx + 1
+        chan_info['cal'] = 1
+        chan_info['range'] = 1
+        chan_info['unit_mul'] = 0
+        chan_info['unit'] = FIFF.FIFF_UNIT_NONE
+        chan_info['eeg_loc'] = np.zeros(3)
+        chan_info['loc'] = np.zeros(12)
+        info['nchan'] = n_chan + 1
+        info['ch_names'].append(chan_info['ch_name'])
+        info['chs'].append(chan_info)
 
     return info, eeg_info
 
