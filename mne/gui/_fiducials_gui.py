@@ -117,7 +117,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         """
         if fname is None:
             fname = self.fid_file
-        if fname is None:
+        if not fname:
             fname = self.default_fid_fname
 
         dig = [{'kind': 1, 'ident': 1, 'r': np.array(self.lpa[0])},
@@ -233,7 +233,10 @@ class FiducialsPanel(HasPrivateTraits):
                        Item('fid_fname', show_label=False, style='readonly'),
                        Item('set', style='custom'),
                        Item('current_pos', label='Pos'),
-                       HGroup(Item('save', enabled_when='can_save'),
+                       HGroup(Item('save', enabled_when='can_save',
+                                   tooltip="If a filename is currently "
+                                   "specified, save to that file, otherwise "
+                                   "save to the default file name"),
                               Item('save_as', enabled_when='can_save_as'),
                               Item('reset_fid', enabled_when='can_reset'),
                               show_labels=False),
