@@ -12,9 +12,6 @@ import re
 import shutil
 from warnings import warn
 
-import logging
-logger = logging.getLogger('mne')
-
 import numpy as np
 from numpy import dot
 from scipy.optimize import leastsq
@@ -27,10 +24,20 @@ from .source_space import read_source_spaces, write_source_spaces
 from .surface import (read_surface, write_surface, read_bem_surfaces,
                       write_bem_surface)
 from .transforms import rotation, rotation3d, scaling, translation
-from .utils import get_config, get_subjects_dir
+from .utils import get_config, get_subjects_dir, logger, pformat
 
 
+# some path templates
 trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
+subject_dirname = os.path.join('{subjects_dir}', '{subject}')
+bem_dirname = os.path.join(subject_dirname, 'bem')
+surf_dirname = os.path.join(subject_dirname, 'surf')
+bem_fname = os.path.join(bem_dirname, "{subject}-{name}-bem.fif")
+fid_fname = os.path.join(bem_dirname, "{subject}-fiducials.fif")
+fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
+head_bem_fname = os.path.join(bem_dirname, "{subject}-head.fif")
+src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
+
 
 
 def create_default_subject(mne_root=None, fs_home=None, update=False,
@@ -567,8 +574,8 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
         raise NotImplementedError(err)
 
     est, _, info, msg, _ = leastsq(error, x0, full_output=True, **kwargs)
-    logging.debug("fit_point_cloud leastsq (%i calls) info: %s", info['nfev'],
-                  msg)
+    logger.debug("fit_point_cloud leastsq (%i calls) info: %s", info['nfev'],
+                 msg)
 
     if out == 'params':
         return est
@@ -617,15 +624,13 @@ def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
     return paths
 
 
-def _find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
+def _find_mri_paths(subject='fsaverage', subjects_dir=None):
     """Find all files of an mri relevant for source transformation
 
     Parameters
     ----------
     subject : str
         Name of the mri subject.
-    src : bool
-        Include source spaces.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
@@ -637,20 +642,14 @@ def _find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
         values are lists of paths.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-
-    s_dir = os.path.join(subjects_dir, '{sub}')
-    paths = {'s_dir': s_dir}
+    paths = {}
 
     # directories to create
-    bem_dir = os.path.join(s_dir, 'bem')
-    surf_dir = os.path.join(s_dir, 'surf')
-
-    paths['dirs'] = [bem_dir, surf_dir]
-
-    surf_path = os.path.join(surf_dir, '{name}')
+    paths['dirs'] = [bem_dirname, surf_dirname]
 
     # surf/ files
     paths['surf'] = surf = []
+    surf_fname = os.path.join(surf_dirname, '{name}')
     surf_names = ('orig', 'orig_avg',
                   'inflated', 'inflated_avg', 'inflated_pre',
                   'pial', 'pial_avg',
@@ -659,46 +658,43 @@ def _find_mri_paths(subject='fsaverage', src=False, subjects_dir=None):
                   'sphere', 'sphere.reg', 'sphere.reg.avg')
     for name in surf_names:
         for hemi in ('lh.', 'rh.'):
-            fname = surf_path.format(sub='{sub}', name=hemi + name)
+            fname = pformat(surf_fname, name=hemi + name)
             surf.append(fname)
 
     # BEM files
     paths['bem'] = bem = []
-    path = os.path.join(subjects_dir, '{sub}', 'bem', '{sub}-{name}.fif')
-    for name in ['head', 'inner_skull-bem']:
-        fname = path.format(sub='{sub}', name=name)
-        bem.append(fname)
+    bem.append(head_bem_fname)
+    bem_file = pformat(bem_fname, name='inner_skull')
+    bem.append(bem_file)
 
     # fiducials
-    fname = path.format(sub='{sub}', name='fiducials')
-    paths['fid'] = [fname]
-
-    # check presence of required files
-    for ftype in ['surf', 'bem', 'fid']:
-        for fname in paths[ftype]:
-            path = os.path.realpath(fname.format(sub=subject))
-            if not os.path.exists(path):
-                raise IOError("Required file not found: %r" % path)
-
-    # source spaces
-    if src:
-        paths['src'] = src = []
-        basename = '{sub}-{kind}-src.fif'
-        path = os.path.join(bem_dir, basename)
-        p = re.compile('\A' + basename.format(sub=subject, kind='(.+)'))
-        for name in os.listdir(bem_dir.format(sub=subject)):
-            match = p.match(name)
-            if match:
-                kind = match.group(1)
-                fname = path.format(sub='{sub}', kind=kind)
-                src.append(fname)
+    paths['fid'] = [fid_fname]
 
     # duplicate curvature files
     paths['duplicate'] = dup = []
-    path = os.path.join(surf_dir, '{name}')
+    path = os.path.join(surf_dirname, '{name}')
     for name in ['lh.curv', 'rh.curv']:
-        fname = path.format(sub='{sub}', name=name)
+        fname = pformat(path, name=name)
         dup.append(fname)
+
+    # check presence of required files
+    for ftype in ['surf', 'bem', 'fid', 'duplicate']:
+        for fname in paths[ftype]:
+            path = fname.format(subjects_dir=subjects_dir, subject=subject)
+            path = os.path.realpath(path)
+            if not os.path.exists(path):
+                raise IOError("Required file not found: %r" % path)
+
+    # find source space files
+    paths['src'] = src = []
+    bem_dir = bem_dirname.format(subjects_dir=subjects_dir, subject=subject)
+    fnames = fnmatch.filter(os.listdir(bem_dir), '*-src.fif')
+    prefix = subject + '-'
+    for fname in fnames:
+        if fname.startswith(prefix):
+            fname = "{subject}-%s" % fname[len(prefix):]
+        path = os.path.join(bem_dirname, fname)
+        src.append(path)
 
     return paths
 
@@ -755,6 +751,7 @@ def read_mri_cfg(subject, subjects_dir=None):
                "exist." % (subject, fname))
         raise IOError(err)
 
+    logger.info("Reading MRI cfg file %s" % fname)
     config = RawConfigParser()
     config.read(fname)
     n_params = config.getint("MRI Scaling", 'n_params')
@@ -769,6 +766,40 @@ def read_mri_cfg(subject, subjects_dir=None):
     out = {'subject_from': config.get("MRI Scaling", 'subject_from'),
            'n_params': n_params, 'scale': scale}
     return out
+
+
+def _write_mri_config(fname, subject_from, subject_to, scale):
+    """Write the cfg file describing a scaled MRI subject
+
+    Parameters
+    ----------
+    fname : str
+        Target file.
+    subject_from : str
+        Name of the source MRI subject.
+    subject_to : str
+        Name of the scaled MRI subject.
+    scale : float | array_like, shape = (3,)
+        The scaling parameter.
+    """
+    scale = np.asarray(scale)
+    if np.isscalar(scale) or scale.shape == ():
+        n_params = 1
+    else:
+        n_params = 3
+
+    config = RawConfigParser()
+    config.add_section("MRI Scaling")
+    config.set("MRI Scaling", 'subject_from', subject_from)
+    config.set("MRI Scaling", 'subject_to', subject_to)
+    config.set("MRI Scaling", 'n_params', str(n_params))
+    if n_params == 1:
+        config.set("MRI Scaling", 'scale', str(scale))
+    else:
+        config.set("MRI Scaling", 'scale', ' '.join(map(str, scale)))
+    config.set("MRI Scaling", 'version', '1')
+    with open(fname, 'wb') as fid:
+        config.write(fid)
 
 
 def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
@@ -791,8 +822,8 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
         Name of the original MRI subject (the brain that was scaled to create
         subject_to). If None, the value is read from subject_to's cfg file.
     scale : None | float | array_like, shape = (3,)
-        Name of the original MRI subject (the brain that was scaled to create
-        subject_to). If None, the value is read from subject_to's cfg file.
+        Scaling parameter. If None, the value is read from subject_to's cfg
+        file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
@@ -831,7 +862,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
         l_new.save(dst)
 
 
-def scale_mri(subject_from, subject_to, scale, src=False, overwrite=False,
+def scale_mri(subject_from, subject_to, scale, overwrite=False,
               subjects_dir=None):
     """Create a scaled copy of an MRI subject
 
@@ -843,19 +874,18 @@ def scale_mri(subject_from, subject_to, scale, src=False, overwrite=False,
         New subject name for which to save the scaled MRI.
     scale : float | array_like, shape = (3,)
         The scaling factor (one or 3 parameters).
-    src : bool
-        Also scale source spaces.
     overwrite : bool
         If an MRI already exists for subject_to, overwrite it.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    paths = _find_mri_paths(subject_from, src, subjects_dir=subjects_dir)
+    paths = _find_mri_paths(subject_from, subjects_dir=subjects_dir)
     scale = np.asarray(scale)
 
     # make sure we have an empty target directory
-    dest = paths['s_dir'].format(sub=subject_to)
+    dest = subject_dirname.format(subject=subject_to,
+                                  subjects_dir=subjects_dir)
     if os.path.exists(dest):
         if overwrite:
             shutil.rmtree(dest)
@@ -865,79 +895,147 @@ def scale_mri(subject_from, subject_to, scale, src=False, overwrite=False,
             raise IOError(err)
 
     for dirname in paths['dirs']:
-        os.makedirs(dirname.format(sub=subject_to))
-
-    # MRI Scaling
-    if np.isscalar(scale) or scale.shape == ():
-        n_params = 1
-        norm_scale = None
-    else:
-        n_params = 3
-        norm_scale = 1 / scale
+        dir_ = dirname.format(subject=subject_to, subjects_dir=subjects_dir)
+        os.makedirs(dir_)
 
     # save MRI scaling parameters
-    config = RawConfigParser()
-    config.add_section("MRI Scaling")
-    config.set("MRI Scaling", 'subject_from', subject_from)
-    config.set("MRI Scaling", 'subject_to', subject_to)
-    config.set("MRI Scaling", 'n_params', str(n_params))
-    if n_params == 1:
-        config.set("MRI Scaling", 'scale', str(scale))
-    else:
-        config.set("MRI Scaling", 'scale', ' '.join(map(str, scale)))
-    config.set("MRI Scaling", 'version', '1')
     fname = os.path.join(dest, 'MRI scaling parameters.cfg')
-    with open(fname, 'wb') as fid:
-        config.write(fid)
+    _write_mri_config(fname, subject_from, subject_to, scale)
 
     # surf files [in mm]
     for fname in paths['surf']:
-        src = os.path.realpath(fname.format(sub=subject_from))
-        dest = fname.format(sub=subject_to)
+        src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
+        src = os.path.realpath(src)
+        dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         pts, tri = read_surface(src)
         write_surface(dest, pts * scale, tri)
 
     # BEM files [in m]
     for fname in paths['bem']:
-        src = os.path.realpath(fname.format(sub=subject_from))
+        src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
+        src = os.path.realpath(src)
         surfs = read_bem_surfaces(src)
         if len(surfs) != 1:
             err = ("BEM file with more than one surface: %r" % src)
             raise NotImplementedError(err)
         surf0 = surfs[0]
         surf0['rr'] = surf0['rr'] * scale
-        dest = fname.format(sub=subject_to)
+        dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         write_bem_surface(dest, surf0)
 
     # fiducials [in m]
     for fname in paths['fid']:
-        src = os.path.realpath(fname.format(sub=subject_from))
+        src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
+        src = os.path.realpath(src)
         pts, cframe = read_fiducials(src)
         for pt in pts:
             pt['r'] = pt['r'] * scale
-        dest = fname.format(sub=subject_to)
+        dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
         write_fiducials(dest, pts, cframe)
 
-    # src [in m]
-    for fname in paths.get('src', ()):
-        src = fname.format(sub=subject_from)
-        sss = read_source_spaces(src)
-        for ss in sss:
-            ss['rr'] = ss['rr'] * scale
-            if norm_scale is not None:
-                nn = ss['nn'] * norm_scale
-                norm = np.sqrt(np.sum(nn ** 2, 1))
-                nn /= norm[:, np.newaxis]
-                ss['nn'] = nn
-        dest = fname.format(sub=subject_to)
-        write_source_spaces(dest, sss)
+    # duplicate files
+    for fname in paths['duplicate']:
+        src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
+        dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
+        shutil.copyfile(src, dest)
+
+    # source spaces
+    for fname in paths['src']:
+        src_name = os.path.basename(fname)
+        scale_source_space(subject_to, src_name, subject_from, scale,
+                           subjects_dir)
 
     # labels [in m]
     scale_labels(subject_to, subject_from=subject_from, scale=scale,
                  subjects_dir=subjects_dir)
 
-    # duplicate files
-    for fname in paths['duplicate']:
-        src = fname.format(sub=subject_from)
-        dest = fname.format(sub=subject_to)
-        shutil.copyfile(src, dest)
+
+def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
+                       subjects_dir=None):
+    """Scale a source space for an mri created with scale_mri()
+
+    Parameters
+    ----------
+    subject_to : str
+        Name of the scaled MRI subject (the destination mri subject).
+    src_name : str
+        Source space name. Can be a spacing parameter (e.g., ``'7'``,
+        ``'ico4'``, ``'oct6'``) or a file name of a source space file relative
+        to the bem directory; if the file name contains the subject name, it
+        should be indicated as "{subject}" in ``src_name`` (e.g.,
+        ``"{subject}-my_source_space-src.fif"``).
+    subject_from : None | str
+        The subject from which to read the source space. If None, subject_from
+        is read from subject_to's config file.
+    scale : None | float | array, shape = (3,)
+        Scaling factor. Has to be specified if subjects_from is specified,
+        otherwise it is read from subject_to's config file.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, True)
+    if (subject_from is None) != (scale is None):
+        err = ("Need to provide either both subject_from and scale "
+               "parameters, or neither.")
+        raise TypeError(err)
+
+    if subject_from is None:
+        cfg = read_mri_cfg(subject_to, subjects_dir)
+        subject_from = cfg['subject_from']
+        n_params = cfg['n_params']
+        scale = cfg['scale']
+    else:
+        scale = np.asarray(scale)
+        if scale.ndim == 0:
+            n_params = 1
+        elif scale.shape == (3,):
+            n_params = 3
+        else:
+            err = ("Invalid shape for scale parameer. Need scalar or array of "
+                   "length 3. Got %s." % str(scale))
+            raise ValueError(err)
+
+    # find the source space file names
+    if src_name.isdigit():
+        spacing = src_name  # spacing in mm
+        src_pattern = src_fname
+    else:
+        match = re.match("(oct|ico)-?(\d+)$", src_name)
+        if match:
+            spacing = '-'.join(match.groups())
+            src_pattern = src_fname
+        else:
+            spacing = None
+            src_pattern = os.path.join(bem_dirname, src_name)
+
+    src = src_pattern.format(subjects_dir=subjects_dir, subject=subject_from,
+                             spacing=spacing)
+    dst = src_pattern.format(subjects_dir=subjects_dir, subject=subject_to,
+                             spacing=spacing)
+
+    # prepare scaling parameters
+    if n_params == 1:
+        norm_scale = None
+    elif n_params == 3:
+        norm_scale = 1. / scale
+    else:
+        err = ("Invalid n_params entry in MRI cfg file: %s" % str(n_params))
+        raise RuntimeError(err)
+
+    # read and scale the source space [in m]
+    sss = read_source_spaces(src)
+    logger.info("scaling source space %s:  %s -> %s", spacing, subject_from,
+                subject_to)
+    logger.info("Scale factor: %s", scale)
+    for ss in sss:
+        ss['rr'] = ss['rr'] * scale
+        if norm_scale is not None:
+            nn = ss['nn'] * norm_scale
+            norm = np.sqrt(np.sum(nn ** 2, 1))
+            nn /= norm[:, np.newaxis]
+            ss['nn'] = nn
+
+            ss['dist'] = None
+            ss['dist_limit'] = None
+            ss['nearest_dist'] = None
+    write_source_spaces(dst, sss)

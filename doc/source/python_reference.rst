@@ -349,6 +349,7 @@ MRI Processing
    create_default_subject
    scale_mri
    scale_labels
+   scale_source_space
 
 
 Forward Modeling
