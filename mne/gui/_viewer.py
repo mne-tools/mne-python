@@ -7,7 +7,6 @@
 import numpy as np
 
 # allow import without traits
-from ..utils import trait_wraith
 try:
     from mayavi.mlab import pipeline, text3d
     from mayavi.modules.glyph import Glyph
@@ -20,6 +19,7 @@ try:
                             Button, Color, Enum, Float, Int, List, Range, Str)
     from traitsui.api import View, Item, Group, HGroup, VGroup
 except:
+    from ..utils import trait_wraith
     HasTraits = object
     HasPrivateTraits = object
     cached_property = trait_wraith

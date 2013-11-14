@@ -9,7 +9,6 @@ import os
 import numpy as np
 
 # allow import without traits
-from ..utils import trait_wraith
 try:
     from traits.api import (Any, HasTraits, HasPrivateTraits, cached_property,
                             on_trait_change, Array, Bool, Button, DelegatesTo,
@@ -19,6 +18,7 @@ try:
     from pyface.api import (DirectoryDialog, OK, ProgressDialog, error,
                             information)
 except:
+    from ..utils import trait_wraith
     HasTraits = object
     HasPrivateTraits = object
     cached_property = trait_wraith

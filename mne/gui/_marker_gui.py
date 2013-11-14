@@ -9,7 +9,6 @@ import os
 import numpy as np
 
 # allow import without traits
-from ..utils import trait_wraith
 try:
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -21,6 +20,7 @@ try:
     from traitsui.menu import NoButtons
     from tvtk.pyface.scene_editor import SceneEditor
 except:
+    from ..utils import trait_wraith
     HasTraits = object
     HasPrivateTraits = object
     cached_property = trait_wraith

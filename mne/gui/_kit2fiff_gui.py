@@ -12,7 +12,6 @@ import numpy as np
 from scipy.linalg import inv
 
 # allow import without traits
-from ..utils import trait_wraith
 try:
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -25,6 +24,7 @@ try:
     from traitsui.menu import NoButtons
     from tvtk.pyface.scene_editor import SceneEditor
 except:
+    from ..utils import trait_wraith
     HasTraits = object
     HasPrivateTraits = object
     Handler = object

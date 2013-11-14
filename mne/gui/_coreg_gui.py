@@ -14,7 +14,6 @@ import numpy as np
 from scipy.spatial.distance import cdist
 
 # allow import without traits
-from ..utils import trait_wraith
 try:
     from mayavi.core.ui.mayavi_scene import MayaviScene
     from mayavi.tools.mlab_scene_model import MlabSceneModel
@@ -30,6 +29,7 @@ try:
                                OKCancelButtons)
     from tvtk.pyface.scene_editor import SceneEditor
 except:
+    from ..utils import trait_wraith
     HasTraits = object
     HasPrivateTraits = object
     Handler = object
@@ -1249,7 +1249,7 @@ class CoregFrame(HasTraits):
             self.model.hsp.file = raw
 
     @on_trait_change('scene.activated')
-    def init_plot(self):
+    def _init_plot(self):
         self.scene.disable_render = True
 
         lpa_color = defaults['lpa_color']

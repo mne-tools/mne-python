@@ -247,6 +247,8 @@ def pformat(temp, **fmt):
 
 
 def trait_wraith(*args, **kwargs):
+    # Stand in for traits to allow importing traits based modules when the
+    # traits library is not installed
     return lambda x: x
 
 
