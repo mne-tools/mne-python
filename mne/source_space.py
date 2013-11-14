@@ -1028,9 +1028,9 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     elif not isinstance(pos, dict):
         # "pos" will create a discrete src, so we don't need "mri"
         # if "pos" is None, we must have "mri" b/c it will be vol src
-        raise RuntimeError('"mri" must be provided if "pos" is None (i.e.,'
-                           'if a volume instead of discrete source space '
-                           'is desired)')
+        raise RuntimeError('"mri" must be provided if "pos" is not a dict '
+                           '(i.e., if a volume instead of discrete source '
+                           'space is desired)')
 
     sphere = np.asarray(sphere)
     if sphere.size != 4:
