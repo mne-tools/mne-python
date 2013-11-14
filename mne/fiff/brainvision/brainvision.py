@@ -56,7 +56,7 @@ class RawEEG(Raw):
                  preload=False, verbose=None):
         logger.info('Extracting eeg Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        self.info, self._marker_id = _get_eeg_info(input_fname, elp, elp_chs)
+        self.info, self._eeg_info = _get_eeg_info(input_fname, elp, elp_chs)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -69,8 +69,10 @@ class RawEEG(Raw):
         self.first_samp = 0
         f = open(self.info['file_id'])
         f.seek(0, os.SEEK_END)
-        nsamples = f.tell()
-        self.last_samp = (nsamples / (2 * (self.info['nchan'] - 1))) - 1
+        n_samples = f.tell()
+        dtype = int(self._eeg_info['dtype'][-1])
+        n_chan = self.info['nchan']
+        self.last_samp = (n_samples / (dtype * (n_chan - 1))) - 1
 
         if preload:
             self._preloaded = preload
@@ -141,6 +143,7 @@ class RawEEG(Raw):
         start = int(start)
         stop = int(stop)
 
+        eeg_info = self._eeg_info
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
         cals = np.array([chan_info['cal'] for chan_info in self.info['chs']])
@@ -163,15 +166,20 @@ class RawEEG(Raw):
             pointer = start * n_chan
             f.seek(pointer)
             # extract data
-            data = np.fromfile(f, dtype='<i2', count=buffer_size * n_eeg)
+            data = np.fromfile(f, dtype=eeg_info['dtype'],
+                               count=buffer_size * n_eeg)
+        if eeg_info['data_orientation'] == 'MULTIPLEXED':
             data = data.reshape((n_eeg, -1), order='F')
+        elif eeg_info['data_orientation'] == 'VECTORIZED':
+            data = data.reshape((n_eeg, -1), order='C')
 
-            gains = cals * mults
-            data = data * gains.T
+        gains = cals * mults
+        data = data * gains.T
 
         stim_channel = np.zeros(data.shape[1])
-        evts = _read_vmrk(self._marker_id)
-        stim_channel[:evts.size] = evts
+        evts = _read_vmrk(eeg_info['marker_id'])
+        if evts:
+            stim_channel[:evts.size] = evts
         stim_channel = stim_channel[start:stop]
 
         data = np.vstack((data, stim_channel))
@@ -205,15 +213,18 @@ def _read_vmrk(fname):
         cfg = SafeConfigParser()
         cfg.readfp(f)
     events = []
-    for (marker, info) in cfg.items('Marker Infos'):
+    for _, info in cfg.items('Marker Infos'):
         mtype, mdesc, offset, duration = info.split(',')[:4]
         if mtype == 'Stimulus':
             trigger = int(re.findall('S\s?(\d+)', mdesc)[0])
             offset, duration = int(offset), int(duration)
             events.append((trigger, offset, offset + duration))
-    stim_channel = np.zeros(events[-1][2])
-    for event in events:
-        stim_channel[event[1]:event[2]] = trigger
+    if events:
+        stim_channel = np.zeros(events[-1][2])
+        for event in events:
+            stim_channel[event[1]:event[2]] = trigger
+    else:
+        stim_channel = None
 
     return stim_channel
 
@@ -293,82 +304,65 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     info['orig_blocks'] = None
     info['orig_fid_str'] = None
 
+    eeg_info = {}
+
     with open(fname, 'rb') as f:
         # extract the first section to resemble a cfg
         assert (f.readline().strip() ==
                 'Brain Vision Data Exchange Header File Version 1.0')
         settings = f.read()
 
-    params, settings = settings.split('[Comment]')
+    params, _ = settings.split('[Comment]')
     cfg = SafeConfigParser()
     cfg.readfp(StringIO(params))
 
     # get sampling info
-    sfreq = re.findall('Sampling Rate\s\[Hz\]:\s(\d+)', settings)
-    sfreq = int(sfreq[0])
+    # Sampling interval is given in microsec
+    sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
+    sfreq = int(sfreq)
     n_chan = cfg.getint('Common Infos', 'NumberOfChannels')
 
     # check binary format
-    assert cfg.get('Common Infos', 'DataOrientation') == 'MULTIPLEXED'
     assert cfg.get('Common Infos', 'DataFormat') == 'BINARY'
-    assert cfg.get('Binary Infos', 'BinaryFormat') == 'INT_16'
+    eeg_info['data_orientation'] = cfg.get('Common Infos', 'DataOrientation')
+    if not (eeg_info['data_orientation'] == 'MULTIPLEXED' or
+            eeg_info['data_orientation'] == 'VECTORIZED'):
+        raise NotImplementedError('Data Orientation %s is not supported'
+                                  % eeg_info['data_orientation'])
+
+    binary_format = cfg.get('Binary Infos', 'BinaryFormat')
+    if binary_format == 'INT_16':
+        eeg_info['dtype'] = '<i2'
+    elif binary_format == 'INT_32':
+        eeg_info['dtype'] = '<i4'
+    elif binary_format == 'IEEE_FLOAT_32':
+        eeg_info['dtype'] = '<f4'
+    else:
+        raise NotImplementedError('Datatype %s is not supported'
+                                  % binary_format)
 
     # load channel labels
     ch_names = ['UNKNOWN'] * n_chan
     cals = np.ones(n_chan) * np.nan
+    units = []
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0])
-        name, _, resolution, _ = props.split(',')[:4]
+        name, _, resolution, unit = props.split(',')[:4]
         ch_names[n - 1] = name
         cals[n - 1] = resolution
+        if unit == '\xc2\xb5V':
+            units.append(1e-6)
+        elif unit == 'V':
+            units.append(0)
+        else:
+            units.append(unit)
 
     # locate EEG and marker files
     path = os.path.dirname(fname)
     info['file_id'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
-    marker_id = os.path.join(path, cfg.get('Common Infos', 'MarkerFile'))
+    eeg_info['marker_id'] = os.path.join(path, cfg.get('Common Infos',
+                                                       'MarkerFile'))
     info['meas_date'] = int(time.time())
-
-    settings = settings.splitlines()
-    idx = settings.index('Channels') + 2
-    header = settings[idx].split()
-    assert '#' in header
-    lowpass = []
-    highpass = []
-    units = []
-    for i, ch in enumerate(ch_names, 1):
-        line = settings[idx + i].split()
-        assert ch in line
-        if line[4] == '\xc2\xb5V':
-            units.append(1e-6)
-        else:
-            units.append(line[4])
-        highpass.append(line[5])
-        lowpass.append(line[6])
-    if len(highpass) == 0:
-        info['highpass'] = None
-    elif all(highpass):
-        if highpass[0] == 'NaN':
-            info['highpass'] = None
-        elif highpass[0] == 'DC':
-            info['highpass'] = 0
-        else:
-            info['highpass'] = int(highpass[0])
-    else:
-        info['highpass'] = np.min(highpass)
-        warnings.warn('%s' % ('Channels contain different highpass '
-                              'filters. Highest filter setting will '
-                              'be stored.'))
-    if len(lowpass) == 0:
-        info['lowpass'] = None
-    elif all(lowpass):
-        if lowpass[0] == 'NaN':
-            info['lowpass'] = None
-        else:
-            info['lowpass'] = int(lowpass[0])
-    else:
-        info['lowpass'] = np.min(lowpass)
-        warnings.warn('%s' % ('Channels contain different lowpass filters.'
-                              ' Lowest filter setting will be stored.'))
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
@@ -428,7 +422,7 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     info['ch_names'].append(chan_info['ch_name'])
     info['chs'].append(chan_info)
 
-    return info, marker_id
+    return info, eeg_info
 
 
 def read_raw_eeg(input_fname, elp=None, elp_chs=None,
