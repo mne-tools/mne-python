@@ -17,7 +17,7 @@ try:
     from traits.api import (HasTraits, HasPrivateTraits, on_trait_change,
                             cached_property, Instance, Property, Array, Bool,
                             Button, Color, Enum, Float, Int, List, Range, Str)
-    from traitsui.api import View, Item, Group, HGroup, VGroup
+    from traitsui.api import View, Item, Group, HGroup, VGrid, VGroup
 except:
     from ..utils import trait_wraith
     HasTraits = object
@@ -82,9 +82,9 @@ class HeadViewController(HasTraits):
 
     scene = Instance(MlabSceneModel)
 
-    view = View(Group(HGroup('72', Item('top', show_label=False), '100',
-                             Item('scale', label='Scale')),
-                      HGroup('right', 'front', 'left', show_labels=False)))
+    view = View(VGrid('0', 'top', '0', Item('scale', label='Scale',
+                                            show_label=True),
+                      'right', 'front', 'left', show_labels=False, columns=4))
 
     @on_trait_change('scene.activated')
     def _init_view(self):

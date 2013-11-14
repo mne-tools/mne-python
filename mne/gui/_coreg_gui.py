@@ -639,7 +639,7 @@ class CoregPanel(HasPrivateTraits):
     # saving
     can_save = DelegatesTo('model')
     prepare_bem_model = Bool(True)
-    save = Button
+    save = Button(label="Save As...")
     load_trans = Button
     queue = Instance(Queue, ())
     queue_feedback = Str('')
@@ -1109,10 +1109,13 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
     view : traits View
         View object for the CoregFrame.
     """
+    view_options = VGroup(Item('headview', style='custom'), 'view_options',
+                          show_border=True, show_labels=False, label='View')
+
     scene = VGroup(Item('scene', show_label=False,
                         editor=SceneEditor(scene_class=MayaviScene),
                         dock='vertical', width=500),
-                   headview_borders)
+                   view_options)
 
     data_panel = VGroup(VGroup(Item('subject_panel', style='custom'),
                                label="MRI Subject", show_border=True,
@@ -1135,7 +1138,6 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                     show_label=False),
                                label='Head Shape Source (Raw)',
                                show_border=True, show_labels=False),
-                        'view_options',
                         show_labels=False, label="Data Source")
 
     coreg_panel = VGroup(Item('coreg_panel', style='custom'),
