@@ -14,3 +14,4 @@ recursive-exclude mne/fiff/tests/data *
 recursive-exclude mne/fiff/bti/tests/data *
 recursive-exclude mne/fiff/kit/tests/data *
 recursive-exclude mne/fiff/edf/tests/data *
+recursive-exclude mne/fiff/brainvision/tests/data *
