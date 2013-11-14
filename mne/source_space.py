@@ -944,8 +944,8 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
 def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                               sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
-                              use_all=False, overwrite=False,
-                              subjects_dir=None, verbose=None):
+                              overwrite=False, subjects_dir=None,
+                              verbose=None):
     """Setup a volume source space with grid spacing
 
     Parameters
