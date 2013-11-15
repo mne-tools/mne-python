@@ -360,9 +360,16 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     # Attempts to extract filtering info from header. If not found, both are
     # set to zero.
     settings = settings.splitlines()
-    idx = settings.index('Channels') + 2
-    header = settings[idx].split()
-    if '#' in header:
+    idx = None
+    if 'Channels' in settings:
+        idx = settings.index('Channels')
+        settings = settings[idx + 1:]
+        for idx, setting in enumerate(settings):
+            if re.findall('#\sName', setting):
+                break
+            else:
+                idx = None
+    if idx:
         lowpass = []
         highpass = []
         for i, ch in enumerate(ch_names, 1):
