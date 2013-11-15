@@ -257,7 +257,8 @@ class RawKIT(Raw):
         start = int(self.first_samp)
         stop = int(self.last_samp + 1)
 
-        pick = pick_types(self.info, meg=False, stim=True, exclude=[])
+        pick = pick_types(self.info, meg=False, ref_meg=False,
+                          stim=True, exclude=[])
         stim_ch = np.empty((1, stop), dtype=np.int)
         for b_start in range(start, stop, buffer_size):
             b_stop = b_start + buffer_size

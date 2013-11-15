@@ -92,7 +92,6 @@ class Raw(ProjMixin):
 
         raws = [self._read_raw_file(fname, allow_maxshield, preload,
                                     compensation) for fname in fnames]
-
         _check_raw_compatibility(raws)
 
         # combine information from each raw file to construct self

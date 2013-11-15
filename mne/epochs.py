@@ -397,7 +397,7 @@ class _BaseEpochs(ProjMixin):
 
         # dropping EOG, ECG and STIM channels. Keeping only data
         if picks is None:
-            picks = pick_types(evoked.info, meg=True, eeg=True,
+            picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=True,
                                stim=False, eog=False, ecg=False,
                                emg=False, exclude=[])
             if len(picks) == 0:

@@ -124,7 +124,7 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, ref_meg=False, misc=False, resp=False, chpi=False,
+               emg=False, ref_meg=True, misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False,
                include=[], exclude='bads', selection=None):
     """Pick channels by type and names
