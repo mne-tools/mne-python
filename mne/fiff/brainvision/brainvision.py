@@ -29,7 +29,7 @@ class RawEEG(Raw):
 
     Parameters
     ----------
-    input_fname : str
+    vdhr_fname : str
         Path to the EEG header file.
 
     elp : str | None
@@ -52,11 +52,11 @@ class RawEEG(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, elp=None, elp_chs=None,
+    def __init__(self, vhdr_fname, elp=None, elp_chs=None,
                  preload=False, verbose=None):
-        logger.info('Extracting eeg Parameters from %s...' % input_fname)
-        input_fname = os.path.abspath(input_fname)
-        self.info, self._eeg_info = _get_eeg_info(input_fname, elp, elp_chs)
+        logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
+        vhdr_fname = os.path.abspath(vhdr_fname)
+        self.info, self._eeg_info = _get_eeg_info(vhdr_fname, elp, elp_chs)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -76,7 +76,7 @@ class RawEEG(Raw):
 
         if preload:
             self._preloaded = preload
-            logger.info('Reading raw data from %s...' % input_fname)
+            logger.info('Reading raw data from %s...' % vhdr_fname)
             self._data, _ = self._read_segment()
             assert len(self._data) == self.info['nchan']
 
@@ -238,6 +238,10 @@ def _get_elp_locs(fname, elp_chs):
         Path to head shape file acquired from Polhemus system and saved in
         ascii format.
 
+    elp_chs : list
+        A list in order of EEG electrodes found in the Polhemus digitizer file.
+
+
     Returns
     -------
     ch_locs : numpy.array, shape = (n_points, 3)
@@ -281,6 +285,9 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     -------
     info : instance of Info
         The measurement info.
+
+    edf_info : dict
+        A dict containing Brain Vision specific parameters.
     """
 
     info = Info()
@@ -478,13 +485,13 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     return info, eeg_info
 
 
-def read_raw_eeg(input_fname, elp=None, elp_chs=None,
-                 preload=False, verbose=None):
+def read_raw_vhdr(vhdr_fname, elp=None, elp_chs=None,
+                  preload=False, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
     ----------
-    input_fname : str
+    vhdr_fname : str
         Path to the EEG header file.
 
     elp : str | None
@@ -506,5 +513,5 @@ def read_raw_eeg(input_fname, elp=None, elp_chs=None,
     --------
     mne.fiff.Raw : Documentation of attribute and methods.
     """
-    return RawEEG(input_fname=input_fname, elp=elp, elp_chs=None,
+    return RawEEG(vhdr_fname=vhdr_fname, elp=elp, elp_chs=None,
                   preload=preload, verbose=verbose)
