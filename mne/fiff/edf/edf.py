@@ -476,6 +476,15 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, preload=False):
     return info, edf_info
 
 
+def _read_annot(annot):
+    exp = '([+/-]\d+.\d+),(\w+)'
+    annot = open(annot).read()
+    triggers = re.findall(exp, annot)
+    times, values = zip(*triggers)
+    times = map(float, times)
+    
+    return times, values
+
 def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, hpts=None,
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
