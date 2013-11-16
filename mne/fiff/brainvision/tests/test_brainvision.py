@@ -12,21 +12,20 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.utils import _TempDir
 from mne.fiff import Raw, pick_types
-from mne.fiff.brainvision import read_raw_vhdr
+from mne.fiff.brainvision import read_raw_brainvision
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
-elp_path = op.join(data_dir, 'test_elp.txt')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 
 tempdir = _TempDir()
 
 
-def test_eeg_data():
-    """Test reading raw eeg files
+def test_brainvision_data():
+    """Test reading raw Brain Vision files
     """
-    raw_py = read_raw_vhdr(vhdr_path, elp=elp_path, preload=True)
+    raw_py = read_raw_brainvision(vhdr_path, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
@@ -44,7 +43,7 @@ def test_eeg_data():
 def test_read_segment():
     """Test writing raw eeg files when preload is False
     """
-    raw1 = read_raw_vhdr(vhdr_path, elp=elp_path, preload=False)
+    raw1 = read_raw_brainvision(vhdr_path, preload=False)
     raw1_file = op.join(tempdir, 'raw1.fif')
     raw1.save(raw1_file, overwrite=True)
     raw11 = Raw(raw1_file, preload=True)
@@ -54,7 +53,7 @@ def test_read_segment():
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
-    raw2 = read_raw_vhdr(vhdr_path, elp=elp_path, preload=True)
+    raw2 = read_raw_brainvision(vhdr_path, preload=True)
     raw2_file = op.join(tempdir, 'raw2.fif')
     raw2.save(raw2_file, overwrite=True)
     data2, times2 = raw2[:, :]

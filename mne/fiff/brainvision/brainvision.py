@@ -24,19 +24,19 @@ from ..constants import FIFF
 from ...coreg import get_ras_to_neuromag_trans
 
 
-class RawEEG(Raw):
-    """Raw object from EEG file
+class RawBrainVision(Raw):
+    """Raw object from Brain Vision eeg file
 
     Parameters
     ----------
     vdhr_fname : str
         Path to the EEG header file.
 
-    elp : str | None
+    elp_fname : str | None
         Path to the elp file containing electrode positions.
         If None, sensor locations are (0,0,0).
 
-    elp_chs : list | None
+    ch_names : list | None
         A list of channel names in order of collection of electrode position
         digitization.
 
@@ -52,11 +52,12 @@ class RawEEG(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, vhdr_fname, elp=None, elp_chs=None,
+    def __init__(self, vhdr_fname, elp_fname=None, ch_names=None,
                  preload=False, verbose=None):
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        self.info, self._eeg_info = _get_eeg_info(vhdr_fname, elp, elp_chs)
+        self.info, self._eeg_info = _get_eeg_info(vhdr_fname, elp_fname,
+                                                  ch_names)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -191,21 +192,21 @@ class RawEEG(Raw):
         return data, times
 
 
-def _read_vmrk(fname):
+def _read_vmrk(vmrk_fname):
     """Extracts the event markers for vmrk file
 
     Parameters
     ----------
-    fname : str
+    vmrk_fname : str
         vmrk file to be read.
 
     Returns
     -------
-    stim_channel : np.array
+    stim_channel : array
         An array containing the whole recording's event marking
     """
 
-    with open(fname) as f:
+    with open(vmrk_fname) as f:
     # setup config reader
         assert (f.readline().strip() ==
                 'Brain Vision Data Exchange Marker File, Version 1.0')
@@ -229,51 +230,51 @@ def _read_vmrk(fname):
     return stim_channel
 
 
-def _get_elp_locs(fname, elp_chs):
+def _get_elp_locs(elp_fname, ch_names):
     """Read a Polhemus ascii file
 
     Parameters
     ----------
-    fname : str
+    elp_fname : str
         Path to head shape file acquired from Polhemus system and saved in
         ascii format.
 
-    elp_chs : list
+    ch_names : list
         A list in order of EEG electrodes found in the Polhemus digitizer file.
 
 
     Returns
     -------
-    ch_locs : numpy.array, shape = (n_points, 3)
+    ch_locs : ndarray, shape = (n_points, 3)
         Electrode points in Neuromag space.
     """
     pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    with open(fname) as fid:
+    with open(elp_fname) as fid:
         elp = pattern.findall(fid.read())
     elp = np.array(elp, dtype=float)
     elp = apply_trans(als_ras_trans, elp)
     nasion, lpa, rpa = elp[:3]
     trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     elp = apply_trans(trans, elp[8:])
-    ch_locs = dict(zip(elp_chs, elp))
+    ch_locs = dict(zip(ch_names, elp))
     fid = nasion, lpa, rpa
 
     return fid, ch_locs
 
 
-def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
-    """Extracts all the information from the HDR file.
+def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
+    """Extracts all the information from the header file.
 
     Parameters
     ----------
-    fname : str
-        Raw EEG file to be read.
+    vhdr_fname : str
+        Raw EEG header to be read.
 
-    elp : str | None
+    elp_fname : str | None
         Path to the elp file containing electrode positions.
         If None, sensor locations are (0,0,0).
 
-    elp_chs : list | None
+    ch_names : list | None
         A list of channel names in order of collection of electrode position
         digitization.
 
@@ -297,7 +298,7 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     info['comps'] = []
     info['bads'] = []
     info['acq_pars'], info['acq_stim'] = None, None
-    info['filename'] = fname
+    info['filename'] = vhdr_fname
     info['ctf_head_t'] = None
     info['dev_ctf_t'] = []
     info['filenames'] = []
@@ -313,7 +314,7 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
 
     eeg_info = {}
 
-    with open(fname, 'rb') as f:
+    with open(vhdr_fname, 'rb') as f:
         # extract the first section to resemble a cfg
         assert (f.readline().strip() ==
                 'Brain Vision Data Exchange Header File Version 1.0')
@@ -414,7 +415,7 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
         info['lowpass'] = None
 
     # locate EEG and marker files
-    path = os.path.dirname(fname)
+    path = os.path.dirname(vhdr_fname)
     info['file_id'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
     eeg_info['marker_id'] = os.path.join(path, cfg.get('Common Infos',
                                                        'MarkerFile'))
@@ -426,8 +427,8 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     info['nchan'] = n_chan
     info['ch_names'] = ch_names
     info['sfreq'] = sfreq
-    if elp and elp_chs:
-        fid, ch_locs = _get_elp_locs(elp, elp_chs)
+    if elp_fname and ch_names:
+        fid, ch_locs = _get_elp_locs(elp_fname, ch_names)
         nasion, lpa, rpa = fid
         info['dig'] = [{'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
@@ -485,8 +486,8 @@ def _get_eeg_info(fname, elp=None, elp_chs=None, preload=False):
     return info, eeg_info
 
 
-def read_raw_vhdr(vhdr_fname, elp=None, elp_chs=None,
-                  preload=False, verbose=None):
+def read_raw_brainvision(vhdr_fname, elp_fname=None, ch_names=None,
+                         preload=False, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -494,11 +495,11 @@ def read_raw_vhdr(vhdr_fname, elp=None, elp_chs=None,
     vhdr_fname : str
         Path to the EEG header file.
 
-    elp : str | None
+    elp_fname : str | None
         Path to the elp file containing electrode positions.
         If None, sensor locations are (0,0,0).
 
-    elp_chs : list | None
+    ch_names : list | None
         A list of channel names in order of collection of electrode position
         digitization.
 
@@ -513,5 +514,5 @@ def read_raw_vhdr(vhdr_fname, elp=None, elp_chs=None,
     --------
     mne.fiff.Raw : Documentation of attribute and methods.
     """
-    return RawEEG(vhdr_fname=vhdr_fname, elp=elp, elp_chs=None,
-                  preload=preload, verbose=verbose)
+    return RawBrainVision(vhdr_fname=vhdr_fname, elp_fname=elp_fname,
+                          ch_names=ch_names, preload=preload, verbose=verbose)
