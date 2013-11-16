@@ -373,7 +373,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
         idx = settings.index('Channels')
         settings = settings[idx + 1:]
         for idx, setting in enumerate(settings):
-            if re.findall('#\sName', setting):
+            if re.match('#\s+Name', setting):
                 break
             else:
                 idx = None
