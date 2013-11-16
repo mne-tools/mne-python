@@ -78,7 +78,7 @@ class RawEDF(Raw):
                                                   annotmap, hpts, preload)
         logger.info('Creating Raw.info structure...')
 
-        if bool(annot) ^ bool(annotmap):
+        if bool(annot) != bool(annotmap):
             warnings.warn(("Stimulus Channel will not be annotated. "
                            "Both 'annot' and 'annotmap' must be specified."))
 
@@ -509,6 +509,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
 
 def _read_annot(annot, annotmap, sfreq, data_length):
     """Annotation File Reader
+
     Parameters
     ----------
     annot : str
@@ -525,7 +526,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 
     Returns
     -------
-    stim_channel : np.array
+    stim_channel : ndarray
         An array containing stimulus trigger events.
     """
     pat = '([+/-]\d+.\d+),(\w+)'
@@ -533,7 +534,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     triggers = re.findall(pat, annot)
     times, values = zip(*triggers)
     times = map(float, times)
-    times = [time*sfreq for time in times]
+    times = [time * sfreq for time in times]
 
     pat = '(\w+):(\d+)'
     annotmap = open(annotmap).read()
