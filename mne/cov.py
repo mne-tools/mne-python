@@ -44,7 +44,7 @@ class Covariance(dict):
     ----------
     data : array of shape (n_channels, n_channels)
         The covariance.
-    `ch_names` : list of string
+    ch_names : list of string
         List of channels' names.
     nfree : int
         Number of degrees of freedom i.e. number of time points used.
