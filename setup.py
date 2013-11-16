@@ -3,10 +3,20 @@
 # Copyright (C) 2011-2013 Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 
 import os
-import mne
 
 import setuptools  # we are using a setuptools namespace
 from numpy.distutils.core import setup
+
+# get the version (don't import mne here, so dependencies are not needed)
+version = None
+with open(os.path.join('mne', '__init__.py'), 'r') as fid:
+    for line in (line.strip() for line in fid):
+        if line.startswith('__version__'):
+            version = line.split('=')[1].strip().strip('\'')
+            break
+if version is None:
+    raise RuntimeError('Could not determine version')
+
 
 descr = """MNE python project for MEG and EEG data analysis."""
 
@@ -17,7 +27,7 @@ MAINTAINER_EMAIL = 'gramfort@nmr.mgh.harvard.edu'
 URL = 'http://martinos.org/mne'
 LICENSE = 'BSD (3-clause)'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
-VERSION = mne.__version__
+VERSION = version
 
 
 if __name__ == "__main__":
