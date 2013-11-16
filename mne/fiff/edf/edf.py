@@ -40,6 +40,15 @@ class RawEDF(Raw):
         -1 corresponds to the last channel (default).
         If None, there will be no stim channel added.
 
+    annot : str | None
+        Path to annotation file.
+        If None, no derived stim channel will be added (for files requiring
+        annotation file to interpret stim channel).
+
+    annotmap : str | None
+        Path to annotation map file containing mapping from label to trigger.
+        Must be specified if annot is not None.
+
     hpts : str | None
         Path to the hpts file containing electrode positions.
         If None, sensor locations are (0,0,0).
@@ -60,14 +69,18 @@ class RawEDF(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, n_eeg=None, stim_channel=-1, hpts=None,
-                 preload=False, verbose=None):
+    def __init__(self, input_fname, n_eeg=None, stim_channel=-1, annot=None,
+                 annotmap=None, hpts=None, preload=False, verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self.info, self._edf_info = _get_edf_info(input_fname, n_eeg,
-                                                  stim_channel, hpts,
-                                                  preload)
+                                                  stim_channel, annot,
+                                                  annotmap, hpts, preload)
         logger.info('Creating Raw.info structure...')
+
+        if bool(annot) != bool(annotmap):
+            warnings.warn(("Stimulus Channel will not be annotated. "
+                           "Both 'annot' and 'annotmap' must be specified."))
 
         # Raw attributes
         self.verbose = verbose
@@ -150,10 +163,12 @@ class RawEDF(Raw):
         stop = int(stop)
 
         sfreq = self.info['sfreq']
+        n_chan = self.info['nchan']
         data_size = self._edf_info['data_size']
         data_offset = self._edf_info['data_offset']
         stim_channel = self._edf_info['stim_channel']
-        n_chan = self.info['nchan']
+        annot = self._edf_info['annot']
+        annotmap = self._edf_info['annotmap']
 
         if start >= stop:
             raise ValueError('No data in this range')
@@ -226,10 +241,15 @@ class RawEDF(Raw):
         gains = np.array([gains])
         data = gains.T * data
         if stim_channel is not None:
-            stim = np.array(data[stim_channel], int)
-            mask = 255 * np.ones(stim.shape, int)
-            stim = np.bitwise_and(stim, mask)
-            data[stim_channel] = stim
+            if annot and annotmap:
+                data[stim_channel] = 0
+                evts = _read_annot(annot, annotmap, sfreq, self.last_samp)
+                data[stim_channel, :evts.size] = evts[start:stop]
+            else:
+                stim = np.array(data[stim_channel], int)
+                mask = 255 * np.ones(stim.shape, int)
+                stim = np.bitwise_and(stim, mask)
+                data[stim_channel] = stim
         data = data[sel]
 
         logger.info('[done]')
@@ -238,7 +258,7 @@ class RawEDF(Raw):
         return data, times
 
 
-def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, preload=False):
+def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
     """Extracts all the information from the EDF+,BDF file.
 
     Parameters
@@ -254,6 +274,15 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, preload=False):
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel.
         If None, there will be no stim channel added.
+
+    annot : str | None
+        Path to annotation file.
+        If None, no derived stim channel will be added (for files requiring
+        annotation file to interpret stim channel).
+
+    annotmap : str | None
+        Path to annotation map file containing mapping from label to trigger.
+        Must be specified if annot is not None.
 
     hpts : str | None
         Path to the hpts file containing electrode positions.
@@ -290,6 +319,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, preload=False):
     info['experimenter'] = None
 
     edf_info = dict()
+    edf_info['annot'] = annot
+    edf_info['annotmap'] = annotmap
 
     with open(fname, 'rb') as fid:
         assert(fid.tell() == 0)
@@ -476,8 +507,52 @@ def _get_edf_info(fname, n_eeg, stim_channel, hpts=None, preload=False):
     return info, edf_info
 
 
-def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, hpts=None,
-                 preload=False, verbose=None):
+def _read_annot(annot, annotmap, sfreq, data_length):
+    """Annotation File Reader
+
+    Parameters
+    ----------
+    annot : str
+        Path to annotation file.
+
+    annotmap : str
+        Path to annotation map file containing mapping from label to trigger.
+
+    sfreq : int
+        Sampling frequency.
+
+    data_length : int
+        Length of the data file.
+
+    Returns
+    -------
+    stim_channel : ndarray
+        An array containing stimulus trigger events.
+    """
+    pat = '([+/-]\d+.\d+),(\w+)'
+    annot = open(annot).read()
+    triggers = re.findall(pat, annot)
+    times, values = zip(*triggers)
+    times = map(float, times)
+    times = [time * sfreq for time in times]
+
+    pat = '(\w+):(\d+)'
+    annotmap = open(annotmap).read()
+    mappings = re.findall(pat, annotmap)
+    maps = {}
+    for mapping in mappings:
+        maps[mapping[0]] = mapping[1]
+    triggers = [int(maps[value]) for value in values]
+
+    stim_channel = np.zeros(data_length)
+    for time, trigger in zip(times, triggers):
+        stim_channel[time] = trigger
+
+    return stim_channel
+
+
+def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, annot=None,
+                 annotmap=None, hpts=None, preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
 
     Parameters
@@ -494,6 +569,15 @@ def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, hpts=None,
         -1 corresponds to the last channel.
         If None, there will be no stim channel added.
 
+    annot : str | None
+        Path to annotation file.
+        If None, no derived stim channel will be added (for files requiring
+        annotation file to interpret stim channel).
+
+    annotmap : str | None
+        Path to annotation map file containing mapping from label to trigger.
+        Must be specified if annot is not None.
+
     hpts : str | None
         Path to the hpts file containing electrode positions.
         If None, sensor locations are (0,0,0).
@@ -506,5 +590,5 @@ def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, hpts=None,
         If not None, override default verbose level (see mne.verbose).
     """
     return RawEDF(input_fname=input_fname, n_eeg=n_eeg,
-                  stim_channel=stim_channel, hpts=hpts,
-                  preload=preload, verbose=verbose)
+                  stim_channel=stim_channel, annot=annot, annotmap=annotmap,
+                  hpts=hpts, preload=preload, verbose=verbose)
