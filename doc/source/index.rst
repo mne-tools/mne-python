@@ -45,4 +45,5 @@ simplified BSD license.
 
    manual
    mne-python
+   cite
 
