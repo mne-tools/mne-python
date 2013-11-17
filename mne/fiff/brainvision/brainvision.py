@@ -457,7 +457,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         if ch_locs:
             if ch_name in ch_locs:
-                chan_info['eeg_loc'] = ch_locs['ch_name']
+                chan_info['eeg_loc'] = ch_locs[ch_name]
         else:
             chan_info['eeg_loc'] = np.zeros(3)
         chan_info['loc'] = np.zeros(12)
