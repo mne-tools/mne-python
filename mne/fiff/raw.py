@@ -73,9 +73,9 @@ class Raw(ProjMixin):
     ----------
     info : dict
         Measurement info.
-    `ch_names` : list of string
+    ch_names : list of string
         List of channels' names.
-    `n_times` : int
+    n_times : int
         Total number of time points in the raw file.
     verbose : bool, str, int, or None
         See above.
