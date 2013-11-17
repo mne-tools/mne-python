@@ -36,7 +36,7 @@ def test_brainvision_data():
     raw_py = read_raw_brainvision(vhdr_path, elp_fname=elp_path,
                                   ch_names=ch_names, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
-    data_py, _ = raw_py[picks]
+    data_py, times_py = raw_py[picks]
 
     print raw_py  # to test repr
     print raw_py.info  # to test Info repr
@@ -44,9 +44,10 @@ def test_brainvision_data():
     # this fif was generated using MNE-C
     raw_bin = Raw(eeg_bin, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
-    data_bin, _ = raw_bin[picks]
+    data_bin, times_bin = raw_bin[picks]
 
     assert_array_almost_equal(data_py, data_bin)
+    assert_array_almost_equal(times_py, times_bin)
 
 
 def test_read_segment():

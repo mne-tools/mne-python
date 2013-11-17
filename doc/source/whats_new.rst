@@ -75,6 +75,8 @@ Changelog
 
    - Support reading of EDF+,BDF data by `Teon Brooks`_
 
+   - Support reading of EEG BrainVision data by `Teon Brooks`_
+
 API
 ~~~
 
