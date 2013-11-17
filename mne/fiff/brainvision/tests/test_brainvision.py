@@ -17,7 +17,15 @@ from mne.fiff.brainvision import read_raw_brainvision
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
+elp_path = op.join(data_dir, 'test_elp.txt')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
+ch_names = ['FP1', 'VEOGt', 'F7', 'GND', 'F8',
+            'FC5', 'F3', 'FZ', 'F4', 'FC6',
+            'FC1', 'FCZ', 'FC2', 'CP5', 'C3',
+            'CZ', 'C4', 'CP6', 'CP1', 'CPZ',
+            'CP2', 'P7', 'P3', 'PZ', 'P4',
+            'P8', 'O1', 'POZ', 'O2', 'A1',
+            'A2', 'HEOGL', 'HEOGR', 'VEOGb']
 
 tempdir = _TempDir()
 
@@ -25,7 +33,8 @@ tempdir = _TempDir()
 def test_brainvision_data():
     """Test reading raw Brain Vision files
     """
-    raw_py = read_raw_brainvision(vhdr_path, preload=True)
+    raw_py = read_raw_brainvision(vhdr_path, elp_fname=elp_path,
+                                  ch_names=ch_names, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
