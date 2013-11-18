@@ -124,7 +124,7 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, ref_meg=True, misc=False, resp=False, chpi=False,
+               emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
                exci=False, ias=False, syst=False,
                include=[], exclude='bads', selection=None):
     """Pick channels by type and names
@@ -148,8 +148,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include EMG channels.
     stim : bool
         If True include stimulus channels.
-    ref_meg: bool
-        If True include CTF / 4D reference channels.
+    ref_meg: bool | str
+        If True include CTF / 4D reference channels. If 'auto', the reference
+        channels are only included if compensations are present.
     misc : bool
         If True include miscellaneous analog channels.
     resp : bool
@@ -187,6 +188,11 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         raise ValueError('exclude must either be "bads" or a list of strings.'
                          ' If only one channel is to be excluded, use '
                          '[ch_name] instead of passing ch_name.')
+
+    if isinstance(ref_meg, basestring):
+        if ref_meg != 'auto':
+            raise ValueError('ref_meg has to be either a bool or \'auto\'')
+        ref_meg = info['comps'] is not None and len(info['comps']) > 0
 
     for k in range(nchan):
         kind = info['chs'][k]['kind']
