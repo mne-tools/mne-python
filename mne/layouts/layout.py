@@ -292,6 +292,7 @@ def find_layout(chs):
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
     has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
     has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
+    has_CTF_grad = FIFF.FIFFV_COIL_CTF_GRAD in coil_types
     if has_vv_mag and has_vv_grad:
         layout_name = 'Vectorview-all'
     elif has_vv_mag:
@@ -300,6 +301,8 @@ def find_layout(chs):
         layout_name = 'Vectorview-grad'
     elif has_4D_mag:
         layout_name = 'magnesWH3600'
+    elif has_CTF_grad:
+        layout_name = 'CTF-275'
     else:
         return None
     
