@@ -370,7 +370,8 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     is_meg = any(types_used == set(k) for k in meg_types)
     if is_meg:
         types_used = list(types_used)[::-1]  # -> restore kwarg order
-        picks = [pick_types(info, meg=kk, exclude=[]) for kk in types_used]
+        picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
+                 for kk in types_used]
     else:
         types_used_kwargs = dict((t, True) for t in types_used)
         picks = [pick_types(info, meg=False, **types_used_kwargs)]
@@ -493,6 +494,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
     if layout is None:
         from .layouts.layout import find_layout
         layout = find_layout(epochs.info['chs'])
+
     layout = copy.deepcopy(layout)
     layout.names = _clean_names(layout.names)
 
@@ -1171,6 +1173,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 for c in range(n_channel_types)]
     if not isinstance(axes, list):
         axes = [axes]
+
     if not len(axes) == n_channel_types:
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%g)' % (len(axes), n_channel_types))
@@ -1485,9 +1488,12 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     ch_names = [n for n in cov.ch_names if not n in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
     info_ch_names = info['ch_names']
-    sel_eeg = pick_types(info, meg=False, eeg=True, exclude=exclude)
-    sel_mag = pick_types(info, meg='mag', eeg=False, exclude=exclude)
-    sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
+    sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                         exclude=exclude)
+    sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
+                         exclude=exclude)
+    sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
+                          exclude=exclude)
     idx_eeg = [ch_names.index(info_ch_names[c])
                for c in sel_eeg if info_ch_names[c] in ch_names]
     idx_mag = [ch_names.index(info_ch_names[c])
@@ -1913,9 +1919,11 @@ def _prepare_topo_plot(obj, ch_type, layout):
     else:
         merge_grads = False
         if ch_type == 'eeg':
-            picks = pick_types(info, meg=False, eeg=True, exclude='bads')
+            picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                               exclude='bads')
         else:
-            picks = pick_types(info, meg=ch_type, exclude='bads')
+            picks = pick_types(info, meg=ch_type, ref_meg=False,
+                               exclude='bads')
 
         if len(picks) == 0:
             raise ValueError("No channels of type %r" % ch_type)
@@ -1979,7 +1987,8 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
 
     import matplotlib.pyplot as plt
     if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True, exclude='bads')
+        picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
 
     if units.keys() != scalings.keys():
         raise ValueError('Scalings and units must have the same keys.')
@@ -2545,7 +2554,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     inds = list()
     types = list()
     for t in ['grad', 'mag']:
-        inds += [pick_types(info, meg=t, exclude=[])]
+        inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
     pick_args = dict(meg=False, exclude=[])
     for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
@@ -3036,7 +3045,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
         picks_list = list()
         titles_list = list()
         for meg, eeg, name in zip(megs, eegs, names):
-            picks = pick_types(raw.info, meg=meg, eeg=eeg)
+            picks = pick_types(raw.info, meg=meg, eeg=eeg, ref_meg=False)
             if len(picks) > 0:
                 picks_list.append(picks)
                 titles_list.append(name)
@@ -3307,9 +3316,11 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
 
     if picks is None:
         if any('ICA' in k for k in epochs.ch_names):
-            picks = pick_types(epochs.info, misc=True, exclude=[])
+            picks = pick_types(epochs.info, misc=True, ref_meg=False,
+                               exclude=[])
         else:
-            picks = pick_types(epochs.info, meg=True, eeg=True, exclude=[])
+            picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
+                               exclude=[])
     if len(picks) < 1:
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
