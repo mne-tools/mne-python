@@ -775,7 +775,8 @@ class Epochs(_BaseEpochs):
         """
         if self.detrend is not None:
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False, exclude=[])
+                               ref_meg=False, eog=False, ecg=False,
+                               emg=False, exclude=[])
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
         # Baseline correct
         epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',

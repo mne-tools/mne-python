@@ -240,7 +240,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
-                           exclude=[])
+                           ref_meg=False, exclude=[])
 
     data = 0
     n_samples = 0
@@ -379,7 +379,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     n_epochs = np.zeros(n_epoch_types, dtype=np.int)
 
     picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
-                            exclude=[])
+                            ref_meg=False, exclude=[])
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
 
     for i, epochs_t in enumerate(epochs):
@@ -508,8 +508,10 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    pick_meg = pick_types(info, meg=True, eeg=False, exclude='bads')
-    pick_eeg = pick_types(info, meg=False, eeg=True, exclude='bads')
+    pick_meg = pick_types(info, meg=True, eeg=False, ref_meg=False,
+                          exclude='bads')
+    pick_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                          exclude='bads')
     meg_names = [info['chs'][k]['ch_name'] for k in pick_meg]
     C_meg_idx = [k for k in range(len(C)) if ch_names[k] in meg_names]
     eeg_names = [info['chs'][k]['ch_name'] for k in pick_eeg]
@@ -588,9 +590,12 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     if exclude is None:
         exclude = info['bads'] + cov['bads']
 
-    sel_eeg = pick_types(info, meg=False, eeg=True, exclude=exclude)
-    sel_mag = pick_types(info, meg='mag', eeg=False, exclude=exclude)
-    sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
+    sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                         exclude=exclude)
+    sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
+                         exclude=exclude)
+    sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
+                          exclude=exclude)
 
     info_ch_names = info['ch_names']
     ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
@@ -676,7 +681,8 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
         The channel names.
     """
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, exclude='bads')
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 

@@ -54,9 +54,9 @@ def write_proj(fname, projs):
 
 @verbose
 def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
-    mag_ind = pick_types(info, meg='mag', exclude='bads')
-    grad_ind = pick_types(info, meg='grad', exclude='bads')
-    eeg_ind = pick_types(info, meg=False, eeg=True, exclude='bads')
+    mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
+    grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
+    eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude='bads')
 
     if (n_grad > 0) and len(grad_ind) == 0:
         logger.info("No gradiometers found. Forcing n_grad to 0")

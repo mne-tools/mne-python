@@ -488,7 +488,8 @@ class RawKIT(Raw):
         self._sqd_params['slope'] = slope
 
         if isinstance(stim, str):
-            picks = pick_types(self.info, meg=False, misc=True, exclude=[])[:8]
+            picks = pick_types(self.info, meg=False, ref_meg=False,
+                               misc=True, exclude=[])[:8]
             if stim == '<':
                 stim = picks[::-1]
             elif stim == '>':

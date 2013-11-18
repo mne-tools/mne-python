@@ -55,7 +55,8 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         # Set up pick list: MEG - bad channels
         left_temporal_channels = mne.read_selection('Left-temporal')
         picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False,
-                                    stim=True, eog=True, exclude='bads',
+                                    stim=True, eog=True, ref_meg=False,
+                                    exclude='bads',
                                     selection=left_temporal_channels)
 
         # Read epochs

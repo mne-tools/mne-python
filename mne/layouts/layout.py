@@ -177,7 +177,8 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
         The generated Layout
     """
     radius_head, origin_head, origin_device = fit_sphere_to_headshape(info)
-    inds = pick_types(info, meg=False, eeg=True, exclude='bads')
+    inds = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                      exclude='bads')
     hsp = [info['chs'][ii]['eeg_loc'][:, 0] for ii in inds]
     names = [info['chs'][ii]['ch_name'] for ii in inds]
     if len(hsp) <= 0:
@@ -234,7 +235,7 @@ def make_grid_layout(info, picks=None):
         The generated layout.
     """
     if picks is None:
-        picks = pick_types(info, misc=True, exclude='bads')
+        picks = pick_types(info, misc=True, ref_meg=False, exclude='bads')
 
     names = [info['chs'][k]['ch_name'] for k in picks]
 
@@ -402,7 +403,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     """
     # find all complete pairs of grad channels
     pairs = defaultdict(list)
-    grad_picks = pick_types(info, meg='grad', exclude=exclude)
+    grad_picks = pick_types(info, meg='grad', ref_meg=False, exclude=exclude)
     for i in grad_picks:
         ch = info['chs'][i]
         name = ch['ch_name']

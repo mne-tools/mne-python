@@ -160,7 +160,7 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     # Geting ECG Channel
     if ch_name is None:
         ch_ECG = pick_types(info, meg=False, eeg=False, stim=False,
-                            eog=False, ecg=True, emg=False,
+                            eog=False, ecg=True, emg=False, ref_meg=False,
                             exclude='bads')
     else:
         ch_ECG = pick_channels(raw.ch_names, include=[ch_name])

@@ -151,33 +151,34 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     # Handler rejection parameters
     if reject is not None:  # make sure they didn't pass None
         if len(pick_types(my_info, meg='grad', eeg=False, eog=False,
-                          exclude='bads')) == 0:
+                          ref_meg=False, exclude='bads')) == 0:
             _safe_del_key(reject, 'grad')
         if len(pick_types(my_info, meg='mag', eeg=False, eog=False,
-                          exclude='bads')) == 0:
+                          ref_meg=False, exclude='bads')) == 0:
             _safe_del_key(reject, 'mag')
         if len(pick_types(my_info, meg=False, eeg=True, eog=False,
-                          exclude='bads')) == 0:
+                          ref_meg=False, exclude='bads')) == 0:
             _safe_del_key(reject, 'eeg')
         if len(pick_types(my_info, meg=False, eeg=False, eog=True,
-                          exclude='bads')) == 0:
+                          ref_meg=False, exclude='bads')) == 0:
             _safe_del_key(reject, 'eog')
     if flat is not None:  # make sure they didn't pass None
         if len(pick_types(my_info, meg='grad', eeg=False, eog=False,
-                          exclude='bads')) == 0:
+                          ref_meg=False, exclude='bads')) == 0:
             _safe_del_key(flat, 'grad')
         if len(pick_types(my_info, meg='mag', eeg=False, eog=False,
-                          exclude='bads')) == 0:
+                          ref_meg=False, exclude='bads')) == 0:
             _safe_del_key(flat, 'mag')
         if len(pick_types(my_info, meg=False, eeg=True, eog=False,
-                          exclude='bads')) == 0:
+                          ref_meg=False, exclude='bads')) == 0:
             _safe_del_key(flat, 'eeg')
         if len(pick_types(my_info, meg=False, eeg=False, eog=True,
-                          exclude='bads')) == 0:
+                          ref_meg=False, exclude='bads')) == 0:
             _safe_del_key(flat, 'eog')
 
     # exclude bad channels from projection
-    picks = pick_types(my_info, meg=True, eeg=True, eog=True, exclude='bads')
+    picks = pick_types(my_info, meg=True, eeg=True, eog=True, ref_meg=False,
+                       exclude='bads')
     raw.filter(l_freq, h_freq, picks=picks, filter_length=filter_length,
                n_jobs=n_jobs, method=filter_method, iir_params=iir_params)
 

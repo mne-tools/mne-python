@@ -248,7 +248,8 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     tmin = epochs.times[0]
 
     # use only the good data channels
-    picks = pick_types(info, meg=True, eeg=True, exclude='bads')
+    picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                       exclude='bads')
     data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,

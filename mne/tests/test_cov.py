@@ -193,7 +193,8 @@ def test_evoked_whiten():
 
     ###########################################################################
     # Show result
-    picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
+    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
+                       exclude='bads')
 
     noise_cov = regularize(cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1)
 

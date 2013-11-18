@@ -42,7 +42,7 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
     # Getting EOG Channel
     if ch_name is None:
         ch_eog = pick_types(info, meg=False, eeg=False, stim=False,
-                            eog=True, ecg=False, emg=False,
+                            eog=True, ecg=False, emg=False, ref_meg=False,
                             exclude='bads')
         if len(ch_eog) == 0:
             logger.info('No EOG channels found')
