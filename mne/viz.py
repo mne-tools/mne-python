@@ -494,7 +494,6 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
     if layout is None:
         from .layouts.layout import find_layout
         layout = find_layout(epochs.info['chs'])
-
     layout = copy.deepcopy(layout)
     layout.names = _clean_names(layout.names)
 
@@ -1173,7 +1172,6 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 for c in range(n_channel_types)]
     if not isinstance(axes, list):
         axes = [axes]
-
     if not len(axes) == n_channel_types:
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%g)' % (len(axes), n_channel_types))
