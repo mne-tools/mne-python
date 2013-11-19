@@ -56,8 +56,6 @@ class RtEpochs(_BaseEpochs):
         are requested and the receive queue is empty.
     name : string
         Comment that describes the Evoked data created.
-    keep_comp : boolean
-        Apply CTF gradient compensation.
     baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -126,10 +124,9 @@ class RtEpochs(_BaseEpochs):
     @verbose
     def __init__(self, client, event_id, tmin, tmax, stim_channel='STI 014',
                  sleep_time=0.1, baseline=(None, 0), picks=None,
-                 name='Unknown', keep_comp=None, dest_comp=None, reject=None,
-                 flat=None, proj=True, decim=1, reject_tmin=None,
-                 reject_tmax=None, detrend=None, add_eeg_ref=True,
-                 isi_max=2., verbose=None):
+                 name='Unknown', reject=None, flat=None, proj=True,
+                 decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
+                 add_eeg_ref=True, isi_max=2., verbose=None):
 
         info = client.get_measurement_info()
 
@@ -140,10 +137,10 @@ class RtEpochs(_BaseEpochs):
 
         # call _BaseEpochs constructor
         super(RtEpochs, self).__init__(info, event_id, tmin, tmax,
-                baseline=baseline, picks=picks, name=name, keep_comp=keep_comp,
-                dest_comp=dest_comp, reject=reject, flat=flat,
-                decim=decim, reject_tmin=reject_tmin, reject_tmax=reject_tmax,
-                detrend=detrend, add_eeg_ref=add_eeg_ref, verbose=verbose)
+                baseline=baseline, picks=picks, name=name, reject=reject,
+                flat=flat, decim=decim, reject_tmin=reject_tmin,
+                reject_tmax=reject_tmax, detrend=detrend,
+                add_eeg_ref=add_eeg_ref, verbose=verbose)
 
         self.proj = proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,

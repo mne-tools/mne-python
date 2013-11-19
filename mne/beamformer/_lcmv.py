@@ -647,9 +647,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                         n_jobs=n_jobs)
         epochs_band = Epochs(raw_band, epochs.events, epochs.event_id,
                              tmin=epochs.tmin, tmax=epochs.tmax,
-                             picks=raw_picks, keep_comp=epochs.keep_comp,
-                             dest_comp=epochs.dest_comp,
-                             proj=epochs.proj, preload=True)
+                             picks=raw_picks, proj=epochs.proj, preload=True)
         del raw_band
 
         if subtract_evoked:
