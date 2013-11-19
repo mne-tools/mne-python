@@ -1166,17 +1166,23 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
             ch_types_used.append(t)
 
     axes_init = axes  # remember if axes where given as input
+    
+    fig = None
     if axes is None:
-        plt.clf()
-        axes = [plt.subplot(n_channel_types, 1, c + 1)
-                for c in range(n_channel_types)]
-    if not isinstance(axes, list):
+        fig, axes = plt.subplots(n_channel_types, 1)
+
+    if isinstance(axes, plt.Axes):
         axes = [axes]
+    elif isinstance(axes, np.ndarray):
+        axes = list(axes)
+
+    if axes_init is not None:
+        fig = axes[0].get_figure()
+    
     if not len(axes) == n_channel_types:
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%g)' % (len(axes), n_channel_types))
 
-    fig = axes[0].get_figure()
 
     # instead of projecting during each iteration let's use the mixin here.
     if proj is True and evoked.proj is not True:
@@ -1203,22 +1209,22 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ax._get_lines.color_cycle = cycle(['k'])
 
             D = this_scaling * evoked.data[idx, :]
-            plt.axes(ax)
+            # plt.axes(ax)
             ax.plot(times, D.T)
             if xlim is not None:
                 if xlim == 'tight':
                     xlim = (times[0], times[-1])
-                plt.xlim(xlim)
+                ax.set_xlim(xlim)
             if ylim is not None and t in ylim:
-                plt.ylim(ylim[t])
-            plt.title(titles[t] + ' (%d channel%s)' % (
-                      len(D), 's' if len(D) > 1 else ''))
-            plt.xlabel('time (ms)')
-            plt.ylabel('data (%s)' % ch_unit)
+                ax.set_ylim(ylim[t])
+            ax.set_title(titles[t] + ' (%d channel%s)' % (
+                         len(D), 's' if len(D) > 1 else ''))
+            ax.set_xlabel('time (ms)')
+            ax.set_ylabel('data (%s)' % ch_unit)
 
             if hline is not None:
                 for h in hline:
-                    plt.axhline(h, color='r', linestyle='--', linewidth=2)
+                    ax.axhline(h, color='r', linestyle='--', linewidth=2)
 
     if axes_init is None:
         plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
@@ -1232,8 +1238,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                       plot_update_proj_callback=_plot_update_evoked)
         _draw_proj_checkbox(None, params)
 
-    if show:
-        plt.show()
+    if show and plt.get_backend() != 'agg':
+        fig.show()
 
     return fig
 
@@ -2683,6 +2689,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     if show:
         plt.show(block=block)
+    
     return fig
 
 
