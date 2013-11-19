@@ -59,9 +59,12 @@ class Scaler(TransformerMixin):
         X = np.atleast_3d(epochs_data)
 
         picks_list = dict()
-        picks_list['mag'] = pick_types(self.info, meg='mag', exclude='bads')
-        picks_list['grad'] = pick_types(self.info, meg='grad', exclude='bads')
-        picks_list['eeg'] = pick_types(self.info, eeg='grad', exclude='bads')
+        picks_list['mag'] = pick_types(self.info, meg='mag', ref_meg=False,
+                                       exclude='bads')
+        picks_list['grad'] = pick_types(self.info, meg='grad', ref_meg=False,
+                                        exclude='bads')
+        picks_list['eeg'] = pick_types(self.info, eeg='grad', ref_meg=False,
+                                       exclude='bads')
 
         self.picks_list_ = picks_list
 
@@ -338,7 +341,8 @@ class FilterEstimator(TransformerMixin):
                              % type(epochs_data))
 
         if self.picks is None:
-            self.picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            self.picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
+                                    exclude=[])
 
         if self.l_freq == 0:
             self.l_freq = None

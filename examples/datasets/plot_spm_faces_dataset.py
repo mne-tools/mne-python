@@ -90,7 +90,7 @@ src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
 
 mri = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
-forward = mne.make_forward_solution(raw.info, mri=mri, src=src, bem=bem)
+forward = mne.make_forward_solution(contrast.info, mri=mri, src=src, bem=bem)
 forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 ###############################################################################
@@ -100,7 +100,7 @@ snr = 5.0
 lambda2 = 1.0 / snr ** 2
 method = 'dSPM'
 
-inverse_operator = make_inverse_operator(epochs.info, forward, noise_cov,
+inverse_operator = make_inverse_operator(contrast.info, forward, noise_cov,
                                          loose=0.2, depth=0.8)
 
 # Compute inverse solution on contrast

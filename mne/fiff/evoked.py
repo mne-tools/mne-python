@@ -579,8 +579,9 @@ class Evoked(ProjMixin):
             If None only MEG and EEG channels are detrended.
         """
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False, exclude='bads')
+            picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
+                               stim=False, eog=False, ecg=False, emg=False,
+                               exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
     def copy(self):

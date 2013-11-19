@@ -375,17 +375,11 @@ class ICA(object):
                     'Please be patient, this may take some time')
 
         if picks is None:
-            # just use epochs good data channels and avoid double picking
-            picks = pick_types(epochs.info, include=epochs.ch_names,
-                               exclude='bads')
-
-        meeg_picks = pick_types(epochs.info, meg=True, eeg=True, eog=False,
-                                ecg=False, misc=False, stim=False,
-                                exclude='bads')
+            picks = pick_types(epochs.info, meg=True, eeg=True, eog=False,
+                               ecg=False, misc=False, stim=False,
+                               ref_meg=False, exclude='bads')
 
         # filter out all the channels the raw wouldn't have initialized
-        picks = np.intersect1d(meeg_picks, picks)
-
         self.info = pick_info(epochs.info, picks)
         if self.info['comps']:
             self.info['comps'] = []
@@ -465,7 +459,8 @@ class ICA(object):
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
 
-        picks = pick_types(epochs.info, include=self.ch_names, exclude=[])
+        picks = pick_types(epochs.info, include=self.ch_names, exclude=[],
+                           ref_meg=False)
 
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
@@ -940,7 +935,8 @@ class ICA(object):
                              'working. Please read raw data with '
                              'preload=True.')
 
-        picks = pick_types(epochs.info, meg=False, include=self.ch_names,
+        picks = pick_types(epochs.info, meg=False, ref_meg=False,
+                           include=self.ch_names,
                            exclude='bads')
 
         # special case where epochs come picked but fit was 'unpicked'.
@@ -1333,12 +1329,17 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
 
 def _get_target_ch(container, target):
     """Aux function"""
+
     # auto target selection
-    pick = pick_channels(container.ch_names, include=[target])
-    if len(pick) == 0:
+    picks = pick_channels(container.ch_names, include=[target])
+    ref_picks = pick_types(container.info, meg=False, eeg=False, ref_meg=True)
+    if len(ref_picks) > 0:
+        picks = list(set(picks) - set(ref_picks))
+
+    if len(picks) == 0:
         raise ValueError('%s not in channel list (%s)' %
                         (target, container.ch_names))
-    return pick
+    return picks
 
 
 def _find_sources(sources, target, score_func):

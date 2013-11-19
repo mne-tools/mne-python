@@ -129,7 +129,8 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     n_fft = int(n_fft)
     Fs = epochs.info['sfreq']
     if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True, exclude='bads')
+        picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
 
     logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
     psds = []

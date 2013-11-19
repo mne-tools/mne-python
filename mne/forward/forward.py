@@ -722,8 +722,10 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     #
     # MEG forward solution
     #
-    picks_meg = pick_types(fwd['info'], meg=True, eeg=False, exclude=[])
-    picks_eeg = pick_types(fwd['info'], meg=False, eeg=True, exclude=[])
+    picks_meg = pick_types(fwd['info'], meg=True, eeg=False, ref_meg=False,
+                           exclude=[])
+    picks_eeg = pick_types(fwd['info'], meg=False, eeg=True, ref_meg=False,
+                           exclude=[])
     n_meg = len(picks_meg)
     n_eeg = len(picks_eeg)
     row_names_meg = [fwd['sol']['row_names'][p] for p in picks_meg]
@@ -891,12 +893,12 @@ def _restrict_gain_matrix(G, info):
     if not (len(info['chs']) == G.shape[0]):
         raise ValueError("G.shape[0] and length of info['chs'] do not match: "
                          "%d != %d" % (G.shape[0], len(info['chs'])))
-    sel = pick_types(info, meg='grad', exclude=[])
+    sel = pick_types(info, meg='grad', ref_meg=False, exclude=[])
     if len(sel) > 0:
         G = G[sel]
         logger.info('    %d planar channels' % len(sel))
     else:
-        sel = pick_types(info, meg='mag', exclude=[])
+        sel = pick_types(info, meg='mag', ref_meg=False, exclude=[])
         if len(sel) > 0:
             G = G[sel]
             logger.info('    %d magnetometer or axial gradiometer '

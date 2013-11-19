@@ -131,7 +131,7 @@ def compute_epochs_csd(epochs, mode='multitaper', fmin=0, fmax=np.inf,
         projs = cp.deepcopy(projs)
 
     picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
-                            exclude='bads')
+                            ref_meg=False, exclude='bads')
     ch_names = [epochs.ch_names[k] for k in picks_meeg]
 
     # Preparing time window slice

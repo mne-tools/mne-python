@@ -92,7 +92,6 @@ class Raw(ProjMixin):
 
         raws = [self._read_raw_file(fname, allow_maxshield, preload,
                                     compensation) for fname in fnames]
-
         _check_raw_compatibility(raws)
 
         # combine information from each raw file to construct self
@@ -146,7 +145,7 @@ class Raw(ProjMixin):
     def _add_eeg_ref(self, add_eeg_ref):
         """Helper to add an average EEG reference"""
         if add_eeg_ref:
-            eegs = pick_types(self.info, meg=False, eeg=True)
+            eegs = pick_types(self.info, meg=False, eeg=True, ref_meg=False)
             projs = self.info['projs']
             if len(eegs) > 0 and not _has_eeg_average_ref_proj(projs):
                 eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
@@ -591,9 +590,9 @@ class Raw(ProjMixin):
                                'preload=True (or string) in the constructor.')
         if picks is None:
             if 'ICA ' in ','.join(self.ch_names):
-                pick_parameters = dict(misc=True)
+                pick_parameters = dict(misc=True, ref_meg=False)
             else:
-                pick_parameters = dict(meg=True, eeg=True)
+                pick_parameters = dict(meg=True, eeg=True, ref_meg=False)
             picks = pick_types(self.info, exclude=[], **pick_parameters)
             # let's be safe.
             if len(picks) < 1:
@@ -783,8 +782,8 @@ class Raw(ProjMixin):
         new_data = list()
         # set up stim channel processing
         if stim_picks is None:
-            stim_picks = pick_types(self.info, meg=False, stim=True,
-                                    exclude=[])
+            stim_picks = pick_types(self.info, meg=False, ref_meg=False,
+                                    stim=True, exclude=[])
         stim_picks = np.asanyarray(stim_picks)
         ratio = sfreq / o_sfreq
         for ri in range(len(self._raw_lengths)):
@@ -1221,7 +1220,8 @@ class Raw(ProjMixin):
         else:
             stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
-        picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
+        picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
@@ -1733,7 +1733,8 @@ def set_eeg_reference(raw, ref_channels, copy=True):
     ref_data = raw._data[ref_idx].mean(0)
 
     # Get the indices to the eeg channels using the pick_types function
-    eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False)
+    eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False,
+                         ref_meg=False)
 
     # Copy raw data or modify raw data in place
     if copy:  # copy data
@@ -2057,7 +2058,8 @@ def get_chpi_positions(raw, t_step=None):
             t_step = 1.0
         if not np.isscalar(t_step):
             raise TypeError('t_step must be a scalar or None')
-        picks = pick_types(raw.info, meg=False, chpi=True, exclude=[])
+        picks = pick_types(raw.info, meg=False, ref_meg=False,
+                           chpi=True, exclude=[])
         if len(picks) == 0:
             raise RuntimeError('raw file has no CHPI channels')
         time_idx = raw.time_as_index(np.arange(0, raw.n_times

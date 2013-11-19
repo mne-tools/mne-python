@@ -368,7 +368,7 @@ class RtEpochs(_BaseEpochs):
         # Detrend
         if self.detrend is not None:
             picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False)
+                               eog=False, ecg=False, emg=False, ref_meg=False)
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
 
         # Baseline correct

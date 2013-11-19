@@ -312,7 +312,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     # MEG channels
     megnames = None
     if meg:
-        picks = pick_types(info, meg=True, eeg=False, exclude=[])
+        picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
+                           exclude=[])
         nmeg = len(picks)
         if nmeg > 0:
             megchs = pick_info(info, picks)['chs']
@@ -350,7 +351,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     # EEG channels
     eegnames = None
     if eeg:
-        picks = pick_types(info, meg=False, eeg=True, exclude=[])
+        picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                           exclude=[])
         neeg = len(picks)
         if neeg > 0:
             eegchs = pick_info(info, picks)['chs']
