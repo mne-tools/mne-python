@@ -100,7 +100,7 @@ might not work as expected.
 To take full advantage of MNE-Python's visualization capacities in combination
 with IPython notebooks and inline displaying, please explicitly add the
 following magic method invocation to your notebook or configure your notebook
-runntime accordingly.
+runtime accordingly.
 
     %pylab inline
 
