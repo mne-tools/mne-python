@@ -24,7 +24,7 @@ from .tag import read_tag
 from .pick import pick_types, channel_type
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
-from .compensator import get_current_comp, make_compensator
+from .compensator import get_current_comp, set_current_comp, make_compensator
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
@@ -103,6 +103,7 @@ class Raw(ProjMixin):
         self.cals = raws[0].cals
         self.rawdirs = [r.rawdir for r in raws]
         self.comp = copy.deepcopy(raws[0].comp)
+        self._orig_comp_grade = raws[0]._orig_comp_grade
         self.fids = [r.fid for r in raws]
         self.info = copy.deepcopy(raws[0].info)
         self.verbose = verbose
@@ -302,6 +303,7 @@ class Raw(ProjMixin):
         raw.cals = cals
         raw.rawdir = rawdir
         raw.comp = None
+        raw._orig_comp_grade = None
 
         #   Set up the CTF compensator
         current_comp = get_current_comp(info)
@@ -313,6 +315,8 @@ class Raw(ProjMixin):
             if raw.comp is not None:
                 logger.info('Appropriate compensator added to change to '
                             'grade %d.' % (compensation))
+                raw._orig_comp_grade = current_comp
+                set_current_comp(info, compensation)
 
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     raw.first_samp, raw.last_samp,
@@ -965,6 +969,10 @@ class Raw(ProjMixin):
         else:
             info = self.info
             projector = None
+
+        # set the correct compensation grade
+        if self.comp is not None:
+            set_current_comp(info, self._orig_comp_grade)
 
         outfid, cals = start_writing_raw(fname, info, picks, type_dict[format],
                                          reset_range=reset_dict[format])

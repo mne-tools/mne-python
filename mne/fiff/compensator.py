@@ -19,6 +19,16 @@ def get_current_comp(info):
     return comp
 
 
+def set_current_comp(info, comp):
+    """Set the current compensation in effect in the data
+    """
+    comp_now = get_current_comp(info)
+    for k, chan in enumerate(info['chs']):
+        if chan['kind'] == FIFF.FIFFV_MEG_CH:
+            rem = chan['coil_type'] - (comp_now << 16)
+            chan['coil_type'] = int(rem + (comp << 16))
+
+
 def _make_compensator(info, kind):
     """Auxiliary function for make_compensator
     """
