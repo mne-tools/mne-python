@@ -44,5 +44,4 @@ evoked_white = mne.whiten_evoked(evoked, noise_cov, picks, diag=True)
 # assumption of Gaussian whiten noise from which we expect values around
 # and less than 2 standard deviations.
 import matplotlib.pyplot as plt
-plt.figure()
 evoked_white.plot(picks=picks, unit=False, hline=[-2, 2])
