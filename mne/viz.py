@@ -2681,7 +2681,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         _toggle_options(None, params)
 
     if show:
-        plt.show(block=block)
+        plt.show()
+    
     return fig
 
 
