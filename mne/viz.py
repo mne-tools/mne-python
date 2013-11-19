@@ -1237,7 +1237,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                       plot_update_proj_callback=_plot_update_evoked)
         _draw_proj_checkbox(None, params)
 
-    if show:
+    if show and plt.get_backend() != 'agg':
         fig.show()
 
     return fig
