@@ -46,7 +46,7 @@ def _make_compensator(info, kind):
                                      'data' % col_name)
                 elif len(ind) > 1:
                     raise ValueError('Ambiguous channel %s' % col_name)
-                presel[col, ind] = 1.0
+                presel[col, ind[0]] = 1.0
 
             #   Create the postselector
             postsel = np.zeros((info['nchan'], this_data['nrow']))

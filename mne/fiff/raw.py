@@ -1571,9 +1571,10 @@ class Raw(ProjMixin):
         for ri in range(len(self._raw_lengths)):
             mult.append(np.diag(self.cals.ravel()))
             if self.comp is not None:
-                mult[ri] = np.dot(self.comp[idx, :], mult[ri])
+                mult[ri] = np.dot(self.comp, mult[ri])
             if projector is not None:
                 mult[ri] = np.dot(projector, mult[ri])
+            mult[ri] = mult[ri][idx]
 
         # deal with having multiple files accessed by the raw object
         cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
@@ -1650,7 +1651,7 @@ class Raw(ProjMixin):
                             one = one.T.astype(dtype)
                             # use proj + cal factors in mult
                             if mult is not None:
-                                one = np.dot(mult[fi], one)
+                                one[idx] = np.dot(mult[fi], one)
                             else:  # apply just the calibration factors
                                 # this logic is designed to limit memory copies
                                 if isinstance(idx, slice):
