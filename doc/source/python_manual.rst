@@ -92,8 +92,8 @@ comes with Freesurfer_, however, any valid MRI subject can be used.
    #. Load your raw file. Now you should see your digitizer head shape points 
       on the left.
    #. You should then be able to select any existing MRI in the ``Subject`` 
-      drop-down menu and "Create FsAverage" if the subjects dir does not 
-      already contain an item of that name.
+      drop-down menu and "Copy FsAverage to Subjects Folder" if the subjects 
+      dir does not already contain an item of that name.
 
 #. **MRI Fiducials** Panel: Since the fsaverage brain comes with preset 
    fiducials, "Lock" should be selected automatically and you will not have to

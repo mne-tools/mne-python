@@ -400,8 +400,9 @@ class SubjectSelectorPanel(HasPrivateTraits):
     subject = DelegatesTo('model')
     subjects = DelegatesTo('model')
 
-    create_fsaverage = Button("Create FsAverage", desc="Create the fsaverage "
-                              "brain in subjects_dir.")
+    create_fsaverage = Button("Copy FsAverage to Subjects Folder",
+                              desc="Copy the files for the fsaverage subject "
+                              "to the subjects directory.")
 
     view = View(VGroup(Item('subjects_dir', label='subjects_dir'),
                        'subject',
