@@ -3432,8 +3432,8 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
 
     # Finding the source with maximum source power
     if source_index is None:
-        max_source = np.unravel_index(source_power.argmax(),
-                                      source_power.shape)[1]
+        source_index = np.unravel_index(source_power.argmax(),
+                                        source_power.shape)[1]
 
     # Preparing time-frequency cell boundaries for plotting
     stc = stcs[0]
@@ -3456,7 +3456,7 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
 
     # Plotting the results
     plt.figure(figsize=(9, 6))
-    plt.pcolor(time_grid, freq_grid, source_power[:, max_source, :],
+    plt.pcolor(time_grid, freq_grid, source_power[:, source_index, :],
                cmap=plt.cm.jet)
     ax = plt.gca()
 
