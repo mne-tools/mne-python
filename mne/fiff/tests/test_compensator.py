@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose
 
 from mne import Epochs
 from mne.fiff.compensator import make_compensator, get_current_comp
-from mne.fiff import Raw, read_evoked, pick_types
+from mne.fiff import Raw, pick_types, read_evoked
 from mne.utils import _TempDir, requires_mne, run_subprocess
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -27,7 +27,7 @@ def test_compensation():
     comp2 = make_compensator(raw.info, 3, 1, exclude_comp_chs=True)
     assert_true(comp2.shape == (311, 340))
 
-    # make sure that chaning the comp doesn't modify the original data
+    # make sure that changing the comp doesn't modify the original data
     raw2 = Raw(ctf_comp_fname, compensation=2)
     assert_true(get_current_comp(raw2.info) == 2)
     fname = op.join(tempdir, 'ctf-raw.fif')
@@ -45,11 +45,9 @@ def test_compensation_mne():
     """Test comensation by comparing with MNE
     """
     def make_evoked(fname, comp):
-        raw = Raw(fname, compensation=comp, proj=False)
+        raw = Raw(fname, compensation=comp)
         picks = pick_types(raw.info, meg=True, ref_meg=True)
-        print len(picks)
         events = np.array([[0, 0, 1]], dtype=np.int)
-
         evoked = Epochs(raw, events, 1, 0, 20e-3, picks=picks).average()
         return evoked
 
@@ -61,15 +59,13 @@ def test_compensation_mne():
         return read_evoked(tmp_fname)
 
     # save evoked response with default compensation
-    tempdir = '/tmp/'
     fname_default = op.join(tempdir, 'ctf_default-ave.fif')
-    make_evoked(ctf_comp_fname ,None).save(fname_default)
+    make_evoked(ctf_comp_fname, None).save(fname_default)
 
-    for comp in [1]:
+    for comp in [0, 1, 2, 3]:
         evoked_py = make_evoked(ctf_comp_fname, comp)
-        evoked_py.save('%s-py-%d.fif' % (fname_default[:-4], comp))
         evoked_c = compensate_mne(fname_default, comp)
-        #assert_allclose(evoked_py.data, evoked_c.data, rtol=1e-6, atol=0)
-        e = np.sum((evoked_c.data - evoked_py.data) ** 2) / np.sum(evoked_c.data ** 2)
-        print '%d: %0.6e' % (comp, e)
-    #return evoked_py - evoked_c
+        picks_py = pick_types(evoked_py.info, meg=True, ref_meg=True)
+        picks_c = pick_types(evoked_c.info, meg=True, ref_meg=True)
+        assert_allclose(evoked_py.data[picks_py], evoked_c.data[picks_c],
+                        rtol=1e-3, atol=1e-17)

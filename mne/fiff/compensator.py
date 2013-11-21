@@ -57,7 +57,6 @@ def _make_compensator(info, kind):
                     raise ValueError('Ambiguous channel %s' % ch_name)
                 elif len(ind) == 1:
                     postsel[c, ind[0]] = 1.0
-
             this_comp = np.dot(postsel, np.dot(this_data['data'], presel))
             return this_comp
 

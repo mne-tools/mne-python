@@ -4,6 +4,8 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
+
 import numpy as np
 
 from .constants import FIFF
@@ -95,7 +97,7 @@ def _read_named_matrix(fid, node, matkind):
     else:
         mat['col_names'] = None
 
-    mat['data'] = data
+    mat['data'] = data.astype(np.float)
     return mat
 
 
@@ -242,11 +244,14 @@ def write_ctf_comp(fid, comps):
         #    Write the compensation kind
         write_int(fid, FIFF.FIFF_MNE_CTF_COMP_KIND, comp['ctfkind'])
         write_int(fid, FIFF.FIFF_MNE_CTF_COMP_CALIBRATED,
-                      comp['save_calibrated'])
+                  comp['save_calibrated'])
 
-        #    Write an uncalibrated or calibrated matrix
-        comp['data']['data'] = (comp['rowcals'][:, None] * comp['data']['data']
-                                                    * comp['colcals'][None, :])
+        if not comp['save_calibrated']:
+            # Undo calibration
+            comp = deepcopy(comp)
+            data = ((1. / comp['rowcals'][:, None]) * comp['data']['data']
+                    * (1. / comp['colcals'][None, :]))
+            comp['data']['data'] = data
         write_named_matrix(fid, FIFF.FIFF_MNE_CTF_COMP_DATA, comp['data'])
         end_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)
 

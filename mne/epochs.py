@@ -1659,7 +1659,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
             comment = tag.data
         elif kind == FIFF.FIFF_EPOCH:
             tag = read_tag(fid, pos)
-            data = tag.data
+            data = tag.data.astype(np.float)
         elif kind == FIFF.FIFF_MNE_BASELINE_MIN:
             tag = read_tag(fid, pos)
             bmin = float(tag.data)
