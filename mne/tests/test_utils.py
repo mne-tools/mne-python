@@ -9,7 +9,7 @@ import urllib2
 from ..utils import (set_log_level, set_log_file, _TempDir,
                      get_config, set_config, deprecated, _fetch_file,
                      sum_squared, requires_mem_gb, estimate_rank,
-                     _url_to_local_path, sizeof_fmt, _check_fname)
+                     _url_to_local_path, sizeof_fmt)
 from ..fiff import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -151,6 +151,12 @@ def deprecated_func():
     pass
 
 
+@deprecated('message')
+class deprecated_class(object):
+    def __init__(self):
+        pass
+
+
 @requires_mem_gb(10000)
 def big_mem_func():
     pass
@@ -166,6 +172,9 @@ def test_deprecated():
     """
     with warnings.catch_warnings(True) as w:
         deprecated_func()
+    assert_true(len(w) == 1)
+    with warnings.catch_warnings(True) as w:
+        deprecated_class()
     assert_true(len(w) == 1)
 
 

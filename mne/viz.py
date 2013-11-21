@@ -1167,7 +1167,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
             ch_types_used.append(t)
 
     axes_init = axes  # remember if axes where given as input
-    
+
     fig = None
     if axes is None:
         fig, axes = plt.subplots(n_channel_types, 1)
@@ -1179,7 +1179,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
     if axes_init is not None:
         fig = axes[0].get_figure()
-    
+
     if not len(axes) == n_channel_types:
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%g)' % (len(axes), n_channel_types))
@@ -2697,7 +2697,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     if show:
         plt.show(block=block)
-    
+
     return fig
 
 
@@ -3436,6 +3436,8 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     import matplotlib.pyplot as plt
 
     # Gathering results for each time window
+    if len(stcs) == 0:
+        raise ValueError('cannot plot spectrogram if len(stcs) == 0')
     source_power = np.array([stc.data for stc in stcs])
 
     # Finding the source with maximum source power
@@ -3454,7 +3456,7 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     gap_bounds = []
     for i in range(len(freq_bins) - 1):
         lower_bound = freq_bins[i][1]
-        upper_bound = freq_bins[i+1][0]
+        upper_bound = freq_bins[i + 1][0]
         if lower_bound != upper_bound:
             freq_bounds.remove(lower_bound)
             gap_bounds.append((lower_bound, upper_bound))
