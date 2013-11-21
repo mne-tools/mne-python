@@ -1,6 +1,6 @@
 Source: mne-python
 Maintainer: Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>
-Uploaders: Alexandre Gramfort <alexandre.gramfort@m4x.org>
+Uploaders: Alexandre Gramfort <alexandre.gramfort@m4x.org>,
            Yaroslav Halchenko <debian@onerussian.com>,
            Michael Hanke <michael.hanke@gmail.com>,
            Andreas Tille <tille@debian.org>
