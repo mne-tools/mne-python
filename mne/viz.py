@@ -3183,17 +3183,6 @@ def _prepare_trellis(n_cells, max_col):
     return fig, axes
 
 
-def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times, picks,
-                          scalings, types):
-    """Aux function
-    """
-    data = np.zeros((len(epoch_idx), n_channels, len(times)))
-    for ii, epoch in enumerate(epochs.get_data()[epoch_idx][:, picks]):
-        for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
-            data[ii, jj] = this_channel / scalings[this_type]
-    return data
-
-
 def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
                       title_str, axes_handler):
     """Aux functioin"""
@@ -3245,10 +3234,8 @@ def _epochs_navigation_onclick(event, params):
         p['idx_handler'].rotate(here)
         p['axes_handler'].rotate(here)
         this_idx = p['idx_handler'][0]
-        data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
-                                     p['times'], p['picks'], p['scalings'],
-                                     p['types'])
-        _draw_epochs_axes(this_idx, p['good_ch_idx'], p['bad_ch_idx'], data,
+        _draw_epochs_axes(this_idx, p['good_ch_idx'], p['bad_ch_idx'],
+                          p['data'][this_idx],
                           p['times'], p['axes'], p['title_str'],
                           p['axes_handler'])
             # XXX don't ask me why
@@ -3338,13 +3325,16 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
     times = epochs.times * 1e3
-    n_channels = len(picks)
+    n_channels = epochs.info['nchan']
     types = [channel_type(epochs.info, idx) for idx in
              picks]
 
     # preallocation needed for min / max scaling
-    data = _plot_epochs_get_data(epochs, idx_handler[0], n_channels,
-                                 times, picks, scalings, types)
+    data = np.zeros((len(epochs.events), n_channels, len(times)))
+    for ii, epoch in enumerate(epochs.get_data()):
+        for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
+            data[ii, jj] = this_channel / scalings[this_type]
+
     n_events = len(epochs.events)
     epoch_idx = epoch_idx[:n_events]
     idx_handler = deque(create_chunks(epoch_idx, 20))
@@ -3359,9 +3349,9 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     else:
         good_ch_idx = np.arange(n_channels)
 
-    fig, axes = _prepare_trellis(len(data), max_col=5)
+    fig, axes = _prepare_trellis(len(data[idx_handler[0]]), max_col=5)
     axes_handler = deque(range(len(idx_handler)))
-    for ii, data_, ax in zip(idx_handler[0], data, axes):
+    for ii, data_, ax in zip(idx_handler[0], data[idx_handler[0]], axes):
         ax.plot(times, data_[good_ch_idx].T, color='k')
         if bad_ch_idx is not None:
             ax.plot(times, data_[bad_ch_idx].T, color='r')
@@ -3389,11 +3379,9 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         'fig': fig,
         'idx_handler': idx_handler,
         'epochs': epochs,
-        'n_channels': n_channels,
         'picks': picks,
         'times': times,
         'scalings': scalings,
-        'types': types,
         'good_ch_idx': good_ch_idx,
         'bad_ch_idx': bad_ch_idx,
         'axes': axes,
@@ -3402,7 +3390,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         'reject-quit': mpl.widgets.Button(ax3, 'reject-quit'),
         'title_str': title_str,
         'reject_idx': [],
-        'axes_handler': axes_handler
+        'axes_handler': axes_handler,
+        'data': data
     }
     fig.canvas.mpl_connect('button_press_event',
                            partial(_epochs_axes_onclick, params=params))
