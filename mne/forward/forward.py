@@ -1373,21 +1373,24 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         raise ValueError('subject must be a string')
 
     # check for meas to exist as string, or try to make evoked
-    if not isinstance(meas, basestring):
-        # See if we need to make a meas file
-        if isinstance(meas, Raw):
-            events = make_fixed_length_events(meas, 1)[0][np.newaxis, :]
-            meas = Epochs(meas, events, 1, 0, 1, proj=False)
-        if isinstance(meas, Epochs):
-            meas = meas.average()
-        if isinstance(meas, Evoked):
-            meas_data = meas
-            meas = op.join(temp_dir, 'evoked.fif')
-            write_evoked(meas, meas_data)
-        if not isinstance(meas, basestring):
-            raise ValueError('meas must be string, Raw, Epochs, or Evoked')
-    if not op.isfile(meas):
-        raise IOError('measurement file "%s" could not be found' % meas)
+    meas_data = None
+    if isinstance(meas, basestring):
+        if not op.isfile(meas):
+            raise IOError('measurement file "%s" could not be found' % meas)
+    elif isinstance(meas, Raw):
+        events = np.array([[0, 0, 1]], dtype=np.int)
+        end = 1. / meas.info['sfreq']
+        meas_data = Epochs(meas, events, 1, 0, end, proj=False).average()
+    elif isinstance(meas, Epochs):
+        meas_data = meas.average()
+    elif isinstance(meas, Evoked):
+        meas_data = meas
+    else:
+        raise ValueError('meas must be string, Raw, Epochs, or Evoked')
+
+    if meas_data is not None:
+        meas = op.join(temp_dir, 'evoked.fif')
+        write_evoked(meas, meas_data)
 
     # deal with trans/mri
     if mri is not None and trans is not None:

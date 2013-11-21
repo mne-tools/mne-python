@@ -396,8 +396,8 @@ def test_plot_topomap():
     assert_raises(RuntimeError, plot_evoked_topomap, evoked, np.repeat(.1, 50))
     assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
 
-    # projs
-    projs = read_proj(ecg_fname)[:7]
+    projs = read_proj(ecg_fname)
+    projs = [p for p in projs if p['desc'].lower().find('eeg') < 0]
     plot_projs_topomap(projs)
     plt.close('all')
 

@@ -241,13 +241,14 @@ class Evoked(ProjMixin):
 
         if nepoch == 1:
             # Only one epoch
-            all_data = epoch[0].data
+            all_data = epoch[0].data.astype(np.float)
             # May need a transpose if the number of channels is one
             if all_data.shape[1] == 1 and info['nchan'] == 1:
-                all_data = all_data.T
+                all_data = all_data.T.astype(np.float)
         else:
             # Put the old style epochs together
-            all_data = np.concatenate([e.data[None, :] for e in epoch], axis=0)
+            all_data = np.concatenate([e.data[None, :] for e in epoch],
+                                      axis=0).astype(np.float)
 
         if all_data.shape[1] != nsamp:
             fid.close()

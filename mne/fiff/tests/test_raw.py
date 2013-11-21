@@ -16,7 +16,8 @@ from nose.tools import assert_true, assert_raises, assert_equal
 from mne.fiff import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
                       get_chpi_positions, set_eeg_reference)
 from mne import concatenate_events, find_events
-from mne.utils import _TempDir, requires_nitime, requires_pandas
+from mne.utils import (_TempDir, requires_nitime, requires_pandas, requires_mne,
+                       run_subprocess)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -816,6 +817,23 @@ def test_compensation_raw():
     data5, times5 = raw5[:, :]
     assert_array_equal(times1, times5)
     assert_allclose(data1, data5, rtol=1e-12, atol=1e-22)
+
+
+@requires_mne
+def test_compensation_raw_mne():
+    """Test Raw compensation by comparing with MNE
+    """
+    def compensate_mne(fname, grad):
+        tmp_fname = op.join(tempdir, 'mne_ctf_test_raw.fif')
+        cmd = ['mne_process_raw', '--raw', fname, '--save', tmp_fname,
+               '--grad', str(grad), '--projoff', '--filteroff']
+        run_subprocess(cmd)
+        return Raw(tmp_fname, preload=True)
+
+    for grad in [0, 2, 3]:
+        raw_py = Raw(ctf_comp_fname, preload=True, compensation=grad)
+        raw_c = compensate_mne(ctf_comp_fname, grad)
+        assert_allclose(raw_py._data, raw_c._data, rtol=1e-6, atol=1e-17)
 
 
 def test_set_eeg_reference():
