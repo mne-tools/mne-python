@@ -1,5 +1,5 @@
 mne-python (0.7~rc1-1) UNRELEASED; urgency=low
 
-  * Initial packaging attempt to prepare packaging for 0.7 release
+  * Initial packaging (Closes: #728797)
 
  -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Sun, 27 Oct 2013 21:30:31 -0400
