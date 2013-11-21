@@ -3183,12 +3183,12 @@ def _prepare_trellis(n_cells, max_col):
     return fig, axes
 
 
-def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times, picks,
+def _plot_epochs_get_data(epochs, epoch_idx, n_channels, times,
                           scalings, types):
     """Aux function
     """
     data = np.zeros((len(epoch_idx), n_channels, len(times)))
-    for ii, epoch in enumerate(epochs.get_data()[epoch_idx][:, picks]):
+    for ii, epoch in enumerate(epochs.get_data()[epoch_idx]):
         for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
             data[ii, jj] = this_channel / scalings[this_type]
     return data
@@ -3246,7 +3246,7 @@ def _epochs_navigation_onclick(event, params):
         p['axes_handler'].rotate(here)
         this_idx = p['idx_handler'][0]
         data = _plot_epochs_get_data(p['epochs'], this_idx, p['n_channels'],
-                                     p['times'], p['picks'], p['scalings'],
+                                     p['times'], p['scalings'],
                                      p['types'])
         _draw_epochs_axes(this_idx, p['good_ch_idx'], p['bad_ch_idx'], data,
                           p['times'], p['axes'], p['title_str'],
@@ -3338,13 +3338,13 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
     times = epochs.times * 1e3
-    n_channels = len(picks)
+    n_channels = epochs.info['nchan']
     types = [channel_type(epochs.info, idx) for idx in
              picks]
 
     # preallocation needed for min / max scaling
     data = _plot_epochs_get_data(epochs, idx_handler[0], n_channels,
-                                 times, picks, scalings, types)
+                                 times, scalings, types)
     n_events = len(epochs.events)
     epoch_idx = epoch_idx[:n_events]
     idx_handler = deque(create_chunks(epoch_idx, 20))
