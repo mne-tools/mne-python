@@ -345,48 +345,6 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
     return stc
 
 
-class _NotifyArray(np.ndarray):
-    """Array class that executes a callback when it is modified
-    """
-    def __new__(cls, input_array, modify_callback=None):
-        obj = np.asarray(input_array).view(cls)
-        obj.modify_callback = modify_callback
-        return obj
-
-    def __array_finalize__(self, obj):
-        if obj is None:
-            # an empty constructor was used
-            return
-
-        # try to copy the callback
-        self.modify_callback = getattr(obj, 'modify_callback', None)
-
-    def _modified_(self):
-        """Execute the callback if it is set"""
-        if self.modify_callback is not None:
-            self.modify_callback()
-
-    def __getattribute__(self, name):
-        # catch ndarray methods that modify the array inplace
-        if name in ['fill', 'itemset', 'resize', 'sort']:
-            self._modified_()
-
-        return object.__getattribute__(self, name)
-
-    def __setitem__(self, item, value):
-        self._modified_()
-        np.ndarray.__setitem__(self, item, value)
-
-    def __array_wrap__(self, out_arr, context=None):
-        # this method is called whenever a numpy ufunc (+, +=..) is called
-        # the last entry in context is the array that receives the result
-        if (context is not None and len(context[1]) == 3
-                and context[1][2] is self):
-            self._modified_()
-
-        return np.ndarray.__array_wrap__(self, out_arr, context)
-
-
 def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations"""
     compat = False
@@ -486,15 +444,10 @@ class _BaseSourceEstimate(object):
         self.subject = _check_subject(None, subject, False)
 
     def _remove_kernel_sens_data_(self):
-        """Remove kernel and sensor space data
-
-        Note: self._data is also computed if it is None
+        """Remove kernel and sensor space data and compute self._data
         """
         if self._kernel is not None or self._sens_data is not None:
-            # we can no longer use the kernel and sens_data
-            logger.info('STC data modified: removing kernel and sensor data')
-            if self._data is None:
-                self._data = np.dot(self._kernel, self._sens_data)
+            self._data = np.dot(self._kernel, self._sens_data)
             self._kernel = None
             self._sens_data = None
 
@@ -517,7 +470,6 @@ class _BaseSourceEstimate(object):
 
         if self._kernel is not None and self._sens_data is not None:
             self._sens_data = self._sens_data[:, mask]
-            self._data = None  # will be recomputed when data is accessed
         else:
             self._data = self._data[:, mask]
 
@@ -564,11 +516,9 @@ class _BaseSourceEstimate(object):
     @property
     def data(self):
         if self._data is None:
-            # compute the solution the first time the data is accessed
-            # return a "notify array", so we can later remove the kernel
-            # and sensor data if the user modifies self._data
-            self._data = _NotifyArray(np.dot(self._kernel, self._sens_data),
-                modify_callback=self._remove_kernel_sens_data_)
+            # compute the solution the first time the data is accessed and
+            # remove the kernel and sensor data
+            self._remove_kernel_sens_data_()
         return self._data
 
     @property

@@ -453,31 +453,6 @@ def test_transform():
     assert_array_equal(stc.data, data_t)
 
 
-def test_notify_array_source_estimate():
-    """Test that modifying the stc data removes the kernel and sensor data"""
-    # make up some data
-    n_sensors, n_vertices, n_times = 10, 20, 4
-    kernel = np.random.randn(n_vertices, n_sensors)
-    sens_data = np.random.randn(n_sensors, n_times)
-    vertices = np.arange(n_vertices)
-
-    stc = VolSourceEstimate((kernel, sens_data), vertices=vertices,
-                            tmin=0., tstep=1.)
-
-    assert_true(stc._data is None)
-    assert_true(stc._kernel is not None)
-    assert_true(stc._sens_data is not None)
-
-    # now modify the data in some way
-    data_half = stc.data[:, n_times / 2:]
-    data_half[0] = 1.0
-    data_half.fill(1.0)
-
-    # the kernel and sensor data can no longer be used: they have been removed
-    assert_true(stc._kernel is None)
-    assert_true(stc._sens_data is None)
-
-
 @requires_sklearn
 def test_spatio_temporal_tris_connectivity():
     """Test spatio-temporal connectivity from triangles"""
