@@ -19,8 +19,8 @@ import numpy as np
 import mne
 from mne.datasets import sample
 from mne.fiff import Raw, pick_types
-from mne.minimum_norm import apply_inverse, apply_inverse_epochs,\
-                             read_inverse_operator
+from mne.minimum_norm import (apply_inverse, apply_inverse_epochs,
+                              read_inverse_operator)
 from mne.connectivity import seed_target_indices, spectral_connectivity
 
 
@@ -59,7 +59,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 evoked = epochs.average()
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
-                    pick_normal=True)
+                    pick_ori="normal")
 
 # Restrict the source estimate to the label in the left auditory cortex
 stc_label = stc.in_label(label_lh)
@@ -80,7 +80,7 @@ indices = seed_target_indices([seed_idx], np.arange(n_sources))
 snr = 1.0  # use lower SNR for single epochs
 lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
-                            pick_normal=True, return_generator=True)
+                            pick_ori="normal", return_generator=True)
 
 # Now we are ready to compute the coherence in the alpha and beta band.
 # fmin and fmax specify the lower and upper freq. for each band, resp.

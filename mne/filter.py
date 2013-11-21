@@ -7,15 +7,12 @@ from scipy.signal import freqz, iirdesign, iirfilter, filter_dict, get_window
 from scipy import signal, stats
 from copy import deepcopy
 
-import logging
-logger = logging.getLogger('mne')
-
 from .fixes import firwin2, filtfilt  # back port for old scipy
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
-from . import verbose
 from .parallel import parallel_func
-from .cuda import setup_cuda_fft_multiply_repeated, fft_multiply_repeated, \
-                  setup_cuda_fft_resample, fft_resample, _smart_pad
+from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
+                   setup_cuda_fft_resample, fft_resample, _smart_pad)
+from .utils import logger, verbose, sum_squared
 
 
 def is_power2(num):
@@ -584,6 +581,9 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     Fp2 = float(Fp2)
     Fs1 = Fp1 - l_trans_bandwidth
     Fs2 = Fp2 + h_trans_bandwidth
+    if Fs2 > Fs / 2:
+        raise ValueError('Effective band-stop frequency (%s) is too high '
+                         '(maximum based on Nyquist is %s)' % (Fs2, Fs / 2.))
 
     if Fs1 <= 0:
         raise ValueError('Filter specification invalid: Lower stop frequency '
@@ -785,6 +785,10 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     Fs = float(Fs)
     Fp = float(Fp)
     Fstop = Fp + trans_bandwidth
+    if Fstop > Fs / 2.:
+        raise ValueError('Effective stop frequency (%s) is too high '
+                         '(maximum based on Nyquist is %s)' % (Fstop, Fs / 2.))
+
     if method == 'fft':
         freq = [0, Fp, Fstop, Fs / 2]
         gain = [1, 1, 0, 0]
@@ -984,8 +988,8 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
     if freqs is not None:
         freqs = np.atleast_1d(freqs)
     elif method != 'spectrum_fit':
-            raise ValueError('freqs=None can only be used with method '
-                             'spectrum_fit')
+        raise ValueError('freqs=None can only be used with method '
+                         'spectrum_fit')
 
     # Only have to deal with notch_widths for non-autodetect
     if freqs is not None:
@@ -1079,7 +1083,9 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     # compute dpss windows
     n_tapers_max = int(2 * half_nbw)
     window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-        low_bias=False, interp_from=min(n_times, dpss_n_times_max))
+                                       low_bias=False,
+                                       interp_from=min(n_times,
+                                                       dpss_n_times_max))
 
     # drop the even tapers
     n_tapers = len(window_fun)
@@ -1091,7 +1097,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     H0 = np.sum(tapers_use, axis=1)
 
     # sum of squares across tapers (1, )
-    H0_sq = np.sum(H0 ** 2)
+    H0_sq = sum_squared(H0)
 
     # make "time" vector
     rads = 2 * np.pi * (np.arange(n_times) / float(sfreq))
@@ -1267,7 +1273,7 @@ def detrend(x, order=1, axis=-1):
     --------
     As in scipy.signal.detrend:
         >>> randgen = np.random.RandomState(9)
-        >>> npoints = 1e3
+        >>> npoints = int(1e3)
         >>> noise = randgen.randn(npoints)
         >>> x = 3 + 2*np.linspace(0, 1, npoints) + noise
         >>> (detrend(x) - noise).max() < 0.01

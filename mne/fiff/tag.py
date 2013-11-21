@@ -173,6 +173,15 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
     return out
 
 
+def _loc_to_trans(loc):
+    """Helper to convert loc vector to coil_trans"""
+    # deal with nasty OSX Anaconda bug by casting to float64
+    loc = loc.astype(np.float64)
+    coil_trans = np.concatenate([loc.reshape(4, 3).T[:, [1, 2, 3, 0]],
+                                 np.array([0, 0, 0, 1]).reshape(1, 4)])
+    return coil_trans
+
+
 def read_tag(fid, pos=None, shape=None, rlims=None):
     """Read a Tag from a file at a given position
 
@@ -371,7 +380,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data['ident'] = int(np.fromstring(fid.read(4),
                                                       dtype=">i4"))
                 tag.data['r'] = np.fromstring(fid.read(12), dtype=">f4")
-                tag.data['coord_frame'] = 0
+                tag.data['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
             elif tag.type == FIFF.FIFFT_COORD_TRANS_STRUCT:
                 tag.data = dict()
                 tag.data['from'] = int(np.fromstring(fid.read(4), dtype=">i4"))
@@ -406,16 +415,16 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 #
                 loc = tag.data['loc']
                 kind = tag.data['kind']
-                if kind == FIFF.FIFFV_MEG_CH or kind == FIFF.FIFFV_REF_MEG_CH:
-                    tag.data['coil_trans'] = np.concatenate(
-                            [loc.reshape(4, 3).T[:, [1, 2, 3, 0]],
-                             np.array([0, 0, 0, 1]).reshape(1, 4)])
+                if kind in [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH]:
+                    tag.data['coil_trans'] = _loc_to_trans(loc)
                     tag.data['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
                 elif tag.data['kind'] == FIFF.FIFFV_EEG_CH:
+                    # deal with nasty OSX Anaconda bug by casting to float64
+                    loc = loc.astype(np.float64)
                     if linalg.norm(loc[3:6]) > 0.:
                         tag.data['eeg_loc'] = np.c_[loc[0:3], loc[3:6]]
                     else:
-                        tag.data['eeg_loc'] = loc[0:3]
+                        tag.data['eeg_loc'] = loc[0:3][:, np.newaxis].copy()
                     tag.data['coord_frame'] = FIFF.FIFFV_COORD_HEAD
                 #
                 #   Unit and exponent

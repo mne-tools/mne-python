@@ -1,13 +1,17 @@
 from numpy.testing import assert_equal
 from nose.tools import assert_true, assert_raises
 import os.path as op
+import numpy as np
 import os
 import warnings
 import urllib2
 
-from ..utils import set_log_level, set_log_file, _TempDir, \
-                    get_config, set_config, deprecated, _fetch_file
+from ..utils import (set_log_level, set_log_file, _TempDir,
+                     get_config, set_config, deprecated, _fetch_file,
+                     sum_squared, requires_mem_gb)
 from ..fiff import Evoked, show_fiff
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
@@ -106,9 +110,10 @@ def test_config():
         assert_true(len(w) == 1)
     assert_true(get_config(key) is None)
     assert_raises(KeyError, get_config, key, raise_error=True)
-    set_config(key, value)
-    assert_true(get_config(key) == value)
-    set_config(key, None)
+    with warnings.catch_warnings(True):
+        set_config(key, value)
+        assert_true(get_config(key) == value)
+        set_config(key, None)
     if old_val is not None:
         os.environ[key] = old_val
 
@@ -130,12 +135,43 @@ def deprecated_func():
     pass
 
 
+@requires_mem_gb(10000)
+def big_mem_func():
+    pass
+
+
+@requires_mem_gb(0)
+def no_mem_func():
+    pass
+
+
 def test_deprecated():
     """Test deprecated function
     """
     with warnings.catch_warnings(True) as w:
         deprecated_func()
     assert_true(len(w) == 1)
+
+
+def test_requires_mem_gb():
+    """Test requires memory function
+    """
+    try:
+        with warnings.catch_warnings(True) as w:
+            big_mem_func()
+        assert_true(len(w) == 1)
+        with warnings.catch_warnings(True) as w:
+            no_mem_func()
+        assert_true(len(w) == 0)
+    except:
+        try:
+            import psutil
+            msg = ('psutil version %s exposes unexpected API' %
+                   psutil.__version__)
+        except ImportError:
+            msg = 'Could not import psutil'
+        from nose.plugins.skip import SkipTest
+        SkipTest(msg)
 
 
 def test_fetch_file():
@@ -150,3 +186,10 @@ def test_fetch_file():
     url = "http://github.com/mne-tools/mne-python/blob/master/README.rst"
     archive_name = op.join(tempdir, "download_test")
     _fetch_file(url, archive_name, print_destination=False)
+
+
+def test_sum_squared():
+    """Optimized sum of squares
+    """
+    X = np.random.randint(0, 50, (3, 3))
+    assert_equal(np.sum(X ** 2), sum_squared(X))

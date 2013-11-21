@@ -8,12 +8,9 @@ from copy import deepcopy
 import re
 from warnings import warn
 
-import logging
-logger = logging.getLogger('mne')
-
 import numpy as np
 from .constants import FIFF
-from .. import verbose
+from ..utils import logger, verbose
 
 
 def channel_type(info, idx):
@@ -29,7 +26,7 @@ def channel_type(info, idx):
     Returns
     -------
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
-           'ref_meg' | 'resp'
+           'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst'
         Type of channel
     """
     kind = info['chs'][idx]['kind']
@@ -54,6 +51,12 @@ def channel_type(info, idx):
         return 'resp'
     elif kind == FIFF.FIFFV_MISC_CH:
         return 'misc'
+    elif kind == FIFF.FIFFV_EXCI_CH:
+        return 'exci'
+    elif kind == FIFF.FIFFV_IAS_CH:
+        return 'ias'
+    elif kind == FIFF.FIFFV_SYST_CH:
+        return 'syst'
     elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                   FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
                   FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
@@ -121,8 +124,9 @@ def pick_channels_regexp(ch_names, regexp):
 
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
-               emg=False, ref_meg=False, misc=False, resp=False, chpi=False,
-               include=[], exclude=None, selection=None):
+               emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
+               exci=False, ias=False, syst=False,
+               include=[], exclude='bads', selection=None):
     """Pick channels by type and names
 
     Parameters
@@ -131,8 +135,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         The measurement info.
     meg : bool or string
         If True include all MEG channels. If False include None
-        If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select only
-        magnetometers, all gradiometers, or a specific type of gradiometer.
+        If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
+        only magnetometers, all gradiometers, or a specific type of
+        gradiometer.
     eeg : bool
         If True include EEG channels.
     eog : bool
@@ -143,8 +148,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         If True include EMG channels.
     stim : bool
         If True include stimulus channels.
-    ref_meg: bool
-        If True include CTF / 4D reference channels.
+    ref_meg: bool | str
+        If True include CTF / 4D reference channels. If 'auto', the reference
+        channels are only included if compensations are present.
     misc : bool
         If True include miscellaneous analog channels.
     resp : bool
@@ -152,6 +158,12 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         is separate from the stim channel.
     chpi : bool
         If True include continuous HPI coil channels.
+    exci : bool
+        Flux excitation channel used to be a stimulus channel.
+    ias : bool
+        Internal Active Shielding data (maybe on Triux only).
+    syst : bool
+        System status channel information (on Triux systems only).
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -169,18 +181,18 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     pick = np.zeros(nchan, dtype=np.bool)
 
     if exclude is None:
-        msg = ('In pick_types, the parameter "exclude" must be specified as '
-               'either "bads" or a list of channels to exclude. In 0.7, the '
-               'default will be changed from [] (current behavior) to "bads".')
-        warn(msg, category=DeprecationWarning)
-        logger.warn(msg)
-        exclude = []
+        raise ValueError('exclude must be a list of strings or "bads"')
     elif exclude == 'bads':
         exclude = info.get('bads', [])
     elif not isinstance(exclude, list):
         raise ValueError('exclude must either be "bads" or a list of strings.'
                          ' If only one channel is to be excluded, use '
                          '[ch_name] instead of passing ch_name.')
+
+    if isinstance(ref_meg, basestring):
+        if ref_meg != 'auto':
+            raise ValueError('ref_meg has to be either a bool or \'auto\'')
+        ref_meg = info['comps'] is not None and len(info['comps']) > 0
 
     for k in range(nchan):
         kind = info['chs'][k]['kind']
@@ -190,9 +202,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
             elif info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T_M:
                 if meg == 'grad':
                     pick[k] = True
-                elif meg == 'planar1' and  info['ch_names'][k].endswith('2'):
+                elif meg == 'planar1' and info['ch_names'][k].endswith('2'):
                     pick[k] = True
-                elif meg == 'planar2' and  info['ch_names'][k].endswith('3'):
+                elif meg == 'planar2' and info['ch_names'][k].endswith('3'):
                     pick[k] = True
             elif (meg == 'mag'
                     and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T):
@@ -212,6 +224,12 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_REF_MEG_CH and ref_meg:
             pick[k] = True
         elif kind == FIFF.FIFFV_RESP_CH and resp:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_SYST_CH and syst:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_IAS_CH and ias:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_EXCI_CH and exci:
             pick[k] = True
         elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                       FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
@@ -266,7 +284,19 @@ def pick_info(info, sel=[]):
     return res
 
 
-def pick_channels_evoked(orig, include=[], exclude=[]):
+def _has_kit_refs(info, picks):
+    """Helper to determine if KIT ref channels are chosen
+
+    This is currently only used by make_forward_solution, which cannot
+    run when KIT reference channels are included.
+    """
+    for p in picks:
+        if info['chs'][p]['coil_type'] == FIFF.FIFFV_COIL_KIT_REF_MAG:
+            return True
+    return False
+
+
+def pick_channels_evoked(orig, include=[], exclude='bads'):
     """Pick channels from evoked data
 
     Parameters
@@ -309,7 +339,8 @@ def pick_channels_evoked(orig, include=[], exclude=[]):
 
 def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=False, misc=False,
-                      resp=False, chpi=False, include=[], exclude=None):
+                      resp=False, chpi=False, exci=False, ias=False,
+                      syst=False, include=[], exclude='bads'):
     """Pick by channel type and names from evoked data
 
     Parameters
@@ -339,6 +370,12 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         is separate from the stim channel.
     chpi : bool
         If True include continuous HPI coil channels.
+    exci : bool
+        Flux excitation channel used to be a stimulus channel.
+    ias : bool
+        Internal Active Shielding data (maybe on Triux only).
+    syst : bool
+        System status channel information (on Triux systems only).
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -353,13 +390,14 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     """
     sel = pick_types(info=orig.info, meg=meg, eeg=eeg, stim=stim, eog=eog,
                      ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
-                     resp=resp, chpi=chpi, include=include, exclude=exclude)
+                     resp=resp, chpi=chpi, exci=exci, ias=ias, syst=syst,
+                     include=include, exclude=exclude)
     include_ch_names = [orig.ch_names[k] for k in sel]
     return pick_channels_evoked(orig, include_ch_names)
 
 
 @verbose
-def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
+def pick_channels_forward(orig, include=[], exclude='bads', verbose=None):
     """Pick channels from forward operator
 
     Parameters
@@ -398,6 +436,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
     #   Pick the correct rows of the forward operator
     fwd['sol']['data'] = fwd['sol']['data'][sel, :]
+    fwd['_orig_sol'] = fwd['_orig_sol'][sel, :]
     fwd['sol']['nrow'] = nuse
 
     ch_names = [fwd['sol']['row_names'][k] for k in sel]
@@ -411,6 +450,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
     if fwd['sol_grad'] is not None:
         fwd['sol_grad']['data'] = fwd['sol_grad']['data'][sel, :]
+        fwd['_orig_sol_grad'] = fwd['_orig_sol_grad'][sel, :]
         fwd['sol_grad']['nrow'] = nuse
         fwd['sol_grad']['row_names'] = [fwd['sol_grad']['row_names'][k]
                                         for k in sel]
@@ -466,7 +506,7 @@ def channel_indices_by_type(info):
     return idx
 
 
-def pick_channels_cov(orig, include=[], exclude=[]):
+def pick_channels_cov(orig, include=[], exclude='bads'):
     """Pick channels from covariance matrix
 
     Parameters

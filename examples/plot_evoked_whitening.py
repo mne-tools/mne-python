@@ -43,6 +43,5 @@ evoked_white = mne.whiten_evoked(evoked, noise_cov, picks, diag=True)
 # plot the whitened evoked data to see if baseline signals match the
 # assumption of Gaussian whiten noise from which we expect values around
 # and less than 2 standard deviations.
-import pylab as pl
-pl.figure()
+import matplotlib.pyplot as plt
 evoked_white.plot(picks=picks, unit=False, hline=[-2, 2])

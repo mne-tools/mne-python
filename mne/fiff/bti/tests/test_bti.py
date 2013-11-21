@@ -10,8 +10,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import Raw as Raw
-from mne.fiff.bti.raw import _read_config, _setup_head_shape,\
-                             read_raw_bti, _read_data, _read_bti_header
+from mne.fiff.bti.raw import (_read_config, _setup_head_shape,
+                              read_raw_bti, _read_data, _read_bti_header)
 from mne.utils import _TempDir
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
@@ -48,10 +48,10 @@ def test_read_pdf():
 
 
 def test_raw():
-    """ Test conversion to Raw object """
+    """ Test bti conversion to Raw object """
 
     for pdf, config, hs, exported in zip(pdf_fnames, config_fnames, hs_fnames,
-                               exported_fnames):
+                                         exported_fnames):
         # rx = 2 if 'linux' in pdf else 0
         assert_raises(ValueError, read_raw_bti, pdf, 'eggs')
         assert_raises(ValueError, read_raw_bti, pdf, config, 'spam')
@@ -67,11 +67,12 @@ def test_raw():
                 assert_array_equal(dig1, dig2)
 
                 coil1, coil2 = [np.concatenate([d['coil_trans'].flatten()
-                            for d in r_.info['chs'][:NCH]]) for r_ in ra, ex]
+                                for d in r_.info['chs'][:NCH]])
+                                for r_ in ra, ex]
                 assert_array_almost_equal(coil1, coil2, 7)
 
                 loc1, loc2 = [np.concatenate([d['loc'].flatten()
-                for d in r_.info['chs'][:NCH]]) for r_ in ra, ex]
+                              for d in r_.info['chs'][:NCH]]) for r_ in ra, ex]
                 assert_array_equal(loc1, loc2)
 
                 assert_array_equal(ra._data[:NCH], ex._data[:NCH])

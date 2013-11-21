@@ -11,7 +11,7 @@ Plot topographies for MEG sensors
 
 print __doc__
 
-import pylab as pl
+import matplotlib.pyplot as plt
 
 from mne import fiff
 from mne.viz import plot_topo
@@ -27,4 +27,4 @@ evoked = fiff.read_evoked(fname, setno=0, baseline=(None, 0))
 # Show topography
 title = 'MNE sample data (condition : %s)' % evoked.comment
 plot_topo(evoked, title=title)
-pl.show()
+plt.show()

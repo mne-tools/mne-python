@@ -16,25 +16,22 @@ import numpy as np
 from scipy.signal import hilbert
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from .constants import FIFF
 from .open import fiff_open
 from .meas_info import read_meas_info, write_meas_info
 from .tree import dir_tree_find
 from .tag import read_tag
 from .pick import pick_types, channel_type
-from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
+from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
+                   _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
 from .compensator import get_current_comp, make_compensator
 
-from ..filter import low_pass_filter, high_pass_filter, band_pass_filter, \
-                     notch_filter, band_stop_filter, resample
+from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
+                      notch_filter, band_stop_filter, resample)
 from ..parallel import parallel_func
-from ..utils import deprecated, _check_fname, estimate_rank, \
-                    _check_pandas_installed
-from ..viz import plot_raw, _mutable_defaults
-from .. import verbose
+from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
+                     logger, verbose)
+from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 
 
 class Raw(ProjMixin):
@@ -66,6 +63,9 @@ class Raw(ProjMixin):
         If None the compensation in the data is not modified.
         If set to n, e.g. 3, apply gradient compensation of grade n as
         for CTF systems.
+    add_eeg_ref : bool
+        If True, add average EEG reference projector (if it's not already
+        present).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -73,22 +73,17 @@ class Raw(ProjMixin):
     ----------
     info : dict
         Measurement info.
-    `ch_names` : list of string
+    ch_names : list of string
         List of channels' names.
-    `n_times` : int
+    n_times : int
         Total number of time points in the raw file.
     verbose : bool, str, int, or None
         See above.
     """
     @verbose
     def __init__(self, fnames, allow_maxshield=False, preload=False,
-                 proj=False, proj_active=None, compensation=None,
+                 proj=False, compensation=None, add_eeg_ref=True,
                  verbose=None):
-
-        if proj_active is not None:
-            warnings.warn('proj_active param in Raw is deprecated and will be'
-                          ' removed in version 0.7. Please use proj instead.')
-            proj = proj_active
 
         if not isinstance(fnames, list):
             fnames = [op.abspath(fnames)] if not op.isabs(fnames) else [fnames]
@@ -97,7 +92,6 @@ class Raw(ProjMixin):
 
         raws = [self._read_raw_file(fname, allow_maxshield, preload,
                                     compensation) for fname in fnames]
-
         _check_raw_compatibility(raws)
 
         # combine information from each raw file to construct self
@@ -115,6 +109,7 @@ class Raw(ProjMixin):
         self.info['filenames'] = fnames
         self.orig_format = raws[0].orig_format
         self.proj = False
+        self._add_eeg_ref(add_eeg_ref)
 
         if preload:
             self._preload_data(preload)
@@ -146,6 +141,15 @@ class Raw(ProjMixin):
             self.close()
         except:
             return exception_type, exception_val, trace
+
+    def _add_eeg_ref(self, add_eeg_ref):
+        """Helper to add an average EEG reference"""
+        if add_eeg_ref:
+            eegs = pick_types(self.info, meg=False, eeg=True, ref_meg=False)
+            projs = self.info['projs']
+            if len(eegs) > 0 and not _has_eeg_average_ref_proj(projs):
+                eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
+                projs.append(eeg_ref)
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
@@ -347,8 +351,8 @@ class Raw(ProjMixin):
 
         if isinstance(item[1], slice):
             time_slice = item[1]
-            start, stop, step = time_slice.start, time_slice.stop, \
-                                time_slice.step
+            start, stop, step = (time_slice.start, time_slice.stop,
+                                 time_slice.step)
         elif isinstance(item[1], int):
             start, stop, step = item[1], item[1] + 1, 1
         else:
@@ -374,8 +378,8 @@ class Raw(ProjMixin):
             data, times = self._data[sel, start:stop], self._times[start:stop]
         else:
             data, times = self._read_segment(start=start, stop=stop, sel=sel,
-                                            projector=self._projector,
-                                            verbose=self.verbose)
+                                             projector=self._projector,
+                                             verbose=self.verbose)
         return data, times
 
     def __setitem__(self, item, value):
@@ -576,11 +580,25 @@ class Raw(ProjMixin):
             l_freq = None
         if h_freq > (fs / 2.):
             h_freq = None
+        if l_freq is not None and not isinstance(l_freq, float):
+            l_freq = float(l_freq)
+        if h_freq is not None and not isinstance(h_freq, float):
+            h_freq = float(h_freq)
+
         if not self._preloaded:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            if 'ICA ' in ','.join(self.ch_names):
+                pick_parameters = dict(misc=True, ref_meg=False)
+            else:
+                pick_parameters = dict(meg=True, eeg=True, ref_meg=False)
+            picks = pick_types(self.info, exclude=[], **pick_parameters)
+            # let's be safe.
+            if len(picks) < 1:
+                raise RuntimeError('Could not find any valid channels for '
+                                   'your Raw object. Please contact the '
+                                   'MNE-Python developers.')
 
             # update info if filter is applied to all data channels,
             # and it's not a band-stop filter
@@ -691,7 +709,16 @@ class Raw(ProjMixin):
             verbose = self.verbose
         fs = float(self.info['sfreq'])
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            if 'ICA ' in ','.join(self.ch_names):
+                pick_parameters = dict(misc=True)
+            else:
+                pick_parameters = dict(meg=True, eeg=True)
+            picks = pick_types(self.info, exclude=[], **pick_parameters)
+            # let's be safe.
+            if len(picks) < 1:
+                raise RuntimeError('Could not find any valid channels for '
+                                   'your Raw object. Please contact the '
+                                   'MNE-Python developers.')
         if not self._preloaded:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
@@ -748,16 +775,17 @@ class Raw(ProjMixin):
         """
         if not self._preloaded:
             raise RuntimeError('Can only resample preloaded data')
+        sfreq = float(sfreq)
+        o_sfreq = float(self.info['sfreq'])
 
-        o_sfreq = self.info['sfreq']
         offsets = np.concatenate(([0], np.cumsum(self._raw_lengths)))
         new_data = list()
         # set up stim channel processing
         if stim_picks is None:
-            stim_picks = pick_types(self.info, meg=False, stim=True,
-                                    exclude=[])
+            stim_picks = pick_types(self.info, meg=False, ref_meg=False,
+                                    stim=True, exclude=[])
         stim_picks = np.asanyarray(stim_picks)
-        ratio = sfreq / float(o_sfreq)
+        ratio = sfreq / o_sfreq
         for ri in range(len(self._raw_lengths)):
             data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
             new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
@@ -770,9 +798,13 @@ class Raw(ProjMixin):
             # of channels and then use np.insert() to restore the stims
 
             # figure out which points in old data to subsample
-            stim_inds = np.floor(np.arange(new_ntimes) / ratio).astype(int)
+            # protect against out-of-bounds, which can happen (having
+            # one sample more than expected) due to padding
+            stim_inds = np.minimum(np.floor(np.arange(new_ntimes)
+                                            / ratio).astype(int),
+                                   data_chunk.shape[1] - 1)
             for sp in stim_picks:
-                new_data[ri][sp] = data_chunk[sp][:, stim_inds]
+                new_data[ri][sp] = data_chunk[[sp]][:, stim_inds]
 
             self._first_samps[ri] = int(self._first_samps[ri] * ratio)
             self._last_samps[ri] = self._first_samps[ri] + new_ntimes - 1
@@ -783,6 +815,8 @@ class Raw(ProjMixin):
         self.first_samp = self._first_samps[0]
         self.last_samp = self.first_samp + self._data.shape[1] - 1
         self.info['sfreq'] = sfreq
+        self._times = (np.arange(self.n_times, dtype=np.float64)
+                       / self.info['sfreq'])
 
     def crop(self, tmin=0.0, tmax=None, copy=True):
         """Crop raw data file.
@@ -837,16 +871,17 @@ class Raw(ProjMixin):
         raw.fids = [f for fi, f in enumerate(raw.fids) if fi in keepers]
         raw.rawdirs = [r for ri, r in enumerate(raw.rawdirs)
                        if ri in keepers]
-        if raw._preloaded:
-            raw._data = raw._data[:, smin:smax + 1]
         raw.first_samp = raw._first_samps[0]
         raw.last_samp = raw.first_samp + (smax - smin)
+        if raw._preloaded:
+            raw._data = raw._data[:, smin:smax + 1]
+            raw._times = np.arange(raw.n_times) / raw.info['sfreq']
         return raw
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False, proj=False, format='single',
-             overwrite=False, verbose=None, proj_active=None):
+             overwrite=False, verbose=None):
         """Save raw data to file
 
         Parameters
@@ -896,11 +931,6 @@ class Raw(ProjMixin):
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
-        if proj_active is not None:
-            warnings.warn('proj_active param in Raw is deprecated and will be'
-                          ' removed in version 0.7. Please use proj instead.')
-            proj = proj_active
-
         fname = op.abspath(fname)
         if not self._preloaded and fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
@@ -966,7 +996,8 @@ class Raw(ProjMixin):
         if self.comp is not None:
             inv_comp = linalg.inv(self.comp)
 
-        write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
+        if first_samp != 0:
+            write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
         for first in range(start, stop, buffer_size):
             last = first + buffer_size
             if last >= stop:
@@ -994,7 +1025,7 @@ class Raw(ProjMixin):
     def plot(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
-             show_options=False, title=None, show=True):
+             show_options=False, title=None, show=True, block=False):
         """Plot raw data
 
         Parameters
@@ -1037,6 +1068,9 @@ class Raw(ProjMixin):
             raw object or '<unknown>' will be displayed as title.
         show : bool
             Show figures if True
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for setting bad channels on the fly (click on line).
 
         Returns
         -------
@@ -1048,20 +1082,56 @@ class Raw(ProjMixin):
         The arrow keys (up/down/left/right) can typically be used to navigate
         between channels and time ranges, but this depends on the backend
         matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
+        To mark or un-mark a channel as bad, click on the rather flat segments
+        of a channel's time series. The changes will be reflected immediately
+        in the raw object's ``raw.info['bads']`` entry.
         """
         return plot_raw(raw, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
-                        order, show_options, title, show)
+                        order, show_options, title, show, block)
 
-    @deprecated('time_to_index is deprecated please use time_as_index instead.'
-                ' Will be removed in v0.7.')
-    def time_to_index(self, *args):
-        """Convert time to indices"""
-        indices = []
-        for time in args:
-            ind = int(time * self.info['sfreq'])
-            indices.append(ind)
-        return indices
+    @verbose
+    def plot_psds(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
+                  proj=False, n_fft=2048, picks=None, ax=None, color='black',
+                  area_mode='std', area_alpha=0.33, n_jobs=1, verbose=None):
+        """Plot the power spectral density across channels
+
+        Parameters
+        ----------
+        tmin : float
+            Start time for calculations.
+        tmax : float
+            End time for calculations.
+        fmin : float
+            Start frequency to consider.
+        fmax : float
+            End frequency to consider.
+        proj : bool
+            Apply projection.
+        n_fft : int
+            Number of points to use in Welch FFT calculations.
+        picks : list | None
+            List of channels to use. Cannot be None if `ax` is supplied. If
+            both `picks` and `ax` are None, separate subplots will be created
+            for each standard channel type (`mag`, `grad`, and `eeg`).
+        ax : instance of matplotlib Axes | None
+            Axes to plot into. If None, axes will be created.
+        color : str | tuple
+            A matplotlib-compatible color to use.
+        area_mode : str | None
+            How to plot area. If 'std', the mean +/- 1 STD (across channels)
+            will be plotted. If 'range', the min and max (across channels)
+            will be plotted. Bad channels will be excluded from these
+            calculations. If None, no area will be plotted.
+        area_alpha : float
+            Alpha for the area.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        """
+        return plot_raw_psds(self, tmin, tmax, fmin, fmax, proj, n_fft, picks,
+                             ax, color, area_mode, area_alpha, n_jobs)
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices
@@ -1150,7 +1220,8 @@ class Raw(ProjMixin):
         else:
             stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
-        picks = pick_types(self.info, meg=True, eeg=True, exclude='bads')
+        picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
@@ -1381,9 +1452,10 @@ class Raw(ProjMixin):
         df.insert(0, 'time', times * scale_time)
 
         if use_time_index is True:
+            if 'time' in df:
+                df['time'] = df['time'].astype(np.int64)
             with warnings.catch_warnings(True):
                 df.set_index('time', inplace=True)
-            df.index = df.index.astype(int)
 
         return df
 
@@ -1621,6 +1693,60 @@ class Raw(ProjMixin):
         return "<Raw  |  %s>" % s
 
 
+def set_eeg_reference(raw, ref_channels, copy=True):
+    """Rereference eeg channels to new reference channel(s).
+
+    If multiple reference channels are specified, they will be averaged.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Instance of Raw with eeg channels and reference channel(s).
+
+    ref_channels : list of str
+        The name(s) of the reference channel(s).
+
+    copy : bool
+        Specifies whether instance of Raw will be copied or modified in place.
+
+    Returns
+    -------
+    raw : instance of Raw
+        Instance of Raw with eeg channels rereferenced.
+
+    ref_data : array
+        Array of reference data subtracted from eeg channels.
+    """
+    # Check to see that raw data is preloaded
+    if not raw._preloaded:
+        raise RuntimeError('Raw data needs to be preloaded. Use '
+                           'preload=True (or string) in the constructor.')
+    # Make sure that reference channels are loaded as list of string
+    if not isinstance(ref_channels, list):
+        raise IOError('Reference channel(s) must be a list of string. '
+                      'If using a single reference channel, enter as '
+                      'a list with one element.')
+    # Find the indices to the reference electrodes
+    ref_idx = [raw.ch_names.index(c) for c in ref_channels]
+
+    # Get the reference array
+    ref_data = raw._data[ref_idx].mean(0)
+
+    # Get the indices to the eeg channels using the pick_types function
+    eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False,
+                         ref_meg=False)
+
+    # Copy raw data or modify raw data in place
+    if copy:  # copy data
+        raw = raw.copy()
+
+    # Rereference the eeg channels
+    raw._data[eeg_idx] -= ref_data
+
+    # Return rereferenced data and reference array
+    return raw, ref_data
+
+
 def _allocate_data(data, data_buffer, data_shape, dtype):
     if data is None:
         # if not already done, allocate array with right type
@@ -1691,9 +1817,9 @@ class _RawShell():
 ###############################################################################
 # Writing
 
-from .write import start_file, end_file, start_block, end_block, \
-                   write_dau_pack16, write_float, write_double, \
-                   write_complex64, write_complex128, write_int, write_id
+from .write import (start_file, end_file, start_block, end_block,
+                    write_dau_pack16, write_float, write_double,
+                    write_complex64, write_complex128, write_int, write_id)
 
 
 def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
@@ -1743,7 +1869,7 @@ def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
         comps = copy.deepcopy(info['comps'])
         for c in comps:
             row_idx = [k for k, n in enumerate(c['data']['row_names'])
-                                                            if n in ch_names]
+                       if n in ch_names]
             row_names = [c['data']['row_names'][i] for i in row_idx]
             rowcals = c['rowcals'][row_idx]
             c['rowcals'] = rowcals
@@ -1888,3 +2014,89 @@ def concatenate_raws(raws, preload=None):
     """
     raws[0].append(raws[1:], preload)
     return raws[0]
+
+
+def get_chpi_positions(raw, t_step=None):
+    """Extract head positions
+
+    Note that the raw instance must have CHPI channels recorded.
+
+    Parameters
+    ----------
+    raw : instance of Raw | str
+        Raw instance to extract the head positions from. Can also be a
+        path to a Maxfilter log file (str).
+    t_step : float | None
+        Sampling interval to use when converting data. If None, it will
+        be automatically determined. By default, a sampling interval of
+        1 second is used if processing a raw data. If processing a
+        Maxfilter log file, this must be None because the log file
+        itself will determine the sampling interval.
+
+    Returns
+    -------
+    translation : array
+        A 2-dimensional array of head position vectors (n_time x 3).
+    rotation : array
+        A 3-dimensional array of rotation matrices (n_time x 3 x 3).
+    t : array
+        The time points associated with each position (n_time).
+
+    Notes
+    -----
+    The digitized HPI head frame y is related to the frame position X as:
+
+        Y = np.dot(rotation, X) + translation
+
+    Note that if a Maxfilter log file is being processed, the start time
+    may not use the same reference point as the rest of mne-python (i.e.,
+    it could be referenced relative to raw.first_samp or something else).
+    """
+    if isinstance(raw, Raw):
+        # for simplicity, we'll sample at 1 sec intervals like maxfilter
+        if t_step is None:
+            t_step = 1.0
+        if not np.isscalar(t_step):
+            raise TypeError('t_step must be a scalar or None')
+        picks = pick_types(raw.info, meg=False, ref_meg=False,
+                           chpi=True, exclude=[])
+        if len(picks) == 0:
+            raise RuntimeError('raw file has no CHPI channels')
+        time_idx = raw.time_as_index(np.arange(0, raw.n_times
+                                               / raw.info['sfreq'], t_step))
+        data = [raw[picks, ti] for ti in time_idx]
+        t = np.array([d[1] for d in data])
+        data = np.array([d[0][:, 0] for d in data])
+        data = np.c_[t, data]
+    else:
+        if not isinstance(raw, basestring):
+            raise TypeError('raw must be an instance of fiff.Raw or string')
+        if not op.isfile(raw):
+            raise IOError('File "%s" does not exist' % raw)
+        if t_step is not None:
+            raise ValueError('t_step must be None if processing a log')
+        data = np.loadtxt(raw, skiprows=1)  # first line is header, skip it
+    t = data[:, 0]
+    translation = data[:, 4:7].copy()
+    rotation = _quart_to_rot(data[:, 1:4])
+    return translation, rotation, t
+
+
+def _quart_to_rot(q):
+    """Helper to convert quarternions to rotations"""
+    q0 = np.sqrt(1 - np.sum(q[:, 0:3] ** 2, 1))
+    q1 = q[:, 0]
+    q2 = q[:, 1]
+    q3 = q[:, 2]
+    rotation = np.array((np.c_[(q0 ** 2 + q1 ** 2 - q2 ** 2 - q3 ** 2,
+                               2 * (q1 * q2 - q0 * q3),
+                               2 * (q1 * q3 + q0 * q2))],
+                         np.c_[(2 * (q1 * q2 + q0 * q3),
+                                q0 ** 2 + q2 ** 2 - q1 ** 2 - q3 ** 2,
+                                2 * (q2 * q3 - q0 * q1))],
+                         np.c_[(2 * (q1 * q3 - q0 * q2),
+                                2 * (q2 * q3 + q0 * q1),
+                                q0 ** 2 + q3 ** 2 - q1 ** 2 - q2 ** 2)]
+                         ))
+    rotation = np.swapaxes(rotation, 0, 1).copy()
+    return rotation

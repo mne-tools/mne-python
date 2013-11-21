@@ -11,15 +11,14 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
-from . import fiff, verbose
+from . import fiff
+from .utils import logger, verbose
 from .fiff.write import start_file, end_file
-from .fiff.proj import make_projector, proj_equal, activate_proj
+from .fiff.proj import (make_projector, proj_equal, activate_proj,
+                        _has_eeg_average_ref_proj)
 from .fiff import fiff_open
-from .fiff.pick import pick_types, channel_indices_by_type, pick_channels_cov,\
-                       pick_channels
+from .fiff.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
+                        pick_channels)
 from .fiff.constants import FIFF
 from .epochs import _is_good
 
@@ -45,7 +44,7 @@ class Covariance(dict):
     ----------
     data : array of shape (n_channels, n_channels)
         The covariance.
-    `ch_names` : list of string
+    ch_names : list of string
         List of channels' names.
     nfree : int
         Number of degrees of freedom i.e. number of time points used.
@@ -123,9 +122,9 @@ class Covariance(dict):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
         this_cov = cp.deepcopy(cov)
-        this_cov['data'] = ((this_cov['data'] * this_cov['nfree']) +
-                            (self['data'] * self['nfree'])) / \
-                                (self['nfree'] + this_cov['nfree'])
+        this_cov['data'] = (((this_cov['data'] * this_cov['nfree']) +
+                             (self['data'] * self['nfree'])) /
+                            (self['nfree'] + this_cov['nfree']))
         this_cov['nfree'] += self['nfree']
 
         this_cov['bads'] = list(set(this_cov['bads']).union(self['bads']))
@@ -135,9 +134,9 @@ class Covariance(dict):
     def __iadd__(self, cov):
         """Add Covariance taking into account number of degrees of freedom"""
         _check_covs_algebra(self, cov)
-        self['data'][:] = ((self['data'] * self['nfree']) + \
-                            (cov['data'] * cov['nfree'])) / \
-                                (self['nfree'] + cov['nfree'])
+        self['data'][:] = (((self['data'] * self['nfree']) +
+                            (cov['data'] * cov['nfree'])) /
+                           (self['nfree'] + cov['nfree']))
         self['nfree'] += cov['nfree']
 
         self['bads'] = list(set(self['bads']).union(cov['bads']))
@@ -201,7 +200,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     tmax : float
         End of time interval in seconds
     tstep : float
-        Size of data chunks for artefact rejection.
+        Length of data chunks for artefact rejection in seconds.
     reject : dict
         Rejection parameters based on peak to peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -241,7 +240,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
-                           exclude=[])
+                           ref_meg=False, exclude=[])
 
     data = 0
     n_samples = 0
@@ -380,7 +379,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     n_epochs = np.zeros(n_epoch_types, dtype=np.int)
 
     picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
-                            exclude=[])
+                            ref_meg=False, exclude=[])
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
 
     for i, epochs_t in enumerate(epochs):
@@ -439,7 +438,6 @@ def write_cov(fname, cov):
     ----------
     fname : string
         The name of the file
-
     cov : Covariance
         The noise covariance matrix
     """
@@ -510,8 +508,10 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
                     % ncomp)
         C = np.dot(proj, np.dot(C, proj.T))
 
-    pick_meg = pick_types(info, meg=True, eeg=False, exclude='bads')
-    pick_eeg = pick_types(info, meg=False, eeg=True, exclude='bads')
+    pick_meg = pick_types(info, meg=True, eeg=False, ref_meg=False,
+                          exclude='bads')
+    pick_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                          exclude='bads')
     meg_names = [info['chs'][k]['ch_name'] for k in pick_meg]
     C_meg_idx = [k for k in range(len(C)) if ch_names[k] in meg_names]
     eeg_names = [info['chs'][k]['ch_name'] for k in pick_eeg]
@@ -527,6 +527,11 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
     if has_eeg:
         C_eeg = C[C_eeg_idx][:, C_eeg_idx]
         C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG')
+        if not _has_eeg_average_ref_proj(info['projs']):
+            warnings.warn('No average EEG reference present in info["projs"], '
+                          'covariance may be adversely affected. Consider '
+                          'recomputing covariance using a raw file with an '
+                          'average eeg reference projector added.')
 
     n_chan = len(ch_names)
     eigvec = np.zeros((n_chan, n_chan), dtype=np.float)
@@ -585,9 +590,12 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     if exclude is None:
         exclude = info['bads'] + cov['bads']
 
-    sel_eeg = pick_types(info, meg=False, eeg=True, exclude=exclude)
-    sel_mag = pick_types(info, meg='mag', eeg=False, exclude=exclude)
-    sel_grad = pick_types(info, meg='grad', eeg=False, exclude=exclude)
+    sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                         exclude=exclude)
+    sel_mag = pick_types(info, meg='mag', eeg=False, ref_meg=False,
+                         exclude=exclude)
+    sel_grad = pick_types(info, meg='grad', eeg=False, ref_meg=False,
+                          exclude=exclude)
 
     info_ch_names = info['ch_names']
     ch_names_eeg = [info_ch_names[i] for i in sel_eeg]
@@ -673,7 +681,8 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
         The channel names.
     """
     if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, exclude='bads')
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 

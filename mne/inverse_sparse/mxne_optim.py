@@ -7,11 +7,8 @@ from math import sqrt, ceil
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from .mxne_debiasing import compute_bias
-from .. import verbose
+from ..utils import logger, verbose, sum_squared
 from ..time_frequency.stft import stft_norm2, stft, istft
 
 
@@ -165,7 +162,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     GX = np.dot(G[:, active_set], X)
     R = M - GX
     penalty = norm_l21(X, n_orient, copy=True)
-    nR2 = np.sum(R ** 2)
+    nR2 = sum_squared(R)
     pobj = 0.5 * nR2 + alpha * penalty
     dual_norm = norm_l2inf(np.dot(G.T, R), n_orient, copy=False)
     scaling = alpha / dual_norm
@@ -251,8 +248,11 @@ def _mixed_norm_solver_cd(M, G, alpha, maxit=10000, tol=1e-8,
         init = init.T
 
     clf = MultiTaskLasso(alpha=alpha / len(M), tol=tol, normalize=False,
-                         fit_intercept=False, max_iter=maxit).fit(G, M,
-                         coef_init=init)
+                         fit_intercept=False, max_iter=maxit,
+                         warm_start=True)
+    clf.coef_ = init
+    clf.fit(G, M)
+
     X = clf.coef_.T
     active_set = np.any(X, axis=1)
     X = X[active_set]

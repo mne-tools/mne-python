@@ -9,13 +9,16 @@ from copy import deepcopy
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal, \
-                          assert_allclose
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.fiff import Raw, pick_types, pick_channels, concatenate_raws, FIFF
+from mne.fiff import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
+                      get_chpi_positions, set_eeg_reference)
 from mne import concatenate_events, find_events
 from mne.utils import _TempDir, requires_nitime, requires_pandas
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
@@ -25,8 +28,27 @@ ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 fif_bad_marked_fname = op.join(base_dir, 'test_withbads_raw.fif')
 bad_file_works = op.join(base_dir, 'test_bads.txt')
 bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
+hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
+hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 tempdir = _TempDir()
+
+
+def test_get_chpi():
+    """Test CHPI position computation
+    """
+    trans0, rot0, _ = get_chpi_positions(hp_fname)
+    raw = Raw(hp_fif_fname)
+    out = get_chpi_positions(raw)
+    trans1, rot1, t1 = out
+    trans1 = trans1[2:]
+    rot1 = rot1[2:]
+    # these will not be exact because they don't use equiv. time points
+    assert_allclose(trans0, trans1, atol=1e-6, rtol=1e-1)
+    assert_allclose(rot0, rot1, atol=1e-6, rtol=1e-1)
+    # run through input checking
+    assert_raises(TypeError, get_chpi_positions, 1)
+    assert_raises(ValueError, get_chpi_positions, hp_fname, [1])
 
 
 def test_copy_append():
@@ -76,18 +98,26 @@ def test_output_formats():
         assert_true(raw2.orig_format == format)
 
 
+def _compare_combo(raw, new, times, n_times):
+    for ti in times:  # let's do a subset of points for speed
+        orig = raw[:, ti % n_times][0]
+        # these are almost_equals because of possible dtype differences
+        assert_allclose(orig, new[:, ti][0])
+
+
 def test_multiple_files():
     """Test loading multiple files simultaneously
     """
     # split file
-    raw = Raw(fif_fname, preload=True)
-    split_size = 10.  # in seconds
+    raw = Raw(fif_fname, preload=True).crop(0, 10)
+    split_size = 3.  # in seconds
     sfreq = raw.info['sfreq']
     nsamp = (raw.last_samp - raw.first_samp)
     tmins = np.round(np.arange(0., nsamp, split_size * sfreq))
     tmaxs = np.concatenate((tmins[1:] - 1, [nsamp]))
     tmaxs /= sfreq
     tmins /= sfreq
+    assert_equal(raw.n_times, len(raw._times))
 
     # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
@@ -114,59 +144,60 @@ def test_multiple_files():
     assert_array_equal(events, events2)
 
     # test various methods of combining files
-    n_combos = 9
-    raw_combos = [None] * n_combos
-
     raw = Raw(fif_fname, preload=True)
-    raw_combos[0] = Raw([fif_fname, fif_fname], preload=True)
-    raw_combos[1] = Raw([fif_fname, fif_fname], preload=False)
-    raw_combos[2] = Raw([fif_fname, fif_fname], preload='memmap8.dat')
-    assert_raises(ValueError, Raw, [fif_fname, ctf_fname])
-    assert_raises(ValueError, Raw, [fif_fname, fif_bad_marked_fname])
     n_times = len(raw._times)
-    assert_true(raw[:, :][0].shape[1] * 2 == raw_combos[0][:, :][0].shape[1])
-    assert_true(raw_combos[0][:, :][0].shape[1] == len(raw_combos[0]._times))
-
-    # with all data preloaded, result should be preloaded
-    raw_combos[3] = Raw(fif_fname, preload=True)
-    raw_combos[3].append(Raw(fif_fname, preload=True))
-    assert_true(raw_combos[0]._preloaded == True)
-    assert_true(len(raw_combos[3]._times) == raw_combos[3]._data.shape[1])
-
-    # with any data not preloaded, don't set result as preloaded
-    raw_combos[4] = concatenate_raws([Raw(fif_fname, preload=True),
-                                      Raw(fif_fname, preload=False)])
-    assert_true(raw_combos[1]._preloaded == False)
-    assert_array_equal(find_events(raw_combos[4], stim_channel='STI 014'),
-                       find_events(raw_combos[0], stim_channel='STI 014'))
-
-    # user should be able to force data to be preloaded upon concat
-    raw_combos[5] = concatenate_raws([Raw(fif_fname, preload=False),
-                                      Raw(fif_fname, preload=True)],
-                                     preload=True)
-    assert_true(raw_combos[2]._preloaded == True)
-
-    raw_combos[6] = concatenate_raws([Raw(fif_fname, preload=False),
-                                      Raw(fif_fname, preload=True)],
-                                     preload='memmap3.dat')
-
-    raw_combos[7] = concatenate_raws([Raw(fif_fname, preload=True),
-                                      Raw(fif_fname, preload=True)],
-                                     preload='memmap4.dat')
-
-    raw_combos[8] = concatenate_raws([Raw(fif_fname, preload=False),
-                                      Raw(fif_fname, preload=False)],
-                                     preload='memmap5.dat')
-
     # make sure that all our data match
     times = range(0, 2 * n_times, 999)
     # add potentially problematic points
     times.extend([n_times - 1, n_times, 2 * n_times - 1])
-    for ti in times:  # let's do a subset of points for speed
-        orig = raw[:, ti % n_times][0]
-        for raw_combo in raw_combos:
-            # these are almost_equals because of possible dtype differences
-            assert_allclose(orig, raw_combo[:, ti][0])
+
+    raw_combo0 = Raw([fif_fname, fif_fname], preload=True)
+    _compare_combo(raw, raw_combo0, times, n_times)
+    raw_combo = Raw([fif_fname, fif_fname], preload=False)
+    _compare_combo(raw, raw_combo, times, n_times)
+    raw_combo = Raw([fif_fname, fif_fname], preload='memmap8.dat')
+    _compare_combo(raw, raw_combo, times, n_times)
+    assert_raises(ValueError, Raw, [fif_fname, ctf_fname])
+    assert_raises(ValueError, Raw, [fif_fname, fif_bad_marked_fname])
+    assert_true(raw[:, :][0].shape[1] * 2 == raw_combo0[:, :][0].shape[1])
+    assert_true(raw_combo0[:, :][0].shape[1] == len(raw_combo0._times))
+
+    # with all data preloaded, result should be preloaded
+    raw_combo = Raw(fif_fname, preload=True)
+    raw_combo.append(Raw(fif_fname, preload=True))
+    assert_true(raw_combo._preloaded is True)
+    assert_true(len(raw_combo._times) == raw_combo._data.shape[1])
+    _compare_combo(raw, raw_combo, times, n_times)
+
+    # with any data not preloaded, don't set result as preloaded
+    raw_combo = concatenate_raws([Raw(fif_fname, preload=True),
+                                  Raw(fif_fname, preload=False)])
+    assert_true(raw_combo._preloaded is False)
+    assert_array_equal(find_events(raw_combo, stim_channel='STI 014'),
+                       find_events(raw_combo0, stim_channel='STI 014'))
+    _compare_combo(raw, raw_combo, times, n_times)
+
+    # user should be able to force data to be preloaded upon concat
+    raw_combo = concatenate_raws([Raw(fif_fname, preload=False),
+                                  Raw(fif_fname, preload=True)],
+                                 preload=True)
+    assert_true(raw_combo._preloaded is True)
+    _compare_combo(raw, raw_combo, times, n_times)
+
+    raw_combo = concatenate_raws([Raw(fif_fname, preload=False),
+                                  Raw(fif_fname, preload=True)],
+                                 preload='memmap3.dat')
+    _compare_combo(raw, raw_combo, times, n_times)
+
+    raw_combo = concatenate_raws([Raw(fif_fname, preload=True),
+                                  Raw(fif_fname, preload=True)],
+                                 preload='memmap4.dat')
+    _compare_combo(raw, raw_combo, times, n_times)
+
+    raw_combo = concatenate_raws([Raw(fif_fname, preload=False),
+                                  Raw(fif_fname, preload=False)],
+                                 preload='memmap5.dat')
+    _compare_combo(raw, raw_combo, times, n_times)
 
     # verify that combining raws with different projectors throws an exception
     raw.add_proj([], remove_existing=True)
@@ -178,7 +209,7 @@ def test_multiple_files():
     last_samps = [raw.last_samp, raw.last_samp]
     first_samps = [raw.first_samp, raw.first_samp]
     events = concatenate_events(events, first_samps, last_samps)
-    events2 = find_events(raw_combos[0], stim_channel='STI 014')
+    events2 = find_events(raw_combo0, stim_channel='STI 014')
     assert_array_equal(events, events2)
 
     # check out the len method
@@ -339,8 +370,8 @@ def test_io_complex():
         with warnings.catch_warnings(record=True) as w:
             raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5,
                         overwrite=True)
-            # warning only gets thrown on first instance
-            assert_equal(len(w), 1 if di == 0 else 0)
+            # warning gets thrown on every instance b/c simplifilter('always')
+            assert_equal(len(w), 1)
 
         raw2 = Raw(op.join(tempdir, 'raw.fif'))
         raw2_data, _ = raw2[picks, :]
@@ -458,7 +489,7 @@ def test_preload_modify():
 
 def test_filter():
     """ Test filtering (FIR and IIR) and Raw.apply_function interface """
-    raw = Raw(fif_fname, preload=True).crop(0, 10, False)
+    raw = Raw(fif_fname, preload=True).crop(0, 7, False)
     sig_dec = 11
     sig_dec_notch = 12
     sig_dec_notch_fit = 12
@@ -509,7 +540,7 @@ def test_filter():
 
     # do a very simple check on line filtering
     raw_bs = raw.copy()
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(True) as _:
         raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy()
@@ -529,7 +560,7 @@ def test_crop():
     """Test cropping raw files
     """
     # split a concatenated file to test a difficult case
-    raw = Raw([fif_fname, fif_fname], preload=True)
+    raw = Raw([fif_fname, fif_fname], preload=False)
     split_size = 10.  # in seconds
     sfreq = raw.info['sfreq']
     nsamp = (raw.last_samp - raw.first_samp + 1)
@@ -543,7 +574,7 @@ def test_crop():
     raws = [None] * len(tmins)
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
         raws[ri] = raw.crop(tmin, tmax, True)
-    all_raw_2 = concatenate_raws(raws, preload=True)
+    all_raw_2 = concatenate_raws(raws, preload=False)
     assert_true(raw.first_samp == all_raw_2.first_samp)
     assert_true(raw.last_samp == all_raw_2.last_samp)
     assert_array_equal(raw[:, :][0], all_raw_2[:, :][0])
@@ -559,7 +590,7 @@ def test_crop():
         raws[ri] = raw.copy()
         raws[ri].crop(tmin, tmax, False)
     # test concatenation of split file
-    all_raw_1 = concatenate_raws(raws, preload=True)
+    all_raw_1 = concatenate_raws(raws, preload=False)
 
     all_raw_2 = raw.crop(0, None, True)
     for ar in [all_raw_1, all_raw_2]:
@@ -575,6 +606,7 @@ def test_resample():
     sfreq = raw.info['sfreq']
     # test parallel on upsample
     raw_resamp.resample(sfreq * 2, n_jobs=2)
+    assert_true(raw_resamp.n_times == len(raw_resamp._times))
     raw_resamp.save(op.join(tempdir, 'raw_resamp.fif'))
     raw_resamp = Raw(op.join(tempdir, 'raw_resamp.fif'), preload=True)
     assert_true(sfreq == raw_resamp.info['sfreq'] / 2)
@@ -749,6 +781,8 @@ def test_with_statement():
 
 
 def test_compensation_raw():
+    """Test Raw compensation
+    """
     raw1 = Raw(ctf_comp_fname, compensation=None)
     assert_true(raw1.comp is None)
     data1, times1 = raw1[:, :]
@@ -782,3 +816,35 @@ def test_compensation_raw():
     data5, times5 = raw5[:, :]
     assert_array_equal(times1, times5)
     assert_allclose(data1, data5, rtol=1e-12, atol=1e-22)
+
+
+def test_set_eeg_reference():
+    """ Test rereference eeg data"""
+    raw = Raw(fif_fname, preload=True)
+
+    # Rereference raw data by creating a copy of original data
+    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
+
+    # Separate EEG channels from other channel types
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    picks_other = pick_types(raw.info, meg=True, eeg=False, eog=True,
+                             stim=True, exclude='bads')
+
+    # Get the raw EEG data and other channel data
+    raw_eeg_data = raw[picks_eeg][0]
+    raw_other_data = raw[picks_other][0]
+
+    # Get the rereferenced EEG data and channel other
+    reref_eeg_data = reref[picks_eeg][0]
+    unref_eeg_data = reref_eeg_data + ref_data
+    # Undo rereferencing of EEG channels
+    reref_other_data = reref[picks_other][0]
+
+    # Check that both EEG data and other data is the same
+    assert_array_equal(raw_eeg_data, unref_eeg_data)
+    assert_array_equal(raw_other_data, reref_other_data)
+
+    # Test that data is modified in place when copy=False
+    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
+                                        copy=False)
+    assert_true(raw is reref)

@@ -15,7 +15,7 @@ visualisation.
 
 print __doc__
 
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.fiff import Raw
@@ -41,14 +41,14 @@ start, stop = raw.time_as_index([0, 15])  # read the first 15s of data
 
 # Compute inverse solution
 stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label,
-                        start, stop, pick_normal=False)
+                        start, stop, pick_ori=None)
 
 # Save result in stc files
 stc.save('mne_%s_raw_inverse_%s' % (method, label_name))
 
 ###############################################################################
 # View activation time-series
-pl.plot(1e3 * stc.times, stc.data[::100, :].T)
-pl.xlabel('time (ms)')
-pl.ylabel('%s value' % method)
-pl.show()
+plt.plot(1e3 * stc.times, stc.data[::100, :].T)
+plt.xlabel('time (ms)')
+plt.ylabel('%s value' % method)
+plt.show()

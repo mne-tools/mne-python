@@ -12,6 +12,7 @@ import os
 import os.path as op
 from functools import wraps
 import inspect
+from string import Formatter
 import subprocess
 import sys
 from sys import stdout
@@ -25,9 +26,11 @@ import urllib
 import urllib2
 import ftplib
 import urlparse
+import scipy
 from scipy import linalg
 
-logger = logging.getLogger('mne')
+logger = logging.getLogger('mne')  # one selection here used across mne-python
+logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
 ###############################################################################
@@ -58,6 +61,36 @@ def split_list(l, n):
     for i in range(n - 1):
         yield l[i * sz:(i + 1) * sz]
     yield l[(n - 1) * sz:]
+
+
+def create_chunks(sequence, size):
+    """Generate chunks from a sequence
+
+    Parameters
+    ----------
+    sequence : iterable
+        Any iterable object
+    size : int
+        The chunksize to be returned
+    """
+    return (sequence[p:p + size] for p in xrange(0, len(sequence), size))
+
+
+def sum_squared(X):
+    """Compute norm of an array
+
+    Parameters
+    ----------
+    X : array
+        Data whose norm must be found
+
+    Returns
+    -------
+    value : float
+        Sum of squares of the input array X
+    """
+    X_flat = X.ravel(order='F' if np.isfortran(X) else 'C')
+    return np.dot(X_flat, X_flat)
 
 
 class WrapStdOut(object):
@@ -188,9 +221,29 @@ def run_subprocess(command, *args, **kwargs):
 
     output = (stdout, stderr)
     if p.returncode:
+        print output
         raise subprocess.CalledProcessError(p.returncode, command, output)
 
     return output
+
+
+class _FormatDict(dict):
+    """Helper for pformat()"""
+    def __missing__(self, key):
+        return "{" + key + "}"
+
+
+def pformat(temp, **fmt):
+    """Partially format a template string.
+
+    Examples
+    --------
+    >>> pformat("{a}_{b}", a='x')
+    'x_{b}'
+    """
+    formatter = Formatter()
+    mapping = _FormatDict(fmt)
+    return formatter.vformat(temp, (), mapping)
 
 
 ###############################################################################
@@ -343,15 +396,25 @@ requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
                                      'Requires MNE command line tools')
 
 
-def has_nibabel():
+def has_nibabel(vox2ras_tkr=False):
     try:
         import nibabel
-        return True
+        if vox2ras_tkr:  # we need MGHHeader to have vox2ras_tkr param
+            mgh_ihdr = getattr(nibabel, 'MGHImage', None)
+            mgh_ihdr = getattr(mgh_ihdr, 'header_class', None)
+            get_vox2ras_tkr = getattr(mgh_ihdr, 'get_vox2ras_tkr', None)
+            if get_vox2ras_tkr is not None:
+                return True
+            else:
+                return False
+        else:
+            return True
     except ImportError:
         return False
 
 
 def has_freesurfer():
+    """Aux function"""
     if not 'FREESURFER_HOME' in os.environ:
         return False
     else:
@@ -362,10 +425,47 @@ requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
                                                not has_freesurfer(),
                                                'Requires nibabel or '
                                                'Freesurfer')
-requires_nibabel = np.testing.dec.skipif(not has_nibabel(),
-                                         'Requires nibabel')
+
+
+def requires_nibabel(vox2ras_tkr=False):
+    """Aux function"""
+    if vox2ras_tkr:
+        extra = ' with vox2ras_tkr support'
+    else:
+        extra = ''
+    return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
+                                 'Requires nibabel%s' % extra)
+
 requires_freesurfer = np.testing.dec.skipif(not has_freesurfer(),
                                             'Requires Freesurfer')
+
+
+def requires_mem_gb(requirement):
+    """Decorator to skip test if insufficient memory is available"""
+    def real_decorator(function):
+        # convert to gb
+        req = int(1e9 * requirement)
+        try:
+            import psutil
+            has_psutil = True
+        except ImportError:
+            has_psutil = False
+
+        @wraps(function)
+        def dec(*args, **kwargs):
+            if has_psutil and psutil.virtual_memory().available >= req:
+                skip = False
+            else:
+                skip = True
+
+            if skip is True:
+                from nose.plugins.skip import SkipTest
+                raise SkipTest('Test %s skipped, requires >= %0.1f GB free '
+                               'memory' % (function.__name__, requirement))
+            ret = function(*args, **kwargs)
+            return ret
+        return dec
+    return real_decorator
 
 
 def requires_pandas(function):
@@ -392,6 +492,27 @@ def requires_pandas(function):
     return dec
 
 
+def requires_tvtk(function):
+    """Decorator to skip test if TVTK is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        skip = False
+        try:
+            from tvtk.api import tvtk
+        except ImportError:
+            skip = True
+
+        if skip is True:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires TVTK'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+
 def make_skipper_dec(module, skip_str):
     """Helper to make skipping decorators"""
     skip = False
@@ -404,6 +525,54 @@ def make_skipper_dec(module, skip_str):
 
 requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
+
+
+def _mne_fs_not_in_env():
+    """Aux function"""
+    return (('FREESURFER_HOME' not in os.environ) or
+            ('MNE_ROOT' not in os.environ))
+
+requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env)
+
+
+def check_sklearn_version(min_version):
+    """ Check minimum sklearn version required
+
+    Parameters
+    ----------
+    min_version : str
+        The version string. Anything that matches
+        ``'(\\d+ | [a-z]+ | \\.)'``
+    """
+    ok = True
+    try:
+        import sklearn
+        this_version = LooseVersion(sklearn.__version__)
+        if this_version < min_version:
+            ok = False
+    except ImportError:
+        ok = False
+    return ok
+
+
+def check_scipy_version(min_version):
+    """ Check minimum sklearn version required
+
+    Parameters
+    ----------
+    min_version : str
+        The version string. Anything that matches
+        ``'(\\d+ | [a-z]+ | \\.)'``
+    """
+    this_version = LooseVersion(scipy.__version__)
+    return False if this_version < min_version else True
+
+
+def requires_scipy_version(min_version):
+    """Helper for testing"""
+    ok = check_scipy_version(min_version)
+    return np.testing.dec.skipif(not ok, 'Requires scipy version >= %s'
+                                 % min_version)
 
 
 ###############################################################################
@@ -535,16 +704,61 @@ def get_config_path():
     return val
 
 
+def set_cache_dir(cache_dir):
+    """Set the directory to be used for temporary file storage.
+
+    This directory is used by joblib to store memmapped arrays,
+    which reduces memory requirements and speeds up parallel
+    computation.
+
+    Parameters
+    ----------
+    cache_dir: str or None
+        Directory to use for temporary file storage. None disables
+        temporary file storage.
+    """
+    if cache_dir is not None and not op.exists(cache_dir):
+        raise IOError('Directory %s does not exist' % cache_dir)
+
+    set_config('MNE_CACHE_DIR', cache_dir)
+
+
+def set_memmap_min_size(memmap_min_size):
+    """Set the minimum size for memmaping of arrays for parallel processing
+
+    Parameters
+    ----------
+    memmap_min_size: str or None
+        Threshold on the minimum size of arrays that triggers automated memmory
+        mapping for parallel processing, e.g., '1M' for 1 megabyte.
+        Use None to disable memmaping of large arrays.
+    """
+    if memmap_min_size is not None:
+        if not isinstance(memmap_min_size, basestring):
+            raise ValueError('\'memmap_min_size\' has to be a string.')
+        if memmap_min_size[-1] not in ['K', 'M', 'G']:
+            raise ValueError('The size has to be given in kilo-, mega-, or '
+                             'gigabytes, e.g., 100K, 500M, 1G.')
+
+    set_config('MNE_MEMMAP_MIN_SIZE', memmap_min_size)
+
+
 # List the known configuration values
 known_config_types = [
     'MNE_BROWSE_RAW_SIZE',
     'MNE_CUDA_IGNORE_PRECISION',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
+    'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_LOGGING_LEVEL',
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
+    'MNE_CACHE_DIR',
+    'MNE_MEMMAP_MIN_SIZE',
+    'MNE_SKIP_SAMPLE_DATASET_TESTS',
+    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
     ]
+
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 known_config_wildcards = [
     'MNE_STIM_CHANNEL',
@@ -977,6 +1191,7 @@ def _check_subject(class_subject, input_subject, raise_error=True):
 
 
 def _check_pandas_installed():
+    """Aux function"""
     try:
         import pandas as pd
         return pd

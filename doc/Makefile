@@ -39,6 +39,11 @@ html:
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."
 
+html-noplot:
+	$(SPHINXBUILD) -D plot_gallery=False -b html $(ALLSPHINXOPTS) build/html
+	@echo
+	@echo "Build finished. The HTML pages are in build/html/stable."
+
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) build/dirhtml
 	@echo

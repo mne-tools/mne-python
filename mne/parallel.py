@@ -5,14 +5,20 @@
 #
 # License: Simplified BSD
 
+import inspect
 import logging
-logger = logging.getLogger('mne')
+import os
 
-from . import verbose
+from . import get_config
+from .utils import logger, verbose
 
+if 'MNE_FORCE_SERIAL' in os.environ:
+    _force_serial = True
+else:
+    _force_serial = None
 
 @verbose
-def parallel_func(func, n_jobs, verbose=None):
+def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
     """Return parallel instance with delayed function
 
     Util function to use joblib only if available
@@ -26,6 +32,12 @@ def parallel_func(func, n_jobs, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         INFO or DEBUG will print parallel status, others will not.
+    max_nbytes int, str, or None
+        Threshold on the minimum size of arrays passed to the workers that
+        triggers automated memmory mapping. Can be an int in Bytes,
+        or a human-readable string, e.g., '1M' for 1 megabyte.
+        Use None to disable memmaping of large arrays. Use 'auto' to
+        use the value set using mne.set_memmap_min_size.
 
     Returns
     -------
@@ -36,22 +48,56 @@ def parallel_func(func, n_jobs, verbose=None):
     n_jobs: int
         Number of jobs >= 0
     """
+    # for a single job, we don't need joblib
+    if n_jobs == 1:
+        n_jobs = 1
+        my_func = func
+        parallel = list
+        return parallel, my_func, n_jobs
+
     try:
-        from sklearn.externals.joblib import Parallel, delayed
+        from joblib import Parallel, delayed
     except ImportError:
         try:
-            from joblib import Parallel, delayed
+            from sklearn.externals.joblib import Parallel, delayed
         except ImportError:
-            logger.warn("joblib not installed. Cannot run in parallel.")
+            logger.warn('joblib not installed. Cannot run in parallel.')
             n_jobs = 1
             my_func = func
             parallel = list
             return parallel, my_func, n_jobs
 
-    parallel_verbose = 5 if logger.level <= logging.INFO else 0
-    parallel = Parallel(n_jobs, verbose=parallel_verbose)
-    my_func = delayed(func)
+    # check if joblib is recent enough to support memmaping
+    aspec = inspect.getargspec(Parallel.__init__)
+    joblib_mmap = ('temp_folder' in aspec.args and 'max_nbytes' in aspec.args)
+
+    cache_dir = get_config('MNE_CACHE_DIR', None)
+    if isinstance(max_nbytes, basestring) and max_nbytes == 'auto':
+        max_nbytes = get_config('MNE_MEMMAP_MIN_SIZE', None)
+
+    if max_nbytes is not None:
+        if not joblib_mmap and cache_dir is not None:
+            logger.warn('"MNE_CACHE_DIR" is set but a newer version of joblib '
+                        'is needed to use the memmapping pool.')
+        if joblib_mmap and cache_dir is None:
+            logger.info('joblib supports memapping pool but "MNE_CACHE_DIR" '
+                        'is not set in MNE-Python config. To enable it, use, '
+                        'e.g., mne.set_cache_dir(\'/tmp/shm\'). This will '
+                        'store temporary files under /dev/shm and can result '
+                        'in large memory savings.')
+
+    # create keyword arguments for Parallel
+    kwargs = {'verbose': 5 if logger.level <= logging.INFO else 0}
+
+    if joblib_mmap:
+        if cache_dir is None:
+            max_nbytes = None  # disable memmaping
+        kwargs['temp_folder'] = cache_dir
+        kwargs['max_nbytes'] = max_nbytes
+
     n_jobs = check_n_jobs(n_jobs)
+    parallel = Parallel(n_jobs, **kwargs)
+    my_func = delayed(func)
     return parallel, my_func, n_jobs
 
 
@@ -71,7 +117,11 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         The checked number of jobs. Always positive (or 'cuda' if
         applicable.)
     """
-    if not isinstance(n_jobs, int):
+    if _force_serial:
+        n_jobs = 1
+        logger.info('... MNE_FORCE_SERIAL set. Processing in forced serial mode.')
+
+    elif not isinstance(n_jobs, int):
         if not allow_cuda:
             raise ValueError('n_jobs must be an integer')
         elif not isinstance(n_jobs, basestring) or n_jobs != 'cuda':
@@ -90,7 +140,7 @@ def check_n_jobs(n_jobs, allow_cuda=False):
             # only warn if they tried to use something other than 1 job
             if n_jobs != 1:
                 logger.warn('multiprocessing not installed. Cannot run in '
-                             'parallel.')
+                            'parallel.')
                 n_jobs = 1
 
     return n_jobs

@@ -8,20 +8,17 @@ from warnings import warn
 import numpy as np
 from scipy import linalg, signal, fftpack
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..fiff.constants import FIFF
-from ..source_estimate import SourceEstimate
+from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
-from ..time_frequency.multitaper import dpss_windows, _psd_from_mt,\
-                                        _psd_from_mt_adaptive, _mt_spectra
+from ..time_frequency.multitaper import (dpss_windows, _psd_from_mt,
+                                         _psd_from_mt_adaptive, _mt_spectra)
 from ..baseline import rescale
-from .inverse import combine_xyz, prepare_inverse_operator, _assemble_kernel, \
-                     _pick_channels_inverse_operator, _check_method, \
-                     _subject_from_inverse
+from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
+                      _pick_channels_inverse_operator, _check_method,
+                      _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
-from .. import verbose
+from ..utils import logger, verbose
 
 
 @verbose
@@ -29,7 +26,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                               lambda2=1.0 / 9.0, method="dSPM", nave=1,
                               n_cycles=5, df=1, use_fft=False, decim=1,
                               baseline=None, baseline_mode='logratio',
-                              pca=True, n_jobs=1, dSPM=None, verbose=None):
+                              pca=True, n_jobs=1, verbose=None):
     """Compute source space induced power in given frequency bands
 
     Parameters
@@ -77,8 +74,13 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    stcs : dict with a SourceEstimate (or VolSourceEstimate) for each band
+        The estimated source space induced power estimates.
     """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
 
     frequencies = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
                                  for _, band in bands.iteritems()])
@@ -107,8 +109,8 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
         tmin = epochs.times[0]
         tstep = float(decim) / Fs
-        stc = SourceEstimate(power, vertices=vertno, tmin=tmin, tstep=tstep,
-                             subject=subject)
+        stc = _make_stc(power, vertices=vertno, tmin=tmin, tstep=tstep,
+                        subject=subject)
         stcs[name] = stc
 
         logger.info('[done]')
@@ -118,13 +120,13 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
 
 @verbose
 def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
-                     pick_normal, decim, verbose=None):
+                     pick_ori, decim, verbose=None):
     """Aux function for source_induced_power"""
     n_times = data[:, :, ::decim].shape[2]
     n_freqs = len(Ws)
     n_sources = K.shape[0]
     is_free_ori = False
-    if (source_ori == FIFF.FIFFV_MNE_FREE_ORI and not pick_normal):
+    if (source_ori == FIFF.FIFFV_MNE_FREE_ORI and pick_ori == None):
         is_free_ori = True
         n_sources /= 3
 
@@ -186,7 +188,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
 @verbose
 def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
                           lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
-                          decim=1, use_fft=False, pca=True, pick_normal=True,
+                          decim=1, use_fft=False, pca=True, pick_ori="normal",
                           n_jobs=1, with_plv=True, zero_mean=False,
                           verbose=None):
     """Aux function for source_induced_power
@@ -212,7 +214,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -232,7 +234,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     n_jobs = min(n_jobs, len(epochs_data))
     out = parallel(my_compute_pow_plv(data, K, sel, Ws,
                                       inv['source_ori'], use_fft, Vh,
-                                      with_plv, pick_normal, decim)
+                                      with_plv, pick_ori, decim)
                         for data in np.array_split(epochs_data, n_jobs))
     power = sum(o[0] for o in out)
     power /= len(epochs_data)  # average power over epochs
@@ -253,9 +255,10 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
 @verbose
 def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                          lambda2=1.0 / 9.0, method="dSPM", nave=1, n_cycles=5,
-                         decim=1, use_fft=False, pick_normal=False,
+                         decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
-                         n_jobs=1, dSPM=None, zero_mean=False, verbose=None):
+                         n_jobs=1, zero_mean=False, verbose=None,
+                         pick_normal=None):
     """Compute induced power and phase lock
 
     Computation can optionaly be restricted in a label.
@@ -282,8 +285,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         Temporal decimation factor.
     use_fft : bool
         Do convolutions in time or frequency domain with FFT.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     baseline : None (default) or tuple of length 2
@@ -310,13 +313,14 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
+    pick_ori = _check_ori(pick_ori, pick_normal)
 
     power, plv, vertno = _source_induced_power(epochs,
                             inverse_operator, frequencies,
                             label=label, lambda2=lambda2, method=method,
                             nave=nave, n_cycles=n_cycles, decim=decim,
-                            use_fft=use_fft, pick_normal=pick_normal,
+                            use_fft=use_fft, pick_ori=pick_ori,
                             pca=pca, n_jobs=n_jobs)
 
     # Run baseline correction
@@ -330,8 +334,8 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
 @verbose
 def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
-                       NFFT=2048, overlap=0.5, pick_normal=False, label=None,
-                       nave=1, pca=True, verbose=None):
+                       NFFT=2048, overlap=0.5, pick_ori=None, label=None,
+                       nave=1, pca=True, verbose=None, pick_normal=None):
     """Compute source power spectrum density (PSD)
 
     Parameters
@@ -359,8 +363,8 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     overlap: float
         The overlap fraction between windows. Should be between 0 and 1.
         0 means no overlap.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     label: Label
@@ -376,9 +380,10 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
 
     Returns
     -------
-    stc : SourceEstimate
+    stc : SourceEstimate | VolSourceEstimate
         The PSD (in dB) of each of the sources.
     """
+    pick_ori = _check_ori(pick_ori, pick_normal)
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
@@ -398,7 +403,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -421,7 +426,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freqs_mask]
     fstep = np.mean(np.diff(freqs))
-    psd = np.zeros((noise_norm.size, np.sum(freqs_mask)))
+    psd = np.zeros((K.shape[0], np.sum(freqs_mask)))
     n_windows = 0
 
     for this_start in np.arange(start, stop, int(NFFT * (1. - overlap))):
@@ -438,7 +443,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         data_fft = fftpack.fft(data)[:, freqs_mask]
         sol = np.dot(K, data_fft)
 
-        if is_free_ori and not pick_normal:
+        if is_free_ori and pick_ori == None:
             sol = combine_xyz(sol, square=True)
         else:
             sol = np.abs(sol) ** 2
@@ -454,15 +459,15 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     psd = 10 * np.log10(psd)
 
     subject = _subject_from_inverse(inverse_operator)
-    stc = SourceEstimate(psd, vertices=vertno, tmin=fmin * 1e-3,
-                         tstep=fstep * 1e-3, subject=subject)
+    stc = _make_stc(psd, vertices=vertno, tmin=fmin * 1e-3,
+                    tstep=fstep * 1e-3, subject=subject)
     return stc
 
 
 @verbose
 def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               method="dSPM", fmin=0., fmax=200.,
-                              pick_normal=False, label=None, nave=1,
+                              pick_ori=None, label=None, nave=1,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True, n_jobs=1,
                               verbose=None):
@@ -486,7 +491,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     #   This does all the data transformations to compute the weights for the
     #   eigenleads
     #
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     if pca:
         U, s, Vh = linalg.svd(K, full_matrices=False)
@@ -573,14 +578,14 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
             pos += K_part.shape[0]
 
         # combine orientations
-        if is_free_ori and not pick_normal:
+        if is_free_ori and pick_ori == None:
             psd = combine_xyz(psd, square=False)
 
         if method != "MNE":
             psd *= noise_norm ** 2
 
-        stc = SourceEstimate(psd, tmin=fmin, tstep=fstep, vertices=vertno,
-                             subject=subject)
+        stc = _make_stc(psd, tmin=fmin, tstep=fstep, vertices=vertno,
+                        subject=subject)
 
         # we return a generator object for "stream processing"
         yield stc
@@ -589,11 +594,11 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 @verbose
 def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               method="dSPM", fmin=0., fmax=200.,
-                              pick_normal=False, label=None, nave=1,
+                              pick_ori=None, label=None, nave=1,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True,
                               return_generator=False, n_jobs=1,
-                              verbose=None):
+                              verbose=None, pick_normal=None):
     """Compute source power spectrum density (PSD) from Epochs using
        multi-taper method
 
@@ -611,8 +616,8 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
         The lower frequency of interest.
     fmax : float
         The upper frequency of interest.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     label : Label
@@ -643,14 +648,14 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     Returns
     -------
-    stcs : list (or generator object) of SourceEstimate
+    stcs : list (or generator object) of SourceEstimate | VolSourceEstimate
         The source space PSDs for each epoch.
     """
 
     # use an auxiliary function so we can either return a generator or a list
     stcs_gen = _compute_source_psd_epochs(epochs, inverse_operator,
                               lambda2=lambda2, method=method, fmin=fmin,
-                              fmax=fmax, pick_normal=pick_normal, label=label,
+                              fmax=fmax, pick_ori=pick_ori, label=label,
                               nave=nave, pca=pca, inv_split=inv_split,
                               bandwidth=bandwidth, adaptive=adaptive,
                               low_bias=low_bias, n_jobs=n_jobs)

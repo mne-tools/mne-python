@@ -47,7 +47,7 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
 picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                                stim=False, include=include, exclude='bads')
+                        stim=False, include=include, exclude='bads')
 
 # Load condition 1
 event_id = 1
@@ -103,18 +103,18 @@ T_obs, clusters, cluster_p_values, H0 = \
 
 ###############################################################################
 # View time-frequency plots
-import pylab as pl
-pl.clf()
-pl.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
-pl.subplot(2, 1, 1)
-pl.plot(times, evoked_data.T)
-pl.title('Evoked response (%s)' % ch_name)
-pl.xlabel('time (ms)')
-pl.ylabel('Magnetic Field (fT/cm)')
-pl.xlim(times[0], times[-1])
-pl.ylim(-100, 250)
+import matplotlib.pyplot as plt
+plt.clf()
+plt.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
+plt.subplot(2, 1, 1)
+plt.plot(times, evoked_data.T)
+plt.title('Evoked response (%s)' % ch_name)
+plt.xlabel('time (ms)')
+plt.ylabel('Magnetic Field (fT/cm)')
+plt.xlim(times[0], times[-1])
+plt.ylim(-100, 250)
 
-pl.subplot(2, 1, 2)
+plt.subplot(2, 1, 2)
 
 # Create new stats image with only significant clusters
 T_obs_plot = np.nan * np.ones_like(T_obs)
@@ -124,16 +124,14 @@ for c, p_val in zip(clusters, cluster_p_values):
 
 vmax = np.max(np.abs(T_obs))
 vmin = -vmax
-pl.imshow(T_obs, cmap=pl.cm.gray, extent=[times[0], times[-1],
-                                          frequencies[0], frequencies[-1]],
-                                  aspect='auto', origin='lower',
-                                  vmin=vmin, vmax=vmax)
-pl.imshow(T_obs_plot, cmap=pl.cm.jet, extent=[times[0], times[-1],
-                                          frequencies[0], frequencies[-1]],
-                                  aspect='auto', origin='lower',
-                                  vmin=vmin, vmax=vmax)
-pl.colorbar()
-pl.xlabel('time (ms)')
-pl.ylabel('Frequency (Hz)')
-pl.title('Induced power (%s)' % ch_name)
-pl.show()
+plt.imshow(T_obs, cmap=plt.cm.gray,
+           extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+           aspect='auto', origin='lower', vmin=vmin, vmax=vmax)
+plt.imshow(T_obs_plot, cmap=plt.cm.jet,
+           extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
+           aspect='auto', origin='lower', vmin=vmin, vmax=vmax)
+plt.colorbar()
+plt.xlabel('time (ms)')
+plt.ylabel('Frequency (Hz)')
+plt.title('Induced power (%s)' % ch_name)
+plt.show()

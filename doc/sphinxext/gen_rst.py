@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8
+
 """
 Example generation modified from the scikit learn
 
@@ -503,6 +506,8 @@ def generate_dir_rst(dir, fhindex, example_dir, root_dir, plot_gallery):
             return 'zz' + a
         return a
     for fname in sorted(os.listdir(src_dir), key=sort_key):
+        if not os.path.split(fname)[-1].startswith('plot_'):
+            continue
         if fname.endswith('py'):
             generate_file_rst(fname, target_dir, src_dir, plot_gallery)
             thumb = os.path.join(dir, 'images', 'thumb', fname[:-3] + '.png')
@@ -871,7 +876,8 @@ def embed_code_links(app, exception):
                     with open(full_fname, 'wt') as fid:
                         for line in lines_in:
                             for name, link in str_repl.iteritems():
-                                line = line.replace(name, link)
+                                line = line.replace(name.encode('utf-8'),
+                                                    link.encode('utf-8'))
                             fid.write(line)
                     fid.close()
 

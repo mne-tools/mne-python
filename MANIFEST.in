@@ -4,12 +4,14 @@ include mne/__init__.py
 recursive-include examples *.py
 recursive-include examples *.txt
 recursive-include mne *.py
-# recursive-include mne/fiff/tests/data *
-recursive-exclude mne/fiff/tests/data *
-recursive-exclude mne/fiff/bti/tests/data *
 recursive-include mne/data *.sel
 recursive-include mne/data *.fif.gz
 recursive-include mne/layouts *.lout
 recursive-include mne/layouts *.lay
 recursive-exclude examples/MNE-sample-data *
+# recursive-include mne/fiff/tests/data *
+recursive-exclude mne/fiff/tests/data *
+recursive-exclude mne/fiff/bti/tests/data *
 recursive-exclude mne/fiff/kit/tests/data *
+recursive-exclude mne/fiff/edf/tests/data *
+recursive-exclude mne/fiff/brainvision/tests/data *

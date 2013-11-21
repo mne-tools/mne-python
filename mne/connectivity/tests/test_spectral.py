@@ -9,26 +9,6 @@ from mne.connectivity.spectral import _CohEst
 from mne import SourceEstimate
 from mne.filter import band_pass_filter
 
-sfreq = 50.
-n_signals = 3
-n_epochs = 10
-n_times = 500
-
-tmin = 0.
-tmax = (n_times - 1) / sfreq
-# Use a case known to have no spurious correlations (it would bad if nosetests
-# could randomly fail):
-np.random.seed(0)
-data = np.random.randn(n_epochs, n_signals, n_times)
-times_data = np.linspace(tmin, tmax, n_times)
-
-# simulate connectivity from 5Hz..15Hz
-fstart, fend = 5.0, 15.0
-for i in xrange(n_epochs):
-    data[i, 1, :] = band_pass_filter(data[i, 0, :], sfreq, fstart, fend)
-    # add some noise, so the spectrum is not exactly zero
-    data[i, 1, :] += 1e-2 * np.random.randn(n_times)
-
 
 def _stc_gen(data, sfreq, tmin, combo=False):
     """Simulate a SourceEstimate generator"""
@@ -48,6 +28,25 @@ def _stc_gen(data, sfreq, tmin, combo=False):
 
 def test_spectral_connectivity():
     """Test frequency-domain connectivity methods"""
+    # Use a case known to have no spurious correlations (it would bad if
+    # nosetests could randomly fail):
+    np.random.seed(0)
+
+    sfreq = 50.
+    n_signals = 3
+    n_epochs = 10
+    n_times = 500
+
+    tmin = 0.
+    tmax = (n_times - 1) / sfreq
+    data = np.random.randn(n_epochs, n_signals, n_times)
+    times_data = np.linspace(tmin, tmax, n_times)
+    # simulate connectivity from 5Hz..15Hz
+    fstart, fend = 5.0, 15.0
+    for i in xrange(n_epochs):
+        data[i, 1, :] = band_pass_filter(data[i, 0, :], sfreq, fstart, fend)
+        # add some noise, so the spectrum is not exactly zero
+        data[i, 1, :] += 1e-2 * np.random.randn(n_times)
 
     # First we test some invalid parameters:
     assert_raises(ValueError, spectral_connectivity, data, method='notamethod')

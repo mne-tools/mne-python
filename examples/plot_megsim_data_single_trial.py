@@ -15,7 +15,6 @@ Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
 Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
 
-import pylab as pl
 import mne
 from mne.datasets.megsim import load_data
 

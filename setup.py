@@ -1,23 +1,33 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2011 Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Copyright (C) 2011-2013 Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 
 import os
-import mne
 
 import setuptools  # we are using a setuptools namespace
 from numpy.distutils.core import setup
 
+# get the version (don't import mne here, so dependencies are not needed)
+version = None
+with open(os.path.join('mne', '__init__.py'), 'r') as fid:
+    for line in (line.strip() for line in fid):
+        if line.startswith('__version__'):
+            version = line.split('=')[1].strip().strip('\'')
+            break
+if version is None:
+    raise RuntimeError('Could not determine version')
+
+
 descr = """MNE python project for MEG and EEG data analysis."""
 
-DISTNAME            = 'mne'
-DESCRIPTION         = descr
-MAINTAINER          = 'Alexandre Gramfort'
-MAINTAINER_EMAIL    = 'gramfort@nmr.mgh.harvard.edu'
-URL                 = 'http://martinos.org/mne'
-LICENSE             = 'BSD (3-clause)'
-DOWNLOAD_URL        = 'http://github.com/mne-tools/mne-python'
-VERSION             = mne.__version__
+DISTNAME = 'mne'
+DESCRIPTION = descr
+MAINTAINER = 'Alexandre Gramfort'
+MAINTAINER_EMAIL = 'gramfort@nmr.mgh.harvard.edu'
+URL = 'http://martinos.org/mne'
+LICENSE = 'BSD (3-clause)'
+DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
+VERSION = version
 
 
 if __name__ == "__main__":
@@ -53,9 +63,13 @@ if __name__ == "__main__":
                     'mne.datasets',
                     'mne.datasets.sample',
                     'mne.datasets.megsim',
+                    'mne.datasets.spm_face',
                     'mne.fiff', 'mne.fiff.tests',
                     'mne.fiff.bti', 'mne.fiff.bti.tests',
                     'mne.fiff.kit', 'mne.fiff.kit.tests',
+                    'mne.fiff.edf', 'mne.fiff.edf.tests',
+                    'mne.fiff.brainvision', 'mne.fiff.brainvision.tests',
+                    'mne.forward', 'mne.forward.tests',
                     'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',
                     'mne.mixed_norm',
@@ -63,14 +77,14 @@ if __name__ == "__main__":
                     'mne.preprocessing', 'mne.preprocessing.tests',
                     'mne.simulation', 'mne.simulation.tests',
                     'mne.tests',
-                    'mne.transforms',
                     'mne.stats', 'mne.stats.tests',
-                    'mne.time_frequency', 'mne.time_frequency.tests'],
+                    'mne.time_frequency', 'mne.time_frequency.tests',
+                    'mne.realtime', 'mne.realtime.tests',
+                    'mne.decoding', 'mne.decoding.tests',
+                    'mne.commands'],
           package_data={'mne': ['data/*.sel',
                                 'data/icos.fif.gz',
-                                'layouts/*.lout']},
-          scripts=['bin/mne_clean_eog_ecg.py', 'bin/mne_flash_bem_model.py',
-                   'bin/mne_surf2bem.py', 'bin/mne_compute_proj_ecg.py',
-                   'bin/mne_compute_proj_eog.py', 'bin/mne_maxfilter.py',
-                   'bin/mne_bti2fiff.py', 'bin/mne_kit2fiff.py',
-                   'bin/mne_browse_raw.py'])
+                                'data/coil_def.dat',
+                                'layouts/*.lout',
+                                'layouts/*.lay']},
+          scripts=['bin/mne'])

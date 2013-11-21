@@ -6,7 +6,10 @@ import numpy as np
 import warnings
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mne.inverse_sparse.mxne_optim import mixed_norm_solver, tf_mixed_norm_solver
+from mne.inverse_sparse.mxne_optim import (mixed_norm_solver,
+                                           tf_mixed_norm_solver)
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 def _generate_tf_data():
@@ -67,7 +70,7 @@ def test_l21_mxne():
                             n_orient=2, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     # suppress a coordinate-descent warning here
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(True):
         X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
@@ -80,7 +83,8 @@ def test_l21_mxne():
                             active_set_size=2, debias=True,
                             n_orient=5)
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    X_hat_cd, active_set, _ = mixed_norm_solver(M,
+    with warnings.catch_warnings(True):  # coordinate-ascent warning
+        X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
                             n_orient=5, solver='cd')

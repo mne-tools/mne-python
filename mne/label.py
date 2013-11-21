@@ -11,14 +11,12 @@ import numpy as np
 import re
 from scipy import linalg, sparse
 
-import logging
-logger = logging.getLogger('mne')
-
-from .utils import get_subjects_dir, _check_subject
-from .source_estimate import _read_stc, mesh_edges, mesh_dist, morph_data, \
-                             SourceEstimate
+from .utils import get_subjects_dir, _check_subject, logger, verbose
+from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
+                              SourceEstimate, spatial_src_connectivity)
 from .surface import read_surface
-from . import verbose
+from .parallel import parallel_func, check_n_jobs
+from .stats.cluster_level import _find_clusters
 
 
 class Label(object):
@@ -73,6 +71,10 @@ class Label(object):
         if not isinstance(hemi, basestring):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
         vertices = np.asarray(vertices)
+        if np.any(np.diff(vertices.astype(int)) <= 0):
+            raise ValueError('Vertices must be ordered in increasing '
+                             'order.')
+
         if values is None:
             values = np.ones(len(vertices))
         if pos is None:
@@ -184,6 +186,9 @@ class Label(object):
 
         name0 = self.name if self.name else 'unnamed'
         name1 = other.name if other.name else 'unnamed'
+
+        indcs = np.argsort(vertices)
+        vertices, pos, values = vertices[indcs], pos[indcs, :], values[indcs]
 
         label = Label(vertices, pos=pos, values=values, hemi=self.hemi,
                       comment="%s + %s" % (self.comment, other.comment),
@@ -447,8 +452,16 @@ def read_label(filename, subject=None):
                          ' with lh.label or rh.label')
     fid.close()
 
-    label = Label(vertices=np.array(data[0], dtype=np.int32),
-                  pos=1e-3 * data[1:4].T, values=data[4], hemi=hemi,
+    # let's make sure everything is ordered correctly
+    vertices = np.array(data[0], dtype=np.int32)
+    pos = 1e-3 * data[1:4].T
+    values = data[4]
+    order = np.argsort(vertices)
+    vertices = vertices[order]
+    pos = pos[order]
+    values = values[order]
+
+    label = Label(vertices=vertices, pos=pos, values=values, hemi=hemi,
                   comment=comment, filename=filename, subject=subject)
 
     return label
@@ -569,7 +582,7 @@ def label_sign_flip(label, src):
     return flip
 
 
-def stc_to_label(stc, src=None, smooth=5, subjects_dir=None):
+def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     """Compute a label from the non-zero sources in an stc object.
 
     Parameters
@@ -582,13 +595,22 @@ def stc_to_label(stc, src=None, smooth=5, subjects_dir=None):
         Can be None if stc.subject is not None.
     smooth : int
         Number of smoothing steps to use.
+    connected : bool
+        If True a list of connected labels will be returned in each
+        hemisphere. The labels are ordered in decreasing order depending
+        of the maximum value in the stc.
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
 
     Returns
     -------
-    labels : list of Labels
-        The generated labels. One per hemisphere containing sources.
+    labels : list of Labels | list of list of Labels
+        The generated labels. If connected is False, it returns
+        a list of Labels (One per hemisphere). If no Label is available
+        in an hemisphere, None is returned. If connected is True,
+        it returns for each hemisphere a list of connected labels
+        ordered in decreasing order depending of the maximum value in the stc.
+        If no Label is available in an hemisphere, an empty list is returned.
     """
     src = stc.subject if src is None else src
     if src is None:
@@ -598,7 +620,7 @@ def stc_to_label(stc, src=None, smooth=5, subjects_dir=None):
     else:
         subject = stc.subject
 
-    if not stc.is_surface():
+    if not isinstance(stc, SourceEstimate):
         raise ValueError('SourceEstimate should be surface source estimates')
 
     if isinstance(src, basestring):
@@ -610,40 +632,81 @@ def stc_to_label(stc, src=None, smooth=5, subjects_dir=None):
                                       'rh.white'))
         rr = [rr_lh, rr_rh]
         tris = [tris_lh, tris_rh]
+        if connected:
+            raise ValueError('The option to return only connected labels'
+                             ' is only available if a source space is passed'
+                             ' as parameter.')
     else:
         if len(src) != 2:
             raise ValueError('source space should contain the 2 hemispheres')
-        tris = [src[0]['tris'], src[1]['tris']]
         rr = [1e3 * src[0]['rr'], 1e3 * src[1]['rr']]
+        tris = [src[0]['tris'], src[1]['tris']]
+        src_conn = spatial_src_connectivity(src).tocsr()
 
     labels = []
     cnt = 0
-    for hemi, this_vertno, this_tris, this_rr in \
-                                    zip(['lh', 'rh'], stc.vertno, tris, rr):
-        if len(this_vertno) == 0:
-            continue
+    cnt_full = 0
+    for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
+                                    zip(['lh', 'rh'], stc.vertno, tris, rr)):
+
+        this_data = stc.data[cnt:cnt + len(this_vertno)]
+
         e = mesh_edges(this_tris)
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
-        this_data = stc.data[cnt:cnt + len(this_vertno)]
-        cnt += len(this_vertno)
         e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = this_vertno[np.any(this_data, axis=1)]
-        if len(idx_use) == 0:
-            continue
-        for k in range(smooth):
-            e_use = e[:, idx_use]
-            data1 = e_use * np.ones(len(idx_use))
-            idx_use = np.where(data1)[0]
 
-        label = Label(vertices=idx_use,
-                      pos=this_rr[idx_use],
-                      values=np.ones(len(idx_use)),
-                      hemi=hemi,
-                      comment='Label from stc',
-                      subject=subject)
+        if connected:
+            if not isinstance(src, basestring):  # XXX : ugly
+                inuse = np.where(src[hemi_idx]['inuse'])[0]
+                tmp = np.zeros((len(inuse), this_data.shape[1]))
+                this_vertno_idx = np.searchsorted(inuse, this_vertno)
+                tmp[this_vertno_idx] = this_data
+                this_data = tmp
+            offset = cnt_full + len(this_data)
+            this_src_conn = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
+            this_data_abs_max = np.abs(this_data).max(axis=1)
+            clusters, _ = _find_clusters(this_data_abs_max, 0.,
+                                         connectivity=this_src_conn)
+            cnt_full += len(this_data)
+            # Then order clusters in descending order based on maximum value
+            clusters_max = np.argsort([np.max(this_data_abs_max[c])
+                                       for c in clusters])[::-1]
+            clusters = [clusters[k] for k in clusters_max]
+            clusters = [inuse[c] for c in clusters]
+        else:
+            clusters = [this_vertno[np.any(this_data, axis=1)]]
 
-        labels.append(label)
+        cnt += len(this_vertno)
+
+        clusters = [c for c in clusters if len(c) > 0]
+
+        if len(clusters) == 0:
+            if not connected:
+                this_labels = None
+            else:
+                this_labels = []
+        else:
+            this_labels = []
+            for c in clusters:
+                idx_use = c
+                for k in range(smooth):
+                    e_use = e[:, idx_use]
+                    data1 = e_use * np.ones(len(idx_use))
+                    idx_use = np.where(data1)[0]
+
+                label = Label(vertices=idx_use,
+                              pos=this_rr[idx_use],
+                              values=np.ones(len(idx_use)),
+                              hemi=hemi,
+                              comment='Label from stc',
+                              subject=subject)
+                this_labels.append(label)
+
+            if not connected:
+                this_labels = this_labels[0]
+
+        labels.append(this_labels)
 
     return labels
 
@@ -696,7 +759,26 @@ def _verts_within_dist(graph, source, max_dist):
     return verts, dist
 
 
-def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
+def _grow_labels(seeds, extents, hemis, dist, vert):
+    """Helper for parallelization of grow_labels
+    """
+    labels = []
+    for seed, extent, hemi in zip(seeds, extents, hemis):
+        label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
+
+        # create a label
+        comment = 'Circular label: seed=%d, extent=%0.1fmm' % (seed, extent)
+        label = Label(vertices=label_verts,
+                      pos=vert[hemi][label_verts],
+                      values=label_dist,
+                      hemi=hemi,
+                      comment=comment)
+        labels.append(label)
+    return labels
+
+
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
+                n_jobs=1):
     """Generate circular labels in source space with region growing
 
     This function generates a number of labels in source space by growing
@@ -712,15 +794,18 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
     Parameters
     ----------
     subject : string
-        Name of the subject as in SUBJECTS_DIR
+        Name of the subject as in SUBJECTS_DIR.
     seeds : array or int
-        Seed vertex numbers
+        Seed vertex numbers.
     extents : array or float
-        Extents (radius in mm) of the labels
+        Extents (radius in mm) of the labels.
     hemis : array or int
-        Hemispheres to use for the labels (0: left, 1: right)
+        Hemispheres to use for the labels (0: left, 1: right).
     subjects_dir : string
-        Path to SUBJECTS_DIR if not set in the environment
+        Path to SUBJECTS_DIR if not set in the environment.
+    n_jobs : int
+        Number of jobs to run in parallel. Likely only useful if tens
+        or hundreds of labels are being expanded simultaneously.
 
     Returns
     -------
@@ -730,6 +815,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
 
     """
     subjects_dir = get_subjects_dir(subjects_dir)
+    n_jobs = check_n_jobs(n_jobs)
 
     # make sure the inputs are arrays
     seeds = np.atleast_1d(seeds)
@@ -763,19 +849,12 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None):
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
     # create the patches
-    labels = []
-    for seed, extent, hemi in zip(seeds, extents, hemis):
-        label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
-
-        # create a label
-        comment = 'Circular label: seed=%d, extent=%0.1fmm' % (seed, extent)
-        label = Label(vertices=label_verts,
-                      pos=vert[hemi][label_verts],
-                      values=label_dist,
-                      hemi=hemi,
-                      comment=comment)
-        labels.append(label)
-
+    parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
+    seeds = np.array_split(seeds, n_jobs)
+    extents = np.array_split(extents, n_jobs)
+    hemis = np.array_split(hemis, n_jobs)
+    labels = sum(parallel(my_grow_labels(s, e, h, dist, vert)
+                          for s, e, h in zip(seeds, extents, hemis)), [])
     return labels
 
 
@@ -793,7 +872,7 @@ def _read_annot(fname):
     -------
     annot : numpy array, shape=(n_verts)
         Annotation id at each vertex
-    ctab : numpy array, shape=(n_verts, 5)
+    ctab : numpy array, shape=(n_entries, 5)
         RGBA + label id colortable array
     names : list of str
         List of region names as stored in the annot file
@@ -815,7 +894,7 @@ def _read_annot(fname):
     with open(fname, "rb") as fid:
         n_verts = np.fromfile(fid, '>i4', 1)[0]
         data = np.fromfile(fid, '>i4', n_verts * 2).reshape(n_verts, 2)
-        annot = data[:, 1]
+        annot = data[data[:, 0], 1]
         ctab_exists = np.fromfile(fid, '>i4', 1)[0]
         if not ctab_exists:
             raise Exception('Color table not found in annotation file')
@@ -853,15 +932,45 @@ def _read_annot(fname):
                 ctab[i, :4] = np.fromfile(fid, '>i4', 4)
                 ctab[i, 4] = (ctab[i, 0] + ctab[i, 1] * (2 ** 8) +
                               ctab[i, 2] * (2 ** 16))
-        ctab[:, 3] = 255
+
+        # convert to more common alpha value
+        ctab[:, 3] = 255 - ctab[:, 3]
 
     return annot, ctab, names
 
 
+def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
+    """Helper function to get the .annot filenames and hemispheres"""
+    if annot_fname is not None:
+        # we use use the .annot file specified by the user
+        hemis = [op.basename(annot_fname)[:2]]
+        if hemis[0] not in ['lh', 'rh']:
+            raise ValueError('Could not determine hemisphere from filename, '
+                             'filename has to start with "lh" or "rh".')
+        annot_fname = [annot_fname]
+    else:
+        # construct .annot file names for requested subject, parc, hemi
+        if hemi not in ['lh', 'rh', 'both']:
+            raise ValueError('hemi has to be "lh", "rh", or "both"')
+        if hemi == 'both':
+            hemis = ['lh', 'rh']
+        else:
+            hemis = [hemi]
+
+        annot_fname = list()
+        for hemi in hemis:
+            fname = op.join(subjects_dir, subject, 'label',
+                            '%s.%s.annot' % (hemi, parc))
+            annot_fname.append(fname)
+
+    return annot_fname, hemis
+
+
+@verbose
 def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                      annot_fname=None, regexp=None, subjects_dir=None,
                      verbose=None):
-    """ Read labels from FreeSurfer parcellation
+    """Read labels from FreeSurfer parcellation
 
     Note: Only cortical labels will be returned.
 
@@ -899,26 +1008,8 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     subjects_dir = get_subjects_dir(subjects_dir)
 
     # get the .annot filenames and hemispheres
-    if annot_fname is not None:
-        # we use use the .annot file specified by the user
-        hemis = [op.basename(annot_fname)[:2]]
-        if hemis[0] not in ['lh', 'rh']:
-            raise ValueError('Could not determine hemisphere from filename, '
-                             'filename has to start with "lh" or "rh".')
-        annot_fname = [annot_fname]
-    else:
-        # construct .annot file names for requested subject, parc, hemi
-        if hemi not in ['lh', 'rh', 'both']:
-            raise ValueError('hemi has to be "lh", "rh", or "both"')
-        if hemi == 'both':
-            hemis = ['lh', 'rh']
-        else:
-            hemis = [hemi]
-        annot_fname = list()
-        for hemi in hemis:
-            fname = op.join(subjects_dir, subject, 'label',
-                            '%s.%s.annot' % (hemi, parc))
-            annot_fname.append(fname)
+    annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
+                                          subjects_dir)
 
     # now we are ready to create the labels
     n_read = 0
@@ -944,7 +1035,8 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
             pos = vert_pos[vertices, :]
             values = np.zeros(len(vertices))
             name = label_name + '-' + hemi
-            label = Label(vertices, pos, values, hemi, name=name)
+            label = Label(vertices, pos, values, hemi, name=name,
+                          subject=subject)
             labels.append(label)
 
             # store the color
@@ -974,3 +1066,163 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     logger.info('[done]')
 
     return labels, label_colors
+
+
+def _write_annot(fname, annot, ctab, names):
+    """Write a Freesurfer annotation to a .annot file.
+
+    Parameters
+    ----------
+    fname : str
+        Path to annotation file
+    annot : numpy array, shape=(n_verts)
+        Annotation id at each vertex. Note: IDs must be computed from
+        RGBA colors, otherwise the mapping will be invalid.
+    ctab : numpy array, shape=(n_entries, 4)
+        RGBA colortable array.
+    names : list of str
+        List of region names to be stored in the annot file
+    """
+
+    with open(fname, 'wb') as fid:
+        n_verts = len(annot)
+        np.array(n_verts, dtype='>i4').tofile(fid)
+
+        data = np.zeros((n_verts, 2), dtype='>i4')
+        data[:, 0] = np.arange(n_verts)
+        data[:, 1] = annot
+        data.ravel().tofile(fid)
+
+        # indicate that color table exists
+        np.array(1, dtype='>i4').tofile(fid)
+
+        # color table version 2
+        np.array(-2, dtype='>i4').tofile(fid)
+
+        # write color table
+        n_entries = len(ctab)
+        np.array(n_entries, dtype='>i4').tofile(fid)
+
+        # write dummy color table name
+        table_name = 'MNE-Python Colortable'
+        np.array(len(table_name), dtype='>i4').tofile(fid)
+        np.fromstring(table_name, dtype=np.uint8).tofile(fid)
+
+        # number of entries to write
+        np.array(n_entries, dtype='>i4').tofile(fid)
+
+        # write entries
+        for ii, (name, color) in enumerate(zip(names, ctab)):
+            np.array(ii, dtype='>i4').tofile(fid)
+            np.array(len(name), dtype='>i4').tofile(fid)
+            np.fromstring(name, dtype=np.uint8).tofile(fid)
+            np.array(color[:4], dtype='>i4').tofile(fid)
+
+
+@verbose
+def parc_from_labels(labels, colors, subject=None, parc=None,
+                     annot_fname=None, overwrite=False, subjects_dir=None,
+                     verbose=None):
+    """Create a FreeSurfer parcellation from labels
+
+    Parameters
+    ----------
+    labels : list with instances of mne.Label
+        The labels to create a parcellation from.
+    colors : list of tuples | None
+        RGBA color to write into the colortable for each label. If None,
+        the colors are created based on the alphabetical order of the label
+        names. Note: Per hemisphere, each label must have a unique color,
+        otherwise the stored parcellation will be invalid.
+    subject : str | None
+        The subject for which to write the parcellation for.
+    parc : str | None
+        The parcellation name to use.
+    annot_fname : str | None
+        Filename of the .annot file. If not None, only this file is written
+        and 'parc' and 'subject' are ignored.
+    overwrite : bool
+        Overwrite files if they already exist.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    logger.info('Writing labels to parcellation..')
+
+    # do some input checking
+    if colors is not None:
+        colors = np.asarray(colors)
+        if colors.shape[1] != 4:
+            raise ValueError('Each color must have 4 values')
+        if len(colors) != len(labels):
+            raise ValueError('colors must have the same length as labels')
+        if np.any(colors < 0) or np.any(colors > 1):
+            raise ValueError('color values must be between 0 and 1')
+
+    subjects_dir = get_subjects_dir(subjects_dir)
+
+    # get the .annot filenames and hemispheres
+    annot_fname, hemis = _get_annot_fname(annot_fname, subject, 'both', parc,
+                                          subjects_dir)
+
+    if not overwrite:
+        for fname in annot_fname:
+            if op.exists(fname):
+                raise ValueError('File %s exists. Use "overwrite=True" to '
+                                 'overwrite it' % fname)
+
+    names = ['%s-%s' % (label.name, label.hemi) for label in labels]
+
+    for hemi, fname in zip(hemis, annot_fname):
+        hemi_labels = [label for label in labels if label.hemi == hemi]
+        n_hemi_labels = len(hemi_labels)
+        if n_hemi_labels == 0:
+            # no labels for this hemisphere
+            continue
+        hemi_labels.sort(key=lambda label: label.name)
+        if colors is not None:
+            hemi_colors = [colors[names.index('%s-%s' % (label.name, hemi))]
+                           for label in hemi_labels]
+        else:
+            import matplotlib.pyplot as plt
+            hemi_colors = plt.cm.spectral(np.linspace(0, 1, n_hemi_labels))
+
+        # Creat annot and color table array to write
+        max_vert = 0
+        for label in hemi_labels:
+            max_vert = max(max_vert, np.max(label.vertices))
+        n_vertices = max_vert + 1
+        annot = np.zeros(n_vertices, dtype=np.int)
+        ctab = np.zeros((n_hemi_labels, 4), dtype=np.int32)
+        for ii, (label, color) in enumerate(zip(hemi_labels, hemi_colors)):
+            ctab[ii] = np.round(255 * np.asarray(color))
+            if np.all(ctab[ii, :3] == 0):
+                # we cannot have an all-zero color, otherw. e.g. tksurfer
+                # refuses to read the parcellation
+                if colors is not None:
+                    logger.warning('    Colormap contains color with, "r=0, '
+                                   'g=0, b=0" value. Some FreeSurfer tools '
+                                   'may fail to read the parcellation')
+                else:
+                    ctab[ii, :3] = 1
+
+            # create the annotation id from the color
+            annot_id = (ctab[ii, 0] + ctab[ii, 1] * 2 ** 8
+                        + ctab[ii, 2] * 2 ** 16)
+
+            annot[label.vertices] = annot_id
+
+        # convert to FreeSurfer alpha values
+        ctab[:, 3] = 255 - ctab[:, 3]
+
+        hemi_names = [label.name for label in hemi_labels]
+
+        # remove hemi ending in names
+        hemi_names = [name[:-3] if name.endswith(hemi) else name
+                      for name in hemi_names]
+        # write it
+        logger.info('   writing %d labels to %s' % (n_hemi_labels, fname))
+        _write_annot(fname, annot, ctab, hemi_names)
+
+    logger.info('[done]')

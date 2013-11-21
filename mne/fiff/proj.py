@@ -9,15 +9,11 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from .tree import dir_tree_find
 from .constants import FIFF
 from .tag import find_tag
 from .pick import pick_types
-from .. import verbose
-from ..utils import deprecated
+from ..utils import logger, verbose
 
 
 class Projection(dict):
@@ -70,38 +66,6 @@ class ProjMixin(object):
             self.info['projs'].extend(projs)
 
         return self
-
-    @deprecated(r"'apply_projector' is deprecated and will be removed in "
-                "version 0.7. Please use apply_proj instead")
-    def apply_projector(self):
-        """Apply the signal space projection (SSP) operators to the data.
-
-        Notes
-        -----
-        Once the projectors have been applied, they can no longer be
-        removed. It is usually not recommended to apply the projectors at
-        too early stages, as they are applied automatically later on
-        (e.g. when computing inverse solutions).
-        Hint: using the copy method individual projection vectors
-        can be tested without affecting the original data.
-        With evoked data, consider the following example::
-
-            projs_a = mne.read_proj('proj_a.fif')
-            projs_b = mne.read_proj('proj_b.fif')
-            # add the first, copy, apply and see ...
-            evoked.add_proj(a).copy().apply_proj().plot()
-            # add the second, copy, apply and see ...
-            evoked.add_proj(b).copy().apply_proj().plot()
-            # drop the first and see again
-            evoked.copy().del_proj(0).apply_proj().plot()
-            evoked.apply_proj()  # finally keep both
-
-        Returns
-        -------
-        self : instance of Raw | Epochs | Evoked
-            The instance.
-        """
-        return self.apply_proj()
 
     def apply_proj(self):
         """Apply the signal space projection (SSP) operators to the data.
@@ -302,14 +266,18 @@ def read_proj(fid, node, verbose=None):
         else:
             active = False
 
+        # handle the case when data is transposed for some reason
+        if data.shape[0] == len(names) and data.shape[1] == nvec:
+            data = data.T
+
         if data.shape[1] != len(names):
             raise ValueError('Number of channel names does not match the '
                              'size of data matrix')
 
         #   Use exactly the same fields in data as in a named matrix
         one = Projection(kind=kind, active=active, desc=desc,
-                    data=dict(nrow=nvec, ncol=nchan, row_names=None,
-                              col_names=names, data=data))
+                         data=dict(nrow=nvec, ncol=nchan, row_names=None,
+                                   col_names=names, data=data))
 
         projs.append(one)
 
@@ -329,8 +297,8 @@ def read_proj(fid, node, verbose=None):
 ###############################################################################
 # Write
 
-from .write import write_int, write_float, write_string, write_name_list, \
-                   write_float_matrix, end_block, start_block
+from .write import (write_int, write_float, write_string, write_name_list,
+                    write_float_matrix, end_block, start_block)
 
 
 def write_proj(fid, projs):
@@ -571,7 +539,8 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
         The SSP/PCA projector.
     """
     logger.info("Adding average EEG reference projection.")
-    eeg_sel = pick_types(info, meg=False, eeg=True, exclude='bads')
+    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                         exclude='bads')
     ch_names = info['ch_names']
     eeg_names = [ch_names[k] for k in eeg_sel]
     n_eeg = len(eeg_sel)
@@ -621,7 +590,8 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         The modified measurement info (Warning: info is modified inplace).
     """
     # Add EEG ref reference proj if necessary
-    eeg_sel = pick_types(info, meg=False, eeg=True, exclude='bads')
+    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                         exclude='bads')
     if len(eeg_sel) > 0 and not _has_eeg_average_ref_proj(info['projs']) \
             and add_eeg_ref is True:
         eeg_proj = make_eeg_average_ref_proj(info, activate=activate)

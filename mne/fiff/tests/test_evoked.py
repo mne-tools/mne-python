@@ -7,8 +7,8 @@ import os.path as op
 from copy import deepcopy
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_equal,\
-                          assert_array_equal, assert_allclose
+from numpy.testing import (assert_array_almost_equal, assert_equal,
+                           assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises
 
 from mne.fiff import read_evoked, write_evoked, pick_types

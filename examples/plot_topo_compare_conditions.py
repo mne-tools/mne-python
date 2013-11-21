@@ -18,7 +18,7 @@ evoked responses.
 
 print __doc__
 
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 
 from mne.fiff import Raw, pick_types
@@ -66,6 +66,6 @@ plot_topo(evokeds, color=colors, title=title)
 
 conditions = [e.comment for e in evokeds]
 for cond, col, pos in zip(conditions, colors, (0.025, 0.07)):
-    pl.figtext(0.775, pos, cond, color=col, fontsize=12)
+    plt.figtext(0.775, pos, cond, color=col, fontsize=12)
 
-pl.show()
+plt.show()

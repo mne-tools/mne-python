@@ -9,6 +9,7 @@ data and then saved to disk.
 
 """
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis A. Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -42,7 +43,11 @@ picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
                         include=include, exclude='bads')
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6))
+                    baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6),
+                    preload=True)
+
+epochs.plot()
+
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
 evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
@@ -50,14 +55,14 @@ evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 ###############################################################################
 # View evoked response
 times = 1e3 * epochs.times  # time in miliseconds
-import pylab as pl
-pl.figure()
+import matplotlib.pyplot as plt
+plt.figure()
 evoked.plot()
-pl.xlim([times[0], times[-1]])
-pl.xlabel('time (ms)')
-pl.ylabel('Potential (uV)')
-pl.title('EEG evoked potential')
-pl.show()
+plt.xlim([times[0], times[-1]])
+plt.xlabel('time (ms)')
+plt.ylabel('Potential (uV)')
+plt.title('EEG evoked potential')
+plt.show()
 
 # Look at channels that caused dropped events, showing that the subject's
 # blinks were likely to blame for most epochs being dropped

@@ -1,10 +1,8 @@
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
 from .peak_finder import peak_finder
-from .. import fiff, verbose
+from ..fiff import pick_types, pick_channels
+from ..utils import logger, verbose
 from ..filter import band_pass_filter
 
 
@@ -43,14 +41,14 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
 
     # Getting EOG Channel
     if ch_name is None:
-        ch_eog = fiff.pick_types(info, meg=False, eeg=False, stim=False,
-                                 eog=True, ecg=False, emg=False,
-                                 exclude='bads')
+        ch_eog = pick_types(info, meg=False, eeg=False, stim=False,
+                            eog=True, ecg=False, emg=False, ref_meg=False,
+                            exclude='bads')
         if len(ch_eog) == 0:
             logger.info('No EOG channels found')
             logger.info('Trying with EEG 061 and EEG 062')
-            ch_eog = fiff.pick_channels(raw.ch_names,
-                                    include=['EEG 061', 'EEG 062'])
+            ch_eog = pick_channels(raw.ch_names,
+                                   include=['EEG 061', 'EEG 062'])
             if len(ch_eog) != 2:
                 raise ValueError('EEG 61 or EEG 62 channel not found !!')
 
@@ -62,13 +60,13 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         else:
             ch_name = [ch_name]
 
-        ch_eog = fiff.pick_channels(raw.ch_names, include=ch_name)
+        ch_eog = pick_channels(raw.ch_names, include=ch_name)
 
         if len(ch_eog) == 0:
             raise ValueError('%s not in channel list' % ch_name)
         else:
             logger.info('Using channel %s as EOG channel%s' % (
-                   " and ".join(ch_name), '' if len(ch_eog) < 2 else 's'))
+                        " and ".join(ch_name), '' if len(ch_eog) < 2 else 's'))
 
     logger.info('EOG channel index for this subject is: %s' % ch_eog)
 
@@ -92,7 +90,8 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
                 'distinguish blinks from saccades')
 
     # filtering to remove dc offset so that we know which is blink and saccades
-    filteog = np.array([band_pass_filter(x, sampling_rate, 2, 45,
+    fmax = np.minimum(45, sampling_rate / 2.0 - 0.75)  # protect Nyquist
+    filteog = np.array([band_pass_filter(x, sampling_rate, 2, fmax,
                                          filter_length=filter_length)
                         for x in eog])
     temp = np.sqrt(np.sum(filteog ** 2, axis=1))

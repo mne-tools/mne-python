@@ -5,17 +5,14 @@
 
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
 from .constants import FIFF
-from .write import start_block, end_block, write_int, write_name_list, \
-                       write_double, write_float_matrix
+from .write import (start_block, end_block, write_int, write_name_list,
+                    write_double, write_float_matrix)
 from .tag import find_tag
 from .tree import dir_tree_find
 from .proj import read_proj, write_proj
 from .channels import read_bad_channels
-from .. import verbose
+from ..utils import logger, verbose
 
 
 @verbose
@@ -172,10 +169,11 @@ def write_cov(fid, cov):
         write_double(fid, FIFF.FIFF_MNE_COV_EIGENVALUES, cov['eig'])
 
     #   Projection operator
-    write_proj(fid, cov['projs'])
+    if cov['projs'] is not None and len(cov['projs']) > 0:
+        write_proj(fid, cov['projs'])
 
     #   Bad channels
-    if cov['bads'] is not None:
+    if cov['bads'] is not None and len(cov['bads']) > 0:
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
         write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, cov['bads'])
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)

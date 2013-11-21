@@ -58,14 +58,14 @@ fiff.write_evoked('sample_auditory_and_visual_eeg-ave.fif', evokeds)
 
 ###############################################################################
 # View evoked response
-import pylab as pl
-pl.clf()
-ax = pl.subplot(2, 1, 1)
+import matplotlib.pyplot as plt
+plt.clf()
+ax = plt.subplot(2, 1, 1)
 evokeds[0].plot(axes=ax)
-pl.title('EEG evoked potential, auditory trials')
-pl.ylabel('Potential (uV)')
-ax = pl.subplot(2, 1, 2)
+plt.title('EEG evoked potential, auditory trials')
+plt.ylabel('Potential (uV)')
+ax = plt.subplot(2, 1, 2)
 evokeds[1].plot(axes=ax)
-pl.title('EEG evoked potential, visual trials')
-pl.ylabel('Potential (uV)')
-pl.show()
+plt.title('EEG evoked potential, visual trials')
+plt.ylabel('Potential (uV)')
+plt.show()

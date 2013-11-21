@@ -12,11 +12,13 @@ from scipy import linalg
 import warnings
 
 from mne.cov import regularize, whiten_evoked
-from mne import read_cov, Epochs, merge_events, \
-               find_events, compute_raw_data_covariance, \
-               compute_covariance
+from mne import (read_cov, Epochs, merge_events,
+                 find_events, compute_raw_data_covariance,
+                 compute_covariance)
 from mne.fiff import Raw, pick_channels_cov, pick_channels, Evoked, pick_types
 from mne.utils import _TempDir
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -25,8 +27,6 @@ cov_km_fname = op.join(base_dir, 'test-km-cov.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
 erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
-
-raw = Raw(raw_fname, preload=True)
 
 tempdir = _TempDir()
 
@@ -61,6 +61,7 @@ def test_io_cov():
 def test_cov_estimation_on_raw_segment():
     """Test estimation from raw on continuous recordings (typically empty room)
     """
+    raw = Raw(raw_fname, preload=False)
     cov = compute_raw_data_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
@@ -90,6 +91,7 @@ def test_cov_estimation_on_raw_segment():
 def test_cov_estimation_with_triggers():
     """Test estimation from raw with triggers
     """
+    raw = Raw(raw_fname, preload=False)
     events = find_events(raw, stim_channel='STI 014')
     event_ids = [1, 2, 3, 4]
     reject = dict(grad=10000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
@@ -145,10 +147,10 @@ def test_cov_estimation_with_triggers():
     assert_raises(ValueError, compute_covariance, epochs)
     assert_raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(True) as w:  # too few samples warning
         cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
         cov = compute_covariance(epochs, projs=[])
-        assert_true(len(w) == 1)
+    assert_true(len(w) == 2)
 
     # test new dict support
     epochs = Epochs(raw, events, dict(a=1, b=2, c=3, d=4), tmin=-0.2, tmax=0,
@@ -174,6 +176,7 @@ def test_arithmetic_cov():
 def test_regularize_cov():
     """Test cov regularization
     """
+    raw = Raw(raw_fname, preload=False)
     noise_cov = read_cov(cov_fname)
     # Regularize noise cov
     reg_noise_cov = regularize(noise_cov, raw.info,
@@ -190,7 +193,8 @@ def test_evoked_whiten():
 
     ###########################################################################
     # Show result
-    picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
+    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
+                       exclude='bads')
 
     noise_cov = regularize(cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1)
 

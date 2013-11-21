@@ -8,10 +8,13 @@ import numpy as np
 from scipy import linalg
 import os.path as op
 import gzip
-import logging
-logger = logging.getLogger('mne')
+import sys
+import os
+import re
+import uuid
 
 from .constants import FIFF
+from ..utils import logger
 
 
 def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
@@ -142,15 +145,26 @@ def write_int_matrix(fid, kind, mat):
     fid.write(np.array(dims, dtype='>i4').tostring())
 
 
+def get_machid():
+    """Get (mostly) unique machine ID
+
+    Returns
+    -------
+    ids : array (length 2, int32)
+        The machine identifier used in MNE.
+    """
+    mac = re.findall('..', '%012x' % uuid.getnode())
+    mac += ['00', '00']  # add two more fields
+
+    # Convert to integer in reverse-order (for some reason)
+    mac = ''.join([h.decode('hex') for h in mac[::-1]])
+    ids = np.flipud(np.fromstring(mac, np.int32, count=2))
+    return ids
+
+
 def write_id(fid, kind, id_=None):
     """Writes fiff id"""
-
-    if id_ is None:
-        id_ = dict()
-        id_['version'] = (1 << 16) | 2
-        id_['machid'] = 65536 * np.random.rand(2)  # Machine id (andom for now)
-        id_['secs'] = time.time()
-        id_['usecs'] = 0            # Do not know how we could get this XXX
+    id_ = _generate_meas_id() if id_ is None else id_
 
     FIFFT_ID_STRUCT = 31
     FIFFV_NEXT_SEQ = 0
@@ -352,3 +366,13 @@ def write_float_sparse_rcs(fid, kind, mat):
 
     dims = [nnzm, mat.shape[0], mat.shape[1], 2]
     fid.write(np.array(dims, dtype='>i4').tostring())
+
+
+def _generate_meas_id():
+    """Helper to generate a new meas_id dict"""
+    id_ = dict()
+    id_['version'] = (1 << 16) | 2
+    id_['machid'] = get_machid()
+    id_['secs'] = time.time()
+    id_['usecs'] = 0            # Do not know how we could get this XXX
+    return id_

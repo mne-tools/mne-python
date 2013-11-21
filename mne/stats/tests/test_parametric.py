@@ -1,6 +1,6 @@
 from itertools import product
-from ..parametric import f_twoway_rm, f_threshold_twoway_rm, \
-    defaults_twoway_rm
+from ..parametric import (f_twoway_rm, f_threshold_twoway_rm,
+                          defaults_twoway_rm)
 from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_array_almost_equal
 

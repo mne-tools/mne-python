@@ -56,8 +56,8 @@ import numpy as np
 from scipy import stats
 from functools import partial
 
-from mne.stats import spatio_temporal_cluster_1samp_test, \
-                      bonferroni_correction, ttest_1samp_no_p
+from mne.stats import (spatio_temporal_cluster_1samp_test,
+                       bonferroni_correction, ttest_1samp_no_p)
 
 try:
     from sklearn.feature_extraction.image import grid_to_graph
@@ -158,10 +158,10 @@ ps_tfce_hat = -np.log10(p_values.reshape((width, width)))
 ###############################################################################
 # Visualize results
 
-import pylab as pl
+import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # this changes hidden matplotlib vars
-pl.ion()
-fig = pl.figure(facecolor='w')
+plt.ion()
+fig = plt.figure(facecolor='w')
 
 x, y = np.mgrid[0:width, 0:width]
 kwargs = dict(rstride=1, cstride=1, linewidth=0, cmap='Greens')
@@ -182,16 +182,16 @@ titles = ['Standard clustering', 'Clust. w/"hat"',
 axs = []
 for ii, (p, title) in enumerate(zip(pvals, titles)):
     ax = fig.add_subplot(2, 4, 5 + ii)
-    pl.imshow(p, cmap='Purples', vmin=p_lims[0], vmax=p_lims[1])
+    plt.imshow(p, cmap='Purples', vmin=p_lims[0], vmax=p_lims[1])
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_title(title)
     axs.append(ax)
 
-pl.tight_layout()
+plt.tight_layout()
 for ax in axs:
-    cbar = pl.colorbar(ax=ax, shrink=0.75, orientation='horizontal',
-                       fraction=0.1, pad=0.025)
+    cbar = plt.colorbar(ax=ax, shrink=0.75, orientation='horizontal',
+                        fraction=0.1, pad=0.025)
     cbar.set_label('-log10(p)')
     cbar.set_ticks(p_lims)
     cbar.set_ticklabels(['%0.1f' % p for p in p_lims])

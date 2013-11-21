@@ -16,7 +16,7 @@ from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
@@ -24,40 +24,41 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
-evoked = fiff.Evoked(fname_data, setno=1, baseline=(None, 0))
 
-# Read noise covariance matrix
-cov = read_cov(fname_cov)
-
-# Handling average file
-setno = 0
-loose = None
-depth = 0.9
-
-evoked = fiff.read_evoked(fname_data, setno=setno, baseline=(None, 0))
-evoked.crop(tmin=-0.1, tmax=0.4)
-
-evoked_l21 = copy.deepcopy(evoked)
-evoked_l21.crop(tmin=0.08, tmax=0.1)
-
-# Handling forward solution
-forward = read_forward_solution(fname_fwd, force_fixed=False, surf_ori=True)
-label = read_label(fname_label)
-
-# Reduce source space to make test computation faster
-inverse_operator = make_inverse_operator(evoked.info, forward, cov,
-                                         loose=loose, depth=depth,
-                                         fixed=True)
-stc_dspm = apply_inverse(evoked_l21, inverse_operator, lambda2=1. / 9.,
-                         method='dSPM')
-del inverse_operator
-stc_dspm.data[np.abs(stc_dspm.data) < 12] = 0.0
-stc_dspm.data[np.abs(stc_dspm.data) >= 12] = 1.
-weights_min = 0.5
-
-
+@sample.requires_sample_data
 def test_mxne_inverse():
-    """Test MxNE inverse computation"""
+    """Test (TF-)MxNE inverse computation"""
+    # Handling forward solution
+    evoked = fiff.Evoked(fname_data, setno=1, baseline=(None, 0))
+
+    # Read noise covariance matrix
+    cov = read_cov(fname_cov)
+
+    # Handling average file
+    setno = 0
+    loose = None
+    depth = 0.9
+
+    evoked = fiff.read_evoked(fname_data, setno=setno, baseline=(None, 0))
+    evoked.crop(tmin=-0.1, tmax=0.4)
+
+    evoked_l21 = copy.deepcopy(evoked)
+    evoked_l21.crop(tmin=0.08, tmax=0.1)
+    label = read_label(fname_label)
+    weights_min = 0.5
+    forward = read_forward_solution(fname_fwd, force_fixed=False,
+                                    surf_ori=True)
+
+    # Reduce source space to make test computation faster
+    inverse_operator = make_inverse_operator(evoked.info, forward, cov,
+                                             loose=loose, depth=depth,
+                                             fixed=True)
+    stc_dspm = apply_inverse(evoked_l21, inverse_operator, lambda2=1. / 9.,
+                             method='dSPM')
+    stc_dspm.data[np.abs(stc_dspm.data) < 12] = 0.0
+    stc_dspm.data[np.abs(stc_dspm.data) >= 12] = 1.
+
+    # MxNE tests
     alpha = 60  # spatial regularization parameter
 
     stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
@@ -80,9 +81,7 @@ def test_mxne_inverse():
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert_true(stc.vertno[1][0] in label.vertices)
 
-
-def test_tf_mxne_inverse():
-    """Test TF-MxNE inverse computation"""
+    # Do with TF-MxNE for test memory savings
     alpha_space = 60.  # spatial regularization parameter
     alpha_time = 1.  # temporal regularization parameter
 

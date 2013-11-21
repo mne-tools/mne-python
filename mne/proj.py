@@ -5,19 +5,17 @@
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
-from . import fiff, Epochs, verbose
+from . import fiff, Epochs
+from .utils import logger, verbose
 from .fiff.pick import pick_types, pick_types_forward
-from .fiff.proj import Projection
+from .fiff.proj import Projection, _has_eeg_average_ref_proj
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
-from .forward import is_fixed_orient, _subject_from_forward
+from .forward import (is_fixed_orient, _subject_from_forward,
+                      convert_forward_solution)
 from .source_estimate import SourceEstimate
 from .fiff.proj import make_projector, make_eeg_average_ref_proj
-from .fiff import FIFF
 
 
 def read_proj(fname):
@@ -56,9 +54,9 @@ def write_proj(fname, projs):
 
 @verbose
 def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
-    mag_ind = pick_types(info, meg='mag', exclude='bads')
-    grad_ind = pick_types(info, meg='grad', exclude='bads')
-    eeg_ind = pick_types(info, meg=False, eeg=True, exclude='bads')
+    mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
+    grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
+    eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude='bads')
 
     if (n_grad > 0) and len(grad_ind) == 0:
         logger.info("No gradiometers found. Forcing n_grad to 0")
@@ -72,7 +70,8 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
 
     ch_names = info['ch_names']
     grad_names, mag_names, eeg_names = ([ch_names[k] for k in ind]
-                                     for ind in [grad_ind, mag_ind, eeg_ind])
+                                        for ind in [grad_ind, mag_ind,
+                                                    eeg_ind])
 
     projs = []
     for n, ind, names, desc in zip([n_grad, n_mag, n_eeg],
@@ -89,7 +88,8 @@ def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
                              data=u[np.newaxis, :], nrow=1, ncol=u.size)
             this_desc = "%s-%s-PCA-%02d" % (desc, desc_prefix, k + 1)
             logger.info("Adding projection: %s" % this_desc)
-            proj = Projection(active=False, data=proj_data, desc=this_desc, kind=1)
+            proj = Projection(active=False, data=proj_data,
+                              desc=this_desc, kind=1)
             projs.append(proj)
 
     return projs
@@ -107,9 +107,9 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     n_grad : int
         Number of vectors for gradiometers
     n_mag : int
-        Number of vectors for gradiometers
+        Number of vectors for magnetometers
     n_eeg : int
-        Number of vectors for gradiometers
+        Number of vectors for EEG channels
     n_jobs : int
         Number of jobs to use to compute covariance
     verbose : bool, str, int, or None
@@ -158,9 +158,9 @@ def compute_proj_evoked(evoked, n_grad=2, n_mag=2, n_eeg=2, verbose=None):
     n_grad : int
         Number of vectors for gradiometers
     n_mag : int
-        Number of vectors for gradiometers
+        Number of vectors for magnetometers
     n_eeg : int
-        Number of vectors for gradiometers
+        Number of vectors for EEG channels
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -194,9 +194,9 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     n_grad : int
         Number of vectors for gradiometers
     n_mag : int
-        Number of vectors for gradiometers
+        Number of vectors for magnetometers
     n_eeg : int
-        Number of vectors for gradiometers
+        Number of vectors for EEG channels
     reject : dict
         Epoch rejection configuration (see Epochs)
     flat : dict
@@ -250,7 +250,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     Parameters
     ----------
     fwd : dict
-        The forward operator. Must be free- and surface-oriented.
+        The forward operator.
     projs : list
         List of projection vectors.
     ch_type : 'grad' | 'mag' | 'eeg'
@@ -275,16 +275,19 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     # check strings
     if not ch_type in ['eeg', 'grad', 'mag']:
         raise ValueError("ch_type should be 'eeg', 'mag' or 'grad (got %s)"
-                          % ch_type)
+                         % ch_type)
     if not mode in ['free', 'fixed', 'ratio', 'radiality', 'angle',
                     'remaining', 'dampening']:
         raise ValueError('Unknown mode type (got %s)' % mode)
 
     # check forward
-    if not fwd['surf_ori']:
-        raise ValueError('fwd should be surface oriented')
-    if is_fixed_orient(fwd):
-        raise ValueError('fwd should not have fixed orientation')
+    if is_fixed_orient(fwd, orig=True):
+        raise ValueError('fwd should must be computed with free orientation')
+    fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=False,
+                                   verbose=False)
+    if not fwd['surf_ori'] or is_fixed_orient(fwd):
+        raise RuntimeError('Error converting solution, please notify '
+                           'mne-python developers')
 
     # limit forward
     if ch_type == 'eeg':
@@ -296,16 +299,16 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
 
     # Make sure EEG has average
     if ch_type == 'eeg':
-        if projs is None or \
-                not any([p['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF
-                         for p in projs]):
+        if projs is None or not _has_eeg_average_ref_proj(projs):
             eeg_ave = [make_eeg_average_ref_proj(fwd['info'])]
+        else:
+            eeg_ave = []
         projs = eeg_ave if projs is None else projs + eeg_ave
 
     # Construct the projector
     if projs is not None:
         proj, ncomp, U = make_projector(projs, fwd['sol']['row_names'],
-                                              include_active=True)
+                                        include_active=True)
         # do projection for most types
         if mode not in ['angle', 'remaining', 'dampening']:
             gain = np.dot(proj, gain)

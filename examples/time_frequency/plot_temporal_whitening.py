@@ -15,7 +15,7 @@ print __doc__
 
 import numpy as np
 from scipy import signal
-import pylab as pl
+import matplotlib.pyplot as plt
 
 import mne
 from mne.time_frequency import ar_raw
@@ -49,15 +49,15 @@ d_ = np.r_[d_[0] * np.ones(order), d_]  # dummy samples to keep signal length
 
 ###############################################################################
 # Plot the different time series and PSDs
-pl.close('all')
-pl.figure()
-pl.plot(d[:100], label='signal')
-pl.plot(d_[:100], label='regenerated signal')
-pl.legend()
+plt.close('all')
+plt.figure()
+plt.plot(d[:100], label='signal')
+plt.plot(d_[:100], label='regenerated signal')
+plt.legend()
 
-pl.figure()
-pl.psd(d, Fs=raw.info['sfreq'], NFFT=2048)
-pl.psd(innovation, Fs=raw.info['sfreq'], NFFT=2048)
-pl.psd(d_, Fs=raw.info['sfreq'], NFFT=2048, linestyle='--')
-pl.legend(('Signal', 'Innovation', 'Regenerated signal'))
-pl.show()
+plt.figure()
+plt.psd(d, Fs=raw.info['sfreq'], NFFT=2048)
+plt.psd(innovation, Fs=raw.info['sfreq'], NFFT=2048)
+plt.psd(d_, Fs=raw.info['sfreq'], NFFT=2048, linestyle='--')
+plt.legend(('Signal', 'Innovation', 'Regenerated signal'))
+plt.show()

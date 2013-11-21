@@ -8,9 +8,6 @@ from copy import deepcopy
 import numpy as np
 import warnings
 
-import logging
-logger = logging.getLogger('mne')
-
 from .constants import FIFF
 from .open import fiff_open
 from .tag import read_tag
@@ -21,14 +18,12 @@ from .proj import ProjMixin
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
-from ..utils import _check_pandas_installed
-
-from .write import start_file, start_block, end_file, end_block, \
-                   write_int, write_string, write_float_matrix, \
-                   write_id
+from ..utils import _check_pandas_installed, logger, verbose
+from .write import (start_file, start_block, end_file, end_block,
+                    write_int, write_string, write_float_matrix,
+                    write_id)
 
 from ..viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
-from .. import verbose
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
@@ -67,7 +62,7 @@ class Evoked(ProjMixin):
     ----------
     info : dict
         Measurement info.
-    `ch_names` : list of string
+    ch_names : list of string
         List of channels' names.
     nave : int
         Number of averaged epochs.
@@ -213,7 +208,7 @@ class Evoked(ProjMixin):
                        1000 * last / info['sfreq'], comment))
         if info['comps'] is not None:
             logger.info('        %d CTF compensation matrices available'
-                                                   % len(info['comps']))
+                        % len(info['comps']))
 
         # Read the data in the aspect block
         nave = 1
@@ -241,7 +236,8 @@ class Evoked(ProjMixin):
         if nepoch != 1 and nepoch != info['nchan']:
             fid.close()
             raise ValueError('Number of epoch tags is unreasonable '
-                         '(nepoch = %d nchan = %d)' % (nepoch, info['nchan']))
+                             '(nepoch = %d nchan = %d)'
+                             % (nepoch, info['nchan']))
 
         if nepoch == 1:
             # Only one epoch
@@ -256,7 +252,7 @@ class Evoked(ProjMixin):
         if all_data.shape[1] != nsamp:
             fid.close()
             raise ValueError('Incorrect number of samples (%d instead of %d)'
-                              % (all_data.shape[1], nsamp))
+                             % (all_data.shape[1], nsamp))
 
         # Calibrate
         cals = np.array([info['chs'][k]['cal']
@@ -280,7 +276,7 @@ class Evoked(ProjMixin):
         # bind info, proj, data to self so apply_proj can be used
         self.data = all_data
         self.proj = False
-        if proj == True:
+        if proj:
             self.apply_proj()
         # Run baseline correction
         self.data = rescale(self.data, times, baseline, 'mean', copy=False)
@@ -367,16 +363,16 @@ class Evoked(ProjMixin):
         unit : bool
             Scale plot with channel (SI) unit.
         show : bool
-            Call pylab.show() at the end or not.
+            Call pyplot.show() at the end or not.
         ylim : dict
             ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
             Valid keys are eeg, mag, grad
         xlim : 'tight' | tuple | None
             xlim for plots.
         proj : bool | 'interactive'
-            If true SSP projections are applied before display. If 'interactive',
-            a check box for reversible selection of SSP projection vectors will
-            be shown.
+            If true SSP projections are applied before display. If
+            'interactive', a check box for reversible selection of SSP
+            projection vectors will be shown.
         hline : list of floats | None
             The values at which show an horizontal line.
         units : dict | None
@@ -439,11 +435,11 @@ class Evoked(ProjMixin):
         format : str
             String format for colorbar values.
         proj : bool | 'interactive'
-            If true SSP projections are applied before display. If 'interactive',
-            a check box for reversible selection of SSP projection vectors will
-            be shown.
+            If true SSP projections are applied before display. If
+            'interactive', a check box for reversible selection of SSP
+            projection vectors will be shown.
         show : bool
-            Call pylab.show() at the end.
+            Call pyplot.show() at the end.
         """
         plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
                             vmax=vmax, cmap=cmap, sensors=sensors,
@@ -539,9 +535,10 @@ class Evoked(ProjMixin):
         df.insert(0, 'time', times * scale_time)
 
         if use_time_index is True:
+            if 'time' in df:
+                df['time'] = df['time'].astype(np.int64)
             with warnings.catch_warnings(True):
                 df.set_index('time', inplace=True)
-            df.index = df.index.astype(int)
 
         return df
 
@@ -582,8 +579,9 @@ class Evoked(ProjMixin):
             If None only MEG and EEG channels are detrended.
         """
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False, exclude='bads')
+            picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
+                               stim=False, eog=False, ecg=False, emg=False,
+                               exclude='bads')
         self.data[picks] = detrend(self.data[picks], order, axis=-1)
 
     def copy(self):
@@ -636,7 +634,7 @@ def _get_entries(fid, evoked_node):
         raise ValueError('Dataset names in FIF file '
                          'could not be found.')
     t = [aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
-    t = ['"' + c + '" (' + t + ')' for t, c in zip(t, comments)]
+    t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
     t = '  ' + '\n  '.join(t)
     return comments, aspect_kinds, t
 
@@ -661,10 +659,11 @@ def merge_evoked(all_evoked):
     ch_names = evoked.ch_names
     for e in all_evoked[1:]:
         assert e.ch_names == ch_names, ValueError("%s and %s do not contain "
-                        "the same channels" % (evoked, e))
+                                                  "the same channels"
+                                                  % (evoked, e))
         assert np.max(np.abs(e.times - evoked.times)) < 1e-7, \
-                ValueError("%s and %s do not "
-                           "contain the same time instants" % (evoked, e))
+            ValueError("%s and %s do not contain the same time "
+                       "instants" % (evoked, e))
 
     # use union of bad channels
     bads = list(set(evoked.info['bads']).union(*(ev.info['bads']

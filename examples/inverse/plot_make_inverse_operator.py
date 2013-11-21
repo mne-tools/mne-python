@@ -15,12 +15,12 @@ in stc files for visualisation.
 
 print __doc__
 
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.fiff import Evoked
-from mne.minimum_norm import make_inverse_operator, apply_inverse, \
-                             write_inverse_operator
+from mne.minimum_norm import (make_inverse_operator, apply_inverse,
+                              write_inverse_operator)
 
 data_path = sample.data_path()
 fname_fwd_meeg = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
@@ -50,9 +50,9 @@ info = evoked.info
 inverse_operator_meeg = make_inverse_operator(info, forward_meeg, noise_cov,
                                               loose=0.2, depth=0.8)
 inverse_operator_meg = make_inverse_operator(info, forward_meg, noise_cov,
-                                              loose=0.2, depth=0.8)
+                                             loose=0.2, depth=0.8)
 inverse_operator_eeg = make_inverse_operator(info, forward_eeg, noise_cov,
-                                              loose=0.2, depth=0.8)
+                                             loose=0.2, depth=0.8)
 
 write_inverse_operator('sample_audvis-meeg-oct-6-inv.fif',
                        inverse_operator_meeg)
@@ -64,11 +64,11 @@ write_inverse_operator('sample_audvis-eeg-oct-6-inv.fif',
 # Compute inverse solution
 stcs = dict()
 stcs['meeg'] = apply_inverse(evoked, inverse_operator_meeg, lambda2, "dSPM",
-                        pick_normal=False)
+                             pick_ori=None)
 stcs['meg'] = apply_inverse(evoked, inverse_operator_meg, lambda2, "dSPM",
-                        pick_normal=False)
+                            pick_ori=None)
 stcs['eeg'] = apply_inverse(evoked, inverse_operator_eeg, lambda2, "dSPM",
-                        pick_normal=False)
+                            pick_ori=None)
 
 # Save result in stc files
 names = ['meeg', 'meg', 'eeg']
@@ -77,13 +77,13 @@ for name in names:
 
 ###############################################################################
 # View activation time-series
-pl.close('all')
-pl.figure(figsize=(8, 6))
+plt.close('all')
+plt.figure(figsize=(8, 6))
 for ii in range(len(stcs)):
     name = names[ii]
     stc = stcs[name]
-    pl.subplot(len(stcs), 1, ii + 1)
-    pl.plot(1e3 * stc.times, stc.data[::150, :].T)
-    pl.ylabel('%s\ndSPM value' % str.upper(name))
-pl.xlabel('time (ms)')
-pl.show()
+    plt.subplot(len(stcs), 1, ii + 1)
+    plt.plot(1e3 * stc.times, stc.data[::150, :].T)
+    plt.ylabel('%s\ndSPM value' % str.upper(name))
+plt.xlabel('time (ms)')
+plt.show()

@@ -2,10 +2,7 @@ from math import ceil
 import numpy as np
 from scipy.fftpack import fft, ifft, fftfreq
 
-import logging
-logger = logging.getLogger('mne')
-
-from .. import verbose
+from ..utils import logger, verbose
 
 
 @verbose

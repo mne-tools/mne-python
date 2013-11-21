@@ -1,91 +1,120 @@
 import numpy as np
-from numpy.testing import assert_equal, assert_array_equal,\
-                          assert_array_almost_equal
+from numpy.testing import (assert_equal, assert_array_equal,
+                           assert_array_almost_equal)
 from nose.tools import assert_true, assert_raises
 from scipy import sparse, linalg, stats
-from functools import partial
+from mne.fixes import partial
 import warnings
+from mne.parallel import _force_serial
+from mne.stats.cluster_level import (permutation_cluster_test,
+                                     permutation_cluster_1samp_test,
+                                     spatio_temporal_cluster_test,
+                                     spatio_temporal_cluster_1samp_test,
+                                     ttest_1samp_no_p, summarize_clusters_stc)
 
-from mne.stats.cluster_level import permutation_cluster_test, \
-                                    permutation_cluster_1samp_test, \
-                                    spatio_temporal_cluster_test, \
-                                    spatio_temporal_cluster_1samp_test, \
-                                    ttest_1samp_no_p, summarize_clusters_stc
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-noise_level = 20
 
-normfactor = np.hanning(20).sum()
+def _get_conditions():
+    noise_level = 20
 
-rng = np.random.RandomState(42)
-condition1_1d = rng.randn(40, 350) * noise_level
-for c in condition1_1d:
-    c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
+    normfactor = np.hanning(20).sum()
+    rng = np.random.RandomState(42)
+    condition1_1d = rng.randn(40, 350) * noise_level
+    for c in condition1_1d:
+        c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
-condition2_1d = rng.randn(33, 350) * noise_level
-for c in condition2_1d:
-    c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
+    condition2_1d = rng.randn(33, 350) * noise_level
+    for c in condition2_1d:
+        c[:] = np.convolve(c, np.hanning(20), mode="same") / normfactor
 
-pseudoekp = 5 * np.hanning(150)[None, :]
-condition1_1d[:, 100:250] += pseudoekp
-condition2_1d[:, 100:250] -= pseudoekp
+    pseudoekp = 5 * np.hanning(150)[None, :]
+    condition1_1d[:, 100:250] += pseudoekp
+    condition2_1d[:, 100:250] -= pseudoekp
 
-condition1_2d = condition1_1d[:, :, np.newaxis]
-condition2_2d = condition2_1d[:, :, np.newaxis]
+    condition1_2d = condition1_1d[:, :, np.newaxis]
+    condition2_2d = condition2_1d[:, :, np.newaxis]
+    return condition1_1d, condition2_1d, condition1_2d, condition2_2d
 
 
 def test_cluster_permutation_test():
-    """Test cluster level permutations tests."""
+    """Test cluster level permutations tests
+    """
+    condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
+        _get_conditions()
     for condition1, condition2 in zip((condition1_1d, condition1_2d),
                                       (condition2_1d, condition2_2d)):
         T_obs, clusters, cluster_p_values, hist = permutation_cluster_test(
                                     [condition1, condition2],
-                                    n_permutations=100, tail=1, seed=1)
+                                    n_permutations=100, tail=1, seed=1,
+                                    buffer_size=None)
         assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
         T_obs, clusters, cluster_p_values, hist = permutation_cluster_test(
                                     [condition1, condition2],
-                                    n_permutations=100, tail=0, seed=1)
+                                    n_permutations=100, tail=0, seed=1,
+                                    buffer_size=None)
         assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
-        # test with 2 jobs
+        # test with 2 jobs and buffer_size enabled
+        buffer_size = condition1.shape[1] // 10
         T_obs, clusters, cluster_p_values_buff, hist =\
             permutation_cluster_test([condition1, condition2],
-                                    n_permutations=100, tail=0, seed=1,
-                                    n_jobs=2)
+                                     n_permutations=100, tail=0, seed=1,
+                                     n_jobs=2, buffer_size=buffer_size)
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
 
 def test_cluster_permutation_t_test():
-    """Test cluster level permutations T-test."""
-    for condition1 in (condition1_1d, condition1_2d):
-        # these are so significant we can get away with fewer perms
-        T_obs, clusters, cluster_p_values, hist =\
-            permutation_cluster_1samp_test(condition1, n_permutations=100,
-                                           tail=0, seed=1)
-        assert_equal(np.sum(cluster_p_values < 0.05), 1)
+    """Test cluster level permutations T-test
+    """
+    condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
+        _get_conditions()
 
-        T_obs_pos, c_1, cluster_p_values_pos, _ =\
-            permutation_cluster_1samp_test(condition1, n_permutations=100,
-                                    tail=1, threshold=1.67, seed=1)
+    # use a very large sigma to make sure Ts are not independent
+    stat_funs = [ttest_1samp_no_p,
+                 partial(ttest_1samp_no_p, sigma=1e-1)]
 
-        T_obs_neg, _, cluster_p_values_neg, _ =\
-            permutation_cluster_1samp_test(-condition1, n_permutations=100,
-                                    tail=-1, threshold=-1.67, seed=1)
-        assert_array_equal(T_obs_pos, -T_obs_neg)
-        assert_array_equal(cluster_p_values_pos < 0.05,
-                           cluster_p_values_neg < 0.05)
+    for stat_fun in stat_funs:
+        for condition1 in (condition1_1d, condition1_2d):
+            # these are so significant we can get away with fewer perms
+            T_obs, clusters, cluster_p_values, hist =\
+                permutation_cluster_1samp_test(condition1, n_permutations=100,
+                                               tail=0, seed=1,
+                                               buffer_size=None)
+            assert_equal(np.sum(cluster_p_values < 0.05), 1)
 
-        # test with 2 jobs
-        T_obs_neg, _, cluster_p_values_neg_buff, _ = \
-            permutation_cluster_1samp_test(-condition1, n_permutations=100,
-                                            tail=-1, threshold=-1.67, seed=1,
-                                            n_jobs=2)
+            T_obs_pos, c_1, cluster_p_values_pos, _ =\
+                permutation_cluster_1samp_test(condition1, n_permutations=100,
+                                               tail=1, threshold=1.67, seed=1,
+                                               stat_fun=stat_fun,
+                                               buffer_size=None)
 
-        assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
+            T_obs_neg, _, cluster_p_values_neg, _ =\
+                permutation_cluster_1samp_test(-condition1, n_permutations=100,
+                                               tail=-1, threshold=-1.67,
+                                               seed=1, stat_fun=stat_fun,
+                                               buffer_size=None)
+            assert_array_equal(T_obs_pos, -T_obs_neg)
+            assert_array_equal(cluster_p_values_pos < 0.05,
+                               cluster_p_values_neg < 0.05)
+
+            # test with 2 jobs and buffer_size enabled
+            buffer_size = condition1.shape[1] // 10
+            T_obs_neg_buff, _, cluster_p_values_neg_buff, _ = \
+                permutation_cluster_1samp_test(-condition1, n_permutations=100,
+                                               tail=-1, threshold=-1.67,
+                                               seed=1, n_jobs=2,
+                                               stat_fun=stat_fun,
+                                               buffer_size=buffer_size)
+
+            assert_array_equal(T_obs_neg, T_obs_neg_buff)
+            assert_array_equal(cluster_p_values_neg, cluster_p_values_neg_buff)
 
 
 def test_cluster_permutation_with_connectivity():
-    """Test cluster level permutations with connectivity matrix."""
+    """Test cluster level permutations with connectivity matrix
+    """
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
@@ -93,6 +122,8 @@ def test_cluster_permutation_with_connectivity():
             from scikits.learn.feature_extraction.image import grid_to_graph
     except ImportError:
         return
+    condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
+        _get_conditions()
 
     n_pts = condition1_1d.shape[1]
     # we don't care about p-values in any of these, so do fewer permutations
@@ -105,10 +136,10 @@ def test_cluster_permutation_with_connectivity():
                 [(condition1_1d, condition1_2d,
                   permutation_cluster_1samp_test,
                   spatio_temporal_cluster_1samp_test),
-                  ([condition1_1d, condition2_1d],
-                   [condition1_2d, condition2_2d],
-                    permutation_cluster_test,
-                    spatio_temporal_cluster_test)]:
+                 ([condition1_1d, condition2_1d],
+                  [condition1_2d, condition2_2d],
+                  permutation_cluster_test,
+                  spatio_temporal_cluster_test)]:
         out = func(X1d, **args)
         connectivity = grid_to_graph(1, n_pts)
         out_connectivity = func(X1d, connectivity=connectivity, **args)
@@ -140,7 +171,7 @@ def test_cluster_permutation_with_connectivity():
         # Make sure that we got the old ones back
         data_1 = set([np.sum(out[0][b[:n_pts]]) for b in out[1]])
         data_2 = set([np.sum(out_connectivity_2[0][a[:n_pts]]) for a in
-            out_connectivity_2[1][:]])
+                     out_connectivity_2[1][:]])
         assert_true(len(data_1.intersection(data_2)) == len(data_1))
 
         # now use the other algorithm
@@ -149,10 +180,10 @@ def test_cluster_permutation_with_connectivity():
         else:
             X1d_3 = np.reshape(X1d_2, (-1, 2, 350))
 
-        out_connectivity_3 = spatio_temporal_func(
-                                 X1d_3, n_permutations=50,
-                                 connectivity=connectivity, max_step=0,
-                                 threshold=1.67, check_disjoint=True)
+        out_connectivity_3 = spatio_temporal_func(X1d_3, n_permutations=50,
+                                                  connectivity=connectivity,
+                                                  max_step=0, threshold=1.67,
+                                                  check_disjoint=True)
         # make sure we were operating on the same values
         split = len(out[0])
         assert_array_equal(out[0], out_connectivity_3[0][0])
@@ -164,18 +195,16 @@ def test_cluster_permutation_with_connectivity():
         # Make sure that we got the old ones back
         data_1 = set([np.sum(out[0][b[:n_pts]]) for b in out[1]])
         data_2 = set([np.sum(out_connectivity_3[0][a[0], a[1]]) for a in
-            out_connectivity_3[1]])
+                     out_connectivity_3[1]])
         assert_true(len(data_1.intersection(data_2)) == len(data_1))
 
         # test new versus old method
-        out_connectivity_4 = spatio_temporal_func(
-                                 X1d_3, n_permutations=50,
-                                 connectivity=connectivity, max_step=2,
-                                 threshold=1.67)
-        out_connectivity_5 = spatio_temporal_func(
-                                 X1d_3, n_permutations=50,
-                                 connectivity=connectivity, max_step=1,
-                                 threshold=1.67)
+        out_connectivity_4 = spatio_temporal_func(X1d_3, n_permutations=50,
+                                                  connectivity=connectivity,
+                                                  max_step=2, threshold=1.67)
+        out_connectivity_5 = spatio_temporal_func(X1d_3, n_permutations=50,
+                                                  connectivity=connectivity,
+                                                  max_step=1, threshold=1.67)
 
         # clusters could be in a different order
         sums_4 = [np.sum(out_connectivity_4[0][a])
@@ -186,10 +215,10 @@ def test_cluster_permutation_with_connectivity():
         sums_5 = np.sort(sums_5)
         assert_array_almost_equal(sums_4, sums_5)
 
-        assert_raises(ValueError, spatio_temporal_func,
-                                 X1d_3, n_permutations=1,
-                                 connectivity=connectivity, max_step=1,
-                                 threshold=1.67, n_jobs=-1000)
+        if not _force_serial:
+            assert_raises(ValueError, spatio_temporal_func, X1d_3,
+                          n_permutations=1, connectivity=connectivity, max_step=1,
+                          threshold=1.67, n_jobs=-1000)
 
         # not enough TFCE params
         assert_raises(KeyError, spatio_temporal_func, X1d_3,
@@ -220,10 +249,11 @@ def test_cluster_permutation_with_connectivity():
                       connectivity=connectivity, tail=2)
 
         # make sure it actually found a significant point
-        out_connectivity_6 = spatio_temporal_func(
-                                 X1d_3, n_permutations=50,
-                                 connectivity=connectivity, max_step=1,
-                                 threshold=dict(start=1, step=1))
+        out_connectivity_6 = spatio_temporal_func(X1d_3, n_permutations=50,
+                                                  connectivity=connectivity,
+                                                  max_step=1,
+                                                  threshold=dict(start=1,
+                                                                 step=1))
         assert_true(np.min(out_connectivity_6[2]) < 0.05)
 
 
@@ -308,7 +338,8 @@ def test_permutation_connectivity_equiv():
 
 
 def spatio_temporal_cluster_test_connectivity():
-    """Test cluster level permutations with and without connectivity """
+    """Test cluster level permutations with and without connectivity
+    """
     try:
         try:
             from sklearn.feature_extraction.image import grid_to_graph
@@ -316,13 +347,15 @@ def spatio_temporal_cluster_test_connectivity():
             from scikits.learn.feature_extraction.image import grid_to_graph
     except ImportError:
         return
+    condition1_1d, condition2_1d, condition1_2d, condition2_2d = \
+        _get_conditions()
 
     rng = np.random.RandomState(0)
     noise1_2d = rng.randn(condition1_2d.shape[0], condition1_2d.shape[1], 10)
-    data1_2d  = np.transpose(np.dstack((condition1_2d, noise1_2d)), [0, 2, 1])
-    
+    data1_2d = np.transpose(np.dstack((condition1_2d, noise1_2d)), [0, 2, 1])
+
     noise2_d2 = rng.randn(condition2_2d.shape[0], condition2_2d.shape[1], 10)
-    data2_2d  = np.transpose(np.dstack((condition2_2d, noise2_d2)), [0, 2, 1])
+    data2_2d = np.transpose(np.dstack((condition2_2d, noise2_d2)), [0, 2, 1])
 
     conn = grid_to_graph(data1_2d.shape[-1], 1)
 
@@ -330,14 +363,24 @@ def spatio_temporal_cluster_test_connectivity():
     T_obs, clusters, p_values_conn, hist = \
         spatio_temporal_cluster_test([data1_2d, data2_2d], connectivity=conn,
                                      n_permutations=50, tail=1, seed=1,
-                                     threshold=threshold)
+                                     threshold=threshold, buffer_size=None)
 
+    buffer_size = data1_2d.size // 10
     T_obs, clusters, p_values_no_conn, hist = \
         spatio_temporal_cluster_test([data1_2d, data2_2d],
                                      n_permutations=50, tail=1, seed=1,
-                                     threshold=threshold)
+                                     threshold=threshold, n_jobs=2,
+                                     buffer_size=buffer_size)
 
     assert_equal(np.sum(p_values_conn < 0.05), np.sum(p_values_no_conn < 0.05))
+
+    # make sure results are the same without buffer_size
+    T_obs, clusters, p_values2, hist2 = \
+        spatio_temporal_cluster_test([data1_2d, data2_2d],
+                                     n_permutations=50, tail=1, seed=1,
+                                     threshold=threshold, n_jobs=2,
+                                     buffer_size=None)
+    assert_array_equal(p_values_no_conn, p_values2)
 
 
 def ttest_1samp(X):
@@ -347,12 +390,12 @@ def ttest_1samp(X):
 
 
 def test_summarize_clusters():
-    """ test summary stcs
+    """Test cluster summary stcs
     """
     clu = (np.random.random([1, 20484]),
            [(np.array([0]), np.array([0, 2, 4]))],
-            np.array([0.02, 0.1]),
-            np.array([12, -14, 30]))
+           np.array([0.02, 0.1]),
+           np.array([12, -14, 30]))
     stc_sum = summarize_clusters_stc(clu)
     assert_true(stc_sum.data.shape[1] == 2)
     clu[2][0] = 0.3
