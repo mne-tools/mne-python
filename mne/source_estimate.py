@@ -439,6 +439,7 @@ class _BaseSourceEstimate(object):
         self.verbose = verbose
         self._kernel = kernel
         self._sens_data = sens_data
+        self._kernel_removed = False
         self.times = None
         self._update_times()
         self.subject = _check_subject(None, subject, False)
@@ -447,6 +448,7 @@ class _BaseSourceEstimate(object):
         """Remove kernel and sensor space data and compute self._data
         """
         if self._kernel is not None or self._sens_data is not None:
+            self._kernel_removed = True
             self._data = np.dot(self._kernel, self._sens_data)
             self._kernel = None
             self._sens_data = None
@@ -738,6 +740,10 @@ class _BaseSourceEstimate(object):
             fun_args = tuple()
 
         if self._kernel is None and self._sens_data is None:
+            if self._kernel_removed:
+                warnings.warn('Performance can be improved by not accessing '
+                              'the data attribute before calling this method.')
+
             # transform source space data directly
             data_t = transform_fun(self.data[idx, tmin_idx:tmax_idx],
                                    *fun_args, **kwargs)
