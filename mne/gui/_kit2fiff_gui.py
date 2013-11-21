@@ -19,8 +19,8 @@ try:
     from traits.api import (HasTraits, HasPrivateTraits, cached_property,
                             Instance, Property, Bool, Button, Enum, File, Int,
                             List, Str, DelegatesTo)
-    from traitsui.api import (View, Item, HGroup, VGroup, CheckListEditor,
-                              EnumEditor, Handler)
+    from traitsui.api import (View, Item, HGroup, VGroup, spring,
+                              CheckListEditor, EnumEditor, Handler)
     from traitsui.menu import NoButtons
     from tvtk.pyface.scene_editor import SceneEditor
 except:
@@ -257,6 +257,12 @@ class Kit2FiffModel(HasPrivateTraits):
         else:
             return '-'
 
+    def clear_all(self):
+        """Clear all specified input parameters"""
+        self.markers.mrk1.clear = True
+        self.markers.mrk2.clear = True
+        self.reset_traits(['sqd_file', 'hsp_file', 'fid_file'])
+
     def get_event_info(self):
         """
         Return a string with the number of events found for each trigger value
@@ -331,6 +337,7 @@ class Kit2FiffPanel(HasPrivateTraits):
 
     # Output
     save_as = Button(label='Save FIFF...')
+    clear_all = Button(label='Clear All')
     queue = Instance(Queue, ())
     queue_feedback = Str('')
     queue_current = Str('')
@@ -371,8 +378,8 @@ class Kit2FiffPanel(HasPrivateTraits):
                                 "(trough) or an increase (peak) in trigger "
                                 "channel values"),
                            label='Events', show_border=True),
-                       Item('save_as', enabled_when='can_save',
-                            show_label=False),
+                       HGroup(Item('save_as', enabled_when='can_save'), spring,
+                              'clear_all', show_labels=False),
                        Item('queue_feedback', show_label=False,
                             style='readonly'),
                        Item('queue_current', show_label=False,
@@ -426,6 +433,9 @@ class Kit2FiffPanel(HasPrivateTraits):
                                    point_scale=2e-3)
         m.sync_trait('hsp', self.hsp_obj, 'points', mutual=False)
         m.sync_trait('head_dev_trans', self.hsp_obj, 'trans', mutual=False)
+
+    def _clear_all_fired(self):
+        self.model.clear_all()
 
     @cached_property
     def _get_queue_len_str(self):
