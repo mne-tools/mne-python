@@ -1,12 +1,5 @@
 mne-python (0.7~rc1-1) UNRELEASED; urgency=low
 
   * Initial packaging attempt to prepare packaging for 0.7 release
-  * TODO: Tests:
-         debian/rules override_dh_auto_test
-    make[1]: Entering directory `/tmp/buildd/mne-python-0.6'
-    MNE_SKIP_SAMPLE_DATASET_TESTS=true \
-          xvfb-run --auto-servernum --server-num=20 -s "-screen 0 1024x768x24 -ac +extension GLX +render -noreset" \
-	  nosetests mne
-
 
  -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Sun, 27 Oct 2013 21:30:31 -0400
