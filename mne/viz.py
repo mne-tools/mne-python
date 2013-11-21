@@ -13,6 +13,7 @@ from itertools import cycle
 from functools import partial
 from copy import deepcopy
 import math
+from distutils.version import LooseVersion
 
 import difflib
 import tempfile
@@ -1622,7 +1623,14 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     brain : Brain
         A instance of surfer.viz.Brain from PySurfer.
     """
+    import surfer
     from surfer import Brain, TimeViewer
+
+    if hemi in ['split', 'both'] and LooseVersion(surfer.__version__) < '0.4':
+        raise NotImplementedError('hemi type "%s" not supported with your '
+                                  'version of pysurfer. Please upgrade to '
+                                  'version 0.4 or higher.' % hemi)
+
     try:
         import mayavi
         from mayavi import mlab
