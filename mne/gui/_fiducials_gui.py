@@ -187,6 +187,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
         path = fid_fname.format(subjects_dir=subjects_dir, subject=subject)
         if os.path.exists(path):
             self.fid_file = path
+            self.lock_fiducials = True
         else:
             path = fid_fname_general.format(subjects_dir=subjects_dir,
                                             subject=subject, head='*')
@@ -194,8 +195,10 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
             if fnames:
                 path = fnames[0]
                 self.fid.file = path
+                self.lock_fiducials = True
             else:
                 self.fid.reset_traits(['file'])
+                self.lock_fiducials = False
 
         # does not seem to happen by itself ... so hard code it:
         self.reset_fiducials()
