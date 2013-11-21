@@ -1,4 +1,4 @@
-mne-python (0.6-1) UNRELEASED; urgency=low
+mne-python (0.7~rc1-1) UNRELEASED; urgency=low
 
   * Initial packaging attempt to prepare packaging for 0.7 release
   * TODO: Tests:
