@@ -13,7 +13,7 @@ print __doc__
 # License: BSD (3-clause)
 
 import numpy as np
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 from mne import fiff
 from mne.time_frequency import induced_power
@@ -66,7 +66,7 @@ mode = 'ratio'  # set mode for baseline rescaling
 title = 'Induced power - MNE sample data'
 plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
                 mode=mode, decim=decim, vmin=0., vmax=14, title=title)
-pl.show()
+plt.show()
 
 ###############################################################################
 # Show topography of phase locking value (PLV)
@@ -77,4 +77,4 @@ title = 'Phase locking value - MNE sample data'
 plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
                      baseline=baseline, mode=mode, decim=decim, title=title)
 
-pl.show()
+plt.show()

@@ -19,7 +19,7 @@ on the evoked data.
 
 print __doc__
 
-import pylab as pl
+import matplotlib.pyplot as plt
 import mne
 from mne import fiff
 from mne.datasets import sample
@@ -63,7 +63,7 @@ title = 'Incremental SSP application'
 
 # let's first move the proj list to another location
 projs, evoked.info['projs'] = evoked.info['projs'], []
-fig, axes = pl.subplots(2, 2)  # create 4 subplots for our four vectors
+fig, axes = plt.subplots(2, 2)  # create 4 subplots for our four vectors
 
 # As the bulk of projectors was extracted from the same source, we can simply
 # iterate over our collection of projs and add them step by step to see how
@@ -75,8 +75,8 @@ for proj, ax in zip(projs, axes.flatten()):
     evoked.add_proj(proj)  # add projection vectors loop by loop.
     evoked.copy().apply_proj().plot(axes=ax)  # apply on a copy of evoked
     ax.set_title('+ %s' % proj['desc'])  # extract description.
-pl.suptitle(title)
-pl.show()
+plt.suptitle(title)
+plt.show()
 
 # We also could have easily visualized the impact of single projection vectors
 # by deleting the vector directly after visualizing the changes.
@@ -88,8 +88,8 @@ pl.show()
 # check box that allows us to reversibly select projection vectors. Any
 # modification of the selection will immediately cause the figure to update.
 
-pl.figure()
+plt.figure()
 evoked.plot(proj='interactive')
-pl.show()
+plt.show()
 
 # Hint: the same works with evoked.plot_topomap

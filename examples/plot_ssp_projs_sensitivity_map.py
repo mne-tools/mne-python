@@ -16,6 +16,7 @@ import mne
 from mne.datasets import sample
 data_path = sample.data_path()
 
+subjects_dir = data_path + '/subjects'
 fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
 
@@ -30,9 +31,10 @@ ssp_ecg_map = mne.sensitivity_map(fwd, ch_type='grad', projs=projs,
 ###############################################################################
 # Show sensitivy map
 
-import pylab as pl
-pl.hist(ssp_ecg_map.data.ravel())
-pl.show()
+import matplotlib.pyplot as plt
+plt.hist(ssp_ecg_map.data.ravel())
+plt.show()
 
-args = dict(fmin=0.2, fmid=0.6, fmax=1., smoothing_steps=7, hemi='rh')
+args = dict(fmin=0.2, fmid=0.6, fmax=1., smoothing_steps=7, hemi='rh',
+            subjects_dir=subjects_dir)
 ssp_ecg_map.plot(subject='sample', time_label='ECG SSP sensitivity', **args)

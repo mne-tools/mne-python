@@ -7,23 +7,25 @@ from nose.tools import assert_true
 from mne.datasets import sample
 from mne import fiff, find_events, Epochs
 from mne.label import read_label
-from mne.minimum_norm.inverse import read_inverse_operator, \
-                                     apply_inverse_epochs
-from mne.minimum_norm.time_frequency import source_band_induced_power, \
-                            source_induced_power, compute_source_psd, \
-                            compute_source_psd_epochs
+from mne.minimum_norm.inverse import (read_inverse_operator,
+                                      apply_inverse_epochs)
+from mne.minimum_norm.time_frequency import (source_band_induced_power,
+                                             source_induced_power,
+                                             compute_source_psd,
+                                             compute_source_psd_epochs)
 
 
 from mne.time_frequency import multitaper_psd
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 fname_inv = op.join(data_path, 'MEG', 'sample',
-                                        'sample_audvis-meg-oct-6-meg-inv.fif')
+                    'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_data = op.join(data_path, 'MEG', 'sample',
-                                        'sample_audvis_raw.fif')
+                     'sample_audvis_raw.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 
 
+@sample.requires_sample_data
 def test_tfr_with_inverse_operator():
     """Test time freq with MNE inverse computation"""
 
@@ -80,6 +82,7 @@ def test_tfr_with_inverse_operator():
     assert_true(np.max(power) > 10)
 
 
+@sample.requires_sample_data
 def test_source_psd():
     """Test source PSD computation in label"""
     raw = fiff.Raw(fname_data)
@@ -90,7 +93,7 @@ def test_source_psd():
     NFFT = 2048
     stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
                              method="dSPM", tmin=tmin, tmax=tmax,
-                             fmin=fmin, fmax=fmax, pick_normal=True,
+                             fmin=fmin, fmax=fmax, pick_ori="normal",
                              NFFT=NFFT, label=label, overlap=0.1)
     assert_true(stc.times[0] >= fmin * 1e-3)
     assert_true(stc.times[-1] <= fmax * 1e-3)
@@ -99,6 +102,7 @@ def test_source_psd():
                       <= 61e-3)
 
 
+@sample.requires_sample_data
 def test_source_psd_epochs():
     """Test multi-taper source PSD computation in label from epochs"""
 
@@ -127,14 +131,14 @@ def test_source_psd_epochs():
     # return list
     stc_psd = compute_source_psd_epochs(one_epochs, inverse_operator,
                                         lambda2=lambda2, method=method,
-                                        pick_normal=True, label=label,
+                                        pick_ori="normal", label=label,
                                         bandwidth=bandwidth,
                                         fmin=fmin, fmax=fmax)[0]
 
     # return generator
     stcs = compute_source_psd_epochs(one_epochs, inverse_operator,
                                      lambda2=lambda2, method=method,
-                                     pick_normal=True, label=label,
+                                     pick_ori="normal", label=label,
                                      bandwidth=bandwidth,
                                      fmin=fmin, fmax=fmax,
                                      return_generator=True)
@@ -147,7 +151,7 @@ def test_source_psd_epochs():
     # compare with direct computation
     stc = apply_inverse_epochs(one_epochs, inverse_operator,
                                lambda2=lambda2, method=method,
-                               pick_normal=True, label=label)[0]
+                               pick_ori="normal", label=label)[0]
 
     sfreq = epochs.info['sfreq']
     psd, freqs = multitaper_psd(stc.data, sfreq=sfreq, bandwidth=bandwidth,

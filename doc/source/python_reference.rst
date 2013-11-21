@@ -29,7 +29,17 @@ Classes
    Label
    BiHemiLabel
    preprocessing.ICA
-
+   decoding.TransformerMixin
+   decoding.CSP
+   decoding.Scaler
+   decoding.ConcatenateChannels
+   decoding.FilterEstimator
+   decoding.PSDEstimator
+   realtime.RtEpochs
+   realtime.RtClient
+   realtime.MockRtClient
+   realtime.StimServer
+   realtime.StimClient
 
 Logging and Configuration
 =========================
@@ -81,6 +91,8 @@ Functions:
    :template: function.rst
 
    parse_config
+   decimate_surfaces
+   read_bem_solution
    read_bem_surfaces
    read_cov
    read_dip
@@ -88,6 +100,7 @@ Functions:
    read_events
    read_forward_solution
    read_label
+   read_morph_map
    read_proj
    read_reject_parameters
    read_selection
@@ -173,6 +186,7 @@ Visualization
    plot_ica_panel
    plot_image_epochs
    plot_raw
+   plot_raw_psds
    plot_source_estimates
    plot_sparse_source_estimates
    plot_topo
@@ -293,6 +307,8 @@ Sensor Space Data
    :toctree: generated/
    :template: function.rst
 
+   fiff.concatenate_raws
+   fiff.get_chpi_positions
    fiff.pick_channels
    fiff.pick_channels_cov
    fiff.pick_channels_forward
@@ -321,6 +337,21 @@ Covariance
    write_cov
 
 
+MRI Processing
+==============
+
+.. currentmodule:: mne
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   create_default_subject
+   scale_mri
+   scale_labels
+   scale_source_space
+
+
 Forward Modeling
 ================
 
@@ -330,16 +361,21 @@ Forward Modeling
    :toctree: generated/
    :template: function.rst
 
+   add_source_space_distances
    apply_forward
    apply_forward_raw
    average_forward_solutions
+   convert_forward_solution
    do_forward_solution
+   make_forward_solution
    read_bem_surfaces
    read_forward_solution
    read_trans
    read_source_spaces
    read_surface
    sensitivity_map
+   setup_source_space
+   setup_volume_source_space
    write_bem_surface
    write_trans
 
@@ -409,6 +445,9 @@ Inverse Solutions
    lcmv
    lcmv_epochs
    lcmv_raw
+   dics
+   dics_epochs
+   dics_source_power
 
 
 Source Space Data
@@ -456,6 +495,7 @@ Time-Frequency
 
    ar_raw
    compute_raw_psd
+   compute_epochs_psd
    iir_filter_raw
    induced_power
    morlet
@@ -545,3 +585,20 @@ Simulation
    generate_evoked
    generate_sparse_stc
    select_source_in_label
+
+Decoding
+========
+
+:py:mod:`mne.decoding`:
+
+.. automodule:: mne.decoding
+   :no-members:
+
+
+Realtime
+========
+
+:py:mod:`mne.realtime`:
+
+.. automodule:: mne.realtime
+   :no-members:

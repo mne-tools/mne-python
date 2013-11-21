@@ -27,10 +27,10 @@ import numpy as np
 from numpy.random import randn
 
 import mne
-from mne import fiff, spatial_tris_connectivity, compute_morph_matrix,\
-    grade_to_tris
-from mne.stats import spatio_temporal_cluster_test, f_threshold_twoway_rm, \
-    f_twoway_rm, summarize_clusters_stc
+from mne import (fiff, spatial_tris_connectivity, compute_morph_matrix,
+                 grade_to_tris)
+from mne.stats import (spatio_temporal_cluster_test, f_threshold_twoway_rm,
+                       f_twoway_rm, summarize_clusters_stc)
 
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
@@ -58,7 +58,7 @@ picks = fiff.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 event_id = dict(l_aud=1, r_aud=2, l_vis=3, r_vis=4)
 reject = dict(grad=1000e-13, mag=4000e-15, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                     baseline=(None, 0), reject=reject, preload=True)
+                    baseline=(None, 0), reject=reject, preload=True)
 
 #    Equalize trial counts to eliminate bias (which would otherwise be
 #    introduced by the abs() performed below)
@@ -169,10 +169,12 @@ def stat_fun(*args):
     # The following expression catches the list input, swaps the first and the
     # second dimension and puts the remaining observations in the third
     # dimension.
-    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_subjects, \
-        n_conditions, n_times * n_vertices_fsave)
+    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_subjects,
+                                                       n_conditions, n_times *
+                                                       n_vertices_fsave)
     return f_twoway_rm(data, factor_levels=factor_levels, effects=effects,
-                return_pvals=return_pvals)[0]  # drop p-values (empty array).
+                       return_pvals=return_pvals)[0]
+                       #  drop p-values (empty array).
     # Note. for further details on this ANOVA function consider the
     # corresponding time frequency example.
 
@@ -199,7 +201,8 @@ print 'Clustering.'
 T_obs, clusters, cluster_p_values, H0 = clu = \
     spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
                                  threshold=f_thresh, stat_fun=stat_fun,
-                                 n_permutations=n_permutations)
+                                 n_permutations=n_permutations,
+                                 buffer_size=None)
 #    Now select the clusters that are sig. at p < 0.05 (note that this value
 #    is multiple-comparisons corrected).
 good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
@@ -212,7 +215,8 @@ print 'Visualizing clusters.'
 #    Now let's build a convenient representation of each cluster, where each
 #    cluster becomes a "time point" in the SourceEstimate
 stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
-                                vertno=fsave_vertices, subject='fsaverage')
+                                             vertno=fsave_vertices,
+                                             subject='fsaverage')
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration
@@ -222,8 +226,8 @@ subjects_dir = op.join(data_path, 'subjects')
 # stimulus modality and stimulus location
 
 brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'lh',
-                                  subjects_dir=subjects_dir,
-                                  time_label='Duration significant (ms)')
+                                 subjects_dir=subjects_dir,
+                                 time_label='Duration significant (ms)')
 
 brain.set_data_time_index(0)
 brain.scale_data_colormap(fmin=5, fmid=10, fmax=30, transparent=True)
@@ -235,16 +239,17 @@ brain.show_view('medial')
 # Finally, let's investigate interaction effect by reconstructing the time
 # courses
 
-import pylab as pl
+import matplotlib.pyplot as plt
 inds_t, inds_v = [(clusters[cluster_ind]) for ii, cluster_ind in
-                    enumerate(good_cluster_inds)][0]  # first cluster
+                  enumerate(good_cluster_inds)][0]  # first cluster
 
 times = np.arange(X[0].shape[1]) * tstep * 1e3
 
-pl.clf()
+plt.clf()
 colors = ['y', 'b', 'g', 'purple']
-for ii, (condition, color, eve_id) in enumerate(
-    zip(X, colors, ['l_aud', 'r_aud', 'l_vis', 'r_vis'])):
+event_ids = ['l_aud', 'r_aud', 'l_vis', 'r_vis']
+
+for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_ids)):
     # extract time course at cluster vertices
     condition = condition[:, :, inds_v]
     # normally we would normalize values across subjects but
@@ -252,15 +257,15 @@ for ii, (condition, color, eve_id) in enumerate(
     # create average time series across subjects and vertices.
     mean_tc = condition.mean(axis=2).mean(axis=0)
     std_tc = condition.std(axis=2).std(axis=0)
-    pl.plot(times, mean_tc.T, color=color, label=eve_id)
-    pl.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
-            alpha=0.5, label='')
+    plt.plot(times, mean_tc.T, color=color, label=eve_id)
+    plt.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
+                     alpha=0.5, label='')
 
-pl.xlabel('Time (ms)')
-pl.ylabel('Activation (F-values)')
-pl.xlim(times[[0, -1]])
-pl.fill_betweenx(np.arange(*pl.ylim()), times[inds_t[0]],
-        times[inds_t[-1]], color='orange', alpha=0.3)
-pl.legend()
-pl.title('Interaction between stimulus-modality and location.')
-pl.show()
+plt.xlabel('Time (ms)')
+plt.ylabel('Activation (F-values)')
+plt.xlim(times[[0, -1]])
+plt.fill_betweenx(np.arange(*plt.ylim()), times[inds_t[0]],
+                  times[inds_t[-1]], color='orange', alpha=0.3)
+plt.legend()
+plt.title('Interaction between stimulus-modality and location.')
+plt.show()

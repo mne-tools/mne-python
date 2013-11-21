@@ -8,7 +8,7 @@ import numpy as np
 from scipy import fftpack, linalg, interpolate
 
 from ..parallel import parallel_func
-from .. import verbose
+from ..utils import verbose, sum_squared
 
 
 def tridisolve(d, e, b, overwrite_b=True):
@@ -167,7 +167,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
                                  float(this_d.shape[-1] - 1) / N))
 
             # Rescale:
-            d_temp = d_temp / np.sqrt(np.sum(d_temp ** 2))
+            d_temp = d_temp / np.sqrt(sum_squared(d_temp))
 
             dpss.append(d_temp)
 
@@ -228,7 +228,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
-    NFFT = 2 ** np.ceil(np.log2(rxx_size))
+    NFFT = 2 ** int(np.ceil(np.log2(rxx_size)))
     dpss_fft = fftpack.fft(dpss, NFFT)
     dpss_rxx = np.real(fftpack.ifft(dpss_fft * dpss_fft.conj()))
     dpss_rxx = dpss_rxx[:, :N]
@@ -325,8 +325,8 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
         err = np.zeros_like(xk)
         for n in range(max_iter):
-            d_k = psd_iter / (eigvals[:, np.newaxis] * psd_iter + \
-                  (1 - eigvals[:, np.newaxis]) * var)
+            d_k = (psd_iter / (eigvals[:, np.newaxis] * psd_iter +
+                   (1 - eigvals[:, np.newaxis]) * var))
             d_k *= rt_eig[:, np.newaxis]
             # Test for convergence -- this is overly conservative, since
             # iteration only stops when all frequencies have converged.
@@ -345,7 +345,7 @@ def _psd_from_mt_adaptive(x_mt, eigvals, freq_mask, max_iter=150,
 
         if n == max_iter - 1:
             warn('Iterative multi-taper PSD computation did not converge.',
-                  RuntimeWarning)
+                 RuntimeWarning)
 
         psd[i, :] = psd_iter
 
@@ -402,15 +402,15 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
 
     csd = np.sum(weights_x * x_mt * (weights_y * y_mt).conj(), axis=-2)
 
-    denom = np.sqrt(np.sum(np.abs(weights_x) ** 2, axis=-2))\
-             * np.sqrt(np.sum(np.abs(weights_y) ** 2, axis=-2))
+    denom = (np.sqrt(np.sum(np.abs(weights_x) ** 2, axis=-2))
+             * np.sqrt(np.sum(np.abs(weights_y) ** 2, axis=-2)))
 
     csd *= 2 / denom
 
     return csd
 
 
-def _mt_spectra(x, dpss, sfreq):
+def _mt_spectra(x, dpss, sfreq, n_fft=None):
     """ Compute tapered spectra
 
     Parameters
@@ -421,6 +421,9 @@ def _mt_spectra(x, dpss, sfreq):
         The tapers
     sfreq : float
         The sampling frequency
+    n_fft : int | None
+        Length of the FFT. If None, the number of samples in the input signal
+        will be used.
 
     Returns
     -------
@@ -430,12 +433,15 @@ def _mt_spectra(x, dpss, sfreq):
         The frequency points in Hz of the spectra
     """
 
+    if n_fft is None:
+        n_fft = x.shape[1]
+
     # remove mean (do not use in-place subtraction as it may modify input x)
     x = x - np.mean(x, axis=-1)[:, np.newaxis]
-    x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss)
+    x_mt = fftpack.fft(x[:, np.newaxis, :] * dpss, n=n_fft)
 
     # only keep positive frequencies
-    freqs = fftpack.fftfreq(x.shape[1], 1. / sfreq)
+    freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
     freq_mask = (freqs >= 0)
 
     x_mt = x_mt[:, :, freq_mask]

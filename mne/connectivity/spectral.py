@@ -8,19 +8,16 @@ from inspect import getargspec, getmembers
 import numpy as np
 from scipy.fftpack import fftfreq
 
-import logging
-logger = logging.getLogger('mne')
-
-
 from .utils import check_indices
 from ..fixes import tril_indices
 from ..parallel import parallel_func
-from .. import Epochs, SourceEstimate
-from ..time_frequency.multitaper import dpss_windows, _mt_spectra,\
-                                        _psd_from_mt, _csd_from_mt,\
-                                        _psd_from_mt_adaptive
+from ..source_estimate import _BaseSourceEstimate
+from .. import Epochs
+from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
+                                         _psd_from_mt, _csd_from_mt,
+                                         _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from .. import verbose
+from ..utils import logger, verbose
 
 ########################################################################
 # Various connectivity estimators
@@ -327,7 +324,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
                                 & (sig_idx < sig_pos_end)] - sig_pos_start
             else:
                 this_sig_idx = sig_idx
-            if isinstance(this_data, SourceEstimate):
+            if isinstance(this_data, _BaseSourceEstimate):
                 this_x_mt = this_data.transform_data(_mt_spectra,
                                         fun_args=(window_fun, sfreq),
                                         idx=this_sig_idx, tmin_idx=tmin_idx,
@@ -380,7 +377,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
                     & (sig_idx < sig_pos_end)] - sig_pos_start
             else:
                 this_sig_idx = sig_idx
-            if isinstance(this_data, SourceEstimate):
+            if isinstance(this_data, _BaseSourceEstimate):
                 this_x_cwt = this_data.transform_data(cwt,
                     fun_args=(wavelets,), idx=this_sig_idx, tmin_idx=tmin_idx,
                     tmax_idx=tmax_idx, use_fft=True, mode='same')
@@ -618,7 +615,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     ----------
     data : array, shape=(n_epochs, n_signals, n_times)
            or list/generator of array, shape =(n_signals, n_times)
-           or list/generator of SourceEstimate
+           or list/generator of SourceEstimate or VolSourceEstimate
            or Epochs
         The data from which to compute connectivity. Note that it is also
         possible to combine multiple signals by providing a list of tuples,

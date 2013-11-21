@@ -49,7 +49,7 @@ epochs_ts = epochs.to_nitime(picks=np.arange(20), collapse=True)
 
 from nitime.analysis import MTCoherenceAnalyzer
 from nitime.viz import drawmatrix_channels
-import matplotlib.pylab as pl
+import matplotlib.pyplot as plt
 
 # setup coherency analyzer
 C = MTCoherenceAnalyzer(epochs_ts)
@@ -62,4 +62,4 @@ coh = np.mean(C.coherence[:, :, freq_idx], -1)  # Averaging on last dimension
 drawmatrix_channels(coh, epochs.ch_names, color_anchor=0,
                     title='MEG gradiometer coherence')
 
-pl.show()
+plt.show()

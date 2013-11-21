@@ -30,30 +30,79 @@ Outside the Martinos Center
 ---------------------------
 
 MNE is written in pure Python making it easy to setup of
-any machine with Python >=2.6, Numpy >= 1.4, Scipy >= 0.7.2
+any machine with Python >=2.6, NumPy >= 1.4, SciPy >= 0.7.2
 and matplotlib >= 1.1.0.
 
-Some isolated functions (e.g. filtering with firwin2 require Scipy >= 0.9).
+Some isolated functions (e.g. filtering with firwin2) require SciPy >= 0.9.
 
-For a fast and up to date scientific Python environment you
-can install EPD available at:
+To run all documentation examples the following additional packages are required:
 
-http://www.enthought.com/products/epd.php
+    * PySurfer (for visualization of source estimates on cortical surfaces)
 
-EPD is free for academic purposes. If you cannot benefit from the
+    * scikit-learn (for supervised and unsupervised machine learning functionality)
+
+    * pandas >= 0.8 (for export to tabular data structures like excel files)
+
+Note. For optimal performance we recommend installing recent versions of
+NumPy (> 1.7), SciPy (> 0.10) and scikit-learn (>= 0.14).
+
+For a fast and up to date scientific Python environment that resolves all
+dependencies you can install Enthought Canopy available at:
+
+https://www.enthought.com/products/canopy/
+
+Canopy is free for academic purposes. If you cannot benefit from the
 an academic license and you don't want to pay for it, you can
-use EPD free which is a lightweight version (no 3D visualization
+use Canopy express which is a lightweight version (no 3D visualization
 support for example):
 
-http://www.enthought.com/products/epd_free.php
+https://www.enthought.com/store/
+
+Note that we explicitly support the following Python setups since they reflect our
+development environments and functionality is best tested for them:
+    
+    * EPD 7.3 (Mac, Linux)
+    
+    * Canopy >= 1.0 (Mac, Linux)
+
+    * Anaconda (Mac)
+    
+    * Debian / Ubuntu standard system Python + Scipy stack
+
+
+Note. To make Anaconda working with all examples and our test-suite a few
+manual adjustments might be necessary. This may require compiling the recent
+matplotlib development verion (http://goo.gl/bFZHhX, http://goo.gl/S81KHv)
+and manually adjusting the python interpreter invoked by the nosetests and
+the sphinx-build 'binaries' (http://goo.gl/Atqh26).
+Tested on a recent MacBook Pro running Mac OS X 10.8
+
+If you use another Python setup and you encounter some difficulties please 
+report them on the MNE mailing list or on github to get assistance.
 
 To test that everything works properly, open up IPython::
 
     ipython
 
+
 Although all of the examples in this documentation are in the style
-of the standard Python interpreter, the use of IPython is highly
-recommended.
+of the standard Python interpreter, the use of IPython with the pylab option
+is highly recommended. In addition, for the setups listed above we would
+strongly recommend to use the QT matplotlib backend for fast and correct rendering::
+
+    ipython --pylab qt
+
+
+On Linux, for example, QT is the only matplotlib backend for which 3D rendering
+will work correctly. On Mac OS X for other backends certain matplotlib functions
+might not work as expected.
+
+To take full advantage of MNE-Python's visualization capacities in combination
+with IPython notebooks and inline displaying, please explicitly add the
+following magic method invocation to your notebook or configure your notebook
+runtime accordingly.
+
+    %pylab inline
 
 Now that you have a working Python environment you can install MNE.
 

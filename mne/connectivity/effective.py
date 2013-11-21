@@ -2,12 +2,10 @@
 #
 # License: BSD (3-clause)
 import copy
-import logging
-logger = logging.getLogger('mne')
 
 import numpy as np
 
-from .. import verbose
+from ..utils import logger, verbose
 from .spectral import spectral_connectivity
 
 

@@ -78,7 +78,7 @@ X = np.zeros([n_epochs, n_vertices, n_times])
 # to save memory, we'll load and transform our epochs step by step.
 for condition_count, ep in zip([0, n_epochs / 2], epochs_list):
     stcs = apply_inverse_epochs(ep, inverse_operator, lambda2,
-                            method, pick_normal=True,  # this saves us memory
+                            method, pick_ori="normal",  # this saves us memory
                             return_generator=True)
     for jj, stc in enumerate(stcs):
         X[condition_count + jj] = stc.lh_data

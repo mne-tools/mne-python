@@ -4,7 +4,7 @@ from nose.tools import assert_true
 from mne.misc import parse_config
 
 ave_fname = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data',
-                'test.ave')
+                    'test.ave')
 
 
 def test_parse_ave():

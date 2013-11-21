@@ -42,17 +42,17 @@ FIFF.FIFFB_HPI_SUBSYSTEM      = 121
 FIFF.FIFFB_EPOCHS             = 122
 FIFF.FIFFB_ICA                = 123
 
-FIFF.FIFFB_SPHERE             = 300	  # Concentric sphere model related
-FIFF.FIFFB_BEM                = 310	  # Boundary-element method
-FIFF.FIFFB_BEM_SURF           = 311	  # Boundary-element method surfaces
-FIFF.FIFFB_CONDUCTOR_MODEL    = 312	  # One conductor model definition
+FIFF.FIFFB_SPHERE             = 300   # Concentric sphere model related
+FIFF.FIFFB_BEM                = 310   # Boundary-element method
+FIFF.FIFFB_BEM_SURF           = 311   # Boundary-element method surfaces
+FIFF.FIFFB_CONDUCTOR_MODEL    = 312   # One conductor model definition
 FIFF.FIFFB_PROJ               = 313
 FIFF.FIFFB_PROJ_ITEM          = 314
 FIFF.FIFFB_MRI                = 200
 FIFF.FIFFB_MRI_SET            = 201
 FIFF.FIFFB_MRI_SLICE          = 202
 FIFF.FIFFB_MRI_SCENERY        = 203     # These are for writing unrelated 'slices'
-FIFF.FIFFB_MRI_SCENE          = 204	  # Which are actually 3D scenes...
+FIFF.FIFFB_MRI_SCENE          = 204     # Which are actually 3D scenes...
 FIFF.FIFFB_MRI_SEG            = 205     # MRI segmentation data
 FIFF.FIFFB_MRI_SEG_REGION     = 206     # One MRI segmentation region
 FIFF.FIFFB_PROCESSING_HISTORY = 900
@@ -107,15 +107,15 @@ FIFF.FIFF_BAD_CHS       = 220
 FIFF.FIFF_ARTEF_REMOVAL = 221
 FIFF.FIFF_COORD_TRANS = 222
 FIFF.FIFF_HIGHPASS    = 223
-FIFF.FIFF_CH_CALS        = 224	  # This will not occur in new files
-FIFF.FIFF_HPI_BAD_CHS    = 225     # List of channels considered to be bad in hpi
-FIFF.FIFF_HPI_CORR_COEFF = 226	  # Hpi curve fit correlations
-FIFF.FIFF_EVENT_COMMENT  = 227     # Comment about the events used in averaging
-FIFF.FIFF_NO_SAMPLES     = 228     # Number of samples in an epoch
-FIFF.FIFF_FIRST_TIME     = 229     # Time scale minimum
+FIFF.FIFF_CH_CALS        = 22     # This will not occur in new files
+FIFF.FIFF_HPI_BAD_CHS    = 225    # List of channels considered to be bad in hpi
+FIFF.FIFF_HPI_CORR_COEFF = 226    # Hpi curve fit correlations
+FIFF.FIFF_EVENT_COMMENT  = 227    # Comment about the events used in averaging
+FIFF.FIFF_NO_SAMPLES     = 228    # Number of samples in an epoch
+FIFF.FIFF_FIRST_TIME     = 229    # Time scale minimum
 
-FIFF.FIFF_SUBAVE_SIZE    = 230	  # Size of a subaverage
-FIFF.FIFF_SUBAVE_FIRST   = 231	  # The first epoch # contained in the subaverage
+FIFF.FIFF_SUBAVE_SIZE    = 230    # Size of a subaverage
+FIFF.FIFF_SUBAVE_FIRST   = 231    # The first epoch # contained in the subaverage
 FIFF.FIFF_NAME           = 233          # Intended to be a short name.
 FIFF.FIFF_DESCRIPTION    = FIFF.FIFF_COMMENT # (Textual) Description of an object
 FIFF.FIFF_DIG_STRING     = 234          # String of digitized points
@@ -147,7 +147,11 @@ FIFF.FIFFV_EOG_CH     = 202
 FIFF.FIFFV_EMG_CH     = 302
 FIFF.FIFFV_ECG_CH     = 402
 FIFF.FIFFV_MISC_CH    = 502
-FIFF.FIFFV_RESP_CH    = 602                # Respiration monitoring
+FIFF.FIFFV_RESP_CH    = 602  # Respiration monitoring
+FIFF.FIFFV_SYST_CH    = 900  # some system status information (on Triux systems only)
+FIFF.FIFFV_IAS_CH     = 910  # Internal Active Shielding data (maybe on Triux only)
+FIFF.FIFFV_EXCI_CH    = 920  # flux excitation channel used to be a stimulus channel
+
 #
 # Quaternion channels for head position monitoring
 #
@@ -244,6 +248,24 @@ FIFF.FIFFV_BEM_SURF_ID_UNKNOWN    = -1
 FIFF.FIFFV_BEM_SURF_ID_BRAIN      = 1
 FIFF.FIFFV_BEM_SURF_ID_SKULL      = 3
 FIFF.FIFFV_BEM_SURF_ID_HEAD       = 4
+
+FIFF.FIFFB_BEM                  = 310  # BEM data
+FIFF.FIFFB_BEM_SURF             = 311  # One of the surfaces
+FIFF.FIFF_BEM_SURF_ID           = 3101  # int    surface number
+FIFF.FIFF_BEM_SURF_NAME         = 3102  # string surface name
+FIFF.FIFF_BEM_SURF_NNODE        = 3103  # int    number of nodes on a surface
+FIFF.FIFF_BEM_SURF_NTRI         = 3104  # int     number of triangles on a surface
+FIFF.FIFF_BEM_SURF_NODES        = 3105  # float  surface nodes (nnode,3)
+FIFF.FIFF_BEM_SURF_TRIANGLES    = 3106  # int    surface triangles (ntri,3)
+FIFF.FIFF_BEM_SURF_NORMALS      = 3107  # float  surface node normal unit vectors
+
+FIFF.FIFF_BEM_POT_SOLUTION      = 3110  # float ** The solution matrix
+FIFF.FIFF_BEM_APPROX            = 3111  # int    approximation method, see below
+FIFF.FIFF_BEM_COORD_FRAME       = 3112  # The coordinate frame of the model
+FIFF.FIFF_BEM_SIGMA             = 3113  # Conductivity of a compartment
+FIFF.FIFFV_BEM_APPROX_CONST     = 1     # The constant potential approach
+FIFF.FIFFV_BEM_APPROX_LINEAR    = 2     # The linear potential approach
+
 #
 # More of those defined in MNE
 #
@@ -423,7 +445,7 @@ FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT         = 3547  # Are the sources given in Am 
 FIFF.FIFF_MNE_ENV_WORKING_DIR        = 3550     # Working directory where the file was created
 FIFF.FIFF_MNE_ENV_COMMAND_LINE       = 3551     # The command used to create the file
 FIFF.FIFF_MNE_EXTERNAL_BIG_ENDIAN    = 3552     # Reference to an external binary file (big-endian) */
-FIFF.FIFF_MNE_EXTERNAL_LITTLE_ENDIAN = 3553	    # Reference to an external binary file (little-endian) */
+FIFF.FIFF_MNE_EXTERNAL_LITTLE_ENDIAN = 3553     # Reference to an external binary file (little-endian) */
 #
 # 3560... Miscellaneous
 #
@@ -433,7 +455,7 @@ FIFF.FIFF_MNE_HEMI                   = 3562     # Hemisphere association for gen
 FIFF.FIFF_MNE_DATA_SKIP_NOP          = 3563     # A data skip turned off in the raw data
 FIFF.FIFF_MNE_ORIG_CH_INFO           = 3564     # Channel information before any changes
 FIFF.FIFF_MNE_EVENT_TRIGGER_MASK     = 3565     # Mask applied to the trigger channnel values
-FIFF.FIFF_MNE_EVENT_COMMENTS         = 3566	    # Event comments merged into one long string
+FIFF.FIFF_MNE_EVENT_COMMENTS         = 3566     # Event comments merged into one long string
 #
 # 3570... Morphing maps
 #
@@ -459,6 +481,7 @@ FIFF.FIFF_MNE_ICA_PCA_EXPLAINED_VAR = 3605     # PCA explained variance
 FIFF.FIFF_MNE_ICA_PCA_MEAN          = 3606     # PCA mean
 FIFF.FIFF_MNE_ICA_MATRIX            = 3607     # ICA unmixing matrix
 FIFF.FIFF_MNE_ICA_BADS              = 3608     # ICA bad sources
+FIFF.FIFF_MNE_ICA_MISC_PARAMS       = 3609     # ICA misc params
 #
 # Fiff values associated with MNE computations
 #
@@ -523,7 +546,6 @@ FIFF.FIFFV_PROJ_ITEM_DIP_FIX        = 2
 FIFF.FIFFV_PROJ_ITEM_DIP_ROT        = 3
 FIFF.FIFFV_PROJ_ITEM_HOMOG_GRAD     = 4
 FIFF.FIFFV_PROJ_ITEM_HOMOG_FIELD    = 5
-FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF  = 10
 #
 # Additional coordinate frames
 #
@@ -565,9 +587,35 @@ FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD = 4005
 # BabySQUID sensors
 #
 FIFF.FIFFV_COIL_BABY_GRAD               = 7001
+FIFF.FIFFV_COIL_BABY_MAG                = 7002
+FIFF.FIFFV_COIL_BABY_REF_MAG            = 7003
 FIFF.FIFFV_REF_MEG_CH                   = 301
 FIFF.FIFF_UNIT_AM_M2  = 203 # Am/m^2
 FIFF.FIFF_UNIT_AM_M3  = 204	 # Am/m^3
+#
+#   FWD Types
+#
+FIFF.FWD_COIL_UNKNOWN                   = 0
+FIFF.FWD_COILC_UNKNOWN                  = 0
+FIFF.FWD_COILC_EEG                      = 1000
+FIFF.FWD_COILC_MAG                      = 1
+FIFF.FWD_COILC_AXIAL_GRAD               = 2
+FIFF.FWD_COILC_PLANAR_GRAD              = 3
+FIFF.FWD_COILC_AXIAL_GRAD2              = 4
+
+FIFF.FWD_COIL_ACCURACY_POINT            = 0
+FIFF.FWD_COIL_ACCURACY_NORMAL           = 1
+FIFF.FWD_COIL_ACCURACY_ACCURATE         = 2
+
+FIFF.FWD_BEM_UNKNOWN                    = -1
+FIFF.FWD_BEM_CONSTANT_COLL              = 1
+FIFF.FWD_BEM_LINEAR_COLL                = 2
+
+FIFF.FWD_BEM_IP_APPROACH_LIMIT          = 0.1
+
+FIFF.FWD_BEM_LIN_FIELD_SIMPLE           = 1
+FIFF.FWD_BEM_LIN_FIELD_FERGUSON         = 2
+FIFF.FWD_BEM_LIN_FIELD_URANKAR          = 3
 
 #
 #   Data types
@@ -711,3 +759,7 @@ FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA  = 4004  # Magnes WH reference diagonal gradio
 FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF  = 4005  # Magnes WH reference off-diagonal gradiometer
 FIFF.FIFFV_COIL_CTF_GRAD           = 5001  # CTF axial gradiometer
 FIFF.FIFFV_COIL_KIT_GRAD           = 6001  # KIT system axial gradiometer
+
+# MNE RealTime
+FIFF.FIFF_MNE_RT_COMMAND           = 3700
+FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701

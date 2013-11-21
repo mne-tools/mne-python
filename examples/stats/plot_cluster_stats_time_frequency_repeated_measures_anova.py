@@ -60,8 +60,8 @@ ch_name = raw.info['ch_names'][picks[0]]
 reject = dict(grad=4000e-13, eog=150e-6)
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                                picks=picks, baseline=(None, 0),
-                                reject=reject)
+                    picks=picks, baseline=(None, 0),
+                    reject=reject)
 
 # make sure all conditions have the same counts, as the ANOVA expects a
 # fully balanced data matrix and does not forgive imbalances that generously
@@ -82,7 +82,8 @@ baseline_mask = times[::decim] < 0
 epochs_power = []
 for condition in [epochs[k].get_data()[:, 97:98, :] for k in event_id]:
     this_power = single_trial_power(condition, Fs=Fs, frequencies=frequencies,
-        n_cycles=n_cycles, use_fft=False, decim=decim)
+                                    n_cycles=n_cycles, use_fft=False,
+                                    decim=decim)
     this_power = this_power[:, 0, :, :]  # we only have one channel.
     # Compute ratio with baseline power (be sure to correct time vector with
     # decimation factor)
@@ -129,25 +130,25 @@ print data.shape
 fvals, pvals = f_twoway_rm(data, factor_levels, effects=effects)
 
 effect_labels = ['modality', 'location', 'modality by location']
-import pylab as pl
+import matplotlib.pyplot as plt
 
 # let's visualize our effects by computing f-images
 for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
-    pl.figure()
+    plt.figure()
     # show naive F-values in gray
-    pl.imshow(effect.reshape(8, 211), cmap=pl.cm.gray, extent=[times[0],
-        times[-1], frequencies[0], frequencies[-1]], aspect='auto',
-        origin='lower')
+    plt.imshow(effect.reshape(8, 211), cmap=plt.cm.gray, extent=[times[0],
+               times[-1], frequencies[0], frequencies[-1]], aspect='auto',
+               origin='lower')
     # create mask for significant Time-frequency locations
     effect = np.ma.masked_array(effect, [sig > .05])
-    pl.imshow(effect.reshape(8, 211), cmap=pl.cm.jet, extent=[times[0],
-        times[-1], frequencies[0], frequencies[-1]], aspect='auto',
-        origin='lower')
-    pl.colorbar()
-    pl.xlabel('time (ms)')
-    pl.ylabel('Frequency (Hz)')
-    pl.title(r"Time-locked response for '%s' (%s)" % (effect_label, ch_name))
-    pl.show()
+    plt.imshow(effect.reshape(8, 211), cmap=plt.cm.jet, extent=[times[0],
+               times[-1], frequencies[0], frequencies[-1]], aspect='auto',
+               origin='lower')
+    plt.colorbar()
+    plt.xlabel('time (ms)')
+    plt.ylabel('Frequency (Hz)')
+    plt.title(r"Time-locked response for '%s' (%s)" % (effect_label, ch_name))
+    plt.show()
 
 # Note. As we treat trials as subjects, the test only accounts for
 # time locked responses despite the 'induced' approach.
@@ -173,10 +174,11 @@ def stat_fun(*args):
     # The following expression catches the list input, swaps the first and the
     # second dimension and puts the remaining observations in the third
     # dimension.
-    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_replications, \
-        n_conditions, n_times * n_frequencies)
-    return f_twoway_rm(data, factor_levels=factor_levels, effects=effects,
-                return_pvals=False)[0]
+    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_replications,
+                                                       n_conditions,
+                                                       n_times * n_frequencies)
+    return f_twoway_rm(data, factor_levels=factor_levels,
+                       effects=effects, return_pvals=False)[0]
     # The ANOVA returns a tuple f-values and p-values, we will pick the former.
 
 
@@ -187,38 +189,38 @@ tail = 1  # f-test, so tail > 0
 n_permutations = 256  # Save some time (the test won't be too sensitive ...)
 T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
     epochs_power, stat_fun=stat_fun, threshold=f_thresh, tail=tail, n_jobs=1,
-    n_permutations=n_permutations)
+    n_permutations=n_permutations, buffer_size=None)
 
 # Create new stats image with only significant clusters
 good_clusers = np.where(cluster_p_values < .05)[0]
 T_obs_plot = np.ma.masked_array(T_obs, np.invert(clusters[good_clusers]))
 
-pl.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot], [pl.cm.gray, pl.cm.jet]):
-    pl.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
-          frequencies[0], frequencies[-1]], aspect='auto',
-          origin='lower')
-pl.xlabel('time (ms)')
-pl.ylabel('Frequency (Hz)')
-pl.title('Time-locked response for \'modality by location\' (%s)\n'
+plt.figure()
+for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, plt.cm.jet]):
+    plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
+               frequencies[0], frequencies[-1]], aspect='auto',
+               origin='lower')
+plt.xlabel('time (ms)')
+plt.ylabel('Frequency (Hz)')
+plt.title('Time-locked response for \'modality by location\' (%s)\n'
           ' cluster-level corrected (p <= 0.05)' % ch_name)
-pl.show()
+plt.show()
 
 # now using FDR
 mask, _ = fdr_correction(pvals[2])
 T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
 
-pl.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot2], [pl.cm.gray, pl.cm.jet]):
-    pl.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
-          frequencies[0], frequencies[-1]], aspect='auto',
-          origin='lower')
+plt.figure()
+for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, plt.cm.jet]):
+    plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
+               frequencies[0], frequencies[-1]], aspect='auto',
+               origin='lower')
 
-pl.xlabel('time (ms)')
-pl.ylabel('Frequency (Hz)')
-pl.title('Time-locked response for \'modality by location\' (%s)\n'
+plt.xlabel('time (ms)')
+plt.ylabel('Frequency (Hz)')
+plt.title('Time-locked response for \'modality by location\' (%s)\n'
           ' FDR corrected (p <= 0.05)' % ch_name)
-pl.show()
+plt.show()
 
 # Both, cluster level and FDR correction help getting rid of
 # putatively spots we saw in the naive f-images.

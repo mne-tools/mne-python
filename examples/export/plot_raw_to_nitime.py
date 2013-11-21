@@ -61,7 +61,7 @@ print raw_ts.ch_names[:3]
 ###############################################################################
 # investigate spectral density
 
-import matplotlib.pylab as pl
+import matplotlib.pyplot as plt
 
 import nitime.algorithms as tsa
 
@@ -75,9 +75,9 @@ f, psd_mt, nu = tsa.multi_taper_psd(data_ch, Fs=raw_ts.sampling_rate,
 # Convert PSD to dB
 psd_mt = 10 * np.log10(psd_mt)
 
-pl.close('all')
-pl.plot(f, psd_mt)
-pl.xlabel('Frequency (Hz)')
-pl.ylabel('Power Spectrald Density (db/Hz)')
-pl.title('Multitaper Power Spectrum \n %s' % raw_ts.ch_names[ch_sel])
-pl.show()
+plt.close('all')
+plt.plot(f, psd_mt)
+plt.xlabel('Frequency (Hz)')
+plt.ylabel('Power Spectrald Density (db/Hz)')
+plt.title('Multitaper Power Spectrum \n %s' % raw_ts.ch_names[ch_sel])
+plt.show()

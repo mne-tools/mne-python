@@ -12,23 +12,23 @@ from mne.datasets import sample
 from mne import fiff, read_cov, read_forward_solution
 from mne.inverse_sparse import gamma_map
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 fname_evoked = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6-fwd.fif')
 
 
-forward = read_forward_solution(fname_fwd, force_fixed=False, surf_ori=True)
-evoked = fiff.Evoked(fname_evoked, setno=0, baseline=(None, 0))
-evoked.crop(tmin=0, tmax=0.3)
-
-cov = read_cov(fname_cov)
-cov = mne.cov.regularize(cov, evoked.info)
-
-
+@sample.requires_sample_data
 def test_gamma_map():
     """Test Gamma MAP inverse"""
+    forward = read_forward_solution(fname_fwd, force_fixed=False,
+                                    surf_ori=True)
+    evoked = fiff.Evoked(fname_evoked, setno=0, baseline=(None, 0))
+    evoked.crop(tmin=0, tmax=0.3)
+
+    cov = read_cov(fname_cov)
+    cov = mne.cov.regularize(cov, evoked.info)
 
     alpha = 0.2
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,

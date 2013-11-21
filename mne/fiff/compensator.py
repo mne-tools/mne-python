@@ -1,10 +1,6 @@
 import numpy as np
 
-import logging
-logger = logging.getLogger('mne')
-
 from .constants import FIFF
-from .. import verbose
 
 
 def get_current_comp(info):
@@ -20,7 +16,6 @@ def get_current_comp(info):
             elif comp != first_comp:
                 raise ValueError('Compensation is not set equally on '
                                  'all MEG channels')
-
     return comp
 
 
@@ -35,10 +30,10 @@ def _make_compensator(info, kind):
             presel = np.zeros((this_data['ncol'], info['nchan']))
             for col, col_name in enumerate(this_data['col_names']):
                 ind = [k for k, ch in enumerate(info['ch_names'])
-                                                            if ch == col_name]
+                       if ch == col_name]
                 if len(ind) == 0:
-                    raise ValueError('Channel %s is not available in data' % \
-                                                                      col_name)
+                    raise ValueError('Channel %s is not available in '
+                                     'data' % col_name)
                 elif len(ind) > 1:
                     raise ValueError('Ambiguous channel %s' % col_name)
                 presel[col, ind] = 1.0
@@ -47,7 +42,7 @@ def _make_compensator(info, kind):
             postsel = np.zeros((info['nchan'], this_data['nrow']))
             for c, ch_name in enumerate(info['ch_names']):
                 ind = [k for k, ch in enumerate(this_data['row_names'])
-                                                            if ch == ch_name]
+                       if ch == ch_name]
                 if len(ind) > 1:
                     raise ValueError('Ambiguous channel %s' % ch_name)
                 elif len(ind) == 1:
@@ -103,7 +98,7 @@ def make_compensator(info, from_, to, exclude_comp_chs=False):
 
     if exclude_comp_chs:
         pick = [k for k, c in enumerate(info['chs'])
-                                    if c['kind'] != FIFF.FIFFV_REF_MEG_CH]
+                if c['kind'] != FIFF.FIFFV_REF_MEG_CH]
 
         if len(pick) == 0:
             raise ValueError('Nothing remains after excluding the '

@@ -8,13 +8,11 @@ try:
     import pycuda.gpuarray as gpuarray
     from pycuda.driver import mem_get_info
     from scikits.cuda import fft as cudafft
-except ImportError:
+except (ImportError, OSError):
+    # need OSError because scikits.cuda throws it if cufft not found
     pass
 
-import logging
-logger = logging.getLogger('mne')
-
-from .utils import sizeof_fmt
+from .utils import sizeof_fmt, logger
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
@@ -86,7 +84,7 @@ def init_cuda():
                 try:
                     from scikits.cuda import fft as cudafft
                 except ImportError:
-                    logger.warn('modudle scikits.cuda not found, CUDA not '
+                    logger.warn('module scikits.cuda not found, CUDA not '
                                 'enabled')
                 else:
                     # Make sure we can use 64-bit FFTs

@@ -4,117 +4,38 @@
 #
 # License: BSD (3-clause)
 
-from struct import unpack
-from os import SEEK_CUR, path
-import re
+from datetime import datetime
 import cPickle as pickle
+import os
+from os import SEEK_CUR
+import re
+from struct import unpack
+
 import numpy as np
-from scipy import linalg
-from ..constants import FIFF
-from ...transforms.transforms import apply_trans, rotation, translation
+from scipy.linalg import norm
+
+from ... import __version__
+from ...transforms import translation
 from .constants import KIT
 
 
-def get_points(mrk_fname, elp_fname, hsp_fname):
-    """Extracts dig points, elp, and mrk points from files needed for coreg
-
-    Parameters
-    ----------
-    mrk_fname : str
-        Path to marker file (saved as text from MEG160).
-    elp_fname : str
-        Path to elp digitizer file.
-    hsp_fname : str
-        Path to hsp headshape file.
-
-    Returns
-    -------
-    mrk_points : numpy.array, shape = (n_points, 3)
-        Array of 5 points by coordinate (x,y,z) from marker measurement.
-    elp_points : numpy.array, shape = (n_points, 3)
-        Array of 5 points by coordinate (x,y,z) from digitizer laser point.
-    dig : dict
-        A dictionary containing the mrk_points, elp_points, and hsp_points in
-        a format used for raw.info['dig'].
-    """
-
-    mrk_points = read_mrk(mrk_fname=mrk_fname)
-    mrk_points = transform_pts(mrk_points, unit='m')
-
-    elp_points = read_elp(elp_fname=elp_fname)
-    elp_points = transform_pts(elp_points)
-    nasion = elp_points[0, :]
-    lpa = elp_points[1, :]
-    rpa = elp_points[2, :]
-
-    trans = get_neuromag_transform(lpa, rpa, nasion)
-    elp_points = np.dot(elp_points, trans.T)
-    nasion = elp_points[0]
-    lpa = elp_points[1]
-    rpa = elp_points[2]
-    elp_points = elp_points[3:]
-
-    hsp_points = read_hsp(hsp_fname=hsp_fname)
-    hsp_points = transform_pts(hsp_points)
-    hsp_points = np.dot(hsp_points, trans.T)
-    dig = []
-
-    point_dict = {}
-    point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-    point_dict['ident'] = FIFF.FIFFV_POINT_NASION
-    point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-    point_dict['r'] = nasion
-    dig.append(point_dict)
-
-    point_dict = {}
-    point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-    point_dict['ident'] = FIFF.FIFFV_POINT_LPA
-    point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-    point_dict['r'] = lpa
-    dig.append(point_dict)
-
-    point_dict = {}
-    point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-    point_dict['ident'] = FIFF.FIFFV_POINT_RPA
-    point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-    point_dict['r'] = rpa
-    dig.append(point_dict)
-
-    for idx, point in enumerate(elp_points):
-        point_dict = {}
-        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = idx
-        point_dict['kind'] = FIFF.FIFFV_POINT_HPI
-        point_dict['r'] = point
-        dig.append(point_dict)
-
-    for idx, point in enumerate(hsp_points):
-        point_dict = {}
-        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = idx
-        point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
-        point_dict['r'] = point
-        dig.append(point_dict)
-    return mrk_points, elp_points, dig
-
-
-def read_mrk(mrk_fname):
+def read_mrk(fname):
     """Marker Point Extraction in MEG space directly from sqd
 
     Parameters
     ----------
-    mrk_fname : str
+    fname : str
         Absolute path to Marker file.
-        File formats allowed: *.sqd, *.txt, *.pickled
+        File formats allowed: *.sqd, *.mrk, *.txt, *.pickled
 
     Returns
     -------
     mrk_points : numpy.array, shape = (n_points, 3)
         Marker points in MEG space [m].
     """
-    ext = path.splitext(mrk_fname)[-1]
-    if ext == '.sqd':
-        with open(mrk_fname, 'r') as fid:
+    ext = os.path.splitext(fname)[-1]
+    if ext in ('.sqd', '.mrk'):
+        with open(fname, 'r') as fid:
             fid.seek(KIT.MRK_INFO)
             mrk_offset = unpack('i', fid.read(KIT.INT))[0]
             fid.seek(mrk_offset)
@@ -127,22 +48,65 @@ def read_mrk(mrk_fname):
                 fid.seek(KIT.INT * 4 + (KIT.DOUBLE * 3), SEEK_CUR)
                 pts.append(np.fromfile(fid, dtype='d', count=3))
                 mrk_points = np.array(pts)
-    elif ext == '.hpi':
-        mrk_points = np.loadtxt(mrk_fname)
+    elif ext == '.txt':
+        mrk_points = np.loadtxt(fname)
     elif ext == '.pickled':
-        mrk = pickle.load(open(mrk_fname))
-        mrk_points = mrk['points']
+        with open(fname) as fid:
+            food = pickle.load(fid)
+        try:
+            mrk_points = food['mrk']
+        except:
+            err = ("%r does not contain marker points." % fname)
+            raise ValueError(err)
     else:
-        raise TypeError('File must be *.sqd, *.hpi or *.pickled.')
+        err = ('KIT marker file must be *.sqd, *.txt or *.pickled, '
+               'not *%s.' % ext)
+        raise ValueError(err)
+
+    # check output
+    mrk_points = np.asarray(mrk_points)
+    if mrk_points.shape != (5, 3):
+        err = ("%r is no marker file, shape is "
+               "%s" % (fname, mrk_points.shape))
+        raise ValueError(err)
     return mrk_points
 
 
-def read_elp(elp_fname):
+def write_mrk(fname, points):
+    """Save KIT marker coordinates
+
+    Parameters
+    ----------
+    fname : str
+        Path to the file to write. The kind of file to write is determined
+        based on the extension: '.txt' for tab separated text file, '.pickled'
+        for pickled file.
+    points : array_like, shape = (5, 3)
+        The marker point coordinates.
+    """
+    mrk = np.asarray(points)
+    _, ext = os.path.splitext(fname)
+    if mrk.shape != (5, 3):
+        err = ("KIT marker points array needs to have shape (5, 3), got "
+               "%s." % str(mrk.shape))
+        raise ValueError(err)
+
+    if ext == '.pickled':
+        with open(fname, 'w') as fid:
+            pickle.dump({'mrk': mrk}, fid, pickle.HIGHEST_PROTOCOL)
+    elif ext == '.txt':
+        np.savetxt(fname, mrk, fmt='%.18e', delimiter='\t', newline='\n')
+    else:
+        err = "Unrecognized extension: %r. Need '.txt' or '.pickled'." % ext
+        raise ValueError(err)
+
+
+def read_elp(fname):
     """ELP point extraction in Polhemus head space
 
     Parameters
     ----------
-    elp_fname : str
+    fname : str
         Absolute path to laser point file acquired from Polhemus system.
         File formats allowed: *.txt
 
@@ -151,19 +115,28 @@ def read_elp(elp_fname):
     elp_points : numpy.array, shape = (n_points, 3)
         Fiducial and marker points in Polhemus head space.
     """
-    p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    elp_points = p.findall(open(elp_fname).read())
+    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    elp_points = pattern.findall(open(fname).read())
     elp_points = np.array(elp_points, dtype=float)
+    if elp_points.shape[1] != 3:
+        err = ("File %r does not contain 3 columns as required; got shape "
+               "%s." % (fname, elp_points.shape))
+        raise ValueError(err)
+    elif len(elp_points) < 8:
+        err = ("File %r contains fewer than 8 points; got shape "
+               "%s." % (fname, elp_points.shape))
+        raise ValueError(err)
     return elp_points
 
 
-def read_hsp(hsp_fname):
-    """HSP point extraction in Polhemus head space
+def read_hsp(fname):
+    """Read a Polhemus ascii head shape file
 
     Parameters
     ----------
-    hsp_fname : str
-        Absolute path to headshape file acquired from Polhemus system.
+    fname : str
+        Path to head shape file acquired from Polhemus system and saved in
+        ascii format.
 
     Returns
     -------
@@ -171,30 +144,43 @@ def read_hsp(hsp_fname):
         Headshape points in Polhemus head space.
         File formats allowed: *.txt, *.pickled
     """
-    ext = path.splitext(hsp_fname)[-1]
-    if ext == '.txt':
-        p = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-        hsp_points = p.findall(open(hsp_fname).read())
-        hsp_points = np.array(hsp_points, dtype=float)
-        # downsample the digitizer points
-        n_pts = len(hsp_points)
-        if n_pts > KIT.DIG_POINTS:
-            space = int(n_pts / KIT.DIG_POINTS)
-            hsp_points = np.copy(hsp_points[::space])
-    elif ext == '.pickled':
-        hsp = pickle.load(open(hsp_fname))
-        hsp_points = hsp['points']
-    else:
-        raise TypeError('File must be either *.txt or *.pickled.')
+    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    with open(fname) as fid:
+        hsp_points = pattern.findall(fid.read())
+    hsp_points = np.array(hsp_points, dtype=float)
     return hsp_points
 
 
-def read_sns(sns_fname):
+def write_hsp(fname, pts):
+    """Write a headshape hsp file
+
+    Parameters
+    ----------
+    fname : str
+        Target file.
+    pts : array, shape = (n_pts, 3)
+        Points comprising the headshape.
+    """
+    pts = np.asarray(pts)
+    if (pts.ndim != 2) or (pts.shape[1] != 3):
+        err = "pts must be of shape (n_pts, 3), not %r" % str(pts.shape)
+        raise ValueError(err)
+
+    with open(fname, 'w') as fid:
+        version = __version__
+        now = datetime.now().strftime("%I:%M%p on %B %d, %Y")
+        fid.write("% Ascii 3D points file created by mne-python version "
+                  "{version} at {now}\n".format(version=version, now=now))
+        fid.write("% {N} 3D points, x y z per line\n".format(N=len(pts)))
+        np.savetxt(fid, pts, '%8.2f', ' ')
+
+
+def read_sns(fname):
     """Sensor coordinate extraction in MEG space
 
     Parameters
     ----------
-    sns_fname : str
+    fname : str
         Absolute path to sensor definition file.
 
     Returns
@@ -202,75 +188,9 @@ def read_sns(sns_fname):
     locs : numpy.array, shape = (n_points, 3)
         Sensor coil location.
     """
-
     p = re.compile(r'\d,[A-Za-z]*,([\.\-0-9]+),' +
                    r'([\.\-0-9]+),([\.\-0-9]+),' +
                    r'([\.\-0-9]+),([\.\-0-9]+)')
-    locs = np.array(p.findall(open(sns_fname).read()), dtype=float)
+    with open(fname) as fid:
+        locs = np.array(p.findall(fid.read()), dtype=float)
     return locs
-
-
-def get_neuromag_transform(lpa, rpa, nasion):
-    """Creates a transformation matrix from RAS to Neuromag-like space
-
-    Resets the origin to mid-distance of peri-auricular points with nasion
-    passing through y-axis.
-    (mne manual, pg. 97)
-
-    Parameters
-    ----------
-    lpa : numpy.array, shape = (1, 3)
-        Left peri-auricular point coordinate.
-    rpa : numpy.array, shape = (1, 3)
-        Right peri-auricular point coordinate.
-    nasion : numpy.array, shape = (1, 3)
-        Nasion point coordinate.
-
-    Returns
-    -------
-    trans : numpy.array, shape = (3, 3)
-        Transformation matrix to Neuromag-like space.
-    """
-    origin = (lpa + rpa) / 2
-    nasion = nasion - origin
-    lpa = lpa - origin
-    rpa = rpa - origin
-    axes = np.empty((3, 3))
-    axes[1] = nasion / linalg.norm(nasion)
-    axes[2] = np.cross(axes[1], lpa - rpa)
-    axes[2] /= linalg.norm(axes[2])
-    axes[0] = np.cross(axes[1], axes[2])
-
-    trans = linalg.inv(axes)
-    return trans
-
-
-def transform_pts(pts, unit='mm'):
-    """Transform KIT and Polhemus points to RAS coordinate system
-
-    This is used to orient points in Neuromag coordinates.
-    KIT sensors are (x,y,z) in [mm].
-    KIT markers are (x,y,z) in [m].
-    Polhemus points are (x,y,z) in [mm].
-    The transformation to RAS space is -y,x,z in [m].
-
-    Parameters
-    ----------
-    pts : numpy.array, shape = (n_points, 3)
-        Points to be transformed.
-    unit : 'mm' | 'm'
-        Unit of source points to be converted.
-
-    Returns
-    -------
-    pts : numpy.array, shape = (n_points, 3)
-        Points transformed to Neuromag-like head space (RAS).
-    """
-    if unit == 'mm':
-        pts = pts / 1e3
-    elif unit != 'm':
-        raise ValueError('The unit must be either "m" or "mm".')
-    pts = np.array(pts, ndmin=2)
-    pts = pts[:, [1, 0, 2]]
-    pts[:, 0] = pts[:, 0] * -1
-    return pts

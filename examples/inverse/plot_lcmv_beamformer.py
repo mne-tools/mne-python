@@ -14,7 +14,7 @@ of source orientation and stores the solutions in stc files for visualisation.
 
 print __doc__
 
-import pylab as pl
+import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
@@ -58,12 +58,13 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
 
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
 
-pl.close('all')
+plt.close('all')
 
-pick_oris = [None, 'max-power']
-names = ['free', 'max-power']
-descriptions = ['Free orientation', 'Max-power orientation']
-colors = ['b', 'r']
+pick_oris = [None, 'normal', 'max-power']
+names = ['free', 'normal', 'max-power']
+descriptions = ['Free orientation', 'Normal orientation', 'Max-power '
+                'orientation']
+colors = ['b', 'k', 'r']
 
 for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
@@ -75,11 +76,11 @@ for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     # View activation time-series
     data, times, _ = mne.label_time_courses(fname_label, "lcmv-" + name +
                                             "-lh.stc")
-    pl.plot(1e3 * times, np.mean(data, axis=0), color, hold=True, label=desc)
+    plt.plot(1e3 * times, np.mean(data, axis=0), color, hold=True, label=desc)
 
-pl.xlabel('Time (ms)')
-pl.ylabel('LCMV value')
-pl.ylim(-0.8, 2.2)
-pl.title('LCMV in %s' % label_name)
-pl.legend()
-pl.show()
+plt.xlabel('Time (ms)')
+plt.ylabel('LCMV value')
+plt.ylim(-0.8, 2.2)
+plt.title('LCMV in %s' % label_name)
+plt.legend()
+plt.show()

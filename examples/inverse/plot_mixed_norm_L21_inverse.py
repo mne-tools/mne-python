@@ -38,8 +38,8 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
 
 cov = mne.cov.regularize(cov, evoked.info)
 
-import pylab as pl
-pl.figure()
+import matplotlib.pyplot as plt
+plt.figure()
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
 evoked.plot(ylim=ylim, proj=True)
 
@@ -56,11 +56,11 @@ stc_dspm = apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 
 # Compute MxNE inverse solution
 stc, residual = mixed_norm(evoked, forward, cov, alpha, loose=loose,
-                 depth=depth, maxit=3000, tol=1e-4, active_set_size=10,
-                 debias=True, weights=stc_dspm, weights_min=8.,
-                 return_residual=True)
+                           depth=depth, maxit=3000, tol=1e-4,
+                           active_set_size=10, debias=True, weights=stc_dspm,
+                           weights_min=8., return_residual=True)
 
-pl.figure()
+plt.figure()
 residual.plot(ylim=ylim, proj=True)
 
 ###############################################################################

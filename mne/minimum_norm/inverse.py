@@ -9,32 +9,29 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..fiff.constants import FIFF
 from ..fiff.open import fiff_open
 from ..fiff.tag import find_tag
-from ..fiff.matrix import _read_named_matrix, _transpose_named_matrix, \
-                          write_named_matrix
+from ..fiff.matrix import (_read_named_matrix, _transpose_named_matrix,
+                           write_named_matrix)
 from ..fiff.proj import read_proj, make_projector, write_proj
 from ..fiff.tree import dir_tree_find
-from ..fiff.write import write_int, write_float_matrix, start_file, \
-                         start_block, end_block, end_file, write_float, \
-                         write_coord_trans
+from ..fiff.write import (write_int, write_float_matrix, start_file,
+                          start_block, end_block, end_file, write_float,
+                          write_coord_trans, write_string)
 
 from ..fiff.cov import read_cov, write_cov
 from ..fiff.pick import channel_type, pick_info
 from ..cov import prepare_noise_cov
-from ..forward import compute_depth_prior, read_forward_meas_info, \
-                      write_forward_meas_info, is_fixed_orient, \
-                      compute_orient_prior, _to_fixed_ori
-from ..source_space import read_source_spaces_from_tree, \
-                           find_source_space_hemi, _get_vertno, \
-                           write_source_spaces_to_fid, label_src_vertno_sel
+from ..forward import (compute_depth_prior, read_forward_meas_info,
+                       write_forward_meas_info, is_fixed_orient,
+                       compute_orient_prior, _to_fixed_ori)
+from ..source_space import (read_source_spaces_from_tree,
+                            find_source_space_hemi, _get_vertno,
+                            _write_source_spaces_to_fid, label_src_vertno_sel)
 from ..transforms import invert_transform, transform_source_space_to
-from ..source_estimate import SourceEstimate
-from .. import verbose
+from ..source_estimate import _make_stc
+from ..utils import logger, verbose
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -129,6 +126,22 @@ def read_inverse_operator(fname, verbose=None):
         raise Exception('Coordinate frame tag not found')
 
     inv['coord_frame'] = tag.data
+
+    #
+    #   Units
+    #
+    tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT)
+    if tag is not None:
+        if tag.data == FIFF.FIFF_UNIT_AM:
+            inv['units'] = 'Am'
+        elif tag.data == FIFF.FIFF_UNIT_AM_M2:
+            inv['units'] = 'Am/m^2'
+        elif tag.data == FIFF.FIFF_UNIT_AM_M3:
+            inv['units'] = 'Am/m^3'
+        else:
+            inv['units'] = None
+    else:
+        inv['units'] = None
     #
     #   The actual source orientation vectors
     #
@@ -232,7 +245,7 @@ def read_inverse_operator(fname, verbose=None):
             inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
         fid.close()
         raise Exception('Only inverse solutions computed in MRI or '
-                         'head coordinates are acceptable')
+                        'head coordinates are acceptable')
 
     #
     #  Number of averages is initially one
@@ -242,6 +255,7 @@ def read_inverse_operator(fname, verbose=None):
     #  We also need the SSP operator
     #
     inv['projs'] = read_proj(fid, tree)
+
     #
     #  Some empty fields to be filled in later
     #
@@ -293,18 +307,81 @@ def write_inverse_operator(fname, inv, verbose=None):
 
     # Create the file and save the essentials
     fid = start_file(fname)
+    start_block(fid, FIFF.FIFFB_MNE)
+
+    #
+    #   Parent MEG measurement info
+    #
+    write_forward_meas_info(fid, inv['info'])
+
+    #
+    #   Parent MRI data
+    #
+    start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+    write_string(fid, FIFF.FIFF_MNE_FILE_NAME, inv['info']['mri_file'])
+    write_coord_trans(fid, inv['mri_head_t'])
+    end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+
+    #
+    #   Write SSP operator
+    #
+    write_proj(fid, inv['projs'])
+
+    #
+    #   Write the source spaces
+    #
+    if 'src' in inv:
+        _write_source_spaces_to_fid(fid, inv['src'])
 
     start_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
 
     logger.info('    Writing inverse operator info...')
 
     write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
+    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
+
+    if 'units' in inv:
+        if inv['units'] == 'Am':
+            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
+                      FIFF.FIFF_UNIT_AM)
+        elif inv['units'] == 'Am/m^2':
+            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
+                      FIFF.FIFF_UNIT_AM_M2)
+        elif inv['units'] == 'Am/m^3':
+            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
+                      FIFF.FIFF_UNIT_AM_M3)
+
     write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
-    write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
+    if 'nchan' in inv:
+        write_int(fid, FIFF.FIFF_NCHAN, inv['nchan'])
+    elif 'nchan' in inv['info']:
+        write_int(fid, FIFF.FIFF_NCHAN, inv['info']['nchan'])
     write_float_matrix(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS,
                        inv['source_nn'])
     write_float(fid, FIFF.FIFF_MNE_INVERSE_SING, inv['sing'])
+
+    #
+    #   write the covariance matrices
+    #
+    logger.info('    Writing noise covariance matrix.')
+    write_cov(fid, inv['noise_cov'])
+
+    logger.info('    Writing source covariance matrix.')
+    write_cov(fid, inv['source_cov'])
+
+    #
+    #   write the various priors
+    #
+    logger.info('    Writing orientation priors.')
+    if inv['depth_prior'] is not None:
+        write_cov(fid, inv['depth_prior'])
+    if inv['orient_prior'] is not None:
+        write_cov(fid, inv['orient_prior'])
+    if inv['fmri_prior'] is not None:
+        write_cov(fid, inv['fmri_prior'])
+
+    write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
 
     #
     #   The eigenleads and eigenfields
@@ -316,59 +393,16 @@ def write_inverse_operator(fname, inv, verbose=None):
         write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_LEADS,
                            _transpose_named_matrix(inv['eigen_leads']))
 
-    write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
-    logger.info('    [done]')
-    #
-    #   write the covariance matrices
-    #
-    logger.info('    Writing noise covariance matrix.')
-    write_cov(fid, inv['noise_cov'])
-
-    logger.info('    Writing source covariance matrix.')
-    write_cov(fid, inv['source_cov'])
-    #
-    #   write the various priors
-    #
-    logger.info('    Writing orientation priors.')
-    if inv['orient_prior'] is not None:
-        write_cov(fid, inv['orient_prior'])
-    if inv['depth_prior'] is not None:
-        write_cov(fid, inv['depth_prior'])
-    if inv['fmri_prior'] is not None:
-        write_cov(fid, inv['fmri_prior'])
-
-    #
-    #   Parent MRI data
-    #
-    start_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-    #   write the MRI <-> head coordinate transformation
-    write_coord_trans(fid, inv['mri_head_t'])
-    end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-
-    #
-    #   Parent MEG measurement info
-    #
-    write_forward_meas_info(fid, inv['info'])
-
-    #
-    #   Write the source spaces
-    #
-    if 'src' in inv:
-        write_source_spaces_to_fid(fid, inv['src'])
-
-    #
-    #  We also need the SSP operator
-    #
-    write_proj(fid, inv['projs'])
     #
     #   Done!
     #
+    logger.info('    [done]')
 
     end_block(fid, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
+    end_block(fid, FIFF.FIFFB_MNE)
     end_file(fid)
 
     fid.close()
-
 
 ###############################################################################
 # Compute inverse solution
@@ -566,7 +600,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
 
 
 @verbose
-def _assemble_kernel(inv, label, method, pick_normal, verbose=None):
+def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
     #
     #   Simple matrix multiplication followed by combination of the
     #   current components
@@ -596,14 +630,14 @@ def _assemble_kernel(inv, label, method, pick_normal, verbose=None):
         eigen_leads = eigen_leads[src_sel]
         source_cov = source_cov[src_sel]
 
-    if pick_normal:
+    if pick_ori == "normal":
         if not inv['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
-            raise ValueError('Pick normal can only be used with a free '
-                             'orientation inverse operator.')
+            raise ValueError('Picking normal orientation can only be done '
+                             'with a free orientation inverse operator.')
 
         is_loose = 0 < inv['orient_prior']['data'][0] < 1
         if not is_loose:
-            raise ValueError('The pick_normal parameter is only valid '
+            raise ValueError('Picking normal orientation can only be done '
                              'when working with loose orientations.')
 
         # keep only the normal components
@@ -637,24 +671,31 @@ def _assemble_kernel(inv, label, method, pick_normal, verbose=None):
     return K, noise_norm, vertno
 
 
-def _check_method(method, dSPM):
-    if dSPM is not None:
-        warnings.warn('DEPRECATION: The dSPM parameter has been changed to '
-                      'method. Please update your code')
-        method = dSPM
-    if method is True:
-        warnings.warn('DEPRECATION:Inverse method should now be "MNE" or '
-                      '"dSPM" or "sLORETA".')
-        method = "dSPM"
-    if method is False:
-        warnings.warn('DEPRECATION:Inverse method should now be "MNE" or '
-                      '"dSPM" or "sLORETA".')
-        method = "MNE"
-
+def _check_method(method):
     if method not in ["MNE", "dSPM", "sLORETA"]:
         raise ValueError('method parameter should be "MNE" or "dSPM" '
                          'or "sLORETA".')
     return method
+
+
+def _check_ori(pick_ori, pick_normal):
+    if pick_normal is not None:
+        warnings.warn('DEPRECATION: The pick_normal parameter has been '
+                      'changed to pick_ori. Please update your code.')
+        pick_ori = pick_normal
+    if pick_ori is True:
+        warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
+                      'or "normal".')
+        pick_ori = "normal"
+    elif pick_ori is False:
+        warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
+                      'or "normal".')
+        pick_ori = None
+
+    if pick_ori not in [None, "normal"]:
+        raise ValueError('The pick_ori parameter should now be None or '
+                         '"normal".')
+    return pick_ori
 
 
 def _subject_from_inverse(inverse_operator):
@@ -664,7 +705,7 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_normal=False, dSPM=None, verbose=None):
+                  pick_ori=None, verbose=None, pick_normal=None):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -681,8 +722,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
         Use mininum norm, dSPM or sLORETA.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     verbose : bool, str, int, or None
@@ -690,10 +731,11 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : SourceEstimate
+    stc : SourceEstimate | VolSourceEstimate
         The source estimates
     """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
+    pick_ori = _check_ori(pick_ori, pick_normal)
     #
     #   Set up the inverse according to the parameters
     #
@@ -708,11 +750,11 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
     logger.info('Picked %d channels from the data' % len(sel))
     logger.info('Computing inverse...')
-    K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_normal)
+    K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_ori)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
+                   and pick_ori == None)
 
     if is_free_ori:
         logger.info('combining the current components...')
@@ -726,8 +768,9 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     tmin = float(evoked.first) / evoked.info['sfreq']
     vertno = _get_vertno(inv['src'])
     subject = _subject_from_inverse(inverse_operator)
-    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                         subject=subject)
+
+    stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                    subject=subject)
     logger.info('[done]')
 
     return stc
@@ -736,8 +779,9 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 @verbose
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
-                      time_func=None, pick_normal=False,
-                      buffer_size=None, dSPM=None, verbose=None):
+                      time_func=None, pick_ori=None,
+                      buffer_size=None, verbose=None,
+                      pick_normal=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -766,8 +810,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         Set to 1 on raw data.
     time_func : callable
         Linear function applied to sensor space time series.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     buffer_size : int (or None)
@@ -783,10 +827,11 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : SourceEstimate
+    stc : SourceEstimate | VolSourceEstimate
         The source estimates.
     """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
+    pick_ori = _check_ori(pick_ori, pick_normal)
 
     _check_ch_names(inverse_operator, raw.info)
 
@@ -806,10 +851,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     if time_func is not None:
         data = time_func(data)
 
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
+                   and pick_ori == None)
 
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
@@ -840,18 +885,19 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     tmin = float(times[0])
     tstep = 1.0 / raw.info['sfreq']
     subject = _subject_from_inverse(inverse_operator)
-    stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                         subject=subject)
+    stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                    subject=subject)
     logger.info('[done]')
 
     return stc
 
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
-                              label=None, nave=1, pick_normal=False, dSPM=None,
-                              verbose=None):
+                              label=None, nave=1, pick_ori=None,
+                              verbose=None, pick_normal=None):
     """ see apply_inverse_epochs """
-    method = _check_method(method, dSPM)
+    method = _check_method(method)
+    pick_ori = _check_ori(pick_ori, pick_normal)
 
     _check_ch_names(inverse_operator, epochs.info)
 
@@ -865,13 +911,13 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     sel = _pick_channels_inverse_operator(epochs.ch_names, inv)
     logger.info('Picked %d channels from the data' % len(sel))
     logger.info('Computing inverse...')
-    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_normal)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     tstep = 1.0 / epochs.info['sfreq']
     tmin = epochs.times[0]
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and not pick_normal)
+                   and pick_ori == None)
 
     if not is_free_ori and noise_norm is not None:
         # premultiply kernel with noise normalization
@@ -896,8 +942,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
             else:
                 sol = np.dot(K, e[sel])
 
-        stc = SourceEstimate(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                             subject=subject)
+        stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
+                        subject=subject)
 
         yield stc
 
@@ -906,8 +952,9 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
 
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
-                         label=None, nave=1, pick_normal=False, dSPM=None,
-                         return_generator=False, verbose=None):
+                         label=None, nave=1, pick_ori=None,
+                         return_generator=False, verbose=None,
+                         pick_normal=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -929,8 +976,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     nave : int
         Number of averages used to regularize the solution.
         Set to 1 on single Epoch by default.
-    pick_normal : bool
-        If True, rather than pooling the orientations by taking the norm,
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
     return_generator : bool
@@ -941,14 +988,13 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
 
     Returns
     -------
-    stc : list of SourceEstimate
+    stc : list of SourceEstimate or VolSourceEstimate
         The source estimates for all epochs.
     """
-
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
-                                     pick_normal=pick_normal, dSPM=dSPM,
-                                     verbose=verbose)
+                                     pick_ori=pick_ori, verbose=verbose,
+                                     pick_normal=pick_normal)
 
     if not return_generator:
         # return a list
@@ -1314,6 +1360,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                   src=deepcopy(forward['src']), fmri_prior=None)
     inv_info = deepcopy(forward['info'])
     inv_info['bads'] = deepcopy(info['bads'])
+    inv_op['units'] = 'Am'
     inv_op['info'] = inv_info
 
     return inv_op

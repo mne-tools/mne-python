@@ -39,6 +39,16 @@ $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif:
 test: in sample_data
 	$(NOSETESTS) mne
 
+test-no-sample: in
+	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
+	$(NOSETESTS) mne
+
+
+test-no-sample-with-coverage: in
+	rm -rf coverage .coverage
+	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
+	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
+
 test-doc: sample_data
 	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
 
@@ -49,6 +59,9 @@ test-coverage: sample_data
 test-profile: sample_data
 	$(NOSETESTS) --with-profile --profile-stats-file stats.pf mne
 	hotshot2dot stats.pf | dot -Tpng -o profile.png
+
+test-mem: in sample_data
+	ulimit -v 1097152 && $(NOSETESTS)
 
 trailing-spaces:
 	find . -name "*.py" | xargs perl -pi -e 's/[ \t]*$$//'
@@ -65,3 +78,12 @@ codespell:
 	# The *.fif had to be there twice to be properly ignored (!)
 	codespell.py -w -i 3 -S="*.fif,*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.coverage,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii" ./dictionary.txt -r .
 
+manpages:
+	@echo "I: generating manpages"
+	set -e; mkdir -p build/manpages && \
+	cd bin && for f in mne*; do \
+			descr=$$(grep -h -e "^ *'''" -e 'DESCRIP =' $$f -h | sed -e "s,.*' *\([^'][^']*\)'.*,\1,g" | head -n 1); \
+	PYTHONPATH=../ \
+			help2man -n "$$descr" --no-discard-stderr --no-info --version-string "$(uver)" ./$$f \
+			>| ../build/manpages/$$f.1; \
+	done

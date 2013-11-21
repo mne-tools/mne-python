@@ -5,14 +5,15 @@ import os.path as op
 import warnings
 from scipy.signal import resample as sp_resample
 
-from mne.filter import band_pass_filter, high_pass_filter, low_pass_filter, \
-                       band_stop_filter, resample, construct_iir_filter, \
-                       notch_filter, detrend
+from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
+                        band_stop_filter, resample, construct_iir_filter,
+                        notch_filter, detrend)
 
 from mne import set_log_file
-from mne.utils import _TempDir
+from mne.utils import _TempDir, sum_squared
 from mne.cuda import requires_cuda
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 tempdir = _TempDir()
 log_file = op.join(tempdir, 'temp_log.txt')
@@ -24,12 +25,12 @@ def test_notch_filters():
     # let's use an ugly, prime Fs for fun
     Fs = 487.0
     sig_len_secs = 20
-    t = np.arange(0, sig_len_secs * Fs) / Fs
+    t = np.arange(0, int(sig_len_secs * Fs)) / Fs
     freqs = np.arange(60, 241, 60)
 
     # make a "signal"
     rng = np.random.RandomState(0)
-    a = rng.randn(sig_len_secs * Fs)
+    a = rng.randn(int(sig_len_secs * Fs))
     orig_power = np.sqrt(np.mean(a ** 2))
     # make line noise
     a += np.sum([np.sin(2 * np.pi * f * t) for f in freqs], axis=0)
@@ -55,7 +56,7 @@ def test_notch_filters():
                 raise ValueError('Detected frequencies not logged properly')
             out = np.fromstring(out[1], sep=', ')
             assert_array_almost_equal(out, freqs)
-        new_power = np.sqrt(np.mean(b ** 2))
+        new_power = np.sqrt(sum_squared(b) / b.size)
         assert_almost_equal(new_power, orig_power, tol)
 
 
@@ -73,6 +74,8 @@ def test_filters():
                       filter_length=fl)
     for nj in ['blah', 0.5, 0]:
         assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8, n_jobs=nj)
+    assert_raises(ValueError, band_pass_filter, a, Fs, 4, Fs / 2.)  # > Nyq/2
+    assert_raises(ValueError, low_pass_filter, a, Fs, Fs / 2.)  # > Nyq/2
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation

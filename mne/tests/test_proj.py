@@ -12,9 +12,11 @@ from mne.datasets import sample
 from mne.fiff import Raw, pick_types
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.fiff.proj import make_projector, activate_proj
-from mne.proj import read_proj, write_proj
+from mne.proj import read_proj, write_proj, make_eeg_average_ref_proj
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
 from mne.utils import _TempDir
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -23,7 +25,7 @@ proj_fname = op.join(base_dir, 'test_proj.fif')
 proj_gz_fname = op.join(base_dir, 'test_proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 sample_path = op.join(data_path, 'MEG', 'sample')
 fwd_fname = op.join(sample_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 sensmap_fname = op.join(sample_path, 'sample_audvis-%s-oct-6-fwd-sensmap-%s.w')
@@ -32,6 +34,7 @@ eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
 tempdir = _TempDir()
 
 
+@sample.requires_sample_data
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
@@ -65,6 +68,10 @@ def test_sensitivity_maps():
                 stc = sensitivity_map(fwd, projs=proj_eog, mode=mode,
                                       ch_type=ch_type, exclude='bads')
                 assert_array_almost_equal(stc.data, w, decim)
+
+    # test corner case for EEG
+    stc = sensitivity_map(fwd, projs=[make_eeg_average_ref_proj(fwd['info'])],
+                          ch_type='eeg', exclude='bads')
 
 
 def test_compute_proj_epochs():

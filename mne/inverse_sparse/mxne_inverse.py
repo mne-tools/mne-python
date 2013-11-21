@@ -6,15 +6,12 @@ from copy import deepcopy
 import numpy as np
 from scipy import linalg, signal
 
-import logging
-logger = logging.getLogger('mne')
-
 from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
 from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
 from ..fiff.pick import pick_channels_evoked
 from .mxne_optim import mixed_norm_solver, norm_l2inf, tf_mixed_norm_solver
-from .. import verbose
+from ..utils import logger, verbose
 
 
 @verbose

@@ -2,30 +2,42 @@ import os
 import os.path as op
 import cPickle as pickle
 import glob
+import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
-from mne import label_time_courses, read_label, stc_to_label, \
-               read_source_estimate, read_source_spaces, grow_labels, \
-               labels_from_parc
+from mne import (label_time_courses, read_label, stc_to_label,
+                 read_source_estimate, read_source_spaces, grow_labels,
+                 labels_from_parc, parc_from_labels)
 from mne.label import Label
 from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.fixes import in1d
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = sample.data_path()
+data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
-label = 'Aud-lh'
-label_fname = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
-label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-rh.label')
+real_label_fname = op.join(data_path, 'MEG', 'sample', 'labels',
+                           'Aud-lh.label')
+real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
+                              'Aud-rh.label')
 src_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
 
+test_path = op.join(op.split(__file__)[0], '..', 'fiff', 'tests', 'data')
+label_fname = op.join(test_path, 'test-lh.label')
+label_rh_fname = op.join(test_path, 'test-rh.label')
 tempdir = _TempDir()
+
+# This code was used to generate the "fake" test labels:
+#for hemi in ['lh', 'rh']:
+#    label = Label(np.unique((np.random.rand(100) * 10242).astype(int)),
+#                  hemi=hemi, comment='Test ' + hemi, subject='fsaverage')
+#    label.save(op.join(test_path, 'test-%s.label' % hemi))
 
 
 def assert_labels_equal(l0, l1, decimal=5):
@@ -87,10 +99,11 @@ def test_label_addition():
     assert_labels_equal(bhl.lh, l01)
 
 
+@sample.requires_sample_data
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
-    values, times, vertices = label_time_courses(label_fname, stc_fname)
+    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
     assert_true(len(times) == values.shape[1])
     assert_true(len(vertices) == values.shape[0])
 
@@ -122,8 +135,9 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
             assert_array_equal(label_a.pos, label_b.pos)
 
 
+@sample.requires_sample_data
 def test_labels_from_parc():
-    """Test reading labels from parcellation
+    """Test reading labels from FreeSurfer parcellation
     """
     # test some invalid inputs
     assert_raises(ValueError, labels_from_parc, 'sample', hemi='bla',
@@ -172,17 +186,19 @@ def test_labels_from_parc():
 
     # test regexp
     label = labels_from_parc('sample', parc='aparc.a2009s', regexp='Angu',
-                subjects_dir=subjects_dir)[0][0]
+                             subjects_dir=subjects_dir)[0][0]
     assert_true(label.name == 'G_pariet_inf-Angular-lh')
+    # silly, but real regexp:
     label = labels_from_parc('sample', parc='aparc.a2009s',
-                regexp='.*-.{4,}_.{3,3}-L',  # silly, but real regexp
-                subjects_dir=subjects_dir)[0][0]
+                             regexp='.*-.{4,}_.{3,3}-L',
+                             subjects_dir=subjects_dir)[0][0]
     assert_true(label.name == 'G_oc-temp_med-Lingual-lh')
     assert_raises(RuntimeError, labels_from_parc, 'sample', parc='aparc',
-                annot_fname=annot_fname, regexp='JackTheRipper',
-                subjects_dir=subjects_dir)
+                  annot_fname=annot_fname, regexp='JackTheRipper',
+                  subjects_dir=subjects_dir)
 
 
+@sample.requires_sample_data
 @requires_mne
 def test_labels_from_parc_annot2labels():
     """Test reading labels from parc. by comparing with mne_annot2labels
@@ -214,6 +230,53 @@ def test_labels_from_parc_annot2labels():
     _assert_labels_equal(labels, labels_mne, ignore_pos=True)
 
 
+@sample.requires_sample_data
+def test_parc_from_labels():
+    """Test writing FreeSurfer parcellation from labels"""
+
+    labels, colors = labels_from_parc('sample', subjects_dir=subjects_dir)
+
+    # write left and right hemi labels:
+    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
+
+    for fname in fnames:
+        parc_from_labels(labels, colors, annot_fname=fname)
+
+    # read it back
+    labels2, colors2 = labels_from_parc('sample', subjects_dir=subjects_dir,
+                                        annot_fname=fnames[0])
+    labels22, colors22 = labels_from_parc('sample', subjects_dir=subjects_dir,
+                                          annot_fname=fnames[1])
+    labels2.extend(labels22)
+    colors2.extend(colors22)
+
+    names = [label.name for label in labels2]
+
+    for label, color in zip(labels, colors):
+        idx = names.index(label.name)
+        assert_labels_equal(label, labels2[idx])
+        assert_array_almost_equal(np.array(color), np.array(colors2[idx]))
+
+    # make sure we can't overwrite things
+    assert_raises(ValueError, parc_from_labels, labels, colors,
+                  annot_fname=fnames[0])
+
+    # however, this works
+    parc_from_labels(labels, colors=None, annot_fname=fnames[0],
+                     overwrite=True)
+
+    # test some other invalid inputs
+    assert_raises(ValueError, parc_from_labels, labels[:-1], colors,
+                  annot_fname=fnames[0], overwrite=True)
+    colors2 = np.asarray(colors)
+    assert_raises(ValueError, parc_from_labels, labels, colors2[:, :3],
+                  annot_fname=fnames[0], overwrite=True)
+    colors2[0] = 1.1
+    assert_raises(ValueError, parc_from_labels, labels, colors2,
+                  annot_fname=fnames[0], overwrite=True)
+
+
+@sample.requires_sample_data
 def test_stc_to_label():
     """Test stc_to_label
     """
@@ -221,16 +284,28 @@ def test_stc_to_label():
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = stc_to_label(stc, src='sample', smooth=3)
-    labels2 = stc_to_label(stc, src=src, smooth=3)
+    with warnings.catch_warnings(True) as w:  # connectedness warning
+        labels2 = stc_to_label(stc, src=src, smooth=3)
+    assert_true(len(w) == 1)
     assert_true(len(labels1) == len(labels2))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
 
+    with warnings.catch_warnings(True) as w:  # connectedness warning
+        labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3,
+                                            connected=True)
+    assert_true(len(w) == 1)
+    assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=3,
+                  connected=True)
+    assert_true(len(labels_lh) == 1)
+    assert_true(len(labels_rh) == 1)
 
+
+@sample.requires_sample_data
 def test_morph():
     """Test inter-subject label morphing
     """
-    label_orig = read_label(label_fname)
+    label_orig = read_label(real_label_fname)
     label_orig.subject = 'sample'
     # should work for specifying vertices for both hemis, or just the
     # hemi of the given label
@@ -251,36 +326,41 @@ def test_morph():
     # make sure label smoothing can run
     label.morph(label.subject, 'fsaverage', 5,
                 [np.arange(10242), np.arange(10242)], subjects_dir, 2,
-                 copy=False)
+                copy=False)
     # subject name should be inferred now
-    label.smooth()
+    label.smooth(subjects_dir=subjects_dir)
 
 
+@sample.requires_sample_data
 def test_grow_labels():
     """Test generation of circular source labels"""
     seeds = [0, 50000]
+    # these were chosen manually in mne_analyze
+    should_be_in = [[49, 227], [51207, 48794]]
     hemis = [0, 1]
-    labels = grow_labels('sample', seeds, 3, hemis)
+    labels = grow_labels('sample', seeds, 3, hemis, n_jobs=2)
 
-    for label, seed, hemi in zip(labels, seeds, hemis):
+    for label, seed, hemi, sh in zip(labels, seeds, hemis, should_be_in):
         assert(np.any(label.vertices == seed))
+        assert np.all(in1d(sh, label.vertices))
         if hemi == 0:
             assert(label.hemi == 'lh')
         else:
             assert(label.hemi == 'rh')
 
 
+@sample.requires_sample_data
 def test_label_time_course():
     """Test extracting label data from SourceEstimate"""
-    values, times, vertices = label_time_courses(label_fname, stc_fname)
+    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
     stc = read_source_estimate(stc_fname)
-    label_lh = read_label(label_fname)
+    label_lh = read_label(real_label_fname)
     stc_lh = stc.in_label(label_lh)
     assert_array_almost_equal(stc_lh.data, values)
     assert_array_almost_equal(stc_lh.times, times)
     assert_array_almost_equal(stc_lh.vertno[0], vertices)
 
-    label_rh = read_label(label_rh_fname)
+    label_rh = read_label(real_label_rh_fname)
     stc_rh = stc.in_label(label_rh)
     label_bh = label_rh + label_lh
     stc_bh = stc.in_label(label_bh)

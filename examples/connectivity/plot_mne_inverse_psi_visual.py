@@ -66,7 +66,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 snr = 1.0  # use lower SNR for single epochs
 lambda2 = 1.0 / snr ** 2
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
-                            pick_normal=True, return_generator=False)
+                            pick_ori="normal", return_generator=False)
 
 # Now, we generate seed time series by averaging the activity in the left
 # visual corex

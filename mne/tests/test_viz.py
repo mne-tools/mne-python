@@ -1,24 +1,31 @@
 import os.path as op
+from functools import wraps
 import numpy as np
 from numpy.testing import assert_raises
+import warnings
 
 from mne import fiff, read_events, Epochs, SourceEstimate, read_cov, read_proj
 from mne.layouts import read_layout
 from mne.fiff.pick import pick_channels_evoked
-from mne.viz import plot_topo, plot_topo_tfr, plot_topo_power, \
-                    plot_topo_phase_lock, plot_topo_image_epochs, \
-                    plot_evoked_topomap, plot_projs_topomap, \
-                    plot_sparse_source_estimates, plot_source_estimates, \
-                    plot_cov, mne_analyze_colormap, plot_image_epochs, \
-                    plot_connectivity_circle, circular_layout, plot_drop_log, \
-                    compare_fiff
-from mne.datasets.sample import data_path
+from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
+                     plot_topo_phase_lock, plot_topo_image_epochs,
+                     plot_evoked_topomap, plot_projs_topomap,
+                     plot_sparse_source_estimates, plot_source_estimates,
+                     plot_cov, mne_analyze_colormap, plot_image_epochs,
+                     plot_connectivity_circle, circular_layout, plot_drop_log,
+                     compare_fiff)
+from mne.datasets import sample
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
+from mne.utils import check_sklearn_version
+
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt
 
 lacks_mayavi = False
 try:
@@ -30,44 +37,77 @@ except ImportError:
         lacks_mayavi = True
 requires_mayavi = np.testing.dec.skipif(lacks_mayavi, 'Requires mayavi')
 
+
+def requires_sklearn(function):
+    """Decorator to skip test if scikit-learn >= 0.12 is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        if not check_sklearn_version(min_version='0.12'):
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires scikit-learn >= 0.12'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+        return ret
+    return dec
+
 if not lacks_mayavi:
     mlab.options.backend = 'test'
 
-data_dir = data_path()
+data_dir = sample.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
-sample_src = read_source_spaces(op.join(data_dir, 'subjects', 'sample',
-                                        'bem', 'sample-oct-6-src.fif'))
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
-evoked_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis-ave.fif')
+
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+evoked_fname = op.join(base_dir, 'test-ave.fif')
 fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.2, 0.5
 n_chan = 15
-
-raw = fiff.Raw(raw_fname, preload=False)
-events = read_events(event_name)
-picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
-                        ecg=False, eog=False, exclude='bads')
-# Use a subset of channels for plotting speed
-picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
-epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
-                baseline=(None, 0))
-evoked = epochs.average()
-reject = dict(mag=4e-12)
-epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
-                            picks=picks, baseline=(None, 0), proj='delayed',
-                            reject=reject)
-evoked_delayed_ssp = epochs_delayed_ssp.average()
 layout = read_layout('Vectorview-all')
+
+
+def _get_raw():
+    return fiff.Raw(raw_fname, preload=False)
+
+
+def _get_events():
+    return read_events(event_name)
+
+
+def _get_picks(raw):
+    return fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
+                           ecg=False, eog=False, exclude='bads')
+
+
+def _get_epochs():
+    raw = _get_raw()
+    events = _get_events()
+    picks = _get_picks(raw)
+    # Use a subset of channels for plotting speed
+    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+    return epochs
+
+
+def _get_epochs_delayed_ssp():
+    raw = _get_raw()
+    events = _get_events()
+    picks = _get_picks(raw)
+    reject = dict(mag=4e-12)
+    epochs_delayed_ssp = Epochs(raw, events[:10], event_id, tmin, tmax,
+                                picks=picks, baseline=(None, 0),
+                                proj='delayed', reject=reject)
+    return epochs_delayed_ssp
 
 
 def test_plot_topo():
     """Test plotting of ERP topography
     """
     # Show topography
+    evoked = _get_epochs().average()
     plot_topo(evoked, layout)
     picked_evoked = pick_channels_evoked(evoked, evoked.ch_names[:3])
 
@@ -78,6 +118,7 @@ def test_plot_topo():
     for evo in [evoked, [evoked, picked_evoked]]:
         assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'])
 
+    evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
     plot_topo(evoked_delayed_ssp, layout, proj='interactive')
 
 
@@ -85,16 +126,19 @@ def test_plot_topo_tfr():
     """Test plotting of TFR
     """
     # Make a fake dataset to plot
+    epochs = _get_epochs()
     n_freqs = 11
     con = np.random.randn(n_chan, n_freqs, len(epochs.times))
     freqs = np.arange(n_freqs)
     # Show topography of connectivity from seed
     plot_topo_tfr(epochs, con, freqs, layout)
+    plt.close('all')
 
 
 def test_plot_topo_power():
     """Test plotting of power
     """
+    epochs = _get_epochs()
     decim = 3
     frequencies = np.arange(7, 30, 3)  # define frequencies of interest
     power = np.abs(np.random.randn(n_chan, 7, 141))
@@ -107,19 +151,23 @@ def test_plot_topo_power():
     plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
                          baseline=baseline, mode='mean', decim=decim,
                          title=title)
+    plt.close('all')
 
 
 def test_plot_topo_image_epochs():
     """Test plotting of epochs image topography
     """
     title = 'ERF images - MNE sample data'
+    epochs = _get_epochs()
     plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200,
                            colorbar=True, title=title)
+    plt.close('all')
 
 
 def test_plot_evoked():
     """Test plotting of evoked
     """
+    evoked = _get_epochs().average()
     evoked.plot(proj=True, hline=[1])
 
     # plot with bad channels excluded
@@ -128,6 +176,7 @@ def test_plot_evoked():
 
     # test selective updating of dict keys is working.
     evoked.plot(hline=[1], units=dict(mag='femto foo'))
+    evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
     evoked_delayed_ssp.plot(proj='interactive')
     evoked_delayed_ssp.apply_proj()
     assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive')
@@ -135,12 +184,26 @@ def test_plot_evoked():
     assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive')
     assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive',
                   axes='foo')
+    plt.close('all')
 
 
+def test_plot_epochs():
+    """ Test plotting epochs
+    """
+    epochs = _get_epochs()
+    epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
+    epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
+
+
+@sample.requires_sample_data
 @requires_mayavi
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates
     """
+    sample_src = read_source_spaces(op.join(data_dir, 'subjects', 'sample',
+                                            'bem', 'sample-oct-6-src.fif'))
+
     # dense version
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5
@@ -154,8 +217,8 @@ def test_plot_sparse_source_estimates():
     colormap = mne_analyze_colormap()
     plot_source_estimates(stc, 'sample', colormap=colormap,
                           config_opts={'background': (1, 1, 0)},
-                          subjects_dir=subjects_dir)
-    assert_raises(RuntimeError, plot_source_estimates, stc, 'sample',
+                          subjects_dir=subjects_dir, colorbar=True)
+    assert_raises(TypeError, plot_source_estimates, stc, 'sample',
                   figure='foo', hemi='both')
 
     # now do sparse version
@@ -166,7 +229,7 @@ def test_plot_sparse_source_estimates():
     stc_data.shape = (n_verts, n_time)
     inds = np.where(np.any(stc_data, axis=1))[0]
     stc_data = stc_data[inds]
-    vertices = vertices[inds]
+    vertices = [vertices[inds], np.empty(0, dtype=np.int)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
                                  opacity=0.5, high_resolution=True)
@@ -175,26 +238,32 @@ def test_plot_sparse_source_estimates():
 def test_plot_cov():
     """Test plotting of covariances
     """
+    raw = _get_raw()
     cov = read_cov(cov_fname)
     plot_cov(cov, raw.info, proj=True)
+    plt.close('all')
 
 
+@requires_sklearn
 def test_plot_ica_panel():
     """Test plotting of ICA panel
     """
+    raw = _get_raw()
     ica_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
                                 ecg=False, eog=False, exclude='bads')
-    cov = read_cov(cov_fname)
-    ica = ICA(noise_cov=cov, n_components=2, max_pca_components=3,
-              n_pca_components=3)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
     ica.decompose_raw(raw, picks=ica_picks)
     ica.plot_sources_raw(raw)
+    plt.close('all')
 
 
 def test_plot_image_epochs():
     """Test plotting of epochs image
     """
+    epochs = _get_epochs()
     plot_image_epochs(epochs, picks=[1, 2])
+    plt.close('all')
 
 
 def test_plot_connectivity_circle():
@@ -263,23 +332,48 @@ def test_plot_connectivity_circle():
     con = np.random.randn(68, 68)
     plot_connectivity_circle(con, label_names, n_lines=300,
                              node_angles=node_angles, title='test')
+    plt.close('all')
 
 
 def test_plot_drop_log():
     """Test plotting a drop log
     """
+    epochs = _get_epochs()
+    epochs.drop_bad_epochs()
     plot_drop_log(epochs.drop_log)
     plot_drop_log([['One'], [], []])
     plot_drop_log([['One'], ['Two'], []])
     plot_drop_log([['One'], ['One', 'Two'], []])
+    plt.close('all')
 
 
 def test_plot_raw():
     """Test plotting of raw data
     """
+    raw = _get_raw()
+    events = _get_events()
     raw.plot(events=events, show_options=True)
+    plt.close('all')
 
 
+def test_plot_raw_psds():
+    """Test plotting of raw psds
+    """
+    import matplotlib.pyplot as plt
+    raw = _get_raw()
+    # normal mode
+    raw.plot_psds(tmax=2.0)
+    # specific mode
+    picks = fiff.pick_types(raw.info, meg='mag', eeg=False)[:4]
+    raw.plot_psds(picks=picks, area_mode='range')
+    ax = plt.axes()
+    # if ax is supplied, picks must be, too:
+    assert_raises(ValueError, raw.plot_psds, ax=ax)
+    raw.plot_psds(picks=picks, ax=ax)
+    plt.close('all')
+
+
+@sample.requires_sample_data
 def test_plot_topomap():
     """Testing topomap plotting
     """
@@ -289,9 +383,15 @@ def test_plot_topomap():
     evoked.plot_topomap(0.1, 'mag', layout=layout)
     plot_evoked_topomap(evoked, None, ch_type='mag')
     times = [0.1, 0.2]
+    plot_evoked_topomap(evoked, times, ch_type='eeg')
     plot_evoked_topomap(evoked, times, ch_type='grad')
     plot_evoked_topomap(evoked, times, ch_type='planar1')
-    plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
+    plot_evoked_topomap(evoked, times, ch_type='planar2')
+    with warnings.catch_warnings(True):  # delaunay triangulation warning
+        plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
+    assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
+                  proj='interactive')  # projs have already been applied
+    evoked.proj = False  # let's fake it like they haven't been applied
     plot_evoked_topomap(evoked, 0.1, 'mag', proj='interactive')
     assert_raises(RuntimeError, plot_evoked_topomap, evoked, np.repeat(.1, 50))
     assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
@@ -299,9 +399,28 @@ def test_plot_topomap():
     # projs
     projs = read_proj(ecg_fname)[:7]
     plot_projs_topomap(projs)
+    plt.close('all')
 
 
 def test_compare_fiff():
     """Test comparing fiff files
     """
     compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_ica_topomap():
+    """Test plotting of ICA solutions
+    """
+    raw = _get_raw()
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
+                                ecg=False, eog=False, exclude='bads')
+    ica.decompose_raw(raw, picks=ica_picks)
+    for components in [0, [0], [0, 1], [0, 1] * 7]:
+        ica.plot_topomap(components)
+    ica.info = None
+    assert_raises(RuntimeError, ica.plot_topomap, 1)
+    plt.close('all')
