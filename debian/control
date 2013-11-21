@@ -1,0 +1,50 @@
+Source: mne-python
+Maintainer: Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>
+Uploaders: Alexandre Gramfort <alexandre.gramfort@m4x.org>
+           Yaroslav Halchenko <debian@onerussian.com>,
+           Michael Hanke <michael.hanke@gmail.com>,
+           Andreas Tille <tille@debian.org>
+Section: python
+Priority: optional
+Build-Depends: debhelper (>= 9),
+               python-all-dev,
+               python-support,
+               python-numpy,
+               python-scipy,
+               python-sphinx (>= 1.0~),
+               python-nose,
+               python-setuptools,
+               python-matplotlib,
+               python-joblib (>= 0.4.5),
+               python-sklearn,
+               xvfb,
+               xauth,
+               libgl1-mesa-dri,
+               help2man,
+               python-coverage
+Standards-Version: 3.9.4
+Vcs-Git: git://anonscm.debian.org/debian-med/mne-python.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=debian-med/mne-python.git
+Homepage: http://martinos.org/mne
+X-Python-Version: >= 2.6
+
+Package: python-mne
+Architecture: all
+Depends: ${misc:Depends},
+         ${python:Depends},
+         python-numpy,
+         python-scipy,
+         python-sklearn,
+         python-matplotlib,
+         python-joblib (>= 0.4.5),
+         xvfb,
+         xauth,
+         libgl1-mesa-dria,
+         help2man
+Recommends: python-nose,
+            mayavi2
+Suggests: python-dap,
+          ipython
+Provides: ${python:Provides}
+Description: Python modules for MEG and EEG data analysis
+ TODO

@@ -1,0 +1,26 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+NOSETESTS=nosetests
+
+%:
+	dh $@ --with python2 --buildsystem python_distutils
+
+override_dh_clean:
+	rm -rf *.egg-info
+	dh_clean
+
+override_dh_auto_test:
+	MNE_SKIP_SAMPLE_DATASET_TESTS=true \
+      xvfb-run --auto-servernum --server-num=20 -s "-screen 0 1024x768x24 -ac +extension GLX +render -noreset" \
+	  $(NOSETESTS) mne
+
+manpages:
+	@echo "I: generating manpages"
+	set -e; mkdir -p build/manpages && \
+	cd bin && for f in *; do \
+			descr=$$(grep -h -e "^ *'''" -e 'DESCRIP =' $$f -h | sed -e "s,.*' *\([^'][^']*\)'.*,\1,g" | head -n 1); \
+	PYTHONPATH=../ \
+			help2man -n "$$descr" --no-discard-stderr --no-info --version-string "$(uver)" ./$$f \
+			>| ../build/manpages/$$f.1; \
+	done
