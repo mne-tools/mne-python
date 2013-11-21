@@ -970,8 +970,10 @@ class Raw(ProjMixin):
             info = self.info
             projector = None
 
-        # set the correct compensation grade
+        # set the correct compensation grade and make inverse compensator
+        inv_comp = None
         if self.comp is not None:
+            inv_comp = linalg.inv(self.comp)
             set_current_comp(info, self._orig_comp_grade)
 
         outfid, cals = start_writing_raw(fname, info, picks, type_dict[format],
@@ -998,12 +1000,6 @@ class Raw(ProjMixin):
         #
         #   Read and write all the data
         #
-
-        # Take care of CTF compensation
-        inv_comp = None
-        if self.comp is not None:
-            inv_comp = linalg.inv(self.comp)
-
         if first_samp != 0:
             write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
         for first in range(start, stop, buffer_size):

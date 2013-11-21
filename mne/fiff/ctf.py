@@ -198,8 +198,7 @@ def read_ctf_comp(fid, node, chs, verbose=None):
                 idx = ch_names.index(mat['row_names'][row])
                 row_cals[row] = chs[idx]['range'] * chs[idx]['cal']
 
-            mat['data'] = np.dot(np.diag(row_cals), np.dot(mat['data'],
-                                                        np.diag(col_cals)))
+            mat['data'] = row_cals[:, None] * mat['data'] * col_cals[None, :]
             one['rowcals'] = row_cals
             one['colcals'] = col_cals
 

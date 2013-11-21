@@ -1379,7 +1379,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
             raise IOError('measurement file "%s" could not be found' % meas)
     elif isinstance(meas, Raw):
         events = np.array([[0, 0, 1]], dtype=np.int)
-        end = 1 / meas.info['sfreq']
+        end = 1. / meas.info['sfreq']
         meas_data = Epochs(meas, events, 1, 0, end, proj=False).average()
     elif isinstance(meas, Epochs):
         meas_data = meas.average()
