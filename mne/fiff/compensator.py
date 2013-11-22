@@ -19,6 +19,16 @@ def get_current_comp(info):
     return comp
 
 
+def set_current_comp(info, comp):
+    """Set the current compensation in effect in the data
+    """
+    comp_now = get_current_comp(info)
+    for k, chan in enumerate(info['chs']):
+        if chan['kind'] == FIFF.FIFFV_MEG_CH:
+            rem = chan['coil_type'] - (comp_now << 16)
+            chan['coil_type'] = int(rem + (comp << 16))
+
+
 def _make_compensator(info, kind):
     """Auxiliary function for make_compensator
     """
@@ -36,7 +46,7 @@ def _make_compensator(info, kind):
                                      'data' % col_name)
                 elif len(ind) > 1:
                     raise ValueError('Ambiguous channel %s' % col_name)
-                presel[col, ind] = 1.0
+                presel[col, ind[0]] = 1.0
 
             #   Create the postselector
             postsel = np.zeros((info['nchan'], this_data['nrow']))
@@ -47,7 +57,6 @@ def _make_compensator(info, kind):
                     raise ValueError('Ambiguous channel %s' % ch_name)
                 elif len(ind) == 1:
                     postsel[c, ind[0]] = 1.0
-
             this_comp = np.dot(postsel, np.dot(this_data['data'], presel))
             return this_comp
 

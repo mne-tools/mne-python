@@ -56,7 +56,6 @@ evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 # View evoked response
 times = 1e3 * epochs.times  # time in miliseconds
 import matplotlib.pyplot as plt
-plt.figure()
 evoked.plot()
 plt.xlim([times[0], times[-1]])
 plt.xlabel('time (ms)')

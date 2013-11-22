@@ -16,8 +16,10 @@ import collections
 from operator import itemgetter
 import inspect
 
+import warnings
 import numpy as np
 import scipy
+from scipy import linalg
 from math import ceil, log
 from numpy.fft import irfft
 from scipy.signal import filtfilt as sp_filtfilt
@@ -25,47 +27,29 @@ from distutils.version import LooseVersion
 from functools import partial
 import copy_reg
 
+
+class _Counter(collections.defaultdict):
+    """Partial replacement for Python 2.7 collections.Counter."""
+    def __init__(self, iterable=(), **kwargs):
+        super(_Counter, self).__init__(int, **kwargs)
+        self.update(iterable)
+
+    def most_common(self):
+        return sorted(self.iteritems(), key=itemgetter(1), reverse=True)
+
+    def update(self, other):
+        """Adds counts for elements in other"""
+        if isinstance(other, self.__class__):
+            for x, n in other.iteritems():
+                self[x] += n
+        else:
+            for x in other:
+                self[x] += 1
+
 try:
     Counter = collections.Counter
 except AttributeError:
-    class Counter(collections.defaultdict):
-        """Partial replacement for Python 2.7 collections.Counter."""
-        def __init__(self, iterable=(), **kwargs):
-            super(Counter, self).__init__(int, **kwargs)
-            self.update(iterable)
-
-        def most_common(self):
-            return sorted(self.iteritems(), key=itemgetter(1), reverse=True)
-
-        def update(self, other):
-            """Adds counts for elements in other"""
-            if isinstance(other, self.__class__):
-                for x, n in other.iteritems():
-                    self[x] += n
-            else:
-                for x in other:
-                    self[x] += 1
-
-
-def lsqr(X, y, tol=1e-3):
-    import scipy.sparse.linalg as sp_linalg
-    from ..utils.extmath import safe_sparse_dot
-
-    if hasattr(sp_linalg, 'lsqr'):
-        # scipy 0.8 or greater
-        return sp_linalg.lsqr(X, y)
-    else:
-        n_samples, n_features = X.shape
-        if n_samples > n_features:
-            coef, _ = sp_linalg.cg(safe_sparse_dot(X.T, X),
-                                   safe_sparse_dot(X.T, y),
-                                   tol=tol)
-        else:
-            coef, _ = sp_linalg.cg(safe_sparse_dot(X, X.T), y, tol=tol)
-            coef = safe_sparse_dot(X.T, coef)
-
-        residues = y - safe_sparse_dot(X, coef)
-        return coef, None, None, residues
+    Counter = _Counter
 
 
 def _unique(ar, return_index=False, return_inverse=False):
@@ -110,15 +94,7 @@ def _unique(ar, return_index=False, return_inverse=False):
         flag = np.concatenate(([True], ar[1:] != ar[:-1]))
         return ar[flag]
 
-np_version = []
-for x in np.__version__.split('.'):
-    try:
-        np_version.append(int(x))
-    except ValueError:
-        # x may be of the form dev-1ea1592
-        np_version.append(x)
-
-if np_version[:2] < (1, 5):
+if LooseVersion(np.__version__) < LooseVersion('1.5'):
     unique = _unique
 else:
     unique = np.unique
@@ -133,7 +109,7 @@ def _bincount(X, weights=None, minlength=None):
     out[:len(result)] = result
     return out
 
-if np_version[:2] < (1, 6):
+if LooseVersion(np.__version__) < LooseVersion('1.6'):
     bincount = _bincount
 else:
     bincount = np.bincount
@@ -205,26 +181,29 @@ def _unravel_index(indices, dims):
         return tuple(unraveled_coords.T)
 
 
-if np_version[:2] < (1, 4):
+if LooseVersion(np.__version__) < LooseVersion('1.4'):
     unravel_index = _unravel_index
 else:
     unravel_index = np.unravel_index
 
 
-def qr_economic(A, **kwargs):
-    """Compat function for the QR-decomposition in economic mode
-
+def _qr_economic_old(A, **kwargs):
+    """
+    Compat function for the QR-decomposition in economic mode
     Scipy 0.9 changed the keyword econ=True to mode='economic'
     """
-    import scipy.linalg
-    # trick: triangular solve has introduced in 0.9
-    if hasattr(scipy.linalg, 'solve_triangular'):
-        return scipy.linalg.qr(A, mode='economic', **kwargs)
-    else:
-        import warnings
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            return scipy.linalg.qr(A, econ=True, **kwargs)
+    with warnings.catch_warnings(True):
+        return linalg.qr(A, econ=True, **kwargs)
+
+
+def _qr_economic_new(A, **kwargs):
+    return linalg.qr(A, mode='economic', **kwargs)
+
+
+if LooseVersion(scipy.__version__) < LooseVersion('0.9'):
+    qr_economic = _qr_economic_old
+else:
+    qr_economic = _qr_economic_new
 
 
 def savemat(file_name, mdict, oned_as="column", **kwargs):
@@ -372,7 +351,8 @@ def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
 
     if nfreqs is not None and numtaps >= nfreqs:
         raise ValueError('ntaps must be less than nfreqs, but firwin2 was '
-                    'called with ntaps=%d and nfreqs=%s' % (numtaps, nfreqs))
+                         'called with ntaps=%d and nfreqs=%s'
+                         % (numtaps, nfreqs))
 
     if freq[0] != 0 or freq[-1] != nyq:
         raise ValueError('freq must start with 0 and end with `nyq`.')
@@ -385,7 +365,7 @@ def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
 
     if numtaps % 2 == 0 and gain[-1] != 0.0:
         raise ValueError("A filter with an even number of coefficients must "
-                            "have zero gain at the Nyquist rate.")
+                         "have zero gain at the Nyquist rate.")
 
     if nfreqs is None:
         nfreqs = 1 + 2 ** int(ceil(log(numtaps, 2)))
@@ -539,9 +519,8 @@ copy_reg.pickle(partial, _reduce_partial)
 
 def normalize_colors(vmin, vmax, clip=False):
     """Helper to handle matplotlib API"""
-    import matplotlib.pyplot as plt 
+    import matplotlib.pyplot as plt
     if 'Normalize' in vars(plt):
         return plt.Normalize(vmin, vmax, clip=clip)
     else:
         return plt.normalize(vmin, vmax, clip=clip)
-
