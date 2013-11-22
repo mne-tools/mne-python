@@ -345,10 +345,20 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     return x
 
 
+def _check_coefficients(b, a):
+    """Check for filter stability"""
+    z, p, k = signal.tf2zpk(b, a)
+    if np.any(np.abs(p) > 1.0):
+        raise RuntimeError('Filter poles outside unit circle, filter will be '
+                           'unstable. Consider using different filter '
+                           'coefficients.')
+
+
 def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
     """Helper to more easily call filtfilt"""
     # set up array for filtering, reshape to 2D, operate on last axis
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
+    _check_coefficients(b, a)
     if n_jobs == 1:
         for p in picks:
             x[p] = filtfilt(b, a, x[p], padlen=padlen)
@@ -502,10 +512,29 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     return iir_params
 
 
+def _check_method(method, iir_params, extra_types):
+    """Helper to parse method arguments"""
+    allowed_types = ['iir', 'fft'] + extra_types
+    if not isinstance(method, basestring):
+        raise TypeError('method must be a string')
+    if method not in allowed_types:
+        raise ValueError('method must be one of %s, not "%s"'
+                         % (allowed_types, method))
+    if method == 'iir':
+        if iir_params is None:
+            iir_params = dict(order=4, ftype='butter')
+        if not isinstance(iir_params, dict) or 'ftype' not in iir_params:
+            raise ValueError('iir_params must be a dict with entry "ftype"')
+    elif iir_params is not None:
+        raise ValueError('iir_params must be None if method != "iir"')
+    method = method.lower()
+    return iir_params
+
+
 @verbose
 def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     method='fft', iir_params=None,
                      picks=None, n_jobs=1, copy=True, verbose=None):
     """Bandpass filter for the signal x.
 
@@ -536,9 +565,10 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params : dict
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
@@ -571,10 +601,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     Fs1 = Fp1 - l_trans_bandwidth in Hz
     Fs2 = Fp2 + h_trans_bandwidth in Hz
     """
-
-    method = method.lower()
-    if method not in ['fft', 'iir']:
-        raise RuntimeError('method should be fft or iir (not %s)' % method)
+    iir_params = _check_method(method, iir_params, [])
 
     Fs = float(Fs)
     Fp1 = float(Fp1)
@@ -607,7 +634,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
 @verbose
 def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
                      l_trans_bandwidth=0.5, h_trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     method='fft', iir_params=None,
                      picks=None, n_jobs=1, copy=True, verbose=None):
     """Bandstop filter for the signal x.
 
@@ -638,9 +665,10 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params : dict
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
@@ -675,10 +703,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
 
     Note that multiple stop bands can be specified using arrays.
     """
+    iir_params = _check_method(method, iir_params, [])
 
-    method = method.lower()
-    if method not in ['fft', 'iir']:
-        raise RuntimeError('method should be fft or iir (not %s)' % method)
     Fp1 = np.atleast_1d(Fp1)
     Fp2 = np.atleast_1d(Fp2)
     if not len(Fp1) == len(Fp2):
@@ -718,7 +744,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
 
 @verbose
 def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
-                    method='fft', iir_params=dict(order=4, ftype='butter'),
+                    method='fft', iir_params=None,
                     picks=None, n_jobs=1, copy=True, verbose=None):
     """Lowpass filter for the signal x.
 
@@ -745,9 +771,10 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params : dict
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
@@ -777,11 +804,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
                               Fp  Fp+trans_bandwidth
 
     """
-
-    method = method.lower()
-    if method not in ['fft', 'iir']:
-        raise RuntimeError('method should be fft or iir (not %s)' % method)
-
+    iir_params = _check_method(method, iir_params, [])
     Fs = float(Fs)
     Fp = float(Fp)
     Fstop = Fp + trans_bandwidth
@@ -804,7 +827,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
 
 @verbose
 def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
-                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     method='fft', iir_params=None,
                      picks=None, n_jobs=1, copy=True, verbose=None):
     """Highpass filter for the signal x.
 
@@ -831,9 +854,10 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params : dict
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
     picks : list of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
@@ -864,11 +888,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
 
     where Fstop = Fp - trans_bandwidth
     """
-
-    method = method.lower()
-    if method not in ['fft', 'iir']:
-        raise RuntimeError('method should be fft or iir (not %s)' % method)
-
+    iir_params = _check_method(method, iir_params, [])
     Fs = float(Fs)
     Fp = float(Fp)
 
@@ -894,7 +914,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
 @verbose
 def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
                  trans_bandwidth=1, method='fft',
-                 iir_params=dict(order=4, ftype='butter'), mt_bandwidth=None,
+                 iir_params=None, mt_bandwidth=None,
                  p_value=0.05, picks=None, n_jobs=1, copy=True, verbose=None):
     """Notch filter for the signal x.
 
@@ -929,9 +949,10 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
         use multi-taper estimation of sinusoidal components. If freqs=None
         and method='spectrum_fit', significant sinusoidal components
         are detected using an F test, and noted by logging.
-    iir_params : dict
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'spectrum_fit' mode.
@@ -979,11 +1000,7 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
     & Hemant Bokil, Oxford University Press, New York, 2008. Please
     cite this in publications if method 'spectrum_fit' is used.
     """
-
-    method = method.lower()
-    if method not in ['fft', 'iir', 'spectrum_fit']:
-        raise RuntimeError('method should be fft, iir, or spectrum_fit '
-                           '(not %s)' % method)
+    iir_params = _check_method(method, iir_params, ['spectrum_fit'])
 
     if freqs is not None:
         freqs = np.atleast_1d(freqs)

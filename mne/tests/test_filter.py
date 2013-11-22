@@ -19,6 +19,28 @@ tempdir = _TempDir()
 log_file = op.join(tempdir, 'temp_log.txt')
 
 
+def test_iir_stability():
+    """Test IIR filter stability check
+    """
+    sig = np.empty(1000)
+    fs = 1000
+    # This will make an unstable filter, should throw RuntimeError
+    assert_raises(RuntimeError, high_pass_filter, sig, fs, 0.6,
+                  method='iir', iir_params=dict(ftype='butter', order=8))
+    # can't pass iir_params if method='fir'
+    assert_raises(ValueError, high_pass_filter, sig, fs, 0.1,
+                  method='fir', iir_params=dict(ftype='butter', order=2))
+    # method must be string
+    assert_raises(TypeError, high_pass_filter, sig, fs, 0.1,
+                  method=1)
+    # unknown method
+    assert_raises(ValueError, high_pass_filter, sig, fs, 0.1,
+                  method='blah')
+    # bad iir_params
+    assert_raises(ValueError, high_pass_filter, sig, fs, 0.1,
+                  method='fir', iir_params='blah')
+
+
 def test_notch_filters():
     """Test notch filters
     """
