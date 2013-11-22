@@ -29,7 +29,7 @@ times = np.arange(0.05, 0.15, 0.01)
 # If times is set to None only 10 regularly spaced topographies will be shown
 
 # plot magnetometer data as topomaps
-evoked.plot_topomap(times, ch_type='mag', cmap='jet')
+evoked.plot_topomap(times, ch_type='mag')
 
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
-evoked.plot_topomap(times, ch_type='grad', cmap='jet')
+evoked.plot_topomap(times, ch_type='grad')
