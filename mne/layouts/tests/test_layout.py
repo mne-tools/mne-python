@@ -1,9 +1,18 @@
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: Simplified BSD
+
+import warnings
 import os.path as op
 import numpy as np
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from mne.layouts import make_eeg_layout, make_grid_layout, read_layout
+from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout, 
+                         find_layout)
 from mne.fiff import Raw
 from mne.utils import _TempDir
 
@@ -105,3 +114,17 @@ def test_make_grid_layout():
     assert_array_equal(lout_new.kind, tmp_name)
     assert_array_equal(lout_orig.pos, lout_new.pos)
     assert_array_equal(lout_orig.names, lout_new.names)
+
+
+def test_find_layout():
+    """Test finding layout"""
+    with warnings.catch_warnings(True) as w:
+        find_layout(chs=test_info['chs'])
+        assert_true(w[0].category == DeprecationWarning)
+    with warnings.catch_warnings(True) as w:
+        find_layout(test_info['chs'])
+        assert_true(w[0].category == DeprecationWarning)
+    assert_raises(TypeError, find_layout, foo=test_info)
+    assert_raises(TypeError, find_layout, test_info, test_info)
+    assert_raises(TypeError, find_layout, test_info, foo=test_info)
+    assert_raises(ValueError, find_layout, dict)

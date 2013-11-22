@@ -1,3 +1,11 @@
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: Simplified BSD
+
+import warnings
 from collections import defaultdict
 import os.path as op
 import numpy as np
@@ -64,7 +72,7 @@ class Layout(object):
         f = open(fname, 'w')
         f.write(out_str)
         f.close()
-    
+
     @property
     def names(self):
         """Return clean names"""
@@ -280,19 +288,50 @@ def make_grid_layout(info, picks=None):
     return layout
 
 
-def find_layout(chs):
-    """Choose a layout based on the channels in the chs parameter
+def find_layout(*args, **kwargs):
+    """Choose a layout based on the channels in the info 'chs' field
 
     Parameters
     ----------
-    chs : list
-        A list of channels as contained in the info['chs'] entry.
+    info : instance of mne.fiff.meas_info.Info
+        The measurement info.
 
     Returns
     -------
     layout : Layout instance | None
         None if layout not found.
     """
+    if args:
+        if len(args) == 1:
+            info = args[0]
+        else:
+            raise TypeError('find_layout() takes at most 1 argument '
+                            '(%i given)' % len(args))
+    chs = None
+    if args and kwargs:
+        raise TypeError('got multiple values for keyword argument "info"')
+    elif 'chs' in kwargs:
+        warnings.warn("The 'chs' argument is deprecated and will be "
+                      "removed in MNE-Python 0.8. Please pass an "
+                      "'info' instead", DeprecationWarning)
+        info = kwargs['chs']
+    elif 'info' in kwargs:
+        info = kwargs['info']
+    elif any([k not in ['info, chs'] for k in kwargs]):
+        raise TypeError('%s is an invalid argument for this '
+                        'function' % list(kwargs)[0])
+
+    if isinstance(info, list):
+        warnings.warn("The 'chs' argument is deprecated and will be "
+                      "removed in MNE-Python 0.8. Please pass an "
+                      "`info` instead", DeprecationWarning)
+        chs = info
+    elif isinstance(info, dict):
+        chs = info.get('chs')
+
+    if not chs:
+        raise ValueError('Could not find any channels. The info structure '
+                         'is not valid.')
 
     coil_types = np.unique([ch['coil_type'] for ch in chs])
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
