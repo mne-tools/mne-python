@@ -68,9 +68,14 @@ n_chan = 15
 layout = read_layout('Vectorview-all')
 
 
-def _fake_click(fig, ax, point):
+def _fake_click(fig, ax, point, xform='ax'):
     """Helper to fake a click at a relative point within axes"""
-    x, y = ax.transAxes.transform_point(point)
+    if xform == 'ax':
+        x, y = ax.transAxes.transform_point(point)
+    elif xform == 'data':
+        x, y = ax.transData.transform_point(point)
+    else:
+        raise ValueError('unknown transform')
     fig.canvas.button_press_event(x, y, 1, False, None)
 
 
@@ -368,11 +373,16 @@ def test_plot_raw():
     events = _get_events()
     fig = raw.plot(events=events, show_options=True)
     # test mouse clicks
-    fig.canvas.button_press_event(0.5, 0.5, 1)  # nowhere
-    _fake_click(fig, fig.get_axes()[0], [0.5, 0.5])  # click in first axes
+    x = fig.get_axes()[0].lines[1].get_xdata().mean()
+    y = fig.get_axes()[0].lines[1].get_ydata().mean()
+    data_ax = fig.get_axes()[0]
+    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
+    _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
+    _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in first axes
     _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
     _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
     _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
+    fig.canvas.button_press_event(0.5, 0.5, 1)
     # test keypresses
     fig.canvas.key_press_event('escape')
     fig.canvas.key_press_event('down')
