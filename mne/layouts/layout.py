@@ -312,7 +312,7 @@ def find_layout(*args, **kwargs):
         raise TypeError('got multiple values for keyword argument "info"')
     elif 'chs' in kwargs:
         warnings.warn("The 'chs' argument is deprecated and will be "
-                      "removed in MNE-Python 0.8. Please pass an "
+                      "removed in MNE-Python 0.8. Please use "
                       "'info' instead", DeprecationWarning)
         info = kwargs['chs']
     elif 'info' in kwargs:
@@ -323,7 +323,7 @@ def find_layout(*args, **kwargs):
 
     if isinstance(info, list):
         warnings.warn("The 'chs' argument is deprecated and will be "
-                      "removed in MNE-Python 0.8. Please pass a "
+                      "removed in MNE-Python 0.8. Please pass"
                       "the measurement info instead", DeprecationWarning)
         chs = info
     elif isinstance(info, dict):
