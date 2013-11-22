@@ -1,4 +1,4 @@
 version=3
-opts="dversionmangle=s/.dfsg$//,filenamemangle=s/.*v([\d\.]+)\..*/mne-python_$1.orig.tar.gz/" \
+opts="dversionmangle=s/.dfsg$//,filenamemangle=s/.*v([\d\.rc]+)\..*/mne-python_$1.orig.tar.gz/" \
  https://github.com/mne-tools/mne-python/tags .*/archive/v([\d\.a-z]+)\.(?:tgz|tbz2|txz|tar\.(?:gz|bz2|xz))
 
