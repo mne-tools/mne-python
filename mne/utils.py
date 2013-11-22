@@ -108,13 +108,10 @@ class _TempDir(str):
 
     We cannot simply use __del__() method for cleanup here because the rmtree
     function may be cleaned up before this object, so we use the atexit module
-    instead. Passing del_after and print_del kwargs to the constructor are
-    helpful primarily for debugging purposes.
+    instead.
     """
-    def __new__(self, del_after=True, print_del=False):
+    def __new__(self):
         new = str.__new__(self, tempfile.mkdtemp())
-        self._del_after = del_after
-        self._print_del = print_del
         return new
 
     def __init__(self):
@@ -122,10 +119,7 @@ class _TempDir(str):
         atexit.register(self.cleanup)
 
     def cleanup(self):
-        if self._del_after is True:
-            if self._print_del is True:
-                print 'Deleting %s ...' % self._path
-            rmtree(self._path, ignore_errors=True)
+        rmtree(self._path, ignore_errors=True)
 
 
 def estimate_rank(data, tol=1e-4, return_singular=False,
@@ -212,14 +206,14 @@ def run_subprocess(command, *args, **kwargs):
 
     logger.info("Running subprocess: %s" % str(command))
     p = subprocess.Popen(command, *args, **kwargs)
-    stdout, stderr = p.communicate()
+    stdout_, stderr = p.communicate()
 
-    if stdout.strip():
-        logger.info("stdout:\n%s" % stdout)
+    if stdout_.strip():
+        logger.info("stdout:\n%s" % stdout_)
     if stderr.strip():
         logger.info("stderr:\n%s" % stderr)
 
-    output = (stdout, stderr)
+    output = (stdout_, stderr)
     if p.returncode:
         print output
         raise subprocess.CalledProcessError(p.returncode, command, output)
@@ -498,7 +492,7 @@ def requires_tvtk(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            from tvtk.api import tvtk
+            from tvtk.api import tvtk  # analysis:ignore
         except ImportError:
             skip = True
 

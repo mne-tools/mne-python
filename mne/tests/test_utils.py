@@ -8,7 +8,8 @@ import urllib2
 
 from ..utils import (set_log_level, set_log_file, _TempDir,
                      get_config, set_config, deprecated, _fetch_file,
-                     sum_squared, requires_mem_gb)
+                     sum_squared, requires_mem_gb, estimate_rank,
+                     _url_to_local_path, sizeof_fmt)
 from ..fiff import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -25,6 +26,21 @@ test_name = op.join(tempdir, 'test.log')
 def clean_lines(lines):
     # Function to scrub filenames for checking logging output (in test_logging)
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+
+
+def test_tempdir():
+    """Test TempDir
+    """
+    tempdir2 = _TempDir()
+    assert_true(op.isdir(tempdir2))
+    tempdir2.cleanup()
+    assert_true(not op.isdir(tempdir2))
+
+
+def test_estimate_rank():
+    data = np.eye(10)
+    data[0, 0] = 0
+    assert_equal(estimate_rank(data), 9)
 
 
 def test_logging():
@@ -135,6 +151,12 @@ def deprecated_func():
     pass
 
 
+@deprecated('message')
+class deprecated_class(object):
+    def __init__(self):
+        pass
+
+
 @requires_mem_gb(10000)
 def big_mem_func():
     pass
@@ -150,6 +172,9 @@ def test_deprecated():
     """
     with warnings.catch_warnings(True) as w:
         deprecated_func()
+    assert_true(len(w) == 1)
+    with warnings.catch_warnings(True) as w:
+        deprecated_class()
     assert_true(len(w) == 1)
 
 
@@ -183,9 +208,19 @@ def test_fetch_file():
     except urllib2.URLError:
         from nose.plugins.skip import SkipTest
         raise SkipTest('No internet connection, skipping download test.')
-    url = "http://github.com/mne-tools/mne-python/blob/master/README.rst"
-    archive_name = op.join(tempdir, "download_test")
-    _fetch_file(url, archive_name, print_destination=False)
+
+    urls = ['http://github.com/mne-tools/mne-python/blob/master/README.rst',
+            'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
+    for url in urls:
+        archive_name = op.join(tempdir, "download_test")
+        _fetch_file(url, archive_name, print_destination=False)
+        assert_raises(Exception, _fetch_file, 'http://0.0',
+                      op.join(tempdir, 'test'))
+        resume_name = op.join(tempdir, "download_resume")
+        # touch file
+        with file(resume_name + '.part', 'w'):
+            os.utime(resume_name + '.part', None)
+        _fetch_file(url, resume_name, print_destination=False, resume=True)
 
 
 def test_sum_squared():
@@ -193,3 +228,18 @@ def test_sum_squared():
     """
     X = np.random.randint(0, 50, (3, 3))
     assert_equal(np.sum(X ** 2), sum_squared(X))
+
+
+def test_sizeof_fmt():
+    """Test sizeof_fmt
+    """
+    assert_equal(sizeof_fmt(0), '0 bytes')
+    assert_equal(sizeof_fmt(1), '1 byte')
+    assert_equal(sizeof_fmt(1000), '1000 bytes')
+
+
+def test_url_to_local_path():
+    """Test URL to local path
+    """
+    assert_equal(_url_to_local_path('http://google.com/home/why.html', '.'),
+                 op.join('.', 'home', 'why.html'))

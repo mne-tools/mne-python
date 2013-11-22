@@ -3,12 +3,14 @@ import os.path as op
 from subprocess import CalledProcessError
 
 from nose.tools import assert_raises
+import numpy as np
 from numpy.testing import (assert_equal, assert_allclose)
 
 from mne.datasets import sample
+from mne.fiff import Raw
 from mne.fiff.kit import read_raw_kit
 from mne.fiff.bti import read_raw_bti
-from mne import (read_forward_solution, make_forward_solution,
+from mne import (Epochs, read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
                  convert_forward_solution)
 from mne.utils import requires_mne, _TempDir
@@ -141,6 +143,18 @@ def test_make_forward_solution_kit():
                                    bem=fname_bem, mri=fname_mri)
 
     fwd = do_forward_solution('sample', fname_ctf_raw, src=fname_src,
+                              mindist=0.0, bem=fname_bem, mri=fname_mri,
+                              eeg=False, meg=True, subjects_dir=subjects_dir)
+    _compare_forwards(fwd, fwd_py, 274, 108)
+
+    # CTF with compensation changed in python
+    ctf_raw = Raw(fname_ctf_raw, compensation=2)
+
+    fwd_py = make_forward_solution(ctf_raw.info, mindist=0.0,
+                                   src=src, eeg=False, meg=True,
+                                   bem=fname_bem, mri=fname_mri)
+
+    fwd = do_forward_solution('sample', ctf_raw, src=fname_src,
                               mindist=0.0, bem=fname_bem, mri=fname_mri,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, 108)

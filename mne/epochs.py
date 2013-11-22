@@ -44,10 +44,9 @@ class _BaseEpochs(ProjMixin):
     directly. See Epochs below for an explanation of the parameters.
     """
     def __init__(self, info, event_id, tmin, tmax, baseline=(None, 0),
-                 picks=None, name='Unknown', keep_comp=False, dest_comp=0,
-                 reject=None, flat=None, decim=1, reject_tmin=None,
-                 reject_tmax=None, detrend=None, add_eeg_ref=True,
-                 verbose=None):
+                 picks=None, name='Unknown', reject=None, flat=None,
+                 decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
+                 add_eeg_ref=True, verbose=None):
 
         self.verbose = verbose
         self.name = name
@@ -80,8 +79,6 @@ class _BaseEpochs(ProjMixin):
 
         self.tmin = tmin
         self.tmax = tmax
-        self.keep_comp = keep_comp
-        self.dest_comp = dest_comp
         self.baseline = baseline
         self.reject = reject
         self.reject_tmin = reject_tmin
@@ -104,11 +101,6 @@ class _BaseEpochs(ProjMixin):
 
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
-
-        #   XXX : deprecate CTF compensator
-        if dest_comp is not None or keep_comp is not None:
-            raise ValueError('current_comp and keep_comp are deprecated.'
-                             ' Use the compensation parameter in Raw.')
 
         # Handle times
         if tmin >= tmax:
@@ -590,10 +582,9 @@ class Epochs(_BaseEpochs):
     """
     @verbose
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
-                 picks=None, name='Unknown', keep_comp=None, dest_comp=None,
-                 preload=False, reject=None, flat=None, proj=True,
-                 decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 add_eeg_ref=True, verbose=None):
+                 picks=None, name='Unknown', preload=False, reject=None,
+                 flat=None, proj=True, decim=1, reject_tmin=None,
+                 reject_tmax=None, detrend=None, add_eeg_ref=True, verbose=None):
         if raw is None:
             return
 
@@ -612,7 +603,6 @@ class Epochs(_BaseEpochs):
         # call _BaseEpochs constructor
         super(Epochs, self).__init__(info, event_id, tmin, tmax,
                                      baseline=baseline, picks=picks, name=name,
-                                     keep_comp=keep_comp, dest_comp=dest_comp,
                                      reject=reject, flat=flat, decim=decim,
                                      reject_tmin=reject_tmin,
                                      reject_tmax=reject_tmax, detrend=detrend,
@@ -1669,7 +1659,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
             comment = tag.data
         elif kind == FIFF.FIFF_EPOCH:
             tag = read_tag(fid, pos)
-            data = tag.data
+            data = tag.data.astype(np.float)
         elif kind == FIFF.FIFF_MNE_BASELINE_MIN:
             tag = read_tag(fid, pos)
             bmin = float(tag.data)
