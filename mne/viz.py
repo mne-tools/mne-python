@@ -329,7 +329,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(info['chs'])
+        layout = find_layout(info)
 
     # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
     layout = copy.deepcopy(layout)
@@ -464,7 +464,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
 
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(epochs.info['chs'])
+        layout = find_layout(epochs.info)
     layout = copy.deepcopy(layout)
 
     tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
@@ -548,7 +548,7 @@ def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
         vmax = power.max()
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(epochs.info['chs'])
+        layout = find_layout(epochs.info)
     layout = copy.deepcopy(layout)
 
     power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
@@ -630,7 +630,7 @@ def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
         vmax = phase.max()
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(epochs.info['chs'])
+        layout = find_layout(epochs.info)
     layout = copy.deepcopy(layout)
 
     phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
@@ -719,7 +719,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         vmax = data.max()
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(epochs.info['chs'])
+        layout = find_layout(epochs.info)
     layout = copy.deepcopy(layout)
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
@@ -1875,7 +1875,7 @@ def _prepare_topo_plot(obj, ch_type, layout):
     info = copy.deepcopy(obj.info)
     if layout is None and ch_type is not 'eeg':
         from .layouts.layout import find_layout
-        layout = find_layout(info['chs'])
+        layout = find_layout(info)
     elif layout == 'auto':
         layout = None
 
