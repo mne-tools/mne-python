@@ -68,6 +68,12 @@ n_chan = 15
 layout = read_layout('Vectorview-all')
 
 
+def _fake_click(fig, ax, point):
+    """Helper to fake a click at a relative point within axes"""
+    x, y = ax.transAxes.transform_point(point)
+    fig.canvas.button_press_event(x, y, 1, False, None)
+
+
 def _get_raw():
     return fiff.Raw(raw_fname, preload=False)
 
@@ -361,8 +367,12 @@ def test_plot_raw():
     raw = _get_raw()
     events = _get_events()
     fig = raw.plot(events=events, show_options=True)
-    # test mouse clicks (XXX not complete yet)
-    fig.canvas.button_press_event(0.5, 0.5, 1)
+    # test mouse clicks
+    fig.canvas.button_press_event(0.5, 0.5, 1)  # nowhere
+    _fake_click(fig, fig.get_axes()[0], [0.5, 0.5])  # click in first axes
+    _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
+    _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+    _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
     # test keypresses
     fig.canvas.key_press_event('escape')
     fig.canvas.key_press_event('down')
