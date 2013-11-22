@@ -4,6 +4,7 @@ import numpy as np
 from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import FIFF, pick_types
+from ..utils import _clean_names
 
 
 class Layout(object):
@@ -32,7 +33,7 @@ class Layout(object):
     def __init__(self, box, pos, names, ids, kind):
         self.box = box
         self.pos = pos
-        self.names = names
+        self._names = names
         self.ids = ids
         self.kind = kind
 
@@ -63,6 +64,11 @@ class Layout(object):
         f = open(fname, 'w')
         f.write(out_str)
         f.close()
+    
+    @property
+    def names(self):
+        """Return clean names"""
+        return _clean_names(self._names)
 
 
 def _read_lout(fname):
@@ -305,8 +311,9 @@ def find_layout(chs):
         layout_name = 'CTF-275'
     else:
         return None
-    
+
     return read_layout(layout_name)
+
 
 def _find_topomap_coords(chs, layout=None):
     """Try to guess the MEG system and return appropriate topomap coordinates
@@ -425,7 +432,8 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
 
     if topomap_coords:
         shape = (len(pairs), 2, -1)
-        coords = _find_topomap_coords(grad_chs, layout).reshape(shape).mean(axis=1)
+        coords = (_find_topomap_coords(grad_chs, layout)
+                                      .reshape(shape).mean(axis=1))
         return picks, coords
     else:
         return picks

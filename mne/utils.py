@@ -1203,3 +1203,32 @@ def _check_pandas_index_arguments(index, defaults):
         options = [', '.join(e) for e in [invalid_choices, defaults]]
         raise ValueError('[%s] is not an valid option. Valid index'
                          'values are \'None\' or %s' % tuple(options))
+
+
+def _clean_names(names):
+    """ Remove white-space on topo matching
+
+    Over the years, Neuromag systems employed inconsistent handling of
+    white-space in layout names. This function handles different naming
+    conventions and hence should be used in each topography-plot to
+    warrant compatibility across systems.
+
+    Usage
+    -----
+    Wrap this function around channel and layout names:
+    ch_names = _clean_names(epochs.ch_names)
+
+    for n in _clean_names(layout.names):
+        if n in ch_names:
+            # prepare plot
+
+    """
+    cleaned = []
+    for name in names:
+        if ' ' in name:
+            name = name.replace(' ', '')
+        if '-' in name:
+            name = name.split('-')[0]
+        cleaned.append(name)
+
+    return cleaned
