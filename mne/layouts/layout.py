@@ -323,8 +323,8 @@ def find_layout(*args, **kwargs):
 
     if isinstance(info, list):
         warnings.warn("The 'chs' argument is deprecated and will be "
-                      "removed in MNE-Python 0.8. Please pass an "
-                      "`info` instead", DeprecationWarning)
+                      "removed in MNE-Python 0.8. Please pass a "
+                      "the measurement info instead", DeprecationWarning)
         chs = info
     elif isinstance(info, dict):
         chs = info.get('chs')
