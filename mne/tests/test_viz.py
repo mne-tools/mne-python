@@ -76,7 +76,10 @@ def _fake_click(fig, ax, point, xform='ax'):
         x, y = ax.transData.transform_point(point)
     else:
         raise ValueError('unknown transform')
-    fig.canvas.button_press_event(x, y, 1, False, None)
+    try:
+        fig.canvas.button_press_event(x, y, 1, False, None)
+    except:  # for old MPL
+        fig.canvas.button_press_event(x, y, 1, False)
 
 
 def _get_raw():
