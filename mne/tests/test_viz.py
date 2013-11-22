@@ -1,7 +1,7 @@
 import os.path as op
 from functools import wraps
 import numpy as np
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_equal
 import warnings
 
 from mne import fiff, read_events, Epochs, SourceEstimate, read_cov, read_proj
@@ -374,6 +374,7 @@ def test_plot_raw():
     """
     raw = _get_raw()
     events = _get_events()
+    plt.close('all')  # ensure all are closed
     fig = raw.plot(events=events, show_options=True)
     # test mouse clicks
     x = fig.get_axes()[0].lines[1].get_xdata().mean()
@@ -385,7 +386,16 @@ def test_plot_raw():
     _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
     _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
     _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
-    fig.canvas.button_press_event(0.5, 0.5, 1)
+    fig.canvas.button_press_event(1, 1, 1)  # outside any axes
+    # sadly these fail when no renderer is used (i.e., when using Agg):
+    #ssp_fig = set(plt.get_fignums()) - set([fig.number])
+    #assert_equal(len(ssp_fig), 1)
+    #ssp_fig = plt.figure(list(ssp_fig)[0])
+    #ax = ssp_fig.get_axes()[0]  # only one axis is used
+    #t = [c for c in ax.get_children() if isinstance(c, matplotlib.text.Text)]
+    #pos = np.array(t[0].get_position()) + 0.01
+    #_fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
+    #_fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
     # test keypresses
     fig.canvas.key_press_event('escape')
     fig.canvas.key_press_event('down')
@@ -416,7 +426,7 @@ def test_plot_raw_psds():
 
 @sample.requires_sample_data
 def test_plot_topomap():
-    """Testing topomap plotting
+    """Test topomap plotting
     """
     # evoked
     evoked = fiff.read_evoked(evoked_fname, 'Left Auditory',
