@@ -13,7 +13,7 @@ from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_sparse_source_estimates, plot_source_estimates,
                      plot_cov, mne_analyze_colormap, plot_image_epochs,
                      plot_connectivity_circle, circular_layout, plot_drop_log,
-                     compare_fiff)
+                     compare_fiff, plot_source_spectrogram)
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
@@ -193,6 +193,14 @@ def test_plot_epochs():
     epochs = _get_epochs()
     epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
     epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    # test clicking: should increase coverage on
+    # 3200-3226, 3235, 3237, 3239-3242, 3245-3255, 3260-3280
+    fig = plt.gcf()
+    fig.canvas.button_press_event(10, 10, 'left')
+    # now let's add a bad channel
+    epochs.info['bads'] = [epochs.ch_names[0]]  # include a bad one
+    epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
+    epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
     plt.close('all')
 
 
@@ -352,7 +360,17 @@ def test_plot_raw():
     """
     raw = _get_raw()
     events = _get_events()
-    raw.plot(events=events, show_options=True)
+    fig = raw.plot(events=events, show_options=True)
+    # test mouse clicks (XXX not complete yet)
+    fig.canvas.button_press_event(0.5, 0.5, 1)
+    # test keypresses
+    fig.canvas.key_press_event('escape')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('right')
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('o')
+    fig.canvas.key_press_event('escape')
     plt.close('all')
 
 
@@ -424,3 +442,20 @@ def test_plot_ica_topomap():
     ica.info = None
     assert_raises(RuntimeError, ica.plot_topomap, 1)
     plt.close('all')
+
+
+@sample.requires_sample_data
+def test_plot_source_spectrogram():
+    """Test plotting of source spectrogram
+    """
+    sample_src = read_source_spaces(op.join(data_dir, 'subjects', 'sample',
+                                            'bem', 'sample-oct-6-src.fif'))
+
+    # dense version
+    vertices = [s['vertno'] for s in sample_src]
+    n_time = 5
+    n_verts = sum(len(v) for v in vertices)
+    stc_data = np.ones((n_verts, n_time))
+    stc = SourceEstimate(stc_data, vertices, 1, 1)
+    plot_source_spectrogram([stc, stc], [[1, 2], [3, 4]])
+    assert_raises(ValueError, plot_source_spectrogram, [], [])

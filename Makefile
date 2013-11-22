@@ -37,6 +37,7 @@ $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif:
 	ln -s ${PWD}/examples/MNE-sample-data ${PWD}/MNE-sample-data -f
 
 test: in sample_data
+	rm -f .coverage
 	$(NOSETESTS) mne
 
 test-no-sample: in
