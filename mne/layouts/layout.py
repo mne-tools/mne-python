@@ -288,61 +288,55 @@ def make_grid_layout(info, picks=None):
     return layout
 
 
-def find_layout(*args, **kwargs):
+def find_layout(info=None, ch_type=None, chs=None):
     """Choose a layout based on the channels in the info 'chs' field
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info
+    info : instance of mne.fiff.meas_info.Info | None
         The measurement info.
+    ch_type : {'mag', 'grad'} | None
+        The channel type for selecting single channel layouts.
+        Defaults to None. Note, this argument will only be considered for    
+        VectorView type layout
+    chs : instance of mne.fiff.meas_info.Info | None
+        The measurement info. Defaults to None. This keyword is deprecated and
+        will be remove in MNE-Python 0.9. Use `info` instead.
 
     Returns
     -------
     layout : Layout instance | None
         None if layout not found.
     """
-    if args:
-        if len(args) == 1:
-            info = args[0]
-        else:
-            raise TypeError('find_layout() takes at most 1 argument '
-                            '(%i given)' % len(args))
-    chs = None
-    if args and kwargs:
-        raise TypeError('got multiple values for keyword argument "info"')
-    elif 'chs' in kwargs:
-        warnings.warn("The 'chs' argument is deprecated and will be "
-                      "removed in MNE-Python 0.8. Please use "
-                      "'info' instead", DeprecationWarning)
-        info = kwargs['chs']
-    elif 'info' in kwargs:
-        info = kwargs['info']
-    elif any([k not in ['info, chs'] for k in kwargs]):
-        raise TypeError('%s is an invalid argument for this '
-                        'function' % list(kwargs)[0])
-
-    if isinstance(info, list):
-        warnings.warn("The 'chs' argument is deprecated and will be "
-                      "removed in MNE-Python 0.8. Please pass"
-                      "the measurement info instead", DeprecationWarning)
+    msg = ("The 'chs' argument is deprecated and will be "
+           "removed in MNE-Python 0.9 Please use "
+           "'info' instead to pass the measurement info")
+    if chs is not None:
+        warnings.warn(msg, DeprecationWarning)
+    elif isinstance(info, list):
+        warnings.warn(msg, DeprecationWarning)
         chs = info
-    elif isinstance(info, dict):
+    else:
         chs = info.get('chs')
-
     if not chs:
         raise ValueError('Could not find any channels. The info structure '
                          'is not valid.')
+
+    if ch_type not in (None, 'mag', 'grad'):
+        raise ValueError('Invalid channel type (%s) requested '
+                         '`ch_type` must be `None`, `mag`, `grad`' % ch_type)
 
     coil_types = np.unique([ch['coil_type'] for ch in chs])
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
     has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
     has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
     has_CTF_grad = FIFF.FIFFV_COIL_CTF_GRAD in coil_types
-    if has_vv_mag and has_vv_grad:
+  
+    if has_vv_mag and has_vv_grad and ch_type is None:
         layout_name = 'Vectorview-all'
-    elif has_vv_mag:
+    elif has_vv_mag and ch_type == 'mag':
         layout_name = 'Vectorview-mag'
-    elif has_vv_grad:
+    elif has_vv_grad and ch_type == 'grad':
         layout_name = 'Vectorview-grad'
     elif has_4D_mag:
         layout_name = 'magnesWH3600'

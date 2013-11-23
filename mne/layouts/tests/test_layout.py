@@ -124,7 +124,5 @@ def test_find_layout():
     with warnings.catch_warnings(True) as w:
         find_layout(test_info['chs'])
         assert_true(w[0].category == DeprecationWarning)
-    assert_raises(TypeError, find_layout, foo=test_info)
-    assert_raises(TypeError, find_layout, test_info, test_info)
-    assert_raises(TypeError, find_layout, test_info, foo=test_info)
-    assert_raises(ValueError, find_layout, dict)
+    assert_raises(ValueError, find_layout, dict())
+    assert_raises(ValueError, find_layout, test_info, ch_type='meep')
