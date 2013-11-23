@@ -324,21 +324,25 @@ def find_layout(info=None, ch_type=None, chs=None):
         raise ValueError('Could not find any channels. The info structure '
                          'is not valid.')
 
-    if ch_type not in (None, 'mag', 'grad'):
+    if ch_type not in (None, 'all', 'mag', 'grad'):
         raise ValueError('Invalid channel type (%s) requested '
                          '`ch_type` must be `None`, `mag`, `grad`' % ch_type)
 
     coil_types = np.unique([ch['coil_type'] for ch in chs])
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
     has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
+    has_vv_all = has_vv_mag and has_vv_grad
+    has_vv_only_mag = has_vv_mag and not has_vv_grad
+    has_vv_only_grad = has_vv_grad and not has_vv_mag
     has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
     has_CTF_grad = FIFF.FIFFV_COIL_CTF_GRAD in coil_types
   
-    if has_vv_mag and has_vv_grad and ch_type is None:
+    if ((has_vv_all and ch_type is None) or
+        (any([has_vv_mag, has_vv_grad]) and ch_type == 'all')):
         layout_name = 'Vectorview-all'
-    elif has_vv_mag and ch_type == 'mag':
+    elif has_vv_only_mag or (has_vv_all and ch_type == 'mag'):
         layout_name = 'Vectorview-mag'
-    elif has_vv_grad and ch_type == 'grad':
+    elif has_vv_only_grad or (has_vv_all and ch_type == 'grad'):
         layout_name = 'Vectorview-grad'
     elif has_4D_mag:
         layout_name = 'magnesWH3600'

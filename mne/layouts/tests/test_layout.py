@@ -13,7 +13,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout, 
                          find_layout)
-from mne.fiff import Raw
+
+from mne.fiff import Raw, pick_types, pick_info
 from mne.utils import _TempDir
 
 fif_fname = op.join(op.dirname(__file__), '..', '..', 'fiff',
@@ -131,12 +132,31 @@ def test_find_layout():
     assert_raises(ValueError, find_layout, test_info, ch_type='meep')
         
     sample_info = Raw(fif_fname).info
+    grads = pick_types(sample_info, meg='grad')
+    sample_info2 = pick_info(sample_info, grads)
+    
+    mags = pick_types(sample_info, meg='mag')
+    sample_info3 = pick_info(sample_info, mags)
+
     lout = find_layout(sample_info, ch_type=None)
     assert_true(lout.kind == 'Vectorview-all')
+    lout = find_layout(sample_info2, ch_type='all')
+    assert_true(lout.kind == 'Vectorview-all')
+    
     lout = find_layout(sample_info, ch_type='grad')
     assert_true(lout.kind == 'Vectorview-grad')
+    lout = find_layout(sample_info2)
+    assert_true(lout.kind == 'Vectorview-grad')
+    lout = find_layout(sample_info2, ch_type='grad')
+    assert_true(lout.kind == 'Vectorview-grad')
+    
     lout = find_layout(sample_info, ch_type='mag')
     assert_true(lout.kind == 'Vectorview-mag')
+    lout = find_layout(sample_info3)
+    assert_true(lout.kind == 'Vectorview-mag')
+    lout = find_layout(sample_info3, ch_type='mag')
+    assert_true(lout.kind == 'Vectorview-mag')
+
     
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
     lout = find_layout(Raw(fname_bti_raw).info)
