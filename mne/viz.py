@@ -332,7 +332,6 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         layout = find_layout(info)
 
     # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
-    layout = copy.deepcopy(layout)
     chs_in_layout = set(layout.names) & set(ch_names)
     types_used = set(channel_type(info, ch_names.index(ch))
                      for ch in chs_in_layout)
@@ -465,7 +464,6 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
     if layout is None:
         from .layouts.layout import find_layout
         layout = find_layout(epochs.info)
-    layout = copy.deepcopy(layout)
 
     tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
 
@@ -549,7 +547,6 @@ def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
     if layout is None:
         from .layouts.layout import find_layout
         layout = find_layout(epochs.info)
-    layout = copy.deepcopy(layout)
 
     power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
 
@@ -631,7 +628,6 @@ def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
     if layout is None:
         from .layouts.layout import find_layout
         layout = find_layout(epochs.info)
-    layout = copy.deepcopy(layout)
 
     phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
 
@@ -720,7 +716,6 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     if layout is None:
         from .layouts.layout import find_layout
         layout = find_layout(epochs.info)
-    layout = copy.deepcopy(layout)
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
                          data=data, epochs=epochs, sigma=sigma)
@@ -1148,7 +1143,6 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     if not len(axes) == n_channel_types:
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%g)' % (len(axes), n_channel_types))
-
 
     # instead of projecting during each iteration let's use the mixin here.
     if proj is True and evoked.proj is not True:
@@ -1882,9 +1876,6 @@ def _prepare_topo_plot(obj, ch_type, layout):
     info['ch_names'] = _clean_names(info['ch_names'])
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = info['ch_names'][ii]
-
-    if layout is not None:
-        layout = copy.deepcopy(layout)
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
