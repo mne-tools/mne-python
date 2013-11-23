@@ -6,10 +6,7 @@
 import numpy as np
 
 from ...utils import get_config, verbose
-from ...fixes import partial
 from ..utils import has_dataset, _data_path, _doc
-
-has_sample_data = partial(has_dataset, name='sample')
 
 @verbose
 def data_path(path=None, force_update=False, update_path=True,
@@ -26,6 +23,6 @@ data_path.__doc__ = _doc.format(name='sample',
 # `make test-no-sample`
 has_sample_data = has_dataset('sample')
 skip_sample = get_config('MNE_SKIP_SAMPLE_DATASET_TESTS', 'false') == 'true'
-requires_sample_data = np.testing.dec.skipif(not has_sample_data
-                                          or skip_sample,
-                                          'Requires sample dataset')
+requires_sample_data = np.testing.dec.skipif(not has_dataset('sample')
+                                             or skip_sample,
+                                             'Requires sample dataset')
