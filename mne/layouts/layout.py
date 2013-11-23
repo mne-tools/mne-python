@@ -297,10 +297,11 @@ def find_layout(info=None, ch_type=None, chs=None):
     ----------
     info : instance of mne.fiff.meas_info.Info | None
         The measurement info.
-    ch_type : {'mag', 'grad'} | None
+    ch_type : {'mag', 'grad', 'all'} | None
         The channel type for selecting single channel layouts.
         Defaults to None. Note, this argument will only be considered for    
-        VectorView type layout
+        VectorView type layout. Use 'all' to force using the full layout
+        in situations where the info does only contain one sensor type.
     chs : instance of mne.fiff.meas_info.Info | None
         The measurement info. Defaults to None. This keyword is deprecated and
         will be remove in MNE-Python 0.9. Use `info` instead.
