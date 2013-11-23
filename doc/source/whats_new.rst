@@ -33,7 +33,9 @@ Changelog
 
    - Add rejection buffer to ICA.decompose* methods by `Denis Engemann`_ and `Alex Gramfort`_
 
-   - Add polygonal surface decimation function by `Denis Engemann`_ and `Alex Gramfort`_
+   - Improve ICA computation speed and memory usage by `Denis Engemann`_ and `Alex Gramfort`_
+
+   - Add polygonal surface decimation function to preprocess head surfaces for coregistration by `Denis Engemann`_ and `Alex Gramfort`_
 
    - DICS time-frequency beamforming for epochs, evoked and for estimating source power by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
 
@@ -77,6 +79,10 @@ Changelog
 
    - Support reading of EEG BrainVision data by `Teon Brooks`_
 
+   - Improve CTF compensation handling by `Martin Luessi`_ and `Eric Larson`_
+   
+   - Improve and extend automated layout guessing by `Denis Engemann`_
+
 API
 ~~~
 
@@ -88,6 +94,8 @@ API
 
    - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
 
+   - The `chs` argument in `mne.layouts.find_layout` is deprecated and will be removed in MNE-Python 0.9. Use `info` instead.
+ 
 .. _changes_0_6:
 
 Version 0.6
