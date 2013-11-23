@@ -7,7 +7,7 @@ Uploaders: Alexandre Gramfort <alexandre.gramfort@m4x.org>,
 Section: python
 Priority: optional
 Build-Depends: debhelper (>= 9),
-               python-all-dev,
+               python-all,
                python-support,
                python-numpy,
                python-scipy,
@@ -47,4 +47,7 @@ Suggests: python-dap,
           ipython
 Provides: ${python:Provides}
 Description: Python modules for MEG and EEG data analysis
- TODO
+ This package is designed for sensor- and source-space analysis of MEG
+ and EEG data, including frequency-domain and time-frequency analyses
+ and non-parametric statistics.
+
