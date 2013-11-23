@@ -31,8 +31,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
                       average, filter_length, n_jobs, ch_name,
                       reject, flat, bads, avg_ref, no_proj, event_id,
                       exg_l_freq, exg_h_freq, tstart, qrs_threshold,
-                      filter_method, iir_params=dict(order=4, ftype='butter'),
-                      verbose=None):
+                      filter_method, iir_params=None, verbose=None):
     """Compute SSP/PCA projections for ECG or EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -92,9 +91,10 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         number of heartbeats (40-160 beats / min). Only for ECG.
     filter_method : str
         Method for filtering ('iir' or 'fft').
-    iir_params : dict
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -217,8 +217,7 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
                      flat=None, bads=[], avg_ref=False,
                      no_proj=False, event_id=999, ecg_l_freq=5, ecg_h_freq=35,
                      tstart=0., qrs_threshold='auto', filter_method='fft',
-                     iir_params=dict(order=4, ftype='butter'),
-                     copy=True, verbose=None):
+                     iir_params=None, copy=True, verbose=None):
     """Compute SSP/PCA projections for ECG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -276,9 +275,10 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         number of heartbeats (40-160 beats / min).
     filter_method : str
         Method for filtering ('iir' or 'fft').
-    iir_params : dict
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
     copy : bool
         If False, filtering raw data is done in place. Defaults to True.
     verbose : bool, str, int, or None
@@ -313,8 +313,7 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
                                  eog=np.inf), flat=None, bads=[],
                      avg_ref=False, no_proj=False, event_id=998, eog_l_freq=1,
                      eog_h_freq=10, tstart=0., filter_method='fft',
-                     iir_params=dict(order=4, ftype='butter'), ch_name=None,
-                     copy=True, verbose=None):
+                     iir_params=None, ch_name=None, copy=True, verbose=None):
     """Compute SSP/PCA projections for EOG artifacts
 
     Note: raw has to be constructed with preload=True (or string)
@@ -368,6 +367,10 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Start artifact detection after tstart seconds.
     filter_method : str
         Method for filtering ('iir' or 'fft').
+    iir_params : dict | None
+        Dictionary of parameters to use for IIR filtering.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
     copy : bool
         If False, filtering raw data is done in place. Defaults to True.
     ch_name: str | None

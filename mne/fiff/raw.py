@@ -520,8 +520,7 @@ class Raw(ProjMixin):
     @verbose
     def filter(self, l_freq, h_freq, picks=None, filter_length='10s',
                l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-               method='fft', iir_params=dict(order=4, ftype='butter'),
-               verbose=None):
+               method='fft', iir_params=None, verbose=None):
         """Filter a subset of channels.
 
         Applies a zero-phase low-pass, high-pass, band-pass, or band-stop
@@ -570,9 +569,10 @@ class Raw(ProjMixin):
         method : str
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt).
-        iir_params : dict
+        iir_params : dict | None
             Dictionary of parameters to use for IIR filtering.
-            See mne.filter.construct_iir_filter for details.
+            See mne.filter.construct_iir_filter for details. If iir_params
+            is None and method="iir", 4th order Butterworth will be used.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -649,7 +649,7 @@ class Raw(ProjMixin):
     @verbose
     def notch_filter(self, freqs, picks=None, filter_length='10s',
                      notch_widths=None, trans_bandwidth=1.0, n_jobs=1,
-                     method='fft', iir_params=dict(order=4, ftype='butter'),
+                     method='fft', iir_params=None,
                      mt_bandwidth=None, p_value=0.05, verbose=None):
         """Notch filter a subset of channels.
 
@@ -690,9 +690,10 @@ class Raw(ProjMixin):
             'fft' will use overlap-add FIR filtering, 'iir' will use IIR
             forward-backward filtering (via filtfilt). 'spectrum_fit' will
             use multi-taper estimation of sinusoidal components.
-        iir_params : dict
+        iir_params : dict | None
             Dictionary of parameters to use for IIR filtering.
-            See mne.filter.construct_iir_filter for details.
+            See mne.filter.construct_iir_filter for details. If iir_params
+            is None and method="iir", 4th order Butterworth will be used.
         mt_bandwidth : float | None
             The bandwidth of the multitaper windowing function in Hz.
             Only used in 'spectrum_fit' mode.
