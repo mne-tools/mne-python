@@ -24,6 +24,7 @@ import mne
 from mne import fiff
 from mne.connectivity import spectral_connectivity, seed_target_indices
 from mne.datasets import sample
+from mne.layouts import find_layout
 from mne.viz import plot_topo_tfr
 
 ###############################################################################
@@ -73,5 +74,7 @@ con[np.where(indices[1] == seed)] = 1.0
 # Show topography of connectivity from seed
 import matplotlib.pyplot as plt
 title = 'WPLI2 - Visual - Seed %s' % seed_ch
-plot_topo_tfr(epochs, con, freqs, title=title)
+
+layout = find_layout(raw.info)  # use full layout
+plot_topo_tfr(epochs, con, freqs, layout=layout, title=title)
 plt.show()

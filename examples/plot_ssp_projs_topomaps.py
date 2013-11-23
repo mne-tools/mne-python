@@ -23,9 +23,9 @@ ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 evoked = mne.fiff.read_evoked(ave_fname, setno='Left Auditory')
 projs = mne.read_proj(ecg_fname)
 
-layouts = [mne.layouts.read_layout('Vectorview-all'),
+layouts = [mne.layouts.find_layout(evoked.info),
            mne.layouts.make_eeg_layout(evoked.info)]
 
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(10, 8))
 mne.viz.plot_projs_topomap(projs, layout=layouts)
-mne.viz.tight_layout()
+mne.viz.tight_layout(w_pad=0.5)
