@@ -5,11 +5,13 @@
 #
 # License: Simplified BSD
 
-import warnings
+import copy
 import os.path as op
+import warnings
+
 import numpy as np
-from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_almost_equal, assert_array_equal
+from nose.tools import assert_true, assert_raises
 
 from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout, 
                          find_layout)
@@ -137,11 +139,25 @@ def test_find_layout():
     
     mags = pick_types(sample_info, meg='mag')
     sample_info3 = pick_info(sample_info, mags)
+    
+    # mock new convention
+    sample_info4 = copy.deepcopy(sample_info)
+    for ii, name in enumerate(sample_info4['ch_names']):
+        new = name.replace(' ', '')
+        sample_info4['ch_names'][ii] = new
+        sample_info4['chs'][ii]['ch_name'] = new 
 
     lout = find_layout(sample_info, ch_type=None)
     assert_true(lout.kind == 'Vectorview-all')
+    assert_true(all(' ' in k for k in lout.names))
+
     lout = find_layout(sample_info2, ch_type='all')
     assert_true(lout.kind == 'Vectorview-all')
+    
+    # test new vector-view
+    lout = find_layout(sample_info4, ch_type=None)
+    assert_true(lout.kind == 'Vectorview-all')
+    assert_true(all(not ' ' in k for k in lout.names))
     
     lout = find_layout(sample_info, ch_type='grad')
     assert_true(lout.kind == 'Vectorview-grad')
@@ -165,3 +181,5 @@ def test_find_layout():
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
     lout = find_layout(Raw(fname_bti_raw).info)
     assert_true(lout.kind == 'magnesWH3600')
+    
+

@@ -43,7 +43,7 @@ class Layout(object):
     def __init__(self, box, pos, names, ids, kind):
         self.box = box
         self.pos = pos
-        self._names = names
+        self.names = names
         self.ids = ids
         self.kind = kind
 
@@ -74,12 +74,6 @@ class Layout(object):
         f = open(fname, 'w')
         f.write(out_str)
         f.close()
-
-    @property
-    def names(self):
-        """Return clean names"""
-        return _clean_names(self._names)
-
 
 def _read_lout(fname):
     """Aux function"""
@@ -297,7 +291,7 @@ def find_layout(info=None, ch_type=None, chs=None):
     ----------
     info : instance of mne.fiff.meas_info.Info | None
         The measurement info.
-    ch_type : {'mag', 'grad', 'all'} | None
+    ch_type : {'mag', 'grad', 'meg'} | None
         The channel type for selecting single channel layouts.
         Defaults to None. Note, this argument will only be considered for    
         VectorView type layout. Use 'all' to force using the full layout
@@ -327,7 +321,8 @@ def find_layout(info=None, ch_type=None, chs=None):
 
     if ch_type not in (None, 'all', 'mag', 'grad'):
         raise ValueError('Invalid channel type (%s) requested '
-                         '`ch_type` must be `None`, `mag`, `grad`' % ch_type)
+                         '`ch_type` must be `None`, `mag`, `grad`, `meg`'
+                         % ch_type)
 
     coil_types = np.unique([ch['coil_type'] for ch in chs])
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
@@ -337,6 +332,7 @@ def find_layout(info=None, ch_type=None, chs=None):
     has_vv_only_grad = has_vv_grad and not has_vv_mag
     has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
     has_CTF_grad = FIFF.FIFFV_COIL_CTF_GRAD in coil_types
+    is_old_vv = ' ' in chs[0]['ch_name'] 
   
     if ((has_vv_all and ch_type is None) or
         (any([has_vv_mag, has_vv_grad]) and ch_type == 'all')):
@@ -352,7 +348,13 @@ def find_layout(info=None, ch_type=None, chs=None):
     else:
         return None
 
-    return read_layout(layout_name)
+    layout = read_layout(layout_name)
+    if not is_old_vv:
+        layout.names = _clean_names(layout.names, remove_whitespace=True)
+    if has_CTF_grad:
+        layout.names = _clean_names(layout.names, before_dash=True)
+
+    return layout
 
 
 def _find_topomap_coords(chs, layout=None):

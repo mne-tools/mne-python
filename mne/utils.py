@@ -1205,18 +1205,21 @@ def _check_pandas_index_arguments(index, defaults):
                          'values are \'None\' or %s' % tuple(options))
 
 
-def _clean_names(names):
+def _clean_names(names, remove_whitespace=False, before_dash=True):
     """ Remove white-space on topo matching
 
-    Over the years, Neuromag systems employed inconsistent handling of
-    white-space in layout names. This function handles different naming
-    conventions and hence should be used in each topography-plot to
-    warrant compatibility across systems.
+    This function handles different naming
+    conventions for old VS new VectorView systems (`remove_whitespace`).
+    Also it allows to remove system specific parts in CTF channel names
+    (`before_dash`).
 
     Usage
     -----
-    Wrap this function around channel and layout names:
-    ch_names = _clean_names(epochs.ch_names)
+    # for old VectorView 
+    ch_names = _clean_names(epochs.ch_names, remove_whitespace=True)
+
+    # for CTF
+    ch_names = _clean_names(epochs.ch_names, remove_whitespace=True)
 
     for n in _clean_names(layout.names):
         if n in ch_names:
@@ -1225,9 +1228,9 @@ def _clean_names(names):
     """
     cleaned = []
     for name in names:
-        if ' ' in name:
+        if ' ' in name and remove_whitespace:
             name = name.replace(' ', '')
-        if '-' in name:
+        if '-' in name and before_dash:
             name = name.split('-')[0]
         cleaned.append(name)
 
