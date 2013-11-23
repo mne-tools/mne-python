@@ -22,6 +22,9 @@ fif_fname = op.join(op.dirname(__file__), '..', '..', 'fiff',
 lout_path = op.join(op.dirname(__file__), '..', '..', 'fiff',
                     'tests', 'data')
 
+bti_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'bti',
+                  'tests', 'data')
+
 test_info = {'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
  'chs': [{'cal': 1,
    'ch_name': 'ICA 001',
@@ -126,3 +129,15 @@ def test_find_layout():
         assert_true(w[0].category == DeprecationWarning)
     assert_raises(ValueError, find_layout, dict())
     assert_raises(ValueError, find_layout, test_info, ch_type='meep')
+        
+    sample_info = Raw(fif_fname).info
+    lout = find_layout(sample_info, ch_type=None)
+    assert_true(lout.kind == 'Vectorview-all')
+    lout = find_layout(sample_info, ch_type='grad')
+    assert_true(lout.kind == 'Vectorview-grad')
+    lout = find_layout(sample_info, ch_type='mag')
+    assert_true(lout.kind == 'Vectorview-mag')
+    
+    fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
+    lout = find_layout(Raw(fname_bti_raw).info)
+    assert_true(lout.kind == 'magnesWH3600')

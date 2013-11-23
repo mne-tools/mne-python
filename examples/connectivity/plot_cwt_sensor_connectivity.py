@@ -24,7 +24,7 @@ import mne
 from mne import fiff
 from mne.connectivity import spectral_connectivity, seed_target_indices
 from mne.datasets import sample
-from mne.layouts import read_layout
+from mne.layouts import find_layout
 from mne.viz import plot_topo_tfr
 
 ###############################################################################

@@ -34,7 +34,9 @@ temp_dir = _TempDir()
 existing_file = op.join(temp_dir, 'test.fif')
 with open(existing_file, 'wb') as fid:
     fid.write('aoeu')
-
+    
+bti_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'bti',
+                  'tests', 'data')
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                       meg_rtol=1e-4, meg_atol=1e-9):

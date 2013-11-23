@@ -20,8 +20,10 @@ class Layout(object):
 
     Parameters
     ----------
-    kind : 'Vectorview-all' | 'CTF-275' | 'Vectorview-grad' | 'Vectorview-mag'
-        Type of layout (can also be custom for EEG)
+    kind : str
+        Type of layout (can also be custom for EEG). Valid layouts are
+        {'Vectorview-all', 'Vectorview-grad', 'Vectorview-mag',  'CTF-275',
+         'magnesWH3600'}
     path : string
         Path to folder where to find the layout file.
 
