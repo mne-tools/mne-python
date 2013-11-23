@@ -3485,7 +3485,7 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     # Covering frequency gaps with horizontal bars
     for lower_bound, upper_bound in gap_bounds:
         plt.barh(lower_bound, time_bounds[-1] - time_bounds[0], upper_bound -
-                 lower_bound, time_bounds[0], color='lightgray')
+                 lower_bound, time_bounds[0], color='#666666')
 
     if show:
         plt.show()
