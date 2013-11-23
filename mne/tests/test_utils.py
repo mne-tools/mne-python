@@ -204,7 +204,7 @@ def test_fetch_file():
     """
     # Skipping test if no internet connection available
     try:
-        urllib2.urlopen("http://github.com", timeout=1)
+        urllib2.urlopen("http://github.com", timeout=2)
     except urllib2.URLError:
         from nose.plugins.skip import SkipTest
         raise SkipTest('No internet connection, skipping download test.')
@@ -214,7 +214,7 @@ def test_fetch_file():
     for url in urls:
         archive_name = op.join(tempdir, "download_test")
         _fetch_file(url, archive_name, print_destination=False)
-        assert_raises(Exception, _fetch_file, 'http://0.0',
+        assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
                       op.join(tempdir, 'test'))
         resume_name = op.join(tempdir, "download_resume")
         # touch file

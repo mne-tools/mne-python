@@ -55,8 +55,8 @@ def _dataset_version(path, name):
         fid.close()
     else:
         # Sample dataset versioning was introduced after 0.3
-        # SPM dataset was introduced after 0.6
-        version = '0.3' if name == 'sample' else '0.6'
+        # SPM dataset was introduced with 0.7
+        version = '0.3' if name == 'sample' else '0.7'
 
     return version
 
@@ -161,16 +161,17 @@ def _data_path(path=None, force_update=False, update_path=True,
     # compare the version of the Sample dataset and mne
     data_version = _dataset_version(path, name)
     try:
-        from distutils.version import LooseVersion
+        from distutils.version import LooseVersion as LV
     except:
         warn('Could not determine sample dataset version; dataset could\n'
              'be out of date. Please install the "distutils" package.')
-    else:
-        if LooseVersion(data_version) < LooseVersion(mne_version):
-            warn('Sample dataset (version %s) is older than mne-python '
-                 '(version %s). If the examples fail, you may need to update '
-                 'the sample dataset by using force_update=True'
-                 % (data_version, mne_version))
+    else:  # 0.7 < 0.7.git shoud be False, therefore strip
+        if LV(data_version) < LV(mne_version.strip('.git')):
+            warn('The {name} dataset (version {current}) is older than '
+                 'the mne-python (version {newest}). If the examples fail, '
+                 'you may need to update the {name} dataset by using'
+                 'force_update=True'.format(name=name, current=data_version,
+                                            newest=mne_version))
 
     return path
 

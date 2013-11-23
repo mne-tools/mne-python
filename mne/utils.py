@@ -507,6 +507,27 @@ def requires_tvtk(function):
     return dec
 
 
+def requires_statsmodels(function):
+    """Decorator to skip test if statsmodels is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        skip = False
+        try:
+            from tvtk.api import tvtk  # analysis:ignore
+        except ImportError:
+            skip = True
+
+        if skip is True:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires statsmodels'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+
 def make_skipper_dec(module, skip_str):
     """Helper to make skipping decorators"""
     skip = False

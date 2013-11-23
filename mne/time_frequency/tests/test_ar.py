@@ -2,27 +2,26 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
-import nose
 
 from mne import fiff
 from mne.time_frequency import yule_walker, ar_raw
+from mne.utils import requires_statsmodels
+
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
                     'test_raw.fif')
 
 
+@requires_statsmodels
 def test_yule_walker():
     """Test Yule-Walker against statsmodels
     """
-    try:
-        from statsmodels.regression.linear_model import yule_walker as sm_yw
-        d = np.random.randn(100)
-        sm_rho, sm_sigma = sm_yw(d, order=2)
-        rho, sigma = yule_walker(d, order=2)
-        assert_array_almost_equal(sm_sigma, sigma)
-        assert_array_almost_equal(sm_rho, rho)
-    except ImportError:
-        raise nose.SkipTest("XFailed Test")
+    from statsmodels.regression.linear_model import yule_walker as sm_yw
+    d = np.random.randn(100)
+    sm_rho, sm_sigma = sm_yw(d, order=2)
+    rho, sigma = yule_walker(d, order=2)
+    assert_array_almost_equal(sm_sigma, sigma)
+    assert_array_almost_equal(sm_rho, rho)
 
 
 def test_ar_raw():
