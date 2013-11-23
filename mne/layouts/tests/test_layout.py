@@ -149,6 +149,9 @@ def test_find_layout():
     assert_true(lout.kind == 'Vectorview-grad')
     lout = find_layout(sample_info2, ch_type='grad')
     assert_true(lout.kind == 'Vectorview-grad')
+    lout = find_layout(sample_info2, ch_type='all')
+    assert_true(lout.kind == 'Vectorview-all')
+
     
     lout = find_layout(sample_info, ch_type='mag')
     assert_true(lout.kind == 'Vectorview-mag')
@@ -156,7 +159,8 @@ def test_find_layout():
     assert_true(lout.kind == 'Vectorview-mag')
     lout = find_layout(sample_info3, ch_type='mag')
     assert_true(lout.kind == 'Vectorview-mag')
-
+    lout = find_layout(sample_info3, ch_type='all')
+    assert_true(lout.kind == 'Vectorview-all')
     
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
     lout = find_layout(Raw(fname_bti_raw).info)
