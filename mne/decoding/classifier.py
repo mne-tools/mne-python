@@ -302,16 +302,17 @@ class FilterEstimator(TransformerMixin):
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
-    iir_params : dict
+    iir_params : dict | None
         Dictionary of parameters to use for IIR filtering.
-        See mne.filter.construct_iir_filter for details.
+        See mne.filter.construct_iir_filter for details. If iir_params
+        is None and method="iir", 4th order Butterworth will be used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
     """
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='10s',
                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-                 method='fft', iir_params=dict(order=4, ftype='butter')):
+                 method='fft', iir_params=None):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -341,8 +342,8 @@ class FilterEstimator(TransformerMixin):
                              % type(epochs_data))
 
         if self.picks is None:
-            self.picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
-                                    exclude=[])
+            self.picks = pick_types(self.info, meg=True, eeg=True,
+                                    ref_meg=False, exclude=[])
 
         if self.l_freq == 0:
             self.l_freq = None
