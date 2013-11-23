@@ -1215,15 +1215,11 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
 
     Usage
     -----
-    # for old VectorView 
+    # for new VectorView (only inside layout) 
     ch_names = _clean_names(epochs.ch_names, remove_whitespace=True)
 
     # for CTF
-    ch_names = _clean_names(epochs.ch_names, remove_whitespace=True)
-
-    for n in _clean_names(layout.names):
-        if n in ch_names:
-            # prepare plot
+    ch_names = _clean_names(epochs.ch_names, before_dash=True)
 
     """
     cleaned = []
