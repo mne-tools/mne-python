@@ -20,7 +20,7 @@ from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
                     logger, verbose)
 from .viz import plot_source_estimates
-from .fixes import (in1d, partial)
+from .fixes import in1d
 
 
 def _read_stc(filename):
@@ -746,12 +746,13 @@ class _BaseSourceEstimate(object):
 
         Parameters
         ----------
-        func : partial
-            The transform to be applied, wrapped in a partial. The first
-            parameter of the function is the input data. The first return
-            value is the transformed data, remaining outputs are ignored.
-            The first dimension of the transformed data has to be the same as
-            the first dimension of the input data.
+        func : callable
+            The transform to be applied, including parameters (see, e.g.,
+            mne.fixes.partial). The first parameter of the function is the
+            input data. The first return value is the transformed data,
+            remaining outputs are ignored. The first dimension of the
+            transformed data has to be the same as the first dimension of the
+            input data.
         idx : array | None
             Indicices of source time courses for which to compute transform.
             If None, all time courses are used.
@@ -816,14 +817,15 @@ class _BaseSourceEstimate(object):
 
         Parameters
         ----------
-        func : partial
-            The transform to be applied, wrapped in a partial. The first
-            parameter of the function is the input data. The first two
-            dimensions of the transformed data should be (i) vertices and (ii)
-            time.  Transforms which yield 3D output (e.g. time-frequency
-            transforms) are valid, so long as the first two dimensions are
-            vertices and time.  In this case, the copy parameter must be True
-            and a list of SourceEstimates, rather than a single SourceEstimate,
+        func : callable
+            The transform to be applied, including parameters (see, e.g.,
+            mne.fixes.partial). The first parameter of the function is the
+            input data. The first two dimensions of the transformed data
+            should be (i) vertices and (ii) time.  Transforms which yield 3D
+            output (e.g. time-frequency transforms) are valid, so long as the
+            first two dimensions are vertices and time.  In this case, the
+            copy parameter (see below) must be True and a list of
+            SourceEstimates, rather than a single instance of SourceEstimate,
             will be returned, one for each index of the 3rd dimension of the
             transformed data.  In the case of transforms yielding 2D output
             (e.g. filtering), the user has the option of modifying the input
