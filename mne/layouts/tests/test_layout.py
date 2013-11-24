@@ -85,6 +85,8 @@ def test_io_layout_lout():
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert_true(layout.names, layout_read.names)
 
+    print layout  # test repr
+
 
 def test_io_layout_lay():
     """Test IO with .lay files"""

@@ -37,7 +37,6 @@ raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
 
 raw = fiff.Raw(raw_fname % 1, preload=True) # Take first run
 
-
 picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')
 
@@ -73,7 +72,6 @@ contrast = evoked[1] - evoked[0]
 evoked.append(contrast)
 
 for e in evoked:
-    plt.figure()
     e.plot(ylim=dict(mag=[-400, 400]))
 
 plt.show()

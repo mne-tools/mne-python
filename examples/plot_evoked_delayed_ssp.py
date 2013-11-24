@@ -71,10 +71,8 @@ fig, axes = plt.subplots(2, 2)  # create 4 subplots for our four vectors
 # can't be undone we will operate on copies of the original evoked object to
 # keep things reversible.
 
-for proj, ax in zip(projs, 
-
-axes.flatten()):
-    evoked.add_proj)(proj)  # add projection vectors loop by loop.
+for proj, ax in zip(projs, axes.flatten()):
+    evoked.add_proj(proj)  # add projection vectors loop by loop.
     evoked.copy().apply_proj().plot(axes=ax)  # apply on a copy of evoked
     ax.set_title('+ %s' % proj['desc'])  # extract description.
 plt.suptitle(title)

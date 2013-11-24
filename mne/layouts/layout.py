@@ -75,6 +75,11 @@ class Layout(object):
         f.write(out_str)
         f.close()
 
+    def __repr__(self):
+        return '<Layout | %s - Channels: %s ...>' % (self.kind,
+                                                     ', '.join(self.names[:3]))
+
+
 def _read_lout(fname):
     """Aux function"""
     with open(fname) as f:
@@ -195,7 +200,7 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
         raise ValueError('No EEG digitization points found')
 
     if not len(hsp) == len(names):
-        raise ValueError('Channel names don\'t match digitization values')
+        raise ValueError("Channel names don't match digitization values")
     hsp = np.array(hsp)
 
     # Move points to origin
@@ -207,7 +212,7 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     phi = np.arctan2(hsp[:, 1], hsp[:, 0])
 
     # Mark the points that might have caused bad angle estimates
-    iffy = np.nonzero(np.sum(hsp[:, :2] ** 2, axis=-1) ** (1. / 2)
+    iffy = np.nonzero(np.sqrt(np.sum(hsp[:, :2] ** 2, axis=-1))
                       < np.finfo(np.float).eps * 10)
     theta[iffy] = 0
     phi[iffy] = 0
@@ -293,7 +298,7 @@ def find_layout(info=None, ch_type=None, chs=None):
         The measurement info.
     ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
-        Defaults to None. Note, this argument will only be considered for    
+        Defaults to None. Note, this argument will only be considered for
         VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
     chs : instance of mne.fiff.meas_info.Info | None
@@ -324,26 +329,32 @@ def find_layout(info=None, ch_type=None, chs=None):
         raise ValueError('Invalid channel type (%s) requested '
                          '`ch_type` must be %s' % (ch_type, our_types))
 
-    coil_types = np.unique([ch['coil_type'] for ch in chs])
-    channel_types = np.unique([ch['kind'] for ch in chs])
+    coil_types = set([ch['coil_type'] for ch in chs])
+    channel_types = set([ch['kind'] for ch in chs])
 
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
     has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
-    is_old_vv = ' ' in chs[0]['ch_name'] 
-    
+    is_old_vv = ' ' in chs[0]['ch_name']
+
     has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
     has_CTF_grad = FIFF.FIFFV_COIL_CTF_GRAD in coil_types
-    
+    has_CTF_grad += 201609 in coil_types  # hack due to MNE-C bug in IO of CTF
+
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad])
     has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
                      FIFF.FIFFV_EEG_CH in channel_types)
     has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
     has_eeg_coils_only = has_eeg_coils and not has_any_meg
-    # import pdb;pdb.set_trace()
-  
+
+    if ch_type == "meg" and not has_any_meg:
+        raise RuntimeError('No MEG channels present. Cannot find MEG layout.')
+
+    if ch_type == "eeg" and not has_eeg_coils:
+        raise RuntimeError('No EEG channels present. Cannot find EEG layout.')
+
     if ((has_vv_meg and ch_type is None) or
         (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
         layout_name = 'Vectorview-all'
@@ -354,7 +365,7 @@ def find_layout(info=None, ch_type=None, chs=None):
     elif ((has_eeg_coils_only and ch_type in [None, 'eeg']) or
           (has_eeg_coils_and_meg and ch_type == 'eeg')):
         if not isinstance(info, dict):
-            raise RuntimeError('Cannot make eeg layout, no measurement info '
+            raise RuntimeError('Cannot make EEG layout, no measurement info '
                                'was passed to `find_layout`')
         return make_eeg_layout(info)
     elif has_4D_mag:
