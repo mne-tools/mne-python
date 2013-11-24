@@ -47,11 +47,16 @@ rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
 rt_epochs.start()
 
 # send raw buffers
+import matplotlib.pyplot as plt
+fig, ax = plt.subplots(1, 1)
+
 rt_client.send_data(rt_epochs, picks, tmin=0, tmax=150, buffer_size=1000)
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
     print "Just got epoch %d" % (ii + 1)
     if ii > 0:
         ev += evoked
+
     evoked = ev
-    evoked.plot()
-    time.sleep(0.1)
+    evoked.plot(axes=ax)
+    plt.draw()
+    time.sleep(0.05)
