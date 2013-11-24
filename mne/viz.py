@@ -1140,7 +1140,6 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     fig = None
     if axes is None:
         fig, axes = plt.subplots(n_channel_types, 1)
-
     if isinstance(axes, plt.Axes):
         axes = [axes]
     elif isinstance(axes, np.ndarray):

@@ -76,6 +76,7 @@ for proj, ax in zip(projs, axes.flatten()):
     evoked.copy().apply_proj().plot(axes=ax)  # apply on a copy of evoked
     ax.set_title('+ %s' % proj['desc'])  # extract description.
 plt.suptitle(title)
+mne.viz.tight_layout()
 
 # We also could have easily visualized the impact of single projection vectors
 # by deleting the vector directly after visualizing the changes.

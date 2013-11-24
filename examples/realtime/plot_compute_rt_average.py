@@ -48,17 +48,10 @@ rt_epochs.start()
 
 # send raw buffers
 rt_client.send_data(rt_epochs, picks, tmin=0, tmax=150, buffer_size=1000)
-
-evoked = None
-
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
-
     print "Just got epoch %d" % (ii + 1)
-
-    if evoked is None:
-        evoked = ev
-    else:
-        evoked += ev
-
+    if ii > 0:
+        ev += evoked
+    evoked = ev
     evoked.plot()
     time.sleep(0.1)
