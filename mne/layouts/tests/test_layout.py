@@ -147,11 +147,14 @@ def test_find_layout():
         sample_info4['ch_names'][ii] = new
         sample_info4['chs'][ii]['ch_name'] = new 
 
+    mags = pick_types(sample_info, meg=False, eeg=True)
+    sample_info5 = pick_info(sample_info, mags)
+
     lout = find_layout(sample_info, ch_type=None)
     assert_true(lout.kind == 'Vectorview-all')
     assert_true(all(' ' in k for k in lout.names))
 
-    lout = find_layout(sample_info2, ch_type='all')
+    lout = find_layout(sample_info2, ch_type='meg')
     assert_true(lout.kind == 'Vectorview-all')
     
     # test new vector-view
@@ -165,7 +168,7 @@ def test_find_layout():
     assert_true(lout.kind == 'Vectorview-grad')
     lout = find_layout(sample_info2, ch_type='grad')
     assert_true(lout.kind == 'Vectorview-grad')
-    lout = find_layout(sample_info2, ch_type='all')
+    lout = find_layout(sample_info2, ch_type='meg')
     assert_true(lout.kind == 'Vectorview-all')
 
     
@@ -175,9 +178,17 @@ def test_find_layout():
     assert_true(lout.kind == 'Vectorview-mag')
     lout = find_layout(sample_info3, ch_type='mag')
     assert_true(lout.kind == 'Vectorview-mag')
-    lout = find_layout(sample_info3, ch_type='all')
+    lout = find_layout(sample_info3, ch_type='meg')
     assert_true(lout.kind == 'Vectorview-all')
-    
+    # 
+    lout = find_layout(sample_info, ch_type='eeg')
+    assert_true(lout.kind == 'EEG')
+    lout = find_layout(sample_info5)
+    assert_true(lout.kind == 'EEG')
+    lout = find_layout(sample_info5, ch_type='eeg')
+    assert_true(lout.kind == 'EEG')
+    # no common layout, 'meg' option not supported
+
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
     lout = find_layout(Raw(fname_bti_raw).info)
     assert_true(lout.kind == 'magnesWH3600')

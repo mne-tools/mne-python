@@ -7,7 +7,8 @@ This example shows how to display topographies of SSP projection vectors.
 The projections used are the ones correcting for ECG artifacts.
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#
+#         Denis A. Engemann <d.engemann@fz-juuelich.de>
+
 # License: BSD (3-clause)
 
 print __doc__
@@ -23,8 +24,7 @@ ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 evoked = mne.fiff.read_evoked(ave_fname, setno='Left Auditory')
 projs = mne.read_proj(ecg_fname)
 
-layouts = [mne.layouts.find_layout(evoked.info),
-           mne.layouts.make_eeg_layout(evoked.info)]
+layouts = [mne.find_layout(evoked.info, k) for k in 'meg', 'eeg']
 
 plt.figure(figsize=(12, 6))
 mne.viz.plot_projs_topomap(projs, layout=layouts)

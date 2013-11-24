@@ -291,14 +291,14 @@ def find_layout(info=None, ch_type=None, chs=None):
     ----------
     info : instance of mne.fiff.meas_info.Info | None
         The measurement info.
-    ch_type : {'mag', 'grad', 'meg'} | None
+    ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
         Defaults to None. Note, this argument will only be considered for    
-        VectorView type layout. Use 'all' to force using the full layout
+        VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
     chs : instance of mne.fiff.meas_info.Info | None
         The measurement info. Defaults to None. This keyword is deprecated and
-        will be remove in MNE-Python 0.9. Use `info` instead.
+        will be removed in MNE-Python 0.9. Use `info` instead.
 
     Returns
     -------
@@ -319,28 +319,44 @@ def find_layout(info=None, ch_type=None, chs=None):
         raise ValueError('Could not find any channels. The info structure '
                          'is not valid.')
 
-    if ch_type not in (None, 'all', 'mag', 'grad'):
+    our_types = ' or '.join(['`None`', '`mag`', '`grad`', '`meg`'])
+    if ch_type not in (None, 'meg', 'mag', 'grad', 'eeg'):
         raise ValueError('Invalid channel type (%s) requested '
-                         '`ch_type` must be `None`, `mag`, `grad`, `meg`'
-                         % ch_type)
+                         '`ch_type` must be %s' % (ch_type, our_types))
 
     coil_types = np.unique([ch['coil_type'] for ch in chs])
+    channel_types = np.unique([ch['kind'] for ch in chs])
+
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
     has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
-    has_vv_all = has_vv_mag and has_vv_grad
+    has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
+    is_old_vv = ' ' in chs[0]['ch_name'] 
+    
     has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
     has_CTF_grad = FIFF.FIFFV_COIL_CTF_GRAD in coil_types
-    is_old_vv = ' ' in chs[0]['ch_name'] 
+    
+    has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad])
+    has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
+                     FIFF.FIFFV_EEG_CH in channel_types)
+    has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
+    has_eeg_coils_only = has_eeg_coils and not has_any_meg
+    # import pdb;pdb.set_trace()
   
-    if ((has_vv_all and ch_type is None) or
-        (any([has_vv_mag, has_vv_grad]) and ch_type == 'all')):
+    if ((has_vv_meg and ch_type is None) or
+        (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
         layout_name = 'Vectorview-all'
-    elif has_vv_only_mag or (has_vv_all and ch_type == 'mag'):
+    elif has_vv_only_mag or (has_vv_meg and ch_type == 'mag'):
         layout_name = 'Vectorview-mag'
-    elif has_vv_only_grad or (has_vv_all and ch_type == 'grad'):
+    elif has_vv_only_grad or (has_vv_meg and ch_type == 'grad'):
         layout_name = 'Vectorview-grad'
+    elif ((has_eeg_coils_only and ch_type in [None, 'eeg']) or
+          (has_eeg_coils_and_meg and ch_type == 'eeg')):
+        if not isinstance(info, dict):
+            raise RuntimeError('Cannot make eeg layout, no measurement info '
+                               'was passed to `find_layout`')
+        return make_eeg_layout(info)
     elif has_4D_mag:
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:

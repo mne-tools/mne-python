@@ -15,7 +15,7 @@ from mne import (Epochs, read_forward_solution, make_forward_solution,
                  convert_forward_solution)
 from mne.utils import requires_mne, _TempDir
 from mne.tests.test_source_space import _compare_source_spaces
-
+    
 data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -34,9 +34,7 @@ temp_dir = _TempDir()
 existing_file = op.join(temp_dir, 'test.fif')
 with open(existing_file, 'wb') as fid:
     fid.write('aoeu')
-    
-bti_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'bti',
-                  'tests', 'data')
+
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                       meg_rtol=1e-4, meg_atol=1e-9):

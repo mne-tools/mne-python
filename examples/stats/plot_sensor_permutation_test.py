@@ -65,8 +65,7 @@ print "Sensors names : %s" % significant_sensors_names
 import matplotlib.pyplot as plt
 
 # load sensor layout
-from mne.layouts import find_layout
-layout = find_layout(epochs.info)
+layout = mne.find_layout(epochs.info)
 
 # Extract mask and indices of active sensors in layout
 idx_of_sensors = [layout.names.index(name)
