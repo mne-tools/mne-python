@@ -24,7 +24,6 @@ import mne
 from mne import fiff
 from mne.connectivity import spectral_connectivity, seed_target_indices
 from mne.datasets import sample
-from mne.layouts import read_layout
 from mne.viz import plot_topo_tfr
 
 ###############################################################################
@@ -60,7 +59,7 @@ indices = seed_target_indices(seed, targets)
 
 # Define wavelet frequencies and number of cycles
 cwt_frequencies = np.arange(7, 30, 2)
-cwt_n_cycles = cwt_frequen  cies / 7.
+cwt_n_cycles = cwt_frequencies / 7.
 
 # Run the connectivity analysis using 2 parallel jobs
 sfreq = raw.info['sfreq']  # the sampling frequency
@@ -73,7 +72,8 @@ con[np.where(indices[1] == seed)] = 1.0
 
 # Show topography of connectivity from seed
 import matplotlib.pyplot as plt
-layout = read_layout('Vectorview-all')
 title = 'WPLI2 - Visual - Seed %s' % seed_ch
-plot_topo_tfr(epochs, con, freqs, layout, title=title)
+
+layout = mne.find_layout(epochs.info, 'meg')  # use full layout
+plot_topo_tfr(epochs, con, freqs, layout=layout, title=title)
 plt.show()
