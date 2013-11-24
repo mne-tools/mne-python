@@ -18,8 +18,7 @@ print __doc__
 #
 # License: BSD (3-clause)
 
-import time
-
+import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.realtime import RtEpochs, MockRtClient
@@ -47,14 +46,11 @@ rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
 rt_epochs.start()
 
 # send raw buffers
-import matplotlib.pyplot as plt
-fig, ax = plt.subplots(1, 1)
-
 rt_client.send_data(rt_epochs, picks, tmin=0, tmax=150, buffer_size=1000)
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
     print "Just got epoch %d" % (ii + 1)
     if ii > 0:
         ev += evoked
     evoked = ev
-    evoked.plot(axes=ax)
+    evoked.plot(axes=plt.gca())
     plt.pause(0.05)
