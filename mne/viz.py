@@ -38,7 +38,7 @@ from .fiff import show_fiff, FIFF
 from .fiff.pick import channel_type, pick_types
 from .fiff.proj import make_projector, setup_proj
 from .fixes import normalize_colors
-from .utils import create_chunks
+from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -77,35 +77,6 @@ def _mutable_defaults(*mappings):
             this_mapping.update(v)
         out += [this_mapping]
     return out
-
-
-def _clean_names(names):
-    """ Remove white-space on topo matching
-
-    Over the years, Neuromag systems employed inconsistent handling of
-    white-space in layout names. This function handles different naming
-    conventions and hence should be used in each topography-plot to
-    warrant compatibility across systems.
-
-    Usage
-    -----
-    Wrap this function around channel and layout names:
-    ch_names = _clean_names(epochs.ch_names)
-
-    for n in _clean_names(layout.names):
-        if n in ch_names:
-            # prepare plot
-
-    """
-    cleaned = []
-    for name in names:
-        if ' ' in name:
-            name = name.replace(' ', '')
-        if '-' in name:
-            name = name.split('-')[0]
-        cleaned.append(name)
-
-    return cleaned
 
 
 def _check_delayed_ssp(container):
@@ -174,7 +145,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
             plt.setp(cb_yticks, color='w')
         plt.rcParams['axes.edgecolor'] = border
-        for idx, name in enumerate(_clean_names(layout.names)):
+        for idx, name in enumerate(layout.names):
             if name in ch_names:
                 ax = plt.axes(pos[idx], axisbg='k')
                 ch_idx = ch_names.index(name)
@@ -358,11 +329,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(info['chs'])
+        layout = find_layout(info)
 
     # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
-    layout = copy.deepcopy(layout)
-    layout.names = _clean_names(layout.names)
     chs_in_layout = set(layout.names) & set(ch_names)
     types_used = set(channel_type(info, ch_names.index(ch))
                      for ch in chs_in_layout)
@@ -494,9 +463,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
 
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(epochs.info['chs'])
-    layout = copy.deepcopy(layout)
-    layout.names = _clean_names(layout.names)
+        layout = find_layout(epochs.info)
 
     tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
 
@@ -579,9 +546,7 @@ def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
         vmax = power.max()
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(epochs.info['chs'])
-    layout = copy.deepcopy(layout)
-    layout.names = _clean_names(layout.names)
+        layout = find_layout(epochs.info)
 
     power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
 
@@ -662,9 +627,7 @@ def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
         vmax = phase.max()
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(epochs.info['chs'])
-    layout = copy.deepcopy(layout)
-    layout.names = _clean_names(layout.names)
+        layout = find_layout(epochs.info)
 
     phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
 
@@ -752,9 +715,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         vmax = data.max()
     if layout is None:
         from .layouts.layout import find_layout
-        layout = find_layout(epochs.info['chs'])
-    layout = copy.deepcopy(layout)
-    layout.names = _clean_names(layout.names)
+        layout = find_layout(epochs.info)
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
                          data=data, epochs=epochs, sigma=sigma)
@@ -973,7 +934,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
 
-    plt.clf()
+    fig = plt.gcf()
+    fig.clear()
     for k, proj in enumerate(projs):
 
         ch_names = _clean_names(proj['data']['col_names'])
@@ -982,7 +944,6 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         idx = []
         for l in layout:
             l = copy.deepcopy(l)
-            l.names = _clean_names(l.names)
             is_vv = l.kind.startswith('Vectorview')
             if is_vv:
                 from .layouts.layout import _pair_grad_sensors_from_ch_names
@@ -1183,7 +1144,6 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     if not len(axes) == n_channel_types:
         raise ValueError('Number of axes (%g) must match number of channel '
                          'types (%g)' % (len(axes), n_channel_types))
-
 
     # instead of projecting during each iteration let's use the mixin here.
     if proj is True and evoked.proj is not True:
@@ -1910,17 +1870,13 @@ def _prepare_topo_plot(obj, ch_type, layout):
     info = copy.deepcopy(obj.info)
     if layout is None and ch_type is not 'eeg':
         from .layouts.layout import find_layout
-        layout = find_layout(info['chs'])
+        layout = find_layout(info)
     elif layout == 'auto':
         layout = None
 
     info['ch_names'] = _clean_names(info['ch_names'])
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = info['ch_names'][ii]
-
-    if layout is not None:
-        layout = copy.deepcopy(layout)
-        layout.names = _clean_names(layout.names)
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in

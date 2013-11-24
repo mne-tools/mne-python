@@ -21,7 +21,6 @@ import matplotlib.pyplot as plt
 import mne
 from mne import fiff
 from mne.datasets import sample
-from mne.layouts import read_layout
 data_path = sample.data_path()
 
 ###############################################################################
@@ -47,7 +46,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 ###############################################################################
 # Show event related fields images
 
-layout = read_layout('Vectorview-all')
+layout = mne.find_layout(epochs.info, 'meg')  # use full layout
 
 title = 'ERF images - MNE sample data'
 mne.viz.plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200,

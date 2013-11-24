@@ -1224,3 +1224,31 @@ def _check_pandas_index_arguments(index, defaults):
         options = [', '.join(e) for e in [invalid_choices, defaults]]
         raise ValueError('[%s] is not an valid option. Valid index'
                          'values are \'None\' or %s' % tuple(options))
+
+
+def _clean_names(names, remove_whitespace=False, before_dash=True):
+    """ Remove white-space on topo matching
+
+    This function handles different naming
+    conventions for old VS new VectorView systems (`remove_whitespace`).
+    Also it allows to remove system specific parts in CTF channel names
+    (`before_dash`).
+
+    Usage
+    -----
+    # for new VectorView (only inside layout) 
+    ch_names = _clean_names(epochs.ch_names, remove_whitespace=True)
+
+    # for CTF
+    ch_names = _clean_names(epochs.ch_names, before_dash=True)
+
+    """
+    cleaned = []
+    for name in names:
+        if ' ' in name and remove_whitespace:
+            name = name.replace(' ', '')
+        if '-' in name and before_dash:
+            name = name.split('-')[0]
+        cleaned.append(name)
+
+    return cleaned
