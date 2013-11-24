@@ -52,5 +52,5 @@ for ii, ev in enumerate(rt_epochs.iter_evoked()):
     if ii > 0:
         ev += evoked
     evoked = ev
-    evoked.plot(axes=plt.gca())
+    evoked.plot(axes=plt.gca())  # plot on current figure
     plt.pause(0.05)
