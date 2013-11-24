@@ -28,6 +28,10 @@ lout_path = op.join(op.dirname(__file__), '..', '..', 'fiff',
 bti_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'bti',
                   'tests', 'data')
 
+fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+                        'data', 'test_ctf_comp_raw.fif')
+
+
 test_info = {'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
  'chs': [{'cal': 1,
    'ch_name': 'ICA 001',
@@ -195,4 +199,5 @@ def test_find_layout():
     lout = find_layout(Raw(fname_bti_raw).info)
     assert_true(lout.kind == 'magnesWH3600')
     
-
+    lout = find_layout(Raw(fname_ctf_raw).info)
+    assert_true(lout.kind == 'CTF-275')

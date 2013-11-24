@@ -340,8 +340,13 @@ def find_layout(info=None, ch_type=None, chs=None):
     is_old_vv = ' ' in chs[0]['ch_name']
 
     has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
-    has_CTF_grad = FIFF.FIFFV_COIL_CTF_GRAD in coil_types
-    has_CTF_grad += 201609 in coil_types  # hack due to MNE-C bug in IO of CTF
+    ctf_other_types = (FIFF.FIFFV_COIL_CTF_REF_MAG,
+                       FIFF.FIFFV_COIL_CTF_REF_GRAD,
+                       FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD)
+    has_CTF_grad = (FIFF.FIFFV_COIL_CTF_GRAD in coil_types or
+                    (FIFF.FIFFV_MEG_CH in channel_types and
+                     any([k in ctf_other_types for k in coil_types])))
+                    # hack due to MNE-C bug in IO of CTF
 
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad])
     has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
