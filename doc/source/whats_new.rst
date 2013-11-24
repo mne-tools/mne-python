@@ -83,10 +83,12 @@ Changelog
    
    - Improve and extend automated layout guessing by `Denis Engemann`_
 
+   - Add Continuum Analytics Anaconda support by `Denis Engemann`_
+
 API
 ~~~
 
-   - The pick_normal parameter for minimum norm solvers has been renamed as pick_ori and normal orientation picking is now achieved by passing the value "normal" for the pick_ori parameter.
+   - The pick_normal parameter for minimum norm solvers has been renamed as `pick_ori` and normal orientation picking is now achieved by passing the value "normal" for the `pick_ori` parameter.
 
    - ICA objects now expose the measurment info of the object fitted.
 
@@ -95,7 +97,9 @@ API
    - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
 
    - The `chs` argument in `mne.layouts.find_layout` is deprecated and will be removed in MNE-Python 0.9. Use `info` instead.
- 
+   
+   - `plot_evoked` and `Epochs.plot` now open a new figure by default. To plot on an existing figure please specify the `axes` parameter.
+
 .. _changes_0_6:
 
 Version 0.6
