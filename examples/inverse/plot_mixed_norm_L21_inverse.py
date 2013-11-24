@@ -38,8 +38,6 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
 
 cov = mne.cov.regularize(cov, evoked.info)
 
-import matplotlib.pyplot as plt
-plt.figure()
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
 evoked.plot(ylim=ylim, proj=True)
 
@@ -60,7 +58,6 @@ stc, residual = mixed_norm(evoked, forward, cov, alpha, loose=loose,
                            active_set_size=10, debias=True, weights=stc_dspm,
                            weights_min=8., return_residual=True)
 
-plt.figure()
 residual.plot(ylim=ylim, proj=True)
 
 ###############################################################################

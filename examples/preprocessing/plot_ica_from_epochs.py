@@ -133,7 +133,6 @@ ica_epochs = ica.sources_as_epochs(epochs)
 # don't exclude bad sources by passing an empty list.
 ica_picks = mne.fiff.pick_types(ica_epochs.info, misc=True, exclude=[])
 ica_evoked = ica_epochs.average(ica_picks)
-plt.figure()
 ica_evoked.plot(titles=dict(misc='ICA sources'))
 
 # Tip: use this for epochs constructed around ECG r-peaks to check whether all

@@ -106,7 +106,9 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
     import matplotlib.pyplot as plt
     if plt.get_backend().lower() != 'agg':
         try:
-            plt.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+            fig = plt.gcf()
+            fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+            fig.canvas.draw()
         except:
             msg = ('Matplotlib function \'tight_layout\'%s.'
                    ' Skipping subpplot adjusment.')
@@ -704,7 +706,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
 
     Returns
     -------
-    fig : instacne fo matplotlib figure
+    fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
     scalings = _mutable_defaults(('scalings', scalings))[0]
@@ -920,6 +922,11 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         multiple topomaps at a time).
     show : bool
         Show figures if True
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure distributing one image per channel across sensor topography.
     """
     import matplotlib.pyplot as plt
 
@@ -943,7 +950,6 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
 
         idx = []
         for l in layout:
-            l = copy.deepcopy(l)
             is_vv = l.kind.startswith('Vectorview')
             if is_vv:
                 from .layouts.layout import _pair_grad_sensors_from_ch_names
@@ -974,9 +980,11 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         else:
             raise RuntimeError('Cannot find a proper layout for projection %s'
                                % proj['desc'])
-
-    if show:
-        plt.show()
+    fig = ax.get_figure()
+    if show and plt.get_backend() != 'agg':
+        fig.show()
+    
+    return fig
 
 
 def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
@@ -1201,6 +1209,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
     if show and plt.get_backend() != 'agg':
         fig.show()
+        fig.canvas.draw()  # for axes plots update axes.
 
     return fig
 
@@ -1260,7 +1269,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     params['proj_checks'] = proj_checks
     # this should work for non-test cases
     try:
-        fig_proj.canvas.show()
+        fig_proj.show()
     except Exception:
         pass
 

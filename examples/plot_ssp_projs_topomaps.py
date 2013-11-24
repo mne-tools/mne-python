@@ -26,6 +26,6 @@ projs = mne.read_proj(ecg_fname)
 
 layouts = [mne.find_layout(evoked.info, k) for k in 'meg', 'eeg']
 
-plt.figure(figsize=(12, 6))
+fig = plt.figure(figsize=(12, 6))
 mne.viz.plot_projs_topomap(projs, layout=layouts)
 mne.viz.tight_layout(w_pad=0.5)
