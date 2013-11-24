@@ -1,6 +1,12 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
+# pkg := $(shell dpkg-parsechangelog | sed -n 's/^Source: //p')
+# Hmmm mysterious name change between binary and source package
+pkg := python-mne
+version=$(shell dpkg-parsechangelog -ldebian/changelog | grep Version: | cut -f2 -d' ' | cut -f1 -d- )
+mandir=$(CURDIR)/debian/$(pkg)/usr/share/man/man1/
+
 NOSETESTS=nosetests
 
 %:
@@ -15,12 +21,14 @@ override_dh_auto_test:
 	  xvfb-run --auto-servernum --server-num=20 -s "-screen 0 1024x768x24 -ac +extension GLX +render -noreset" \
 	  $(NOSETESTS) mne
 
-manpages:
-	@echo "I: generating manpages"
-	set -e; mkdir -p build/manpages && \
+override_dh_installman:
+	# try to create man page via help2man
+	mkdir -p $(mandir)
+	set -e; \
 	cd bin && for f in *; do \
 			descr=$$(grep -h -e "^ *'''" -e 'DESCRIP =' $$f -h | sed -e "s,.*' *\([^'][^']*\)'.*,\1,g" | head -n 1); \
 	PYTHONPATH=../ \
 			help2man -n "$$descr" --no-discard-stderr --no-info --version-string "$(uver)" ./$$f \
-			>| ../build/manpages/$$f.1; \
+			>| $(mandir)/$$f.1; \
 	done
+
