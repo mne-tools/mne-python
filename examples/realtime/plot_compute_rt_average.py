@@ -55,8 +55,6 @@ for ii, ev in enumerate(rt_epochs.iter_evoked()):
     print "Just got epoch %d" % (ii + 1)
     if ii > 0:
         ev += evoked
-
     evoked = ev
     evoked.plot(axes=ax)
-    plt.draw()
-    time.sleep(0.05)
+    plt.pause(0.05)
