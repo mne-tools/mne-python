@@ -20,7 +20,6 @@ Build-Depends: debhelper (>= 9),
                xvfb,
                xauth,
                libgl1-mesa-dri,
-               help2man,
                python-coverage
 Standards-Version: 3.9.4
 Vcs-Git: git://anonscm.debian.org/debian-med/mne-python.git

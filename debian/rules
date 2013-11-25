@@ -20,15 +20,3 @@ override_dh_auto_test:
 	MNE_SKIP_SAMPLE_DATASET_TESTS=true \
 	  xvfb-run --auto-servernum --server-num=20 -s "-screen 0 1024x768x24 -ac +extension GLX +render -noreset" \
 	  $(NOSETESTS) mne
-
-override_dh_installman:
-	# try to create man page via help2man
-	mkdir -p $(mandir)
-	set -e; \
-	cd bin && for f in *; do \
-			descr=$$(grep -h -e "^ *'''" -e 'DESCRIP =' $$f -h | sed -e "s,.*' *\([^'][^']*\)'.*,\1,g" | head -n 1); \
-	PYTHONPATH=../ \
-			help2man -n "$$descr" --no-discard-stderr --no-info --version-string "$(uver)" ./$$f \
-			>| $(mandir)/$$f.1; \
-	done
-
