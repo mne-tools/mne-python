@@ -342,10 +342,19 @@ MRI Processing
 
 .. currentmodule:: mne
 
+Step by step instructions for using :func:`gui.coregistration`:
+
+ - `Coregistration for subjects with structural MRI 
+   <http://www.slideshare.net/slideshow/embed_code/28598463>`_ 
+ - `Scaling a template MRI for subjects for which no MRI is available
+   <http://www.slideshare.net/slideshow/embed_code/28598561>`_
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
+   gui.coregistration
+   gui.fiducials
    create_default_subject
    scale_mri
    scale_labels

@@ -76,6 +76,12 @@ Changelog
    - Add SPM face data set by `Denis Engemann`_ `Martin Luessi`_ and `Alex Gramfort`_
 
    - Support reading of EDF+,BDF data by `Teon Brooks`_
+   
+   - Tools for scaling MRIs (mne.scale_mri) by `Christian Brodbeck`_ 
+   
+   - GUI for head-MRI coregistration (mne.gui.coregistration) by `Christian Brodbeck`_
+
+   - GUI for ki2fiff conversion (mne.gui.kit2fiff) by `Christian Brodbeck`_
 
    - Support reading of EEG BrainVision data by `Teon Brooks`_
 
