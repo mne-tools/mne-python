@@ -44,10 +44,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0),
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
-plt.figure()
 evoked.plot()
 
 # Compare to the simulated data
 evoked_sim = mne.fiff.Evoked(evoked_fnames[0])
-plt.figure()
 evoked_sim.plot()
