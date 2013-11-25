@@ -1163,7 +1163,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         | | Fixed constraint, | None      | 0.8       | True      | False           | True         |
         | | Depth weighted    |           |           |           |                 |              |
         +---------------------+-----------+-----------+-----------+-----------------+--------------+
-        | | Fixed constraint  | None      | None      | True      | True            | False        |
+        | | Fixed constraint  | None      | None      | True      | True            | True         |
         +---------------------+-----------+-----------+-----------+-----------------+--------------+
 
     Also note that, if the source space (as stored in the forward solution)
@@ -1189,10 +1189,10 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
                                  'with depth weighting, the forward solution '
                                  'must be free-orientation and in surface '
                                  'orientation')
-        elif forward['surf_ori'] is True:
+        elif forward['surf_ori'] is False:
             raise ValueError('For a fixed orientation inverse solution '
                              'without depth weighting, the forward solution '
-                             'must not be in surface orientation')
+                             'must be in surface orientation')
 
     # depth=None can use fixed fwd, depth=0<x<1 must use free ori
     if depth is not None:
