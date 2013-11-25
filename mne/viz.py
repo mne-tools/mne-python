@@ -3209,6 +3209,8 @@ def _epochs_axes_onclick(event, params):
     """Aux function"""
     reject_color = (0.8, 0.8, 0.8)
     ax = event.inaxes
+    if event.inaxes is None:
+        return
     p = params
     here = vars(ax)[p['axes_handler'][0]]
     if here.get('reject', None) is False:

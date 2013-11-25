@@ -1621,7 +1621,7 @@ def run_ica(raw, n_components, max_pca_components=100,
     - It is highly recommended to bandpass filter ECG and EOG
     data and pass them instead of the channel names as ecg_ch and eog_ch
     arguments.
-    - please check your results. Detection by kurtosis and variance
+    - Please check your results. Detection by kurtosis and variance
     can be powerful but misclassification of brain signals as
     noise cannot be precluded. If you are not sure set those to None.
     - Consider using shorter times for start_find and stop_find than
@@ -1630,7 +1630,7 @@ def run_ica(raw, n_components, max_pca_components=100,
     Example invocation (taking advantage of defaults):
 
     ica = run_ica(raw, n_components=.9, start_find=10000, stop_find=12000,
-                  ecg_channel='MEG 1531', eog_channel='EOG 061')
+                  ecg_ch='MEG 1531', eog_ch='EOG 061')
 
     Parameters
     ----------

@@ -2,7 +2,7 @@
 """
 Import BTi / 4D MagnesWH3600 data to fif file.
 
-example usage: mne bti2fiff -pdf C,rfDC -o my_raw.fif
+example usage: mne bti2fiff --pdf C,rfDC -o my_raw.fif
 
 Note.
 1) Currently direct inclusion of reference channel weights
