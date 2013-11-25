@@ -434,6 +434,9 @@ class Kit2FiffPanel(HasPrivateTraits):
         m.sync_trait('hsp', self.hsp_obj, 'points', mutual=False)
         m.sync_trait('head_dev_trans', self.hsp_obj, 'trans', mutual=False)
 
+        self.scene.camera.parallel_scale = 0.15
+        self.scene.mlab.view(0, 0, .15)
+
     def _clear_all_fired(self):
         self.model.clear_all()
 
