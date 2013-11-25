@@ -1039,6 +1039,10 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
 
     xmin, xmax = pos_x.min(), pos_x.max()
     ymin, ymax = pos_y.min(), pos_y.max()
+    if any([not pos_y.any(), not pos_x.any()]):
+        raise RuntimeError('No position information found, cannot compute '
+                           'geometries for topomap.')
+
     triang = delaunay.Triangulation(pos_x, pos_y)
     interp = triang.linear_interpolator(data)
     x = np.linspace(xmin, xmax, res)

@@ -458,6 +458,14 @@ def test_plot_topomap():
         projs = [p for p in projs if p['desc'].lower().find('eeg') < 0]
         plot_projs_topomap(projs)
         plt.close('all')
+        for ch in evoked.info['chs']:
+            if ch['coil_type'] == fiff.FIFF.FIFFV_COIL_EEG:
+                if ch['eeg_loc'] is not None:
+                    ch['eeg_loc'].fill(0)
+                ch['loc'].fill(0)
+        assert_raises(RuntimeError, plot_evoked_topomap, evoked,
+                      times, ch_type='eeg')
+        
 
 
 def test_compare_fiff():

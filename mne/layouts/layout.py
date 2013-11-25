@@ -191,6 +191,11 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     layout : Layout
         The generated Layout
     """
+    if info['dig'] in [[], None]:
+        raise RuntimeError('Did not find any digitization points in the info. '
+                           'Cannot generate layout based on the subject\'s '
+                           'head shape')
+
     radius_head, origin_head, origin_device = fit_sphere_to_headshape(info)
     inds = pick_types(info, meg=False, eeg=True, ref_meg=False,
                       exclude='bads')
