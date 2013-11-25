@@ -201,3 +201,6 @@ def test_find_layout():
     
     lout = find_layout(Raw(fname_ctf_raw).info)
     assert_true(lout.kind == 'CTF-275')
+    
+    sample_info5['dig'] = []
+    assert_raises(RuntimeError, find_layout, sample_info5)
