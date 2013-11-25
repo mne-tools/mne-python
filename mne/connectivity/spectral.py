@@ -325,7 +325,8 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
             else:
                 this_sig_idx = sig_idx
             if isinstance(this_data, _BaseSourceEstimate):
-                _mt_spectra_partial = partial(_mt_spectra, window_fun, sfreq)
+                _mt_spectra_partial = partial(_mt_spectra, dpss=window_fun,
+                                              sfreq=sfreq)
                 this_x_mt = this_data.transform_data(_mt_spectra_partial,
                                         idx=this_sig_idx, tmin_idx=tmin_idx,
                                         tmax_idx=tmax_idx)
@@ -378,7 +379,8 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
             else:
                 this_sig_idx = sig_idx
             if isinstance(this_data, _BaseSourceEstimate):
-                cwt_partial = partial(cwt, wavelets, use_fft=True, mode='same')
+                cwt_partial = partial(cwt, Ws=wavelets, use_fft=True,
+                                      mode='same')
                 this_x_cwt = this_data.transform_data(cwt_partial,
                                 idx=this_sig_idx, tmin_idx=tmin_idx,
                                 tmax_idx=tmax_idx)
