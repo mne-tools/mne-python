@@ -25,8 +25,7 @@ try:
                             Property, Str)
     from traitsui.api import (View, Item, Group, HGroup, VGroup, VGrid,
                               EnumEditor, Handler, Label, TextEditor)
-    from traitsui.menu import (Action, UndoButton, CancelButton, NoButtons,
-                               OKCancelButtons)
+    from traitsui.menu import Action, UndoButton, CancelButton, NoButtons
     from tvtk.pyface.scene_editor import SceneEditor
 except:
     from ..utils import trait_wraith
@@ -1124,10 +1123,11 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                     editor=EnumEditor(cols=2,
                                                       values={False: '2:Edit',
                                                               True: '1:Lock'}),
-                                    show_label=False,
                                     enabled_when='fid_ok'),
-                               'hsp_always_visible'),
-                        VGroup(Item('fid_panel', style='custom'),
+                               HGroup('hsp_always_visible',
+                                      Label("Always Show Head Shape Points"),
+                                      show_labels=False),
+                               Item('fid_panel', style='custom'),
                                label="MRI Fiducials", show_border=True,
                                show_labels=False),
                         VGroup(Item('raw_src', style="custom"),
