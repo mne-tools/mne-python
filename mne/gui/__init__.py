@@ -7,6 +7,10 @@
 
 def combine_kit_markers():
     """Create a new KIT marker file by interpolating two marker files
+
+    Notes
+    -----
+    The functionality in this GUI is also part of :func:`kit2fiff`.
     """
     from ._marker_gui import CombineMarkersFrame
     gui = CombineMarkersFrame()
@@ -17,8 +21,6 @@ def combine_kit_markers():
 def coregistration(tabbed=False, split=True, scene_width=01, raw=None,
                    subject=None, subjects_dir=None):
     """Coregister an MRI with a subject's head shape
-
-    All parameters are optional, since they can be set through the GUI.
 
     Parameters
     ----------
@@ -37,6 +39,15 @@ def coregistration(tabbed=False, split=True, scene_width=01, raw=None,
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
+
+    Notes
+    -----
+    All parameters are optional, since they can be set through the GUI.
+    Step by step instructions for the coregistrations can be accessed as
+    slides, `for subjects with structural MRI
+    <http://www.slideshare.net/slideshow/embed_code/28598463>`_ and `for
+    subjects for which no MRI is available
+    <http://www.slideshare.net/slideshow/embed_code/28598561>`_.
     """
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width)
@@ -48,8 +59,6 @@ def coregistration(tabbed=False, split=True, scene_width=01, raw=None,
 def fiducials(subject=None, fid_file=None, subjects_dir=None):
     """Set the fiducials for an MRI subject
 
-    All parameters are optional, since they can be set through the GUI.
-
     Parameters
     ----------
     subject : str
@@ -59,6 +68,11 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
         ("{subjects_dir}/{subject}/bem/{subject}-fiducials.fif").
     subjects_dir : None | str
         Overrule the subjects_dir environment variable.
+
+    Notes
+    -----
+    All parameters are optional, since they can be set through the GUI.
+    The functionality in this GUI is also part of :func:`coregistration`.
     """
     from ._fiducials_gui import FiducialsFrame
     gui = FiducialsFrame(subject, subjects_dir, fid_file=fid_file)
