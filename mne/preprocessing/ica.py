@@ -1198,7 +1198,7 @@ class ICA(object):
         sources = fast_dot(self.unmixing_matrix_, pca_data[:n_components])
 
         if include not in (None, []):
-            mask = np.ones(len(data), dtype=np.bool)
+            mask = np.ones(len(sources), dtype=np.bool)
             mask[np.unique(include)] = False
             sources[mask] = 0.
         elif exclude not in (None, []):
