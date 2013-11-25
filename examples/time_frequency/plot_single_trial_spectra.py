@@ -70,7 +70,7 @@ ax2.set_title('averaged over trials', fontsize=10)
 ax2.imshow(average_psds[:, freq_mask].T, aspect='auto', origin='lower')
 ax2.set_xticks(np.arange(0, len(picks), 30))
 ax2.set_xticklabels(picks[::30])
-ax2.set_xlabel('MEG channel index (Gradiomemters)')
+ax2.set_xlabel('MEG channel index (Gradiometers)')
 
 mne.viz.tight_layout()
 plt.show()

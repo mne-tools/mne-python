@@ -1067,7 +1067,7 @@ class Raw(ProjMixin):
             'original' plots in the order of ch_names, array gives the
             indices to use in plotting.
         show_options : bool
-            If True, a dialog for options related to projecion is shown.
+            If True, a dialog for options related to projection is shown.
         title : str | None
             The title of the window. If None, and either the filename of the
             raw object or '<unknown>' will be displayed as title.

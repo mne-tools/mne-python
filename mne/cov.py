@@ -558,7 +558,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
     """Regularize noise covariance matrix
 
     This method works by adding a constant to the diagonal for each
-    channel type separatly. Special care is taken to keep the
+    channel type separately. Special care is taken to keep the
     rank of the data constant.
 
     Parameters
