@@ -397,7 +397,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
 
 
 @verbose
-def pick_channels_forward(orig, include=[], exclude=None, verbose=None):
+def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     """Pick channels from forward operator
 
     Parameters
