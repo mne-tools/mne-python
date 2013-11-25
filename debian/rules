@@ -1,12 +1,6 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-# pkg := $(shell dpkg-parsechangelog | sed -n 's/^Source: //p')
-# Hmmm mysterious name change between binary and source package
-pkg := python-mne
-version=$(shell dpkg-parsechangelog -ldebian/changelog | grep Version: | cut -f2 -d' ' | cut -f1 -d- )
-mandir=$(CURDIR)/debian/$(pkg)/usr/share/man/man1/
-
 NOSETESTS=nosetests
 
 %:
