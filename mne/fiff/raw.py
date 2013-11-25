@@ -1954,6 +1954,12 @@ def write_raw_buffer(fid, buf, cals, format, inv_comp):
 
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
+    # make sure we didn't go over the 2GB file size limit
+    pos = fid.tell()
+    if pos >= 2147483647:  # np.iinfo(np.int32).max
+        raise IOError('2GB file size limit reached. Support for larger '
+                      'raw files will be added in the future.')
+
 
 def finish_writing_raw(fid):
     """Finish writing raw FIF file
