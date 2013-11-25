@@ -261,6 +261,11 @@ def test_ica_additional():
             ica.exclude += [1]
             ica.pick_sources_raw(raw, exclude=[0, 1])
             assert_true(ica.exclude == [0, 1])
+            
+            # test basic include
+            ica.exclude = []
+            ica.pick_sources_raw(raw, include=[1])
+            
 
             ica_raw = ica.sources_as_raw(raw)
             assert_true(ica.exclude == [ica_raw.ch_names.index(e) for e in

@@ -1,9 +1,18 @@
+# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: Simplified BSD
+
+import warnings
 from collections import defaultdict
 import os.path as op
 import numpy as np
 from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import FIFF, pick_types
+from ..utils import _clean_names
 
 
 class Layout(object):
@@ -11,8 +20,10 @@ class Layout(object):
 
     Parameters
     ----------
-    kind : 'Vectorview-all' | 'CTF-275' | 'Vectorview-grad' | 'Vectorview-mag'
-        Type of layout (can also be custom for EEG)
+    kind : str
+        Type of layout (can also be custom for EEG). Valid layouts are
+        {'Vectorview-all', 'Vectorview-grad', 'Vectorview-mag',  'CTF-275',
+         'magnesWH3600'}
     path : string
         Path to folder where to find the layout file.
 
@@ -63,6 +74,10 @@ class Layout(object):
         f = open(fname, 'w')
         f.write(out_str)
         f.close()
+
+    def __repr__(self):
+        return '<Layout | %s - Channels: %s ...>' % (self.kind,
+                                                     ', '.join(self.names[:3]))
 
 
 def _read_lout(fname):
@@ -176,6 +191,11 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     layout : Layout
         The generated Layout
     """
+    if info['dig'] in [[], None]:
+        raise RuntimeError('Did not find any digitization points in the info. '
+                           'Cannot generate layout based on the subject\'s '
+                           'head shape')
+
     radius_head, origin_head, origin_device = fit_sphere_to_headshape(info)
     inds = pick_types(info, meg=False, eeg=True, ref_meg=False,
                       exclude='bads')
@@ -185,7 +205,7 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
         raise ValueError('No EEG digitization points found')
 
     if not len(hsp) == len(names):
-        raise ValueError('Channel names don\'t match digitization values')
+        raise ValueError("Channel names don't match digitization values")
     hsp = np.array(hsp)
 
     # Move points to origin
@@ -197,7 +217,7 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     phi = np.arctan2(hsp[:, 1], hsp[:, 0])
 
     # Mark the points that might have caused bad angle estimates
-    iffy = np.nonzero(np.sum(hsp[:, :2] ** 2, axis=-1) ** (1. / 2)
+    iffy = np.nonzero(np.sqrt(np.sum(hsp[:, :2] ** 2, axis=-1))
                       < np.finfo(np.float).eps * 10)
     theta[iffy] = 0
     phi[iffy] = 0
@@ -274,39 +294,105 @@ def make_grid_layout(info, picks=None):
     return layout
 
 
-def find_layout(chs):
-    """Choose a layout based on the channels in the chs parameter
+def find_layout(info=None, ch_type=None, chs=None):
+    """Choose a layout based on the channels in the info 'chs' field
 
     Parameters
     ----------
-    chs : list
-        A list of channels as contained in the info['chs'] entry.
+    info : instance of mne.fiff.meas_info.Info | None
+        The measurement info.
+    ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
+        The channel type for selecting single channel layouts.
+        Defaults to None. Note, this argument will only be considered for
+        VectorView type layout. Use `meg` to force using the full layout
+        in situations where the info does only contain one sensor type.
+    chs : instance of mne.fiff.meas_info.Info | None
+        The measurement info. Defaults to None. This keyword is deprecated and
+        will be removed in MNE-Python 0.9. Use `info` instead.
 
     Returns
     -------
     layout : Layout instance | None
         None if layout not found.
     """
+    msg = ("The 'chs' argument is deprecated and will be "
+           "removed in MNE-Python 0.9 Please use "
+           "'info' instead to pass the measurement info")
+    if chs is not None:
+        warnings.warn(msg, DeprecationWarning)
+    elif isinstance(info, list):
+        warnings.warn(msg, DeprecationWarning)
+        chs = info
+    else:
+        chs = info.get('chs')
+    if not chs:
+        raise ValueError('Could not find any channels. The info structure '
+                         'is not valid.')
 
-    coil_types = np.unique([ch['coil_type'] for ch in chs])
+    our_types = ' or '.join(['`None`', '`mag`', '`grad`', '`meg`'])
+    if ch_type not in (None, 'meg', 'mag', 'grad', 'eeg'):
+        raise ValueError('Invalid channel type (%s) requested '
+                         '`ch_type` must be %s' % (ch_type, our_types))
+
+    coil_types = set([ch['coil_type'] for ch in chs])
+    channel_types = set([ch['kind'] for ch in chs])
+
     has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
     has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
+    has_vv_meg = has_vv_mag and has_vv_grad
+    has_vv_only_mag = has_vv_mag and not has_vv_grad
+    has_vv_only_grad = has_vv_grad and not has_vv_mag
+    is_old_vv = ' ' in chs[0]['ch_name']
+
     has_4D_mag = FIFF.FIFFV_COIL_MAGNES_MAG in coil_types
-    has_CTF_grad = FIFF.FIFFV_COIL_CTF_GRAD in coil_types
-    if has_vv_mag and has_vv_grad:
+    ctf_other_types = (FIFF.FIFFV_COIL_CTF_REF_MAG,
+                       FIFF.FIFFV_COIL_CTF_REF_GRAD,
+                       FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD)
+    has_CTF_grad = (FIFF.FIFFV_COIL_CTF_GRAD in coil_types or
+                    (FIFF.FIFFV_MEG_CH in channel_types and
+                     any([k in ctf_other_types for k in coil_types])))
+                    # hack due to MNE-C bug in IO of CTF
+
+    has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad])
+    has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
+                     FIFF.FIFFV_EEG_CH in channel_types)
+    has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
+    has_eeg_coils_only = has_eeg_coils and not has_any_meg
+
+    if ch_type == "meg" and not has_any_meg:
+        raise RuntimeError('No MEG channels present. Cannot find MEG layout.')
+
+    if ch_type == "eeg" and not has_eeg_coils:
+        raise RuntimeError('No EEG channels present. Cannot find EEG layout.')
+
+    if ((has_vv_meg and ch_type is None) or
+        (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
         layout_name = 'Vectorview-all'
-    elif has_vv_mag:
+    elif has_vv_only_mag or (has_vv_meg and ch_type == 'mag'):
         layout_name = 'Vectorview-mag'
-    elif has_vv_grad:
+    elif has_vv_only_grad or (has_vv_meg and ch_type == 'grad'):
         layout_name = 'Vectorview-grad'
+    elif ((has_eeg_coils_only and ch_type in [None, 'eeg']) or
+          (has_eeg_coils_and_meg and ch_type == 'eeg')):
+        if not isinstance(info, dict):
+            raise RuntimeError('Cannot make EEG layout, no measurement info '
+                               'was passed to `find_layout`')
+        return make_eeg_layout(info)
     elif has_4D_mag:
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
         layout_name = 'CTF-275'
     else:
         return None
-    
-    return read_layout(layout_name)
+
+    layout = read_layout(layout_name)
+    if not is_old_vv:
+        layout.names = _clean_names(layout.names, remove_whitespace=True)
+    if has_CTF_grad:
+        layout.names = _clean_names(layout.names, before_dash=True)
+
+    return layout
+
 
 def _find_topomap_coords(chs, layout=None):
     """Try to guess the MEG system and return appropriate topomap coordinates
@@ -425,7 +511,8 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
 
     if topomap_coords:
         shape = (len(pairs), 2, -1)
-        coords = _find_topomap_coords(grad_chs, layout).reshape(shape).mean(axis=1)
+        coords = (_find_topomap_coords(grad_chs, layout)
+                                      .reshape(shape).mean(axis=1))
         return picks, coords
     else:
         return picks

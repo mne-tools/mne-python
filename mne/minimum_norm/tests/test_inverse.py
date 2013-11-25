@@ -218,10 +218,6 @@ def test_make_inverse_operator_fixed():
     # can't make fixed inv with depth weighting without free ori fwd
     assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_2,
                   noise_cov, depth=0.8, loose=None, fixed=True)
-    # can't make non-depth-weighted fixed inv with surf_ori fwd
-    # (otherwise the average normal could be employed)
-    assert_raises(ValueError, make_inverse_operator, evoked.info, fwd_op,
-                  noise_cov, depth=None, loose=None, fixed=True)
 
     # compare to C solution w/fixed
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov, depth=0.8,

@@ -240,6 +240,12 @@ def pformat(temp, **fmt):
     return formatter.vformat(temp, (), mapping)
 
 
+def trait_wraith(*args, **kwargs):
+    # Stand in for traits to allow importing traits based modules when the
+    # traits library is not installed
+    return lambda x: x
+
+
 ###############################################################################
 # DECORATORS
 
@@ -540,6 +546,7 @@ def make_skipper_dec(module, skip_str):
 
 requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
+requires_traits = make_skipper_dec('traits', 'traits not installed')
 
 
 def _mne_fs_not_in_env():
@@ -1224,3 +1231,31 @@ def _check_pandas_index_arguments(index, defaults):
         options = [', '.join(e) for e in [invalid_choices, defaults]]
         raise ValueError('[%s] is not an valid option. Valid index'
                          'values are \'None\' or %s' % tuple(options))
+
+
+def _clean_names(names, remove_whitespace=False, before_dash=True):
+    """ Remove white-space on topo matching
+
+    This function handles different naming
+    conventions for old VS new VectorView systems (`remove_whitespace`).
+    Also it allows to remove system specific parts in CTF channel names
+    (`before_dash`).
+
+    Usage
+    -----
+    # for new VectorView (only inside layout) 
+    ch_names = _clean_names(epochs.ch_names, remove_whitespace=True)
+
+    # for CTF
+    ch_names = _clean_names(epochs.ch_names, before_dash=True)
+
+    """
+    cleaned = []
+    for name in names:
+        if ' ' in name and remove_whitespace:
+            name = name.replace(' ', '')
+        if '-' in name and before_dash:
+            name = name.split('-')[0]
+        cleaned.append(name)
+
+    return cleaned

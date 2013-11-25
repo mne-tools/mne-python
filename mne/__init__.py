@@ -48,6 +48,8 @@ from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
 from .selection import read_selection
 from .dipole import read_dip
+from .layouts.layout import find_layout
+
 from . import beamformer
 from . import connectivity
 from . import coreg
@@ -56,6 +58,7 @@ from . import datasets
 from . import epochs
 from . import fiff
 from . import filter
+from . import gui
 from . import layouts
 from . import minimum_norm
 from . import mixed_norm

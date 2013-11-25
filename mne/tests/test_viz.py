@@ -123,17 +123,19 @@ def test_plot_topo():
     # Show topography
     evoked = _get_epochs().average()
     plot_topo(evoked, layout)
+    warnings.simplefilter('always', UserWarning)
     picked_evoked = pick_channels_evoked(evoked, evoked.ch_names[:3])
 
     # test scaling
-    for ylim in [dict(mag=[-600, 600]), None]:
-        plot_topo([picked_evoked] * 2, layout, ylim=ylim)
+    with warnings.catch_warnings(record=True):
+        for ylim in [dict(mag=[-600, 600]), None]:
+            plot_topo([picked_evoked] * 2, layout, ylim=ylim)
 
-    for evo in [evoked, [evoked, picked_evoked]]:
-        assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'])
+        for evo in [evoked, [evoked, picked_evoked]]:
+            assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'])
 
-    evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
-    plot_topo(evoked_delayed_ssp, layout, proj='interactive')
+        evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
+        plot_topo(evoked_delayed_ssp, layout, proj='interactive')
 
 
 def test_plot_topo_tfr():
@@ -182,23 +184,23 @@ def test_plot_evoked():
     """Test plotting of evoked
     """
     evoked = _get_epochs().average()
-    evoked.plot(proj=True, hline=[1])
+    with warnings.catch_warnings(record=True):
+        evoked.plot(proj=True, hline=[1])
+        # plot with bad channels excluded
+        evoked.plot(exclude='bads')
+        evoked.plot(exclude=evoked.info['bads'])  # does the same thing
 
-    # plot with bad channels excluded
-    evoked.plot(exclude='bads')
-    evoked.plot(exclude=evoked.info['bads'])  # does the same thing
-
-    # test selective updating of dict keys is working.
-    evoked.plot(hline=[1], units=dict(mag='femto foo'))
-    evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
-    evoked_delayed_ssp.plot(proj='interactive')
-    evoked_delayed_ssp.apply_proj()
-    assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive')
-    evoked_delayed_ssp.info['projs'] = []
-    assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive')
-    assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive',
-                  axes='foo')
-    plt.close('all')
+        # test selective updating of dict keys is working.
+        evoked.plot(hline=[1], units=dict(mag='femto foo'))
+        evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
+        evoked_delayed_ssp.plot(proj='interactive')
+        evoked_delayed_ssp.apply_proj()
+        assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive')
+        evoked_delayed_ssp.info['projs'] = []
+        assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive')
+        assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive',
+                      axes='foo')
+        plt.close('all')
 
 
 def test_plot_epochs():
@@ -375,36 +377,38 @@ def test_plot_raw():
     raw = _get_raw()
     events = _get_events()
     plt.close('all')  # ensure all are closed
-    fig = raw.plot(events=events, show_options=True)
-    # test mouse clicks
-    x = fig.get_axes()[0].lines[1].get_xdata().mean()
-    y = fig.get_axes()[0].lines[1].get_ydata().mean()
-    data_ax = fig.get_axes()[0]
-    _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
-    _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
-    _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in first axes
-    _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
-    _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
-    _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
-    fig.canvas.button_press_event(1, 1, 1)  # outside any axes
-    # sadly these fail when no renderer is used (i.e., when using Agg):
-    #ssp_fig = set(plt.get_fignums()) - set([fig.number])
-    #assert_equal(len(ssp_fig), 1)
-    #ssp_fig = plt.figure(list(ssp_fig)[0])
-    #ax = ssp_fig.get_axes()[0]  # only one axis is used
-    #t = [c for c in ax.get_children() if isinstance(c, matplotlib.text.Text)]
-    #pos = np.array(t[0].get_position()) + 0.01
-    #_fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
-    #_fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
-    # test keypresses
-    fig.canvas.key_press_event('escape')
-    fig.canvas.key_press_event('down')
-    fig.canvas.key_press_event('up')
-    fig.canvas.key_press_event('right')
-    fig.canvas.key_press_event('left')
-    fig.canvas.key_press_event('o')
-    fig.canvas.key_press_event('escape')
-    plt.close('all')
+    with warnings.catch_warnings(record=True):
+        fig = raw.plot(events=events, show_options=True)
+        # test mouse clicks
+        x = fig.get_axes()[0].lines[1].get_xdata().mean()
+        y = fig.get_axes()[0].lines[1].get_ydata().mean()
+        data_ax = fig.get_axes()[0]
+        _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
+        _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
+        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in first axes
+        _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
+        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+        _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
+        fig.canvas.button_press_event(1, 1, 1)  # outside any axes
+        # sadly these fail when no renderer is used (i.e., when using Agg):
+        #ssp_fig = set(plt.get_fignums()) - set([fig.number])
+        #assert_equal(len(ssp_fig), 1)
+        #ssp_fig = plt.figure(list(ssp_fig)[0])
+        #ax = ssp_fig.get_axes()[0]  # only one axis is used
+        #t = [c for c in ax.get_children() if isinstance(c,
+        #     matplotlib.text.Text)]
+        #pos = np.array(t[0].get_position()) + 0.01
+        #_fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
+        #_fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
+        # test keypresses
+        fig.canvas.key_press_event('escape')
+        fig.canvas.key_press_event('down')
+        fig.canvas.key_press_event('up')
+        fig.canvas.key_press_event('right')
+        fig.canvas.key_press_event('left')
+        fig.canvas.key_press_event('o')
+        fig.canvas.key_press_event('escape')
+        plt.close('all')
 
 
 def test_plot_raw_psds():
@@ -429,28 +433,39 @@ def test_plot_topomap():
     """Test topomap plotting
     """
     # evoked
-    evoked = fiff.read_evoked(evoked_fname, 'Left Auditory',
-                              baseline=(None, 0))
-    evoked.plot_topomap(0.1, 'mag', layout=layout)
-    plot_evoked_topomap(evoked, None, ch_type='mag')
-    times = [0.1, 0.2]
-    plot_evoked_topomap(evoked, times, ch_type='eeg')
-    plot_evoked_topomap(evoked, times, ch_type='grad')
-    plot_evoked_topomap(evoked, times, ch_type='planar1')
-    plot_evoked_topomap(evoked, times, ch_type='planar2')
-    with warnings.catch_warnings(True):  # delaunay triangulation warning
-        plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
-    assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
-                  proj='interactive')  # projs have already been applied
-    evoked.proj = False  # let's fake it like they haven't been applied
-    plot_evoked_topomap(evoked, 0.1, 'mag', proj='interactive')
-    assert_raises(RuntimeError, plot_evoked_topomap, evoked, np.repeat(.1, 50))
-    assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
+    warnings.simplefilter('always', UserWarning)
+    with warnings.catch_warnings(record=True):
+        evoked = fiff.read_evoked(evoked_fname, 'Left Auditory',
+                                  baseline=(None, 0))
+        evoked.plot_topomap(0.1, 'mag', layout=layout)
+        plot_evoked_topomap(evoked, None, ch_type='mag')
+        times = [0.1, 0.2]
+        plot_evoked_topomap(evoked, times, ch_type='eeg')
+        plot_evoked_topomap(evoked, times, ch_type='grad')
+        plot_evoked_topomap(evoked, times, ch_type='planar1')
+        plot_evoked_topomap(evoked, times, ch_type='planar2')
+        with warnings.catch_warnings(True):  # delaunay triangulation warning
+            plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
+        assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
+                      proj='interactive')  # projs have already been applied
+        evoked.proj = False  # let's fake it like they haven't been applied
+        plot_evoked_topomap(evoked, 0.1, 'mag', proj='interactive')
+        assert_raises(RuntimeError, plot_evoked_topomap, evoked,
+                      np.repeat(.1, 50))
+        assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
 
-    projs = read_proj(ecg_fname)
-    projs = [p for p in projs if p['desc'].lower().find('eeg') < 0]
-    plot_projs_topomap(projs)
-    plt.close('all')
+        projs = read_proj(ecg_fname)
+        projs = [p for p in projs if p['desc'].lower().find('eeg') < 0]
+        plot_projs_topomap(projs)
+        plt.close('all')
+        for ch in evoked.info['chs']:
+            if ch['coil_type'] == fiff.FIFF.FIFFV_COIL_EEG:
+                if ch['eeg_loc'] is not None:
+                    ch['eeg_loc'].fill(0)
+                ch['loc'].fill(0)
+        assert_raises(RuntimeError, plot_evoked_topomap, evoked,
+                      times, ch_type='eeg')
+        
 
 
 def test_compare_fiff():
@@ -470,8 +485,10 @@ def test_plot_ica_topomap():
     ica_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
                                 ecg=False, eog=False, exclude='bads')
     ica.decompose_raw(raw, picks=ica_picks)
-    for components in [0, [0], [0, 1], [0, 1] * 7]:
-        ica.plot_topomap(components)
+    warnings.simplefilter('always', UserWarning)
+    with warnings.catch_warnings(record=True):
+        for components in [0, [0], [0, 1], [0, 1] * 7]:
+            ica.plot_topomap(components)
     ica.info = None
     assert_raises(RuntimeError, ica.plot_topomap, 1)
     plt.close('all')

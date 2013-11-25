@@ -116,6 +116,7 @@ def test_io_forward():
     assert_equal(len(fwd['info']['chs']), 306)
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
+    assert_true(fwd['surf_ori'])
 
 
 @sample.requires_sample_data
