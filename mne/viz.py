@@ -104,20 +104,19 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
         Defaults to `pad_inches`.
     """
     import matplotlib.pyplot as plt
-    if plt.get_backend().lower() != 'agg':
-        try:
-            fig = plt.gcf()
-            fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
-            fig.canvas.draw()
-        except:
-            msg = ('Matplotlib function \'tight_layout\'%s.'
-                   ' Skipping subpplot adjusment.')
-            if not hasattr(plt, 'tight_layout'):
-                case = ' is not available'
-            else:
-                case = (' is not supported by your backend: `%s`'
-                        % plt.get_backend())
-            warn(msg % case)
+    try:
+        fig = plt.gcf()
+        fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+        fig.canvas.draw()
+    except:
+        msg = ('Matplotlib function \'tight_layout\'%s.'
+               ' Skipping subpplot adjusment.')
+        if not hasattr(plt, 'tight_layout'):
+            case = ' is not available'
+        else:
+            case = (' is not supported by your backend: `%s`'
+                    % plt.get_backend())
+        warn(msg % case)
 
 
 def _plot_topo(info=None, times=None, show_func=None, layout=None,
