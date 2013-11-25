@@ -878,6 +878,11 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         If an MRI already exists for subject_to, overwrite it.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
+
+    See Also
+    --------
+    scale_labels : add labels to a scaled MRI
+    scale_source_space : add a source space to a scaled MRI
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     paths = _find_mri_paths(subject_from, subjects_dir=subjects_dir)

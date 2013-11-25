@@ -3,14 +3,13 @@ import os.path as op
 from subprocess import CalledProcessError
 
 from nose.tools import assert_raises
-import numpy as np
 from numpy.testing import (assert_equal, assert_allclose)
 
 from mne.datasets import sample
 from mne.fiff import Raw
 from mne.fiff.kit import read_raw_kit
 from mne.fiff.bti import read_raw_bti
-from mne import (Epochs, read_forward_solution, make_forward_solution,
+from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
                  convert_forward_solution)
 from mne.utils import requires_mne, _TempDir

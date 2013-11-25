@@ -33,7 +33,9 @@ Changelog
 
    - Add rejection buffer to ICA.decompose* methods by `Denis Engemann`_ and `Alex Gramfort`_
 
-   - Add polygonal surface decimation function by `Denis Engemann`_ and `Alex Gramfort`_
+   - Improve ICA computation speed and memory usage by `Denis Engemann`_ and `Alex Gramfort`_
+
+   - Add polygonal surface decimation function to preprocess head surfaces for coregistration by `Denis Engemann`_ and `Alex Gramfort`_
 
    - DICS time-frequency beamforming for epochs, evoked and for estimating source power by `Roman Goj`_, `Alex Gramfort`_ and `Denis Engemann`_
 
@@ -74,19 +76,35 @@ Changelog
    - Add SPM face data set by `Denis Engemann`_ `Martin Luessi`_ and `Alex Gramfort`_
 
    - Support reading of EDF+,BDF data by `Teon Brooks`_
+   
+   - Tools for scaling MRIs (mne.scale_mri) by `Christian Brodbeck`_ 
+   
+   - GUI for head-MRI coregistration (mne.gui.coregistration) by `Christian Brodbeck`_
+
+   - GUI for ki2fiff conversion (mne.gui.kit2fiff) by `Christian Brodbeck`_
 
    - Support reading of EEG BrainVision data by `Teon Brooks`_
+
+   - Improve CTF compensation handling by `Martin Luessi`_ and `Eric Larson`_
+   
+   - Improve and extend automated layout guessing by `Denis Engemann`_
+
+   - Add Continuum Analytics Anaconda support by `Denis Engemann`_
 
 API
 ~~~
 
-   - The pick_normal parameter for minimum norm solvers has been renamed as pick_ori and normal orientation picking is now achieved by passing the value "normal" for the pick_ori parameter.
+   - The pick_normal parameter for minimum norm solvers has been renamed as `pick_ori` and normal orientation picking is now achieved by passing the value "normal" for the `pick_ori` parameter.
 
    - ICA objects now expose the measurment info of the object fitted.
 
    - Average EEG reference is now added by default to Raw instances.
 
    - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
+
+   - The `chs` argument in `mne.layouts.find_layout` is deprecated and will be removed in MNE-Python 0.9. Use `info` instead.
+   
+   - `plot_evoked` and `Epochs.plot` now open a new figure by default. To plot on an existing figure please specify the `axes` parameter.
 
 .. _changes_0_6:
 

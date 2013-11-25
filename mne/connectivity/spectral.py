@@ -9,7 +9,7 @@ import numpy as np
 from scipy.fftpack import fftfreq
 
 from .utils import check_indices
-from ..fixes import tril_indices
+from ..fixes import tril_indices, partial
 from ..parallel import parallel_func
 from ..source_estimate import _BaseSourceEstimate
 from .. import Epochs
@@ -325,8 +325,9 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
             else:
                 this_sig_idx = sig_idx
             if isinstance(this_data, _BaseSourceEstimate):
-                this_x_mt = this_data.transform_data(_mt_spectra,
-                                        fun_args=(window_fun, sfreq),
+                _mt_spectra_partial = partial(_mt_spectra, dpss=window_fun,
+                                              sfreq=sfreq)
+                this_x_mt = this_data.transform_data(_mt_spectra_partial,
                                         idx=this_sig_idx, tmin_idx=tmin_idx,
                                         tmax_idx=tmax_idx)
             else:
@@ -378,9 +379,11 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
             else:
                 this_sig_idx = sig_idx
             if isinstance(this_data, _BaseSourceEstimate):
-                this_x_cwt = this_data.transform_data(cwt,
-                    fun_args=(wavelets,), idx=this_sig_idx, tmin_idx=tmin_idx,
-                    tmax_idx=tmax_idx, use_fft=True, mode='same')
+                cwt_partial = partial(cwt, Ws=wavelets, use_fft=True,
+                                      mode='same')
+                this_x_cwt = this_data.transform_data(cwt_partial,
+                                idx=this_sig_idx, tmin_idx=tmin_idx,
+                                tmax_idx=tmax_idx)
             else:
                 this_x_cwt = cwt(this_data[this_sig_idx, tmin_idx:tmax_idx],
                                  wavelets, use_fft=True, mode='same')

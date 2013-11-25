@@ -367,7 +367,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     force_fixed : bool, optional (default False)
         Force fixed source orientation mode?
     surf_ori : bool, optional (default False)
-        Use surface-based source coordinate system?
+        Use surface-based source coordinate system? Note that force_fixed=True
+        implies surf_ori=True.
     include : list, optional
         List of names of channels to include. If empty all channels
         are included.
@@ -519,7 +520,6 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     # deal with transformations, storing orig copies so transforms can be done
     # as necessary later
     fwd['_orig_source_ori'] = fwd['source_ori']
-    fwd['surf_ori'] = False  # tell it that it's not surf oriented by default
     convert_forward_solution(fwd, surf_ori, force_fixed, copy=False)
     fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
     return fwd
@@ -535,7 +535,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
     fwd : dict
         The forward solution to modify.
     surf_ori : bool, optional (default False)
-        Use surface-based source coordinate system?
+        Use surface-based source coordinate system? Note that force_fixed=True
+        implies surf_ori=True.
     force_fixed : bool, optional (default False)
         Force fixed source orientation mode?
     copy : bool, optional (default True)
@@ -566,7 +567,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         #   Modify the forward solution for fixed source orientations
         if not is_fixed_orient(fwd, orig=True):
             logger.info('    Changing to fixed-orientation forward '
-                        'solution...')
+                        'solution with surface-based source orientations...')
             fix_rot = _block_diag(fwd['source_nn'].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
@@ -581,6 +582,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
                 fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
             logger.info('    [done]')
         fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
+        fwd['surf_ori'] = True
     elif surf_ori:  # Free, surf-oriented
         #   Rotate the local source coordinate systems
         nuse_total = sum([s['nuse'] for s in fwd['src']])
@@ -623,6 +625,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
         logger.info('[done]')
         fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
+        fwd['surf_ori'] = True
     else:  # Free, cartesian
         logger.info('    Cartesian source orientations...')
         fwd['source_nn'] = np.kron(np.ones((fwd['nsource'], 1)), np.eye(3))
@@ -632,9 +635,9 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             fwd['sol_grad']['data'] = fwd['_orig_sol_grad'].copy()
             fwd['sol_grad']['ncol'] = 3 * fwd['nsource']
         fwd['source_ori'] = FIFF.FIFFV_MNE_FREE_ORI
+        fwd['surf_ori'] = False
         logger.info('[done]')
 
-    fwd['surf_ori'] = surf_ori
     return fwd
 
 

@@ -76,7 +76,7 @@ for proj, ax in zip(projs, axes.flatten()):
     evoked.copy().apply_proj().plot(axes=ax)  # apply on a copy of evoked
     ax.set_title('+ %s' % proj['desc'])  # extract description.
 plt.suptitle(title)
-plt.show()
+mne.viz.tight_layout()
 
 # We also could have easily visualized the impact of single projection vectors
 # by deleting the vector directly after visualizing the changes.
@@ -88,8 +88,6 @@ plt.show()
 # check box that allows us to reversibly select projection vectors. Any
 # modification of the selection will immediately cause the figure to update.
 
-plt.figure()
 evoked.plot(proj='interactive')
-plt.show()
 
 # Hint: the same works with evoked.plot_topomap

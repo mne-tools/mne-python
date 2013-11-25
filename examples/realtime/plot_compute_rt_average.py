@@ -18,8 +18,7 @@ print __doc__
 #
 # License: BSD (3-clause)
 
-import time
-
+import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
 from mne.realtime import RtEpochs, MockRtClient
@@ -48,17 +47,11 @@ rt_epochs.start()
 
 # send raw buffers
 rt_client.send_data(rt_epochs, picks, tmin=0, tmax=150, buffer_size=1000)
-
-evoked = None
-
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
-
     print "Just got epoch %d" % (ii + 1)
-
-    if evoked is None:
-        evoked = ev
-    else:
-        evoked += ev
-
-    evoked.plot()
-    time.sleep(0.1)
+    if ii > 0:
+        ev += evoked
+    evoked = ev
+    plt.clf() # clear canvas
+    evoked.plot(axes=plt.gca())  # plot on current figure
+    plt.pause(0.05)
