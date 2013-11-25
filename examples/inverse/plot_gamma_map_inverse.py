@@ -13,7 +13,6 @@ NeuroImage, vol. 44, no. 3, pp. 947?66, Mar. 2009.
 print __doc__
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
@@ -57,11 +56,9 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
 evoked = mne.fiff.pick_types_evoked(evoked, meg='grad', exclude='bads')
-plt.figure()
 evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
             proj=True)
 
 residual = mne.fiff.pick_types_evoked(residual, meg='grad', exclude='bads')
-plt.figure()
 residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
               proj=True)
