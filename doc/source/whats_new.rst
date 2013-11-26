@@ -3,8 +3,8 @@ What's new
 
 .. _changes_0_7:
 
-Current
--------
+Version 0.7
+-----------
 
 Changelog
 ~~~~~~~~~
