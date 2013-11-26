@@ -305,9 +305,9 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
         One evoked dataset.
     include : list of string, (optional)
         List of channels to include (if empty, include all available).
-    exclude : list of string, (optional)
+    exclude : list of string, (optional) | 'bads'
         Channels to exclude (if empty, do not exclude any).
-
+         Defaults to 'bads'.
     Returns
     -------
     res : instance of Evoked
@@ -397,17 +397,18 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
 
 
 @verbose
-def pick_channels_forward(orig, include=[], exclude='bads', verbose=None):
+def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     """Pick channels from forward operator
 
     Parameters
     ----------
     orig : dict
         A forward solution.
-    include : list of string (optional)
-        List of channels to include (if empty, include all available).
-    exclude : list of string (optional)
-        Channels to exclude (if empty, do not exclude any).
+    include : list of string (optional) | None
+        List of channels to include (if empty, include all available). Defaults
+        auto None.
+    exclude : list of string (optional) | None
+        Channels to exclude (if empty, do not exclude any). Defaults to None.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -515,8 +516,8 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
         A covariance.
     include : list of string, (optional)
         List of channels to include (if empty, include all available).
-    exclude : list of string, (optional)
-        Channels to exclude (if empty, do not exclude any).
+    exclude : list of string, (optional) | 'bads'
+        Channels to exclude (if empty, do not exclude any). Defaults to 'bads'.
 
     Returns
     -------

@@ -158,9 +158,10 @@ Read and plot a segment of raw data
     (376, 2252)
     >>> print times.shape
     (2252,)
-    >>> data, times = raw[2:20:3, start:stop]  # take some Magnetometers
+    >>> data, times = raw[2:20:3, start:stop]  # access underlying data
     Reading 15015 ... 17266  =     99.998 ...   114.989 secs...
     [done]
+    >>> raw.plot() # doctest: +SKIP
 
 .. figure:: _images/plot_read_and_write_raw_data.png
     :alt: Raw data

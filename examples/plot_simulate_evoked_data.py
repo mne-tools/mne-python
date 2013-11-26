@@ -81,5 +81,4 @@ plot_sparse_source_estimates(fwd['src'], stc, bgcolor=(1, 1, 1),
 plt.figure()
 plt.psd(evoked.data[0])
 
-plt.figure()
 plot_evoked(evoked)

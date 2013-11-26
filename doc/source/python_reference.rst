@@ -29,7 +29,6 @@ Classes
    Label
    BiHemiLabel
    preprocessing.ICA
-   decoding.TransformerMixin
    decoding.CSP
    decoding.Scaler
    decoding.ConcatenateChannels
@@ -91,7 +90,7 @@ Functions:
    :template: function.rst
 
    parse_config
-   decimate_surfaces
+   decimate_surface
    read_bem_solution
    read_bem_surfaces
    read_cov
@@ -131,6 +130,41 @@ Functions:
 
   read_raw_bti
 
+.. currentmodule:: mne.fiff.kit
+
+:py:mod:`mne.fiff.kit`:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+   read_raw_kit
+   read_elp
+   read_hsp
+   read_mrk
+   write_hsp
+   write_mrk
+
+.. currentmodule:: mne.fiff.edf
+
+:py:mod:`mne.fiff.edf`:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+   read_raw_edf
+
+.. currentmodule:: mne.fiff.brainvision
+
+:py:mod:`mne.fiff.brainvision`:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+   read_raw_brainvision
+
 :py:mod:`mne.datasets.sample`:
 
 .. automodule:: mne.datasets.sample
@@ -138,6 +172,20 @@ Functions:
  :no-inherited-members:
 
 .. currentmodule:: mne.datasets.sample
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   data_path
+
+:py:mod:`mne.datasets.spm_face`:
+
+.. automodule:: mne.datasets.spm_face
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.datasets.spm_face
 
 .. autosummary::
    :toctree: generated/
