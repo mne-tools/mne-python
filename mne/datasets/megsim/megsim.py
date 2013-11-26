@@ -63,7 +63,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
 
     if path is None:
         # use an intelligent guess if it's not defined
-        def_path = op.abspath(op.join(op.dirname(__file__), '..', '..',
+        def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
                                       '..', 'examples'))
         path = get_config('MNE_DATASETS_MEGSIM_PATH', None)
         if path is None:
