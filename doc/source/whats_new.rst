@@ -1,6 +1,16 @@
 What's new
 ==========
 
+.. _changes_0_8:
+
+Current
+-----------
+
+Changelog
+~~~~~~~~~
+
+   - ...
+
 .. _changes_0_7:
 
 Version 0.7
