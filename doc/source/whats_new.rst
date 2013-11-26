@@ -13,7 +13,7 @@ Changelog
 
    - New decoding module for MEG analysis containing sklearn compatible transformers by `Mainak Jas`_ and `Alex Gramfort`_
 
-   - New realtime module containing RtEpochs, RtClient and MockRtClient class by `Martin Luessi`_, Christopher Dinh, `Alex Gramfort`_, `Denis Engemann`_ and `Mainak Jas`_
+   - New realtime module containing RtEpochs, RtClient and MockRtClient class by `Martin Luessi`_, `Christopher Dinh`_, `Alex Gramfort`_, `Denis Engemann`_ and `Mainak Jas`_
 
    - Allow picking normal orientation in LCMV beamformers by `Roman Goj`_, `Alex Gramfort`_, `Denis Engemann`_ and `Martin Luessi`_
 
@@ -219,6 +219,10 @@ Changelog
    - Add sensor type scaling parameter to plot_topo by `Andrew Dykstra`_, `Denis Engemann`_  and `Eric Larson`_
 
    - Support delayed SSP application in plot_topo by `Denis Engemann`_
+
+   - Add `subtract evoked` option to beamformers by `Andrew Dykstra`_
+
+   - Add new `transform` method to SourceEstimate(s) by `Andrew Dykstra`_
 
 API
 ~~~
@@ -549,3 +553,5 @@ of commits):
 .. _Andrew Dykstra: https://github.com/adykstra
 
 .. _Romain Trachel: http://www-sop.inria.fr/athena/Site/RomainTrachel
+
+.. _Christopher Dinh: https://github.com/chdinh
