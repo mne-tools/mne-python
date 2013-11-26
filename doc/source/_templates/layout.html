@@ -47,9 +47,17 @@
 
 
 {% block relbar1 %}
-<div style="background-color: white; text-align: left; padding: 10px 10px 15px 15px">
+<div style="background-color: white; text-align: left; padding: 10px 7px 15px 15px; min-width: 910px">
+<div style="float: left">
 <a href="{{ pathto('index') }}"><img src="{{
-pathto("_static/logo.png", 1) }}" border="0" alt="py4sci"/></a>
+pathto("_static/mne_logo.png", 1) }}" border="0" alt="py4sci"/></a>
+</div>
+
+<div style="float: right">
+<a href="{{ pathto('index') }}"><img src="{{
+pathto("_static/institutions.png", 1) }}" border="0" alt="py4sci"/></a>
+</div>
+<br style="clear:both"/>
 </div>
 {{ super() }}
 {% endblock %}
