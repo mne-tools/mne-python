@@ -29,8 +29,15 @@ component of MNE is presently evolving quickly and thanks to the
 adopted open development environment user contributions can be easily
 incorporated.
 
+The MNE development is supported by National Institute of Biomedical Imaging and Bioengineering 
+grants 5R01EB009048 and P41EB015896 (Center for Functional Neuroimaging Technologies) as well as 
+NSF awards 0958669 and 1042134.
+
 The Matlab and Python components of MNE are provided under the
 simplified BSD license.
+
+
+
 
   * `Download <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_ MNE
   * Read the :ref:`manual`.
