@@ -1,4 +1,4 @@
-Source: mne-python
+Source: python-mne
 Maintainer: Debian Med Packaging Team <debian-med-packaging@lists.alioth.debian.org>
 Uploaders: Alexandre Gramfort <alexandre.gramfort@m4x.org>,
            Yaroslav Halchenko <debian@onerussian.com>,
@@ -22,8 +22,8 @@ Build-Depends: debhelper (>= 9),
                libgl1-mesa-dri,
                python-coverage
 Standards-Version: 3.9.4
-Vcs-Git: git://anonscm.debian.org/debian-med/mne-python.git
-Vcs-Browser: http://anonscm.debian.org/gitweb/?p=debian-med/mne-python.git
+Vcs-Git: git://anonscm.debian.org/debian-med/python-mne.git
+Vcs-Browser: http://anonscm.debian.org/gitweb/?p=debian-med/python-mne.git
 Homepage: http://martinos.org/mne
 X-Python-Version: >= 2.6
 

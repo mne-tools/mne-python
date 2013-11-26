@@ -1,4 +1,4 @@
-mne-python (0.7~rc5-1) UNRELEASED; urgency=low
+python-mne (0.7~rc5-1) UNRELEASED; urgency=low
 
   * Initial packaging (Closes: #728797)
 
