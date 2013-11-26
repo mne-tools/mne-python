@@ -29,7 +29,6 @@ Classes
    Label
    BiHemiLabel
    preprocessing.ICA
-   decoding.TransformerMixin
    decoding.CSP
    decoding.Scaler
    decoding.ConcatenateChannels
