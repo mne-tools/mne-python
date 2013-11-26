@@ -76,9 +76,9 @@ Changelog
    - Add SPM face data set by `Denis Engemann`_ `Martin Luessi`_ and `Alex Gramfort`_
 
    - Support reading of EDF+,BDF data by `Teon Brooks`_
-   
-   - Tools for scaling MRIs (mne.scale_mri) by `Christian Brodbeck`_ 
-   
+
+   - Tools for scaling MRIs (mne.scale_mri) by `Christian Brodbeck`_
+
    - GUI for head-MRI coregistration (mne.gui.coregistration) by `Christian Brodbeck`_
 
    - GUI for ki2fiff conversion (mne.gui.kit2fiff) by `Christian Brodbeck`_
@@ -86,7 +86,7 @@ Changelog
    - Support reading of EEG BrainVision data by `Teon Brooks`_
 
    - Improve CTF compensation handling by `Martin Luessi`_ and `Eric Larson`_
-   
+
    - Improve and extend automated layout guessing by `Denis Engemann`_
 
    - Add Continuum Analytics Anaconda support by `Denis Engemann`_
@@ -107,7 +107,7 @@ API
    - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
 
    - The `chs` argument in `mne.layouts.find_layout` is deprecated and will be removed in MNE-Python 0.9. Use `info` instead.
-   
+
    - `plot_evoked` and `Epochs.plot` now open a new figure by default. To plot on an existing figure please specify the `axes` parameter.
 
 .. _changes_0_6:
