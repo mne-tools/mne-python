@@ -91,6 +91,10 @@ Changelog
 
    - Add Continuum Analytics Anaconda support by `Denis Engemann`_
 
+   - Add `subtract evoked` option to beamformers by `Andrew Dykstra`_
+
+   - Add new `transform` method to SourceEstimate(s) by `Andrew Dykstra`_
+
 API
 ~~~
 
@@ -219,10 +223,6 @@ Changelog
    - Add sensor type scaling parameter to plot_topo by `Andrew Dykstra`_, `Denis Engemann`_  and `Eric Larson`_
 
    - Support delayed SSP application in plot_topo by `Denis Engemann`_
-
-   - Add `subtract evoked` option to beamformers by `Andrew Dykstra`_
-
-   - Add new `transform` method to SourceEstimate(s) by `Andrew Dykstra`_
 
 API
 ~~~
