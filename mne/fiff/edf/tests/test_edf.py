@@ -7,7 +7,7 @@
 import os.path as op
 import inspect
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from scipy import io
 
@@ -42,6 +42,9 @@ def test_bdf_data():
     data_eeglab = raw_eeglab[picks]
 
     assert_array_almost_equal(data_py, data_eeglab)
+    
+    # Manually checking that float coordinates are imported       
+    assert_true((raw_py.info['chs'][0]['eeg_loc']).any())
 
 
 def test_edf_data():

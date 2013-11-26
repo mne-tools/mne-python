@@ -419,9 +419,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         locs = {}
         temp = re.findall('eeg\s(\w+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)',
                           fid)
-        temp = temp + re.findall(
-        'cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)',
-                                 fid)
+        temp += re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
+                           '[\d,.]+)', fid)
         for loc in temp:
             coord = np.array(map(float, loc[1:]))
             coord = apply_trans(als_ras_trans_mm, coord)
