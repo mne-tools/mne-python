@@ -45,6 +45,8 @@ def test_bdf_data():
 
     # Manually checking that float coordinates are imported
     assert_true((raw_py.info['chs'][0]['eeg_loc']).any())
+    assert_true((raw_py.info['chs'][25]['eeg_loc']).any())
+    assert_true((raw_py.info['chs'][63]['eeg_loc']).any())
 
 
 def test_edf_data():
