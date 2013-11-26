@@ -1,4 +1,4 @@
-python-mne (0.7-1) UNRELEASED; urgency=low
+python-mne (0.7-1) unstable; urgency=low
 
   * Initial packaging (Closes: #728797)
 

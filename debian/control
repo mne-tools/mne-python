@@ -38,7 +38,7 @@ Depends: ${misc:Depends},
          python-joblib (>= 0.4.5),
          xvfb,
          xauth,
-         libgl1-mesa-dria,
+         libgl1-mesa-dri,
          help2man
 Recommends: python-nose,
             mayavi2
