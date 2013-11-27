@@ -73,8 +73,7 @@ from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import (assert_env_set, trans_wildcard, RawSource,
                            SubjectSelectorPanel)
-from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
-                      headview_borders)
+from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
 
 
 laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
@@ -523,6 +522,11 @@ class CoregModel(HasPrivateTraits):
         head_mri_trans = info['trans']
         self.set_trans(head_mri_trans)
 
+    def reset(self):
+        self.reset_traits(('n_scaling_params', 'scale_x', 'scale_y', 'scale_z',
+                           'rot_x', 'rot_y', 'rot_z', 'trans_x', 'trans_y',
+                           'trans_z'))
+
     def set_trans(self, head_mri_trans):
         """Set rotation and translation parameters from a transformation matrix
 
@@ -885,9 +889,7 @@ class CoregPanel(HasPrivateTraits):
             warning(None, err, "MNE_ROOT Not Set")
 
     def _reset_params_fired(self):
-        self.reset_traits(('n_scaling_params', 'scale_x', 'scale_y', 'scale_z',
-                           'rot_x', 'rot_y', 'rot_z', 'trans_x', 'trans_y',
-                           'trans_z'))
+        self.model.reset()
 
     def _rot_x_dec_fired(self):
         self.rot_x -= self.rot_step
