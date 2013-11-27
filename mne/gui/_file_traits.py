@@ -321,6 +321,9 @@ class RawSource(HasPrivateTraits):
         else:
             return np.zeros((1, 3))
 
+    def _file_changed(self):
+        self.reset_traits(('points_filter',))
+
 
 class MRISubjectSource(HasPrivateTraits):
     """Find subjects in SUBJECTS_DIR and select one
