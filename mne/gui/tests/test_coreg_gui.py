@@ -12,11 +12,13 @@ from nose.tools import (assert_equal, assert_almost_equal, assert_false,
 
 import mne
 from mne.datasets import sample
+from mne.fiff.kit.tests import data_dir as kit_data_dir
 from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
 
 
 data_path = sample.data_path(download=False)
 raw_path = os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+kit_raw_path = os.path.join(kit_data_dir, 'test_bin.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 
 tempdir = _TempDir()
@@ -155,3 +157,8 @@ def test_coreg_model_with_fsaverage():
     model.n_scale_params = 3
     model.fit_scale_hsp_points()
     assert_less(np.mean(model.point_distance), avg_point_distance_1param)
+
+    # test switching raw disables point omission
+    assert_equal(model.hsp.n_omitted, 1)
+    model.hsp.file = kit_raw_path
+    assert_equal(model.hsp.n_omitted, 0)
