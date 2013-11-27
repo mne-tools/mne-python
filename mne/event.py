@@ -202,6 +202,16 @@ def read_events(filename, include=None, exclude=None):
     -----
     This function will discard the offset line (i.e., first line with zero
     event number) if it is present in a text file.
+
+    Event files indicate the index of the sample in which the event occurred
+    rather than the event's absolute timing. Note that if the file has been
+    downsampled using mne_process_raw, the eve.fif that mne_process_raw
+    creates reflects the original sampling rate rather than the new one. For
+    example, if the original sampling rate was 1000Hz and the new one is
+    250Hz, the sample indices need to be divided by 4:
+
+    e = read_events('raw-eve.fif')
+    e[:,0] /= 4
     """
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
