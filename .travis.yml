@@ -17,7 +17,7 @@ install:
     - python setup.py build
     - python setup.py install
     - myscripts='browse_raw bti2fiff surf2bem'
-    - for script in $myscripts; do $mne $script --help >/dev/null; done;
+    - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
     - cd ~
     - MNE_DIR=$(python -c 'import mne;print mne.__path__[0]')
