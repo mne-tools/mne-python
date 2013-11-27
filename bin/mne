@@ -33,4 +33,4 @@ elif sys.argv[1] not in valid_commands:
 else:
     cmd = sys.argv[1]
     cmd_path = op.join(mne_bin_dir, 'commands', 'mne_%s.py' % cmd)
-    sys.exit(subprocess.call([cmd_path] + sys.argv[2:]))
+    sys.exit(subprocess.call([sys.executable, cmd_path] + sys.argv[2:]))
