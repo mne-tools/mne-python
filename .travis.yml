@@ -16,6 +16,9 @@ install:
     - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coveralls; fi
     - python setup.py build
     - python setup.py install
+    - mne browse_raw
+    - mne bti2fiff
+    - mne surf2bem
     - SRC_DIR=$(pwd)
     - cd ~
     - MNE_DIR=$(python -c 'import mne;print mne.__path__[0]')
