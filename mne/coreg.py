@@ -715,13 +715,13 @@ def _is_mri_subject(subject, subjects_dir=None):
         Whether ``subject`` is an mri subject.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    sdir = os.path.join(subjects_dir, subject)
 
-    fname = os.path.join(sdir, 'bem', '%s-head.fif' % subject)
+    fname = head_bem_fname.format(subjects_dir=subjects_dir, subject=subject)
     if not os.path.exists(fname):
         return False
 
-    fname = os.path.join(sdir, 'bem', '%s-*-bem.fif' % subject)
+    fname = bem_fname.format(subjects_dir=subjects_dir, subject=subject,
+                             name='*')
     if len(glob(fname)) == 0:
         return False
 
