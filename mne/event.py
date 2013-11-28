@@ -210,8 +210,8 @@ def read_events(filename, include=None, exclude=None):
     example, if the original sampling rate was 1000Hz and the new one is
     250Hz, the sample indices need to be divided by 4:
 
-    e = read_events('raw-eve.fif')
-    e[:,0] /= 4
+    events = read_events('raw-eve.fif')
+    events[:,0] /= 4
     """
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
