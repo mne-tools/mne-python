@@ -34,7 +34,7 @@ $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif:
 	wget ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE-sample-data-processed.tar.gz
 	tar xvzf MNE-sample-data-processed.tar.gz
 	mv MNE-sample-data examples/
-	ln -s ${PWD}/examples/MNE-sample-data ${PWD}/MNE-sample-data -f
+	ln -sf ${PWD}/examples/MNE-sample-data ${PWD}/MNE-sample-data
 
 test: in sample_data
 	rm -f .coverage
