@@ -198,7 +198,7 @@ These steps can be broken out to be more explicit as:
 
     ln -s <path to mne-python>/mne ~/.local/lib/python2.7/site-packages/mne
 
-   Also for the mne-python scripts:
+   Also for the mne-python scripts::
    
     ln -s <path to mne-python>/bin/mne /usr/local/bin/mne
 
