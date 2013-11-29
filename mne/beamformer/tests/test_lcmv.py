@@ -299,7 +299,7 @@ def test_tf_lcmv():
         raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1, picks=picks)
         epochs_band = mne.Epochs(raw_band, epochs.events, epochs.event_id,
                                  tmin=tmin, tmax=tmax, proj=True)
-        with warnings.catch_warnings(True):  # not enough samples
+        with warnings.catch_warnings(record=True):  # not enough samples
             noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
                                            win_length)
         noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=reg,
@@ -311,7 +311,7 @@ def test_tf_lcmv():
         # time windows to compare to tf_lcmv results and test overlapping
         if (l_freq, h_freq) == freq_bins[0]:
             for time_window in time_windows:
-                with warnings.catch_warnings(True):
+                with warnings.catch_warnings(record=True):
                     data_cov = compute_covariance(epochs_band,
                                                   tmin=time_window[0],
                                                   tmax=time_window[1])
@@ -360,7 +360,7 @@ def test_tf_lcmv():
     assert_raises(ValueError, tf_lcmv, epochs_preloaded, forward, noise_covs,
                   tmin, tmax, tstep, win_lengths, freq_bins)
 
-    with warnings.catch_warnings(True):  # not enough samples
+    with warnings.catch_warnings(record=True):  # not enough samples
         # Pass only one epoch to test if subtracting evoked
         # responses yields zeros
         stcs = tf_lcmv(epochs[0], forward, noise_covs, tmin, tmax, tstep,

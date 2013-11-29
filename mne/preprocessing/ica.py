@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from six import string_types
 import warnings
 from copy import deepcopy
 from inspect import getargspec, isfunction
@@ -311,7 +312,7 @@ class ICA(object):
                 step = int(ceil(step / float(decim)))
             this_start = 0
             this_stop = 0
-            for first in xrange(0, data.shape[1], step):
+            for first in range(0, data.shape[1], step):
                 last = first + step
                 data_buffer = data[:, first:last]
                 if data_buffer.shape[1] < (last - first):
@@ -566,7 +567,7 @@ class ICA(object):
         # set channel names and info
         ch_names = info['ch_names'] = []
         ch_info = info['chs'] = []
-        for ii in xrange(self.n_components_):
+        for ii in range(self.n_components_):
             this_source = 'ICA %03d' % (ii + 1)
             ch_names.append(this_source)
             ch_info.append(dict(ch_name=this_source, cal=1,
@@ -775,7 +776,7 @@ class ICA(object):
             if hasattr(target, 'ndim'):
                 if target.ndim < 2:
                     target = target.reshape(1, target.shape[-1])
-            if isinstance(target, basestring):
+            if isinstance(target, string_types):
                 pick = _get_target_ch(raw, target)
                 target, _ = raw[pick, start:stop]
             if sources.shape[1] != target.shape[1]:
@@ -819,7 +820,7 @@ class ICA(object):
             if hasattr(target, 'ndim'):
                 if target.ndim < 3:
                     target = target.reshape(1, 1, target.shape[-1])
-            if isinstance(target, basestring):
+            if isinstance(target, string_types):
                 pick = _get_target_ch(epochs, target)
                 target = epochs.get_data()[:, pick]
             if sources.shape[2] != target.shape[2]:
@@ -1240,7 +1241,7 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
 def _check_start_stop(raw, start, stop):
     """Aux function"""
     return [c if (isinstance(c, int) or c is None) else
-            raw.time_as_index(c)[0] for c in start, stop]
+            raw.time_as_index(c)[0] for c in (start, stop)]
 
 
 @verbose
@@ -1344,7 +1345,7 @@ def _get_target_ch(container, target):
 
 def _find_sources(sources, target, score_func):
     """Aux function"""
-    if isinstance(score_func, basestring):
+    if isinstance(score_func, string_types):
         score_func = score_funcs.get(score_func, score_func)
 
     if not callable(score_func):
@@ -1524,7 +1525,7 @@ def read_ica(fname):
 
     fid.close()
 
-    ica_init, ica_misc = [_deserialize(k) for k in ica_init, ica_misc]
+    ica_init, ica_misc = [_deserialize(k) for k in (ica_init, ica_misc)]
     current_fit = ica_init.pop('current_fit')
     if ica_init['noise_cov'] == Covariance.__name__:
         logger.info('Reading whitener drawn from noise covariance ...')

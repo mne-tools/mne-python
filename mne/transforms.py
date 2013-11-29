@@ -447,7 +447,7 @@ def transform_coordinates(filename, pos, orig, dest):
             pos = np.dot(np.dot(T2['trans'], T1['trans']), pos)
             if dest != FIFF.FIFFV_MNE_COORD_MNI_TAL:
                 if dest == FIFF.FIFFV_MNE_COORD_FS_TAL:
-                    for k in xrange(n_points):
+                    for k in range(n_points):
                         if pos[2, k] > 0:
                             pos[:, k] = np.dot(T3plus['trans'], pos[:, k])
                         else:

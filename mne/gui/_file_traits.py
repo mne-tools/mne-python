@@ -7,6 +7,8 @@
 import os
 
 import numpy as np
+from six.moves import map
+from six.moves import zip
 
 # allow import without traits
 try:

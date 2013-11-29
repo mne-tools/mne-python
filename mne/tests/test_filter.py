@@ -150,7 +150,7 @@ def test_filters():
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
 
     # make sure we don't alias
-    t = np.array(range(Fs * sig_len_secs)) / float(Fs)
+    t = np.array(list(range(Fs * sig_len_secs))) / float(Fs)
     # make sinusoid close to the Nyquist frequency
     sig = np.sin(2 * np.pi * Fs / 2.2 * t)
     # signal should disappear with 2x downsampling

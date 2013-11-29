@@ -1,4 +1,5 @@
 """Data Equivalence Tests"""
+from __future__ import print_function
 
 # Author: Teon Brooks <teon@nyu.edu>
 #
@@ -33,8 +34,8 @@ def test_bdf_data():
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
-    print raw_py  # to test repr
-    print raw_py.info  # to test Info repr
+    print(raw_py)  # to test repr
+    print(raw_py.info)  # to test Info repr
 
     # this .mat was generated using the EEG Lab Biosemi Reader
     raw_eeglab = io.loadmat(bdf_eeglab_path)
@@ -56,8 +57,8 @@ def test_edf_data():
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
-    print raw_py  # to test repr
-    print raw_py.info  # to test Info repr
+    print(raw_py)  # to test repr
+    print(raw_py.info)  # to test Info repr
 
     # this .mat was generated using the EEG Lab Biosemi Reader
     raw_eeglab = io.loadmat(edf_eeglab_path)

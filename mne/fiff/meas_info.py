@@ -8,7 +8,7 @@ from copy import deepcopy
 import os.path as op
 import numpy as np
 from scipy import linalg
-from StringIO import StringIO
+from six import BytesIO
 from datetime import datetime as dt
 
 from .open import fiff_open
@@ -403,7 +403,7 @@ def read_meas_info(fid, tree, verbose=None):
 
 def read_extra_meas_info(fid, tree, info):
     """Read extra blocks from fid"""
-    # current method saves them into a cStringIO file instance for simplicity
+    # current method saves them into a BytesIO file instance for simplicity
     # this and its partner, write_extra_meas_info, could be made more
     # comprehensive (i.e.., actually parse and read the data instead of
     # just storing it for later)
@@ -412,7 +412,7 @@ def read_extra_meas_info(fid, tree, info):
               FIFF.FIFFB_PROCESSING_HISTORY]
     info['orig_blocks'] = blocks
 
-    fid_str = StringIO()
+    fid_str = BytesIO()
     fid_str = start_file(fid_str)
     start_block(fid_str, FIFF.FIFFB_MEAS_INFO)
     for block in blocks:
@@ -423,7 +423,7 @@ def read_extra_meas_info(fid, tree, info):
 
 def write_extra_meas_info(fid, info):
     """Write otherwise left out blocks of data"""
-    # uses cStringIO fake file to read the appropriate blocks
+    # uses BytesIO fake file to read the appropriate blocks
     if 'orig_blocks' in info and info['orig_blocks'] is not None:
         # Blocks from the original
         blocks = info['orig_blocks']

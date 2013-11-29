@@ -1,4 +1,5 @@
 """Data Equivalence Tests"""
+from __future__ import print_function
 
 # Author: Teon Brooks <teon@nyu.edu>
 #
@@ -38,8 +39,8 @@ def test_brainvision_data():
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, times_py = raw_py[picks]
 
-    print raw_py  # to test repr
-    print raw_py.info  # to test Info repr
+    print(raw_py)  # to test repr
+    print(raw_py.info)  # to test Info repr
 
     # this fif was generated using MNE-C
     raw_bin = Raw(eeg_bin, preload=True)

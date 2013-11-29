@@ -1,6 +1,6 @@
 import threading
 import time
-import Queue
+from six.moves import queue
 
 from mne.realtime import StimServer, StimClient
 from nose.tools import assert_equal, assert_raises
@@ -15,8 +15,8 @@ def test_connection():
     # be a blocking method
 
     # use separate queues because timing matters
-    trig_queue1 = Queue.Queue()
-    trig_queue2 = Queue.Queue()
+    trig_queue1 = queue.Queue()
+    trig_queue2 = queue.Queue()
 
     # start a thread to emulate 1st client
     thread1 = threading.Thread(target=connect_client, args=(trig_queue1,))

@@ -67,8 +67,8 @@ else:
 out_ext = ['.txt', '.pickled']
 
 
-use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in xrange(5)])
-use_editor_h = CheckListEditor(cols=5, values=[(i, str(i)) for i in xrange(5)])
+use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in range(5)])
+use_editor_h = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
 
 mrk_view_editable = View(
         VGroup('file',
@@ -149,7 +149,7 @@ class MarkerPointSource(MarkerPoints):
     name = Property(Str, depends_on='file')
     dir = Property(Str, depends_on='file')
 
-    use = List(range(5), desc="Which points to use for the interpolated "
+    use = List(list(range(5)), desc="Which points to use for the interpolated "
                "marker.")
     enabled = Property(Bool, depends_on=['points', 'use'])
     clear = Button(desc="Clear the current marker data")

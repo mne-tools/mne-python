@@ -8,6 +8,7 @@ import numpy as np
 from scipy import linalg
 import os
 import gzip
+from six import b
 
 from .constants import FIFF
 
@@ -71,7 +72,7 @@ def read_big(fid, size=None):
 
     Returns
     -------
-    buf : str
+    buf : bytes
         The data.
 
     Notes
@@ -111,21 +112,21 @@ def read_big(fid, size=None):
     if size is not None:
         # Use pre-buffering method
         segments = np.r_[np.arange(0, size, buf_size), size]
-        buf = bytearray(' ' * size)
+        buf = bytearray(b' ' * size)
         for start, end in zip(segments[:-1], segments[1:]):
             data = fid.read(end - start)
             if len(data) != end - start:
                 raise ValueError('Read error')
             buf[start:end] = data
-        buf = str(buf)
+        buf = bytes(buf)
     else:
         # Use presumably less efficient concatenating method
-        buf = ['']
+        buf = [b'']
         new = fid.read(buf_size)
         while len(new) > 0:
             buf.append(new)
             new = fid.read(buf_size)
-        buf = ''.join(buf)
+        buf = b''.join(buf)
 
     return buf
 
@@ -159,9 +160,9 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
             raise ValueError('rlims must yield at least one output')
         row_size = item_size * shape[1]
         # # of bytes to skip at the beginning, # to read, where to end
-        start_skip = rlims[0] * row_size
-        read_size = n_row_out * row_size
-        end_pos = fid.tell() + tag_size
+        start_skip = int(rlims[0] * row_size)
+        read_size = int(n_row_out * row_size)
+        end_pos = int(fid.tell() + tag_size)
         # Move the pointer ahead to the read point
         fid.seek(start_skip, 1)
         # Do the reading
@@ -343,7 +344,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
             elif tag.type == FIFF.FIFFT_STRING:
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">c",
                                             shape=shape, rlims=rlims)
-                tag.data = ''.join(tag.data)
+                # Use unicode or bytes depending on Py2/3
+                tag.data = str(tag.data.tostring().decode())
             elif tag.type == FIFF.FIFFT_DAU_PACK16:
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">i2",
                                             shape=shape, rlims=rlims)
@@ -436,11 +438,9 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 #   Handle the channel name
                 #
                 ch_name = np.fromstring(fid.read(16), dtype=">c")
-                #
-                # Omit nulls
-                #
-                tag.data['ch_name'] = \
-                    ''.join(ch_name[:np.where(ch_name == '')[0][0]])
+                ch_name = ch_name[:np.argmax(ch_name==b'')].tostring()
+                # Use unicode or bytes depending on Py2/3
+                tag.data['ch_name'] = str(ch_name.decode())
 
             elif tag.type == FIFF.FIFFT_OLD_PACK:
                 offset = float(np.fromstring(fid.read(4), dtype=">f4"))
@@ -449,7 +449,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data = scale * tag.data + offset
             elif tag.type == FIFF.FIFFT_DIR_ENTRY_STRUCT:
                 tag.data = list()
-                for _ in range(tag.size / 16 - 1):
+                for _ in range(tag.size // 16 - 1):
                     s = fid.read(4 * 4)
                     tag.data.append(Tag(*struct.unpack(">iIii", s)))
             else:

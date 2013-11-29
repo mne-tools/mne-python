@@ -32,6 +32,7 @@ from ..source_space import (read_source_spaces_from_tree,
 from ..transforms import invert_transform, transform_source_space_to
 from ..source_estimate import _make_stc
 from ..utils import logger, verbose
+from functools import reduce
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -867,7 +868,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         sol = np.empty((K.shape[0] / 3, n_times),
                        dtype=(K[0, 0] * data[0, 0]).dtype)
 
-        for pos in xrange(0, n_times, buffer_size):
+        for pos in range(0, n_times, buffer_size):
             sol[:, pos:pos + buffer_size] = \
                 combine_xyz(np.dot(K, data[:, pos:pos + buffer_size]))
 

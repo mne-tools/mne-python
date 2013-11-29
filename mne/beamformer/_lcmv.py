@@ -21,6 +21,7 @@ from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
 from ..utils import logger, verbose
 from .. import Epochs
+import six
 
 
 @verbose
@@ -289,8 +290,8 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     data = evoked.data
     tmin = evoked.times[0]
 
-    stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                      label, pick_ori=pick_ori).next()
+    stc = six.advance_iterator(_apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
+                      label, pick_ori=pick_ori))
 
     return stc
 
@@ -431,8 +432,8 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     data, times = raw[picks, start:stop]
     tmin = times[0]
 
-    stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                      label, picks, pick_ori).next()
+    stc = six.advance_iterator(_apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
+                      label, picks, pick_ori))
 
     return stc
 

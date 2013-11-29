@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from six import string_types
 from copy import deepcopy
 import re
 from warnings import warn
@@ -189,7 +190,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                          ' If only one channel is to be excluded, use '
                          '[ch_name] instead of passing ch_name.')
 
-    if isinstance(ref_meg, basestring):
+    if isinstance(ref_meg, string_types):
         if ref_meg != 'auto':
             raise ValueError('ref_meg has to be either a bool or \'auto\'')
         ref_meg = info['comps'] is not None and len(info['comps']) > 0

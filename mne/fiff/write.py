@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from six import string_types, b
 import time
 import numpy as np
 from scipy import linalg
@@ -153,11 +154,13 @@ def get_machid():
     ids : array (length 2, int32)
         The machine identifier used in MNE.
     """
-    mac = re.findall('..', '%012x' % uuid.getnode())
-    mac += ['00', '00']  # add two more fields
+    mac = b('%012x' %uuid.getnode()) # byte conversion for Py3
+    mac = re.findall(b'..', mac) # split string
+    mac += [b'00', b'00']  # add two more fields
 
     # Convert to integer in reverse-order (for some reason)
-    mac = ''.join([h.decode('hex') for h in mac[::-1]])
+    from codecs import encode
+    mac = b''.join([encode(h, 'hex_codec') for h in mac[::-1]])
     ids = np.flipud(np.fromstring(mac, np.int32, count=2))
     return ids
 
@@ -205,7 +208,7 @@ def start_file(fname):
         that the name ends with .fif or .fif.gz. Can also be an
         already opened file.
     """
-    if isinstance(fname, basestring):
+    if isinstance(fname, string_types):
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Writing using gzip')
             # defaults to compression level 9, which is barely smaller but much

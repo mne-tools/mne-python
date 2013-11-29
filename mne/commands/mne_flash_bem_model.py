@@ -13,6 +13,7 @@ and brain.mgz MRI volumes should be, as usual, in the subject's mri
 directory.
 
 """
+from __future__ import print_function
 
 # Authors:  Rey Rene Ramirez, Ph.D.   e-mail: rrramir at uw.edu
 #           Alexandre Gramfort, Ph.D.
@@ -71,19 +72,19 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
     # flash_dir = os.getcwd()
     if not os.path.exists('parameter_maps'):
         os.mkdir("parameter_maps")
-    print "--- Converting Flash 5"
+    print("--- Converting Flash 5")
     os.system('mri_convert -flip_angle %s -tr 25 %s mef05.mgz' %
                                             (5 * math.pi / 180, flash05))
-    print "--- Converting Flash 30"
+    print("--- Converting Flash 30")
     os.system('mri_convert -flip_angle %s -tr 25 %s mef30.mgz' %
                                             (30 * math.pi / 180, flash30))
-    print "--- Running mne_flash_bem"
+    print("--- Running mne_flash_bem")
     os.system('mne_flash_bem --noconvert')
     os.chdir(os.path.join(subjects_dir, subject, 'bem'))
     if not os.path.exists('flash'):
         os.mkdir("flash")
     os.chdir("flash")
-    print "[done]"
+    print("[done]")
 
     if show:
         fnames = ['outer_skin.surf', 'outer_skull.surf', 'inner_skull.surf']

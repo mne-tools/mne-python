@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -89,7 +90,7 @@ def test_io_layout_lout():
     assert_array_almost_equal(layout.pos, layout_read.pos, decimal=2)
     assert_true(layout.names, layout_read.names)
 
-    print layout  # test repr
+    print(layout)  # test repr
 
 
 def test_io_layout_lay():
@@ -130,10 +131,10 @@ def test_make_grid_layout():
 
 def test_find_layout():
     """Test finding layout"""
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         find_layout(chs=test_info['chs'])
         assert_true(w[0].category == DeprecationWarning)
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         find_layout(test_info['chs'])
         assert_true(w[0].category == DeprecationWarning)
     assert_raises(ValueError, find_layout, dict())
