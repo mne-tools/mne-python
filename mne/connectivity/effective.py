@@ -1,6 +1,7 @@
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
+from six.moves import zip
 import copy
 
 import numpy as np
@@ -127,7 +128,7 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     if fmin is None:
         fmin = -np.inf  # set it to -inf, so we can adjust it later
 
-    bands = zip(np.asarray((fmin,)).ravel(), np.asarray((fmax,)).ravel())
+    bands = list(zip(np.asarray((fmin,)).ravel(), np.asarray((fmax,)).ravel()))
     n_bands = len(bands)
 
     freq_dim = -2 if mode == 'cwt_morlet' else -1

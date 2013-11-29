@@ -22,6 +22,7 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
 from .transforms import (bti_identity_trans, bti_to_vv_trans,
                          bti_to_vv_coil_trans, inverse_trans, merge_trans)
 from ..meas_info import Info
+import six
 
 
 FIFF_INFO_CHS_FIELDS = ('loc', 'ch_name', 'unit_mul', 'coil_trans',
@@ -38,7 +39,7 @@ FIFF_INFO_DIG_DEFAULTS = (None, None, None, FIFF.FIFFV_COORD_HEAD)
 BTI_WH2500_REF_MAG = ['MxA', 'MyA', 'MzA', 'MxaA', 'MyaA', 'MzaA']
 BTI_WH2500_REF_GRAD = ['GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA']
 
-dtypes = zip(range(1, 5), ('>i2', '>i4', '>f4', '>f8'))
+dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
 
 RAW_INFO_FIELDS = ['dev_head_t', 'nchan', 'bads', 'projs', 'dev_ctf_t',
@@ -71,19 +72,19 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
         elif name == 'TRIGGER':
             name = 'STI 014'
         elif any([name == k for k in eog_ch]):
-            name = 'EOG %3.3d' % eog.next()
+            name = 'EOG %3.3d' % six.advance_iterator(eog)
         elif name == ecg_ch:
             name = 'ECG 001'
         elif name.startswith('E'):
-            name = 'EEG %3.3d' % eeg.next()
+            name = 'EEG %3.3d' % six.advance_iterator(eeg)
         elif name == 'UACurrent':
             name = 'UTL 001'
         elif name.startswith('M'):
-            name = 'RFM %3.3d' % ref_mag.next()
+            name = 'RFM %3.3d' % six.advance_iterator(ref_mag)
         elif name.startswith('G'):
-            name = 'RFG %3.3d' % ref_grad.next()
+            name = 'RFG %3.3d' % six.advance_iterator(ref_grad)
         elif name.startswith('X'):
-            name = 'EXT %3.3d' % ext.next()
+            name = 'EXT %3.3d' % six.advance_iterator(ext)
 
         new += [name]
 
@@ -154,9 +155,9 @@ def _setup_head_shape(fname, use_hpi=True):
     idx_points, dig_points, t = _convert_head_shape(idx_points, dig_points)
     all_points = np.r_[idx_points, dig_points].astype('>f4')
 
-    idx_idents = range(1, 4) + range(1, (len(idx_points) + 1) - 3)
+    idx_idents = list(range(1, 4)) + list(range(1, (len(idx_points) + 1) - 3))
     dig = []
-    for idx in xrange(all_points.shape[0]):
+    for idx in range(all_points.shape[0]):
         point_info = dict(zip(FIFF_INFO_DIG_FIELDS, FIFF_INFO_DIG_DEFAULTS))
         point_info['r'] = all_points[idx]
         if idx < 3:
@@ -278,7 +279,7 @@ def _read_config(fname):
                 dta['n_points'] = read_int32(fid)
                 dta['status'] = read_int32(fid)
                 dta['points'] = []
-                for pnt in xrange(16):
+                for pnt in range(16):
                     d = {'pos': read_double_matrix(fid, 1, 3),
                          'direction': read_double_matrix(fid, 1, 3),
                          'error': read_double(fid)}
@@ -320,7 +321,7 @@ def _read_config(fname):
                                      'of channels' % BTI.UB_B_WHC_CHAN_MAP_VER)
 
                 dta['channels'] = list()
-                for i in xrange(num_channels):
+                for i in range(num_channels):
                     d = {'subsys_type': read_int16(fid),
                          'subsys_num': read_int16(fid),
                          'card_num': read_int16(fid),
@@ -365,7 +366,7 @@ def _read_config(fname):
                 fid.seek(16, 1)
 
                 dta['labels'] = list()
-                for label in xrange(dta['entries']):
+                for label in range(dta['entries']):
                     dta['labels'] += [read_str(fid, 16)]
 
             elif kind == BTI.UB_B_CALIBRATION:

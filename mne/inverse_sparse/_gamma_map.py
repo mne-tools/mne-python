@@ -281,8 +281,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         in_pos = 0
         if len(X) < 3 * len(active_src):
             X_xyz = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
-            for ii in xrange(len(active_src)):
-                for jj in xrange(3):
+            for ii in range(len(active_src)):
+                for jj in range(3):
                     if in_pos >= len(active_set):
                         break
                     if (active_set[in_pos] + jj) % 3 == 0:

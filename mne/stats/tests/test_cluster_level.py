@@ -225,7 +225,7 @@ def test_cluster_permutation_with_connectivity():
                       connectivity=connectivity, threshold=dict(me='hello'))
 
         # too extreme a start threshold
-        with warnings.catch_warnings(True) as w:
+        with warnings.catch_warnings(record=True) as w:
             spatio_temporal_func(X1d_3, connectivity=connectivity,
                                  threshold=dict(start=10, step=1))
         if not did_warn:

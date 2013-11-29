@@ -11,7 +11,7 @@ def _unpack_matrix(fid, format, rows, cols, dtype):
     bsize = struct.calcsize(format)
     string = fid.read(bsize)
     data = struct.unpack(format, string)
-    iter_mat = [(r, c) for r in xrange(rows) for c in xrange(cols)]
+    iter_mat = [(r, c) for r in range(rows) for c in range(cols)]
     for idx, (row, col) in enumerate(iter_mat):
         out[row, col] = data[idx]
 

@@ -70,7 +70,7 @@ def test_l21_mxne():
                             n_orient=2, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     # suppress a coordinate-descent warning here
-    with warnings.catch_warnings(True):
+    with warnings.catch_warnings(record=True):
         X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,
@@ -83,7 +83,7 @@ def test_l21_mxne():
                             active_set_size=2, debias=True,
                             n_orient=5)
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    with warnings.catch_warnings(True):  # coordinate-ascent warning
+    with warnings.catch_warnings(record=True):  # coordinate-ascent warning
         X_hat_cd, active_set, _ = mixed_norm_solver(M,
                             G, alpha, maxit=1000, tol=1e-8,
                             active_set_size=2, debias=True,

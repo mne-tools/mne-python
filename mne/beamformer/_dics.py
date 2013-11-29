@@ -18,6 +18,7 @@ from ..minimum_norm.inverse import combine_xyz
 from ..source_estimate import SourceEstimate
 from ..time_frequency import CrossSpectralDensity, compute_epochs_csd
 from ._lcmv import _prepare_beamformer_input
+import six
 
 
 @verbose
@@ -77,7 +78,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
 
-    for k in xrange(n_sources):
+    for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         Ck = np.dot(Wk, Gk)
@@ -191,7 +192,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
 
     stc = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
                       label=label, pick_ori=pick_ori)
-    return stc.next()
+    return six.advance_iterator(stc)
 
 
 @verbose
@@ -372,7 +373,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
         # Compute spatial filters
         W = np.dot(G.T, Cm_inv)
-        for k in xrange(n_sources):
+        for k in range(n_sources):
             Wk = W[n_orient * k: n_orient * k + n_orient]
             Gk = G[:, n_orient * k: n_orient * k + n_orient]
             Ck = np.dot(Wk, Gk)

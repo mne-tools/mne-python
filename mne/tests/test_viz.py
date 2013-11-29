@@ -444,7 +444,7 @@ def test_plot_topomap():
         plot_evoked_topomap(evoked, times, ch_type='grad')
         plot_evoked_topomap(evoked, times, ch_type='planar1')
         plot_evoked_topomap(evoked, times, ch_type='planar2')
-        with warnings.catch_warnings(True):  # delaunay triangulation warning
+        with warnings.catch_warnings(record=True):  # delaunay triangulation warning
             plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
         assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                       proj='interactive')  # projs have already been applied

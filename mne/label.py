@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from six import string_types
 from os import path as op
 import os
 import copy as cp
@@ -68,7 +69,7 @@ class Label(object):
     @verbose
     def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
                  name=None, filename=None, subject=None, verbose=None):
-        if not isinstance(hemi, basestring):
+        if not isinstance(hemi, string_types):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
         vertices = np.asarray(vertices)
         if np.any(np.diff(vertices.astype(int)) <= 0):
@@ -313,7 +314,7 @@ class Label(object):
         with label.vertices.
         """
         subject_from = _check_subject(self.subject, subject_from)
-        if not isinstance(subject_to, basestring):
+        if not isinstance(subject_to, string_types):
             raise TypeError('"subject_to" must be entered as a string')
         if not isinstance(smooth, int):
             raise ValueError('smooth must be an integer')
@@ -434,7 +435,7 @@ def read_label(filename, subject=None):
     """
     fid = open(filename, 'r')
     comment = fid.readline().replace('\n', '')[1:]
-    if subject is not None and not isinstance(subject, basestring):
+    if subject is not None and not isinstance(subject, string_types):
         raise TypeError('subject must be a string')
 
     nv = int(fid.readline())
@@ -615,7 +616,7 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     src = stc.subject if src is None else src
     if src is None:
         raise ValueError('src cannot be None if stc.subject is None')
-    if isinstance(src, basestring):
+    if isinstance(src, string_types):
         subject = src
     else:
         subject = stc.subject
@@ -623,7 +624,7 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     if not isinstance(stc, SourceEstimate):
         raise ValueError('SourceEstimate should be surface source estimates')
 
-    if isinstance(src, basestring):
+    if isinstance(src, string_types):
         subjects_dir = get_subjects_dir(subjects_dir)
         surf_path_from = op.join(subjects_dir, src, 'surf')
         rr_lh, tris_lh = read_surface(op.join(surf_path_from,
@@ -657,7 +658,7 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
         e = e + sparse.eye(n_vertices, n_vertices)
 
         if connected:
-            if not isinstance(src, basestring):  # XXX : ugly
+            if not isinstance(src, string_types):  # XXX : ugly
                 inuse = np.where(src[hemi_idx]['inuse'])[0]
                 tmp = np.zeros((len(inuse), this_data.shape[1]))
                 this_vertno_idx = np.searchsorted(inuse, this_vertno)
@@ -906,7 +907,7 @@ def _read_annot(fname):
 
             names = list()
             ctab = np.zeros((n_entries, 5), np.int)
-            for i in xrange(n_entries):
+            for i in range(n_entries):
                 name_length = np.fromfile(fid, '>i4', 1)[0]
                 name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
                 names.append(name)
@@ -924,7 +925,7 @@ def _read_annot(fname):
             _ = np.fromfile(fid, "|S%d" % length, 1)[0]  # Orig table path
             entries_to_read = np.fromfile(fid, '>i4', 1)[0]
             names = list()
-            for i in xrange(entries_to_read):
+            for i in range(entries_to_read):
                 _ = np.fromfile(fid, '>i4', 1)[0]  # Structure
                 name_length = np.fromfile(fid, '>i4', 1)[0]
                 name = np.fromfile(fid, "|S%d" % name_length, 1)[0]

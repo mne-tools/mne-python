@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os.path as op
 import numpy as np
 
@@ -71,7 +72,7 @@ def test_io_bem_surfaces():
     """
     surf = read_bem_surfaces(fname, add_geom=True)
     surf = read_bem_surfaces(fname, add_geom=False)
-    print "Number of surfaces : %d" % len(surf)
+    print("Number of surfaces : %d" % len(surf))
 
     write_bem_surface(op.join(tempdir, 'bem_surf.fif'), surf[0])
     surf_read = read_bem_surfaces(op.join(tempdir, 'bem_surf.fif'),

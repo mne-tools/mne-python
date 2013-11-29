@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
@@ -13,6 +14,7 @@ from mne.fiff import Raw as Raw
 from mne.fiff.bti.raw import (_read_config, _setup_head_shape,
                               read_raw_bti, _read_data, _read_bti_header)
 from mne.utils import _TempDir
+from functools import reduce
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
 
@@ -63,23 +65,23 @@ def test_raw():
                 assert_array_almost_equal(ex.info['dev_head_t']['trans'],
                                           ra.info['dev_head_t']['trans'], 7)
                 dig1, dig2 = [np.array([d['r'] for d in r_.info['dig']])
-                              for r_ in ra, ex]
+                              for r_ in (ra, ex)]
                 assert_array_equal(dig1, dig2)
 
                 coil1, coil2 = [np.concatenate([d['coil_trans'].flatten()
                                 for d in r_.info['chs'][:NCH]])
-                                for r_ in ra, ex]
+                                for r_ in (ra, ex)]
                 assert_array_almost_equal(coil1, coil2, 7)
 
                 loc1, loc2 = [np.concatenate([d['loc'].flatten()
-                              for d in r_.info['chs'][:NCH]]) for r_ in ra, ex]
+                              for d in r_.info['chs'][:NCH]]) for r_ in (ra, ex)]
                 assert_array_equal(loc1, loc2)
 
                 assert_array_equal(ra._data[:NCH], ex._data[:NCH])
                 assert_array_equal(ra.cals[:NCH], ex.cals[:NCH])
                 ra.save(tmp_raw_fname)
             with Raw(tmp_raw_fname) as r:
-                print r
+                print(r)
         os.remove(tmp_raw_fname)
 
 

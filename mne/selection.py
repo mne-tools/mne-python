@@ -7,6 +7,7 @@
 from os import path
 
 from .utils import logger, verbose
+import six
 
 
 @verbose
@@ -90,7 +91,7 @@ def read_selection(name, fname=None, verbose=None):
     fid.close()
 
     # make sure we found at least one match for each name
-    for n, found in name_found.iteritems():
+    for n, found in six.iteritems(name_found):
         if not found:
             raise ValueError('No match for selection name "%s" found' % n)
 

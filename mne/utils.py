@@ -1,4 +1,5 @@
 """Some utility functions"""
+from __future__ import print_function
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
@@ -21,10 +22,9 @@ from shutil import rmtree
 import atexit
 from math import log
 import json
-import urllib
-import urllib2
+from six.moves import urllib
+from six import string_types
 import ftplib
-import urlparse
 
 import numpy as np
 import scipy
@@ -78,7 +78,7 @@ def create_chunks(sequence, size):
     size : int
         The chunksize to be returned
     """
-    return (sequence[p:p + size] for p in xrange(0, len(sequence), size))
+    return (sequence[p:p + size] for p in range(0, len(sequence), size))
 
 
 def sum_squared(X):
@@ -220,7 +220,7 @@ def run_subprocess(command, *args, **kwargs):
 
     output = (stdout_, stderr)
     if p.returncode:
-        print output
+        print(output)
         raise subprocess.CalledProcessError(p.returncode, command, output)
 
     return output
@@ -641,7 +641,7 @@ def set_log_level(verbose=None, return_old_level=False):
             verbose = 'INFO'
         else:
             verbose = 'WARNING'
-    if isinstance(verbose, basestring):
+    if isinstance(verbose, string_types):
         verbose = verbose.upper()
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
@@ -775,7 +775,7 @@ def set_memmap_min_size(memmap_min_size):
         Use None to disable memmaping of large arrays.
     """
     if memmap_min_size is not None:
-        if not isinstance(memmap_min_size, basestring):
+        if not isinstance(memmap_min_size, string_types):
             raise ValueError('\'memmap_min_size\' has to be a string.')
         if memmap_min_size[-1] not in ['K', 'M', 'G']:
             raise ValueError('The size has to be given in kilo-, mega-, or '
@@ -826,7 +826,7 @@ def get_config(key, default=None, raise_error=False):
         The preference key value.
     """
 
-    if not isinstance(key, basestring):
+    if not isinstance(key, string_types):
         raise ValueError('key must be a string')
 
     # first, check to see if key is in env
@@ -869,11 +869,11 @@ def set_config(key, value):
         deleted.
     """
 
-    if not isinstance(key, basestring):
+    if not isinstance(key, string_types):
         raise ValueError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
-    if not isinstance(value, basestring) and value is not None:
+    if not isinstance(value, string_types) and value is not None:
         raise ValueError('value must be a string or None')
     if not key in known_config_types and not \
             any(k in key for k in known_config_wildcards):
@@ -1014,7 +1014,7 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-class _HTTPResumeURLOpener(urllib.FancyURLopener):
+class _HTTPResumeURLOpener(urllib.request.FancyURLopener):
     """Create sub-class in order to overide error 206.
 
     This error means a partial file is being sent, which is ok in this case.
@@ -1035,7 +1035,7 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
 
     Parameters
     ----------
-    response: urllib.addinfourl
+    response: urllib.response.addinfourl
         Response to the download request in order to get file size.
     local_file: file
         Hard disk file where data should be written.
@@ -1069,10 +1069,10 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
 
-    parsed_url = urlparse.urlparse(url)
+    parsed_url = urllib.parse.urlparse(url)
     file_name = os.path.basename(parsed_url.path)
     server_path = parsed_url.path.replace(file_name, "")
-    unquoted_server_path = urllib.unquote(server_path)
+    unquoted_server_path = urllib.parse.unquote(server_path)
     local_file_size = os.path.getsize(temp_file_name)
 
     data = ftplib.FTP()
@@ -1121,14 +1121,14 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     initial_size = 0
     try:
         # Checking file size and displaying it alongside the download url
-        u = urllib2.urlopen(url)
+        u = urllib.request.urlopen(url)
         file_size = int(u.info().getheaders("Content-Length")[0])
-        print 'Downloading data from %s (%s)' % (url, sizeof_fmt(file_size))
+        print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
             local_file = open(temp_file_name, "ab")
             # Resuming HTTP and FTP downloads requires different procedures
-            scheme = urlparse.urlparse(url).scheme
+            scheme = urllib.parse.urlparse(url).scheme
             if scheme == 'http':
                 url_opener = _HTTPResumeURLOpener()
                 local_file_size = os.path.getsize(temp_file_name)
@@ -1136,19 +1136,19 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
                 url_opener.addheader("Range", "bytes=%s-" % (local_file_size))
                 try:
                     data = url_opener.open(url)
-                except urllib2.HTTPError:
+                except urllib.request.HTTPError:
                     # There is a problem that may be due to resuming, some
                     # servers may not support the "Range" header. Switch back
                     # to complete download method
-                    print 'Resuming download failed. Attempting to restart '\
-                          'downloading the entire file.'
+                    print('Resuming download failed. Attempting to restart '\
+                          'downloading the entire file.')
                     _fetch_file(url, resume=False)
                 _chunk_read(data, local_file, initial_size=local_file_size)
             else:
                 _chunk_read_ftp_resume(url, temp_file_name, local_file)
         else:
             local_file = open(temp_file_name, "wb")
-            data = urllib2.urlopen(url)
+            data = urllib.request.urlopen(url)
             _chunk_read(data, local_file, initial_size=initial_size)
         # temp file must be closed prior to the move
         if not local_file.closed:
@@ -1156,15 +1156,15 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         shutil.move(temp_file_name, file_name)
         if print_destination is True:
             stdout.write('File saved as %s.\n' % file_name)
-    except urllib2.HTTPError, e:
-        print 'Error while fetching file %s.' \
-            ' Dataset fetching aborted.' % url
-        print "HTTP Error:", e, url
+    except urllib.request.HTTPError as e:
+        print('Error while fetching file %s.' \
+            ' Dataset fetching aborted.' % url)
+        print("HTTP Error:", e, url)
         raise
-    except urllib2.URLError, e:
-        print 'Error while fetching file %s.' \
-            ' Dataset fetching aborted.' % url
-        print "URL Error:", e, url
+    except urllib.request.URLError as e:
+        print('Error while fetching file %s.' \
+            ' Dataset fetching aborted.' % url)
+        print("URL Error:", e, url)
         raise
     finally:
         if local_file is not None:
@@ -1191,17 +1191,18 @@ def sizeof_fmt(num):
 
 def _url_to_local_path(url, path):
     """Mirror a url path in a local destination (keeping folder structure)"""
-    destination = urlparse.urlparse(url).path
+    destination = urllib.parse.urlparse(url).path
     # First char should be '/', and it needs to be discarded
     if len(destination) < 2 or destination[0] != '/':
         raise ValueError('Invalid URL')
-    destination = os.path.join(path, urllib2.url2pathname(destination)[1:])
+    destination = os.path.join(path,
+                               urllib.request.url2pathname(destination)[1:])
     return destination
 
 
 def _check_fname(fname, overwrite):
     """Helper to check for file existence"""
-    if not isinstance(fname, basestring):
+    if not isinstance(fname, string_types):
         raise TypeError('file name is not a string')
     if op.isfile(fname):
         if not overwrite:
@@ -1214,12 +1215,12 @@ def _check_fname(fname, overwrite):
 def _check_subject(class_subject, input_subject, raise_error=True):
     """Helper to get subject name from class"""
     if input_subject is not None:
-        if not isinstance(input_subject, basestring):
+        if not isinstance(input_subject, string_types):
             raise ValueError('subject input must be a string')
         else:
             return input_subject
     elif class_subject is not None:
-        if not isinstance(class_subject, basestring):
+        if not isinstance(class_subject, string_types):
             raise ValueError('Neither subject input nor class subject '
                              'attribute was a string')
         else:

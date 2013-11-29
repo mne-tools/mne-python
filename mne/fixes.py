@@ -25,7 +25,8 @@ from numpy.fft import irfft
 from scipy.signal import filtfilt as sp_filtfilt
 from distutils.version import LooseVersion
 from functools import partial
-import copy_reg
+from six.moves import copyreg
+import six
 
 
 class _Counter(collections.defaultdict):
@@ -35,12 +36,12 @@ class _Counter(collections.defaultdict):
         self.update(iterable)
 
     def most_common(self):
-        return sorted(self.iteritems(), key=itemgetter(1), reverse=True)
+        return sorted(six.iteritems(self), key=itemgetter(1), reverse=True)
 
     def update(self, other):
         """Adds counts for elements in other"""
         if isinstance(other, self.__class__):
-            for x, n in other.iteritems():
+            for x, n in six.iteritems(other):
                 self[x] += n
         else:
             for x in other:
@@ -192,7 +193,7 @@ def _qr_economic_old(A, **kwargs):
     Compat function for the QR-decomposition in economic mode
     Scipy 0.9 changed the keyword econ=True to mode='economic'
     """
-    with warnings.catch_warnings(True):
+    with warnings.catch_warnings(record=True):
         return linalg.qr(A, econ=True, **kwargs)
 
 
@@ -514,7 +515,7 @@ def _reduce_partial(p):
 
 # This adds pickling functionality to older Python 2.6
 # Please always import partial from here.
-copy_reg.pickle(partial, _reduce_partial)
+copyreg.pickle(partial, _reduce_partial)
 
 
 def normalize_colors(vmin, vmax, clip=False):

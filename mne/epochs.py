@@ -8,6 +8,8 @@
 #
 # License: BSD (3-clause)
 
+from six import string_types
+
 import copy as cp
 import warnings
 
@@ -35,6 +37,7 @@ from .event import _read_events_fif
 from .fixes import in1d
 from .viz import _mutable_defaults, plot_epochs
 from .utils import logger, verbose
+import six
 
 
 class _BaseEpochs(ProjMixin):
@@ -54,7 +57,7 @@ class _BaseEpochs(ProjMixin):
         if isinstance(event_id, dict):
             if not all([isinstance(v, int) for v in event_id.values()]):
                 raise ValueError('Event IDs must be of type integer')
-            if not all([isinstance(k, basestring) for k in event_id]):
+            if not all([isinstance(k, string_types) for k in event_id]):
                 raise ValueError('Event names must be of type str')
             self.event_id = event_id
         elif isinstance(event_id, list):
@@ -107,7 +110,7 @@ class _BaseEpochs(ProjMixin):
         # Handle measurement info
         self.info = info
         if picks is None:
-            picks = range(len(self.info['ch_names']))
+            picks = list(range(len(self.info['ch_names'])))
         else:
             self.info['chs'] = [self.info['chs'][k] for k in picks]
             self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
@@ -642,7 +645,7 @@ class Epochs(_BaseEpochs):
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
         # Select the desired events
-        selected = in1d(events[:, 2], self.event_id.values())
+        selected = in1d(events[:, 2], list(self.event_id.values()))
         self.events = events[selected]
         if len(self.events) > 1:
             if np.diff(self.events.astype(np.int64)[:, 0]).min() <= 0:
@@ -835,7 +838,7 @@ class Epochs(_BaseEpochs):
             proj = False if self._check_delayed() else self.proj
             if not out:
                 return
-            for ii in xrange(n_events):
+            for ii in range(n_events):
                 # faster to pre-allocate memory here
                 epoch, epoch_raw = self._get_epoch_from_disk(ii, proj=proj)
                 if ii == 0:
@@ -849,7 +852,7 @@ class Epochs(_BaseEpochs):
             good_events = []
             drop_log = [[] for _ in range(n_events)]
             n_out = 0
-            for idx in xrange(n_events):
+            for idx in range(n_events):
                 epoch, epoch_raw = self._get_epoch_from_disk(idx, proj=proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
@@ -1036,10 +1039,10 @@ class Epochs(_BaseEpochs):
         epochs = self.copy()
         self._data, epochs._data = data, data
 
-        if isinstance(key, basestring):
+        if isinstance(key, string_types):
             key = [key]
 
-        if isinstance(key, list) and isinstance(key[0], basestring):
+        if isinstance(key, list) and isinstance(key[0], string_types):
             key_match = np.any(np.atleast_2d([epochs._key_match(k)
                                               for k in key]), axis=0)
             select = key_match
@@ -1257,7 +1260,7 @@ class Epochs(_BaseEpochs):
             index = default_index
 
         if picks is None:
-            picks = range(self.info['nchan'])
+            picks = list(range(self.info['nchan']))
         else:
             if not in1d(picks, np.arange(len(self.events))).all():
                 raise ValueError('At least one picked channel is not present '
@@ -1301,7 +1304,7 @@ class Epochs(_BaseEpochs):
         df = pd.DataFrame(data, columns=col_names)
         [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
         if index is not None:
-            with warnings.catch_warnings(True):
+            with warnings.catch_warnings(record=True):
                 if 'time' in index:
                     df['time'] = df['time'].astype(np.int64)
                 df.set_index(index, inplace=True)
@@ -1570,8 +1573,8 @@ def _minimize_time_diff(t_shorter, t_longer):
 
 def _area_between_times(t1, t2):
     """Quantify the difference between two timing sets"""
-    x1 = range(len(t1))
-    x2 = range(len(t2))
+    x1 = list(range(len(t1)))
+    x2 = list(range(len(t2)))
     xs = np.concatenate((x1, x2))
     return np.sum(np.abs(np.interp(xs, x1, t1) - np.interp(xs, x2, t2)))
 
@@ -1590,7 +1593,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                         for c in ch_names], dtype=bool)] = False
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ['', 'flat']):
         if refl is not None:
-            for key, thresh in refl.iteritems():
+            for key, thresh in six.iteritems(refl):
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:

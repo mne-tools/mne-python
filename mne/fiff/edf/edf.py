@@ -21,6 +21,8 @@ from ..meas_info import Info
 from ..constants import FIFF
 from ...coreg import get_ras_to_neuromag_trans
 from ...filter import resample
+from six.moves import map
+from six.moves import zip
 
 
 class RawEDF(Raw):
@@ -148,7 +150,7 @@ class RawEDF(Raw):
             returns the time values corresponding to the samples.
         """
         if sel is None:
-            sel = range(self.info['nchan'])
+            sel = list(range(self.info['nchan']))
         elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
             return (666, 666)
         if projector is not None:
@@ -343,7 +345,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         info['nchan'] = int(fid.read(4))
         if n_eeg is None:
             n_eeg = info['nchan']
-        channels = range(info['nchan'])
+        channels = list(range(info['nchan']))
         ch_names = [fid.read(16).strip() for _ in channels]
         _ = [fid.read(80).strip() for _ in channels]  # transducer type
         units = [fid.read(8).strip() for _ in channels]

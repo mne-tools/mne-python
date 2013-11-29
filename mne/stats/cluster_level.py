@@ -436,11 +436,11 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
             else:
                 if t_power == 1:
                     sums = ndimage.measurements.sum(x, labels,
-                                                  index=range(1, n_labels + 1))
+                                                  index=list(range(1, n_labels + 1)))
                 else:
                     sums = ndimage.measurements.sum(np.sign(x) *
                                                   np.abs(x) ** t_power, labels,
-                                                  index=range(1, n_labels + 1))
+                                                  index=list(range(1, n_labels + 1)))
         else:
             # boolean masks (raveled)
             clusters = list()
@@ -556,7 +556,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
             # only shuffle a small data buffer, so we need less memory
             T_obs_surr = np.empty(n_vars, dtype=X_full.dtype)
 
-            for pos in xrange(0, n_vars, buffer_size):
+            for pos in range(0, n_vars, buffer_size):
                 # number of variables for this loop
                 n_var_loop = min(pos + buffer_size, n_vars) - pos
 
@@ -628,7 +628,7 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
             # only sign-flip a small data buffer, so we need less memory
             T_obs_surr = np.empty(n_vars, dtype=X.dtype)
 
-            for pos in xrange(0, n_vars, buffer_size):
+            for pos in range(0, n_vars, buffer_size):
                 # number of variables for this loop
                 n_var_loop = min(pos + buffer_size, n_vars) - pos
 
@@ -703,7 +703,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     # test if stat_fun treats variables independently
     if buffer_size is not None:
         T_obs_buffer = np.zeros_like(T_obs)
-        for pos in xrange(0, n_tests, buffer_size):
+        for pos in range(0, n_tests, buffer_size):
             T_obs_buffer[pos: pos + buffer_size] =\
                 stat_fun(*[x[:, pos: pos + buffer_size] for x in X])
 

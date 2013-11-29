@@ -5,7 +5,7 @@
 # License: BSD (3-clause)
 
 import os
-from Queue import Queue
+from six.moves import queue
 from threading import Thread
 
 import numpy as np
@@ -60,7 +60,7 @@ from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._viewer import HeadViewController, headview_item, PointObject
 
 
-use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in xrange(5)])
+use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
 backend_is_wx = False  # is there a way to determine this?
 if backend_is_wx:
     # wx backend allows labels for wildcards
@@ -91,7 +91,7 @@ class Kit2FiffModel(HasPrivateTraits):
     stim_chs = Enum(">", "<")
     stim_slope = Enum("-", "+")
     # Marker Points
-    use_mrk = List(range(5), desc="Which marker points to use for the device "
+    use_mrk = List(list(range(5)), desc="Which marker points to use for the device "
                    "head coregistration.")
 
     # Derived Traits
@@ -338,7 +338,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     # Output
     save_as = Button(label='Save FIFF...')
     clear_all = Button(label='Clear All')
-    queue = Instance(Queue, ())
+    queue = Instance(queue.Queue, ())
     queue_feedback = Str('')
     queue_current = Str('')
     queue_len = Int(0)

@@ -6,6 +6,7 @@
 #
 # License: BSD (3-clause)
 
+from six import string_types
 import numpy as np
 from os.path import splitext
 
@@ -696,10 +697,10 @@ def _get_stim_channel(stim_channel):
     """Helper to determine the appropriate stim_channel"""
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
-            if not isinstance(stim_channel, basestring):
+            if not isinstance(stim_channel, string_types):
                 raise ValueError('stim_channel must be a str, list, or None')
             stim_channel = [stim_channel]
-        if not all([isinstance(s, basestring) for s in stim_channel]):
+        if not all([isinstance(s, string_types) for s in stim_channel]):
             raise ValueError('stim_channel list must contain all strings')
         return stim_channel
 

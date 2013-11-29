@@ -273,7 +273,7 @@ def _do_inf_pots(rr, srr, mri_Q, sol):
     # We chunk the source rr's in order to save memory
     bounds = np.r_[np.arange(0, len(rr), 1000), len(rr)]
     B = np.empty((len(rr) * 3, sol.shape[1]))
-    for bi in xrange(len(bounds) - 1):
+    for bi in range(len(bounds) - 1):
         v0s = _bem_inf_pots(rr[bounds[bi]:bounds[bi + 1]], srr, mri_Q)
         v0s.shape = (v0s.shape[0] * 3, v0s.shape[2])
         B[3 * bounds[bi]:3 * bounds[bi + 1]] = np.dot(v0s, sol)

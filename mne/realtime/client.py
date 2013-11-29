@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Authors: Christoph Dinh <chdinh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
@@ -7,7 +8,7 @@
 import socket
 import time
 import struct
-import StringIO
+from six.moves import StringIO
 import threading
 
 import numpy as np
@@ -68,7 +69,7 @@ def _buffer_recv_worker(rt_client, nchan):
     except RuntimeError as err:
         # something is wrong, the server stopped (or something)
         rt_client._recv_thread = None
-        print 'Buffer receive thread stopped: %s' % err
+        print('Buffer receive thread stopped: %s' % err)
 
 
 class RtClient(object):
@@ -145,7 +146,7 @@ class RtClient(object):
 
         logger.debug('Sending command: %s' % command)
         command += '\n'
-        self._cmd_sock.sendall(command)
+        self._cmd_sock.sendall(command.encode('utf-8'))
 
         buf, chunk, begin = [], '', time.time()
         while True:
@@ -223,7 +224,7 @@ class RtClient(object):
 
         buff = ''.join(buff)
 
-        fid = StringIO.StringIO(buff)
+        fid = StringIO(buff)
         tree, _ = make_dir_tree(fid, directory)
         info, meas = read_meas_info(fid, tree)
 
@@ -343,7 +344,7 @@ class RtClient(object):
         while tag.kind != FIFF.FIFF_DATA_BUFFER:
             tag, this_buff = _recv_tag_raw(self._data_sock)
 
-        buff = StringIO.StringIO(this_buff)
+        buff = StringIO(this_buff)
         tag = read_tag(buff)
         raw_buffer = tag.data.reshape(-1, nchan).T
 

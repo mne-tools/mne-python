@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from six import string_types
 import os
 
 import numpy as np
@@ -94,8 +95,8 @@ def test_coreg_model():
     assert_almost_equal(model.rot_z, rot_z)
 
     # info
-    assert_is_instance(model.fid_eval_str, basestring)
-    assert_is_instance(model.points_eval_str, basestring)
+    assert_is_instance(model.fid_eval_str, string_types)
+    assert_is_instance(model.points_eval_str, string_types)
 
 
 @sample.requires_sample_data
@@ -147,7 +148,7 @@ def test_coreg_model_with_fsaverage():
     assert_less(avg_point_distance_1param, avg_point_distance)
 
     desc, func, args, kwargs = model.get_scaling_job('test')
-    assert_true(isinstance(desc, basestring))
+    assert_true(isinstance(desc, string_types))
     assert_equal(args[0], 'fsaverage')
     assert_equal(args[1], 'test')
     assert_allclose(args[2], model.scale)

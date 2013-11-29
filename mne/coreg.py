@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from ConfigParser import RawConfigParser
+from six.moves import configparser
 import fnmatch
 from glob import glob, iglob
 import os
@@ -25,6 +25,9 @@ from .surface import (read_surface, write_surface, read_bem_surfaces,
                       write_bem_surface)
 from .transforms import rotation, rotation3d, scaling, translation
 from .utils import get_config, get_subjects_dir, logger, pformat
+from functools import reduce
+from six.moves import map
+from six.moves import zip
 
 
 # some path templates
@@ -752,7 +755,7 @@ def read_mri_cfg(subject, subjects_dir=None):
         raise IOError(err)
 
     logger.info("Reading MRI cfg file %s" % fname)
-    config = RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(fname)
     n_params = config.getint("MRI Scaling", 'n_params')
     if n_params == 1:
@@ -788,7 +791,7 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
     else:
         n_params = 3
 
-    config = RawConfigParser()
+    config = configparser.RawConfigParser()
     config.add_section("MRI Scaling")
     config.set("MRI Scaling", 'subject_from', subject_from)
     config.set("MRI Scaling", 'subject_to', subject_to)

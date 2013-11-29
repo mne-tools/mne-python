@@ -1,6 +1,6 @@
 import os
 import os.path as op
-import cPickle as pickle
+from six.moves import cPickle
 import glob
 import warnings
 
@@ -65,9 +65,9 @@ def test_label_addition():
     """
     pos = np.random.rand(10, 3)
     values = np.arange(10.) / 10
-    idx0 = range(7)
-    idx1 = range(7, 10)  # non-overlapping
-    idx2 = range(5, 10)  # overlapping
+    idx0 = list(range(7))
+    idx1 = list(range(7, 10))  # non-overlapping
+    idx2 = list(range(5, 10))  # overlapping
     l0 = Label(idx0, pos[idx0], values[idx0], 'lh')
     l1 = Label(idx1, pos[idx1], values[idx1], 'lh')
     l2 = Label(idx2, pos[idx2], values[idx2], 'lh')
@@ -284,14 +284,14 @@ def test_stc_to_label():
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = stc_to_label(stc, src='sample', smooth=3)
-    with warnings.catch_warnings(True) as w:  # connectedness warning
+    with warnings.catch_warnings(record=True) as w:  # connectedness warning
         labels2 = stc_to_label(stc, src=src, smooth=3)
     assert_true(len(w) == 1)
     assert_true(len(labels1) == len(labels2))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
 
-    with warnings.catch_warnings(True) as w:  # connectedness warning
+    with warnings.catch_warnings(record=True) as w:  # connectedness warning
         labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3,
                                             connected=True)
     assert_true(len(w) == 1)

@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+from six import string_types
 from math import floor, ceil
 import copy
 from copy import deepcopy
@@ -32,6 +33,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
                      logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
+from six.moves import filter
 
 
 class Raw(ProjMixin):
@@ -154,7 +156,7 @@ class Raw(ProjMixin):
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
-        if isinstance(preload, basestring):
+        if isinstance(preload, string_types):
             # we will use a memmap: preload is a filename
             data_buffer = preload
         else:
@@ -349,7 +351,7 @@ class Raw(ProjMixin):
             nchan = self.info['nchan']
             stop = item[0].stop if item[0].stop is not None else nchan
             step = item[0].step if item[0].step is not None else 1
-            sel = range(start, stop, step)
+            sel = list(range(start, stop, step))
         else:
             sel = item[0]
 
@@ -1334,7 +1336,7 @@ class Raw(ProjMixin):
                 this_data = self._data
 
             # allocate the buffer
-            if isinstance(preload, basestring):
+            if isinstance(preload, string_types):
                 _data = np.memmap(preload, mode='w+', dtype=this_data.dtype,
                                   shape=(nchan, nsamp))
             else:
@@ -1427,7 +1429,7 @@ class Raw(ProjMixin):
 
         pd = _check_pandas_installed()
         if picks is None:
-            picks = range(self.info['nchan'])
+            picks = list(range(self.info['nchan']))
 
         data, times = self[picks, start:stop]
 
@@ -1459,7 +1461,7 @@ class Raw(ProjMixin):
         if use_time_index is True:
             if 'time' in df:
                 df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(True):
+            with warnings.catch_warnings(record=True):
                 df.set_index('time', inplace=True)
 
         return df
@@ -1756,7 +1758,7 @@ def set_eeg_reference(raw, ref_channels, copy=True):
 def _allocate_data(data, data_buffer, data_shape, dtype):
     if data is None:
         # if not already done, allocate array with right type
-        if isinstance(data_buffer, basestring):
+        if isinstance(data_buffer, string_types):
             # use a memmap
             data = np.memmap(data_buffer, mode='w+',
                              dtype=dtype, shape=data_shape)
@@ -2081,7 +2083,7 @@ def get_chpi_positions(raw, t_step=None):
         data = np.array([d[0][:, 0] for d in data])
         data = np.c_[t, data]
     else:
-        if not isinstance(raw, basestring):
+        if not isinstance(raw, string_types):
             raise TypeError('raw must be an instance of fiff.Raw or string')
         if not op.isfile(raw):
             raise IOError('File "%s" does not exist' % raw)

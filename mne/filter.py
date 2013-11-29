@@ -1,5 +1,6 @@
 """IIR and FIR filtering functions"""
 
+from six import string_types
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifftshift, fftfreq
@@ -159,7 +160,7 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
     filter_input = x_ext
     x_filtered = np.zeros_like(filter_input)
 
-    for pass_no in range(2) if zero_phase else range(1):
+    for pass_no in list(range(2)) if zero_phase else list(range(1)):
 
         if pass_no == 1:
             # second pass: flip signal
@@ -515,7 +516,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
 def _check_method(method, iir_params, extra_types):
     """Helper to parse method arguments"""
     allowed_types = ['iir', 'fft'] + extra_types
-    if not isinstance(method, basestring):
+    if not isinstance(method, string_types):
         raise TypeError('method must be a string')
     if method not in allowed_types:
         raise ValueError('method must be one of %s, not "%s"'
@@ -1314,7 +1315,7 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
     """Helper to determine a reasonable filter length"""
     if not isinstance(min_length, int):
         raise ValueError('min_length must be an int')
-    if isinstance(filter_length, basestring):
+    if isinstance(filter_length, string_types):
         # parse time values
         if filter_length[-2:].lower() == 'ms':
             mult_fact = 1e-3

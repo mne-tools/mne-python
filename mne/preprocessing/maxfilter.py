@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from six import string_types
 import os
 from warnings import warn
 import logging
@@ -14,6 +15,8 @@ from scipy import optimize, linalg
 from ..fiff import Raw
 from ..fiff.constants import FIFF
 from ..utils import logger, verbose
+from six.moves import map
+from six.moves import zip
 
 
 @verbose
@@ -217,7 +220,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         else:
             RuntimeError('invalid frame for origin')
 
-    if not isinstance(origin, basestring):
+    if not isinstance(origin, string_types):
         origin = '%0.1f %0.1f %0.1f' % (origin[0], origin[1], origin[2])
 
     # format command

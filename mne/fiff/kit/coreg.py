@@ -5,7 +5,7 @@
 # License: BSD (3-clause)
 
 from datetime import datetime
-import cPickle as pickle
+from six.moves import cPickle
 import os
 from os import SEEK_CUR
 import re
