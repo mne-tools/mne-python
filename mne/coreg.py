@@ -720,12 +720,29 @@ def _is_mri_subject(subject, subjects_dir=None):
     if not os.path.exists(fname):
         return False
 
-    fname = bem_fname.format(subjects_dir=subjects_dir, subject=subject,
-                             name='*')
-    if len(glob(fname)) == 0:
-        return False
-
     return True
+
+
+def _mri_subject_has_bem(subject, subjects_dir=None):
+    """Check whether an mri subject has a file matching the bem pattern
+
+    Parameters
+    ----------
+    subject : str
+        Name of the subject.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+
+    Returns
+    -------
+    has_bem_file : bool
+        Whether ``subject`` has a bem file.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    pattern = bem_fname.format(subjects_dir=subjects_dir, subject=subject,
+                               name='*')
+    fnames = glob(pattern)
+    return bool(len(fnames))
 
 
 def read_elp(fname):

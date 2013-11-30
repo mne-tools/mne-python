@@ -78,6 +78,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     fid_points = DelegatesTo('fid', 'points')
     subjects_dir = DelegatesTo('subject_source')
     subject = DelegatesTo('subject_source')
+    subject_has_bem = DelegatesTo('subject_source')
     points = DelegatesTo('bem')
     tris = DelegatesTo('bem')
     lpa = Array(float, (1, 3))

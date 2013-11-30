@@ -118,6 +118,9 @@ class CoregModel(HasPrivateTraits):
     trans_y = Float(0, label="Anterior (Y)")
     trans_z = Float(0, label="Superior (Z)")
 
+    prepare_bem_model = Bool(True, desc="whether to run mne_prepare_bem_model "
+                             "after scaling the MRI")
+
     # secondary to parameters
     scale = Property(depends_on=['n_scale_params', 'scale_x', 'scale_y',
                                  'scale_z'])
@@ -138,10 +141,13 @@ class CoregModel(HasPrivateTraits):
                               "match the scaled MRI.")
 
     # info
+    subject_has_bem = DelegatesTo('mri')
+    lock_fiducials = DelegatesTo('mri')
+    can_prepare_bem_model = Property(Bool, depends_on=['n_scale_params',
+                                                       'subject_has_bem'])
     can_save = Property(Bool, depends_on=['head_mri_trans'])
     raw_subject = Property(depends_on='hsp.raw_fname', desc="Subject guess "
                            "based on the raw file name.")
-    lock_fiducials = DelegatesTo('mri')
 
     # transformed geometry
     transformed_mri_points = Property(depends_on=['mri.points',
@@ -171,6 +177,10 @@ class CoregModel(HasPrivateTraits):
     fid_eval_str = Property(depends_on=['lpa_distance', 'nasion_distance',
                                         'rpa_distance'])
     points_eval_str = Property(depends_on='point_distance')
+
+    @cached_property
+    def _get_can_prepare_bem_model(self):
+        return self.subject_has_bem and self.n_scale_params > 0
 
     @cached_property
     def _get_can_save(self):
@@ -641,8 +651,9 @@ class CoregPanel(HasPrivateTraits):
     points_eval_str = DelegatesTo('model')
 
     # saving
+    can_prepare_bem_model = DelegatesTo('model')
     can_save = DelegatesTo('model')
-    prepare_bem_model = Bool(True)
+    prepare_bem_model = DelegatesTo('model')
     save = Button(label="Save As...")
     load_trans = Button
     queue = Instance(queue.Queue, ())
@@ -763,7 +774,7 @@ class CoregPanel(HasPrivateTraits):
                        HGroup(Item('prepare_bem_model'),
                               Label("Run mne_prepare_bem_model"),
                               show_labels=False,
-                              enabled_when='n_scale_params > 0'),
+                              enabled_when='can_prepare_bem_model'),
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="Save the trans file and (if "
                                    "scaling is enabled) the scaled MRI"),
@@ -942,7 +953,7 @@ class CoregPanel(HasPrivateTraits):
             subject_to = mridlg.subject_to
 
         # find bem file to run mne_prepare_bem_model
-        if self.n_scale_params and self.prepare_bem_model:
+        if self.can_prepare_bem_model and self.prepare_bem_model:
             bem_job = self.model.get_prepare_bem_model_job(subject_to)
         else:
             bem_job = None
