@@ -42,6 +42,13 @@ flat = dict(grad=1e-15, mag=1e-15)
 tempdir = _TempDir()
 
 
+def test_epochs_bad_baseline():
+    """Test Epochs initialization with bad baseline parameters
+    """
+    assert_raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (-0.2, 0))
+    assert_raises(ValueError, Epochs, raw, events, None, -0.1, 0.3, (0, 0.4))
+
+
 def test_epoch_combine_ids():
     """Test combining event ids in epochs compared to events
     """
