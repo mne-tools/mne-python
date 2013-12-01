@@ -80,7 +80,7 @@ class _BaseEpochs(ProjMixin):
         # check that baseline is in available data
         if baseline is not None:
             baseline_tmin, baseline_tmax = baseline
-            tstep = 1 / info['sfreq']
+            tstep = 1. / info['sfreq']
             if baseline_tmin is not None:
                 if baseline_tmin < tmin - tstep:
                     err = ("Baseline interval (tmin = %s) is outside of epoch "
@@ -379,7 +379,12 @@ class _BaseEpochs(ProjMixin):
             for e in self:
                 data += e
                 n_events += 1
-            data /= n_events
+
+            if n_events > 0:
+                data /= n_events
+            else:
+                data.fill(np.nan)
+
             # convert to stderr if requested, could do in one pass but do in
             # two (slower) in case there are large numbers
             if _do_std:
