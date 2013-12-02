@@ -14,7 +14,6 @@ example usage: mne make_scalp_surfaces --overwrite --subject sample
 import os
 import os.path as op
 import sys
-from commands import getstatusoutput
 import mne
 
 if __name__ == '__main__':
@@ -44,10 +43,11 @@ if __name__ == '__main__':
     verbose = options.verbose
     force = '--force' if options.force else '--check'
 
+    from mne.commands.utils import get_status_output
     def my_run_cmd(cmd, err_msg):
-        sig, out = getstatusoutput(cmd)
+        sig, out, error = get_status_output(cmd)
         if verbose:
-            print out
+            print out, error
         if sig != 0:
             print err_msg
             sys.exit(1)
