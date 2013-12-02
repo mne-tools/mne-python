@@ -43,6 +43,6 @@ def get_status_output(cmd):
     """ Replacement for commands.getstatusoutput which has been deprecated since 2.6
         Returns the error status, output and error output"""
     pipe = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-    (output, errout) = pipe.communicate()
+    output, error = pipe.communicate()
     status = pipe.returncode
-    return (status, output, errout)
+    return status, output, error
