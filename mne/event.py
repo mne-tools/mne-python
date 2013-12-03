@@ -208,10 +208,15 @@ def read_events(filename, include=None, exclude=None):
     downsampled using mne_process_raw, the eve.fif that mne_process_raw
     creates reflects the original sampling rate rather than the new one. For
     example, if the original sampling rate was 1000Hz and the new one is
-    250Hz, the sample indices need to be divided by 4:
+    250Hz, the sample indices need to be divided by 4.
 
-    >>> events = read_events('raw-eve.fif')
-    >>> events[:,0] /= 4
+    Finding events in a decimating file is in general not easy. The recommended
+    workflow for downsampled data is:
+
+    1. Filter the raw data without decimating.
+    2. Find the events.
+    3. When epoching the data, give the decim parameter to the Epochs 
+       constructor.
     """
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
