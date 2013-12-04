@@ -691,6 +691,13 @@ class Epochs(_BaseEpochs):
     def drop_epochs(self, indices, verbose=None):
         """Drop epochs based on indices or boolean mask
 
+        Note that the indices refer to the current set of undropped epochs
+        rather than the complete set of dropped and undropped epochs.
+        They are therefore not necessarily consistent with any external indices
+        (e.g., behavioral logs). To drop epochs based on external criteria,
+        do not use the preload=True flag when constructing an Epochs object,
+        and call this method before calling the drop_bad_epochs method.
+
         Parameters
         ----------
         indices : array of ints or bools
@@ -701,9 +708,17 @@ class Epochs(_BaseEpochs):
             If not None, override default verbose level (see mne.verbose).
             Defaults to raw.verbose.
         """
-        indices = np.asarray(indices)
+        indices = np.atleast_1d(indices)
         if indices.dtype == bool:
             indices = np.where(indices)[0]
+
+        if indices.ndim > 1:
+            raise ValueError("indices must be a scalar or a 1-d array")
+        out_of_bounds = (indices < 0) | (indices >= len(self.events))
+        if out_of_bounds.any():
+            first = indices[out_of_bounds][0]
+            raise IndexError("Epoch index %d is out of bounds" % first)
+
         self.events = np.delete(self.events, indices, axis=0)
         if(self.preload):
             self._data = np.delete(self._data, indices, axis=0)
