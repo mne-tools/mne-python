@@ -203,20 +203,9 @@ def read_events(filename, include=None, exclude=None):
     This function will discard the offset line (i.e., first line with zero
     event number) if it is present in a text file.
 
-    Event files indicate the index of the sample in which the event occurred
-    rather than the event's absolute timing. Note that if the file has been
-    downsampled using mne_process_raw, the eve.fif that mne_process_raw
-    creates reflects the original sampling rate rather than the new one. For
-    example, if the original sampling rate was 1000Hz and the new one is
-    250Hz, the sample indices need to be divided by 4.
-
-    Finding events in a decimating file is in general not easy. The recommended
-    workflow for downsampled data is:
-
-    1. Filter the raw data without decimating.
-    2. Find the events.
-    3. When epoching the data, give the decim parameter to the Epochs 
-       constructor.
+    Working with downsampled data: Events that were computed before the data 
+    was decimated are no longer valid. Please recompute your events after 
+    decimation.
     """
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
