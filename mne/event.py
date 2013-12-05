@@ -202,6 +202,10 @@ def read_events(filename, include=None, exclude=None):
     -----
     This function will discard the offset line (i.e., first line with zero
     event number) if it is present in a text file.
+
+    Working with downsampled data: Events that were computed before the data 
+    was decimated are no longer valid. Please recompute your events after 
+    decimation.
     """
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
