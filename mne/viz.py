@@ -1458,6 +1458,13 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         We show square roots ie. standard deviations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+        
+    Returns
+    -------
+    fig_cov : instance of matplotlib.pyplot.Figure
+        The covariance plot.
+    fig_svd : instance of matplotlib.pyplot.Figure | None
+        The SVD spectra plot of the covariance.
     """
     if exclude == 'bads':
         exclude = info['bads']
@@ -1503,7 +1510,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
 
     import matplotlib.pyplot as plt
 
-    plt.figure(figsize=(2.5 * len(idx_names), 2.7))
+    fig_cov = plt.figure(figsize=(2.5 * len(idx_names), 2.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
         plt.subplot(1, len(idx_names), k + 1)
         plt.imshow(C[idx][:, idx], interpolation="nearest")
@@ -1511,8 +1518,9 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     plt.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout()
 
+    fig_svd = None
     if show_svd:
-        plt.figure()
+        fig_svd = plt.figure()
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
             _, s, _ = linalg.svd(C[idx][:, idx])
             plt.subplot(1, len(idx_names), k + 1)
@@ -1525,6 +1533,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     if show:
         plt.show()
 
+    return fig_cov, fig_svd
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',

@@ -264,7 +264,7 @@ def test_plot_cov():
     """
     raw = _get_raw()
     cov = read_cov(cov_fname)
-    plot_cov(cov, raw.info, proj=True)
+    fig1, fig2 = plot_cov(cov, raw.info, proj=True)
     plt.close('all')
 
 
