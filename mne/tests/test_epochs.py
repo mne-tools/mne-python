@@ -825,3 +825,11 @@ def test_event_ordering():
             assert_equal(len(w), ii)
             if ii > 0:
                 assert_true('chronologically' in '%s' % w[-1].message)
+
+
+def test_drop_epochs():
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+    assert_raises(IndexError, epochs.drop_epochs, [len(events)])
+    assert_raises(IndexError, epochs.drop_epochs, [-1])
+    assert_raises(ValueError, epochs.drop_epochs, [[1, 2], [3, 4]])
