@@ -41,6 +41,7 @@ except:
     List = trait_wraith
     Property = trait_wraith
     Str = trait_wraith
+    spring = trait_wraith
     View = trait_wraith
     Item = trait_wraith
     HGroup = trait_wraith

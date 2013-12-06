@@ -41,6 +41,7 @@ except:
     Item = trait_wraith
     Group = trait_wraith
     HGroup = trait_wraith
+    VGrid = trait_wraith
     VGroup = trait_wraith
     Glyph = trait_wraith
     Surface = trait_wraith
