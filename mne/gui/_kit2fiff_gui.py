@@ -158,7 +158,7 @@ class Kit2FiffModel(HasPrivateTraits):
     def _get_elp(self):
         if self.elp_raw is None:
             return np.empty((0, 3))
-        pts = self.elp_raw[3:]
+        pts = self.elp_raw[3:8]
         pts = apply_trans(self.polhemus_neuromag_trans, pts)
         return pts
 
