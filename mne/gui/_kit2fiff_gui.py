@@ -298,8 +298,7 @@ class Kit2FiffFrameHandler(Handler):
     """Handler that checks for unfinished processes before closing its window
     """
     def close(self, info, is_ok):
-        if info.object.kit2fiff_panel.kit2fiff_coreg_panel\
-                                                    .queue.unfinished_tasks:
+        if info.object.kit2fiff_panel.queue.unfinished_tasks:
             msg = ("Can not close the window while saving is still in "
                    "progress. Please wait until all files are processed.")
             title = "Saving Still in Progress"
