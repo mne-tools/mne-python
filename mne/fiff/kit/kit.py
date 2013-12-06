@@ -429,7 +429,11 @@ class RawKIT(Raw):
             Device head transformation.
         """
         trans = np.asarray(trans)
-        if not trans.shape == (4, 4):
+        if fid.shape != (3, 3):
+            raise ValueError("fid needs to be a 3 by 3 array")
+        if elp.shape != (5, 3):
+            raise ValueError("elp needs to be a 5 by 3 array")
+        if trans.shape != (4, 4):
             raise ValueError("trans needs to be 4 by 4 array")
 
         nasion, lpa, rpa = fid
