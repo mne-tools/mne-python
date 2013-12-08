@@ -21,8 +21,8 @@ from ..meas_info import Info
 from ..constants import FIFF
 from ...coreg import get_ras_to_neuromag_trans
 from ...filter import resample
-from six.moves import map
-from six.moves import zip
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 
 class RawEDF(Raw):

@@ -25,8 +25,8 @@ from numpy.fft import irfft
 from scipy.signal import filtfilt as sp_filtfilt
 from distutils.version import LooseVersion
 from functools import partial
-from six.moves import copyreg
-import six
+from .externals import six
+from .externals.six.moves import copyreg
 
 
 class _Counter(collections.defaultdict):

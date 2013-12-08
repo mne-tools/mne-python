@@ -18,7 +18,7 @@ from ..minimum_norm.inverse import combine_xyz
 from ..source_estimate import SourceEstimate
 from ..time_frequency import CrossSpectralDensity, compute_epochs_csd
 from ._lcmv import _prepare_beamformer_input
-import six
+from ..externals import six
 
 
 @verbose

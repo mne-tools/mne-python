@@ -6,8 +6,8 @@
 
 from glob import glob
 import os
-from six.moves import map
-from six.moves import zip
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 # allow import without traits
 try:

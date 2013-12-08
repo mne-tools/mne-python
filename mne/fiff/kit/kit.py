@@ -8,7 +8,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 #
 # License: BSD (3-clause)
 
-from six import string_types
+from ...externals.six import string_types
 import os
 from os import SEEK_CUR
 from struct import unpack

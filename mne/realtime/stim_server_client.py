@@ -1,10 +1,10 @@
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 # License: BSD (3-clause)
 
-from six.moves import queue
+from ..externals.six.moves import queue
 import time
 import socket
-from six.moves import socketserver
+from ..externals.six.moves import socketserver
 import threading
 
 import numpy as np

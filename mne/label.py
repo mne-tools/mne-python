@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from six import string_types
+from .externals.six import string_types
 from os import path as op
 import os
 import copy as cp

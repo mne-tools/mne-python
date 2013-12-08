@@ -8,7 +8,7 @@
 #
 # License: BSD (3-clause)
 
-from six import string_types
+from .externals.six import string_types
 
 import copy as cp
 import warnings
@@ -37,7 +37,8 @@ from .event import _read_events_fif
 from .fixes import in1d
 from .viz import _mutable_defaults, plot_epochs
 from .utils import logger, verbose
-import six
+from .externals import six
+
 
 
 class _BaseEpochs(ProjMixin):

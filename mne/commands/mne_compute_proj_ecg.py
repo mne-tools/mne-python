@@ -10,7 +10,7 @@ from __future__ import print_function
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 
-from six import string_types
+from ..externals.six import string_types
 import os
 import sys
 import mne

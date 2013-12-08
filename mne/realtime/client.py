@@ -8,7 +8,7 @@ from __future__ import print_function
 import socket
 import time
 import struct
-from six.moves import StringIO
+from ..externals.six.moves import StringIO
 import threading
 
 import numpy as np

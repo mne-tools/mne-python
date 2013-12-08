@@ -5,7 +5,7 @@
 # License: BSD (3-clause)
 
 import os
-from six.moves import queue
+from ..externals.six.moves import queue
 from threading import Thread
 
 import numpy as np

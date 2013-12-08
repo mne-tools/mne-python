@@ -2,7 +2,7 @@
 #
 # License: BSD (3-clause)
 
-from six import string_types
+from ..externals.six import string_types
 from warnings import warn
 from inspect import getargspec, getmembers
 

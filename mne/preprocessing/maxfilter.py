@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from six import string_types
+from ..externals.six import string_types
 import os
 from warnings import warn
 import logging
@@ -15,8 +15,8 @@ from scipy import optimize, linalg
 from ..fiff import Raw
 from ..fiff.constants import FIFF
 from ..utils import logger, verbose
-from six.moves import map
-from six.moves import zip
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 
 @verbose

@@ -6,7 +6,7 @@
 
 from copy import deepcopy
 import os
-from six.moves import queue
+from ..externals.six.moves import queue
 import re
 from threading import Thread
 
