@@ -1067,6 +1067,13 @@ class RawBTi(Raw):
                     chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA
                 elif chan_4d in ('GyxA', 'GzxA', 'GzyA'):
                     chan_info['coil_type'] = FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF
+
+            elif chan_vv.startswith('EEG'):
+                chan_info['kind'] = FIFF.FIFFV_EEG_CH
+                chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
+                chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+                chan_info['unit'] = FIFF.FIFF_UNIT_V
+
             elif chan_vv == 'STI 013':
                 chan_info['kind'] = FIFF.FIFFV_RESP_CH
             elif chan_vv == 'STI 014':
