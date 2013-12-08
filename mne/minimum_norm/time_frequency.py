@@ -19,7 +19,7 @@ from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
 from ..utils import logger, verbose
-import six
+from ..externals import six
 
 
 @verbose

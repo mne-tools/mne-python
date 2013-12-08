@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from six import string_types
+from .externals.six import string_types
 import os
 import copy
 from math import ceil
@@ -22,8 +22,8 @@ from .utils import (get_subjects_dir, _check_subject,
                     logger, verbose)
 from .viz import plot_source_estimates
 from .fixes import in1d
-from six.moves import map
-from six.moves import zip
+from .externals.six.moves import map
+from .externals.six.moves import zip
 
 
 def _read_stc(filename):

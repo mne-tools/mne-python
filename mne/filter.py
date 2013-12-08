@@ -1,6 +1,6 @@
 """IIR and FIR filtering functions"""
 
-from six import string_types
+from .externals.six import string_types
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifftshift, fftfreq

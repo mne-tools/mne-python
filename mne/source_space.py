@@ -3,7 +3,7 @@
 #
 # License: BSD (3-clause)
 
-from six import string_types
+from .externals.six import string_types
 import numpy as np
 import os
 import os.path as op

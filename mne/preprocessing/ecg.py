@@ -1,4 +1,4 @@
-from six import string_types
+from ..externals.six import string_types
 import numpy as np
 
 from ..fiff import pick_types, pick_channels

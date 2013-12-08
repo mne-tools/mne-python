@@ -7,7 +7,7 @@
 from os import path
 
 from .utils import logger, verbose
-import six
+from .externals import six
 
 
 @verbose

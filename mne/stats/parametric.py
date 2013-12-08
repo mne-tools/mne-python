@@ -3,8 +3,8 @@ from scipy import stats
 from scipy.signal import detrend
 from ..fixes import matrix_rank
 from functools import reduce
-from six.moves import map
-from six.moves import zip
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>

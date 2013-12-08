@@ -1,6 +1,6 @@
 import threading
 import time
-from six.moves import queue
+from ..externals.six.moves import queue
 
 from mne.realtime import StimServer, StimClient
 from nose.tools import assert_equal, assert_raises

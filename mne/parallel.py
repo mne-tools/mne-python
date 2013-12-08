@@ -5,7 +5,7 @@
 #
 # License: Simplified BSD
 
-from six import string_types
+from .externals.six import string_types
 import inspect
 import logging
 import os

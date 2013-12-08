@@ -8,7 +8,7 @@ from __future__ import print_function
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
-from six import string_types
+from .externals.six import string_types
 import os
 import warnings
 from itertools import cycle
@@ -42,7 +42,7 @@ from .fiff.proj import make_projector, setup_proj
 from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
-import six
+from .externals import six
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']

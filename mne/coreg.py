@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from six.moves import configparser
+from .externals.six.moves import configparser
 import fnmatch
 from glob import glob, iglob
 import os
@@ -26,8 +26,8 @@ from .surface import (read_surface, write_surface, read_bem_surfaces,
 from .transforms import rotation, rotation3d, scaling, translation
 from .utils import get_config, get_subjects_dir, logger, pformat
 from functools import reduce
-from six.moves import map
-from six.moves import zip
+from .externals.six.moves import map
+from .externals.six.moves import zip
 
 
 # some path templates

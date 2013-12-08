@@ -4,7 +4,7 @@
 #          Denis Egnemann <d.engemann@fz-juelich.de>
 # License: BSD Style.
 
-from six import string_types
+from ..externals.six import string_types
 import os
 import os.path as op
 import shutil

@@ -4,7 +4,7 @@ import os.path as op
 import numpy as np
 import os
 import warnings
-from six.moves import urllib
+from ..externals.six.moves import urllib
 
 from ..utils import (set_log_level, set_log_file, _TempDir,
                      get_config, set_config, deprecated, _fetch_file,

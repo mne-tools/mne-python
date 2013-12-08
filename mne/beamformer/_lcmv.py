@@ -21,7 +21,7 @@ from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
 from ..utils import logger, verbose
 from .. import Epochs
-import six
+from ..externals import six
 
 
 @verbose

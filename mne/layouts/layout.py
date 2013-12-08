@@ -13,8 +13,8 @@ from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import FIFF, pick_types
 from ..utils import _clean_names
-from six.moves import map
-from six.moves import zip
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 
 class Layout(object):

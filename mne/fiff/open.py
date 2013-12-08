@@ -3,17 +3,17 @@
 #
 # License: BSD (3-clause)
 
-from six import string_types
+from ..externals.six import string_types
 import numpy as np
 import os.path as op
 import gzip
-from six.moves import cStringIO as StringIO
+from ..externals.six.moves import cStringIO as StringIO
 
 from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree
 from .constants import FIFF
 from ..utils import logger, verbose
-import six
+from ..externals import six
 
 
 @verbose

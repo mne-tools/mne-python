@@ -8,7 +8,7 @@ import numpy as np
 from scipy import linalg
 import os
 import gzip
-from six import b
+from ..externals.six import b
 
 from .constants import FIFF
 

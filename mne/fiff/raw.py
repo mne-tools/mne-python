@@ -5,7 +5,7 @@
 #
 # License: BSD (3-clause)
 
-from six import string_types
+from ..externals.six import string_types
 from math import floor, ceil
 import copy
 from copy import deepcopy
@@ -33,7 +33,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
                      logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
-from six.moves import filter
+from ..externals.six.moves import filter
 
 
 class Raw(ProjMixin):
