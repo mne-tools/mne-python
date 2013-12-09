@@ -82,7 +82,7 @@ if __name__ == "__main__":
                     'mne.time_frequency', 'mne.time_frequency.tests',
                     'mne.realtime', 'mne.realtime.tests',
                     'mne.decoding', 'mne.decoding.tests',
-                    'mne.commands'],
+                    'mne.commands', 'mne.externals'],
           package_data={'mne': ['data/*.sel',
                                 'data/icos.fif.gz',
                                 'data/coil_def.dat',
