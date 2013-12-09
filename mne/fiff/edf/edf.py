@@ -91,6 +91,12 @@ class RawEDF(Raw):
         self.last_samp = self._edf_info['nsamples'] - 1
         self.comp = None  # no compensation for EDF
         self.proj = False
+        self._first_samps = np.array(self.first_samp)
+        self._last_samps = np.array(self.last_samp)
+        self._raw_lengths = np.array(self._edf_info['nsamples'])
+        self.rawdirs = np.array([])
+        self.cals = np.array([])
+        self.orig_format = 'int'
 
         if preload:
             self._preloaded = preload
