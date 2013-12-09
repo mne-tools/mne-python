@@ -8,7 +8,7 @@ import os
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from mne.fiff.kit import read_hsp, write_hsp, read_mrk, write_mrk, average_mrks
+from mne.fiff.kit import read_hsp, write_hsp, read_mrk, write_mrk
 from mne.coreg import get_ras_to_neuromag_trans
 from mne.transforms import apply_trans, rotation, translation
 from mne.utils import _TempDir
@@ -19,8 +19,6 @@ parent_dir = os.path.dirname(os.path.abspath(FILE))
 data_dir = os.path.join(parent_dir, 'data')
 hsp_fname = os.path.join(data_dir, 'test_hsp.txt')
 mrk_fname = os.path.join(data_dir, 'test_mrk.sqd')
-mrk_pre_fname = os.path.join(data_dir, 'test_mrk_pre.sqd')
-mrk_post_fname = os.path.join(data_dir, 'test_mrk_post.sqd')
 tempdir = _TempDir()
 
 

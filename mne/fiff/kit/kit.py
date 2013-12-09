@@ -26,7 +26,7 @@ from ..constants import FIFF
 from ..meas_info import Info
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
-from .coreg import read_elp, read_hsp, read_mrk, average_mrks
+from .coreg import read_elp, read_hsp, read_mrk
 
 
 class RawKIT(Raw):
