@@ -859,7 +859,7 @@ class _BaseSourceEstimate(object):
             if copy:
                 stcs = [SourceEstimate(data_t[:, :, a], verts, tmin,
                                        self.tstep, self.subject)
-                                       for a in range(data_t.shape[-1])]
+                        for a in range(data_t.shape[-1])]
             else:
                 raise ValueError('copy must be True if transformed data has '
                                  'more than 2 dimensions')
@@ -1064,7 +1064,7 @@ class SourceEstimate(_BaseSourceEstimate):
             stc_vertices = self.vertno[1]
 
         # find index of the Label's vertices
-        idx = np.nonzero(map(label.vertices.__contains__, stc_vertices))[0]
+        idx = np.nonzero(in1d(stc_vertices, label.vertices))[0]
 
         # find output vertices
         vertices = stc_vertices[idx]
