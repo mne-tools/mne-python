@@ -26,7 +26,7 @@ from ..constants import FIFF
 from ..meas_info import Info
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
-from .coreg import read_elp, read_hsp, read_mrk
+from .coreg import read_elp, read_hsp, read_mrk, average_mrks
 
 
 class RawKIT(Raw):
@@ -39,6 +39,10 @@ class RawKIT(Raw):
     mrk : None | str | array_like, shape = (5, 3)
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
+    mrk2 : None | str | array_like, shape = (5, 3)
+        Marker points representing the location of the marker coils with
+        respect to the MEG Sensors, or path to a marker file.
+        If mrk2 is not None, the average of mrk and mrk2 will result.
     elp : None | str | array_like, shape = (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
@@ -71,8 +75,9 @@ class RawKIT(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, mrk=None, elp=None, hsp=None, stim='>',
-                 slope='-', stimthresh=1, preload=False, verbose=None):
+    def __init__(self, input_fname, mrk=None, mrk2=None, elp=None, hsp=None,
+                 stim='>', slope='-', stimthresh=1, preload=False,
+                 verbose=None):
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self._sqd_params = get_sqd_params(input_fname)
@@ -110,6 +115,11 @@ class RawKIT(Raw):
         self.info['filenames'] = []
         self.info['dig'] = None
         self.info['dev_head_t'] = None
+
+        if mrk and mrk2:
+            mrk = average_mrks(mrk, mrk2)
+        if mrk2 and not mrk:
+            mrk = mrk2
 
         if (mrk and elp and hsp):
             self._set_dig_kit(mrk, elp, hsp)
@@ -237,7 +247,8 @@ class RawKIT(Raw):
     def __repr__(self):
         s = ('%r' % os.path.basename(self._sqd_params['fname']),
              "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
-                                       self.last_samp - self.first_samp + 1))
+                                                 self.last_samp -
+                                                 self.first_samp + 1))
         return "<RawKIT  |  %s>" % ', '.join(s)
 
     def read_stim_ch(self, buffer_size=1e5):
@@ -313,7 +324,7 @@ class RawKIT(Raw):
 
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (start, stop - 1, start / float(self.info['sfreq']),
-                               (stop - 1) / float(self.info['sfreq'])))
+                     (stop - 1) / float(self.info['sfreq'])))
 
         with open(self._sqd_params['fname'], 'rb') as fid:
             # extract data
@@ -505,7 +516,6 @@ class RawKIT(Raw):
         self._sqd_params['stim'] = stim
 
 
-
 def get_sqd_params(rawfile):
     """Extracts all the information from the sqd file.
 
@@ -580,7 +590,7 @@ def get_sqd_params(rawfile):
                               >> KIT_SYS.GAIN2_BIT]
         if KIT_SYS.GAIN3_BIT:
             gain3 = KIT_SYS.GAINS[(KIT_SYS.GAIN3_MASK & amp_data)
-                                     >> KIT_SYS.GAIN3_BIT]
+                                  >> KIT_SYS.GAIN3_BIT]
             sqd['amp_gain'] = gain1 * gain2 * gain3
         else:
             sqd['amp_gain'] = gain1 * gain2
@@ -625,8 +635,9 @@ def get_sqd_params(rawfile):
     return sqd
 
 
-def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
-                 slope='-', stimthresh=1, preload=False, verbose=None):
+def read_raw_kit(input_fname, mrk=None, mrk2=None, elp=None, hsp=None,
+                 stim='>', slope='-', stimthresh=1, preload=False,
+                 verbose=None):
     """Reader function for KIT conversion to FIF
 
     Parameters
@@ -636,6 +647,10 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     mrk : None | str | array_like, shape = (5, 3)
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
+    mrk2 : None | str | array_like, shape = (5, 3)
+        Marker points representing the location of the marker coils with
+        respect to the MEG Sensors, or path to a marker file.
+        If mrk2 is not None, the average of mrk and mrk2 will result.
     elp : None | str | array_like, shape = (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
@@ -663,6 +678,6 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
         If True, all data are loaded at initialization.
         If False, data are not read until save.
     """
-    return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
-                  stim=stim, slope=slope, stimthresh=stimthresh,
+    return RawKIT(input_fname=input_fname, mrk=mrk, mrk2=mrk2, elp=elp,
+                  hsp=hsp, stim=stim, slope=slope, stimthresh=stimthresh,
                   verbose=verbose, preload=preload)

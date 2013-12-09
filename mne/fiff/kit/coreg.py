@@ -101,6 +101,18 @@ def write_mrk(fname, points):
         raise ValueError(err)
 
 
+def average_mrks(mrk, mrk2):
+    if isinstance(mrk, basestring):
+            mrk = read_mrk(mrk)
+    if isinstance(mrk2, basestring):
+            mrk2 = read_mrk(mrk2)
+    
+    np.testing.assert_array_equal(mrk.shape, mrk2.shape, 
+                                  err_msg= 'Mismatch in the number of markers.')
+    mrk = (mrk+mrk2)/2
+    return mrk
+
+
 def read_elp(fname):
     """ELP point extraction in Polhemus head space
 

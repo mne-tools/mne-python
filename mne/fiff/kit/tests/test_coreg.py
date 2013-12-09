@@ -8,7 +8,7 @@ import os
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from mne.fiff.kit import read_hsp, write_hsp, read_mrk, write_mrk
+from mne.fiff.kit import read_hsp, write_hsp, read_mrk, write_mrk, average_mrks
 from mne.coreg import get_ras_to_neuromag_trans
 from mne.transforms import apply_trans, rotation, translation
 from mne.utils import _TempDir
@@ -19,7 +19,8 @@ parent_dir = os.path.dirname(os.path.abspath(FILE))
 data_dir = os.path.join(parent_dir, 'data')
 hsp_fname = os.path.join(data_dir, 'test_hsp.txt')
 mrk_fname = os.path.join(data_dir, 'test_mrk.sqd')
-
+mrk_pre_fname = os.path.join(data_dir, 'test_mrk_pre.sqd')
+mrk_post_fname = os.path.join(data_dir, 'test_mrk_post.sqd')
 tempdir = _TempDir()
 
 
@@ -30,8 +31,8 @@ def test_io_hsp():
     dest = os.path.join(tempdir, 'test.txt')
     write_hsp(dest, pts)
     pts1 = read_hsp(dest)
-
-    assert_array_equal(pts, pts1)
+    assert_array_equal(pts, pts1, "Hsp points diverged after writing and "
+                       "reading.")
 
 
 def test_io_mrk():
@@ -48,7 +49,14 @@ def test_io_mrk():
     path = os.path.join(tempdir, 'mrk.txt')
     write_mrk(path, pts)
     pts_2 = read_mrk(path)
-    assert_array_equal(pts, pts_2, "read/write mrk to text")
+    assert_array_equal(pts, pts_2, 'read/write mrk to text')
+
+    # two mrks
+    mrk_avg = average_mrks(mrk_pre_fname, mrk_post_fname)
+    pts = read_mrk(mrk_pre_fname)
+    pts_2 = read_mrk(mrk_post_fname)
+    pts_avg = (pts + pts_2)/2
+    assert_array_equal(mrk_avg, pts_avg, 'marker averager')
 
 
 def test_hsp_trans():

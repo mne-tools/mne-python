@@ -11,7 +11,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 import scipy.io
 from mne.utils import _TempDir
 from mne.fiff import Raw, pick_types
-from mne.fiff.kit import read_raw_kit, read_hsp, write_hsp
+from mne.fiff.kit import read_raw_kit
 from mne.fiff.kit.coreg import read_sns
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -104,13 +104,3 @@ def test_stim_ch():
     stim1, _ = raw[stim_pick]
     stim2 = np.array(raw.read_stim_ch(), ndmin=2)
     assert_array_equal(stim1, stim2)
-
-
-def test_hsp_io():
-    """Test reading and writing hsp files"""
-    pts = read_hsp(hsp_path)
-    temp_fname = op.join(tempdir, 'temp_hsp.txt')
-    write_hsp(temp_fname, pts)
-    pts2 = read_hsp(temp_fname)
-    assert_array_equal(pts, pts2, "Hsp points diverged after writing and "
-                       "reading.")
