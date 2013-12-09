@@ -19,6 +19,7 @@ from .inverse import (combine_xyz, prepare_inverse_operator, _assemble_kernel,
                       _check_ori, _subject_from_inverse)
 from ..parallel import parallel_func
 from ..utils import logger, verbose
+from ..externals import six
 
 
 @verbose
@@ -83,7 +84,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     method = _check_method(method)
 
     frequencies = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
-                                 for _, band in bands.iteritems()])
+                                 for _, band in six.iteritems(bands)])
 
     powers, _, vertno = _source_induced_power(epochs,
                                       inverse_operator, frequencies,
@@ -97,7 +98,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     stcs = dict()
 
     subject = _subject_from_inverse(inverse_operator)
-    for name, band in bands.iteritems():
+    for name, band in six.iteritems(bands):
         idx = [k for k, f in enumerate(frequencies) if band[0] <= f <= band[1]]
 
         # average power in band + mean over epochs

@@ -1,6 +1,7 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
+from ...externals.six import string_types
 import os
 from os import path as op
 import zipfile
@@ -76,7 +77,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
                 raise ValueError('Please enter preferred path as '
                                  'megsim.data_path(url, path)')
 
-    if not isinstance(path, basestring):
+    if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
 
     destination = _url_to_local_path(url, op.join(path, 'MEGSIM'))

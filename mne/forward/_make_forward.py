@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+from ..externals.six import string_types
 import os
 from os import path as op
 import numpy as np
@@ -44,7 +45,7 @@ def _read_coil_defs(fname):
                 rmag = list()
                 cosmag = list()
                 w = list()
-                for p in xrange(npts):
+                for p in range(npts):
                     # get next non-comment line
                     line = lines.pop()
                     while(line[0] == '#'):
@@ -220,7 +221,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     # 3. --fixed option (can be computed post-hoc)
     # 4. --mricoord option (probably not necessary)
 
-    if isinstance(mri, basestring):
+    if isinstance(mri, string_types):
         if not op.isfile(mri):
             raise IOError('mri file "%s" not found' % mri)
         if op.splitext(mri)[1] in ['.fif', '.gz']:
@@ -231,7 +232,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
         mri_head_t = mri
         mri = 'dict'
 
-    if not isinstance(src, basestring):
+    if not isinstance(src, string_types):
         if not isinstance(src, SourceSpaces):
             raise TypeError('src must be a string or SourceSpaces')
         src_extra = 'list'
@@ -244,9 +245,9 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'
                       % fname)
-    if not isinstance(info, (dict, basestring)):
+    if not isinstance(info, (dict, string_types)):
         raise TypeError('info should be a dict or string')
-    if isinstance(info, basestring):
+    if isinstance(info, string_types):
         info_extra = op.split(info)[1]
         info_extra_long = info
         info = read_info(info, verbose=False)
@@ -261,7 +262,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     coord_frame = FIFF.FIFFV_COORD_HEAD
 
     # Report the setup
-    mri_extra = mri if isinstance(mri, basestring) else 'dict'
+    mri_extra = mri if isinstance(mri, string_types) else 'dict'
     logger.info('Source space                 : %s' % src)
     logger.info('MRI -> head transform source : %s' % mri_extra)
     logger.info('Measurement data             : %s' % info_extra_long)
@@ -274,7 +275,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     # Read the source locations
     logger.info('')
-    if isinstance(src, basestring):
+    if isinstance(src, string_types):
         logger.info('Reading %s...' % src)
         src = read_source_spaces(src, verbose=False)
     else:

@@ -4,6 +4,7 @@
 #          Denis Egnemann <d.engemann@fz-juelich.de>
 # License: BSD Style.
 
+from ..externals.six import string_types
 import os
 import os.path as op
 import shutil
@@ -78,7 +79,7 @@ def _data_path(path=None, force_update=False, update_path=True,
         if not os.path.exists(path):
             path = def_path
 
-    if not isinstance(path, basestring):
+    if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
 
     if name == 'sample':
@@ -134,7 +135,7 @@ def _data_path(path=None, force_update=False, update_path=True,
         for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
             try:
                 tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)
-            except tarfile.ReadError, err:
+            except tarfile.ReadError as err:
                 logger.info('%s is %s trying "bz2"' % (archive_name, err))
 
         if rm_archive:

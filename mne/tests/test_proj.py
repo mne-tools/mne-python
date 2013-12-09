@@ -142,7 +142,7 @@ def test_compute_proj_raw():
     raw_time = 2.5  # Do shorter amount for speed
     raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)
     for ii in (0.25, 0.5, 1, 2):
-        with warnings.catch_warnings(True) as w:
+        with warnings.catch_warnings(record=True) as w:
             projs = compute_proj_raw(raw, duration=ii - 0.1, stop=raw_time,
                                      n_grad=1, n_mag=1, n_eeg=0)
             assert_true(len(w) == 1)
@@ -159,7 +159,7 @@ def test_compute_proj_raw():
         raw.save(op.join(tempdir, 'foo_%d_raw.fif' % ii), overwrite=True)
 
     # Test that purely continuous (no duration) raw projection works
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         projs = compute_proj_raw(raw, duration=None, stop=raw_time,
                                  n_grad=1, n_mag=1, n_eeg=0)
         assert_true(len(w) == 1)
@@ -179,7 +179,7 @@ def test_compute_proj_raw():
     # here to save an extra filtering (raw would have to be LP'ed to be equiv)
     raw_resamp = cp.deepcopy(raw)
     raw_resamp.resample(raw.info['sfreq'] * 2, n_jobs=2)
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         projs = compute_proj_raw(raw_resamp, duration=None, stop=raw_time,
                                  n_grad=1, n_mag=1, n_eeg=0)
     projs = activate_proj(projs)
@@ -188,7 +188,7 @@ def test_compute_proj_raw():
 
     # test with bads
     raw.load_bad_channels(bads_fname)  # adds 2 bad mag channels
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)
 
     # test that bad channels can be excluded

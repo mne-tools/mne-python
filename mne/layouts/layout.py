@@ -13,6 +13,8 @@ from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import FIFF, pick_types
 from ..utils import _clean_names
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 
 class Layout(object):
@@ -262,7 +264,7 @@ def make_grid_layout(info, picks=None):
     if not names:
         raise ValueError('No misc data channels found.')
 
-    ids = range(len(picks))
+    ids = list(range(len(picks)))
     size = len(picks)
 
     # prepare square-like layout

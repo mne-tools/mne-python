@@ -1,3 +1,4 @@
+from __future__ import print_function
 import warnings
 import os.path as op
 import copy as cp
@@ -206,7 +207,7 @@ def test_dics_source_power():
     for freq, data_csd in zip(frequencies, data_csds):
         data_csd.frequencies = [freq]
     noise_csds = data_csds
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         dics_source_power(epochs.info, forward, noise_csds, data_csds)
     assert len(w) == 1
 
@@ -235,7 +236,7 @@ def test_tf_dics():
                    freq_bins, reg=reg, label=label)
 
     assert_true(len(stcs) == len(freq_bins))
-    print stcs[0].shape
+    print(stcs[0].shape)
     assert_true(stcs[0].shape[1] == 4)
 
     # Manually calculating source power in several time windows to compare

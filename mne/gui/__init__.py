@@ -21,7 +21,7 @@ def combine_kit_markers():
     return gui
 
 
-def coregistration(tabbed=False, split=True, scene_width=01, raw=None,
+def coregistration(tabbed=False, split=True, scene_width=0o1, raw=None,
                    subject=None, subjects_dir=None):
     """Coregister an MRI with a subject's head shape
 

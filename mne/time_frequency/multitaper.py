@@ -43,16 +43,16 @@ def tridisolve(d, e, b, overwrite_b=True):
         x = b
     else:
         x = b.copy()
-    for k in xrange(1, N):
+    for k in range(1, N):
         # e^(k-1) = e(k-1) / d(k-1)
         # d(k) = d(k) - e^(k-1)e(k-1) / d(k-1)
         t = ew[k - 1]
         ew[k - 1] = t / dw[k - 1]
         dw[k] = dw[k] - t * ew[k - 1]
-    for k in xrange(1, N):
+    for k in range(1, N):
         x[k] = x[k] - ew[k - 1] * x[k - 1]
     x[N - 1] = x[N - 1] / dw[N - 1]
-    for k in xrange(N - 2, -1, -1):
+    for k in range(N - 2, -1, -1):
         x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
 
     if not overwrite_b:
@@ -207,7 +207,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         # find the corresponding eigenvectors via inverse iteration
         t = np.linspace(0, np.pi, N)
         dpss = np.zeros((Kmax, N), 'd')
-        for k in xrange(Kmax):
+        for k in range(Kmax):
             dpss[k] = tridi_inverse_iteration(diagonal, off_diag, w[k],
                                               x0=np.sin((k + 1) * t))
 

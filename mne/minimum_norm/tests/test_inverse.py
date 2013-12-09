@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
@@ -18,6 +19,7 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse)
 from mne.utils import _TempDir
+from ..externals import six
 
 s_path = op.join(sample.data_path(download=False), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
@@ -55,7 +57,7 @@ def _compare(a, b):
     try:
         if isinstance(a, dict):
             assert_true(isinstance(b, dict))
-            for k, v in a.iteritems():
+            for k, v in six.iteritems(a):
                 if not k in b and k not in skip_types:
                     raise ValueError('First one had one second one didn\'t:\n'
                                      '%s not in %s' % (k, b.keys()))
@@ -63,7 +65,7 @@ def _compare(a, b):
                     last_keys.pop()
                     last_keys = [k] + last_keys
                     _compare(v, b[k])
-            for k, v in b.iteritems():
+            for k, v in six.iteritems(b):
                 if not k in a and k not in skip_types:
                     raise ValueError('Second one had one first one didn\'t:\n'
                                      '%s not in %s' % (k, a.keys()))
@@ -80,7 +82,7 @@ def _compare(a, b):
         else:
             assert_true(a == b)
     except Exception as exptn:
-        print last_keys
+        print(last_keys)
         raise exptn
 
 
@@ -141,7 +143,7 @@ def test_warn_inverse_operator():
     bad_info['projs'] = list()
     fwd_op = read_forward_solution(fname_fwd_meeg, surf_ori=True)
     noise_cov = read_cov(fname_cov)
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         make_inverse_operator(bad_info, fwd_op, noise_cov)
     assert_equal(len(w), 1)
 

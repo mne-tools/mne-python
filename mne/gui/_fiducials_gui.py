@@ -6,6 +6,8 @@
 
 from glob import glob
 import os
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 # allow import without traits
 try:
@@ -294,7 +296,7 @@ class FiducialsPanel(HasPrivateTraits):
             idx = None
             pt = [picker.pick_position]
         elif self.hsp_obj.surf.actor.actor in picker.actors:
-            idxs = [i for i in xrange(n_pos) if picker.actors[i] is
+            idxs = [i for i in range(n_pos) if picker.actors[i] is
                     self.hsp_obj.surf.actor.actor]
             idx = idxs[-1]
             pt = [picker.picked_positions[idx]]

@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from .externals.six import string_types
 import os
 import copy
 from math import ceil
@@ -21,6 +22,8 @@ from .utils import (get_subjects_dir, _check_subject,
                     logger, verbose)
 from .viz import plot_source_estimates
 from .fixes import in1d
+from .externals.six.moves import map
+from .externals.six.moves import zip
 
 
 def _read_stc(filename):
@@ -681,7 +684,7 @@ class _BaseSourceEstimate(object):
         nv, _ = self.shape
         nt = len(times) - 1
         data = np.empty((nv, nt), dtype=self.data.dtype)
-        for i in xrange(nt):
+        for i in range(nt):
             idx = (self.times >= times[i]) & (self.times < times[i + 1])
             data[:, i] = func(self.data[:, idx], axis=1)
 
@@ -928,7 +931,7 @@ class _BaseSourceEstimate(object):
         if index is not None:
             if 'time' in index:
                 df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(True):
+            with warnings.catch_warnings(record=True):
                 df.set_index(index, inplace=True)
 
         return df
@@ -1274,7 +1277,7 @@ class SourceEstimate(_BaseSourceEstimate):
         surf = os.path.join(subjects_dir, subject, 'surf',
                             hemis[hemi] + '.sphere')
 
-        if isinstance(surf, basestring):  # read in surface
+        if isinstance(surf, string_types):  # read in surface
             surf = read_surface(surf)
 
         if restrict_vertices is False:

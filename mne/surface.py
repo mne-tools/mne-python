@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from .externals.six import string_types
 import os
 from os import path as op
 import sys
@@ -428,7 +429,7 @@ def _complete_surface_info(this, do_neighbor_vert=False):
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
         this['neighbor_vert'] = [_get_surf_neighbors(this, k)
-                                 for k in xrange(this['np'])]
+                                 for k in range(this['np'])]
 
     return this
 
@@ -608,7 +609,7 @@ def read_surface(fname, verbose=None):
 def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
     """Load the surface as dict, optionally add the geometry information"""
     # based on mne_load_surface_geom() in mne_surface_io.c
-    if isinstance(fname, basestring):
+    if isinstance(fname, string_types):
         rr, tris = read_surface(fname)  # mne_read_triangle_file()
         nvert = len(rr)
         ntri = len(tris)
@@ -754,7 +755,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
         mmap = _compute_nearest(from_surf['rr'], ico_surf['rr'])
         nmap = len(mmap)
         surf['inuse'] = np.zeros(surf['np'], int)
-        for k in xrange(nmap):
+        for k in range(nmap):
             if surf['inuse'][mmap[k]]:
                 # Try the nearest neighbors
                 neigh = _get_surf_neighbors(surf, mmap[k])

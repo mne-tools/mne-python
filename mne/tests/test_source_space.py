@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import os.path as op
 from nose.tools import assert_true, assert_raises
@@ -189,8 +191,8 @@ def test_volume_source_space():
 def test_triangle_neighbors():
     """Test efficient vertex neighboring triangles for surfaces"""
     this = read_source_spaces(fname)[0]
-    this['neighbor_tri'] = [list() for _ in xrange(this['np'])]
-    for p in xrange(this['ntri']):
+    this['neighbor_tri'] = [list() for _ in range(this['np'])]
+    for p in range(this['ntri']):
         verts = this['tris'][p]
         this['neighbor_tri'][verts[0]].append(p)
         this['neighbor_tri'][verts[1]].append(p)
@@ -218,7 +220,7 @@ def test_accumulate_normals():
     # cut-and-paste from original code in surface.py:
     #    Find neighboring triangles and accumulate vertex normals
     this['nn'] = np.zeros((this['np'], 3))
-    for p in xrange(this['ntri']):
+    for p in range(this['ntri']):
         # vertex normals
         verts = this['tris'][p]
         this['nn'][verts, :] += this['tri_nn'][p, :]
@@ -248,7 +250,7 @@ def test_setup_source_space():
     # ico 5 (fsaverage) - write to temp file
     src = read_source_spaces(fname_ico)
     temp_name = op.join(tempdir, 'temp-src.fif')
-    with warnings.catch_warnings(True):  # sklearn equiv neighbors
+    with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
                                      subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
@@ -256,7 +258,7 @@ def test_setup_source_space():
     # oct-6 (sample) - auto filename + IO
     src = read_source_spaces(fname)
     temp_name = op.join(tempdir, 'temp-src.fif')
-    with warnings.catch_warnings(True):  # sklearn equiv neighbors
+    with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         src_new = setup_source_space('sample', temp_name, spacing='oct6',
                                      subjects_dir=subjects_dir,
                                      overwrite=True)
@@ -311,19 +313,19 @@ def _compare_source_spaces(src0, src1, mode='exact'):
     """
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'ntri', 'np', 'type', 'id']:
-            print name
+            print(name)
             assert_equal(s0[name], s1[name])
         for name in ['subject_his_id']:
             if name in s0 or name in s1:
-                print name
+                print(name)
                 assert_equal(s0[name], s1[name])
         for name in ['interpolator']:
             if name in s0 or name in s1:
-                print name
+                print(name)
                 diffs = (s0['interpolator'] - s1['interpolator']).data
                 assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.05)  # 5%
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
-            print name
+            print(name)
             if s0[name] is None:
                 assert_true(s1[name] is None)
             else:
@@ -339,13 +341,13 @@ def _compare_source_spaces(src0, src1, mode='exact'):
             # these fields will exist if patch info was added, these are
             # not tested in mode == 'approx'
             for name in ['nearest', 'nearest_dist']:
-                print name
+                print(name)
                 if s0[name] is None:
                     assert_true(s1[name] is None)
                 else:
                     assert_array_equal(s0[name], s1[name])
             for name in ['dist_limit']:
-                print name
+                print(name)
                 assert_true(s0[name] == s1[name])
             for name in ['dist']:
                 if s0[name] is not None:
@@ -381,7 +383,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
         if mode == 'exact':
             assert_equal(src0.info[name], src1.info[name])
         elif mode == 'approx':
-            print name
+            print(name)
             if name in src0.info:
                 assert_true(name in src1.info)
             else:

@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #         Denis Engemann <d.engemann@fz-juelich.de>
 #
@@ -148,7 +149,7 @@ def test_multiple_files():
     raw = Raw(fif_fname, preload=True)
     n_times = len(raw._times)
     # make sure that all our data match
-    times = range(0, 2 * n_times, 999)
+    times = list(range(0, 2 * n_times, 999))
     # add potentially problematic points
     times.extend([n_times - 1, n_times, 2 * n_times - 1])
 
@@ -541,7 +542,7 @@ def test_filter():
 
     # do a very simple check on line filtering
     raw_bs = raw.copy()
-    with warnings.catch_warnings(True) as _:
+    with warnings.catch_warnings(record=True) as _:
         raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy()
@@ -778,7 +779,7 @@ def test_with_statement():
     """ Test with statement """
     for preload in [True, False]:
         with Raw(fif_fname, preload=preload) as raw_:
-            print raw_
+            print(raw_)
 
 
 def test_compensation_raw():

@@ -8,6 +8,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 #
 # License: BSD (3-clause)
 
+from ...externals.six import string_types
 import os
 from os import SEEK_CUR
 from struct import unpack
@@ -294,7 +295,7 @@ class RawKIT(Raw):
             returns the time values corresponding to the samples.
         """
         if sel is None:
-            sel = range(self.info['nchan'])
+            sel = list(range(self.info['nchan']))
         elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
             return (666, 666)
         if projector is not None:
@@ -380,7 +381,7 @@ class RawKIT(Raw):
             Decimate hsp points for head shape files with more than 10'000
             points.
         """
-        if isinstance(hsp, basestring):
+        if isinstance(hsp, string_types):
             hsp = read_hsp(hsp)
 
         n_pts = len(hsp)
@@ -394,10 +395,10 @@ class RawKIT(Raw):
             msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
             logger.warning(msg)
 
-        if isinstance(elp, basestring):
+        if isinstance(elp, string_types):
             elp = read_elp(elp)[:8]
 
-        if isinstance(mrk, basestring):
+        if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
 
         hsp = apply_trans(als_ras_trans_mm, hsp)
@@ -547,7 +548,7 @@ def get_sqd_params(rawfile):
 
         fid.seek(chan_offset)
         sensors = []
-        for i in xrange(KIT_SYS.N_SENS):
+        for i in range(KIT_SYS.N_SENS):
             fid.seek(chan_offset + chan_size * i)
             sens_type = unpack('i', fid.read(KIT.INT))[0]
             if sens_type == 1:

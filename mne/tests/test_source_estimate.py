@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os.path as op
 from nose.tools import assert_true, assert_raises
 import warnings
@@ -51,7 +52,7 @@ def test_volume_stc():
         stc = VolSourceEstimate(data, vertno, 0, 1)
         fname_temp = op.join(tempdir, 'temp-vl.stc')
         stc_new = stc
-        for _ in xrange(2):
+        for _ in range(2):
             stc_new.save(fname_temp)
             stc_new = read_source_estimate(fname_temp)
             assert_true(isinstance(stc_new, VolSourceEstimate))
@@ -64,7 +65,7 @@ def test_volume_stc():
     assert_true('sample' in repr(stc))
     stc_new = stc
     assert_raises(ValueError, stc.save, fname_vol, ftype='whatever')
-    for _ in xrange(2):
+    for _ in range(2):
         fname_temp = op.join(tempdir, 'temp-vol.w')
         stc_new.save(fname_temp, ftype='w')
         stc_new = read_source_estimate(fname_temp)
@@ -97,7 +98,7 @@ def test_volume_stc():
                                   decimal=5)
 
     except ImportError:
-        print 'Save as nifti test skipped, needs NiBabel'
+        print('Save as nifti test skipped, needs NiBabel')
 
 
 @sample.requires_sample_data

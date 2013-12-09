@@ -6,7 +6,7 @@
 
 from copy import deepcopy
 import os
-from Queue import Queue
+from ..externals.six.moves import queue
 import re
 from threading import Thread
 
@@ -566,7 +566,7 @@ class CoregModel(HasPrivateTraits):
             raise RuntimeError("Not enough information for saving transform")
         trans = self.head_mri_trans
         dig = deepcopy(self.hsp.fid_dig)
-        for i in xrange(len(dig)):
+        for i in range(len(dig)):
             dig[i]['r'] = apply_trans(trans, dig[i]['r'])
         info = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
                 'trans': trans, 'dig': dig}
@@ -645,7 +645,7 @@ class CoregPanel(HasPrivateTraits):
     prepare_bem_model = Bool(True)
     save = Button(label="Save As...")
     load_trans = Button
-    queue = Instance(Queue, ())
+    queue = Instance(queue.Queue, ())
     queue_feedback = Str('')
     queue_current = Str('')
     queue_len = Int(0)

@@ -7,6 +7,8 @@
 import numpy as np
 from ..source_estimate import SourceEstimate
 from ..utils import check_random_state
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 
 def select_source_in_label(src, label, random_state=None):

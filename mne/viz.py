@@ -1,5 +1,6 @@
 """Functions to plot M/EEG data e.g. topographies
 """
+from __future__ import print_function
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
@@ -7,6 +8,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
+from .externals.six import string_types
 import os
 import warnings
 from itertools import cycle
@@ -40,6 +42,7 @@ from .fiff.proj import make_projector, setup_proj
 from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
+from .externals import six
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -219,7 +222,7 @@ def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers, so we print
         # it here to know what went wrong
-        print err
+        print(err)
         raise err
 
 
@@ -393,7 +396,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
 def _plot_update_evoked_topo(params, bools):
     """Helper function to update topo sensor plots"""
-    evokeds, times, fig = [params[k] for k in 'evokeds', 'times', 'fig']
+    evokeds, times, fig = [params[k] for k in ('evokeds', 'times', 'fig')]
 
     projs = [proj for ii, proj in enumerate(params['projs'])
              if ii in np.where(bools)[0]]
@@ -1114,15 +1117,15 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
     channel_types = set(key for d in [scalings, titles, units] for key in d)
     if picks is None:
-        picks = range(evoked.info['nchan'])
+        picks = list(range(evoked.info['nchan']))
 
     bad_ch_idx = [evoked.ch_names.index(ch) for ch in evoked.info['bads']
                   if ch in evoked.ch_names]
     if len(exclude) > 0:
-        if isinstance(exclude, basestring) and exclude == 'bads':
+        if isinstance(exclude, string_types) and exclude == 'bads':
             exclude = bad_ch_idx
         elif (isinstance(exclude, list)
-              and all([isinstance(ch, basestring) for ch in exclude])):
+              and all([isinstance(ch, string_types) for ch in exclude])):
             exclude = [evoked.ch_names.index(ch) for ch in exclude]
         else:
             raise ValueError('exclude has to be a list of channel names or '
@@ -1219,7 +1222,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 def _plot_update_evoked(params, bools):
     """ update the plot evoked lines
     """
-    picks, evoked = [params[k] for k in 'picks', 'evoked']
+    picks, evoked = [params[k] for k in ('picks', 'evoked')]
     times = evoked.times * 1e3
     projs = [proj for ii, proj in enumerate(params['projs'])
              if ii in np.where(bools)[0]]
@@ -1384,7 +1387,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     logger.info("Total number of active sources: %d" % len(unique_vertnos))
 
     if labels is not None:
-        colors = [colors.next() for _ in
+        colors = [six.advance_iterator(colors) for _ in
                   range(np.unique(np.concatenate(labels).ravel()).size)]
 
     for idx, v in enumerate(unique_vertnos):
@@ -1393,7 +1396,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         is_common = len(ind) > 1
 
         if labels is None:
-            c = colors.next()
+            c = six.advance_iterator(colors)
         else:
             # if vertex is in different stcs than take label from first one
             c = colors[labels[ind[0]][vertnos[ind[0]] == v]]
@@ -1629,7 +1632,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                          'or "both"')
 
     n_split = 2 if hemi == 'split' else 1
-    n_views = 1 if isinstance(views, basestring) else len(views)
+    n_views = 1 if isinstance(views, string_types) else len(views)
     if figure is not None:
         # use figure with specified id or create new figure
         if isinstance(figure, int):
@@ -1713,7 +1716,7 @@ def _plot_ica_panel_onpick(event, sources=None, ylims=None):
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers, so we print
         # it here to know what went wrong
-        print err
+        print(err)
         raise err
 
 
@@ -1856,7 +1859,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     fig, axes = _prepare_trellis(len(data), max_col=5)
 
     if vmax is None:
-        vrange = np.array([f(data) for f in np.min, np.max])
+        vrange = np.array([f(data) for f in (np.min, np.max)])
         vmax = max(abs(vrange))
 
     if merge_grads:
@@ -2255,7 +2258,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         raise ValueError('con has to be 1D or a square matrix')
 
     # get the colormap
-    if isinstance(colormap, basestring):
+    if isinstance(colormap, string_types):
         colormap = plt.get_cmap(colormap)
 
     # Make figure background the same colors as axes
@@ -2528,7 +2531,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                 title = '<unknown>'
             else:
                 title = title[0]
-    elif not isinstance(title, basestring):
+    elif not isinstance(title, string_types):
         raise TypeError('title must be None or a string')
     if len(title) > 60:
         title = '...' + title[-60:]
@@ -2606,7 +2609,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     params['ax_button'] = ax_button
 
     # populate vertical and horizontal scrollbars
-    for ci in xrange(len(info['ch_names'])):
+    for ci in range(len(info['ch_names'])):
         this_color = (bad_color if info['ch_names'][inds[ci]] in info['bads']
                       else color)
         if isinstance(this_color, dict):
@@ -2633,7 +2636,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     ax.set_ylim([n_channels * 2 + 1, 0])
     # plot event_line first so it's in the back
     event_line = ax.plot([np.nan], color=event_color)[0]
-    lines = [ax.plot([np.nan])[0] for _ in xrange(n_ch)]
+    lines = [ax.plot([np.nan])[0] for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
 
     params['plot_fun'] = partial(_plot_traces, params=params, inds=inds,
@@ -2737,7 +2740,7 @@ def _update_raw_data(params):
     if params['remove_dc'] is True:
         data -= np.mean(data, axis=1)[:, np.newaxis]
     # scale
-    for di in xrange(data.shape[0]):
+    for di in range(data.shape[0]):
         data[di] /= params['scalings'][params['types'][di]]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
@@ -2909,7 +2912,7 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
     params['bad_color'] = bad_color
     # do the plotting
     tick_list = []
-    for ii in xrange(n_channels):
+    for ii in range(n_channels):
         ch_ind = ii + params['ch_start']
         # let's be generous here and allow users to pass
         # n_channels per view >= the number of traces available
@@ -3286,7 +3289,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         epoch_idx = [epoch_idx]
     if epoch_idx is None:
         n_events = len(epochs.events)
-        epoch_idx = range(n_events)
+        epoch_idx = list(range(n_events))
     else:
         n_events = len(epoch_idx)
     epoch_idx = epoch_idx[:n_events]
@@ -3328,7 +3331,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         good_ch_idx = np.arange(n_channels)
 
     fig, axes = _prepare_trellis(len(data[idx_handler[0]]), max_col=5)
-    axes_handler = deque(range(len(idx_handler)))
+    axes_handler = deque(list(range(len(idx_handler))))
     for ii, data_, ax in zip(idx_handler[0], data[idx_handler[0]], axes):
         ax.plot(times, data_[good_ch_idx].T, color='k')
         if bad_ch_idx is not None:

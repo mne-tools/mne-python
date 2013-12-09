@@ -2,6 +2,9 @@ import numpy as np
 from scipy import stats
 from scipy.signal import detrend
 from ..fixes import matrix_rank
+from functools import reduce
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
@@ -253,7 +256,7 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
 
         df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
         if correction:
-            df1, df2 = [d[None, :] * eps for d in df1, df2]
+            df1, df2 = [d[None, :] * eps for d in (df1, df2)]
 
         if return_pvals:
             pvals = stats.f(df1, df2).sf(fvals)
@@ -262,4 +265,4 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
         pvalues.append(pvals)
 
     # handle single effect returns
-    return [np.squeeze(np.asarray(v)) for v in fvalues, pvalues]
+    return [np.squeeze(np.asarray(v)) for v in (fvalues, pvalues)]

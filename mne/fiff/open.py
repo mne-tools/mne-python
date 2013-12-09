@@ -3,15 +3,17 @@
 #
 # License: BSD (3-clause)
 
+from ..externals.six import string_types
 import numpy as np
 import os.path as op
 import gzip
-import cStringIO
+from ..externals.six.moves import cStringIO as StringIO
 
 from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree
 from .constants import FIFF
 from ..utils import logger, verbose
+from ..externals import six
 
 
 @verbose
@@ -39,7 +41,7 @@ def fiff_open(fname, preload=False, verbose=None):
     directory : list
         list of nodes.
     """
-    if isinstance(fname, basestring):
+    if isinstance(fname, string_types):
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Using gzip')
             fid = gzip.open(fname, "rb")  # Open in binary mode
@@ -52,10 +54,10 @@ def fiff_open(fname, preload=False, verbose=None):
 
     # do preloading of entire file
     if preload:
-        # note that cStringIO objects instantiated this way are read-only,
+        # note that StringIO objects instantiated this way are read-only,
         # but that's okay here since we are using mode "rb" anyway
         fid_old = fid
-        fid = cStringIO.StringIO(read_big(fid_old))
+        fid = StringIO(read_big(fid_old))
         fid_old.close()
 
     tag = read_tag_info(fid)
@@ -141,7 +143,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 
 def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     """Helper to find matching values"""
-    vals = [k for k, v in FIFF.iteritems()
+    vals = [k for k, v in six.iteritems(FIFF)
             if v == value and any([fmt in k for fmt in fmts])
             and not any(exc in k for exc in exclude)]
     return vals
@@ -185,7 +187,7 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                             postpend += ' ... array size=' + str(tag.data.size)
                     elif isinstance(tag.data, dict):
                         postpend += ' ... dict len=' + str(len(tag.data))
-                    elif isinstance(tag.data, basestring):
+                    elif isinstance(tag.data, string_types):
                         postpend += ' ... str len=' + str(len(tag.data))
                     else:
                         postpend += ' ... (unknown type)'

@@ -11,6 +11,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency import multitaper_psd
 from ..fiff import pick_types
+from ..externals import six
 
 
 class Scaler(TransformerMixin):
@@ -99,7 +100,7 @@ class Scaler(TransformerMixin):
 
         X = np.atleast_3d(epochs_data)
 
-        for key, this_pick in self.picks_list_.iteritems():
+        for key, this_pick in six.iteritems(self.picks_list_):
             if self.with_mean:
                 X[:, this_pick, :] -= self.ch_mean_[key]
             if self.with_std:

@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 # Author: Denis Engemann <d.engemann@fz-juelich.de>
 #         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
@@ -77,7 +79,7 @@ def test_ica_full_data_recovery():
         ica = ICA(n_components=n_components,
                   max_pca_components=n_pca_components,
                   n_pca_components=n_pca_components)
-        ica.decompose_raw(raw, picks=range(n_channels))
+        ica.decompose_raw(raw, picks=list(range(n_channels)))
         raw2 = ica.pick_sources_raw(raw, exclude=[])
         if ok:
             assert_allclose(data[:n_channels], raw2._data[:n_channels],
@@ -89,7 +91,7 @@ def test_ica_full_data_recovery():
         ica = ICA(n_components=n_components,
                   max_pca_components=n_pca_components,
                   n_pca_components=n_pca_components)
-        ica.decompose_epochs(epochs, picks=range(n_channels))
+        ica.decompose_epochs(epochs, picks=list(range(n_channels)))
         epochs2 = ica.pick_sources_epochs(epochs, exclude=[])
         data2 = epochs2.get_data()[:, :n_channels]
         if ok:
@@ -133,7 +135,7 @@ def test_ica_core():
                   max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0)
 
-        print ica  # to test repr
+        print(ica)  # to test repr
 
         # test fit checker
         assert_raises(RuntimeError, ica.get_sources_raw, raw)
@@ -141,7 +143,7 @@ def test_ica_core():
 
         # test decomposition
         ica.decompose_raw(raw, picks=pcks, start=start, stop=stop)
-        print ica  # to test repr
+        print(ica)  # to test repr
         # test re-init exception
         assert_raises(RuntimeError, ica.decompose_raw, raw, picks=picks)
 
@@ -164,7 +166,7 @@ def test_ica_core():
                   random_state=0)
 
         ica.decompose_epochs(epochs, picks=picks)
-        print ica  # to test repr
+        print(ica)  # to test repr
         # test pick block after epochs fit
         assert_raises(ValueError, ica.pick_sources_raw, raw)
 
@@ -237,7 +239,7 @@ def test_ica_additional():
     for cov in (None, test_cov):
         ica = ICA(noise_cov=cov, n_components=2, max_pca_components=4,
                   n_pca_components=4)
-        with warnings.catch_warnings(True):  # ICA does not converge
+        with warnings.catch_warnings(record=True):  # ICA does not converge
             ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
         sources = ica.get_sources_epochs(epochs)
         assert_true(ica.mixing_matrix_.shape == (2, 2))
@@ -273,11 +275,11 @@ def test_ica_additional():
 
         # test filtering
         d1 = ica_raw._data[0].copy()
-        with warnings.catch_warnings(True):  # dB warning
+        with warnings.catch_warnings(record=True):  # dB warning
             ica_raw.filter(4, 20)
         assert_true((d1 != ica_raw._data[0]).any())
         d1 = ica_raw._data[0].copy()
-        with warnings.catch_warnings(True):  # dB warning
+        with warnings.catch_warnings(record=True):  # dB warning
             ica_raw.notch_filter([10])
         assert_true((d1 != ica_raw._data[0]).any())
 
@@ -360,7 +362,7 @@ def test_ica_additional():
     ecg_scores = ica.find_sources_raw(raw, target='MEG 1531',
                                       score_func='pearsonr')
 
-    with warnings.catch_warnings(True):  # filter attenuation warning
+    with warnings.catch_warnings(record=True):  # filter attenuation warning
         ecg_events = ica_find_ecg_events(raw,
                                          sources[np.abs(ecg_scores).argmax()])
 
@@ -369,7 +371,7 @@ def test_ica_additional():
     # eog functionality
     eog_scores = ica.find_sources_raw(raw, target='EOG 061',
                                       score_func='pearsonr')
-    with warnings.catch_warnings(True):  # filter attenuation warning
+    with warnings.catch_warnings(record=True):  # filter attenuation warning
         eog_events = ica_find_eog_events(raw,
                                          sources[np.abs(eog_scores).argmax()])
 

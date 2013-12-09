@@ -38,7 +38,9 @@ def test_scaler():
     epochs_data = epochs.get_data()
     scaler = Scaler(epochs.info)
     y = epochs.events[:, -1]
-    with warnings.catch_warnings(True):  # np invalid divide value warnings
+
+    # np invalid divide value warnings
+    with warnings.catch_warnings(record=True):
         X = scaler.fit_transform(epochs_data, y)
         assert_true(X.shape == epochs_data.shape)
         X2 = scaler.fit(epochs_data, y).transform(epochs_data)
@@ -63,7 +65,7 @@ def test_filterestimator():
     epochs_data = epochs.get_data()
     filt = FilterEstimator(epochs.info, 1, 40)
     y = epochs.events[:, -1]
-    with warnings.catch_warnings(True):  # stop freq attenuation warning
+    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         X = filt.fit_transform(epochs_data, y)
         assert_true(X.shape == epochs_data.shape)
         assert_array_equal(filt.fit(epochs_data, y).transform(epochs_data), X)
@@ -104,7 +106,7 @@ def test_concatenatechannels():
     picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     picks = picks[1:13:3]
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()

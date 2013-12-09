@@ -10,8 +10,8 @@ import os
 import time
 import re
 import warnings
-from StringIO import StringIO
-from ConfigParser import SafeConfigParser
+from ..externals.six import StringIO, b, u
+from ..externals.six.moves import configparser
 
 import numpy as np
 
@@ -130,7 +130,7 @@ class RawBrainVision(Raw):
             returns the time values corresponding to the samples.
         """
         if sel is None:
-            sel = range(self.info['nchan'])
+            sel = list(range(self.info['nchan']))
         elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
             return (666, 666)
         if projector is not None:
@@ -207,12 +207,12 @@ def _read_vmrk(vmrk_fname):
     """
 
     with open(vmrk_fname) as f:
-    # setup config reader
-        assert (f.readline().strip() ==
-                'Brain Vision Data Exchange Marker File, Version 1.0')
-
-        cfg = SafeConfigParser()
+        # setup config reader
+        l = f.readline().strip()
+        assert l == 'Brain Vision Data Exchange Marker File, Version 1.0'
+        cfg = configparser.SafeConfigParser()
         cfg.readfp(f)
+
     events = []
     for _, info in cfg.items('Marker Infos'):
         mtype, mdesc, offset, duration = info.split(',')[:4]
@@ -314,14 +314,14 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
 
     eeg_info = {}
 
-    with open(vhdr_fname, 'rb') as f:
+    with open(vhdr_fname, 'r') as f:
         # extract the first section to resemble a cfg
-        assert (f.readline().strip() ==
-                'Brain Vision Data Exchange Header File Version 1.0')
+        l = f.readline().strip()
+        assert l == 'Brain Vision Data Exchange Header File Version 1.0'
         settings = f.read()
 
     params, settings = settings.split('[Comment]')
-    cfg = SafeConfigParser()
+    cfg = configparser.SafeConfigParser()
     cfg.readfp(StringIO(params))
 
     # get sampling info
@@ -358,7 +358,8 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
         name, _, resolution, unit = props.split(',')[:4]
         ch_names[n - 1] = name
         cals[n - 1] = resolution
-        if unit == '\xc2\xb5V':
+        unit = unit.replace('\xc2', '') # Remove unwanted control characters
+        if u(unit)==u'\xb5V':
             units.append(1e-6)
         elif unit == 'V':
             units.append(0)

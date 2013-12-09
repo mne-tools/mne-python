@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
 # License: Simplified BSD
@@ -205,7 +206,7 @@ def _mixed_norm_solver_prox(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
 
     active_set = np.ones(n_sources, dtype=np.bool)  # start with full AS
 
-    for i in xrange(maxit):
+    for i in range(maxit):
         X0, active_set_0 = X, active_set  # store previous values
         if gram is None:
             Y += np.dot(G.T, R) / lipschitz_constant  # ISTA step
@@ -350,7 +351,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         active_set[idx_large_corr[-active_set_size:]] = True
         if n_orient > 1:
             active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
-        for k in xrange(maxit):
+        for k in range(maxit):
             X, as_, E = l21_solver(M, G[:, active_set], alpha,
                                    maxit=maxit, tol=tol, init=X_init,
                                    n_orient=n_orient)
@@ -560,7 +561,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     alpha_time_lc = alpha_time / lipschitz_constant
     alpha_space_lc = alpha_space / lipschitz_constant
-    for i in xrange(maxit):
+    for i in range(maxit):
         Z0, active_set_0 = Z, active_set  # store previous values
 
         if active_set.sum() < len(R) and Y_time_as is not None:
@@ -590,7 +591,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
                 safe_max_abs_diff(Z, active_set_0[active_set],
                                   Z0, active_set[active_set_0]) < tol)
         if stop:
-            print 'Convergence reached !'
+            print('Convergence reached !')
             break
 
         # FISTA 2 steps

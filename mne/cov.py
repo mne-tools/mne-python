@@ -21,6 +21,8 @@ from .fiff.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
                         pick_channels)
 from .fiff.constants import FIFF
 from .epochs import _is_good
+from .externals.six.moves import map
+from .externals.six.moves import zip
 
 
 def _check_covs_algebra(cov1, cov2):

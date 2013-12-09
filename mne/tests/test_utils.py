@@ -4,7 +4,7 @@ import os.path as op
 import numpy as np
 import os
 import warnings
-import urllib2
+from ..externals.six.moves import urllib
 
 from ..utils import (set_log_level, set_log_file, _TempDir,
                      get_config, set_config, deprecated, _fetch_file,
@@ -92,7 +92,7 @@ def test_logging():
     new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
     # check to make sure appending works (and as default, raises a warning)
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         set_log_file(test_name, overwrite=False)
         assert len(w) == 0
         set_log_file(test_name)
@@ -121,12 +121,12 @@ def test_config():
     assert_true(get_config(key) == value)
     del os.environ[key]
     # catch the warning about it being a non-standard config key
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         set_config(key, None)
         assert_true(len(w) == 1)
     assert_true(get_config(key) is None)
     assert_raises(KeyError, get_config, key, raise_error=True)
-    with warnings.catch_warnings(True):
+    with warnings.catch_warnings(record=True):
         set_config(key, value)
         assert_true(get_config(key) == value)
         set_config(key, None)
@@ -170,10 +170,10 @@ def no_mem_func():
 def test_deprecated():
     """Test deprecated function
     """
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         deprecated_func()
     assert_true(len(w) == 1)
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         deprecated_class()
     assert_true(len(w) == 1)
 
@@ -182,10 +182,10 @@ def test_requires_mem_gb():
     """Test requires memory function
     """
     try:
-        with warnings.catch_warnings(True) as w:
+        with warnings.catch_warnings(record=True) as w:
             big_mem_func()
         assert_true(len(w) == 1)
-        with warnings.catch_warnings(True) as w:
+        with warnings.catch_warnings(record=True) as w:
             no_mem_func()
         assert_true(len(w) == 0)
     except:
@@ -204,8 +204,8 @@ def test_fetch_file():
     """
     # Skipping test if no internet connection available
     try:
-        urllib2.urlopen("http://github.com", timeout=2)
-    except urllib2.URLError:
+        urllib.request.urlopen("http://github.com", timeout=2)
+    except urllib.request.URLError:
         from nose.plugins.skip import SkipTest
         raise SkipTest('No internet connection, skipping download test.')
 

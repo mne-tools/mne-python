@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from ..externals.six import string_types
 from time import time
 import warnings
 from copy import deepcopy
@@ -142,7 +143,7 @@ def _inv_block_diag(A, n):
 
     # modify A in-place to invert each sub-block
     A = A.copy()
-    for start in xrange(0, na, 3):
+    for start in range(0, na, 3):
         # this is a view
         A[:, start:start + 3] = linalg.inv(A[:, start:start + 3])
 
@@ -932,7 +933,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
     else:
         n_pos = G.shape[1] // 3
         d = np.zeros(n_pos)
-        for k in xrange(n_pos):
+        for k in range(n_pos):
             Gk = G[:, 3 * k:3 * (k + 1)]
             d[k] = linalg.svdvals(np.dot(Gk.T, Gk))[0]
 
@@ -1372,12 +1373,12 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         fname = op.join(temp_dir, 'temp-fwd.fif')
     _check_fname(fname, overwrite)
 
-    if not isinstance(subject, basestring):
+    if not isinstance(subject, string_types):
         raise ValueError('subject must be a string')
 
     # check for meas to exist as string, or try to make evoked
     meas_data = None
-    if isinstance(meas, basestring):
+    if isinstance(meas, string_types):
         if not op.isfile(meas):
             raise IOError('measurement file "%s" could not be found' % meas)
     elif isinstance(meas, Raw):
@@ -1404,13 +1405,13 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         raise ValueError('Either trans or mri must be specified')
 
     if trans is not None:
-        if not isinstance(trans, basestring):
+        if not isinstance(trans, string_types):
             raise ValueError('trans must be a string')
         if not op.isfile(trans):
             raise IOError('trans file "%s" not found' % trans)
     if mri is not None:
         # deal with trans
-        if not isinstance(mri, basestring):
+        if not isinstance(mri, string_types):
             if isinstance(mri, dict):
                 mri_data = deepcopy(mri)
                 mri = op.join(temp_dir, 'mri-trans.fif')
@@ -1435,7 +1436,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
     # deal with mindist
     if mindist is not None:
-        if isinstance(mindist, basestring):
+        if isinstance(mindist, string_types):
             if not mindist.lower() == 'all':
                 raise ValueError('mindist, if string, must be "all"')
             mindist = ['--all']
@@ -1444,13 +1445,13 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
     # src, spacing, bem
     if src is not None:
-        if not isinstance(src, basestring):
+        if not isinstance(src, string_types):
             raise ValueError('src must be a string or None')
     if spacing is not None:
-        if not isinstance(spacing, basestring):
+        if not isinstance(spacing, string_types):
             raise ValueError('spacing must be a string or None')
     if bem is not None:
-        if not isinstance(bem, basestring):
+        if not isinstance(bem, string_types):
             raise ValueError('bem must be a string or None')
 
     # put together the actual call

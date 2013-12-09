@@ -7,6 +7,7 @@ mne surf2bem --surf ${SUBJECTS_DIR}/${SUBJECT}/surf/lh.seghead --fif \
 ${SUBJECTS_DIR}/${SUBJECT}/bem/${SUBJECT}-head.fif --id=4
 
 """
+from __future__ import print_function
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
@@ -34,7 +35,7 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
-    print "Converting %s to BEM FIF file." % options.surf
+    print("Converting %s to BEM FIF file." % options.surf)
 
     points, tris = mne.read_surface(options.surf)
     points *= 1e-3

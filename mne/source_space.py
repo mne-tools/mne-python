@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+from .externals.six import string_types
 import numpy as np
 import os
 import os.path as op
@@ -845,7 +846,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     space_err = ('"spacing" must be a string with values '
                  '"ico#", "oct#", or "all", and "ico" and "oct"'
                  'numbers must be integers')
-    if not isinstance(spacing, basestring) or len(spacing) < 3:
+    if not isinstance(spacing, string_types) or len(spacing) < 3:
         raise ValueError(space_err)
     if spacing == 'all':
         stype = 'all'
@@ -875,7 +876,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
             raise IOError('Could not find the %s surface %s'
                           % (hemi, surf))
 
-    if not (fname is True or fname is None or isinstance(fname, basestring)):
+    if not (fname is True or fname is None or isinstance(fname, string_types)):
         raise ValueError('"fname" must be a string, True, or None')
     if fname is True:
         extra = '%s-%s' % (stype, sval) if sval != '' else stype
@@ -1047,7 +1048,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             # let's make sure we have geom info
             surface = _read_surface_geom(surface, verbose=False)
             surf_extra = 'dict()'
-        elif isinstance(surface, basestring):
+        elif isinstance(surface, string_types):
             if not op.isfile(surface):
                 raise IOError('surface file "%s" not found' % surface)
             surf_extra = surface
@@ -1097,7 +1098,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             logger.info('Loaded inner skull from %s (%d nodes)'
                         % (bem, surf['np']))
         elif surface is not None:
-            if isinstance(surf, basestring):
+            if isinstance(surf, string_types):
                 surf = _read_surface_geom(surface)
             else:
                 surf = surface

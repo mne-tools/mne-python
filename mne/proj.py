@@ -321,7 +321,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     n_locations = n_dipoles // 3
     sensitivity_map = np.empty(n_locations)
 
-    for k in xrange(n_locations):
+    for k in range(n_locations):
         gg = gain[:, 3 * k:3 * (k + 1)]
         if mode != 'fixed':
             s = linalg.svd(gg, full_matrices=False, compute_uv=False)

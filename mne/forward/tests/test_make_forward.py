@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import os
 import os.path as op
 from subprocess import CalledProcessError
@@ -49,7 +51,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
 
         for key in ['nchan', 'source_nn', 'source_rr', 'source_ori',
                     'surf_ori', 'coord_frame', 'nsource']:
-            print key
+            print(key)
             assert_allclose(fwd_py[key], fwd[key], rtol=1e-4, atol=1e-7)
         assert_allclose(fwd_py['mri_head_t']['trans'],
                         fwd['mri_head_t']['trans'], rtol=1e-5, atol=1e-8)
@@ -59,13 +61,13 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
         assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
 
         # check MEG
-        print 'check MEG'
+        print('check MEG')
         assert_allclose(fwd['sol']['data'][:306],
                         fwd_py['sol']['data'][:306],
                         rtol=meg_rtol, atol=meg_atol)
         # check EEG
         if fwd['sol']['data'].shape[0] > 306:
-            print 'check EEG'
+            print('check EEG')
             assert_allclose(fwd['sol']['data'][306:],
                             fwd_py['sol']['data'][306:],
                             rtol=1e-3, atol=1e-3)

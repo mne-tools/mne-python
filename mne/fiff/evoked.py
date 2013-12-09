@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+from ..externals.six import string_types
 from copy import deepcopy
 import numpy as np
 import warnings
@@ -124,7 +125,7 @@ class Evoked(ProjMixin):
                 setno = 0
 
         # find string-based entry
-        elif isinstance(setno, basestring):
+        elif isinstance(setno, string_types):
             if not kind in aspect_dict.keys():
                 fid.close()
                 raise ValueError('kind must be "average" or '
@@ -502,7 +503,7 @@ class Evoked(ProjMixin):
         pd = _check_pandas_installed()
 
         if picks is None:
-            picks = range(self.info['nchan'])
+            picks = list(range(self.info['nchan']))
         else:
             if not in1d(picks, np.arange(len(self.ch_names))).all():
                 raise ValueError('At least one picked channel is not present '
@@ -538,7 +539,7 @@ class Evoked(ProjMixin):
         if use_time_index is True:
             if 'time' in df:
                 df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(True):
+            with warnings.catch_warnings(record=True):
                 df.set_index('time', inplace=True)
 
         return df

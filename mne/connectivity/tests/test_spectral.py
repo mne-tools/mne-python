@@ -43,7 +43,7 @@ def test_spectral_connectivity():
     times_data = np.linspace(tmin, tmax, n_times)
     # simulate connectivity from 5Hz..15Hz
     fstart, fend = 5.0, 15.0
-    for i in xrange(n_epochs):
+    for i in range(n_epochs):
         data[i, 1, :] = band_pass_filter(data[i, 0, :], sfreq, fstart, fend)
         # add some noise, so the spectrum is not exactly zero
         data[i, 1, :] += 1e-2 * np.random.randn(n_times)
