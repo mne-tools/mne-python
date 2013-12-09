@@ -1,6 +1,6 @@
 import os
 import os.path as op
-from ..externals.six.moves import cPickle
+from ..externals.six.moves import cPickle as pickle
 import glob
 import warnings
 

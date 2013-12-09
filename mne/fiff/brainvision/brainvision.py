@@ -10,8 +10,8 @@ import os
 import time
 import re
 import warnings
-from ..externals.six import StringIO, b, u
-from ..externals.six.moves import configparser
+from ...externals.six import StringIO, u
+from ...externals.six.moves import configparser
 
 import numpy as np
 
