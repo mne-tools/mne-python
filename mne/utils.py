@@ -557,8 +557,24 @@ def _mne_fs_not_in_env():
 requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env)
 
 
+def _check_mayavi_version(min_version='4.3.0'):
+    """Raise a RuntimeError if the required version of mayavi is not available
+
+    Parameters
+    ----------
+    min_version : str
+        The version string. Anything that matches
+        ``'(\\d+ | [a-z]+ | \\.)'``
+    """
+    import mayavi
+    require_mayavi = LooseVersion(min_version)
+    has_mayavi = LooseVersion(mayavi.__version__)
+    if has_mayavi < require_mayavi:
+        raise RuntimeError("Need mayavi >= %s" % require_mayavi)
+
+
 def check_sklearn_version(min_version):
-    """ Check minimum sklearn version required
+    """Check minimum sklearn version required
 
     Parameters
     ----------
@@ -578,7 +594,7 @@ def check_sklearn_version(min_version):
 
 
 def check_scipy_version(min_version):
-    """ Check minimum sklearn version required
+    """Check minimum sklearn version required
 
     Parameters
     ----------
@@ -1243,7 +1259,7 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
 
     Usage
     -----
-    # for new VectorView (only inside layout) 
+    # for new VectorView (only inside layout)
     ch_names = _clean_names(epochs.ch_names, remove_whitespace=True)
 
     # for CTF
