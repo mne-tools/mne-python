@@ -338,7 +338,6 @@ class deprecated(object):
         if olddoc:
             newdoc = "%s\n\n%s" % (newdoc, olddoc)
         return newdoc
-
     
     
 def _verbose(function):
@@ -389,6 +388,7 @@ def _verbose(function):
     dec.__wrapped__ = function
 
     return dec
+
 
 try:
     # If the decorator module is indeed available, use it for verbose
@@ -441,7 +441,6 @@ try:
 except ImportError:
     # Fallback to the older verbose 
     verbose = _verbose
-
     
 
 def has_command_line_tools():
