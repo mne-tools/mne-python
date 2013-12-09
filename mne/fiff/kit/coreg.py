@@ -103,13 +103,12 @@ def write_mrk(fname, points):
 
 def average_mrks(mrk, mrk2):
     if isinstance(mrk, basestring):
-            mrk = read_mrk(mrk)
+        mrk = read_mrk(mrk)
     if isinstance(mrk2, basestring):
-            mrk2 = read_mrk(mrk2)
-    
-    np.testing.assert_array_equal(mrk.shape, mrk2.shape, 
-                                  err_msg= 'Mismatch in the number of markers.')
-    mrk = (mrk+mrk2)/2
+        mrk2 = read_mrk(mrk2)
+
+    assert mrk.shape == mrk2.shape
+    mrk = (mrk + mrk2) / 2
     return mrk
 
 
