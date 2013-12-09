@@ -347,6 +347,9 @@ def _verbose(function):
     Do not call this function directly to set the global verbosity level,
     instead use set_log_level().
     
+    This is the fallback verbose decorator when the decorator module is 
+    unavailable.
+    
 
     Parameters (to decorated function)
     ----------------------------------
@@ -388,6 +391,7 @@ def _verbose(function):
     return dec
 
 try:
+    # If the decorator module is indeed available, use it for verbose
     from decorator import decorator as markDecorator
     
     @markDecorator
@@ -435,6 +439,7 @@ try:
             ret = function(*args, **kwargs)
             return ret
 except ImportError:
+    # Fallback to the older verbose 
     verbose = _verbose
 
     
