@@ -19,13 +19,14 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse)
 from mne.utils import _TempDir
-from ..externals import six
+from ...externals import six
 
 s_path = op.join(sample.data_path(download=False), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_inv_fixed = op.join(s_path, 'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
 fname_inv_nodepth = op.join(s_path,
-                           'sample_audvis-meg-oct-6-meg-nodepth-fixed-inv.fif')
+                            'sample_audvis-meg-oct-6-meg-nodepth'
+                            '-fixed-inv.fif')
 fname_inv_diag = op.join(s_path,
                          'sample_audvis-meg-oct-6-meg-diagnoise-inv.fif')
 fname_vol_inv = op.join(s_path, 'sample_audvis-meg-vol-7-meg-inv.fif')

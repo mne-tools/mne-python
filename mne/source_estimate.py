@@ -22,7 +22,6 @@ from .utils import (get_subjects_dir, _check_subject,
                     logger, verbose)
 from .viz import plot_source_estimates
 from .fixes import in1d
-from .externals.six.moves import map
 from .externals.six.moves import zip
 
 
@@ -269,8 +268,10 @@ def read_source_estimate(fname, subject=None):
                 raise IOError(err)
 
     if ftype is not 'volume':
-        stc_exist = map(os.path.exists, (fname + '-rh.stc', fname + '-lh.stc'))
-        w_exist = map(os.path.exists, (fname + '-rh.w', fname + '-lh.w'))
+        stc_exist = [os.path.exists(f)
+                     for f in [fname + '-rh.stc', fname + '-lh.stc']]
+        w_exist = [os.path.exists(f)
+                   for f in [fname + '-rh.w', fname + '-lh.w']]
         if all(stc_exist) and (ftype is not 'w'):
             ftype = 'surface'
         elif all(w_exist):
@@ -1111,7 +1112,7 @@ class SourceEstimate(_BaseSourceEstimate):
         else:
             raise TypeError("Expected  Label or BiHemiLabel; got %r" % label)
 
-        if sum(map(len, vertices)) == 0:
+        if sum([len(v) for v in vertices]) == 0:
             raise ValueError('No vertices match the label in the stc file')
 
         label_stc = SourceEstimate(values, vertices=vertices,

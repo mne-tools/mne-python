@@ -9,7 +9,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - ...
+   - Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
 
 .. _changes_0_7:
 
@@ -594,3 +594,5 @@ of commits):
 .. _Romain Trachel: http://www-sop.inria.fr/athena/Site/RomainTrachel
 
 .. _Christopher Dinh: https://github.com/chdinh
+
+.. _Nick Ward: http://www.ucl.ac.uk/ion/departments/sobell/Research/NWard

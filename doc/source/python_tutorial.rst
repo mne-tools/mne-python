@@ -128,7 +128,7 @@ Access raw data
     >>> from mne.datasets import sample
     >>> data_path = sample.data_path()
     >>> raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-    >>> print raw_fname # doctest: +SKIP
+    >>> print(raw_fname) # doctest: +SKIP
     ./MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw.fif
 
 .. note:: The MNE sample dataset should be downloaded automatically but be patient (approx. 2GB)
@@ -138,14 +138,14 @@ Read data from file:
     >>> raw = mne.fiff.Raw(raw_fname) # doctest:+ELLIPSIS
     Opening raw data ...
     Ready.
-    >>> print raw
+    >>> print(raw)
     <Raw  |  n_channels x n_times : 376 x 41700>
-    >>> print raw.info # doctest:+ELLIPSIS
+    >>> print(raw.info) # doctest:+ELLIPSIS
     <Info | 19 non-empty ...
 
 Look at the channels in raw:
 
-    >>> print raw.ch_names # doctest:+ELLIPSIS
+    >>> print(raw.ch_names) # doctest:+ELLIPSIS
     ['MEG 0113', 'MEG 0112', ...]
 
 Read and plot a segment of raw data
@@ -154,9 +154,9 @@ Read and plot a segment of raw data
     >>> data, times = raw[:, start:stop]
     Reading 15015 ... 17266  =     99.998 ...   114.989 secs...
     [done]
-    >>> print data.shape
+    >>> print(data.shape)
     (376, 2252)
-    >>> print times.shape
+    >>> print(times.shape)
     (2252,)
     >>> data, times = raw[2:20:3, start:stop]  # access underlying data
     Reading 15015 ... 17266  =     99.998 ...   114.989 secs...
@@ -182,7 +182,7 @@ First extract events:
     [done]
     319 events found
     Events id: [ 1  2  3  4  5 32]
-    >>> print events[:5]
+    >>> print(events[:5])
     [[6994    0    2]
      [7086    0    3]
      [7192    0    1]
@@ -233,7 +233,7 @@ Read epochs:
     Created an SSP operator (subspace dimension = 4)
     4 projection items activated
     145 matching events found
-    >>> print epochs
+    >>> print(epochs)
     <Epochs  |  n_events : 145 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0),
      'aud_r': 73, 'aud_l': 72>
 
@@ -241,7 +241,7 @@ Get single epochs for one condition:
 
     >>> epochs_data = epochs['aud_l'].get_data() # doctest: +ELLIPSIS
     Reading ...
-    >>> print epochs_data.shape
+    >>> print(epochs_data.shape)
     (55, 365, 106)
 
 epochs_data is a 3D array of dimension (55 epochs, 365 channels, 106 time instants).
@@ -266,7 +266,7 @@ Compute evoked responses for auditory responses by averaging and plot it:
 
     >>> evoked = epochs['aud_l'].average() # doctest: +ELLIPSIS
     Reading ...
-    >>> print evoked
+    >>> print(evoked)
     <Evoked  |  comment : 'aud_l', time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106>
     >>> evoked.plot() # doctest:+SKIP
 
@@ -279,7 +279,7 @@ Compute evoked responses for auditory responses by averaging and plot it:
 
   >>> max_in_each_epoch = [e.max() for e in epochs['aud_l']] # doctest:+ELLIPSIS
   Reading ...
-  >>> print max_in_each_epoch[:4] # doctest:+ELLIPSIS
+  >>> print(max_in_each_epoch[:4]) # doctest:+ELLIPSIS
   [1.93751...e-05, 1.64055...e-05, 1.85453...e-05, 2.04128...e-05]
 
 It is also possible to read evoked data stored in a fif file:
@@ -308,7 +308,7 @@ Compute a contrast:
 
     >>> contrast = evoked1 - evoked2
 
-    >>> print contrast
+    >>> print(contrast)
     <Evoked  |  comment : 'Left Auditory - Right Auditory', time : [-0.199795, 0.499488], n_epochs : 116, n_channels x n_times : 376 x 421>
 
 Time-Frequency: Induced power and phase-locking values

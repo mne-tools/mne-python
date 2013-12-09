@@ -21,8 +21,7 @@ from ..meas_info import Info
 from ..constants import FIFF
 from ...coreg import get_ras_to_neuromag_trans
 from ...filter import resample
-from ..externals.six.moves import map
-from ..externals.six.moves import zip
+from ...externals.six.moves import zip
 
 
 class RawEDF(Raw):
@@ -424,7 +423,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         temp += re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
                            '[\d,.]+)', fid)
         for loc in temp:
-            coord = np.array(map(float, loc[1:]))
+            coord = np.array(loc[1:], dtype=float)
             coord = apply_trans(als_ras_trans_mm, coord)
             locs[loc[0].lower()] = coord
         trans = get_ras_to_neuromag_trans(nasion=locs['2'], lpa=locs['1'],
@@ -536,8 +535,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     annot = open(annot).read()
     triggers = re.findall(pat, annot)
     times, values = zip(*triggers)
-    times = map(float, times)
-    times = [time * sfreq for time in times]
+    times = [float(time) * sfreq for time in times]
 
     pat = '(\w+):(\d+)'
     annotmap = open(annotmap).read()

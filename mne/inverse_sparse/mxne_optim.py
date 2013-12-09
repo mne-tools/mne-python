@@ -49,16 +49,16 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     -------
     >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print Y
+    >>> print(Y)
     [[ 0.  4.  3.  0.  0.]
      [ 0.  4.  3.  0.  0.]
      [ 0.  0.  0.  0.  0.]
      [ 0.  0.  0.  0.  0.]]
     >>> Yp, active_set = prox_l21(Y, 2, 2)
-    >>> print Yp
+    >>> print(Yp)
     [[ 0.          2.86862915  2.15147186  0.          0.        ]
      [ 0.          2.86862915  2.15147186  0.          0.        ]]
-    >>> print active_set
+    >>> print(active_set)
     [ True  True False False]
     """
     if len(Y) == 0:
@@ -72,7 +72,7 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
         rows_norm = np.sqrt(stft_norm2(Y).reshape(n_positions, -1).sum(axis=1))
     else:
         rows_norm = np.sqrt(np.sum((np.abs(Y) ** 2).reshape(n_positions, -1),
-                                    axis=1))
+                                   axis=1))
     # Ensure shrink is >= 0 while avoiding any division by zero
     shrink = np.maximum(1.0 - alpha / np.maximum(rows_norm, alpha), 0.0)
     active_set = shrink > 0.0
@@ -97,16 +97,16 @@ def prox_l1(Y, alpha, n_orient):
     -------
     >>> Y = np.tile(np.array([1, 2, 3, 2, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print Y
+    >>> print(Y)
     [[ 1.  2.  3.  2.  0.]
      [ 1.  2.  3.  2.  0.]
      [ 0.  0.  0.  0.  0.]
      [ 0.  0.  0.  0.  0.]]
     >>> Yp, active_set = prox_l1(Y, 2, 2)
-    >>> print Yp
+    >>> print(Yp)
     [[ 0.          0.58578644  1.58578644  0.58578644  0.        ]
      [ 0.          0.58578644  1.58578644  0.58578644  0.        ]]
-    >>> print active_set
+    >>> print(active_set)
     [ True  True False False]
     """
     n_positions = Y.shape[0] // n_orient
@@ -175,7 +175,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 
 @verbose
 def _mixed_norm_solver_prox(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
-                       init=None, n_orient=1):
+                            init=None, n_orient=1):
     """Solves L21 inverse problem with proximal iterations and FISTA"""
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
@@ -367,8 +367,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                                                          n_orient))
                 new_active_idx = idx_large_corr[-active_set_size:]
                 if n_orient > 1:
-                    new_active_idx = n_orient * new_active_idx[:, None] + \
-                                                np.arange(n_orient)[None, :]
+                    new_active_idx = (n_orient * new_active_idx[:, None] +
+                                      np.arange(n_orient)[None, :])
                     new_active_idx = new_active_idx.ravel()
                 idx_old_active_set = as_
                 active_set_old = active_set.copy()
@@ -581,7 +581,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
             Z, active_set_l1 = prox_l1(Y, alpha_time_lc, n_orient)
 
         Z, active_set_l21 = prox_l21(Z, alpha_space_lc, n_orient,
-                                shape=(-1, n_freq, n_step), is_stft=True)
+                                     shape=(-1, n_freq, n_step), is_stft=True)
         active_set = active_set_l1
         active_set[active_set_l1] = active_set_l21
 

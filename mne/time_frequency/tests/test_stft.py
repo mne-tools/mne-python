@@ -4,8 +4,6 @@ from numpy.testing import assert_almost_equal, assert_array_almost_equal
 from nose.tools import assert_true
 
 from mne.time_frequency.stft import stft, istft, stftfreq, stft_norm2
-from ..externals.six.moves import map
-from ..externals.six.moves import zip
 
 
 def test_stft():
@@ -33,7 +31,7 @@ def test_stft():
 
         # norm conservation thanks to tight frame property
         assert_almost_equal(np.sqrt(stft_norm2(X)),
-                            map(linalg.norm, x), decimal=2)
+                            [linalg.norm(xx) for xx in x], decimal=2)
 
         # Try with empty array
         x = np.zeros((0, T))

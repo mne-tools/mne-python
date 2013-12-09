@@ -2,7 +2,7 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
+from ...externals.six import string_types
 import os
 
 import numpy as np
@@ -47,8 +47,8 @@ def test_coreg_model():
 
     model.hsp.file = raw_path
     assert_allclose(model.hsp.lpa, [[-7.137e-2, 0, 5.122e-9]], 1e-4)
-    assert_allclose(model.hsp.rpa, [[ 7.527e-2, 0, 5.588e-9]], 1e-4)
-    assert_allclose(model.hsp.nasion, [[ 3.725e-9, 1.026e-1, 4.191e-9]], 1e-4)
+    assert_allclose(model.hsp.rpa, [[+7.527e-2, 0, 5.588e-9]], 1e-4)
+    assert_allclose(model.hsp.nasion, [[+3.725e-9, 1.026e-1, 4.191e-9]], 1e-4)
     assert_true(model.has_fid_data)
 
     lpa_distance = model.lpa_distance
