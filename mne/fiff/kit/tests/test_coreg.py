@@ -51,13 +51,6 @@ def test_io_mrk():
     pts_2 = read_mrk(path)
     assert_array_equal(pts, pts_2, 'read/write mrk to text')
 
-    # two mrks
-    mrk_avg = average_mrks(mrk_pre_fname, mrk_post_fname)
-    pts = read_mrk(mrk_pre_fname)
-    pts_2 = read_mrk(mrk_post_fname)
-    pts_avg = (pts + pts_2)/2
-    assert_array_equal(mrk_avg, pts_avg, 'marker averager')
-
 
 def test_hsp_trans():
     """Test the coordinate transformation for hsp files"""

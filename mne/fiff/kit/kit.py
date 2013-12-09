@@ -36,13 +36,10 @@ class RawKIT(Raw):
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape = (5, 3)
+    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
-    mrk2 : None | str | array_like, shape = (5, 3)
-        Marker points representing the location of the marker coils with
-        respect to the MEG Sensors, or path to a marker file.
-        If mrk2 is not None, the average of mrk and mrk2 will result.
+        If list, all of the markers will be averaged together.
     elp : None | str | array_like, shape = (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
@@ -64,20 +61,19 @@ class RawKIT(Raw):
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     See Also
     --------
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, mrk=None, mrk2=None, elp=None, hsp=None,
-                 stim='>', slope='-', stimthresh=1, preload=False,
-                 verbose=None):
+    def __init__(self, input_fname, mrk=None, elp=None, hsp=None, stim='>',
+                 slope='-', stimthresh=1, preload=False, verbose=None):
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self._sqd_params = get_sqd_params(input_fname)
@@ -116,10 +112,10 @@ class RawKIT(Raw):
         self.info['dig'] = None
         self.info['dev_head_t'] = None
 
-        if mrk and mrk2:
-            mrk = average_mrks(mrk, mrk2)
-        if mrk2 and not mrk:
-            mrk = mrk2
+        if isinstance(mrk, list):
+            mrk = [read_mrk(marker) if isinstance(marker, basestring)
+                   else marker for marker in mrk]
+            mrk = reduce(np.add, mrk) / len(mrk)
 
         if (mrk and elp and hsp):
             self._set_dig_kit(mrk, elp, hsp)
@@ -635,8 +631,8 @@ def get_sqd_params(rawfile):
     return sqd
 
 
-def read_raw_kit(input_fname, mrk=None, mrk2=None, elp=None, hsp=None,
-                 stim='>', slope='-', stimthresh=1, preload=False,
+def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
+                 slope='-', stimthresh=1, preload=False, mrk2=None,
                  verbose=None):
     """Reader function for KIT conversion to FIF
 
@@ -647,10 +643,7 @@ def read_raw_kit(input_fname, mrk=None, mrk2=None, elp=None, hsp=None,
     mrk : None | str | array_like, shape = (5, 3)
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
-    mrk2 : None | str | array_like, shape = (5, 3)
-        Marker points representing the location of the marker coils with
-        respect to the MEG Sensors, or path to a marker file.
-        If mrk2 is not None, the average of mrk and mrk2 will result.
+        If averaging markers, see mrk2.
     elp : None | str | array_like, shape = (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
@@ -678,6 +671,6 @@ def read_raw_kit(input_fname, mrk=None, mrk2=None, elp=None, hsp=None,
         If True, all data are loaded at initialization.
         If False, data are not read until save.
     """
-    return RawKIT(input_fname=input_fname, mrk=mrk, mrk2=mrk2, elp=elp,
-                  hsp=hsp, stim=stim, slope=slope, stimthresh=stimthresh,
+    return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
+                  stim=stim, slope=slope, stimthresh=stimthresh,
                   verbose=verbose, preload=preload)
