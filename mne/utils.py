@@ -28,7 +28,9 @@ import ftplib
 import urlparse
 import scipy
 from scipy import linalg
-
+from decorator import decorator as markDecorator
+        
+        
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
@@ -339,11 +341,60 @@ class deprecated(object):
         return newdoc
 
 
-def verbose(function):
+
+@markDecorator
+def verbose(function, *args, **kwargs):
+    """Improved verbose decorator to allow functions to override log-level
+    
+    Do not call this directly to set global verbosrity level, instead use
+    set_log_level().
+    
+    Parameters
+    ----------
+    function - function
+        Function to be decorated by setting the verbosity level.
+    
+    Returns
+    -------
+    
+    dec - function
+        The decorated function
+        
+    """
+    arg_names = inspect.getargspec(function).args
+    
+    if len(arg_names) > 0 and arg_names[0] == 'self':
+        default_level = getattr(args[0], 'verbose', None)
+    else:
+        default_level = None
+        
+    if('verbose' in arg_names):
+        verbose_level = args[arg_names.index('verbose')]
+    else:
+        verbose_level =  default_level
+        
+    if verbose_level is not None:
+        old_level = set_log_level(verbose_level, True)
+        # set it back if we get an exception
+        try:
+            ret = function(*args, **kwargs)
+        except:
+            set_log_level(old_level)
+            raise
+        set_log_level(old_level)
+        return ret
+    else:
+        ret = function(*args, **kwargs)
+        return ret
+
+def verbose_old(function):
     """Decorator to allow functions to override default log level
 
     Do not call this function directly to set the global verbosity level,
     instead use set_log_level().
+    
+    This function has been replaced by the newer verbose function that uses
+    the decorator module and hence DEPRECATED.
 
     Parameters (to decorated function)
     ----------------------------------
@@ -357,7 +408,7 @@ def verbose(function):
     """
     arg_names = inspect.getargspec(function).args
     # this wrap allows decorated functions to be pickled (e.g., for parallel)
-
+    
     @wraps(function)
     def dec(*args, **kwargs):
         # Check if the first arg is "self", if it has verbose, make it default
