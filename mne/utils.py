@@ -22,8 +22,6 @@ from shutil import rmtree
 import atexit
 from math import log
 import json
-from .externals.six.moves import urllib
-from .externals.six import string_types
 import ftplib
 
 import numpy as np
@@ -31,6 +29,8 @@ import scipy
 from scipy import linalg
 
 
+from .externals.six.moves import urllib
+from .externals.six import string_types
 from .externals.decorator import decorator
 
 
