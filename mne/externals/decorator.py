@@ -31,10 +31,12 @@
 Decorator module, see http://pypi.python.org/pypi/decorator
 for the documentation.
 """
+from __future__ import print_function
 
 __version__ = '3.4.0'
 
 __all__ = ["decorator", "FunctionMaker", "contextmanager"]
+
 
 import sys, re, inspect
 if sys.version >= '3':
