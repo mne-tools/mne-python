@@ -28,7 +28,6 @@ import ftplib
 import urlparse
 import scipy
 from scipy import linalg
-from decorator import decorator as markDecorator
         
         
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -340,83 +339,42 @@ class deprecated(object):
             newdoc = "%s\n\n%s" % (newdoc, olddoc)
         return newdoc
 
+    
 
-
-@markDecorator
-def verbose(function, *args, **kwargs):
-    """Improved verbose decorator to allow functions to override log-level
+try:
+    from decorator import decorator as markDecorator
     
-    Do not call this directly to set global verbosrity level, instead use
-    set_log_level().
-    
-    Parameters
-    ----------
-    function - function
-        Function to be decorated by setting the verbosity level.
-    
-    Returns
-    -------
-    
-    dec - function
-        The decorated function
+    @markDecorator
+    def verbose(function, *args, **kwargs):
+        """Improved verbose decorator to allow functions to override log-level
         
-    """
-    arg_names = inspect.getargspec(function).args
-    
-    if len(arg_names) > 0 and arg_names[0] == 'self':
-        default_level = getattr(args[0], 'verbose', None)
-    else:
-        default_level = None
+        Do not call this directly to set global verbosrity level, instead use
+        set_log_level().
         
-    if('verbose' in arg_names):
-        verbose_level = args[arg_names.index('verbose')]
-    else:
-        verbose_level =  default_level
+        Parameters
+        ----------
+        function - function
+            Function to be decorated by setting the verbosity level.
         
-    if verbose_level is not None:
-        old_level = set_log_level(verbose_level, True)
-        # set it back if we get an exception
-        try:
-            ret = function(*args, **kwargs)
-        except:
-            set_log_level(old_level)
-            raise
-        set_log_level(old_level)
-        return ret
-    else:
-        ret = function(*args, **kwargs)
-        return ret
-
-def verbose_old(function):
-    """Decorator to allow functions to override default log level
-
-    Do not call this function directly to set the global verbosity level,
-    instead use set_log_level().
-    
-    This function has been replaced by the newer verbose function that uses
-    the decorator module and hence DEPRECATED.
-
-    Parameters (to decorated function)
-    ----------------------------------
-    verbose : bool, str, int, or None
-        The level of messages to print. If a str, it can be either DEBUG,
-        INFO, WARNING, ERROR, or CRITICAL. Note that these are for
-        convenience and are equivalent to passing in logging.DEBUG, etc.
-        For bool, True is the same as 'INFO', False is the same as 'WARNING'.
-        None defaults to using the current log level [e.g., set using
-        mne.set_log_level()].
-    """
-    arg_names = inspect.getargspec(function).args
-    # this wrap allows decorated functions to be pickled (e.g., for parallel)
-    
-    @wraps(function)
-    def dec(*args, **kwargs):
-        # Check if the first arg is "self", if it has verbose, make it default
+        Returns
+        -------
+        
+        dec - function
+            The decorated function
+            
+        """
+        arg_names = inspect.getargspec(function).args
+        
         if len(arg_names) > 0 and arg_names[0] == 'self':
             default_level = getattr(args[0], 'verbose', None)
         else:
             default_level = None
-        verbose_level = kwargs.get('verbose', default_level)
+            
+        if('verbose' in arg_names):
+            verbose_level = args[arg_names.index('verbose')]
+        else:
+            verbose_level =  default_level
+            
         if verbose_level is not None:
             old_level = set_log_level(verbose_level, True)
             # set it back if we get an exception
@@ -428,13 +386,55 @@ def verbose_old(function):
             set_log_level(old_level)
             return ret
         else:
-            return function(*args, **kwargs)
-
-    # set __wrapped__ attribute so ?? in IPython gets the right source
-    dec.__wrapped__ = function
-
-    return dec
-
+            ret = function(*args, **kwargs)
+            return ret
+except ImportError:
+    def verbose(function):
+        """Decorator to allow functions to override default log level
+    
+        Do not call this function directly to set the global verbosity level,
+        instead use set_log_level().
+        
+    
+        Parameters (to decorated function)
+        ----------------------------------
+        verbose : bool, str, int, or None
+            The level of messages to print. If a str, it can be either DEBUG,
+            INFO, WARNING, ERROR, or CRITICAL. Note that these are for
+            convenience and are equivalent to passing in logging.DEBUG, etc.
+            For bool, True is the same as 'INFO', False is the same as 'WARNING'.
+            None defaults to using the current log level [e.g., set using
+            mne.set_log_level()].
+        """
+        arg_names = inspect.getargspec(function).args
+        # this wrap allows decorated functions to be pickled (e.g., for parallel)
+        
+        @wraps(function)
+        def dec(*args, **kwargs):
+            # Check if the first arg is "self", if it has verbose, make it default
+            if len(arg_names) > 0 and arg_names[0] == 'self':
+                default_level = getattr(args[0], 'verbose', None)
+            else:
+                default_level = None
+            verbose_level = kwargs.get('verbose', default_level)
+            if verbose_level is not None:
+                old_level = set_log_level(verbose_level, True)
+                # set it back if we get an exception
+                try:
+                    ret = function(*args, **kwargs)
+                except:
+                    set_log_level(old_level)
+                    raise
+                set_log_level(old_level)
+                return ret
+            else:
+                return function(*args, **kwargs)
+    
+        # set __wrapped__ attribute so ?? in IPython gets the right source
+        dec.__wrapped__ = function
+    
+        return dec
+    
 
 def has_command_line_tools():
     if 'MNE_ROOT' not in os.environ:
