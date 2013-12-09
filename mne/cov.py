@@ -21,7 +21,6 @@ from .fiff.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
                         pick_channels)
 from .fiff.constants import FIFF
 from .epochs import _is_good
-from .externals.six.moves import map
 from .externals.six.moves import zip
 
 
@@ -29,7 +28,9 @@ def _check_covs_algebra(cov1, cov2):
     if cov1.ch_names != cov2.ch_names:
         raise ValueError('Both Covariance do not have the same list of '
                          'channels.')
-    if map(str, cov1['projs']) != map(str, cov2['projs']):
+    projs1 = [str(c) for c in cov1['projs']]
+    projs2 = [str(c) for c in cov1['projs']]
+    if projs1 != projs2:
         raise ValueError('Both Covariance do not have the same list of '
                          'SSP projections.')
 

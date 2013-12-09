@@ -26,7 +26,6 @@ from .surface import (read_surface, write_surface, read_bem_surfaces,
 from .transforms import rotation, rotation3d, scaling, translation
 from .utils import get_config, get_subjects_dir, logger, pformat
 from functools import reduce
-from .externals.six.moves import map
 from .externals.six.moves import zip
 
 
@@ -40,7 +39,6 @@ fid_fname = os.path.join(bem_dirname, "{subject}-fiducials.fif")
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 head_bem_fname = os.path.join(bem_dirname, "{subject}-head.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
-
 
 
 def create_default_subject(mne_root=None, fs_home=None, update=False,
@@ -371,7 +369,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         return trans
     else:
         err = ("Invalid out parameter: %r. Needs to be 'params' or "
-              "'trans'." % out)
+               "'trans'." % out)
         raise ValueError(err)
 
 
@@ -536,7 +534,6 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
              "To improve performance, install the sklearn module.")
         errfunc = _point_cloud_error
 
-
     # for efficiency, define parameter specific error function
     param_info = (rotate, translate, scale)
     if param_info == (True, False, 0):
@@ -586,7 +583,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
         return _trans_from_params(param_info, est)
     else:
         err = ("Invalid out parameter: %r. Needs to be 'params' or "
-              "'trans'." % out)
+               "'trans'." % out)
         raise ValueError(err)
 
 
@@ -762,7 +759,7 @@ def read_mri_cfg(subject, subjects_dir=None):
         scale = config.getfloat("MRI Scaling", 'scale')
     elif n_params == 3:
         scale_str = config.get("MRI Scaling", 'scale')
-        scale = np.array(map(float, scale_str.split()))
+        scale = np.array([float(s) for s in scale_str.split()])
     else:
         raise ValueError("Invalid n_params value in MRI cfg: %i" % n_params)
 
@@ -799,7 +796,7 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
     if n_params == 1:
         config.set("MRI Scaling", 'scale', str(scale))
     else:
-        config.set("MRI Scaling", 'scale', ' '.join(map(str, scale)))
+        config.set("MRI Scaling", 'scale', ' '.join([str(s) for s in scale]))
     config.set("MRI Scaling", 'version', '1')
     with open(fname, 'wb') as fid:
         config.write(fid)

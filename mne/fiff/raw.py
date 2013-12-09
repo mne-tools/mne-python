@@ -33,7 +33,6 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
                      logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
-from ..externals.six.moves import filter
 
 
 class Raw(ProjMixin):
@@ -1268,7 +1267,7 @@ class Raw(ProjMixin):
         if bad_file is not None:
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
-            bad_names = filter(None, open(bad_file).read().splitlines())
+            bad_names = [l for l in open(bad_file).read().splitlines() if l]
             names_there = [ci for ci in bad_names if ci in names]
             count_diff = len(bad_names) - len(names_there)
 
