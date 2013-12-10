@@ -632,18 +632,17 @@ def get_sqd_params(rawfile):
 
 
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
-                 slope='-', stimthresh=1, preload=False, mrk2=None,
-                 verbose=None):
+                 slope='-', stimthresh=1, preload=False, verbose=None):
     """Reader function for KIT conversion to FIF
 
     Parameters
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape = (5, 3)
+    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
-        If averaging markers, see mrk2.
+        If list, all of the markers will be averaged together.
     elp : None | str | array_like, shape = (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
