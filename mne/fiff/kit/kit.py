@@ -117,9 +117,9 @@ class RawKIT(Raw):
                    else marker for marker in mrk]
             mrk = reduce(np.add, mrk) / len(mrk)
 
-        if (mrk and elp and hsp):
+        if (mrk is not None and elp is not None and hsp is not None):
             self._set_dig_kit(mrk, elp, hsp)
-        elif (mrk or elp or hsp):
+        elif (mrk is not None or elp is not None or hsp is not None):
             err = ("mrk, elp and hsp need to be provided as a group (all or "
                    "none)")
             raise ValueError(err)

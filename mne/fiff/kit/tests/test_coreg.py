@@ -38,7 +38,7 @@ def test_io_mrk():
     pts = read_mrk(mrk_fname)
 
     # pickle
-    path = os.path.join(tempdir, 'mrk.pickled')
+    path = os.path.join(tempdir, "mrk.pickled")
     write_mrk(path, pts)
     pts_2 = read_mrk(path)
     assert_array_equal(pts, pts_2, "read/write with pickle")
@@ -47,7 +47,7 @@ def test_io_mrk():
     path = os.path.join(tempdir, 'mrk.txt')
     write_mrk(path, pts)
     pts_2 = read_mrk(path)
-    assert_array_equal(pts, pts_2, 'read/write mrk to text')
+    assert_array_equal(pts, pts_2, "read/write mrk to text")
 
 
 def test_hsp_trans():

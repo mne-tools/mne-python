@@ -19,6 +19,8 @@ parent_dir = op.dirname(op.abspath(FILE))
 data_dir = op.join(parent_dir, 'data')
 sqd_path = op.join(data_dir, 'test.sqd')
 mrk_path = op.join(data_dir, 'test_mrk.sqd')
+mrk2_path = op.join(data_dir, 'test_mrk_pre.sqd')
+mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
 elp_path = op.join(data_dir, 'test_elp.txt')
 hsp_path = op.join(data_dir, 'test_hsp.txt')
 
@@ -92,6 +94,10 @@ def test_ch_loc():
             assert_array_almost_equal(py_ch['coil_trans'],
                                       bin_ch['coil_trans'],
                                       decimal=2)
+
+    # test when more than one marker file provided
+    mrks = [mrk_path, mrk2_path, mrk3_path]
+    _ = read_raw_kit(sqd_path, mrks, elp_path, hsp_path, preload=False)
 
 
 def test_stim_ch():
