@@ -33,7 +33,7 @@ temp_dir = _TempDir()
 
 # make a file that exists with some data in it
 existing_file = op.join(temp_dir, 'test.fif')
-with open(existing_file, 'wb') as fid:
+with open(existing_file, 'w') as fid:
     fid.write('aoeu')
 
 
