@@ -36,6 +36,7 @@ def test_compute_proj_ecg():
 
         # without setting a bad channel, this should throw a warning
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             projs, events = compute_proj_ecg(raw, n_mag=2, n_grad=2, n_eeg=2,
                                              ch_name='MEG 1531', bads=[],
                                              average=average, avg_ref=True,
@@ -62,6 +63,7 @@ def test_compute_proj_eog():
 
         # This will throw a warning b/c simplefilter('always')
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             projs, events = compute_proj_eog(raw, n_mag=2, n_grad=2, n_eeg=2,
                                              average=average, bads=[],
                                              avg_ref=True, no_proj=False,

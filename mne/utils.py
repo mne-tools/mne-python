@@ -62,7 +62,7 @@ def check_random_state(seed):
 def split_list(l, n):
     """split list in n (approx) equal pieces"""
     n = int(n)
-    sz = len(l) / n
+    sz = len(l) // n
     for i in range(n - 1):
         yield l[i * sz:(i + 1) * sz]
     yield l[(n - 1) * sz:]
@@ -1050,7 +1050,7 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
     bytes_so_far = initial_size
     # Returns only amount left to download when resuming, not the size of the
     # entire file
-    total_size = int(response.info().getheader('Content-Length').strip())
+    total_size = int(response.headers['Content-Length'].strip())
     total_size += initial_size
 
     progress = ProgressBar(total_size, initial_value=bytes_so_far,
@@ -1076,7 +1076,10 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     local_file_size = os.path.getsize(temp_file_name)
 
     data = ftplib.FTP()
-    data.connect(parsed_url.hostname, parsed_url.port)
+    if parsed_url.port is not None:
+        data.connect(parsed_url.hostname, parsed_url.port)
+    else:
+        data.connect(parsed_url.hostname)
     data.login()
     if len(server_path) > 1:
         data.cwd(unquoted_server_path)
@@ -1122,7 +1125,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     try:
         # Checking file size and displaying it alongside the download url
         u = urllib.request.urlopen(url)
-        file_size = int(u.info().getheaders("Content-Length")[0])
+        file_size = int(u.headers['Content-Length'].strip())
         print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):

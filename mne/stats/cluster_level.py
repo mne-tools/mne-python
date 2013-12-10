@@ -171,7 +171,7 @@ def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
 def _get_clusters_st(x_in, neighbors, max_step=1):
     """Helper function to choose the most efficient version"""
     n_src = len(neighbors)
-    n_times = x_in.size / n_src
+    n_times = x_in.size // n_src
     cl_goods = np.where(x_in)[0]
     if len(cl_goods) > 0:
         keepers = [np.array([], dtype=int)] * n_times

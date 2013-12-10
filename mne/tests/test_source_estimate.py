@@ -495,6 +495,7 @@ def test_spatio_temporal_src_connectivity():
     # add test for source space connectivity with omitted vertices
     inverse_operator = read_inverse_operator(fname_inv)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         src_ = inverse_operator['src']
         connectivity = spatio_temporal_src_connectivity(src_, n_times=2)
         assert len(w) == 1

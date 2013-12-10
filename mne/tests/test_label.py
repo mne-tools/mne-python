@@ -286,6 +286,7 @@ def test_stc_to_label():
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = stc_to_label(stc, src='sample', smooth=3)
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
+        warnings.simplefilter('always')
         labels2 = stc_to_label(stc, src=src, smooth=3)
     assert_true(len(w) == 1)
     assert_true(len(labels1) == len(labels2))
@@ -293,6 +294,7 @@ def test_stc_to_label():
         assert_labels_equal(l1, l2, decimal=4)
 
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
+        warnings.simplefilter('always')
         labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3,
                                             connected=True)
     assert_true(len(w) == 1)
