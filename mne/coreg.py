@@ -798,7 +798,7 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
     else:
         config.set("MRI Scaling", 'scale', ' '.join([str(s) for s in scale]))
     config.set("MRI Scaling", 'version', '1')
-    with open(fname, 'wb') as fid:
+    with open(fname, 'w') as fid:
         config.write(fid)
 
 

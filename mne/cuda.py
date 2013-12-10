@@ -50,14 +50,14 @@ def init_cuda():
         import pycuda.gpuarray
         import pycuda.driver
     except ImportError:
-        logger.warn('module pycuda not found, CUDA not enabled')
+        logger.warning('module pycuda not found, CUDA not enabled')
     else:
         try:
             # Initialize CUDA; happens with importing autoinit
             import pycuda.autoinit
         except ImportError:
-            logger.warn('pycuda.autoinit could not be imported, likely '
-                        'a hardware error, CUDA not enabled')
+            logger.warning('pycuda.autoinit could not be imported, likely '
+                           'a hardware error, CUDA not enabled')
         else:
             # Make our multiply inplace kernel
             try:
@@ -84,16 +84,16 @@ def init_cuda():
                 try:
                     from scikits.cuda import fft as cudafft
                 except ImportError:
-                    logger.warn('module scikits.cuda not found, CUDA not '
-                                'enabled')
+                    logger.warning('module scikits.cuda not found, CUDA not '
+                                   'enabled')
                 else:
                     # Make sure we can use 64-bit FFTs
                     try:
                         fft_plan = cudafft.Plan(16, np.float64, np.complex128)
                         del fft_plan
                     except:
-                        logger.warn('Device does not support 64-bit FFTs, '
-                                    'CUDA not enabled')
+                        logger.warning('Device does not support 64-bit FFTs, '
+                                       'CUDA not enabled')
                     else:
                         cuda_capable = True
                         # Figure out limit for CUDA FFT calculations
