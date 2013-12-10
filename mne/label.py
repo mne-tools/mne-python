@@ -18,6 +18,7 @@ from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
 from .surface import read_surface
 from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters
+from .externals.six import b
 
 
 class Label(object):
@@ -497,10 +498,10 @@ def write_label(filename, label, verbose=None):
     data[:, 0] = label.vertices
     data[:, 1:4] = 1e3 * label.pos
     data[:, 4] = label.values
-    fid.write(("#%s\n" % label.comment).encode('utf-8'))
-    fid.write(("%d\n" % n_vertices).encode('utf-8'))
+    fid.write(b("#%s\n" % label.comment))
+    fid.write(b("%d\n" % n_vertices))
     for d in data:
-        fid.write(("%d %f %f %f %f\n" % tuple(d)).encode('utf-8'))
+        fid.write(b("%d %f %f %f %f\n" % tuple(d)))
 
     return label
 

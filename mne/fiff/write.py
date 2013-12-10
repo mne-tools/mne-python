@@ -9,8 +9,6 @@ import numpy as np
 from scipy import linalg
 import os.path as op
 import gzip
-import sys
-import os
 import re
 import uuid
 
