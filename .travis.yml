@@ -3,6 +3,7 @@ env:
     - COVERAGE=--with-coverage MNE_FORCE_SERIAL=1 MNE_SKIP_SAMPLE_DATASET_TESTS=1
 python:
     - "2.7"
+    - "3.3"
 virtualenv:
     system_site_packages: true
 before_install:
