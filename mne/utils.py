@@ -1140,7 +1140,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
                     # There is a problem that may be due to resuming, some
                     # servers may not support the "Range" header. Switch back
                     # to complete download method
-                    print('Resuming download failed. Attempting to restart '\
+                    print('Resuming download failed. Attempting to restart '
                           'downloading the entire file.')
                     _fetch_file(url, resume=False)
                 _chunk_read(data, local_file, initial_size=local_file_size)
@@ -1156,15 +1156,10 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         shutil.move(temp_file_name, file_name)
         if print_destination is True:
             stdout.write('File saved as %s.\n' % file_name)
-    except urllib.request.HTTPError as e:
-        print('Error while fetching file %s.' \
-            ' Dataset fetching aborted.' % url)
-        print("HTTP Error:", e, url)
-        raise
-    except urllib.request.URLError as e:
-        print('Error while fetching file %s.' \
-            ' Dataset fetching aborted.' % url)
-        print("URL Error:", e, url)
+    except Exception as e:
+        logger.error('Error while fetching file %s.'
+                     ' Dataset fetching aborted.' % url)
+        logger.error("Error: %s", e)
         raise
     finally:
         if local_file is not None:
@@ -1174,13 +1169,14 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
 
 def sizeof_fmt(num):
     """Turn number of bytes into human-readable str"""
-    unit_list = zip(['bytes', 'kB', 'MB', 'GB', 'TB', 'PB'],
-                    [0, 0, 1, 2, 2, 2])
+    units = ['bytes', 'kB', 'MB', 'GB', 'TB', 'PB']
+    decimals = [0, 0, 1, 2, 2, 2]
     """Human friendly file size"""
     if num > 1:
-        exponent = min(int(log(num, 1024)), len(unit_list) - 1)
+        exponent = min(int(log(num, 1024)), len(units) - 1)
         quotient = float(num) / 1024 ** exponent
-        unit, num_decimals = unit_list[exponent]
+        unit = units[exponent]
+        num_decimals = decimals[exponent]
         format_string = '{:.%sf} {}' % (num_decimals)
         return format_string.format(quotient, unit)
     if num == 0:
