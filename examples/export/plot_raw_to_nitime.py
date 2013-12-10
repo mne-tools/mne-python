@@ -12,7 +12,7 @@ for further signal processing and data analysis.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne
@@ -41,22 +41,22 @@ raw_ts = raw.to_nitime(start=start, stop=stop, picks=picks, copy=True)
 # explore some nitime timeseries features
 
 # get start
-print raw_ts.t0
+print(raw_ts.t0)
 
 # get duration
-print raw_ts.duration
+print(raw_ts.duration)
 
 # get sample duration (sampling interval)
-print raw_ts.sampling_interval
+print(raw_ts.sampling_interval)
 
 # get exported raw infor
-print raw_ts.metadata.keys()
+print(list(raw_ts.metadata.keys()))
 
 # index at certain time
-print raw_ts.at(110.5)
+print(raw_ts.at(110.5))
 
 # get channel names (attribute added during export)
-print raw_ts.ch_names[:3]
+print(raw_ts.ch_names[:3])
 
 ###############################################################################
 # investigate spectral density

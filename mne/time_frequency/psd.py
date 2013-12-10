@@ -71,7 +71,7 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     if not plot:
         plt.close(fig)
     freqs = out[0][1]
-    psd = np.array(zip(*out)[0])
+    psd = np.array([o[0] for o in out])
 
     mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[mask]
@@ -83,7 +83,7 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
 def _compute_psd(data, fmin, fmax, Fs, n_fft, psd):
     """Compute the PSD"""
     out = [psd(d, Fs=Fs, NFFT=n_fft) for d in data]
-    psd = np.array(zip(*out)[0])
+    psd = np.array([o[0] for o in out])
     freqs = out[0][1]
     mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[mask]
@@ -140,6 +140,6 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     out = parallel(my_psd(data[picks], fmin, fmax, Fs, n_fft, plt.psd)
                    for data in epochs)
     plt.close(fig)
-    psds, freqs = zip(*out)
-
+    psds = [o[0] for o in out]
+    freqs = [o[1] for o in out]
     return np.array(psds), freqs[0]

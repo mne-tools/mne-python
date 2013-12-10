@@ -38,6 +38,8 @@ def test_tempdir():
 
 
 def test_estimate_rank():
+    """Test rank estimation
+    """
     data = np.eye(10)
     data[0, 0] = 0
     assert_equal(estimate_rank(data), 9)
