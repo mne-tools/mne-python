@@ -15,7 +15,8 @@ ALLSPHINXOPTS   = -d build/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) source
 
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
-	@echo "  html      to make standalone HTML files"
+	@echo "  html      to make standalone HTML files (stable version)"
+	@echo "  dev_html  to make standalone HTML files (dev version)"
 	@echo "  dirhtml   to make HTML files named index.html in directories"
 	@echo "  pickle    to make pickle files"
 	@echo "  json      to make JSON files"
@@ -39,8 +40,18 @@ html:
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."
 
+html_dev:
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
+	@echo
+	@echo "Build finished. The HTML pages are in build/html."
+
 html-noplot:
 	$(SPHINXBUILD) -D plot_gallery=False -b html $(ALLSPHINXOPTS) build/html
+	@echo
+	@echo "Build finished. The HTML pages are in build/html/stable."
+
+html_dev-noplot:
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=False -b html $(ALLSPHINXOPTS) build/html
 	@echo
 	@echo "Build finished. The HTML pages are in build/html/stable."
 

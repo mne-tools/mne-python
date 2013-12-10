@@ -160,7 +160,8 @@ html_last_updated_fmt = '%b %d, %Y'
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {'**': ['globaltoc.html', 'sourcelink.html', 'searchbox.html',
+                        'sidebar.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -179,8 +180,10 @@ html_use_index = False
 html_show_sourcelink = False
 
 # variables to pass to HTML templating engine
+build_dev_html = bool(int(os.environ.get('BUILD_DEV_HTML', False)))
+
 html_context = {'use_google_analytics':True, 'use_twitter':True,
-                'use_media_buttons':True}
+                'use_media_buttons':True, 'build_dev_html':build_dev_html}
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
