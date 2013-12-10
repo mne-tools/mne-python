@@ -62,7 +62,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
         try:
             from sklearn.externals.joblib import Parallel, delayed
         except ImportError:
-            logger.warn('joblib not installed. Cannot run in parallel.')
+            logger.warning('joblib not installed. Cannot run in parallel.')
             n_jobs = 1
             my_func = func
             parallel = list
@@ -78,8 +78,8 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
 
     if max_nbytes is not None:
         if not joblib_mmap and cache_dir is not None:
-            logger.warn('"MNE_CACHE_DIR" is set but a newer version of joblib '
-                        'is needed to use the memmapping pool.')
+            logger.warning('"MNE_CACHE_DIR" is set but a newer version of '
+                           'joblib is needed to use the memmapping pool.')
         if joblib_mmap and cache_dir is None:
             logger.info('joblib supports memapping pool but "MNE_CACHE_DIR" '
                         'is not set in MNE-Python config. To enable it, use, '
@@ -140,8 +140,8 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         except ImportError:
             # only warn if they tried to use something other than 1 job
             if n_jobs != 1:
-                logger.warn('multiprocessing not installed. Cannot run in '
-                            'parallel.')
+                logger.warning('multiprocessing not installed. Cannot run in '
+                               'parallel.')
                 n_jobs = 1
 
     return n_jobs

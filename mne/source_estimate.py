@@ -2463,7 +2463,8 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
             if not allow_empty:
                 raise ValueError(msg)
             else:
-                logger.warn(msg + '. Assigning all-zero time series to label.')
+                logger.warning(msg + '. Assigning all-zero time series to '
+                               'label.')
             this_vertidx = None  # to later check if label is empty
 
         label_vertidx.append(this_vertidx)

@@ -383,7 +383,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                     logger.info('Convergence stopped (AS did not change) !')
                     break
         else:
-            logger.warn('Did NOT converge ! (gap: %s > %s)' % (gap, tol))
+            logger.warning('Did NOT converge ! (gap: %s > %s)' % (gap, tol))
 
         active_set = np.zeros_like(active_set)
         active_set[as_] = True

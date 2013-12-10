@@ -326,7 +326,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 txt = ('threshold["start"] (%s) is more extreme than '
                        'data statistics with most extreme value %s'
                        % (threshold['start'], stop))
-                logger.warn(txt)
+                logger.warning(txt)
                 warnings.warn(txt)
             else:
                 logger.info('Using %d thresholds from %0.2f to %0.2f for TFCE '
@@ -708,8 +708,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                 stat_fun(*[x[:, pos: pos + buffer_size] for x in X])
 
         if not np.alltrue(T_obs == T_obs_buffer):
-            logger.warn('Provided stat_fun does not treat variables '
-                        'independently. Setting buffer_size to None.')
+            logger.warning('Provided stat_fun does not treat variables '
+                           'independently. Setting buffer_size to None.')
             buffer_size = None
 
     # The stat should have the same shape as the samples for no conn.

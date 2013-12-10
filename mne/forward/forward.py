@@ -913,7 +913,7 @@ def _restrict_gain_matrix(G, info):
                 G = G[sel]
                 logger.info('    %d EEG channels' % len(sel))
             else:
-                logger.warn('Could not find MEG or EEG channels')
+                logger.warning('Could not find MEG or EEG channels')
     return G
 
 

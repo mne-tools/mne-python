@@ -178,7 +178,7 @@ def _check_n_samples(n_samples, n_chan):
         text = ('Too few samples (required : %d got : %d), covariance '
                 'estimate may be unreliable' % (n_samples_min, n_samples))
         warnings.warn(text)
-        logger.warn(text)
+        logger.warning(text)
 
 
 @verbose
