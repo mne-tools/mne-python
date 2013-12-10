@@ -73,7 +73,7 @@ class RawBrainVision(Raw):
         n_samples = f.tell()
         dtype = int(self._eeg_info['dtype'][-1])
         n_chan = self.info['nchan']
-        self.last_samp = (n_samples / (dtype * (n_chan - 1))) - 1
+        self.last_samp = (n_samples // (dtype * (n_chan - 1))) - 1
 
         if preload:
             self._preloaded = preload

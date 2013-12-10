@@ -35,6 +35,7 @@ def test_read_config():
     # for config in config_fname, config_solaris_fname:
     for config in config_fnames:
         cfg = _read_config(config)
+        #raise Exception
         assert_true(all([all([k not in block.lower() for k in ['', 'unknown']]
                     for block in cfg['user_blocks'])]))
 
@@ -90,5 +91,6 @@ def test_setup_headshape():
     for hs in hs_fnames:
         dig, t = _setup_head_shape(hs)
         expected = set(['kind', 'ident', 'r'])
-        found = set(reduce(lambda x, y: x + y, [d.keys() for d in dig]))
+        found = set(reduce(lambda x, y: list(x)+list(y), 
+                           [d.keys() for d in dig]))
         assert_true(not expected - found)
