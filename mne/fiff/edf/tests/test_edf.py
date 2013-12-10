@@ -90,3 +90,14 @@ def test_read_segment():
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)
     assert_array_equal(raw1._data, raw2._data)
+
+
+def test_append():
+    """Test appending raw edf objects using Raw.append
+    """
+    # Author: Alan Leggitt <alan.leggitt@ucsf.edu>
+    raw = read_raw_edf(bdf_path, hpts=hpts_path, preload=False)
+    raw0 = raw.copy()
+    raw1 = raw.copy()
+    raw0.append(raw1)
+    assert_true(2*len(raw) == len(raw0))
