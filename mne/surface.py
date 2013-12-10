@@ -821,9 +821,11 @@ def write_surface(fname, coords, faces, create_stamp=''):
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
 
-    with open(fname, 'w') as fid:
+    with open(fname, 'wb') as fid:
         fid.write(pack('>3B', 255, 255, 254))
-        fid.writelines(('%s\n' % create_stamp, '\n'))
+        strs = ['%s\n' % create_stamp, u'\n']
+        strs = [s.encode('utf-8') for s in strs]
+        fid.writelines(strs)
         vnum = len(coords)
         fnum = len(faces)
         fid.write(pack('>2i', vnum, fnum))

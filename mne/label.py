@@ -497,10 +497,10 @@ def write_label(filename, label, verbose=None):
     data[:, 0] = label.vertices
     data[:, 1:4] = 1e3 * label.pos
     data[:, 4] = label.values
-    fid.write("#%s\n" % label.comment)
-    fid.write("%d\n" % n_vertices)
+    fid.write(("#%s\n" % label.comment).encode('utf-8'))
+    fid.write(("%d\n" % n_vertices).encode('utf-8'))
     for d in data:
-        fid.write("%d %f %f %f %f\n" % tuple(d))
+        fid.write(("%d %f %f %f %f\n" % tuple(d)).encode('utf-8'))
 
     return label
 

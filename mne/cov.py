@@ -235,7 +235,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     # Convert to samples
     start = 0 if tmin is None else int(floor(tmin * sfreq))
     if tmax is None:
-        stop = raw.last_samp - raw.first_samp
+        stop = int(raw.last_samp - raw.first_samp)
     else:
         stop = int(ceil(tmax * sfreq))
     step = int(ceil(tstep * raw.info['sfreq']))
