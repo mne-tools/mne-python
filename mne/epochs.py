@@ -327,6 +327,10 @@ class _BaseEpochs(ProjMixin):
         raise NotImplementedError('next() must be implemented in derived '
                                   'class.')
 
+    def __next__(self, *args, **kwargs):
+        """Wrapper for Py3k"""
+        return self.next(*args, **kwargs)
+
     def average(self, picks=None):
         """Compute average of epochs
 
@@ -1478,7 +1482,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
             raise ValueError('new_event_id must be a dict or int')
         if not len(new_event_id.keys()) == 1:
             raise ValueError('new_event_id dict must have one entry')
-    new_event_num = new_event_id.values()[0]
+    new_event_num = list(new_event_id.values())[0]
     if not isinstance(new_event_num, int):
         raise ValueError('new_event_id value must be an integer')
     if new_event_num in epochs.event_id.values():
