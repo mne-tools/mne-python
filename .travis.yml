@@ -12,9 +12,9 @@ before_install:
     - sudo apt-get install python-pip
     - sudo apt-get install python-nibabel python-nitime python-pandas
     - sudo pip install scikit-learn
-    - sudo pip install python-nibabel
-    - sudo pip install python-nitime
-    - sudo pip install python-pandas
+    - sudo pip install nibabel
+    - sudo pip install nitime
+    - sudo pip install pandas
 install:
     - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coverage; fi
     - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coveralls; fi
