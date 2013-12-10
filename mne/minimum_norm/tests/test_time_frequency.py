@@ -58,7 +58,7 @@ def test_tfr_with_inverse_operator():
                                      label=label)
 
     stc = stcs['alpha']
-    assert_true(len(stcs) == len(bands.keys()))
+    assert_true(len(stcs) == len(list(bands.keys())))
     assert_true(np.all(stc.data > 0))
     assert_array_almost_equal(stc.times, epochs.times)
 

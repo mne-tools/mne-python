@@ -985,7 +985,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     fig = ax.get_figure()
     if show and plt.get_backend() != 'agg':
         fig.show()
-    
+
     return fig
 
 
@@ -1461,7 +1461,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         We show square roots ie. standard deviations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-        
+
     Returns
     -------
     fig_cov : instance of matplotlib.pyplot.Figure
@@ -1981,7 +1981,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
-    if units.keys() != scalings.keys():
+    if list(units.keys()) != list(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
 
     picks = np.atleast_1d(picks)
@@ -2426,11 +2426,11 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
         raise ValueError('drop_log must be a list of lists')
     import matplotlib.pyplot as plt
     scores = Counter([ch for d in drop_log for ch in d])
-    ch_names = np.array(scores.keys())
+    ch_names = np.array(list(scores.keys()))
     perc = 100 * np.mean([len(d) > 0 for d in drop_log])
     if perc < threshold or len(ch_names) == 0:
         return perc
-    counts = 100 * np.array(scores.values(), dtype=float) / len(drop_log)
+    counts = 100 * np.array(list(scores.values()), dtype=float) / len(drop_log)
     n_plot = min(n_max_plot, len(ch_names))
     order = np.flipud(np.argsort(counts))
     plt.figure()
@@ -2973,7 +2973,8 @@ def figure_nobar(*args, **kwargs):
         mpl.rcParams['toolbar'] = 'none'
         fig = plt.figure(*args, **kwargs)
         # remove button press catchers (for toolbar)
-        for key in fig.canvas.callbacks.callbacks['key_press_event'].keys():
+        cbs = list(fig.canvas.callbacks.callbacks['key_press_event'].keys())
+        for key in cbs:
             fig.canvas.callbacks.disconnect(key)
     except Exception as ex:
         raise ex

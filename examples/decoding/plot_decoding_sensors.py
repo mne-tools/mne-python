@@ -11,7 +11,7 @@ point.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 import matplotlib.pyplot as plt
 import numpy as np
 

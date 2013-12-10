@@ -1480,7 +1480,7 @@ def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
     else:
         if not isinstance(new_event_id, dict):
             raise ValueError('new_event_id must be a dict or int')
-        if not len(new_event_id.keys()) == 1:
+        if not len(list(new_event_id.keys())) == 1:
             raise ValueError('new_event_id dict must have one entry')
     new_event_num = list(new_event_id.values())[0]
     if not isinstance(new_event_num, int):

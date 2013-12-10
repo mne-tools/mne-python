@@ -15,7 +15,7 @@ epochs in source space.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 import os
@@ -58,7 +58,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6))
 
-epochs.equalize_event_counts(event_id.keys(), 'mintime', copy=False)
+epochs.equalize_event_counts(list(event_id.keys()), 'mintime', copy=False)
 epochs_list = [epochs[k] for k in event_id]
 
 # Compute inverse solution
@@ -78,8 +78,8 @@ X = np.zeros([n_epochs, n_vertices, n_times])
 # to save memory, we'll load and transform our epochs step by step.
 for condition_count, ep in zip([0, n_epochs / 2], epochs_list):
     stcs = apply_inverse_epochs(ep, inverse_operator, lambda2,
-                            method, pick_ori="normal",  # this saves us memory
-                            return_generator=True)
+                                method, pick_ori="normal",  # saves us memory
+                                return_generator=True)
     for jj, stc in enumerate(stcs):
         X[condition_count + jj] = stc.lh_data
 
@@ -129,8 +129,8 @@ for ii, (train, test) in enumerate(cv):
     feature_weights += feature_selection.inverse_transform(clf.coef_) \
         .reshape(n_vertices, n_times)
 
-print 'Average prediction accuracy: %0.3f | standard deviation:  %0.3f' % \
-    (scores.mean(), scores.std())
+print('Average prediction accuracy: %0.3f | standard deviation:  %0.3f'
+      % (scores.mean(), scores.std()))
 
 # prepare feature weights for visualization
 feature_weights /= (ii + 1)  # create average weights
@@ -145,8 +145,8 @@ feature_weights = np.abs(feature_weights.data) * 10
 
 vertices = [stc.lh_vertno, np.array([])]  # empty array for right hemisphere
 stc_feat = mne.SourceEstimate(feature_weights, vertices=vertices,
-            tmin=stc.tmin, tstep=stc.tstep,
-            subject='sample')
+                              tmin=stc.tmin, tstep=stc.tstep,
+                              subject='sample')
 
 brain = stc_feat.plot(subject=subject, fmin=1, fmid=5.5, fmax=20)
 brain.set_time(100)
