@@ -32,7 +32,6 @@ from ..fiff.write import (write_int, start_block, end_block,
                           write_string, start_file, end_file, write_id)
 from ..fiff.raw import Raw
 from ..fiff.evoked import Evoked, write_evoked
-from ..event import make_fixed_length_events
 from ..epochs import Epochs
 from ..source_space import (read_source_spaces_from_tree,
                             find_source_space_hemi,
@@ -963,7 +962,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
 
     logger.info('    limit = %d/%d = %f'
                 % (n_limit + 1, len(d),
-                np.sqrt(limit / ws[0])))
+                   np.sqrt(limit / ws[0])))
     scale = 1.0 / limit
     logger.info('    scale = %g exp = %g' % (scale, exp))
     wpp = np.minimum(w / limit, 1) ** exp
@@ -1166,7 +1165,7 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     data, times = _apply_forward(fwd, stc, start, stop)
 
     # store sensor data in Raw object using the template
-    raw = deepcopy(raw_template)
+    raw = raw_template.copy()
     raw._preloaded = True
     raw._data = data
     raw._times = times
@@ -1538,6 +1537,7 @@ def average_forward_solutions(fwds, weights=None):
     # check weights
     if weights is None:
         weights = np.ones(len(fwds))
+    weights = np.asanyarray(weights)  # in case it's a list, convert it
     if not np.all(weights >= 0):
         raise ValueError('weights must be non-negative')
     if not len(weights) == len(fwds):
