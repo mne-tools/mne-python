@@ -123,10 +123,10 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     # compute data covariance
     data = _compute_cov_epochs(epochs, n_jobs)
     event_id = epochs.event_id
-    if event_id is None or len(event_id.keys()) == 0:
+    if event_id is None or len(list(event_id.keys())) == 0:
         event_id = '0'
     elif len(event_id.keys()) == 1:
-        event_id = str(event_id.values()[0])
+        event_id = str(list(event_id.values())[0])
     else:
         event_id = 'Multiple-events'
     desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
