@@ -582,10 +582,16 @@ class _BaseSourceEstimate(object):
             self._data -= a
         return self
 
+    def __truediv__(self, a):
+        return self.__div__(a)
+
     def __div__(self, a):
         stc = copy.deepcopy(self)
         stc /= a
         return stc
+
+    def __itruediv__(self, a):
+        return self.__idiv__(a)
 
     def __idiv__(self, a):
         self._remove_kernel_sens_data_()

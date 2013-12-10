@@ -1036,7 +1036,7 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                 continue
             pos = vert_pos[vertices, :]
             values = np.zeros(len(vertices))
-            name = label_name + '-' + hemi
+            name = label_name.decode() + '-' + hemi
             label = Label(vertices, pos, values, hemi, name=name,
                           subject=subject)
             labels.append(label)
