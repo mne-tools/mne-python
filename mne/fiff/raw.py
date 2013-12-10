@@ -358,10 +358,15 @@ class Raw(ProjMixin):
             time_slice = item[1]
             start, stop, step = (time_slice.start, time_slice.stop,
                                  time_slice.step)
-        elif isinstance(item[1], int):
-            start, stop, step = item[1], item[1] + 1, 1
         else:
-            raise ValueError('Must pass int or slice to __getitem__')
+            item1 = item[1]
+            # Let's do automated type conversion to integer here
+            if np.array(item[1]).dtype.kind == 'i':
+                item1 = int(item1)
+            if isinstance(item1, int):
+                start, stop, step = item1, item1 + 1, 1
+            else:
+                raise ValueError('Must pass int or slice to __getitem__')
 
         if start is None:
             start = 0
