@@ -11,6 +11,7 @@ from mne.datasets import sample
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw, tf_lcmv
 from mne.beamformer._lcmv import _lcmv_source_power
 from mne.source_estimate import SourceEstimate, VolSourceEstimate
+from mne.externals.six import advance_iterator
 
 
 data_path = sample.data_path(download=False)
@@ -162,7 +163,7 @@ def test_lcmv():
     stcs = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01)
     stcs_ = lcmv_epochs(epochs, forward_fixed, noise_cov, data_cov, reg=0.01,
                         return_generator=True)
-    assert_array_equal(stcs[0].data, stcs_.next().data)
+    assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     epochs.drop_bad_epochs()
     assert_true(len(epochs.events) == len(stcs))

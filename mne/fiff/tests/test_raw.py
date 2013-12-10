@@ -243,6 +243,7 @@ def test_load_bad_channels():
 
     # Test forcing the bad case
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         raw.load_bad_channels(bad_file_wrong, force=True)
         assert_equal(len(w), 1)
         # write it out, read it in, and check
@@ -370,6 +371,7 @@ def test_io_complex():
         raw_cp._data[picks, start:stop] += imag_rand
         # this should throw an error because it's complex
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5,
                         overwrite=True)
             # warning gets thrown on every instance b/c simplifilter('always')
@@ -543,7 +545,8 @@ def test_filter():
 
     # do a very simple check on line filtering
     raw_bs = raw.copy()
-    with warnings.catch_warnings(record=True) as _:
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
         raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy()

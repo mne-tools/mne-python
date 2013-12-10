@@ -56,6 +56,7 @@ from . import coreg
 from . import cuda
 from . import datasets
 from . import epochs
+from . import externals
 from . import fiff
 from . import filter
 from . import gui

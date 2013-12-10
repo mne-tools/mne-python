@@ -335,8 +335,10 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
 
         _ = fid.read(80).strip()  # subject id
         _ = fid.read(80).strip()  # recording id
-        day, month, year = [int(x) for x in re.findall('(\d+)', fid.read(8))]
-        hour, minute, sec = [int(x) for x in re.findall('(\d+)', fid.read(8))]
+        day, month, year = [int(x) for x in re.findall('(\d+)',
+                                                       fid.read(8).decode())]
+        hour, minute, sec = [int(x) for x in re.findall('(\d+)',
+                                                        fid.read(8).decode())]
         date = datetime.datetime(year + 2000, month, day, hour, minute, sec)
         info['meas_date'] = calendar.timegm(date.utctimetuple())
 
@@ -351,7 +353,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         if n_eeg is None:
             n_eeg = info['nchan']
         channels = list(range(info['nchan']))
-        ch_names = [fid.read(16).strip() for _ in channels]
+        ch_names = [fid.read(16).strip().decode() for _ in channels]
         _ = [fid.read(80).strip() for _ in channels]  # transducer type
         units = [fid.read(8).strip() for _ in channels]
         for i, unit in enumerate(units):
@@ -365,7 +367,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         physical_max = np.array([float(fid.read(8)) for _ in channels])
         digital_min = np.array([float(fid.read(8)) for _ in channels])
         digital_max = np.array([float(fid.read(8)) for _ in channels])
-        prefiltering = [fid.read(80).strip() for _ in channels][:-1]
+        prefiltering = [fid.read(80).strip().decode() for _ in channels][:-1]
         highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
                              for filt in prefiltering])
         lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt)
@@ -422,7 +424,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         edf_info['data_size'] = 2  # 16-bit (2 byte) integers
 
     if hpts and os.path.lexists(hpts):
-        fid = open(hpts, 'rb').read()
+        fid = open(hpts, 'rb').read().decode()
         locs = {}
         temp = re.findall('eeg\s(\w+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)',
                           fid)
