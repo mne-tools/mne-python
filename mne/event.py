@@ -170,7 +170,7 @@ def _read_events_fif(fid, tree):
     if mappings is not None:
         m_ = (m.split(':') for m in mappings.split(';'))
         mappings = dict((k, int(v)) for k, v in m_)
-    event_list = event_list.reshape(len(event_list) / 3, 3)
+    event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
 

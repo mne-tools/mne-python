@@ -227,7 +227,7 @@ def test_fetch_file():
                       op.join(tempdir, 'test'))
         resume_name = op.join(tempdir, "download_resume")
         # touch file
-        with file(resume_name + '.part', 'w'):
+        with open(resume_name + '.part', 'w'):
             os.utime(resume_name + '.part', None)
         _fetch_file(url, resume_name, print_destination=False, resume=True)
 
