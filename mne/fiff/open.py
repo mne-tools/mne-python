@@ -7,7 +7,7 @@ from ..externals.six import string_types
 import numpy as np
 import os.path as op
 import gzip
-from ..externals.six.moves import cStringIO as StringIO
+from io import BytesIO
 
 from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree
@@ -57,7 +57,7 @@ def fiff_open(fname, preload=False, verbose=None):
         # note that StringIO objects instantiated this way are read-only,
         # but that's okay here since we are using mode "rb" anyway
         fid_old = fid
-        fid = StringIO(read_big(fid_old))
+        fid = BytesIO(read_big(fid_old))
         fid_old.close()
 
     tag = read_tag_info(fid)
