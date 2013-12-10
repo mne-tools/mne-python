@@ -45,8 +45,12 @@
         <!-- <li><a href="{{ pathto('search') }}">Search</a></li> -->
 {% endblock %}
 
-
 {% block relbar1 %}
+{% if build_dev_html|tobool %}
+<div style="background-color: red; color: white; font-weight:bold; text-align: center; padding: 10px; min-width: 910px">
+This documentation is for the development version ({{ release }}) - <a href="http://martinos.org/mne/stable">Stable version</a>
+</div>
+{% endif %}
 <div style="background-color: white; text-align: left; padding: 10px 7px 15px 15px; min-width: 910px">
 <div style="float: left">
 <a href="{{ pathto('index') }}"><img src="{{
@@ -65,4 +69,3 @@ pathto("_static/institutions.png", 1) }}" border="0" alt="py4sci"/></a>
 {# put the sidebar before the body #}
 {% block sidebar1 %}{{ sidebar() }}{% endblock %}
 {% block sidebar2 %}{% endblock %}
-
