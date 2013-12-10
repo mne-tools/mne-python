@@ -384,7 +384,7 @@ def test_transform_data():
     data = np.dot(kernel, sens_data)
 
     for idx, tmin_idx, tmax_idx in\
-            zip([None, np.arange(n_vertices / 2, n_vertices)],
+            zip([None, np.arange(n_vertices // 2, n_vertices)],
                 [None, 1], [None, 3]):
 
         if idx is None:
