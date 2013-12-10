@@ -17,8 +17,8 @@ from nose.tools import assert_true, assert_raises, assert_equal
 from mne.fiff import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
                       get_chpi_positions, set_eeg_reference)
 from mne import concatenate_events, find_events
-from mne.utils import (_TempDir, requires_nitime, requires_pandas, requires_mne,
-                       run_subprocess)
+from mne.utils import (_TempDir, requires_nitime, requires_pandas,
+                       requires_mne, run_subprocess)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
