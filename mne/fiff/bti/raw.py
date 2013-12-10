@@ -869,7 +869,10 @@ def _read_bti_header(pdf_fname, config_fname):
     info['chs'] = [chans[pos] for pos in by_index]
 
     by_name = [(i, d['name']) for i, d in enumerate(info['chs'])]
-    by_name.sort(key=lambda c: int(c[1][1:]) if c[1][0] == 'A' else c[1])
+    a_chs = filter(lambda c: c[1].startswith('A'), by_name)
+    other_chs = filter(lambda c: not c[1].startswith('A'), by_name)
+    by_name = sorted(a_chs, key=lambda c: int(c[1][1:])) + sorted(other_chs)
+
     by_name = [idx[0] for idx in by_name]
     info['chs'] = [chans[pos] for pos in by_name]
     info['order'] = by_name

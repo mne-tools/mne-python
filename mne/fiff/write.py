@@ -323,7 +323,7 @@ def write_ch_info(fid, ch):
 
     fid.write(np.array(ch_name, dtype='>c').tostring())
     if len(ch_name) < 16:
-        fid.write('\0' * (16 - len(ch_name)))
+        fid.write(b('\0') * (16 - len(ch_name)))
 
 
 def write_dig_point(fid, dig):

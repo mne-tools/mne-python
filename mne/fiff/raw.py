@@ -240,19 +240,19 @@ class Raw(ProjMixin):
             elif ent.kind == FIFF.FIFF_DATA_BUFFER:
                 #   Figure out the number of samples in this buffer
                 if ent.type == FIFF.FIFFT_DAU_PACK16:
-                    nsamp = ent.size / (2 * nchan)
+                    nsamp = ent.size // (2 * nchan)
                 elif ent.type == FIFF.FIFFT_SHORT:
-                    nsamp = ent.size / (2 * nchan)
+                    nsamp = ent.size // (2 * nchan)
                 elif ent.type == FIFF.FIFFT_FLOAT:
-                    nsamp = ent.size / (4 * nchan)
+                    nsamp = ent.size // (4 * nchan)
                 elif ent.type == FIFF.FIFFT_DOUBLE:
-                    nsamp = ent.size / (8 * nchan)
+                    nsamp = ent.size // (8 * nchan)
                 elif ent.type == FIFF.FIFFT_INT:
-                    nsamp = ent.size / (4 * nchan)
+                    nsamp = ent.size // (4 * nchan)
                 elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
-                    nsamp = ent.size / (8 * nchan)
+                    nsamp = ent.size // (8 * nchan)
                 elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
-                    nsamp = ent.size / (16 * nchan)
+                    nsamp = ent.size // (16 * nchan)
                 else:
                     fid.close()
                     raise ValueError('Cannot handle data buffers of type %d' %
