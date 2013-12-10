@@ -343,7 +343,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         info['meas_date'] = calendar.timegm(date.utctimetuple())
 
         edf_info['data_offset'] = header_nbytes = int(fid.read(8))
-        subtype = fid.read(44).strip()[:5]
+        subtype = fid.read(44).strip().decode()[:5]
         edf_info['subtype'] = subtype
 
         edf_info['n_records'] = n_records = int(fid.read(8))
@@ -355,7 +355,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         channels = list(range(info['nchan']))
         ch_names = [fid.read(16).strip().decode() for _ in channels]
         _ = [fid.read(80).strip() for _ in channels]  # transducer type
-        units = [fid.read(8).strip() for _ in channels]
+        units = [fid.read(8).strip().decode() for _ in channels]
         for i, unit in enumerate(units):
             if unit == 'uV':
                 units[i] = -6

@@ -528,7 +528,7 @@ def get_sqd_params(rawfile):
     """
     sqd = dict()
     sqd['rawfile'] = rawfile
-    with open(rawfile, 'rb') as fid:
+    with open(rawfile, 'rb+') as fid:
         fid.seek(KIT.BASIC_INFO)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(basic_offset)
@@ -536,7 +536,7 @@ def get_sqd_params(rawfile):
         fid.seek(KIT.INT * 3, SEEK_CUR)
         # basic info
         sysname = unpack('128s', fid.read(KIT.STRING))
-        sysname = sysname[0].split('\n')[0]
+        sysname = sysname[0].decode().split('\n')[0]
         fid.seek(KIT.STRING, SEEK_CUR)  # skips modelname
         sqd['nchan'] = unpack('i', fid.read(KIT.INT))[0]
 
