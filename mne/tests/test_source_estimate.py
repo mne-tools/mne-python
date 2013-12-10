@@ -166,7 +166,9 @@ def test_stc_arithmetic():
 
         a += a
         a -= a
-        a /= 2 * a
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always')
+            a /= 2 * a
         a *= -a
 
         a += 2
