@@ -462,7 +462,7 @@ def test_proj():
 
 
 def test_preload_modify():
-    """ Test preloading and modifying data
+    """Test preloading and modifying data
     """
     for preload in [False, True, 'memmap.dat']:
         raw = Raw(fif_fname, preload=preload)
@@ -490,7 +490,8 @@ def test_preload_modify():
 
 
 def test_filter():
-    """ Test filtering (FIR and IIR) and Raw.apply_function interface """
+    """Test filtering (FIR and IIR) and Raw.apply_function interface
+    """
     raw = Raw(fif_fname, preload=True).crop(0, 7, False)
     sig_dec = 11
     sig_dec_notch = 12
@@ -602,7 +603,8 @@ def test_crop():
 
 
 def test_resample():
-    """ Test resample (with I/O and multiple files) """
+    """Test resample (with I/O and multiple files)
+    """
     raw = Raw(fif_fname, preload=True).crop(0, 3, False)
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
@@ -653,7 +655,8 @@ def test_resample():
 
 
 def test_hilbert():
-    """ Test computation of analytic signal using hilbert """
+    """Test computation of analytic signal using hilbert
+    """
     raw = Raw(fif_fname, preload=True)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
@@ -667,7 +670,8 @@ def test_hilbert():
 
 
 def test_raw_copy():
-    """ Test Raw copy"""
+    """Test Raw copy
+    """
     raw = Raw(fif_fname, preload=True)
     data, _ = raw[:, :]
     copied = raw.copy()

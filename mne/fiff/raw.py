@@ -588,7 +588,7 @@ class Raw(ProjMixin):
         fs = float(self.info['sfreq'])
         if l_freq == 0:
             l_freq = None
-        if h_freq > (fs / 2.):
+        if h_freq is not None and h_freq > (fs / 2.):
             h_freq = None
         if l_freq is not None and not isinstance(l_freq, float):
             l_freq = float(l_freq)
@@ -1381,8 +1381,13 @@ class Raw(ProjMixin):
     def copy(self):
         """ Return copy of Raw instance
         """
-        new = deepcopy(self)
-        new._initialize_fids()
+        old_fids = self.fids
+        try:
+            self.fids = list()
+            new = deepcopy(self)
+            new._initialize_fids()
+        finally:
+            self.fids = old_fids
         return new
 
     def _initialize_fids(self):
@@ -1390,7 +1395,8 @@ class Raw(ProjMixin):
         """
         if not self._preloaded:
             self.fids = [open(fname, "rb") for fname in self.info['filenames']]
-            [fid.seek(0, 0) for fid in self.fids]
+            for fid in self.fids:
+                fid.seek(0, 0)
         else:
             self.fids = []
 
