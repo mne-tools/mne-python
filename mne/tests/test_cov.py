@@ -84,8 +84,9 @@ def test_cov_estimation_on_raw_segment():
     # make sure we get a warning with too short a segment
     raw_2 = raw.crop(0, 1)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         cov = compute_raw_data_covariance(raw_2)
-        assert_true(len(w) == 1)
+    assert_true(len(w) == 1)
 
 
 def test_cov_estimation_with_triggers():
@@ -140,14 +141,15 @@ def test_cov_estimation_with_triggers():
 
     # cov with list of epochs with different projectors
     epochs = [Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
-              baseline=(-0.2, -0.1), proj=True, reject=reject),
+                     baseline=(-0.2, -0.1), proj=True, reject=reject),
               Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
-              baseline=(-0.2, -0.1), proj=False, reject=reject)]
+                     baseline=(-0.2, -0.1), proj=False, reject=reject)]
     # these should fail
     assert_raises(ValueError, compute_covariance, epochs)
     assert_raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
     with warnings.catch_warnings(record=True) as w:  # too few samples warning
+        warnings.simplefilter('always')
         cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
         cov = compute_covariance(epochs, projs=[])
     assert_true(len(w) == 2)
