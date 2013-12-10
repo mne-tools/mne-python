@@ -13,7 +13,7 @@ from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
                  labels_from_parc, parc_from_labels)
 from mne.label import Label
-from mne.utils import requires_mne, run_subprocess, _TempDir
+from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
 from mne.fixes import in1d
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -118,9 +118,9 @@ def test_label_io():
 
     # pickling
     dest = op.join(tempdir, 'foo.pickled')
-    with open(dest, 'w') as fid:
+    with open(dest, 'wb') as fid:
         pickle.dump(label, fid, pickle.HIGHEST_PROTOCOL)
-    with open(dest) as fid:
+    with open(dest, 'rb') as fid:
         label2 = pickle.load(fid)
     assert_labels_equal(label, label2)
 
@@ -277,6 +277,7 @@ def test_parc_from_labels():
 
 
 @sample.requires_sample_data
+@requires_sklearn
 def test_stc_to_label():
     """Test stc_to_label
     """

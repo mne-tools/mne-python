@@ -19,6 +19,7 @@ from .surface import read_surface
 from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters
 from .externals.six import b
+from .externals.six.moves import zip
 
 
 class Label(object):
@@ -755,7 +756,7 @@ def _verts_within_dist(graph, source, max_dist):
                         verts_added.append(j)
         verts_added_last = verts_added
 
-    verts = np.sort(np.array(dist_map.keys(), dtype=np.int))
+    verts = np.sort(np.array(list(dist_map.keys()), dtype=np.int))
     dist = np.array([dist_map[v] for v in verts])
 
     return verts, dist
@@ -1055,11 +1056,12 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
 
     # sort the labels and colors by label name
     names = [label.name for label in labels]
-    labels_ = zip(*((label, color) for (name, label, color) in sorted(
-                    zip(names, labels, label_colors))
-                        if (r_.match(name) if regexp else True)))
-    if labels_:
-        labels, label_colors = labels_
+    labels_ = [(label, color) for (name, label, color)
+               in sorted(zip(names, labels, label_colors))
+               if (r_.match(name) if regexp else True)]
+    if len(labels_) > 0:
+        labels = [l[0] for l in labels_]
+        label_colors = [l[1] for l in labels_]
     else:
         raise RuntimeError('The regular expression supplied did not match.')
     # convert tuples to lists
