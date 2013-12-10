@@ -664,12 +664,12 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,
-                  verbose=verbose, preload=preload)
+                  preload=preload, verbose=verbose)
