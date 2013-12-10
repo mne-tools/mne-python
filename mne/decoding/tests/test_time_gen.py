@@ -16,7 +16,7 @@ data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
-tmin, tmax = -0.2, 0.5
+tmin, tmax = -0.01, 0.01
 event_id = dict(aud_l=1, vis_l=3)
 
 
@@ -29,7 +29,7 @@ def test_time_generalization():
     picks = fiff.pick_types(raw.info, meg='mag', stim=False, ecg=False,
                             eog=False, exclude='bads')
     picks = picks[1:13:3]
-    decim = 30
+    decim = 1
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True, decim=decim)
 
