@@ -28,7 +28,7 @@ install:
         sudo $PIP install coverage;
         sudo $PIP install coveralls;
       else
-        easy_install -U --user distribute;
+        $EASY_INSTALL -U distribute;
         sudo $PIP install matplotlib;
       fi
     - MNE_FORCE_SERIAL=1
