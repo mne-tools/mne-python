@@ -323,7 +323,7 @@ class RawKIT(Raw):
                     (start, stop - 1, start / float(self.info['sfreq']),
                      (stop - 1) / float(self.info['sfreq'])))
 
-        with open(self._sqd_params['fname'], 'rb') as fid:
+        with open(self._sqd_params['fname'], 'rb+') as fid:
             # extract data
             fid.seek(KIT.DATA_OFFSET)
             # data offset info
