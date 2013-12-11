@@ -11,9 +11,9 @@ before_install:
     - sudo apt-get install -qq python-scipy python-nose python3-nose
     - sudo apt-get install python-pip
     - sudo apt-get install python-nibabel python-nitime python-pandas
-    - sudo pip install numpy
-    - sudo pip install scipy
-    - sudo pip install scikit-learn
+    - pip install --user numpy
+    - pip install --user scipy
+    - pip install --user scikit-learn
 install:
     - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coverage; fi
     - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coveralls; fi
