@@ -823,7 +823,7 @@ def write_surface(fname, coords, faces, create_stamp=''):
 
     with open(fname, 'wb') as fid:
         fid.write(pack('>3B', 255, 255, 254))
-        strs = ['%s\n' % create_stamp, u'\n']
+        strs = ['%s\n' % create_stamp, '\n']
         strs = [s.encode('utf-8') for s in strs]
         fid.writelines(strs)
         vnum = len(coords)
