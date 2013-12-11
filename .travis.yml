@@ -23,6 +23,7 @@ install:
     - sudo $PIP install nibabel
     - sudo $PIP install scikit-learn
     - if [ "${PYSUF}" != "3" ]; then
+        sudo easy_install -U distribute;
         sudo apt-get --no-install-recommends install $PYTHON-matplotlib;
         sudo $PIP install nitime;
         sudo $PIP install coverage;
