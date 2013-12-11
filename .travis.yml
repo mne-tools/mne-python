@@ -22,11 +22,13 @@ install:
     - sudo $EASY_INSTALL pip
     - sudo $PIP install nibabel
     - sudo $PIP install scikit-learn
-    - sudo $PIP install matplotlib
     - if [ "${PYSUF}" != "3" ]; then
+        sudo apt-get --no-install-recommends install $PYTHON-matplotlib;
         sudo $PIP install nitime;
         sudo $PIP install coverage;
         sudo $PIP install coveralls;
+      else
+        sudo $PIP install matplotlib;
       fi
     - MNE_FORCE_SERIAL=1
     - MNE_SKIP_SAMPLE_DATASET_TESTS=1
@@ -47,4 +49,4 @@ script:
     - cd ${MNE_DIR}/../
     - ${NOSETESTS} -v --exe mne
 after_success:
-    - if [ "${PYSUF}" != "3" ]; coveralls; fi
+    - if [ "${PYSUF}" != "3" ]; then coveralls; fi
