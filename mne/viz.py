@@ -26,7 +26,6 @@ import inspect
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
-from matplotlib import delaunay
 from warnings import warn
 from collections import deque
 
@@ -864,6 +863,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
 def _plot_update_evoked_topomap(params, bools):
     """ Helper to update topomaps """
+    from matplotlib import delaunay
     projs = [proj for ii, proj in enumerate(params['projs'])
              if ii in np.where(bools)[0]]
 
@@ -1013,6 +1013,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
         The axis to plot to. If None, the current axis will be used.
     """
     import matplotlib.pyplot as plt
+    from matplotlib import delaunay
 
     data = np.asarray(data)
     pos = np.asarray(pos)
