@@ -12,7 +12,7 @@ a.k.a. baseline.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne import fiff
@@ -47,7 +47,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # Compute the covariance on baseline
 cov = mne.compute_covariance(epochs, tmin=None, tmax=0)
-print cov
+print(cov)
 
 ###############################################################################
 # Show covariance

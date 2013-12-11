@@ -15,7 +15,7 @@ dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne import compute_covariance
@@ -104,7 +104,7 @@ subtract_evoked = False
 
 # Calculating covariance from empty room noise. To use baseline data as noise
 # substitute raw for raw_noise, epochs for epochs_noise, and 0 for tmax.
-# Note, if using baseline data, the averaged evoked response in the baseline 
+# Note, if using baseline data, the averaged evoked response in the baseline
 # epoch should be flat.
 noise_covs = []
 for (l_freq, h_freq) in freq_bins:
@@ -113,7 +113,7 @@ for (l_freq, h_freq) in freq_bins:
     epochs_band = mne.Epochs(raw_band, epochs_noise.events, event_id,
                              tmin=tmin, tmax=tmax, picks=epochs.picks,
                              proj=True)
-                             
+
     noise_cov = compute_covariance(epochs_band)
     noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=noise_reg,
                                    grad=noise_reg, eeg=noise_reg, proj=True)
@@ -123,7 +123,7 @@ for (l_freq, h_freq) in freq_bins:
 # Computing LCMV solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
 stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-               freq_bins=freq_bins, subtract_evoked=subtract_evoked, 
+               freq_bins=freq_bins, subtract_evoked=subtract_evoked,
                reg=data_reg, label=label)
 
 # Plotting source spectrogram for source with maximum activity

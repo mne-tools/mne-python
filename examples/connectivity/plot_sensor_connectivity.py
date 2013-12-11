@@ -12,7 +12,7 @@ are used which produces strong connectvitiy in the right occipital sensors.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 from scipy import linalg

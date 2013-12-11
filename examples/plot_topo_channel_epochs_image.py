@@ -9,7 +9,7 @@ potential / field (ERP/ERF) images.
 One sensor topography plot is produced with the evoked field images from
 the selected channels.
 """
-print __doc__
+print(__doc__)
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>

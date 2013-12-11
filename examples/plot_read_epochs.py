@@ -13,7 +13,7 @@ for both MEG and EEG data by averaging all the epochs.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne import fiff

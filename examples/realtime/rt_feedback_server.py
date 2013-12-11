@@ -25,7 +25,7 @@ for a real experiment.
 
 """
 
-print __doc__
+print(__doc__)
 
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
@@ -119,10 +119,10 @@ with StimServer('localhost', port=4218) as stim_server:
 
             # do something if one class is decoded better than the other
             if score_c1[-1] < score_c2[-1]:
-                print "We decoded class RV better than class LV"
+                print("We decoded class RV better than class LV")
                 ev_list.append(3)  # adding more LV to future simulated data
             else:
-                print "We decoded class LV better than class RV"
+                print("We decoded class LV better than class RV")
                 ev_list.append(4)  # adding more RV to future simulated data
 
             # Clear the figure

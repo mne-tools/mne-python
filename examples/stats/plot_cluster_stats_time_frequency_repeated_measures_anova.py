@@ -24,7 +24,7 @@ multiple comparisons using False Discovery Rate correction.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 
@@ -114,7 +114,7 @@ data = np.swapaxes(np.asarray(epochs_power), 1, 0)
 data = data.reshape(n_replications, n_conditions, n_frequencies * n_times)
 
 # so we have replications * conditions * observations:
-print data.shape
+print(data.shape)
 
 # while the iteration scheme used above for assembling the data matrix
 # makes sure the first two dimensions are organized as expected (with A =

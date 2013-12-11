@@ -13,7 +13,7 @@ http://dx.doi.org/10.1088/0031-9155/57/7/1937
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne import fiff

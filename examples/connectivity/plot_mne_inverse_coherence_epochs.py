@@ -13,7 +13,7 @@ MNE-dSPM inverse soltions.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne
@@ -98,10 +98,10 @@ coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(stcs,
     method='coh', mode='fourier', indices=indices,
     sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, n_jobs=2)
 
-print 'Frequencies in Hz over which coherence was averaged for alpha: '
-print freqs[0]
-print 'Frequencies in Hz over which coherence was averaged for beta: '
-print freqs[1]
+print('Frequencies in Hz over which coherence was averaged for alpha: ')
+print(freqs[0])
+print('Frequencies in Hz over which coherence was averaged for beta: ')
+print(freqs[1])
 
 # Generate a SourceEstimate with the coherence. This is simple since we
 # used a single seed. For more than one seeds we would have to split coh.

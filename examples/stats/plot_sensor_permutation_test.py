@@ -13,7 +13,7 @@ is performed on MNE sample dataset between 40 and 60 ms.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 
@@ -57,8 +57,8 @@ significant_sensors = picks[p_values <= 0.05]
 significant_sensors_names = [raw.info['ch_names'][k]
                              for k in significant_sensors]
 
-print "Number of significant sensors : %d" % len(significant_sensors)
-print "Sensors names : %s" % significant_sensors_names
+print("Number of significant sensors : %d" % len(significant_sensors))
+print("Sensors names : %s" % significant_sensors_names)
 
 ###############################################################################
 # View location of significantly active sensors

@@ -89,7 +89,7 @@ pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 import matplotlib.pyplot as plt
@@ -150,7 +150,7 @@ df.pop('EOG 061')  # this works just like with a list.
 # Pandas is using a MultiIndex or hierarchical index to handle higher
 # dimensionality while at the same time representing data in a flat 2d manner.
 
-print df.index.names, df.index.levels
+print(df.index.names, df.index.levels)
 
 # Inspecting the index object unveils that 'epoch', 'time' are used
 # for subsetting data. We can take advantage of that by using the
@@ -200,7 +200,7 @@ mne.viz.tight_layout()
 
 max_latency = grouped[sel[2]].apply(lambda x: df.time[x.argmax()])
 
-print max_latency
+print(max_latency)
 
 # Then make the plot labels more readable let's edit the values of 'condition'.
 df.condition = df.condition.apply(lambda name: name + ' ')
@@ -217,7 +217,7 @@ final_df = max_latency.reset_index()
 final_df.rename(columns={0: sel[2]})  # as the index is oblivious of names.
 
 # The index is now written into regular columns so it can be used as factor.
-print final_df
+print(final_df)
 
 # To save as csv file, uncomment the next line.
 # final_df.to_csv('my_epochs.csv')

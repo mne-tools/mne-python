@@ -10,7 +10,7 @@ Locate QRS component of ECG.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ epochs = mne.Epochs(raw, ecg_events, event_id, tmin, tmax, picks=picks,
                     proj=False)
 data = epochs.get_data()
 
-print "Number of detected ECG artifacts : %d" % len(data)
+print("Number of detected ECG artifacts : %d" % len(data))
 
 ###############################################################################
 # Plot ECG artifacts
