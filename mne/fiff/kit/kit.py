@@ -37,9 +37,10 @@ class RawKIT(Raw):
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape = (5, 3)
+    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
+        If list, all of the markers will be averaged together.
     elp : None | str | array_like, shape = (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
@@ -61,11 +62,11 @@ class RawKIT(Raw):
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     See Also
     --------
@@ -112,9 +113,14 @@ class RawKIT(Raw):
         self.info['dig'] = None
         self.info['dev_head_t'] = None
 
-        if (mrk and elp and hsp):
+        if isinstance(mrk, list):
+            mrk = [read_mrk(marker) if isinstance(marker, basestring)
+                   else marker for marker in mrk]
+            mrk = reduce(np.add, mrk) / len(mrk)
+
+        if (mrk is not None and elp is not None and hsp is not None):
             self._set_dig_kit(mrk, elp, hsp)
-        elif (mrk or elp or hsp):
+        elif (mrk is not None or elp is not None or hsp is not None):
             err = ("mrk, elp and hsp need to be provided as a group (all or "
                    "none)")
             raise ValueError(err)
@@ -238,7 +244,8 @@ class RawKIT(Raw):
     def __repr__(self):
         s = ('%r' % os.path.basename(self._sqd_params['fname']),
              "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
-                                       self.last_samp - self.first_samp + 1))
+                                                 self.last_samp -
+                                                 self.first_samp + 1))
         return "<RawKIT  |  %s>" % ', '.join(s)
 
     def read_stim_ch(self, buffer_size=1e5):
@@ -314,7 +321,7 @@ class RawKIT(Raw):
 
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (start, stop - 1, start / float(self.info['sfreq']),
-                               (stop - 1) / float(self.info['sfreq'])))
+                     (stop - 1) / float(self.info['sfreq'])))
 
         with open(self._sqd_params['fname'], 'rb') as fid:
             # extract data
@@ -506,7 +513,6 @@ class RawKIT(Raw):
         self._sqd_params['stim'] = stim
 
 
-
 def get_sqd_params(rawfile):
     """Extracts all the information from the sqd file.
 
@@ -581,7 +587,7 @@ def get_sqd_params(rawfile):
                               >> KIT_SYS.GAIN2_BIT]
         if KIT_SYS.GAIN3_BIT:
             gain3 = KIT_SYS.GAINS[(KIT_SYS.GAIN3_MASK & amp_data)
-                                     >> KIT_SYS.GAIN3_BIT]
+                                  >> KIT_SYS.GAIN3_BIT]
             sqd['amp_gain'] = gain1 * gain2 * gain3
         else:
             sqd['amp_gain'] = gain1 * gain2
@@ -634,9 +640,10 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     ----------
     input_fname : str
         Path to the sqd file.
-    mrk : None | str | array_like, shape = (5, 3)
+    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
+        If list, all of the markers will be averaged together.
     elp : None | str | array_like, shape = (8, 3)
         Digitizer points representing the location of the fiducials and the
         marker coils with respect to the digitized head shape, or path to a
@@ -658,12 +665,12 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,
-                  verbose=verbose, preload=preload)
+                  preload=preload, verbose=verbose)

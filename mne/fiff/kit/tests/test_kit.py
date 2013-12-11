@@ -12,7 +12,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 import scipy.io
 from mne.utils import _TempDir
 from mne.fiff import Raw, pick_types
-from mne.fiff.kit import read_raw_kit, read_hsp, write_hsp
+from mne.fiff.kit import read_raw_kit
 from mne.fiff.kit.coreg import read_sns
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -20,6 +20,8 @@ parent_dir = op.dirname(op.abspath(FILE))
 data_dir = op.join(parent_dir, 'data')
 sqd_path = op.join(data_dir, 'test.sqd')
 mrk_path = op.join(data_dir, 'test_mrk.sqd')
+mrk2_path = op.join(data_dir, 'test_mrk_pre.sqd')
+mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
 elp_path = op.join(data_dir, 'test_elp.txt')
 hsp_path = op.join(data_dir, 'test_hsp.txt')
 
@@ -94,6 +96,10 @@ def test_ch_loc():
                                       bin_ch['coil_trans'],
                                       decimal=2)
 
+    # test when more than one marker file provided
+    mrks = [mrk_path, mrk2_path, mrk3_path]
+    _ = read_raw_kit(sqd_path, mrks, elp_path, hsp_path, preload=False)
+
 
 def test_stim_ch():
     """Test raw kit stim ch
@@ -105,13 +111,3 @@ def test_stim_ch():
     stim1, _ = raw[stim_pick]
     stim2 = np.array(raw.read_stim_ch(), ndmin=2)
     assert_array_equal(stim1, stim2)
-
-
-def test_hsp_io():
-    """Test reading and writing hsp files"""
-    pts = read_hsp(hsp_path)
-    temp_fname = op.join(tempdir, 'temp_hsp.txt')
-    write_hsp(temp_fname, pts)
-    pts2 = read_hsp(temp_fname)
-    assert_array_equal(pts, pts2, "Hsp points diverged after writing and "
-                       "reading.")
