@@ -32,6 +32,7 @@ install:
     - $PYTHON setup.py build
     - $PYTHON setup.py install --user
     - myscripts='browse_raw bti2fiff surf2bem'
+    - PATH=${PATH}:~/.local/bin/
     - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
     - cd ~
