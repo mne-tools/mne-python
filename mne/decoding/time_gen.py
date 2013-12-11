@@ -16,10 +16,10 @@ def _time_gen_one_fold(clf, X, y, train, test, scoring):
     scores = np.zeros((n_times, n_times))
     scorer = SCORERS[scoring]
 
-    for t_train in xrange(n_times):
+    for t_train in range(n_times):
         X_train = X[train, :, t_train]
         clf.fit(X_train, y[train])
-        for t_test in xrange(n_times):
+        for t_test in range(n_times):
             X_test = X[test, :, t_test]
             scores[t_test, t_train] += scorer(clf, X_test, y[test])
 
