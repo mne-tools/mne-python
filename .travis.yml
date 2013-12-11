@@ -29,13 +29,13 @@ install:
       fi
     - MNE_FORCE_SERIAL=1
     - MNE_SKIP_SAMPLE_DATASET_TESTS=1
-    - python setup.py build
-    - python setup.py install
+    - $PYTHON setup.py build
+    - $PYTHON setup.py install
     - myscripts='browse_raw bti2fiff surf2bem'
     - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
     - cd ~
-    - MNE_DIR=$(python -c 'import mne;print mne.__path__[0]')
+    - MNE_DIR=$($PYTHON -c 'import mne;print mne.__path__[0]')
     - ln -s ${SRC_DIR}/mne/fiff/tests/data ${MNE_DIR}/fiff/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/bti/tests/data ${MNE_DIR}/fiff/bti/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/edf/tests/data ${MNE_DIR}/fiff/edf/tests/data
