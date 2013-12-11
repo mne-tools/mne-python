@@ -11,9 +11,8 @@ between 5 and 40 Hz.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
-import numpy as np
 import mne
 from mne.datasets import sample
 from mne.fiff import Raw, pick_types

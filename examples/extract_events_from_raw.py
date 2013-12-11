@@ -9,7 +9,7 @@ Find events from the stimulation/trigger channel in the raw data.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne.datasets import sample
@@ -27,5 +27,5 @@ events = mne.find_events(raw, stim_channel='STI 014')
 mne.write_events('events.fif', events)
 
 for ind, before, after in events[:5]:
-    print "At sample %d stim channel went from %d to %d" % (
-                                                    ind, before, after)
+    print("At sample %d stim channel went from %d to %d"
+          % (ind, before, after))

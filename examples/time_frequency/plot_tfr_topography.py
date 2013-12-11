@@ -5,7 +5,7 @@ Plot time-frequency representations on topographies for MEG sensors
 
 Both induced power and phase locking values are displayed.
 """
-print __doc__
+print(__doc__)
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>

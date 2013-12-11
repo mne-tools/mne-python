@@ -14,7 +14,7 @@ permutation test across space and time.
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import os.path as op
 import numpy as np
@@ -97,7 +97,7 @@ tstep = condition1.tstep
 #    permutation test is only p = 1/(2 ** 6) = 0.015, which is large.
 n_vertices_sample, n_times = condition1.data.shape
 n_subjects = 7
-print 'Simulating data for %d subjects.' % n_subjects
+print('Simulating data for %d subjects.' % n_subjects)
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)
@@ -118,7 +118,7 @@ n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
 X = X.reshape(n_vertices_sample, n_times * n_subjects * 2)
-print 'Morphing data.'
+print('Morphing data.')
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 2)
 
@@ -134,7 +134,7 @@ X = X[:, :, :, 0] - X[:, :, :, 1]  # make paired contrast
 
 #    To use an algorithm optimized for spatio-temporal clustering, we
 #    just pass the spatial connectivity matrix (instead of spatio-temporal)
-print 'Computing connectivity.'
+print('Computing connectivity.')
 connectivity = spatial_tris_connectivity(grade_to_tris(5))
 
 #    Note that X needs to be a multi-dimensional array of shape
@@ -145,7 +145,7 @@ X = np.transpose(X, [2, 1, 0])
 #    Here we set the threshold quite high to reduce computation.
 p_threshold = 0.001
 t_threshold = -stats.distributions.t.ppf(p_threshold / 2., n_subjects - 1)
-print 'Clustering.'
+print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
     spatio_temporal_cluster_1samp_test(X, connectivity=connectivity, n_jobs=2,
                                        threshold=t_threshold)
@@ -156,7 +156,7 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 ###############################################################################
 # Visualize the clusters
 
-print 'Visualizing clusters.'
+print('Visualizing clusters.')
 
 #    Now let's build a convenient representation of each cluster, where each
 #    cluster becomes a "time point" in the SourceEstimate

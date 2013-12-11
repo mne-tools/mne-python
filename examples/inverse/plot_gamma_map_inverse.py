@@ -10,7 +10,7 @@ NeuroImage, vol. 44, no. 3, pp. 947?66, Mar. 2009.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 

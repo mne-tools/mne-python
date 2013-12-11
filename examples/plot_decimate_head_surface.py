@@ -8,7 +8,7 @@ using a cloud of digitization points for coordinate alignment
 instead of e.g. EEG-cap positions.
 
 """
-print __doc__
+print(__doc__)
 
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>

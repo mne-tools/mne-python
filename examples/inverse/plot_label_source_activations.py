@@ -14,7 +14,7 @@ also using a sign flip.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne.datasets import sample
@@ -48,7 +48,7 @@ mean = stc.extract_label_time_course(label, src, mode='mean')
 mean_flip = stc.extract_label_time_course(label, src, mode='mean_flip')
 pca = stc.extract_label_time_course(label, src, mode='pca_flip')
 
-print "Number of vertices : %d" % len(stc_label.data)
+print("Number of vertices : %d" % len(stc_label.data))
 
 # View source activations
 import matplotlib.pyplot as plt

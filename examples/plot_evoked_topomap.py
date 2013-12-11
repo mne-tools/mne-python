@@ -10,7 +10,7 @@ Load evoked data and plot topomaps for selected time points.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne

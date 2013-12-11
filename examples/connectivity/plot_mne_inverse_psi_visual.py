@@ -24,7 +24,7 @@ pp. 1-4, Jun. 2008.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne

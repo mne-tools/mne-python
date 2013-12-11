@@ -17,7 +17,7 @@ and 'slowly-processed' face stimuli.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne import fiff
@@ -56,12 +56,12 @@ fill_na = 99  # the fill value for misses
 events_, lag = define_target_events(events, reference_id, target_id,
                                     sfreq, tmin, tmax, new_id, fill_na)
 
-print events_  # The 99 indicates missing or too late button presses
+print(events_)  # The 99 indicates missing or too late button presses
 
 # besides the events also the lag between target and reference is returned
 # this could e.g. be used as parametric regressor in subsequent analyses.
 
-print lag[lag != fill_na]  # lag in milliseconds
+print(lag[lag != fill_na])  # lag in milliseconds
 
 # #############################################################################
 # Construct epochs

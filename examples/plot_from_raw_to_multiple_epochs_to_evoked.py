@@ -14,7 +14,7 @@ evoked data and then saved to disk.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne import fiff

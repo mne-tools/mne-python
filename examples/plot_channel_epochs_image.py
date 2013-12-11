@@ -17,7 +17,7 @@ responses A. Gramfort, R. Keriven, M. Clerc, 2010,
 Biomedical Engineering, IEEE Trans. on, vol. 57 (5), 1051-1061
 http://hal.inria.fr/inria-00497023
 """
-print __doc__
+print(__doc__)
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #

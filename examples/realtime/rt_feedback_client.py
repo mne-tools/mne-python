@@ -25,7 +25,7 @@ for a real experiment.
 
 """
 
-print __doc__
+print(__doc__)
 
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #

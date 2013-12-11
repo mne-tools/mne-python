@@ -10,7 +10,7 @@ Runs a full pipeline using MNE-Python:
 - source reconstruction using dSPM on the contrast : "faces - scrambled"
 
 """
-print __doc__
+print(__doc__)
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <d.engemann@fz-juelich.de>
