@@ -8,19 +8,18 @@
 language: erlang
 env:
     # Enable python 2 and python 3 builds. Python3.2 available in Ubuntu 12.04.
-    - PYTHON=python EASY_INSTALL=easy_install PIP=pip
-    - PYTHON=python3 EASY_INSTALL=easy_install3 PIP=pip-3.2
+    - PYTHON=python EASY_INSTALL=easy_install PIP=pip NOSETESTS=nosetests
+    - PYTHON=python3 EASY_INSTALL=easy_install3 PIP=pip-3.2 NOSETESTS=nosetests3
 install:
     - sudo apt-get update -qq
     - sudo apt-get install $PYTHON-dev $PYTHON-numpy $PYTHON-scipy
     - sudo apt-get install $PYTHON-setuptools $PYTHON-nose
     - sudo apt-get install $PYTHON-nibabel $PYTHON-nitime $PYTHON-pandas
     - sudo $PIP install scikit-learn
-    - COVERAGE=--with-coverage
+    - sudo $PIP install coverage
+    - sudo $PIP install coveralls
     - MNE_FORCE_SERIAL=1
     - MNE_SKIP_SAMPLE_DATASET_TESTS=1
-    - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coverage; fi
-    - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coveralls; fi
     - python setup.py build
     - python setup.py install
     - myscripts='browse_raw bti2fiff surf2bem'
@@ -35,10 +34,6 @@ install:
     - ln -s ${SRC_DIR}/mne/fiff/brainvision/tests/data ${MNE_DIR}/fiff/brainvision/tests/data
 script:
     - cd ${MNE_DIR}/../
-    - TEST="nosetests -v --exe mne"
-    - TEST_COVER="nosetests -v --exe --with-coverage --cover-package=mne
-      --cover-html --cover-html-dir=coverage mne"
-    - if [ "${COVERAGE}" == "--with-coverage" ]; then ${TEST};
-      else ${TEST_COVER}; fi
+    - ${NOSETESTS} -v --exe mne
 after_success:
-    - if [ "${COVERAGE}" == "--with-coverage" ]; then coveralls; fi
+    - coveralls
