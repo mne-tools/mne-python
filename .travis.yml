@@ -15,6 +15,7 @@ install:
     - sudo apt-get install $PYTHON-dev $PYTHON-numpy $PYTHON-scipy
     - sudo apt-get install $PYTHON-setuptools $PYTHON-nose
     - wget -O- http://neuro.debian.net/lists/precise.us-nh.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
+    - sudo apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9
     - sudo apt-get update -qq
     - sudo apt-get --no-install-recommends install $PYTHON-pandas
     - sudo apt-get --no-install-recommends install $PYTHON-pandas-lib
