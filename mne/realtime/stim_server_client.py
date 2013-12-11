@@ -48,8 +48,8 @@ class _TriggerHandler(socketserver.BaseRequestHandler):
         self.request.settimeout(None)
 
         while self.server.stim_server._running:
-
             data = self.request.recv(1024)  # clip input at 1Kb
+            data = data.decode()  # need to turn it into a string (Py3k)
 
             if data == 'add client':
                 # Add stim_server._client
@@ -69,7 +69,7 @@ class _TriggerHandler(socketserver.BaseRequestHandler):
                     if client['id'] == client_id:
                         client['running'] = True
 
-            if data == 'get trigger':
+            elif data == 'get trigger':
 
                 # Pop triggers and send them
                 if (self._tx_queue.qsize() > 0 and
@@ -244,11 +244,16 @@ class StimClient(object):
             self._sock.connect((host, port))
 
             logger.info("Establishing connection with server")
-            self._sock.send("add client".encode('utf-8'))
-            resp = self._sock.recv(1024)
+            data = "add client".encode('utf-8')
+            n_sent = self._sock.send(data)
+            if n_sent != len(data):
+                raise RuntimeError('Could not communicate with server')
+            resp = self._sock.recv(1024).decode()  # turn bytes into str (Py3k)
 
             if resp == 'Client added':
                 logger.info("Connection established")
+            else:
+                raise RuntimeError('Client not added')
 
         except Exception:
             raise RuntimeError('Setting up acquisition <-> stimulation '
