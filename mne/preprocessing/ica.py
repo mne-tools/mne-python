@@ -1380,7 +1380,7 @@ def _deserialize(str_, outer_sep=';', inner_sep=':'):
     for mapping in str_.split(outer_sep):
         k, v = mapping.split(inner_sep)
         vv = json.loads(v)
-        out[k] = str(vv) if isinstance(vv, text_type) else vv
+        out[k] = vv if not isinstance(vv, text_type) else str(vv)
 
     return out
 
