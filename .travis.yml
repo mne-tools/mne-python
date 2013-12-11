@@ -19,6 +19,7 @@ install:
     - sudo apt-get update -qq
     - sudo apt-get --no-install-recommends install $PYTHON-pandas
     - sudo apt-get --no-install-recommends install $PYTHON-pandas-lib
+    - sudo $EASY_INSTALL pip
     - sudo $PIP install nibabel
     - sudo $PIP install nitime
     - sudo $PIP install scikit-learn
