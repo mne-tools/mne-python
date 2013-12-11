@@ -30,7 +30,7 @@ install:
     - MNE_FORCE_SERIAL=1
     - MNE_SKIP_SAMPLE_DATASET_TESTS=1
     - $PYTHON setup.py build
-    - $PYTHON setup.py install
+    - $PYTHON setup.py install --user
     - myscripts='browse_raw bti2fiff surf2bem'
     - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
