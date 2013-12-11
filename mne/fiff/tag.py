@@ -276,7 +276,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                     raise Exception('Cannot handle matrix of type %d yet'
                                     % matrix_type)
 
-            elif matrix_coding in [matrix_coding_CCS, matrix_coding_RCS]:
+            elif matrix_coding in (matrix_coding_CCS, matrix_coding_RCS):
                 from scipy import sparse
                 # Find dimensions and return to the beginning of tag data
                 pos = fid.tell()
