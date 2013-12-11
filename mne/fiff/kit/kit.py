@@ -114,9 +114,9 @@ class RawKIT(Raw):
         self.info['dev_head_t'] = None
 
         if isinstance(mrk, list):
-            mrk = [read_mrk(marker) if isinstance(marker, basestring)
+            mrk = [read_mrk(marker) if isinstance(marker, string_types)
                    else marker for marker in mrk]
-            mrk = reduce(np.add, mrk) / len(mrk)
+            mrk = np.mean(mrk, axis=0)
 
         if (mrk is not None and elp is not None and hsp is not None):
             self._set_dig_kit(mrk, elp, hsp)
