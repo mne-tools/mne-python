@@ -1,20 +1,24 @@
-language: python
+# Adapted from M. Brett's .yaml file for nipy:
+# https://github.com/nipy/nipy/blob/master/.travis.yml
+#
+# We pretend to be erlang because we need can't use the python support in
+# travis-ci; it uses virtualenvs, they do not have numpy, scipy, matplotlib,
+# and it is impractical to build them
+
+language: erlang
 env:
-    - COVERAGE=--with-coverage MNE_FORCE_SERIAL=1 MNE_SKIP_SAMPLE_DATASET_TESTS=1
-python:
-    - "2.7"
-    - "3.3"
-virtualenv:
-    system_site_packages: true
-before_install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq python-scipy python-nose python3-nose
-    - sudo apt-get install python-pip
-    - sudo apt-get install python-nibabel python-nitime python-pandas
-    - pip install --user numpy
-    - pip install --user scipy
-    - pip install --user scikit-learn
+    # Enable python 2 and python 3 builds. Python3.2 available in Ubuntu 12.04.
+    - PYTHON=python EASY_INSTALL=easy_install PIP=pip
+    - PYTHON=python3 EASY_INSTALL=easy_install3 PIP=pip-3.2
 install:
+    - sudo apt-get update -qq
+    - sudo apt-get install $PYTHON-dev $PYTHON-numpy $PYTHON-scipy
+    - sudo apt-get install $PYTHON-setuptools $PYTHON-nose
+    - sudo apt-get install $PYTHON-nibabel $PYTHON-nitime $PYTHON-pandas
+    - sudo $PIP install scikit-learn
+    - COVERAGE=--with-coverage
+    - MNE_FORCE_SERIAL=1
+    - MNE_SKIP_SAMPLE_DATASET_TESTS=1
     - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coverage; fi
     - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coveralls; fi
     - python setup.py build
