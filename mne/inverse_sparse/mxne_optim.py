@@ -383,7 +383,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                     logger.info('Convergence stopped (AS did not change) !')
                     break
         else:
-            logger.warn('Did NOT converge ! (gap: %s > %s)' % (gap, tol))
+            logger.warning('Did NOT converge ! (gap: %s > %s)' % (gap, tol))
 
         active_set = np.zeros_like(active_set)
         active_set[as_] = True
@@ -538,7 +538,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     n_dipoles = G.shape[1]
 
     n_step = int(ceil(n_times / float(tstep)))
-    n_freq = wsize / 2 + 1
+    n_freq = wsize // 2 + 1
     n_coefs = n_step * n_freq
     phi = _Phi(wsize, tstep, n_coefs)
     phiT = _PhiT(tstep, n_freq, n_step, n_times)

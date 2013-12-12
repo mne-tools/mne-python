@@ -223,7 +223,7 @@ def test_evoked_io_from_epochs():
     """Test IO of evoked data made from epochs
     """
     # offset our tmin so we don't get exactly a zero value when decimating
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
                         picks=picks, baseline=(None, 0), decim=5)
     assert_true(len(w) == 1)
@@ -235,7 +235,7 @@ def test_evoked_io_from_epochs():
                     atol=1 / evoked.info['sfreq'])
 
     # now let's do one with negative time
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
                         picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
@@ -245,7 +245,7 @@ def test_evoked_io_from_epochs():
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
     # should be equivalent to a cropped original
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
                         picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()

@@ -562,7 +562,7 @@ def read_surface(fname, verbose=None):
         Triangulation (each line contains indexes for three points which
         together form a face).
     """
-    with open(fname, "rb") as fobj:
+    with open(fname, "rb", buffering=0) as fobj:  # buffering=0 for np bug
         magic = _fread3(fobj)
         if (magic == 16777215) or (magic == 16777213):  # Quad file or new quad
             nvert = _fread3(fobj)
@@ -593,6 +593,7 @@ def read_surface(fname, verbose=None):
             _ = fobj.readline()
             vnum = np.fromfile(fobj, ">i4", 1)[0]
             fnum = np.fromfile(fobj, ">i4", 1)[0]
+            #raise RuntimeError
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
             faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
         else:
@@ -820,9 +821,11 @@ def write_surface(fname, coords, faces, create_stamp=''):
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
 
-    with open(fname, 'w') as fid:
+    with open(fname, 'wb') as fid:
         fid.write(pack('>3B', 255, 255, 254))
-        fid.writelines(('%s\n' % create_stamp, '\n'))
+        strs = ['%s\n' % create_stamp, '\n']
+        strs = [s.encode('utf-8') for s in strs]
+        fid.writelines(strs)
         vnum = len(coords)
         fnum = len(faces)
         fid.write(pack('>2i', vnum, fnum))
@@ -957,8 +960,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         try:
             os.mkdir(mmap_dir)
         except:
-            logger.warn('Could not find or make morph map directory "%s"'
-                        % mmap_dir)
+            logger.warning('Could not find or make morph map directory "%s"'
+                           % mmap_dir)
 
     # Does the file exist
     fname = op.join(mmap_dir, '%s-%s-morph.fif' % (subject_from, subject_to))
@@ -979,8 +982,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
                 _write_morph_map(fname, subject_from, subject_to,
                                  mmap_1, mmap_2)
             except Exception as exp:
-                logger.warn('Could not write morph-map file "%s" (error: %s)'
-                            % (fname, exp))
+                logger.warning('Could not write morph-map file "%s" '
+                               '(error: %s)' % (fname, exp))
             return mmap_1
 
     f, tree, _ = fiff_open(fname)

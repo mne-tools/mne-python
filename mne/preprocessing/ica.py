@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
+from ..externals.six import string_types, text_type
 import warnings
 from copy import deepcopy
 from inspect import getargspec, isfunction
@@ -1380,7 +1380,7 @@ def _deserialize(str_, outer_sep=';', inner_sep=':'):
     for mapping in str_.split(outer_sep):
         k, v = mapping.split(inner_sep)
         vv = json.loads(v)
-        out[k] = vv if not isinstance(vv, unicode) else str(vv)
+        out[k] = vv if not isinstance(vv, text_type) else str(vv)
 
     return out
 

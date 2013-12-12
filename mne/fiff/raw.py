@@ -240,19 +240,19 @@ class Raw(ProjMixin):
             elif ent.kind == FIFF.FIFF_DATA_BUFFER:
                 #   Figure out the number of samples in this buffer
                 if ent.type == FIFF.FIFFT_DAU_PACK16:
-                    nsamp = ent.size / (2 * nchan)
+                    nsamp = ent.size // (2 * nchan)
                 elif ent.type == FIFF.FIFFT_SHORT:
-                    nsamp = ent.size / (2 * nchan)
+                    nsamp = ent.size // (2 * nchan)
                 elif ent.type == FIFF.FIFFT_FLOAT:
-                    nsamp = ent.size / (4 * nchan)
+                    nsamp = ent.size // (4 * nchan)
                 elif ent.type == FIFF.FIFFT_DOUBLE:
-                    nsamp = ent.size / (8 * nchan)
+                    nsamp = ent.size // (8 * nchan)
                 elif ent.type == FIFF.FIFFT_INT:
-                    nsamp = ent.size / (4 * nchan)
+                    nsamp = ent.size // (4 * nchan)
                 elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
-                    nsamp = ent.size / (8 * nchan)
+                    nsamp = ent.size // (8 * nchan)
                 elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
-                    nsamp = ent.size / (16 * nchan)
+                    nsamp = ent.size // (16 * nchan)
                 else:
                     fid.close()
                     raise ValueError('Cannot handle data buffers of type %d' %
@@ -358,10 +358,15 @@ class Raw(ProjMixin):
             time_slice = item[1]
             start, stop, step = (time_slice.start, time_slice.stop,
                                  time_slice.step)
-        elif isinstance(item[1], int):
-            start, stop, step = item[1], item[1] + 1, 1
         else:
-            raise ValueError('Must pass int or slice to __getitem__')
+            item1 = item[1]
+            # Let's do automated type conversion to integer here
+            if np.array(item[1]).dtype.kind == 'i':
+                item1 = int(item1)
+            if isinstance(item1, int):
+                start, stop, step = item1, item1 + 1, 1
+            else:
+                raise ValueError('Must pass int or slice to __getitem__')
 
         if start is None:
             start = 0
@@ -583,7 +588,7 @@ class Raw(ProjMixin):
         fs = float(self.info['sfreq'])
         if l_freq == 0:
             l_freq = None
-        if h_freq > (fs / 2.):
+        if h_freq is not None and h_freq > (fs / 2.):
             h_freq = None
         if l_freq is not None and not isinstance(l_freq, float):
             l_freq = float(l_freq)
@@ -1376,8 +1381,13 @@ class Raw(ProjMixin):
     def copy(self):
         """ Return copy of Raw instance
         """
-        new = deepcopy(self)
-        new._initialize_fids()
+        old_fids = self.fids
+        try:
+            self.fids = list()
+            new = deepcopy(self)
+            new._initialize_fids()
+        finally:
+            self.fids = old_fids
         return new
 
     def _initialize_fids(self):
@@ -1385,7 +1395,8 @@ class Raw(ProjMixin):
         """
         if not self._preloaded:
             self.fids = [open(fname, "rb") for fname in self.info['filenames']]
-            [fid.seek(0, 0) for fid in self.fids]
+            for fid in self.fids:
+                fid.seek(0, 0)
         else:
             self.fids = []
 

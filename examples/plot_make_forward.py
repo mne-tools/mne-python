@@ -7,7 +7,7 @@ Create a forward operator and display sensitivity maps
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne.datasets import sample
@@ -27,7 +27,7 @@ fwd = mne.make_forward_solution(raw_fname, mri=mri, src=src, bem=bem,
 fwd = mne.convert_forward_solution(fwd, surf_ori=True)
 leadfield = fwd['sol']['data']
 
-print "Leadfield size : %d x %d" % leadfield.shape
+print("Leadfield size : %d x %d" % leadfield.shape)
 
 grad_map = mne.sensitivity_map(fwd, ch_type='grad', mode='fixed')
 mag_map = mne.sensitivity_map(fwd, ch_type='mag', mode='fixed')

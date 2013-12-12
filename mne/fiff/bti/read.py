@@ -3,6 +3,7 @@
 
 import struct
 import numpy as np
+from ...externals.six import b
 
 
 def _unpack_matrix(fid, format, rows, cols, dtype):
@@ -36,7 +37,10 @@ def read_str(fid, count=1):
     format = '>' + ('c' * count)
     data = list(struct.unpack(format, fid.read(struct.calcsize(format))))
 
-    return ''.join(data[0:data.index('\x00') if '\x00' in data else count])
+    bytestr = b('').join(data[0:data.index(b('\x00')) if b('\x00') in data else 
+                         count])
+
+    return str(bytestr.decode('ascii')) # Return native str type for Py2/3
 
 
 def read_char(fid, count=1):

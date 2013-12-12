@@ -11,7 +11,7 @@ the sources into a fiff file for further processing and displaying, e.g.
 using mne_browse_raw.
 
 """
-print __doc__
+print(__doc__)
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
@@ -57,7 +57,7 @@ ica = ICA(n_components=0.90, n_pca_components=None, max_pca_components=100,
 
 # decompose sources for raw data using each third sample.
 ica.decompose_raw(raw, picks=picks, decim=3)
-print ica
+print(ica)
 
 # plot reasonable time window for inspection
 start_plot, stop_plot = 100., 103.
@@ -178,7 +178,7 @@ from mne.layouts import make_grid_layout
 
 ica_raw = ica.sources_as_raw(raw, start=100., stop=160., picks=None)
 
-print ica_raw.ch_names[:5]  # just a few
+print(ica_raw.ch_names[:5])  # just a few
 
 ica_lout = make_grid_layout(ica_raw.info)
 

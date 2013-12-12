@@ -14,6 +14,7 @@ Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
 (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
 Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
+print(__doc__)
 
 import mne
 from mne.datasets.megsim import load_data

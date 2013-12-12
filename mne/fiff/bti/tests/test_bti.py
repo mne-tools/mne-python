@@ -74,7 +74,8 @@ def test_raw():
                 assert_array_almost_equal(coil1, coil2, 7)
 
                 loc1, loc2 = [np.concatenate([d['loc'].flatten()
-                              for d in r_.info['chs'][:NCH]]) for r_ in (ra, ex)]
+                              for d in r_.info['chs'][:NCH]])
+                              for r_ in (ra, ex)]
                 assert_array_equal(loc1, loc2)
 
                 assert_array_equal(ra._data[:NCH], ex._data[:NCH])
@@ -90,5 +91,6 @@ def test_setup_headshape():
     for hs in hs_fnames:
         dig, t = _setup_head_shape(hs)
         expected = set(['kind', 'ident', 'r'])
-        found = set(reduce(lambda x, y: x + y, [d.keys() for d in dig]))
+        found = set(reduce(lambda x, y: list(x) + list(y),
+                           [d.keys() for d in dig]))
         assert_true(not expected - found)

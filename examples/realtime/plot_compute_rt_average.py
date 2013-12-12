@@ -11,7 +11,7 @@ Note: The MNE Real-time server (mne_rt_server), which is part of mne-cpp,
 has to be running on the same computer.
 """
 
-print __doc__
+print(__doc__)
 
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Mainak Jas <mainak@neuro.hut.fi>
@@ -48,7 +48,7 @@ rt_epochs.start()
 # send raw buffers
 rt_client.send_data(rt_epochs, picks, tmin=0, tmax=150, buffer_size=1000)
 for ii, ev in enumerate(rt_epochs.iter_evoked()):
-    print "Just got epoch %d" % (ii + 1)
+    print("Just got epoch %d" % (ii + 1))
     if ii > 0:
         ev += evoked
     evoked = ev

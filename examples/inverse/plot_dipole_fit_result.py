@@ -18,7 +18,7 @@ $mne_dipole_fit --meas sample_audvis-ave.fif --set 1 --meg --tmin 40 --tmax 95 \
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne
@@ -39,9 +39,9 @@ src = fwd['src']
 # read dipoles
 time, pos, amplitude, ori, gof = mne.read_dip(dip_fname)
 
-print "Time (ms): %s" % time
-print "Amplitude (nAm): %s" % amplitude
-print "GOF (%%): %s" % gof
+print("Time (ms): %s" % time)
+print("Amplitude (nAm): %s" % amplitude)
+print("GOF (%%): %s" % gof)
 
 # only plot those for which GOF is above 50%
 pos = pos[gof > 50.]

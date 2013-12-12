@@ -279,7 +279,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     min_att_db = 20
 
     # normalize frequencies
-    freq = np.array([f / (Fs / 2) for f in freq])
+    freq = np.array(freq) / (Fs/2)
     gain = np.array(gain)
     filter_length = _get_filter_length(filter_length, Fs, len_x=x.shape[1])
 
@@ -444,7 +444,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
 
     >>> iir_params = dict(order=4, ftype='butter')
     >>> iir_params = construct_iir_filter(iir_params, 40, None, 1000, 'low', return_copy=False)
-    >>> print (len(iir_params['b']), len(iir_params['a']), iir_params['padlen'])
+    >>> print((len(iir_params['b']), len(iir_params['a']), iir_params['padlen']))
     (5, 5, 82)
 
     Filters can also be constructed using filter design methods. To get a
@@ -454,7 +454,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
 
     >>> iir_params = dict(ftype='cheby1', gpass=3, gstop=20)
     >>> iir_params = construct_iir_filter(iir_params, 40, 50, 1000, 'low')
-    >>> print (len(iir_params['b']), len(iir_params['a']), iir_params['padlen'])
+    >>> print((len(iir_params['b']), len(iir_params['a']), iir_params['padlen']))
     (6, 6, 439)
 
     Padding and/or filter coefficients can also be manually specified. For
@@ -463,7 +463,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
 
     >>> iir_params = dict(b=np.ones((10)), a=[1, 0], padlen=0)
     >>> iir_params = construct_iir_filter(iir_params, return_copy=False)
-    >>> print (iir_params['b'], iir_params['a'], iir_params['padlen'])
+    >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))
     (array([ 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]), [1, 0], 0)
 
     """

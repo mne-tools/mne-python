@@ -16,7 +16,7 @@ in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 

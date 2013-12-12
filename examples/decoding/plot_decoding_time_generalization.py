@@ -12,7 +12,7 @@ unexpected sounds", PLOS ONE, 2013
 The idea is to learn at one time instant and assess if the decoder
 can predict accurately over time.
 """
-print __doc__
+print(__doc__)
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

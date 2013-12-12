@@ -32,8 +32,8 @@ def test_data():
     """Test reading raw kit files
     """
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
-                          stim=list(range(167, 159, -1)), slope='+', stimthresh=1,
-                          preload=True)
+                          stim=list(range(167, 159, -1)), slope='+',
+                          stimthresh=1, preload=True)
     print(repr(raw_py))
 
     # Binary file only stores the sensor channels
@@ -88,6 +88,8 @@ def test_ch_loc():
     ch_sns = read_sns(op.join(data_dir, 'sns.txt'))
     assert_array_almost_equal(ch_py, ch_sns, 2)
 
+    assert_array_almost_equal(raw_py.info['dev_head_t']['trans'],
+                              raw_bin.info['dev_head_t']['trans'], 4)
     for py_ch, bin_ch in zip(raw_py.info['chs'], raw_bin.info['chs']):
         if bin_ch['ch_name'].startswith('MEG'):
             # the stored ch locs have more precision than the sns.txt

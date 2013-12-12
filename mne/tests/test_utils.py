@@ -38,6 +38,8 @@ def test_tempdir():
 
 
 def test_estimate_rank():
+    """Test rank estimation
+    """
     data = np.eye(10)
     data[0, 0] = 0
     assert_equal(estimate_rank(data), 9)
@@ -93,6 +95,7 @@ def test_logging():
     assert_equal(new_lines, old_lines)
     # check to make sure appending works (and as default, raises a warning)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         set_log_file(test_name, overwrite=False)
         assert len(w) == 0
         set_log_file(test_name)
@@ -122,11 +125,13 @@ def test_config():
     del os.environ[key]
     # catch the warning about it being a non-standard config key
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         set_config(key, None)
-        assert_true(len(w) == 1)
+    assert_true(len(w) == 1)
     assert_true(get_config(key) is None)
     assert_raises(KeyError, get_config, key, raise_error=True)
     with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
         set_config(key, value)
         assert_true(get_config(key) == value)
         set_config(key, None)
@@ -171,9 +176,11 @@ def test_deprecated():
     """Test deprecated function
     """
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         deprecated_func()
     assert_true(len(w) == 1)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         deprecated_class()
     assert_true(len(w) == 1)
 
@@ -183,9 +190,11 @@ def test_requires_mem_gb():
     """
     try:
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             big_mem_func()
         assert_true(len(w) == 1)
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             no_mem_func()
         assert_true(len(w) == 0)
     except:
@@ -218,7 +227,7 @@ def test_fetch_file():
                       op.join(tempdir, 'test'))
         resume_name = op.join(tempdir, "download_resume")
         # touch file
-        with file(resume_name + '.part', 'w'):
+        with open(resume_name + '.part', 'w'):
             os.utime(resume_name + '.part', None)
         _fetch_file(url, resume_name, print_destination=False, resume=True)
 

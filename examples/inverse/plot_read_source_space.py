@@ -7,7 +7,7 @@ Reading a source space from a forward operator
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import os.path as op
 

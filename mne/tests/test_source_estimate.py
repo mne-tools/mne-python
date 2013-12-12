@@ -166,7 +166,9 @@ def test_stc_arithmetic():
 
         a += a
         a -= a
-        a /= 2 * a
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always')
+            a /= 2 * a
         a *= -a
 
         a += 2
@@ -384,7 +386,7 @@ def test_transform_data():
     data = np.dot(kernel, sens_data)
 
     for idx, tmin_idx, tmax_idx in\
-            zip([None, np.arange(n_vertices / 2, n_vertices)],
+            zip([None, np.arange(n_vertices // 2, n_vertices)],
                 [None, 1], [None, 3]):
 
         if idx is None:
@@ -493,6 +495,7 @@ def test_spatio_temporal_src_connectivity():
     # add test for source space connectivity with omitted vertices
     inverse_operator = read_inverse_operator(fname_inv)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         src_ = inverse_operator['src']
         connectivity = spatio_temporal_src_connectivity(src_, n_times=2)
         assert len(w) == 1

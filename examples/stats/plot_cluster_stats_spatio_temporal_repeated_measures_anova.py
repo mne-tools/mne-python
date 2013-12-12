@@ -20,7 +20,7 @@ across space and time.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import os.path as op
 import numpy as np
@@ -101,7 +101,7 @@ tstep = conditions[0].tstep
 # we'll only consider the left hemisphere in this example.
 n_vertices_sample, n_times = conditions[0].lh_data.shape
 n_subjects = 7
-print 'Simulating data for %d subjects.' % n_subjects
+print('Simulating data for %d subjects.' % n_subjects)
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)
@@ -122,7 +122,7 @@ n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
 X = X.reshape(n_vertices_sample, n_times * n_subjects * 4)
-print 'Morphing data.'
+print('Morphing data.')
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 
@@ -187,7 +187,7 @@ def stat_fun(*args):
 source_space = grade_to_tris(5)
 # as we only have one hemisphere we need only need half the connectivity
 lh_source_space = source_space[source_space[:, 0] < 10242]
-print 'Computing connectivity.'
+print('Computing connectivity.')
 connectivity = spatial_tris_connectivity(lh_source_space)
 
 #    Now let's actually do the clustering. Please relax, on a small
@@ -197,7 +197,7 @@ pthresh = 0.001
 f_thresh = f_threshold_twoway_rm(n_subjects, factor_levels, effects, pthresh)
 n_permutations = 100  # ... run fewer permutations (reduces sensitivity)
 
-print 'Clustering.'
+print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
     spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
                                  threshold=f_thresh, stat_fun=stat_fun,
@@ -210,7 +210,7 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 ###############################################################################
 # Visualize the clusters
 
-print 'Visualizing clusters.'
+print('Visualizing clusters.')
 
 #    Now let's build a convenient representation of each cluster, where each
 #    cluster becomes a "time point" in the SourceEstimate

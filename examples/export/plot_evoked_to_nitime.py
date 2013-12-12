@@ -9,7 +9,7 @@ Export evoked data to Nitime
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 from mne import fiff
 from mne.datasets import sample

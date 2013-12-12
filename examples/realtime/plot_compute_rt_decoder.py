@@ -11,7 +11,7 @@ accuracy is plotted
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import time
 
@@ -72,7 +72,7 @@ concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
 
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
-    print "Just got epoch %d" % (ev_num + 1)
+    print("Just got epoch %d" % (ev_num + 1))
 
     if ev_num == 0:
         X = ev.data[None, ...]

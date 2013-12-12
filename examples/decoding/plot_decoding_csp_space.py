@@ -18,7 +18,7 @@ See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 import numpy as np
 
 import mne
@@ -80,8 +80,8 @@ for train_idx, test_idx in cv:
 # Printing the results
 class_balance = np.mean(labels == labels[0])
 class_balance = max(class_balance, 1. - class_balance)
-print "Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
-                                                          class_balance)
+print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
+                                                          class_balance))
 
 # Or use much more convenient scikit-learn cross_val_score function using
 # a Pipeline
@@ -90,13 +90,13 @@ from sklearn.cross_validation import cross_val_score
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
-print scores.mean()  # should match results above
+print(scores.mean())  # should match results above
 
 # And using reuglarized csp with Ledoit-Wolf estimator
 csp = CSP(n_components=n_components, reg='lws')
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
-print scores.mean()  # should get better results than above
+print(scores.mean())  # should get better results than above
 
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)

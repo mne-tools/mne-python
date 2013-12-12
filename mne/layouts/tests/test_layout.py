@@ -14,11 +14,13 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises
 
-from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout, 
+from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout,
                          find_layout)
 
 from mne.fiff import Raw, pick_types, pick_info
 from mne.utils import _TempDir
+
+warnings.simplefilter('always')
 
 fif_fname = op.join(op.dirname(__file__), '..', '..', 'fiff',
                    'tests', 'data', 'test_raw.fif')
@@ -132,27 +134,29 @@ def test_make_grid_layout():
 def test_find_layout():
     """Test finding layout"""
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         find_layout(chs=test_info['chs'])
         assert_true(w[0].category == DeprecationWarning)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         find_layout(test_info['chs'])
         assert_true(w[0].category == DeprecationWarning)
     assert_raises(ValueError, find_layout, dict())
     assert_raises(ValueError, find_layout, test_info, ch_type='meep')
-        
+
     sample_info = Raw(fif_fname).info
     grads = pick_types(sample_info, meg='grad')
     sample_info2 = pick_info(sample_info, grads)
-    
+
     mags = pick_types(sample_info, meg='mag')
     sample_info3 = pick_info(sample_info, mags)
-    
+
     # mock new convention
     sample_info4 = copy.deepcopy(sample_info)
     for ii, name in enumerate(sample_info4['ch_names']):
         new = name.replace(' ', '')
         sample_info4['ch_names'][ii] = new
-        sample_info4['chs'][ii]['ch_name'] = new 
+        sample_info4['chs'][ii]['ch_name'] = new
 
     mags = pick_types(sample_info, meg=False, eeg=True)
     sample_info5 = pick_info(sample_info, mags)
@@ -163,12 +167,12 @@ def test_find_layout():
 
     lout = find_layout(sample_info2, ch_type='meg')
     assert_true(lout.kind == 'Vectorview-all')
-    
+
     # test new vector-view
     lout = find_layout(sample_info4, ch_type=None)
     assert_true(lout.kind == 'Vectorview-all')
     assert_true(all(not ' ' in k for k in lout.names))
-    
+
     lout = find_layout(sample_info, ch_type='grad')
     assert_true(lout.kind == 'Vectorview-grad')
     lout = find_layout(sample_info2)
@@ -178,7 +182,7 @@ def test_find_layout():
     lout = find_layout(sample_info2, ch_type='meg')
     assert_true(lout.kind == 'Vectorview-all')
 
-    
+
     lout = find_layout(sample_info, ch_type='mag')
     assert_true(lout.kind == 'Vectorview-mag')
     lout = find_layout(sample_info3)
@@ -187,7 +191,7 @@ def test_find_layout():
     assert_true(lout.kind == 'Vectorview-mag')
     lout = find_layout(sample_info3, ch_type='meg')
     assert_true(lout.kind == 'Vectorview-all')
-    # 
+    #
     lout = find_layout(sample_info, ch_type='eeg')
     assert_true(lout.kind == 'EEG')
     lout = find_layout(sample_info5)
@@ -199,9 +203,9 @@ def test_find_layout():
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
     lout = find_layout(Raw(fname_bti_raw).info)
     assert_true(lout.kind == 'magnesWH3600')
-    
+
     lout = find_layout(Raw(fname_ctf_raw).info)
     assert_true(lout.kind == 'CTF-275')
-    
+
     sample_info5['dig'] = []
     assert_raises(RuntimeError, find_layout, sample_info5)

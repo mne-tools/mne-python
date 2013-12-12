@@ -11,6 +11,7 @@ functional label. As expected the time course in the functional
 label yields higher values.
 
 """
+print(__doc__)
 
 # Author: Luke Bloy <luke.bloy@gmail.com>
 #         Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>

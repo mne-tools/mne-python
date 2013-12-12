@@ -32,7 +32,6 @@ from ..fiff.write import (write_int, start_block, end_block,
                           write_string, start_file, end_file, write_id)
 from ..fiff.raw import Raw
 from ..fiff.evoked import Evoked, write_evoked
-from ..event import make_fixed_length_events
 from ..epochs import Epochs
 from ..source_space import (read_source_spaces_from_tree,
                             find_source_space_hemi,
@@ -589,7 +588,7 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
         nuse_total = sum([s['nuse'] for s in fwd['src']])
         fwd['source_nn'] = np.empty((3 * nuse_total, 3), dtype=np.float)
         logger.info('    Converting to surface-based source orientations...')
-        if s['patch_inds'] is not None:
+        if fwd['src'][0]['patch_inds'] is not None:
             use_ave_nn = True
             logger.info('    Average patch normals will be employed in the '
                         'rotation to the local surface coordinates....')
@@ -913,7 +912,7 @@ def _restrict_gain_matrix(G, info):
                 G = G[sel]
                 logger.info('    %d EEG channels' % len(sel))
             else:
-                logger.warn('Could not find MEG or EEG channels')
+                logger.warning('Could not find MEG or EEG channels')
     return G
 
 
@@ -963,7 +962,7 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
 
     logger.info('    limit = %d/%d = %f'
                 % (n_limit + 1, len(d),
-                np.sqrt(limit / ws[0])))
+                   np.sqrt(limit / ws[0])))
     scale = 1.0 / limit
     logger.info('    scale = %g exp = %g' % (scale, exp))
     wpp = np.minimum(w / limit, 1) ** exp
@@ -1166,7 +1165,7 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     data, times = _apply_forward(fwd, stc, start, stop)
 
     # store sensor data in Raw object using the template
-    raw = deepcopy(raw_template)
+    raw = raw_template.copy()
     raw._preloaded = True
     raw._data = data
     raw._times = times
@@ -1538,6 +1537,7 @@ def average_forward_solutions(fwds, weights=None):
     # check weights
     if weights is None:
         weights = np.ones(len(fwds))
+    weights = np.asanyarray(weights)  # in case it's a list, convert it
     if not np.all(weights >= 0):
         raise ValueError('weights must be non-negative')
     if not len(weights) == len(fwds):

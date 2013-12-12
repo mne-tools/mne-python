@@ -114,7 +114,7 @@ def read_big(fid, size=None):
         segments = np.r_[np.arange(0, size, buf_size), size]
         buf = bytearray(b' ' * size)
         for start, end in zip(segments[:-1], segments[1:]):
-            data = fid.read(end - start)
+            data = fid.read(int(end - start))
             if len(data) != end - start:
                 raise ValueError('Read error')
             buf[start:end] = data
@@ -276,8 +276,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                     raise Exception('Cannot handle matrix of type %d yet'
                                     % matrix_type)
 
-            elif matrix_coding == matrix_coding_CCS or \
-                                    matrix_coding == matrix_coding_RCS:
+            elif matrix_coding in (matrix_coding_CCS, matrix_coding_RCS):
                 from scipy import sparse
                 # Find dimensions and return to the beginning of tag data
                 pos = fid.tell()
@@ -291,9 +290,9 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
 
                 # Back to where the data start
                 fid.seek(pos, 0)
-                nnz = dims[0]
-                nrow = dims[1]
-                ncol = dims[2]
+                nnz = int(dims[0])
+                nrow = int(dims[1])
+                ncol = int(dims[2])
                 sparse_data = np.fromstring(fid.read(4 * nnz), dtype='>f4')
                 shape = (dims[1], dims[2])
                 if matrix_coding == matrix_coding_CCS:
@@ -438,7 +437,7 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 #   Handle the channel name
                 #
                 ch_name = np.fromstring(fid.read(16), dtype=">c")
-                ch_name = ch_name[:np.argmax(ch_name==b'')].tostring()
+                ch_name = ch_name[:np.argmax(ch_name == b'')].tostring()
                 # Use unicode or bytes depending on Py2/3
                 tag.data['ch_name'] = str(ch_name.decode())
 

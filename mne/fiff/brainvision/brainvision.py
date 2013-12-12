@@ -73,7 +73,7 @@ class RawBrainVision(Raw):
         n_samples = f.tell()
         dtype = int(self._eeg_info['dtype'][-1])
         n_chan = self.info['nchan']
-        self.last_samp = (n_samples / (dtype * (n_chan - 1))) - 1
+        self.last_samp = (n_samples // (dtype * (n_chan - 1))) - 1
 
         if preload:
             self._preloaded = preload
@@ -358,8 +358,8 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
         name, _, resolution, unit = props.split(',')[:4]
         ch_names[n - 1] = name
         cals[n - 1] = resolution
-        unit = unit.replace('\xc2', '') # Remove unwanted control characters
-        if u(unit)==u'\xb5V':
+        unit = unit.replace('\xc2', '')  # Remove unwanted control characters
+        if u(unit) == u('\xb5V'):
             units.append(1e-6)
         elif unit == 'V':
             units.append(0)

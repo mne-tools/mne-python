@@ -11,6 +11,7 @@ import mne
 from mne.datasets import sample
 from mne.beamformer import dics, dics_epochs, dics_source_power, tf_dics
 from mne.time_frequency import compute_epochs_csd
+from mne.externals.six import advance_iterator
 
 # Note that this is the first test file, this will apply to all subsequent
 # tests in a full nosetest:
@@ -127,7 +128,7 @@ def test_dics():
     # Testing returning of generator
     stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
                         return_generator=True, label=label)
-    assert_array_equal(stcs[0].data, stcs_.next().data)
+    assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     # Test whether correct number of trials was returned
     epochs.drop_bad_epochs()

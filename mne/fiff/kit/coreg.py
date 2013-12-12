@@ -12,11 +12,10 @@ import re
 from struct import unpack
 
 import numpy as np
-from scipy.linalg import norm
 
 from ... import __version__
-from ...transforms import translation
 from .constants import KIT
+from ...externals.six import b
 
 
 def read_mrk(fname):
@@ -35,7 +34,7 @@ def read_mrk(fname):
     """
     ext = os.path.splitext(fname)[-1]
     if ext in ('.sqd', '.mrk'):
-        with open(fname, 'r') as fid:
+        with open(fname, 'rb', buffering=0) as fid:  # buffering=0 for np bug
             fid.seek(KIT.MRK_INFO)
             mrk_offset = unpack('i', fid.read(KIT.INT))[0]
             fid.seek(mrk_offset)
@@ -51,7 +50,7 @@ def read_mrk(fname):
     elif ext == '.txt':
         mrk_points = np.loadtxt(fname)
     elif ext == '.pickled':
-        with open(fname) as fid:
+        with open(fname, 'rb') as fid:
             food = pickle.load(fid)
         try:
             mrk_points = food['mrk']
@@ -92,7 +91,7 @@ def write_mrk(fname, points):
         raise ValueError(err)
 
     if ext == '.pickled':
-        with open(fname, 'w') as fid:
+        with open(fname, 'wb') as fid:
             pickle.dump({'mrk': mrk}, fid, pickle.HIGHEST_PROTOCOL)
     elif ext == '.txt':
         np.savetxt(fname, mrk, fmt='%.18e', delimiter='\t', newline='\n')
@@ -166,12 +165,12 @@ def write_hsp(fname, pts):
         err = "pts must be of shape (n_pts, 3), not %r" % str(pts.shape)
         raise ValueError(err)
 
-    with open(fname, 'w') as fid:
+    with open(fname, 'wb') as fid:
         version = __version__
         now = datetime.now().strftime("%I:%M%p on %B %d, %Y")
-        fid.write("% Ascii 3D points file created by mne-python version "
-                  "{version} at {now}\n".format(version=version, now=now))
-        fid.write("% {N} 3D points, x y z per line\n".format(N=len(pts)))
+        fid.write(b("% Ascii 3D points file created by mne-python version "
+                    "{version} at {now}\n".format(version=version, now=now)))
+        fid.write(b("% {N} 3D points, x y z per line\n".format(N=len(pts))))
         np.savetxt(fid, pts, '%8.2f', ' ')
 
 

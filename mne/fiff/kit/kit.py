@@ -114,9 +114,9 @@ class RawKIT(Raw):
         self.info['dev_head_t'] = None
 
         if isinstance(mrk, list):
-            mrk = [read_mrk(marker) if isinstance(marker, basestring)
+            mrk = [read_mrk(marker) if isinstance(marker, string_types)
                    else marker for marker in mrk]
-            mrk = reduce(np.add, mrk) / len(mrk)
+            mrk = np.mean(mrk, axis=0)
 
         if (mrk is not None and elp is not None and hsp is not None):
             self._set_dig_kit(mrk, elp, hsp)
@@ -323,7 +323,7 @@ class RawKIT(Raw):
                     (start, stop - 1, start / float(self.info['sfreq']),
                      (stop - 1) / float(self.info['sfreq'])))
 
-        with open(self._sqd_params['fname'], 'rb') as fid:
+        with open(self._sqd_params['fname'], 'rb', buffering=0) as fid:
             # extract data
             fid.seek(KIT.DATA_OFFSET)
             # data offset info
@@ -528,7 +528,7 @@ def get_sqd_params(rawfile):
     """
     sqd = dict()
     sqd['rawfile'] = rawfile
-    with open(rawfile, 'rb') as fid:
+    with open(rawfile, 'rb', buffering=0) as fid:  # buffering=0 for np bug
         fid.seek(KIT.BASIC_INFO)
         basic_offset = unpack('i', fid.read(KIT.INT))[0]
         fid.seek(basic_offset)
@@ -536,7 +536,7 @@ def get_sqd_params(rawfile):
         fid.seek(KIT.INT * 3, SEEK_CUR)
         # basic info
         sysname = unpack('128s', fid.read(KIT.STRING))
-        sysname = sysname[0].split('\n')[0]
+        sysname = sysname[0].decode().split('\n')[0]
         fid.seek(KIT.STRING, SEEK_CUR)  # skips modelname
         sqd['nchan'] = unpack('i', fid.read(KIT.INT))[0]
 

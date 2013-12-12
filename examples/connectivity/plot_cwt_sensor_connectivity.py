@@ -17,7 +17,7 @@ domain using Morlet wavelets and the debiased Squared Weighted Phase Lag Index
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne

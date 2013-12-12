@@ -11,7 +11,7 @@ are investigated using sensor space ERF plotting
 techniques.
 
 """
-print __doc__
+print(__doc__)
 
 # Authors: Denis Engemann <d.engemann@fz-juelich.de>
 #
@@ -55,7 +55,7 @@ ica = ICA(n_components=0.90, n_pca_components=64, max_pca_components=100,
           noise_cov=None, random_state=random_state)
 
 ica.decompose_epochs(epochs, decim=2)
-print ica
+print(ica)
 
 # plot spatial sensitivities of a few ICA components
 title = 'Spatial patterns of ICA components (Magnetometers)'

@@ -17,8 +17,8 @@ from nose.tools import assert_true, assert_raises, assert_equal
 from mne.fiff import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
                       get_chpi_positions, set_eeg_reference)
 from mne import concatenate_events, find_events
-from mne.utils import (_TempDir, requires_nitime, requires_pandas, requires_mne,
-                       run_subprocess)
+from mne.utils import (_TempDir, requires_nitime, requires_pandas,
+                       requires_mne, run_subprocess)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -243,8 +243,10 @@ def test_load_bad_channels():
 
     # Test forcing the bad case
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         raw.load_bad_channels(bad_file_wrong, force=True)
-        assert_equal(len(w), 1)
+        n_found = sum(['1 bad channel' in str(ww.message) for ww in w])
+        assert_equal(n_found, 1)  # there could be other irrelevant errors
         # write it out, read it in, and check
         raw.save(op.join(tempdir, 'foo_raw.fif'), overwrite=True)
         raw_new = Raw(op.join(tempdir, 'foo_raw.fif'))
@@ -370,6 +372,7 @@ def test_io_complex():
         raw_cp._data[picks, start:stop] += imag_rand
         # this should throw an error because it's complex
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             raw_cp.save(op.join(tempdir, 'raw.fif'), picks, tmin=0, tmax=5,
                         overwrite=True)
             # warning gets thrown on every instance b/c simplifilter('always')
@@ -462,7 +465,7 @@ def test_proj():
 
 
 def test_preload_modify():
-    """ Test preloading and modifying data
+    """Test preloading and modifying data
     """
     for preload in [False, True, 'memmap.dat']:
         raw = Raw(fif_fname, preload=preload)
@@ -490,7 +493,8 @@ def test_preload_modify():
 
 
 def test_filter():
-    """ Test filtering (FIR and IIR) and Raw.apply_function interface """
+    """Test filtering (FIR and IIR) and Raw.apply_function interface
+    """
     raw = Raw(fif_fname, preload=True).crop(0, 7, False)
     sig_dec = 11
     sig_dec_notch = 12
@@ -542,7 +546,8 @@ def test_filter():
 
     # do a very simple check on line filtering
     raw_bs = raw.copy()
-    with warnings.catch_warnings(record=True) as _:
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
         raw_bs.filter(60.0 + 0.5, 60.0 - 0.5, picks=picks, n_jobs=2)
         data_bs, _ = raw_bs[picks, :]
         raw_notch = raw.copy()
@@ -602,7 +607,8 @@ def test_crop():
 
 
 def test_resample():
-    """ Test resample (with I/O and multiple files) """
+    """Test resample (with I/O and multiple files)
+    """
     raw = Raw(fif_fname, preload=True).crop(0, 3, False)
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
@@ -653,7 +659,8 @@ def test_resample():
 
 
 def test_hilbert():
-    """ Test computation of analytic signal using hilbert """
+    """Test computation of analytic signal using hilbert
+    """
     raw = Raw(fif_fname, preload=True)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
@@ -667,7 +674,8 @@ def test_hilbert():
 
 
 def test_raw_copy():
-    """ Test Raw copy"""
+    """Test Raw copy
+    """
     raw = Raw(fif_fname, preload=True)
     data, _ = raw[:, :]
     copied = raw.copy()

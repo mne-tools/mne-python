@@ -1030,7 +1030,7 @@ def _xyz2lf(Lf_xyz, normals):
         tangential orientations (tangent space of cortical surface).
     """
     n_sensors, n_dipoles = Lf_xyz.shape
-    n_positions = n_dipoles / 3
+    n_positions = n_dipoles // 3
     Lf_xyz = Lf_xyz.reshape(n_sensors, n_positions, 3)
     n_sensors, n_positions, _ = Lf_xyz.shape
     Lf_cortex = np.zeros_like(Lf_xyz)

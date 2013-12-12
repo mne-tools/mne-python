@@ -133,7 +133,7 @@ def _read_w(filename):
            data           The data matrix (nvert long)
     """
 
-    fid = open(filename, 'rb')
+    fid = open(filename, 'rb', buffering=0)  # buffering=0 for np bug
 
     # skip first 2 bytes
     fid.read(2)
@@ -147,7 +147,7 @@ def _read_w(filename):
     # read the vertices and data
     for i in range(vertices_n):
         vertices[i] = _read_3(fid)
-        data[i] = np.fromfile(fid, dtype='>f4', count=1)
+        data[i] = np.fromfile(fid, dtype='>f4', count=1)[0]
 
     w = dict()
     w['vertices'] = vertices
@@ -582,10 +582,16 @@ class _BaseSourceEstimate(object):
             self._data -= a
         return self
 
+    def __truediv__(self, a):
+        return self.__div__(a)
+
     def __div__(self, a):
         stc = copy.deepcopy(self)
         stc /= a
         return stc
+
+    def __itruediv__(self, a):
+        return self.__idiv__(a)
 
     def __idiv__(self, a):
         self._remove_kernel_sens_data_()
@@ -2463,7 +2469,8 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
             if not allow_empty:
                 raise ValueError(msg)
             else:
-                logger.warn(msg + '. Assigning all-zero time series to label.')
+                logger.warning(msg + '. Assigning all-zero time series to '
+                               'label.')
             this_vertidx = None  # to later check if label is empty
 
         label_vertidx.append(this_vertidx)
