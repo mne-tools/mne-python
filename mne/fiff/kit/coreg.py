@@ -34,7 +34,7 @@ def read_mrk(fname):
     """
     ext = os.path.splitext(fname)[-1]
     if ext in ('.sqd', '.mrk'):
-        with open(fname, 'rb+') as fid:
+        with open(fname, 'rb', buffering=0) as fid:
             fid.seek(KIT.MRK_INFO)
             mrk_offset = unpack('i', fid.read(KIT.INT))[0]
             fid.seek(mrk_offset)
