@@ -206,7 +206,7 @@ def stftfreq(wsize, sfreq=None):
     stft
     istft
     """
-    n_freq = wsize / 2 + 1
+    n_freq = wsize // 2 + 1
     freqs = fftfreq(wsize)
     freqs = np.abs(freqs[:n_freq])
     if sfreq is not None:
