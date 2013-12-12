@@ -133,7 +133,7 @@ def _read_w(filename):
            data           The data matrix (nvert long)
     """
 
-    fid = open(filename, 'rb+')
+    fid = open(filename, 'rb', buffering=0)  # buffering=0 for np bug
 
     # skip first 2 bytes
     fid.read(2)

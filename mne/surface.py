@@ -562,7 +562,7 @@ def read_surface(fname, verbose=None):
         Triangulation (each line contains indexes for three points which
         together form a face).
     """
-    with open(fname, "rb+") as fobj:  # plus necessary for Py3k here
+    with open(fname, "rb", buffering=0) as fobj:  # buffering=0 for np bug
         magic = _fread3(fobj)
         if (magic == 16777215) or (magic == 16777213):  # Quad file or new quad
             nvert = _fread3(fobj)
