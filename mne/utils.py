@@ -731,11 +731,20 @@ def get_config_path():
     config_path : str
         The path to the mne-python configuration file. On windows, this
         will be '%APPDATA%\.mne\mne-python.json'. On every other
-        system, this will be $HOME/.mne/mne-python.json.
+        system, this will be ~/.mne/mne-python.json.
     """
 
     # this has been checked on OSX64, Linux64, and Win32
-    val = os.getenv('APPDATA' if 'nt' == os.name.lower() else 'HOME', None)
+    if 'nt' == os.name.lower():
+        val = os.getenv('APPDATA')
+    else:
+        # This is a more robust way of getting the user's home folder on Linux
+        # platforms (not sure about OSX, Unix or BSD) than checking the HOME
+        # environment variable.  If the user is running some sort of script
+        # that isn't launched via the command line (e.g. a script launched via
+        # Upstart) then the HOME environment variable will not be set.
+        val = os.path.expanduser('~')
+
     if val is None:
         raise ValueError('mne-python config file path could '
                          'not be determined, please report this '
