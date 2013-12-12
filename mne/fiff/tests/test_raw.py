@@ -245,7 +245,8 @@ def test_load_bad_channels():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         raw.load_bad_channels(bad_file_wrong, force=True)
-        assert_equal(len(w), 1)
+        n_found = sum(['1 bad channel' in str(ww.message) for ww in w])
+        assert_equal(n_found, 1)  # there could be other irrelevant errors
         # write it out, read it in, and check
         raw.save(op.join(tempdir, 'foo_raw.fif'), overwrite=True)
         raw_new = Raw(op.join(tempdir, 'foo_raw.fif'))

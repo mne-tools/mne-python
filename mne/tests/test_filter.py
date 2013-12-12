@@ -144,8 +144,9 @@ def test_filters():
     assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
     # test to make sure our resamling matches scipy's
-    bp_up_dn = sp_resample(sp_resample(bp_oa, 2 * len(bp_oa), window='boxcar'),
-                           len(bp_oa), window='boxcar')
+    bp_up_dn = sp_resample(sp_resample(bp_oa, 2 * bp_oa.shape[-1], axis=-1,
+                                       window='boxcar'),
+                           bp_oa.shape[-1], window='boxcar', axis=-1)
     assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
 
