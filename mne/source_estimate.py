@@ -133,28 +133,25 @@ def _read_w(filename):
            data           The data matrix (nvert long)
     """
 
-    fid = open(filename, 'rb+')
+    with open(filename, 'rb', buffering=0) as fid:  # buffering=0 for np bug
+        # skip first 2 bytes
+        fid.read(2)
 
-    # skip first 2 bytes
-    fid.read(2)
+        # read number of vertices/sources (3 byte integer)
+        vertices_n = int(_read_3(fid))
 
-    # read number of vertices/sources (3 byte integer)
-    vertices_n = int(_read_3(fid))
+        vertices = np.zeros((vertices_n), dtype=np.int32)
+        data = np.zeros((vertices_n), dtype=np.float32)
 
-    vertices = np.zeros((vertices_n), dtype=np.int32)
-    data = np.zeros((vertices_n), dtype=np.float32)
+        # read the vertices and data
+        for i in range(vertices_n):
+            vertices[i] = _read_3(fid)
+            data[i] = np.fromfile(fid, dtype='>f4', count=1)[0]
 
-    # read the vertices and data
-    for i in range(vertices_n):
-        vertices[i] = _read_3(fid)
-        data[i] = np.fromfile(fid, dtype='>f4', count=1)[0]
+        w = dict()
+        w['vertices'] = vertices
+        w['data'] = data
 
-    w = dict()
-    w['vertices'] = vertices
-    w['data'] = data
-
-    # close the file
-    fid.close()
     return w
 
 
