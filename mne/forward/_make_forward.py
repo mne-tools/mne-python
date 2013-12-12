@@ -22,8 +22,9 @@ from ..source_space import (read_source_spaces, _filter_source_spaces,
 from ..surface import read_bem_solution, _normalize_vectors
 
 
-def _read_coil_defs(fname):
+def _read_coil_defs():
     """Read a coil definition file"""
+    fname = op.join(op.split(__file__)[0], '..', 'data', 'coil_def.dat')
     big_val = 0.5
     with open(fname, 'r') as fid:
         lines = fid.readlines()
@@ -368,8 +369,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
         raise RuntimeError('Could not find any MEG or EEG channels')
 
     # Create coil descriptions with transformation to head or MRI frame
-    templates = _read_coil_defs(op.join(op.split(__file__)[0],
-                                        '..', 'data', 'coil_def.dat'))
+    templates = _read_coil_defs()
     if nmeg > 0 and ncomp > 0:  # Compensation channel information
         logger.info('%d compensation data sets in %s'
                     % (ncomp_data, info_extra))

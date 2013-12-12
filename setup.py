@@ -3,6 +3,7 @@
 # Copyright (C) 2011-2013 Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 
 import os
+from os import path as op
 
 import setuptools  # we are using a setuptools namespace
 from numpy.distutils.core import setup
@@ -84,9 +85,10 @@ if __name__ == "__main__":
                     'mne.realtime', 'mne.realtime.tests',
                     'mne.decoding', 'mne.decoding.tests',
                     'mne.commands', 'mne.externals'],
-          package_data={'mne': ['data/*.sel',
-                                'data/icos.fif.gz',
-                                'data/coil_def.dat',
-                                'layouts/*.lout',
-                                'layouts/*.lay']},
+          package_data={'mne': [op.join('data', '*.sel'),
+                                op.join('data', 'icos.fif.gz'),
+                                op.join('data', 'coil_def.dat'),
+                                op.join('data', 'helmets', '*.fif.gz'),
+                                op.join('layouts', '*.lout'),
+                                op.join('layouts', '*.lay')]},
           scripts=['bin/mne'])
