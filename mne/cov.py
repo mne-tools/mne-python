@@ -171,7 +171,7 @@ def read_cov(fname):
 
 def _check_n_samples(n_samples, n_chan):
     """Check to see if there are enough samples for reliable cov calc"""
-    n_samples_min = 10 * (n_chan + 1) / 2
+    n_samples_min = 10 * (n_chan + 1) // 2
     if n_samples <= 0:
         raise ValueError('No samples found to compute the covariance matrix')
     if n_samples < n_samples_min:
@@ -409,7 +409,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if keep_sample_mean:
         data /= n_samples_tot
     else:
-        n_samples_epoch = n_samples / n_epochs
+        n_samples_epoch = n_samples // n_epochs
         norm_const = np.sum(n_samples_epoch * (n_epochs - 1))
         for i, mean in enumerate(data_mean):
             data -= 1.0 / n_epochs[i] * np.dot(mean, mean.T)

@@ -129,7 +129,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
     is_free_ori = False
     if (source_ori == FIFF.FIFFV_MNE_FREE_ORI and pick_ori == None):
         is_free_ori = True
-        n_sources /= 3
+        n_sources //= 3
 
     shape = (n_sources, n_freqs, n_times)
     power = np.zeros(shape, dtype=np.float)  # power
