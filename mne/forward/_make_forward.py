@@ -22,9 +22,10 @@ from ..source_space import (read_source_spaces, _filter_source_spaces,
 from ..surface import read_bem_solution, _normalize_vectors
 
 
-def _read_coil_defs():
+def _read_coil_defs(fname=None):
     """Read a coil definition file"""
-    fname = op.join(op.split(__file__)[0], '..', 'data', 'coil_def.dat')
+    if fname is None:
+        fname = op.join(op.split(__file__)[0], '..', 'data', 'coil_def.dat')
     big_val = 0.5
     with open(fname, 'r') as fid:
         lines = fid.readlines()
@@ -144,8 +145,10 @@ def _create_eeg_el(ch, t):
     return res
 
 
-def _create_coils(coilset, chs, acc, t, coil_type='meg'):
+def _create_coils(chs, acc=None, t=None, coil_type='meg', coilset=None):
     """Create a set of MEG or EEG coils"""
+    if coilset is None:  # auto-read defs if not supplied
+        coilset = _read_coil_defs()
     coils = list()
     if coil_type == 'meg':
         for ch in chs:
@@ -155,7 +158,7 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
             coils.append(_create_eeg_el(ch, t))
     else:
         raise RuntimeError('unknown coil type')
-    return coils, t['to']
+    return coils, coils[0]['coord_frame']  # all get the same coord_frame
 
 
 @verbose
@@ -375,23 +378,22 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
                     % (ncomp_data, info_extra))
 
     meg_xform = meg_head_t
-    eeg_xform = {'trans': np.eye(4), 'to': FIFF.FIFFV_COORD_HEAD,
-                 'from': FIFF.FIFFV_COORD_HEAD}
     extra_str = 'Head'
 
     megcoils, megcf, compcoils, compcf = None, None, None, None
     if nmeg > 0:
-        megcoils, megcf = _create_coils(templates, megchs,
+        megcoils, megcf = _create_coils(megchs,
                                         FIFF.FWD_COIL_ACCURACY_ACCURATE,
-                                        meg_xform, coil_type='meg')
+                                        meg_xform, coil_type='meg',
+                                        coilset=templates)
         if ncomp > 0:
-            compcoils, compcf = _create_coils(templates, compchs,
+            compcoils, compcf = _create_coils(compchs,
                                               FIFF.FWD_COIL_ACCURACY_NORMAL,
-                                              meg_xform, coil_type='meg')
+                                              meg_xform, coil_type='meg',
+                                              coilset=templates)
     eegels = None
     if neeg > 0:
-        eegels, _ = _create_coils(templates, eegchs, None,
-                                  eeg_xform, coil_type='eeg')
+        eegels, _ = _create_coils(eegchs, coil_type='eeg')
     logger.info('%s coordinate coil definitions created.' % extra_str)
 
     # Transform the source spaces into the appropriate coordinates

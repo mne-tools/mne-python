@@ -84,7 +84,7 @@ def _comp_sum(beta, ctheta):
         if betan < eps:
             break
         p0, p01 = _next_legen(n, ctheta, p0, p01)
-        s0 = s0 + p0 * betan * (2.0 * n + 1.0) * (2.0 * n + 1.0) / n
+        s0 += p0 * betan * (2.0 * n + 1.0) * (2.0 * n + 1.0) / n
     return s0
 
 
@@ -136,6 +136,7 @@ def _eeg_sphere_dot_r0(r, rel1, rel2, r0):
     ct = np.sum(rr1 * rr2)
     # Give it a finishing touch!
     eeg_const = 1.0 / (4.0 * np.pi)
+    # XXX Wrap this to scipy.polynomial.legendre
     return eeg_const * _comp_sum(beta, ct) / (r1 * r2)
 
 

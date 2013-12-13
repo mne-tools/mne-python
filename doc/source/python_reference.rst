@@ -89,8 +89,10 @@ Functions:
    :toctree: generated/
    :template: function.rst
 
-   parse_config
    decimate_surface
+   get_head_surf
+   get_meg_helmet_surf
+   parse_config
    read_bem_solution
    read_bem_surfaces
    read_cov
@@ -392,8 +394,8 @@ MRI Processing
 
 Step by step instructions for using :func:`gui.coregistration`:
 
- - `Coregistration for subjects with structural MRI 
-   <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ 
+ - `Coregistration for subjects with structural MRI
+   <http://www.slideshare.net/mne-python/mnepython-coregistration>`_
  - `Scaling a template MRI for subjects for which no MRI is available
    <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_
 
@@ -425,6 +427,7 @@ Forward Modeling
    convert_forward_solution
    do_forward_solution
    make_forward_solution
+   make_surface_mapping
    read_bem_surfaces
    read_forward_solution
    read_trans
