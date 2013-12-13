@@ -610,6 +610,35 @@ class Evoked(ProjMixin):
         out.comment = self.comment + " - " + this_evoked.comment
         return out
 
+    def get_peak(self, tmin=None, tmax=None, use_abs=True,
+                 ch_as_index=False, time_as_index=False):
+        """Get peak and peak latency
+
+        Parameters
+        ----------
+        tmin : float | None
+            The minimum point in time to be considered for peak getting.
+        tmax : float | None
+            The maximum point in time to be considered for peak getting.
+        use_abs : bool
+            Whether to consider absolute or signed data.
+        ch_as_index : bool
+            whether to return the channel index instead of of its name.
+        time_as_index : bool
+            Whether to return the time index instead of the latency.
+        Returns
+        -------
+        ch_idx : int
+            The index of the channel of the maximum response.
+        latency : float
+            The latency in seconds.    
+        """
+        ch_idx, time_idx =  get_peak_evoked(self.data, self.times, tmin, 
+                                            tmax, use_abs)
+
+        return (ch_idx if ch_as_index else self.ch_names[ch_idx],
+                time_idx if time_as_index else self.times[time_idx])
+
 
 def _get_entries(fid, evoked_node):
     """Helper to get all evoked entries"""
@@ -773,3 +802,54 @@ def write_evoked(fname, evoked):
     end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
+
+
+def get_peak_evoked(data, times, tmin=None, tmax=None, use_abs=True):
+    """Get feature-index and time of maximum signal from 2D array
+    
+    Note. This is a 'getter', not a 'finder'. For non-evoked type
+    data and continuous signals, please use proper peak detection algorithms.
+    
+    Parameters
+    ----------
+    data : instance of numpy.ndarray (features, samples)
+        The data, either evoked in sensor or source space
+    times : instance of numpy.ndarray (samples)
+        The times in seconds
+    tmin : float | None
+        The minimum point in time to be considered for peak getting.
+    tmax : float | None
+        The maximum point in time to be considered for peak getting.
+    use_abs : bool
+        Whether to consider absolute or signed data.
+        
+    Returns
+    -------
+    max_loc : int
+        The index of the feature with the maximum value.
+    max_time : int
+        The latency in seconds.
+    """
+
+    if tmin == None:
+        tmin = times[0]
+    if tmax == None:
+        tmax = times[-1]
+    
+    if tmin < times.min():
+        raise ValueError('The tmin value is out of bounds. It must be '
+                         'within {0} and {1}'.format(times.min(), times.max()))
+    if tmax > times.max():
+        raise ValueError('The tmin value is out of bounds. It must be '
+                         'within {0} and {1}'.format(times.min(), times.max()))
+    if tmin >= tmax:
+        raise ValueError('The tmin must be smaller than tma')
+    
+    time_win = (times >= tmin) & (times <= tmax)
+    mask = np.ones_like(data).astype(np.bool)
+    mask[:, time_win] = False
+    mask = np.ma.array(data, mask=mask).argmax()
+    max_loc, max_time = np.unravel_index(mask, data.shape)
+    
+    return max_loc, max_time 
+    
