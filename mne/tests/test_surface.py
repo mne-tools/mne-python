@@ -37,6 +37,7 @@ def test_helmet():
     for fname in [fname_raw, fname_kit_raw, fname_bti_raw, fname_ctf_raw]:
         helmet = get_meg_helmet_surf(read_info(fname))
         assert_equal(len(helmet['rr']), 304)  # they all have 304 verts
+        assert_equal(len(helmet['rr']), len(helmet['nn']))
 
 
 @sample.requires_sample_data
