@@ -1480,10 +1480,11 @@ class SourceEstimate(_BaseSourceEstimate):
 
         Returns
         -------
-        vertno : int
-            The vertex id with of the maximum response.
-        latency : float
-            The latency in seconds.
+        pos : int
+            The vertex exhibiting the maximum response, either ID or index.
+        latency : float | int
+            The time point of the maximum response, either latency in seconds
+            or index.    
         """
         data = {'lh': self.lh_data, 'rh': self.rh_data, None: self.data}[hemi]
         vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno, 
@@ -1664,8 +1665,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         Returns
         -------
-        vertno : int
-            The vertex id with of the maximum response.
+        pos : int
+            The vertex exhibiting the maximum response, either ID or index.
         latency : float
             The latency in seconds.
         """

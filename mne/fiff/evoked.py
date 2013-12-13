@@ -631,10 +631,11 @@ class Evoked(ProjMixin):
             Whether to return the time index instead of the latency.
         Returns
         -------
-        ch_idx : int
-            The index of the channel of the maximum response.
-        latency : float
-            The latency in seconds.    
+        pos : int
+            The channel exhibiting the maximum response, either name or index.
+        latency : float | int
+            The time point of the maximum response, either latency in seconds
+            or index.    
         """
         ch_idx, time_idx =  get_peak_evoked(self.data, self.times, tmin, 
                                             tmax, mode)
@@ -834,7 +835,7 @@ def get_peak_evoked(data, times, tmin=None, tmax=None, mode='abs'):
     max_loc : int
         The index of the feature with the maximum value.
     max_time : int
-        The latency in seconds.
+        The time point of the maximum response, index.
     """
     modes = ('abs', 'neg', 'pos')
     if mode not in modes:
