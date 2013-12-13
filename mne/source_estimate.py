@@ -1643,7 +1643,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         s += ", data size : %s x %s" % self.shape
         return "<VolSourceEstimate  |  %s>" % s
 
-    def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
+    def get_peak(self, tmin=None, tmax=None, mode='abs',
                  vert_as_index=False, time_as_index=False):
         """Get location and latency of peak amplitude
 
