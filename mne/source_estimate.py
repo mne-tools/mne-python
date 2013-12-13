@@ -13,8 +13,8 @@ from scipy import linalg, sparse
 from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
-from .fiff.evoked import get_peak_evoked
 from .filter import resample
+from .fiff.evoked import get_peak_evoked
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)
@@ -1455,9 +1455,9 @@ class SourceEstimate(_BaseSourceEstimate):
         return morph_data_precomputed(subject_from, subject_to, self,
                                       vertices_to, morph_mat)
 
-    def get_peak(self, hemi=None, tmin=None, tmax=None, use_abs=True,
+    def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
                  vert_as_index=False, time_as_index=False):
-        """Get peak and peak latency
+        """Get location and latency of peak amplitude
 
         hemi : {'lh', 'rh', None}
             The hemi to be considered. If None, the entire source space is
@@ -1466,8 +1466,11 @@ class SourceEstimate(_BaseSourceEstimate):
             The minimum point in time to be considered for peak getting.
         tmax : float | None
             The maximum point in time to be considered for peak getting.
-        use_abs : bool
-            Whether to consider absolute or signed data.
+        mode : {'pos', 'neg', 'abs'}
+            How to deal with the sign of the data. If 'pos' only positive
+            values will be considered. If 'neg' only negative values will
+            be considered. If 'abs' absolute values will be considered.
+            Defaults to 'abs'.
         vert_as_index : bool
             whether to return the vertex index instead of of its ID.
             Defaults to False.
@@ -1486,7 +1489,7 @@ class SourceEstimate(_BaseSourceEstimate):
         vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno, 
                   None: np.concatenate(self.vertno)}[hemi]
 
-        vert_idx, time_idx = get_peak_evoked(data, self.times, tmin, tmax, use_abs)
+        vert_idx, time_idx = get_peak_evoked(data, self.times, tmin, tmax, mode)
 
         return (vert_idx if vert_as_index else vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
@@ -1639,16 +1642,19 @@ class VolSourceEstimate(_BaseSourceEstimate):
         s += ", data size : %s x %s" % self.shape
         return "<VolSourceEstimate  |  %s>" % s
 
-    def get_peak(self, hemi=None, tmin=None, tmax=None, use_abs=True,
+    def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
                  vert_as_index=False, time_as_index=False):
-        """Get peak and peak latency
+        """Get location and latency of peak amplitude
 
         tmin : float | None
             The minimum point in time to be considered for peak getting.
         tmax : float | None
             The maximum point in time to be considered for peak getting.
-        use_abs : bool
-            Whether to consider absolute or signed data.
+        mode : {'pos', 'neg', 'abs'}
+            How to deal with the sign of the data. If 'pos' only positive
+            values will be considered. If 'neg' only negative values will
+            be considered. If 'abs' absolute values will be considered.
+            Defaults to 'abs'.
         vert_as_index : bool
             whether to return the vertex index instead of of its ID.
             Defaults to False.
@@ -1664,7 +1670,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
             The latency in seconds.
         """
 
-        vert_idx, time_idx = get_peak_evoked(self.data, self.times, tmin, tmax, use_abs)
+        vert_idx, time_idx = get_peak_evoked(self.data, self.times, tmin, tmax,
+                                             mode)
 
         return (vert_idx if vert_as_index else self.vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
@@ -1677,8 +1684,6 @@ def mesh_edges(tris):
 
     Parameters
     ----------
-<<<<<<< Local Changes
-    tris :=======
     tris : array of shape [n_triangles x 3]
         The triangles.
 

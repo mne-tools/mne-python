@@ -610,9 +610,9 @@ class Evoked(ProjMixin):
         out.comment = self.comment + " - " + this_evoked.comment
         return out
 
-    def get_peak(self, tmin=None, tmax=None, use_abs=True,
+    def get_peak(self, tmin=None, tmax=None, mode='abs',
                  ch_as_index=False, time_as_index=False):
-        """Get peak and peak latency
+        """Get location and latency of peak amplitude
 
         Parameters
         ----------
@@ -620,8 +620,11 @@ class Evoked(ProjMixin):
             The minimum point in time to be considered for peak getting.
         tmax : float | None
             The maximum point in time to be considered for peak getting.
-        use_abs : bool
-            Whether to consider absolute or signed data.
+        mode : {'pos', 'neg', 'abs'}
+            How to deal with the sign of the data. If 'pos' only positive
+            values will be considered. If 'neg' only negative values will
+            be considered. If 'abs' absolute values will be considered.
+            Defaults to 'abs'.
         ch_as_index : bool
             whether to return the channel index instead of of its name.
         time_as_index : bool
@@ -634,7 +637,7 @@ class Evoked(ProjMixin):
             The latency in seconds.    
         """
         ch_idx, time_idx =  get_peak_evoked(self.data, self.times, tmin, 
-                                            tmax, use_abs)
+                                            tmax, mode)
 
         return (ch_idx if ch_as_index else self.ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
@@ -804,7 +807,7 @@ def write_evoked(fname, evoked):
     end_file(fid)
 
 
-def get_peak_evoked(data, times, tmin=None, tmax=None, use_abs=True):
+def get_peak_evoked(data, times, tmin=None, tmax=None, mode='abs'):
     """Get feature-index and time of maximum signal from 2D array
     
     Note. This is a 'getter', not a 'finder'. For non-evoked type
@@ -812,17 +815,20 @@ def get_peak_evoked(data, times, tmin=None, tmax=None, use_abs=True):
     
     Parameters
     ----------
-    data : instance of numpy.ndarray (features, samples)
-        The data, either evoked in sensor or source space
-    times : instance of numpy.ndarray (samples)
-        The times in seconds
+    data : instance of numpy.ndarray (n_locations, n_times)
+        The data, either evoked in sensor or source space.
+    times : instance of numpy.ndarray (n_times)
+        The times in seconds.
     tmin : float | None
         The minimum point in time to be considered for peak getting.
     tmax : float | None
         The maximum point in time to be considered for peak getting.
-    use_abs : bool
-        Whether to consider absolute or signed data.
-        
+    mode : {'pos', 'neg', 'abs'}
+        How to deal with the sign of the data. If 'pos' only positive
+        values will be considered. If 'neg' only negative values will
+        be considered. If 'abs' absolute values will be considered.
+        Defaults to 'abs'.
+
     Returns
     -------
     max_loc : int
@@ -830,6 +836,11 @@ def get_peak_evoked(data, times, tmin=None, tmax=None, use_abs=True):
     max_time : int
         The latency in seconds.
     """
+    modes = ('abs', 'neg', 'pos')
+    if mode not in modes:
+        raise ValueError('The ``mode`` parameter must be ``{modes}``. You gave'
+                          'me ``{mode}``'.format(modes='`` or ``'.join(modes),
+                                                 mode=mode))
 
     if tmin == None:
         tmin = times[0]
@@ -844,11 +855,24 @@ def get_peak_evoked(data, times, tmin=None, tmax=None, use_abs=True):
                          'within {0} and {1}'.format(times.min(), times.max()))
     if tmin >= tmax:
         raise ValueError('The tmin must be smaller than tma')
-    
+
     time_win = (times >= tmin) & (times <= tmax)
     mask = np.ones_like(data).astype(np.bool)
     mask[:, time_win] = False
-    mask = np.ma.array(data, mask=mask).argmax()
+
+    maxfun = np.argmax
+    if mode == 'pos':
+        if not np.any(data > 0):
+            raise ValueError('No positive values encountered. Cannot '
+                             'operate in pos mode.')
+    elif mode == 'neg':
+        if not np.any(data < 0):
+            raise ValueError('No negative values encountered. Cannot '
+                             'operate in neg mode.')
+        maxfun = np.argmin
+
+    mask = maxfun(np.ma.array(np.abs(data) if mode == 'abs' else data, 
+                              mask=mask))
     max_loc, max_time = np.unravel_index(mask, data.shape)
     
     return max_loc, max_time 
