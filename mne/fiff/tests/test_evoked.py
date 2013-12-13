@@ -205,3 +205,21 @@ def test_evoked_proj():
     data = ave.data.copy()
     ave.apply_proj()
     assert_allclose(np.dot(ave._projector, data), ave.data)
+
+
+def test_get_peak():
+    """Test peak getter
+    """
+    evoked = read_evoked(fname, setno=0, proj=True)
+    assert_raises(ValueError, evoked.get_peak, tmin=1)
+    assert_raises(ValueError, evoked.get_peak, tmax=0.9)
+    assert_raises(ValueError, evoked.get_peak, tmin=0.02, tmax=0.01)
+    
+    ch_idx, time_idx = evoked.get_peak()
+    assert_true(ch_idx in evoked.ch_names)
+    assert_true(time_idx in evoked.times)
+    
+    ch_idx, time_idx = evoked.get_peak(ch_as_index=True,
+                                       time_as_index=True)
+    assert_true(ch_idx < len(evoked.ch_names))
+    assert_true(time_idx < len(evoked.times))

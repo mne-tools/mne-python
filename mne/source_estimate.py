@@ -479,44 +479,7 @@ class _BaseSourceEstimate(object):
 
         self._update_times()
         return self  # return self for chaining methods
-        
-    def get_peak(self, hemi=None, tmin=None, tmax=None, use_abs=True,
-                 vert_as_index=False, time_as_index=False):
-        """Get peak and peak latency
 
-        hemi : {'lh', 'rh', None}
-            The hemi to be considered. If None, the entire source space is
-            considered.
-        tmin : float | None
-            The minimum point in time to be considered for peak getting.
-        tmax : float | None
-            The maximum point in time to be considered for peak getting.
-        use_abs : bool
-            Whether to consider absolute or signed data.
-        vert_as_index : bool
-            whether to return the vertex index instead of of its ID.
-            Defaults to False.
-        time_as_index : bool
-            Whether to return the time index instead of the latency.
-            Defaults to False.
-
-        Returns
-        -------
-        vertno : int
-            The vertex id with of the maximum response.
-        latency : float
-            The latency in seconds.
-        """
-        data = {'lh': self.lh_data, 'rh': self.rh_data, None: self.data}[hemi]
-        vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno, 
-                  None: np.concatenate(self.vertno)}[hemi]
-
-        vert_idx, time_idx = get_peak_evoked(data, self.times, tmin, tmax, use_abs)
-
-        return (vert_idx if stc_as_index else vertno[vert_idx],
-                time_idx if time_as_index else self.times[time_idx])
-
-        
     @verbose
     def resample(self, sfreq, npad=100, window='boxcar', n_jobs=1,
                  verbose=None):
@@ -1492,6 +1455,42 @@ class SourceEstimate(_BaseSourceEstimate):
         return morph_data_precomputed(subject_from, subject_to, self,
                                       vertices_to, morph_mat)
 
+    def get_peak(self, hemi=None, tmin=None, tmax=None, use_abs=True,
+                 vert_as_index=False, time_as_index=False):
+        """Get peak and peak latency
+
+        hemi : {'lh', 'rh', None}
+            The hemi to be considered. If None, the entire source space is
+            considered.
+        tmin : float | None
+            The minimum point in time to be considered for peak getting.
+        tmax : float | None
+            The maximum point in time to be considered for peak getting.
+        use_abs : bool
+            Whether to consider absolute or signed data.
+        vert_as_index : bool
+            whether to return the vertex index instead of of its ID.
+            Defaults to False.
+        time_as_index : bool
+            Whether to return the time index instead of the latency.
+            Defaults to False.
+
+        Returns
+        -------
+        vertno : int
+            The vertex id with of the maximum response.
+        latency : float
+            The latency in seconds.
+        """
+        data = {'lh': self.lh_data, 'rh': self.rh_data, None: self.data}[hemi]
+        vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno, 
+                  None: np.concatenate(self.vertno)}[hemi]
+
+        vert_idx, time_idx = get_peak_evoked(data, self.times, tmin, tmax, use_abs)
+
+        return (vert_idx if vert_as_index else vertno[vert_idx],
+                time_idx if time_as_index else self.times[time_idx])
+
 
 class VolSourceEstimate(_BaseSourceEstimate):
     """Container for volume source estimates
@@ -1640,6 +1639,35 @@ class VolSourceEstimate(_BaseSourceEstimate):
         s += ", data size : %s x %s" % self.shape
         return "<VolSourceEstimate  |  %s>" % s
 
+    def get_peak(self, hemi=None, tmin=None, tmax=None, use_abs=True,
+                 vert_as_index=False, time_as_index=False):
+        """Get peak and peak latency
+
+        tmin : float | None
+            The minimum point in time to be considered for peak getting.
+        tmax : float | None
+            The maximum point in time to be considered for peak getting.
+        use_abs : bool
+            Whether to consider absolute or signed data.
+        vert_as_index : bool
+            whether to return the vertex index instead of of its ID.
+            Defaults to False.
+        time_as_index : bool
+            Whether to return the time index instead of the latency.
+            Defaults to False.
+
+        Returns
+        -------
+        vertno : int
+            The vertex id with of the maximum response.
+        latency : float
+            The latency in seconds.
+        """
+
+        vert_idx, time_idx = get_peak_evoked(self.data, self.times, tmin, tmax, use_abs)
+
+        return (vert_idx if vert_as_index else self.vertno[vert_idx],
+                time_idx if time_as_index else self.times[time_idx])
 
 ###############################################################################
 # Morphing
