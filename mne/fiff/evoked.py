@@ -838,9 +838,9 @@ def get_peak_evoked(data, times, tmin=None, tmax=None, mode='abs'):
     """
     modes = ('abs', 'neg', 'pos')
     if mode not in modes:
-        raise ValueError('The ``mode`` parameter must be ``{modes}``. You gave'
-                          'me ``{mode}``'.format(modes='`` or ``'.join(modes),
-                                                 mode=mode))
+        raise ValueError('The `mode` parameter must be `{modes}`. You gave '
+                          'me `{mode}`'.format(modes='` or `'.join(modes),
+                                               mode=mode))
 
     if tmin == None:
         tmin = times[0]
