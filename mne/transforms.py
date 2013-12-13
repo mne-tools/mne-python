@@ -73,6 +73,8 @@ def apply_trans(trans, pts, move=True):
     """
     trans = np.asarray(trans)
     pts = np.asarray(pts)
+    if pts.size == 0:
+        return pts.copy()
 
     # apply rotation & scale
     if pts.ndim == 1:
@@ -348,11 +350,9 @@ def transform_source_space_to(src, dest, trans):
         raise ValueError('Cannot transform the source space using this '
                          'coordinate transformation')
 
-    t = trans['trans'][:3, :]
     src['coord_frame'] = dest
-
-    src['rr'] = np.dot(np.c_[src['rr'], np.ones((src['np'], 1))], t.T)
-    src['nn'] = np.dot(np.c_[src['nn'], np.zeros((src['np'], 1))], t.T)
+    src['rr'] = apply_trans(trans['trans'], src['rr'])
+    src['nn'] = apply_trans(trans['trans'], src['nn'], move=False)
     return src
 
 

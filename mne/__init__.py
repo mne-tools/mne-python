@@ -17,7 +17,7 @@ from .event import (read_events, write_events, find_events, merge_events,
 from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       do_forward_solution, average_forward_solutions,
                       write_forward_solution, make_forward_solution,
-                      convert_forward_solution)
+                      convert_forward_solution, make_surface_mapping)
 from .source_estimate import (read_source_estimate,
                               SourceEstimate, VolSourceEstimate, morph_data,
                               morph_data_precomputed, compute_morph_matrix,
@@ -31,7 +31,7 @@ from .source_estimate import (read_source_estimate,
                               save_stc_as_volume, extract_label_time_course)
 from .surface import (read_bem_surfaces, read_surface, write_bem_surface,
                       write_surface, decimate_surface, read_morph_map,
-                      read_bem_solution)
+                      read_bem_solution, get_head_surface, get_meg_helmet_surf)
 from .source_space import (read_source_spaces, vertex_to_mni,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space,

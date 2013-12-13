@@ -9,16 +9,43 @@ from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import (read_bem_surfaces, write_bem_surface, read_surface,
-                 write_surface, decimate_surface)
+                 write_surface, decimate_surface, get_head_surface,
+                 get_meg_helmet_surf)
 from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
                          fast_cross_3d)
 from mne.utils import _TempDir, requires_tvtk
+from mne.fiff import read_info
 
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-5120-5120-5120-bem-sol.fif')
 tempdir = _TempDir()
+
+
+def test_helmet():
+    """Test loading helmet surfaces
+    """
+    fname_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests',
+                        'data', 'test_raw.fif')
+    fname_kit_raw = op.join(op.dirname(__file__), '..', 'fiff', 'kit',
+                            'tests', 'data', 'test_bin.fif')
+    fname_bti_raw = op.join(op.dirname(__file__), '..', 'fiff', 'bti',
+                            'tests', 'data', 'exported4D_linux.fif')
+    fname_ctf_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests',
+                            'data', 'test_ctf_comp_raw.fif')
+    for fname in [fname_raw, fname_kit_raw, fname_bti_raw, fname_ctf_raw]:
+        helmet = get_meg_helmet_surf(read_info(fname))
+        assert_equal(len(helmet['rr']), 304)  # they all have 304 verts
+
+
+@sample.requires_sample_data
+def test_head():
+    """Test loading the head surface
+    """
+    surf_1 = get_head_surface('sample', subjects_dir=subjects_dir)
+    surf_2 = get_head_surface('sample', 'head', subjects_dir=subjects_dir)
+    assert_true(len(surf_1['rr']) < len(surf_2['rr']))  # BEM vs dense head
 
 
 def test_huge_cross():

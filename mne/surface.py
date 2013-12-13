@@ -12,6 +12,7 @@ from struct import pack
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy import sparse
+from fnmatch import fnmatch
 
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
@@ -22,6 +23,7 @@ from .fiff.write import (write_int, write_float, write_float_matrix,
                          start_block, end_file, write_string,
                          write_float_sparse_rcs)
 from .utils import logger, verbose, get_subjects_dir
+from .transforms import transform_source_space_to
 
 
 ##############################################################################
@@ -284,6 +286,103 @@ def read_bem_solution(fname, verbose=None):
     bem['bem_method'] = method
     logger.info('Loaded %s BEM solution from %s', bem['bem_method'], fname)
     return bem
+
+
+###############################################################################
+# AUTOMATED SURFACE FINDING
+
+def get_head_surface(subject, source='bem', subjects_dir=None):
+    """Load the subject head surface
+
+    Parameters
+    ----------
+    subject : str
+        Subject name.
+    source : str
+        Type to load. Common choices would be `'bem'` or `'head'`. We first
+        try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
+        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory.
+    subjects_dir : str, or None
+        Path to the SUBJECTS_DIR. If None, the path is obtained by using
+        the environment variable SUBJECTS_DIR.
+
+    Returns
+    -------
+    surf : dict
+        The head surface.
+    """
+    # Load the head surface from the BEM
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    this_head = op.join(subjects_dir, subject, 'bem',
+                        '%s-%s.fif' % (subject, source))
+    if not op.isfile(this_head):
+        # let's do a more sophisticated search
+        this_head = None
+        path = op.join(subjects_dir, subject, 'bem')
+        if not op.isdir(path):
+            raise IOError('Subject bem directory "%s" does not exist'
+                          % path)
+        files = os.listdir(path)
+        for fname in files:
+            if fnmatch(fname, '%s*%s.fif' % (subject, source)):
+                this_head = op.join(path, fname)
+                break
+        if this_head is None:
+            raise IOError('No file matching "%s*%s" found'
+                          % (subject, source))
+    surf = read_bem_surfaces(this_head, True,
+                             FIFF.FIFFV_BEM_SURF_ID_HEAD)
+    return surf
+
+
+def get_meg_helmet_surf(info):
+    """Load the MEG helmet associated with the MEG sensors
+
+    Parameters
+    ----------
+    info : instance of fiff.meas_info.Info
+        Measurement info.
+
+    Returns
+    -------
+    surf : dict
+        The MEG helmet as a surface in head coordinates.
+    """
+    # Educated guess for the helmet type based on channels
+    system = '306m'
+    for ch in info['chs']:
+        if ch['kind'] == FIFF.FIFFV_MEG_CH:
+            coil_type = ch['coil_type'] & 0xFFFF
+            if coil_type == FIFF.FIFFV_COIL_NM_122:
+                system = '122m'
+                break
+            elif coil_type // 1000 == 3:  # All Vectorview coils are 30xx
+                system = '306m'
+                break
+            elif (coil_type == FIFF.FIFFV_COIL_MAGNES_MAG or
+                  coil_type == FIFF.FIFFV_COIL_MAGNES_GRAD):
+                nmag = np.sum([c['kind'] == FIFF.FIFFV_MEG_CH
+                               for c in info['chs']])
+                system = 'Magnes_3600wh' if nmag > 150 else 'Magnes_2500wh'
+                break
+            elif coil_type == FIFF.FIFFV_COIL_CTF_GRAD:
+                system = 'CTF_275'
+                break
+            elif coil_type == FIFF.FIFFV_COIL_KIT_GRAD:
+                system = 'KIT'
+                break
+            elif coil_type == FIFF.FIFFV_COIL_BABY_GRAD:
+                system = 'BabySQUID'
+                break
+    fname = op.join(op.split(__file__)[0], 'data', 'helmets',
+                    system + '.fif.gz')
+    surf = read_bem_surfaces(fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET)
+
+    # Ignore what the file says, it's in device coords and we want MRI coords
+    surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+    transform_source_space_to(surf, FIFF.FIFFV_COORD_HEAD, info['dev_head_t'])
+    del surf['coord_frame']
+    return surf
 
 
 ###############################################################################
@@ -590,7 +689,7 @@ def read_surface(fname, verbose=None):
 
         elif magic == 16777214:  # Triangle file
             create_stamp = fobj.readline()
-            _ = fobj.readline()
+            _ = fobj.readline()  # analysis:ignore
             vnum = np.fromfile(fobj, ">i4", 1)[0]
             fnum = np.fromfile(fobj, ">i4", 1)[0]
             #raise RuntimeError
