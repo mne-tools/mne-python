@@ -634,8 +634,8 @@ class Evoked(ProjMixin):
 
         Returns
         -------
-        pos : int
-            The channel exhibiting the maximum response, either name or index.
+        ch_name : str
+            The channel exhibiting the maximum response.
         latency : float | int
             The time point of the maximum response, either latency in seconds
             or index.    
@@ -644,7 +644,6 @@ class Evoked(ProjMixin):
 
         data_picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False)
         types_used = set([channel_type(self.info, idx) for idx in data_picks])
-        
 
         if str(ch_type) not in supported:
             raise ValueError('Channel type must be `{supported}`. You gave me '

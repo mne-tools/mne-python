@@ -220,33 +220,33 @@ def test_get_peak():
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', mode='foo')
     assert_raises(RuntimeError, evoked.get_peak, ch_type=None, mode='foo')
     assert_raises(ValueError, evoked.get_peak, ch_type='misc', mode='foo')
-    
+
     ch_idx, time_idx = evoked.get_peak(ch_type='mag')
     assert_true(ch_idx in evoked.ch_names)
     assert_true(time_idx in evoked.times)
-    
+
     ch_idx, time_idx = evoked.get_peak(ch_type='mag',
                                        time_as_index=True)
     assert_true(time_idx < len(evoked.times))
 
-    data = np.array([[0., 1.,  2.], 
+    data = np.array([[0., 1.,  2.],
                      [0., -3.,  0]])
-    
+
     times = np.array([.1, .2, .3])
-    
+
     ch_idx, time_idx = _get_peak(data, times, mode='abs')
     assert_equal(ch_idx, 1)
     assert_equal(time_idx, 1)
-    
+
     ch_idx, time_idx = _get_peak(data * -1, times, mode='neg')
     assert_equal(ch_idx, 0)
     assert_equal(time_idx, 2)
-    
+
     ch_idx, time_idx = _get_peak(data, times, mode='pos')
     assert_equal(ch_idx, 0)
     assert_equal(time_idx, 2)
-    
+
     assert_raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
     assert_raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
-    
+
     
