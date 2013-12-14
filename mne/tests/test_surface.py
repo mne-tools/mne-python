@@ -1,11 +1,9 @@
 from __future__ import print_function
 import os.path as op
 import numpy as np
-
+from nose.tools import assert_true, assert_raises
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
-
-from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import (read_bem_surfaces, write_bem_surface, read_surface,
@@ -15,6 +13,7 @@ from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
                          fast_cross_3d)
 from mne.utils import _TempDir, requires_tvtk
 from mne.fiff import read_info
+from mne.transforms import _get_mri_head_t_from_trans_file
 
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -26,16 +25,17 @@ tempdir = _TempDir()
 def test_helmet():
     """Test loading helmet surfaces
     """
-    fname_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests',
-                        'data', 'test_raw.fif')
-    fname_kit_raw = op.join(op.dirname(__file__), '..', 'fiff', 'kit',
-                            'tests', 'data', 'test_bin.fif')
-    fname_bti_raw = op.join(op.dirname(__file__), '..', 'fiff', 'bti',
-                            'tests', 'data', 'exported4D_linux.fif')
-    fname_ctf_raw = op.join(op.dirname(__file__), '..', 'fiff', 'tests',
-                            'data', 'test_ctf_comp_raw.fif')
+    base_dir = op.join(op.dirname(__file__), '..', 'fiff')
+    fname_raw = op.join(base_dir, 'tests', 'data', 'test_raw.fif')
+    fname_kit_raw = op.join(base_dir, 'kit', 'tests', 'data', 'test_bin.fif')
+    fname_bti_raw = op.join(base_dir, 'bti', 'tests', 'data',
+                            'exported4D_linux.fif')
+    fname_ctf_raw = op.join(base_dir, 'tests', 'data', 'test_ctf_raw.fif')
+    fname_trans = op.join(base_dir, 'tests', 'data',
+                          'sample-audvis-raw-trans.txt')
+    trans = _get_mri_head_t_from_trans_file(fname_trans)
     for fname in [fname_raw, fname_kit_raw, fname_bti_raw, fname_ctf_raw]:
-        helmet = get_meg_helmet_surf(read_info(fname))
+        helmet = get_meg_helmet_surf(read_info(fname), trans)
         assert_equal(len(helmet['rr']), 304)  # they all have 304 verts
         assert_equal(len(helmet['rr']), len(helmet['nn']))
 
