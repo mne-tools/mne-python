@@ -12,6 +12,7 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 from nose.tools import assert_true, assert_raises
 
 from mne.fiff import read_evoked, write_evoked, pick_types
+from mne.fiff.evoked import _get_peak
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 
 fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
@@ -205,3 +206,47 @@ def test_evoked_proj():
     data = ave.data.copy()
     ave.apply_proj()
     assert_allclose(np.dot(ave._projector, data), ave.data)
+
+
+def test_get_peak():
+    """Test peak getter
+    """
+
+    evoked = read_evoked(fname, setno=0, proj=True)
+    assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
+    assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmax=0.9)
+    assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=0.02, 
+                  tmax=0.01)
+    assert_raises(ValueError, evoked.get_peak, ch_type='mag', mode='foo')
+    assert_raises(RuntimeError, evoked.get_peak, ch_type=None, mode='foo')
+    assert_raises(ValueError, evoked.get_peak, ch_type='misc', mode='foo')
+
+    ch_idx, time_idx = evoked.get_peak(ch_type='mag')
+    assert_true(ch_idx in evoked.ch_names)
+    assert_true(time_idx in evoked.times)
+
+    ch_idx, time_idx = evoked.get_peak(ch_type='mag',
+                                       time_as_index=True)
+    assert_true(time_idx < len(evoked.times))
+
+    data = np.array([[0., 1.,  2.],
+                     [0., -3.,  0]])
+
+    times = np.array([.1, .2, .3])
+
+    ch_idx, time_idx = _get_peak(data, times, mode='abs')
+    assert_equal(ch_idx, 1)
+    assert_equal(time_idx, 1)
+
+    ch_idx, time_idx = _get_peak(data * -1, times, mode='neg')
+    assert_equal(ch_idx, 0)
+    assert_equal(time_idx, 2)
+
+    ch_idx, time_idx = _get_peak(data, times, mode='pos')
+    assert_equal(ch_idx, 0)
+    assert_equal(time_idx, 2)
+
+    assert_raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
+    assert_raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
+
+    

@@ -523,3 +523,31 @@ def test_as_data_frame():
             assert_array_equal(df.values.T[ncat:], stc.data)
             # test that non-indexed data were present as categorial variables
             df.reset_index().columns[:3] == ['subject', 'time']
+
+
+def test_get_peak():
+    """Test peak getter
+    """
+    n_vert, n_times = 10, 5
+    vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
+    data = np.random.randn(n_vert, n_times)
+    stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
+                              subject='sample')
+
+    stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
+                                subject='sample')
+
+    for ii, stc in enumerate([stc_surf, stc_vol]):
+        assert_raises(ValueError, stc.get_peak, tmin=-100)
+        assert_raises(ValueError, stc.get_peak, tmax=90)
+        assert_raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
+    
+        vert_idx, time_idx = stc.get_peak()
+        vertno = np.concatenate(stc.vertno) if ii == 0 else stc.vertno
+        assert_true(vert_idx in vertno)
+        assert_true(time_idx in stc.times)
+    
+        ch_idx, time_idx = stc.get_peak(vert_as_index=True,
+                                        time_as_index=True)
+        assert_true(vert_idx < stc.data.shape[0])
+        assert_true(time_idx < len(stc.times))

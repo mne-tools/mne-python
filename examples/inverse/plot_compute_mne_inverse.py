@@ -50,7 +50,15 @@ plt.show()
 # Plot brain in 3D with PySurfer if available. Note that the subject name
 # is already known by the SourceEstimate stc object.
 brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir)
-brain.set_data_time_index(180)
 brain.scale_data_colormap(fmin=8, fmid=12, fmax=15, transparent=True)
 brain.show_view('lateral')
+
+# use peak getter to move vizualization to the time point of the peak
+vertno_max, time_idx = stc.get_peak(hemi='rh', time_as_index=True)
+
+brain.set_data_time_index(time_idx)
+
+# draw marker at maximum peaking vertex 
+brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue', 
+               scale_factor=0.6)
 brain.save_image('dSPM_map.png')
