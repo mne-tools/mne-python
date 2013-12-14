@@ -11,3 +11,4 @@ from .forward import (read_forward_solution, write_forward_solution,
                       _to_fixed_ori, prepare_bem_model)
 from ._make_forward import make_forward_solution
 from ._field_interpolation import make_surface_mapping
+from . import _lead_dots  # for testing purposes
