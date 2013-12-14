@@ -337,18 +337,20 @@ def get_head_surface(subject, source='bem', subjects_dir=None):
     return surf
 
 
-def get_meg_helmet_surf(info):
+def get_meg_helmet_surf(info, trans):
     """Load the MEG helmet associated with the MEG sensors
 
     Parameters
     ----------
     info : instance of fiff.meas_info.Info
         Measurement info.
+    trans : dict
+        The trans file containing the Head<->MRI transform.
 
     Returns
     -------
     surf : dict
-        The MEG helmet as a surface in head coordinates.
+        The MEG helmet as a surface in MRI coordinates.
     """
     # Educated guess for the helmet type based on channels
     system = '306m'
@@ -383,6 +385,7 @@ def get_meg_helmet_surf(info):
     # Ignore what the file says, it's in device coords and we want MRI coords
     surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
     transform_source_space_to(surf, FIFF.FIFFV_COORD_HEAD, info['dev_head_t'])
+    transform_source_space_to(surf, FIFF.FIFFV_COORD_MRI, trans)
     del surf['coord_frame']
     return surf
 
