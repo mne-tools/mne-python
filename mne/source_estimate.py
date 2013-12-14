@@ -14,7 +14,7 @@ from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
 from .filter import resample
-from .fiff.evoked import get_peak_evoked
+from .fiff.evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)
@@ -1490,7 +1490,7 @@ class SourceEstimate(_BaseSourceEstimate):
         vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno, 
                   None: np.concatenate(self.vertno)}[hemi]
 
-        vert_idx, time_idx = get_peak_evoked(data, self.times, tmin, tmax, mode)
+        vert_idx, time_idx = _get_peak(data, self.times, tmin, tmax, mode)
 
         return (vert_idx if vert_as_index else vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
@@ -1671,7 +1671,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
             The latency in seconds.
         """
 
-        vert_idx, time_idx = get_peak_evoked(self.data, self.times, tmin, tmax,
+        vert_idx, time_idx = _get_peak(self.data, self.times, tmin, tmax,
                                              mode)
 
         return (vert_idx if vert_as_index else self.vertno[vert_idx],

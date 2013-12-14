@@ -610,12 +610,16 @@ class Evoked(ProjMixin):
         out.comment = self.comment + " - " + this_evoked.comment
         return out
 
-    def get_peak(self, tmin=None, tmax=None, mode='abs',
-                 ch_as_index=False, time_as_index=False):
+    def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
+                 time_as_index=False):
         """Get location and latency of peak amplitude
 
         Parameters
         ----------
+        ch_type : {'mag', 'grad', 'eeg', 'misc', None}
+            The channel type to use. Defaults to None. If more than one sensor
+            Type is present in the data the channel type has to be explicitly 
+            set. 
         tmin : float | None
             The minimum point in time to be considered for peak getting.
         tmax : float | None
@@ -625,10 +629,9 @@ class Evoked(ProjMixin):
             values will be considered. If 'neg' only negative values will
             be considered. If 'abs' absolute values will be considered.
             Defaults to 'abs'.
-        ch_as_index : bool
-            whether to return the channel index instead of of its name.
         time_as_index : bool
-            Whether to return the time index instead of the latency.
+            Whether to return the time index instead of the latency in seconds.
+
         Returns
         -------
         pos : int
@@ -637,10 +640,48 @@ class Evoked(ProjMixin):
             The time point of the maximum response, either latency in seconds
             or index.    
         """
-        ch_idx, time_idx =  get_peak_evoked(self.data, self.times, tmin, 
-                                            tmax, mode)
+        supported = ('mag', 'grad', 'eeg', 'misc', 'None')
 
-        return (ch_idx if ch_as_index else self.ch_names[ch_idx],
+        data_picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False)
+        types_used = set([channel_type(self.info, idx) for idx in data_picks])
+        
+
+        if str(ch_type) not in supported:
+            raise ValueError('Channel type must be `{supported}`. You gave me '
+                             '`{ch_type}` instead.'
+                             .format(ch_type=ch_type,
+                                     supported='` or `'.join(supported)))
+
+        elif ch_type is not None and ch_type not in types_used:
+            raise ValueError('Channel type `{ch_type}` not found in this '
+                             'evoked object.'
+                              .format(ch_type=ch_type))
+
+        elif len(types_used) > 1 and ch_type is None:
+            raise RuntimeError('More than one sensor type found. `ch_type` '
+                               'must not be `None`, pass a sensor type '
+                               'value instead')
+        
+        meg, eeg, misc, picks = False, False, False, None
+        
+        if ch_type == 'mag':
+            meg = ch_type
+        elif ch_type == 'grad':
+            meg = ch_type
+        elif ch_type == 'eeg':
+            eeg = True
+        elif ch_type == 'misc':
+            misc = True
+        
+        if ch_type is not None:
+            picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc, 
+                               ref_meg=False)
+            
+        data = self.data if picks is None else self.data[picks] 
+        ch_idx, time_idx =  _get_peak(data, self.times, tmin,
+                                      tmax, mode)
+
+        return (self.ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
 
 
@@ -808,7 +849,7 @@ def write_evoked(fname, evoked):
     end_file(fid)
 
 
-def get_peak_evoked(data, times, tmin=None, tmax=None, mode='abs'):
+def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     """Get feature-index and time of maximum signal from 2D array
     
     Note. This is a 'getter', not a 'finder'. For non-evoked type
@@ -872,9 +913,10 @@ def get_peak_evoked(data, times, tmin=None, tmax=None, mode='abs'):
                              'operate in neg mode.')
         maxfun = np.argmin
 
-    mask = maxfun(np.ma.array(np.abs(data) if mode == 'abs' else data, 
-                              mask=mask))
-    max_loc, max_time = np.unravel_index(mask, data.shape)
+    masked_index = np.ma.array(np.abs(data) if mode == 'abs' else data, 
+                               mask=mask)
+
+    max_loc, max_time = np.unravel_index(maxfun(masked_index), data.shape)
     
     return max_loc, max_time 
     
