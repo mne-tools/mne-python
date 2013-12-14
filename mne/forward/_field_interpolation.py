@@ -139,7 +139,7 @@ def _compute_mapping_matrix(fmd, proj=None):
 
     # Put the inverse together
     logger.info('Put the inverse together...')
-    mat = np.dot(vv, np.dot(sing, uu))
+    mat = np.dot(vv, np.dot(np.diag(sing), uu))
 
     # Sandwich with the whitener
     mat = np.dot(whitener.T, np.dot(mat, whitener))
