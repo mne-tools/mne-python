@@ -821,7 +821,7 @@ def write_evoked(fname, evoked):
         start_block(fid, FIFF.FIFFB_EVOKED)
 
         # Comment is optional
-        if len(e.comment) > 0:
+        if e.comment is not None and len(e.comment) > 0:
             write_string(fid, FIFF.FIFF_COMMENT, e.comment)
 
         # First and last sample
