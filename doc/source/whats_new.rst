@@ -13,6 +13,8 @@ Changelog
    
    - Add `get_peak` method for evoked and stc objects by  `Denis Engemann`_
 
+   - Add `iter_topography` function for radically simplified custom sensor topography plotting by `Denis Engemann`_
+
 .. _changes_0_7:
 
 Version 0.7

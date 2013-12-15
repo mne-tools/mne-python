@@ -43,6 +43,7 @@ from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
 from .externals import six
 
+
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
@@ -121,121 +122,177 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
         warn(msg % case)
 
 
+def iter_topography(info, layout=None, on_pick=None, fig=None,
+                    fig_facecolor='k', axis_facecolor='k',
+                    axis_spinecolor='k', layout_scale=None,
+                    colorbar=False):
+    """
+    Create iterator over channel positions and
+    prepare sensible defaults for convenient topo-plotting
+
+    Parameters
+    ----------
+    info : instance of mne.fiff.meas_info.Info
+        The measurement info.
+    layout : instance of mne.layout.Layout | None
+        The layout to use. If None, layout will be guessed
+    on_pick : callable | None
+        The callback function to be invoked on clicking one
+        of the axes. Is supposed to instantiate the following
+        API: `function(axis, channel_index)`
+    fig : matplotlib.figure.Figure | None
+        The figure object to be considered. If None, a new
+        figure will be created.
+    fig_facecolor : str | obj
+        The figure face color. Defaults to black.
+    axis_facecolor : str | obj
+        The axis face color. Defaults to black.
+    axis_spinecolor : str | obj
+        The axis spine color. Defaults to black. In other words,
+        the color of the axis' edge lines.
+    layout_scale: float | None
+        Scaling factor for adjusting the relative size of the layout
+        on the canvas. If None, nothing will be scaled.
+
+    Returns
+    -------
+    A generator that can be unpacked into
+
+    ax : matplotlib.axis.Axis
+        The current axis of the topo plot.
+    ch_dx : int
+        The related channel index.
+    """
+    import matplotlib.pyplot as plt
+
+    if fig is None:
+        fig = plt.figure()
+
+    fig.set_facecolor(fig_facecolor)
+    if layout is None:
+        from .layouts import find_layout
+        layout = find_layout(info)
+
+    if on_pick is not None:
+        callback = partial(_plot_topo_onpick, show_func=on_pick)
+        fig.canvas.mpl_connect('button_press_event', callback)
+
+    pos = layout.pos.copy()
+    if layout_scale:
+        pos[:, :2] *= layout_scale
+
+    ch_names = _clean_names(info['ch_names'])
+    iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
+    for idx, name in iter_ch:
+        ax = plt.axes(pos[idx])
+        ax.patch.set_facecolor(axis_facecolor)
+        plt.setp(ax.spines.values(), color=axis_spinecolor)
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+        plt.setp(ax.get_xticklines(), visible=False)
+        plt.setp(ax.get_yticklines(), visible=False)
+        ch_idx = ch_names.index(name)
+        vars(ax)['_mne_ch_name'] = name
+        vars(ax)['_mne_ch_idx'] = ch_idx
+        yield ax, ch_idx
+
+
 def _plot_topo(info=None, times=None, show_func=None, layout=None,
                decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', cmap=None, layout_scale=None, title=None,
                x_label=None, y_label=None, vline=None):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
-    orig_facecolor = plt.rcParams['axes.facecolor']
-    orig_edgecolor = plt.rcParams['axes.edgecolor']
-    try:
-        if cmap is None:
-            cmap = plt.cm.jet
-        ch_names = _clean_names(info['ch_names'])
-        plt.rcParams['axes.facecolor'] = 'k'
-        fig = plt.figure(facecolor='k')
-        pos = layout.pos.copy()
-        tmin, tmax = times[0], times[-1]
-        if colorbar:
-            pos[:, :2] *= layout_scale
-            plt.rcParams['axes.edgecolor'] = 'k'
-            norm = normalize_colors(vmin=vmin, vmax=vmax)
-            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-            sm.set_array(np.linspace(vmin, vmax))
-            ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg='k')
-            cb = fig.colorbar(sm, ax=ax)
-            cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
-            plt.setp(cb_yticks, color='w')
-        plt.rcParams['axes.edgecolor'] = border
-        for idx, name in enumerate(layout.names):
-            if name in ch_names:
-                ax = plt.axes(pos[idx], axisbg='k')
-                ch_idx = ch_names.index(name)
-                # hack to inlcude channel idx and name, to use in callback
-                ax.__dict__['_mne_ch_name'] = name
-                ax.__dict__['_mne_ch_idx'] = ch_idx
 
-                if layout.kind == 'Vectorview-all' and ylim is not None:
-                    this_type = {'mag': 0, 'grad': 1}[channel_type(info,
-                                                                   ch_idx)]
-                    ylim_ = [v[this_type] if _check_vlim(v) else
-                             v for v in ylim]
-                else:
-                    ylim_ = ylim
+    # prepare callbacks
+    tmin, tmax = times[[0, -1]]
+    on_pick = partial(show_func, tmin=tmin, tmax=tmax, vmin=vmin,
+                      vmax=vmax, ylim=ylim, x_label=x_label,
+                      y_label=y_label, colorbar=colorbar)
 
-                show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
-                          vmax=vmax, ylim=ylim_)
+    fig = plt.figure()
+    if colorbar:
+        norm = normalize_colors(vmin=vmin, vmax=vmax)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array(np.linspace(vmin, vmax))
+        ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg='k')
+        cb = fig.colorbar(sm, ax=ax)
+        cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
+        plt.setp(cb_yticks, color='w')
 
-                if ylim_ and not any(v is None for v in ylim_):
-                    plt.ylim(*ylim_)
-                plt.xticks([], ())
-                plt.yticks([], ())
+    my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
+                                   fig=fig, layout_scale=layout_scale,
+                                   axis_spinecolor=border,
+                                   colorbar=colorbar)
 
-        # register callback
-        callback = partial(_plot_topo_onpick, show_func=show_func, tmin=tmin,
-                           tmax=tmax, vmin=vmin, vmax=vmax, ylim=ylim,
-                           colorbar=colorbar, title=title, x_label=x_label,
-                           y_label=y_label,
-                           vline=vline)
+    for ax, ch_idx in my_topo_plot:
+        if layout.kind == 'Vectorview-all' and ylim is not None:
+            this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
+            ylim_ = [v[this_type] if _check_vlim(v) else v for v in ylim]
+        else:
+            ylim_ = ylim
 
-        fig.canvas.mpl_connect('pick_event', callback)
-        if title is not None:
-            plt.figtext(0.03, 0.9, title, color='w', fontsize=19)
+        show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
+                  vmax=vmax, ylim=ylim_)
 
-    finally:
-        # Revert global pyplot config
-        plt.rcParams['axes.facecolor'] = orig_facecolor
-        plt.rcParams['axes.edgecolor'] = orig_edgecolor
+        if ylim_ and not any(v is None for v in ylim_):
+            plt.ylim(*ylim_)
+
+    if title is not None:
+        plt.figtext(0.03, 0.9, title, color='w', fontsize=19)
 
     return fig
 
 
-def _plot_topo_onpick(event, show_func=None, tmin=None, tmax=None,
-                      vmin=None, vmax=None, ylim=None, colorbar=False,
-                      title=None, x_label=None, y_label=None, vline=None):
+def _plot_topo_onpick(event, show_func=None, colorbar=False):
     """Onpick callback that shows a single channel in a new figure"""
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
-    if event.mouseevent.inaxes is None or event.mouseevent.button != 1:
+    orig_ax = event.inaxes
+    if event.inaxes is None:
         return
 
-    artist = event.artist
+    import matplotlib.pyplot as plt
     try:
-        import matplotlib.pyplot as plt
-        ch_idx = artist.axes._mne_ch_idx
+        ch_idx = orig_ax._mne_ch_idx
         fig, ax = plt.subplots(1)
+
+        plt.title(orig_ax._mne_ch_name)
         ax.set_axis_bgcolor('k')
-        show_func(plt, ch_idx, tmin, tmax, vmin, vmax, ylim=ylim,
-                  vline=vline)
-        if colorbar:
-            plt.colorbar()
-        if title is not None:
-            plt.title(title + ' ' + artist.axes._mne_ch_name)
-        else:
-            plt.title(artist.axes._mne_ch_name)
-        if x_label is not None:
-            plt.xlabel(x_label)
-        if y_label is not None:
-            plt.ylabel(y_label)
+
+        # allow custom function to override parameters
+        show_func(plt, ch_idx)
+
     except Exception as err:
-        # matplotlib silently ignores exceptions in event handlers, so we print
+        # matplotlib silently ignores exceptions in event handlers,
+        # so we print
         # it here to know what went wrong
         print(err)
         raise err
 
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
-                freq=None, vline=None):
+                freq=None, vline=None, x_label=None, y_label=None,
+                colorbar=False):
     """ Aux function to show time-freq map on topo """
+    import matplotlib.pyplot as plt
+
     extent = (tmin, tmax, freq[0], freq[-1])
     ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
               vmin=vmin, vmax=vmax, picker=True)
+    if x_label is not None:
+        plt.xlabel(x_label)
+    if y_label is not None:
+        plt.ylabel(y_label)
+    if colorbar:
+        plt.colorbar()
 
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
-                     times, vline=None):
+                     times, vline=None, x_label=None, y_label=None,
+                     colorbar=False):
     """ Aux function to show time series on topo """
+    import matplotlib.pyplot as plt
     picker_flag = False
     for data_, color_ in zip(data, color):
         if not picker_flag:
@@ -245,8 +302,13 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.plot(times, data_[ch_idx], color_)
     if vline:
-        import matplotlib.pyplot as plt
         [plt.axvline(x, color='w', linewidth=0.5) for x in vline]
+    if x_label is not None:
+        plt.xlabel(x_label)
+    if y_label is not None:
+        plt.ylabel(y_label)
+    if colorbar:
+        plt.colorbar()
 
 
 def _check_vlim(vlim):
@@ -362,9 +424,6 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         for e in evoked:
             _check_delayed_ssp(e)
 
-    plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
-                       color=color, times=times, vline=vline)
-
     if ylim is None:
         set_ylim = lambda x: np.abs(x).max()
         ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
@@ -376,6 +435,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         ylim_ = zip(*[np.array(yl) for yl in ylim_])
     else:
         raise ValueError('ylim must be None ore a dict')
+
+    plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
+                       color=color, times=times, vline=vline)
 
     fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
                      decim=1, colorbar=False, ylim=ylim_, cmap=None,
@@ -645,9 +707,11 @@ def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
 
 def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                      data=None, epochs=None, sigma=None,
-                     order=None, scalings=None, vline=None):
+                     order=None, scalings=None, vline=None,
+                     x_label=None, y_label=None, colorbar=False):
     """Aux function to plot erfimage on sensor topography"""
 
+    import matplotlib.pyplot as plt
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
     if not ch_type in scalings:
@@ -664,6 +728,13 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 
     ax.imshow(this_data, extent=[tmin, tmax, 0, len(data)], aspect='auto',
               origin='lower', vmin=vmin, vmax=vmax, picker=True)
+
+    if x_label is not None:
+        plt.xlabel(x_label)
+    if y_label is not None:
+        plt.ylabel(y_label)
+    if colorbar:
+        plt.colorbar()
 
 
 def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
