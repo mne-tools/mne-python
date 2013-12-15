@@ -186,7 +186,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     for idx, name in iter_ch:
         ax = plt.axes(pos[idx])
         ax.patch.set_facecolor(axis_facecolor)
-        plt.setp(ax.spines.values(), color=axis_spinecolor)
+        plt.setp(list(ax.spines.values()), color=axis_spinecolor)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         plt.setp(ax.get_xticklines(), visible=False)
