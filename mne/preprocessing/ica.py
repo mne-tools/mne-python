@@ -1133,11 +1133,18 @@ class ICA(object):
         # XXX fix copy==True later. Bug in sklearn, see PR #2273
         pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
                             copy=True)
+
+        if isinstance(self.n_components, float):
+            # compute full feature variance before doing PCA
+            full_var = np.var(data, axis=1).sum()
+        
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
             logger.info('Selecting PCA components by explained variance.')
-            n_components_ = np.sum(pca.explained_variance_ratio_.cumsum()
+            # compute eplained variance manually, cf. sklearn bug fixed in #2664
+            explained_variance_ratio_ = pca.explained_variance_ / full_var
+            n_components_ = np.sum(explained_variance_ratio_.cumsum()
                                    <= self.n_components)
             sel = slice(n_components_)
         else:
