@@ -14,6 +14,7 @@ from scipy.spatial.distance import cdist
 from scipy import sparse
 from fnmatch import fnmatch
 
+from .fiff.channels import _get_meg_system
 from .fiff.constants import FIFF
 from .fiff.open import fiff_open
 from .fiff.tree import dir_tree_find
@@ -352,32 +353,7 @@ def get_meg_helmet_surf(info, trans):
     surf : dict
         The MEG helmet as a surface in MRI coordinates.
     """
-    # Educated guess for the helmet type based on channels
-    system = '306m'
-    for ch in info['chs']:
-        if ch['kind'] == FIFF.FIFFV_MEG_CH:
-            coil_type = ch['coil_type'] & 0xFFFF
-            if coil_type == FIFF.FIFFV_COIL_NM_122:
-                system = '122m'
-                break
-            elif coil_type // 1000 == 3:  # All Vectorview coils are 30xx
-                system = '306m'
-                break
-            elif (coil_type == FIFF.FIFFV_COIL_MAGNES_MAG or
-                  coil_type == FIFF.FIFFV_COIL_MAGNES_GRAD):
-                nmag = np.sum([c['kind'] == FIFF.FIFFV_MEG_CH
-                               for c in info['chs']])
-                system = 'Magnes_3600wh' if nmag > 150 else 'Magnes_2500wh'
-                break
-            elif coil_type == FIFF.FIFFV_COIL_CTF_GRAD:
-                system = 'CTF_275'
-                break
-            elif coil_type == FIFF.FIFFV_COIL_KIT_GRAD:
-                system = 'KIT'
-                break
-            elif coil_type == FIFF.FIFFV_COIL_BABY_GRAD:
-                system = 'BabySQUID'
-                break
+    system = _get_meg_system(info)
     fname = op.join(op.split(__file__)[0], 'data', 'helmets',
                     system + '.fif.gz')
     surf = read_bem_surfaces(fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET)

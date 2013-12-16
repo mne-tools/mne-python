@@ -139,13 +139,13 @@ def _compute_mapping_matrix(fmd, proj=None):
 
     # Put the inverse together
     logger.info('Put the inverse together...')
-    mat = np.dot(vv, np.dot(np.diag(sing), uu))
+    mat = np.dot(vv, sing[:, np.newaxis] * uu)
 
     # Sandwich with the whitener
     mat = np.dot(whitener.T, np.dot(mat, whitener))
 
-    # Finally sandwhich in the selection matrix
-    # This one picks up the correct lead field project
+    # Finally sandwich in the selection matrix
+    # This one picks up the correct lead field projection
     mapping_mat = np.dot(fmd['surface_dots'], mat)
 
     # Optionally apply the average electrode reference to the final field map
