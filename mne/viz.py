@@ -128,7 +128,12 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
                     colorbar=False):
     """ Create iterator over channel positions
 
-    Prepare sensible defaults for convenient topo-plotting.
+    This function returns a generator that unpacks into
+    a series of matplotlib axis objects and data / channel
+    indices, both corresponding to the sensor positions
+    of the related layout passed or inferred from the channel info.
+    `iter_topography`, hence, allows to conveniently realize custom
+    topography plots.
 
     Parameters
     ----------
