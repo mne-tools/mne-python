@@ -723,17 +723,8 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     return subjects_dir
 
 
-def get_config_path():
-    """Get path to standard mne-python config file
-
-    Returns
-    -------
-    config_path : str
-        The path to the mne-python configuration file. On windows, this
-        will be '%APPDATA%\.mne\mne-python.json'. On every other
-        system, this will be ~/.mne/mne-python.json.
-    """
-
+def _get_extra_data_path():
+    """Get path to extra data (config, tables, etc.)"""
     # this has been checked on OSX64, Linux64, and Win32
     if 'nt' == os.name.lower():
         val = os.getenv('APPDATA')
@@ -749,8 +740,20 @@ def get_config_path():
         raise ValueError('mne-python config file path could '
                          'not be determined, please report this '
                          'error to mne-python developers')
+    return op.join(val, '.mne')
 
-    val = op.join(val, '.mne', 'mne-python.json')
+
+def get_config_path():
+    """Get path to standard mne-python config file
+
+    Returns
+    -------
+    config_path : str
+        The path to the mne-python configuration file. On windows, this
+        will be '%APPDATA%\.mne\mne-python.json'. On every other
+        system, this will be ~/.mne/mne-python.json.
+    """
+    val = op.join(_get_extra_data_path(), 'mne-python.json')
     return val
 
 

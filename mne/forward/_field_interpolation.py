@@ -7,7 +7,7 @@ from ..fiff.proj import _has_eeg_average_ref_proj
 from ..transforms import (invert_transform, combine_transforms, apply_trans,
                           _coord_frame_name)
 from ._make_forward import _create_coils
-from ._lead_dots import _do_self_dots, _do_surf_map_dots
+from ._lead_dots import _do_self_dots, _do_surface_dots, _get_legen_table
 from ..utils import logger
 
 
@@ -76,13 +76,19 @@ def _prepare_field_mapping(info, head_mri_t, surf, ctype='meg',
                            % _coord_frame_name(origin_frame))
 
     noise = _ad_hoc_noise(coils, ctype)
+    if ctype == 'eeg':
+        lut, n_fact = _get_legen_table()
+    else:
+        ctype, n_fact = None, None
+
     logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
-    self_dots = _do_self_dots(int_rad, False, coils, my_origin, ctype)
+    self_dots = _do_self_dots(int_rad, False, coils, my_origin, ctype,
+                              lut, n_fact)
     sel = np.arange(len(surf['rr']))  # eventually we should do sub-selection
     logger.info('Computing dot products for %i surface locations...'
                 % len(sel))
-    surface_dots = _do_surf_map_dots(int_rad, False, coils, surf,
-                                     sel, my_origin, ctype)
+    surface_dots = _do_surface_dots(int_rad, False, coils, surf,
+                                    sel, my_origin, ctype, lut, n_fact)
 
     #
     # Step 4. Return the result
