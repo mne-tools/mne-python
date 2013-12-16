@@ -40,7 +40,7 @@ class Info(dict):
         for k, v in self.items():
             if k in ['bads', 'ch_names']:
                 entr = (', '.join(b for ii, b in enumerate(v) if ii < 10)
-                           if v else '0 items')
+                        if v else '0 items')
                 if len(entr) >= 56:
                     # get rid of of half printed ch names
                     entr = _summarize_str(entr)
@@ -59,7 +59,7 @@ class Info(dict):
                 this_len = (len(v) if hasattr(v, '__len__') else
                            ('%s' % v if v is not None else None))
                 entr = (('%d items' % this_len) if isinstance(this_len, int)
-                           else ('%s' % this_len if this_len else ''))
+                        else ('%s' % this_len if this_len else ''))
             if entr:
                 non_empty += 1
                 entr = ' | ' + entr

@@ -48,7 +48,7 @@ def _comp_sums(beta, volume_integral, ctheta):
     s1 = multn * p0d
     s2 = mult * p0d
     s3 = mult * p0dd
-    # now do interative procedure
+    # now do iterative procedure
     for n in range(2, nterms + 1):
         betan = beta * betan
         if betan < eps:
