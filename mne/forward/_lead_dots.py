@@ -1,7 +1,87 @@
 import numpy as np
+import os
+from os import path as op
+from ..utils import _get_extra_data_path
 
 from ..utils import logger
 
+
+##############################################################################
+# FAST LEGENDRE SUMMATION USING LOOKUP TABLE
+
+def _next_legen(n, x, p0, p01):
+    """Compute the next Legendre polynomials of the first kind"""
+    # Only good for n > 1 !
+    return ((2 * n - 1) * x * p0 - (n - 1) * p01) / n, p0
+
+
+def _get_legen(x, n_coeff=100):
+    """Get Legendre polynomials expanded about x"""
+    p0 = x
+    p01 = 1
+    c = [1, x]
+    for n in range(2, n_coeff):
+        p0, p01 = _next_legen(n, x, c[n - 1], c[n - 2])
+        c.append(p0)
+    return c
+
+
+def _get_legen_table(n_coeff=100, n_interp=20000):
+    """Return a (generated) LUT of Legendre polynomial coeffs"""
+    fname = op.join(_get_extra_data_path(), 'tables')
+    if not op.isdir(fname):
+        os.mkdir(fname)
+    fname = op.join(fname, 'legval_%s_%s.bin' % (n_coeff, n_interp))
+    if n_interp % 2 != 0:
+        raise RuntimeError('n_interp must be even')
+    if not op.isfile(fname):
+        n_out = (n_interp // 2)
+        logger.info('Generating Legendre table...')
+        x_interp = np.arange(-n_out, n_out + 1, dtype=np.float64) / n_out
+        lut = np.array([_get_legen(x, n_coeff) for x in x_interp])
+        with open(fname, 'wb') as fid:
+            fid.write(lut.astype(np.float32).tostring())
+    else:
+        logger.info('Reading Legendre table...')
+        with open(fname, 'rb', buffering=0) as fid:
+            lut = np.fromfile(fid, np.float32).astype(np.float64)
+        lut.shape = (n_interp + 1, n_coeff)
+
+    # we need this for the integration step
+    n_fact = np.arange(1, 100, dtype=float)
+    n_fact = (2.0 * n_fact + 1.0) * (2.0 * n_fact + 1.0) / n_fact
+    return lut, n_fact
+
+
+def _get_legen_lut(x, lut):
+    """Return Legendre coefficients for given x values in -1<=x<=1"""
+    # map into table vals
+    mm = np.clip(((x + 1.0) / 2.0) * (lut.shape[0] - 1.0),
+                 0., lut.shape[0] - 1.000000001)
+    idx1 = np.floor(mm).astype(int)
+    idx2 = idx1 + 1
+    w2 = mm - idx1
+    w1 = 1 - w2
+    vals = (w1[:, np.newaxis] * lut[idx1] +
+            w2[:, np.newaxis] * lut[idx2])
+    return vals
+
+
+def _comp_sum(beta, ctheta, lut, n_fact):
+    """Lead field dot products using Legendre polynomial (P_n) series"""
+    # Compute the sum occuring in the evaluation.
+    # The result is
+    #   sums[0]    (2n+1)^2/n beta^n P_n
+
+    p0s = _get_legen_lut(ctheta, lut)
+    betans = np.cumprod(np.tile(beta[:, np.newaxis], (1, lut.shape[1] - 1)),
+                        axis=1)
+    s0 = np.sum(p0s[:, 1:] * betans * n_fact[np.newaxis, :], axis=1)
+    return s0
+
+
+###############################################################################
+# FAST LEGENDRE DERIVATIVE USING LOOKUP TABLE
 
 def _next_legen_der(n, x, p0, p01, p0d, p0dd):
     """Compute the next Legendre polynomial and its derivatives"""
@@ -13,12 +93,6 @@ def _next_legen_der(n, x, p0, p01, p0d, p0dd):
     p0dd = (n + 1) * helpd + x * p0dd
     p01 = help_
     return p0, p01, p0d, p0dd
-
-
-def _next_legen(n, x, p0, p01):
-    """Compute the next Legendre polynomials of the first kind"""
-    # Only good for n > 1 !
-    return ((2 * n - 1) * x * p0 - (n - 1) * p01) / n, p0
 
 
 def _comp_sums(beta, volume_integral, ctheta):
@@ -68,28 +142,8 @@ def _comp_sums(beta, volume_integral, ctheta):
     return sums
 
 
-def _comp_sum(beta, ctheta):
-    """Lead field dot products using Legendre polynomial (P_n) series"""
-    # Compute the sum occuring in the evaluation.
-    # The result is
-    #   sums[0]    (2n+1)^2/n beta^n P_n
-    nterms = 100
-    eps = 1e-10
-
-    # do n == 1 case first, since it is exceptional
-    betan = beta
-    p0 = ctheta
-    p01 = 1.0
-    s0 = p0 * betan * 9.0
-    # now do the rest by recursion
-    for n in range(2, nterms + 1):
-        betan *= beta
-        if betan < eps:
-            break
-        p0, p01 = _next_legen(n, ctheta, p0, p01)
-        s0 += p0 * betan * (2.0 * n + 1.0) * (2.0 * n + 1.0) / n
-    return s0
-
+###############################################################################
+# SPHERE DOTS
 
 def _fast_sphere_dot_r0(r, rmags1, rmags2, cosmags1, cosmags2, ws1, ws2, r0,
                         volume_integral):
@@ -135,11 +189,11 @@ def _fast_sphere_dot_r0(r, rmags1, rmags2, cosmags1, cosmags2, ws1, ws2, r0,
     if volume_integral:
         result *= r
     # new we add them all up with weights
-    result = np.sum(ws1[:, np.newaxis] * ws2[np.newaxis, :] * result)
+    result = np.sum((ws1[:, np.newaxis] * ws2[np.newaxis, :]) * result)
     return result
 
 
-def _fast_eeg_sphere_dot_r0(r, rel1, rel2, w1, w2, r0):
+def _fast_eeg_sphere_dot_r0(r, rel1, rel2, w1, w2, r0, lut, n_fact):
     """Lead field dot product computation for EEG in the sphere model"""
     # This is a version that uses an explicit origin given in the call.
     rel1 = rel1 - r0
@@ -157,8 +211,9 @@ def _fast_eeg_sphere_dot_r0(r, rel1, rel2, w1, w2, r0):
 
     ct = np.sum(rr1 * rr2, axis=2)
     beta = (r * r) / (r1 * r2)
-    sums = np.array([[_comp_sum(bbb, ccc) for bbb, ccc in zip(bb, cc)]
-                     for bb, cc in zip(beta, ct)])
+    sums = _comp_sum(beta.flatten(), ct.flatten(), lut, n_fact)
+    sums.shape = beta.shape
+
     # Give it a finishing touch!
     eeg_const = 1.0 / (4.0 * np.pi)
     result = eeg_const * sums / (r1 * r2)
@@ -166,7 +221,7 @@ def _fast_eeg_sphere_dot_r0(r, rel1, rel2, w1, w2, r0):
     return result
 
 
-def _do_self_dots(intrad, volume, coils, r0, ctype):
+def _do_self_dots(intrad, volume, coils, r0, ctype, lut, n_fact):
     """Perform the lead field dot product integrations"""
     if ctype == 'eeg':
         intrad *= 0.7
@@ -180,13 +235,15 @@ def _do_self_dots(intrad, volume, coils, r0, ctype):
                                           c1['w'], c2['w'], r0, volume)
             else:  # 'eeg'
                 res = _fast_eeg_sphere_dot_r0(intrad, c1['rmag'], c2['rmag'],
-                                              c1['w'], c2['w'], r0)
+                                              c1['w'], c2['w'], r0,
+                                              lut, n_fact)
             products[ci1, ci2] = res
             products[ci2, ci1] = res
     return products
 
 
-def _do_surf_map_dots(intrad, volume, coils, surf, sel, r0, ctype):
+def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ctype,
+                     lut, n_fact):
     """Compute the map construction products"""
     virt_ref = False
     ncoil = len(coils)
@@ -199,7 +256,8 @@ def _do_surf_map_dots(intrad, volume, coils, surf, sel, r0, ctype):
             this_w = np.array([1.])
             for ei, el in enumerate(coils):
                 res = _fast_eeg_sphere_dot_r0(intrad, vr, el['rmag'],
-                                              this_w, el['w'], r0)
+                                              this_w, el['w'], r0,
+                                              lut, n_fact)
                 virt_ref_products[ei] = res
             logger.info('Virtual reference included')
 
@@ -216,11 +274,10 @@ def _do_surf_map_dots(intrad, volume, coils, surf, sel, r0, ctype):
         else:  # 'eeg'
             for ei, el in enumerate(coils):
                 res = _fast_eeg_sphere_dot_r0(intrad, rvirt, el['rmag'],
-                                              this_w, el['w'], r0)
+                                              this_w, el['w'], r0,
+                                              lut, n_fact)
                 if virt_ref:
                     products[si, ei] = res - virt_ref_products[ei]
                 else:
                     products[si, ei] = res
     return products
-
-

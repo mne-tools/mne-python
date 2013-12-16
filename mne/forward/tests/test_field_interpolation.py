@@ -6,7 +6,7 @@ from numpy.testing.utils import assert_allclose, assert_array_equal
 from mne import (read_trans, make_surface_mapping, get_meg_helmet_surf,
                  get_head_surface)
 from mne.datasets import sample
-from mne.forward._lead_dots import _comp_sum
+from mne.forward._lead_dots import _comp_sum, _get_legen_table, _get_legen_lut
 from mne.fiff import read_info
 from mne.transforms import _get_mri_head_t_from_trans_file
 
@@ -25,22 +25,32 @@ subjects_dir = op.join(data_path, 'subjects')
 def test_legendre_val():
     """Test legendre equivalence
     """
-    # pick some values for beta and ctheta, not too close to 0 or 1
-    beta = np.random.rand(10, 11) * 0.8 + 0.1
-    ctheta = np.random.rand(10, 11) * 0.8 + 0.1
+    # check table equiv
+    xs = np.linspace(-1., 1., 4000)
 
-    # use our "optimized" code
-    c1 = np.array([[_comp_sum(bb, cc) for bb, cc in zip(b, c)]
-                   for b, c in zip(beta, ctheta)])
+    # True, numpy
+    vals_np = legendre.legval(xs, np.ones(100), tensor=False)
+
+    # Table approximation
+    lut, n_fact = _get_legen_table()
+    vals_i = np.sum(_get_legen_lut(xs, lut), axis=1)
+    assert_allclose(vals_np, vals_i, rtol=1e-4, atol=1e-5)
+
+    beta = np.random.RandomState(0).rand(20, 30) * 0.8
+    ctheta = np.random.RandomState(0).rand(20, 30) * 2.0 - 1.0
+
+    lut, n_fact = _get_legen_table()
+    c1 = _comp_sum(beta.flatten(), ctheta.flatten(), lut, n_fact)
+    c1.shape = beta.shape
 
     # compare to numpy
     n_terms = 100
     n = np.arange(1, n_terms, dtype=float)[:, np.newaxis, np.newaxis]
-    coeffs = np.empty((n_terms,) + beta.shape)
+    coeffs = np.zeros((n_terms,) + beta.shape)
     coeffs[1:] = (np.cumprod([beta] * (n_terms - 1), axis=0)
                   * (2.0 * n + 1.0) * (2.0 * n + 1.0) / n)
     c2 = legendre.legval(ctheta, coeffs, tensor=False)
-    assert_allclose(c1, c2, 1e-1, 1e-3)
+    assert_allclose(c1, c2, 1e-3, 1e-5)
 
 
 @sample.requires_sample_data
