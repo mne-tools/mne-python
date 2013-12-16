@@ -1136,7 +1136,7 @@ class ICA(object):
 
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
-            full_var = np.var(data.T - data.mean(axis=1), axis=0).sum()
+            full_var = np.var(data, axis=1).sum()
         
         data = pca.fit_transform(data.T)
 
