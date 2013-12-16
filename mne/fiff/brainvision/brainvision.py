@@ -35,11 +35,12 @@ class RawBrainVision(Raw):
     elp_fname : str | None
         Path to the elp file containing electrode positions.
         If None, sensor locations are (0,0,0).
-
-    ch_names : list | None
-        A list of channel names in order of collection of electrode position
-        digitization.
-
+    elp_names : list | None
+        A list of channel names in the same order as the points in the elp
+        file. Electrode positions should be specified with the same names as
+        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
+        "rpa". ELP positions with other names are ignored. If elp_names is not
+        None and channels are missing, a KeyError is raised.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -52,12 +53,12 @@ class RawBrainVision(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, vhdr_fname, elp_fname=None, ch_names=None,
+    def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
                  preload=False, verbose=None):
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
         self.info, self._eeg_info = _get_eeg_info(vhdr_fname, elp_fname,
-                                                  ch_names)
+                                                  elp_names)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -230,7 +231,7 @@ def _read_vmrk(vmrk_fname):
     return stim_channel
 
 
-def _get_elp_locs(elp_fname, ch_names):
+def _get_elp_locs(elp_fname, elp_names):
     """Read a Polhemus ascii file
 
     Parameters
@@ -238,46 +239,46 @@ def _get_elp_locs(elp_fname, ch_names):
     elp_fname : str
         Path to head shape file acquired from Polhemus system and saved in
         ascii format.
-
-    ch_names : list
+    elp_names : list
         A list in order of EEG electrodes found in the Polhemus digitizer file.
-
 
     Returns
     -------
-    ch_locs : ndarray, shape = (n_points, 3)
-        Electrode points in Neuromag space.
+    ch_locs : dict
+        Dictionary whose keys are the names from elp_names and whose values
+        are the coordinates from the elp file transformed to Neuromag space.
     """
     pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
     with open(elp_fname) as fid:
         elp = pattern.findall(fid.read())
-    elp = np.array(elp, dtype=float)
-    elp = apply_trans(als_ras_trans, elp)
-    nasion, lpa, rpa = elp[:3]
+    coords_orig = np.array(elp, dtype=float)
+    coords_ras = apply_trans(als_ras_trans, coords_orig)
+    chs_ras = dict(zip(elp_names, coords_ras))
+    nasion = chs_ras['nasion']
+    lpa = chs_ras['lpa']
+    rpa = chs_ras['rpa']
     trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-    elp = apply_trans(trans, elp[8:])
-    ch_locs = dict(zip(ch_names, elp))
-    fid = nasion, lpa, rpa
-
-    return fid, ch_locs
+    coords_neuromag = apply_trans(trans, coords_ras)
+    chs_neuromag = dict(zip(elp_names, coords_neuromag))
+    return chs_neuromag
 
 
-def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
+def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, preload=False):
     """Extracts all the information from the header file.
 
     Parameters
     ----------
     vhdr_fname : str
         Raw EEG header to be read.
-
     elp_fname : str | None
         Path to the elp file containing electrode positions.
         If None, sensor locations are (0,0,0).
-
-    ch_names : list | None
-        A list of channel names in order of collection of electrode position
-        digitization.
-
+    elp_names : list | None
+        A list of channel names in the same order as the points in the elp
+        file. Electrode positions should be specified with the same names as
+        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
+        "rpa". ELP positions with other names are ignored. If elp_names is not
+        None and channels are missing, a KeyError is raised.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -286,7 +287,6 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
     -------
     info : instance of Info
         The measurement info.
-
     edf_info : dict
         A dict containing Brain Vision specific parameters.
     """
@@ -428,16 +428,16 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
     info['nchan'] = n_chan
     info['ch_names'] = ch_names
     info['sfreq'] = sfreq
-    if elp_fname and ch_names:
-        fid, ch_locs = _get_elp_locs(elp_fname, ch_names)
-        nasion, lpa, rpa = fid
-        info['dig'] = [{'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+    if elp_fname and elp_names:
+        ch_locs = _get_elp_locs(elp_fname, elp_names)
+        info['dig'] = [{'r': ch_locs['nasion'],
+                        'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD},
-                       {'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
+                       {'r': ch_locs['lpa'], 'ident': FIFF.FIFFV_POINT_LPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD},
-                       {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
+                       {'r': ch_locs['rpa'], 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD}]
     else:
@@ -456,14 +456,23 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
         chan_info['unit_mul'] = unit_mul
         chan_info['unit'] = FIFF.FIFF_UNIT_V
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        if ch_locs:
-            if ch_name in ch_locs:
-                chan_info['eeg_loc'] = ch_locs[ch_name]
+        missing_positions = []
+        if ch_locs is None:
+            loc = np.zeros(3)
+        elif ch_name in ch_locs:
+            loc = ch_locs[ch_name]
         else:
-            chan_info['eeg_loc'] = np.zeros(3)
-        chan_info['loc'] = np.zeros(12)
-        chan_info['loc'][:3] = chan_info['eeg_loc']
+            loc = np.zeros(3)
+            missing_positions.append(ch_name)
+        chan_info['eeg_loc'] = loc
+        chan_info['loc'] = np.hstack((loc, np.zeros(9)))
         info['chs'].append(chan_info)
+
+    # raise error if positions are missing
+    if missing_positions:
+        err = ("The following positions are missing from the ELP "
+               "definitions: %s" % str(missing_positions))
+        raise KeyError(err)
 
     # for stim channel
     stim_channel = _read_vmrk(eeg_info['marker_id'])
@@ -487,7 +496,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
     return info, eeg_info
 
 
-def read_raw_brainvision(vhdr_fname, elp_fname=None, ch_names=None,
+def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
                          preload=False, verbose=None):
     """Reader for Brain Vision EEG file
 
@@ -495,19 +504,18 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, ch_names=None,
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-
     elp_fname : str | None
         Path to the elp file containing electrode positions.
         If None, sensor locations are (0,0,0).
-
-    ch_names : list | None
-        A list of channel names in order of collection of electrode position
-        digitization.
-
+    elp_names : list | None
+        A list of channel names in the same order as the points in the elp
+        file. Electrode positions should be specified with the same names as
+        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
+        "rpa". ELP positions with other names are ignored. If elp_names is not
+        None and channels are missing, a KeyError is raised.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -516,4 +524,5 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, ch_names=None,
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     return RawBrainVision(vhdr_fname=vhdr_fname, elp_fname=elp_fname,
-                          ch_names=ch_names, preload=preload, verbose=verbose)
+                          elp_names=elp_names, preload=preload,
+                          verbose=verbose)
