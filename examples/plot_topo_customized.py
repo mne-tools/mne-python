@@ -3,10 +3,11 @@
 Plot custom topographies for MEG sensors
 ========================================
 
-Here we will expose the `iter_topography` function that makes it
+This example exposes the `iter_topography` function that makes it
 very easy to generate custom sensor topography plots.
 Here we will plot the power spectrum of each channel on a topographic
-layout plot.
+layout.
+
 """
 
 # Author: Denis A. Engemann <d.engemann@fz-juelich.de>
