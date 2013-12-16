@@ -48,7 +48,7 @@ picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
 # additional PCA components up to rank 64 of the MEG data.
 # This allows to control the trade-off between denoising and preserving signal.
 
-ica = ICA(n_components=0.90, n_pca_components=None, max_pca_components=100,
+ica = ICA(n_components=0.90 , n_pca_components=None, max_pca_components=100,
           random_state=0)
 
 # 1 minute exposure should be sufficient for artifact detection.
