@@ -62,7 +62,7 @@ def _dataset_version(path, name):
 
 
 def _data_path(path=None, force_update=False, update_path=True,
-               download=True, name=None, verbose=None, check_version=True):
+               download=True, name=None, check_version=True, verbose=None):
     """Aux function
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
@@ -170,7 +170,7 @@ def _data_path(path=None, force_update=False, update_path=True,
             warn('The {name} dataset (version {current}) is older than '
                  'mne-python (version {newest}). If the examples fail, '
                  'you may need to update the {name} dataset by using '
-                 'data_path(force_update=True)'.format(
+                 'mne.datasets.{name}.data_path(force_update=True)'.format(
                      name=name, current=data_version, newest=mne_version))
 
     return path
