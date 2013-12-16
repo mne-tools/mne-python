@@ -62,7 +62,7 @@ def _dataset_version(path, name):
 
 
 def _data_path(path=None, force_update=False, update_path=True,
-               download=True, name=None, verbose=None):
+               download=True, name=None, verbose=None, check_version=True):
     """Aux function
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
@@ -166,12 +166,12 @@ def _data_path(path=None, force_update=False, update_path=True,
         warn('Could not determine sample dataset version; dataset could\n'
              'be out of date. Please install the "distutils" package.')
     else:  # 0.7 < 0.7.git shoud be False, therefore strip
-        if LV(data_version) < LV(mne_version.strip('.git')):
+        if check_version and LV(data_version) < LV(mne_version.strip('.git')):
             warn('The {name} dataset (version {current}) is older than '
-                 'the mne-python (version {newest}). If the examples fail, '
-                 'you may need to update the {name} dataset by using'
-                 'force_update=True'.format(name=name, current=data_version,
-                                            newest=mne_version))
+                 'mne-python (version {newest}). If the examples fail, '
+                 'you may need to update the {name} dataset by using '
+                 'data_path(force_update=True)'.format(
+                     name=name, current=data_version, newest=mne_version))
 
     return path
 
@@ -180,7 +180,5 @@ def has_dataset(name):
     """Helper for sample dataset presence"""
     endswith = {'sample': 'MNE-sample-data',
                 'spm': 'MNE-spm-face'}[name]
-    if _data_path(download=False, name=name).endswith(endswith):
-        return True
-    else:
-        return False
+    dp = _data_path(download=False, name=name, check_version=False) 
+    return dp.endswith(endswith)

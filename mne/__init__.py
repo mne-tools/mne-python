@@ -65,7 +65,6 @@ from . import mixed_norm
 from . import preprocessing
 from . import simulation
 from . import stats
-from . import tests
 from . import time_frequency
 from . import viz
 from . import decoding
