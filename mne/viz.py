@@ -126,9 +126,9 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
                     axis_spinecolor='k', layout_scale=None,
                     colorbar=False):
-    """
-    Create iterator over channel positions and
-    prepare sensible defaults for convenient topo-plotting
+    """ Create iterator over channel positions
+
+    Prepare sensible defaults for convenient topo-plotting.
 
     Parameters
     ----------
