@@ -57,8 +57,9 @@ class RawBrainVision(Raw):
                  preload=False, verbose=None):
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        self.info, self._eeg_info = _get_eeg_info(vhdr_fname, elp_fname,
-                                                  elp_names)
+        self.info, self._eeg_info, self._events = _get_eeg_info(vhdr_fname,
+                                                                elp_fname,
+                                                                elp_names)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -130,10 +131,9 @@ class RawBrainVision(Raw):
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
-        if sel is None:
-            sel = list(range(self.info['nchan']))
-        elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
-            return (666, 666)
+        if sel is not None:
+            if len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
+                return (666, 666)
         if projector is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
@@ -178,14 +178,12 @@ class RawBrainVision(Raw):
         gains = cals * mults
         data = data * gains.T
 
-        stim_channel = np.zeros(data.shape[1])
-        evts = _read_vmrk(eeg_info['marker_id'])
-        if evts is not None:
-            stim_channel[:evts.size] = evts
-        stim_channel = stim_channel[start:stop]
+        if len(self._events):
+            stim_channel = _synthesize_stim_channel(self._events, start, stop)
+            data = np.vstack((data, stim_channel))
 
-        data = np.vstack((data, stim_channel))
-        data = data[sel]
+        if sel is not None:
+            data = data[sel]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / sfreq
@@ -193,40 +191,76 @@ class RawBrainVision(Raw):
         return data, times
 
 
-def _read_vmrk(vmrk_fname):
-    """Extracts the event markers for vmrk file
+def _read_vmrk_events(fname):
+    """Read events from a vmrk file
 
     Parameters
     ----------
-    vmrk_fname : str
+    fname : str
         vmrk file to be read.
 
     Returns
     -------
-    stim_channel : array
-        An array containing the whole recording's event marking
+    events : array, [n_events x 3]
+        An array containing the whole recording's events, each row representing
+        an event as (onset, offset, trigger) sequence.
     """
-
-    with open(vmrk_fname) as f:
+    # read vmrk file
+    with open(fname) as f:
         # setup config reader
         l = f.readline().strip()
         assert l == 'Brain Vision Data Exchange Marker File, Version 1.0'
         cfg = configparser.SafeConfigParser()
         cfg.readfp(f)
 
+    # extract event informtion
     events = []
     for _, info in cfg.items('Marker Infos'):
-        mtype, mdesc, offset, duration = info.split(',')[:4]
+        mtype, mdesc, onset, duration = info.split(',')[:4]
         if mtype == 'Stimulus':
             trigger = int(re.findall('S\s?(\d+)', mdesc)[0])
-            offset, duration = int(offset), int(duration)
-            events.append((trigger, offset, offset + duration))
-    if events:
-        stim_channel = np.zeros(events[-1][2])
-        for event in events:
-            stim_channel[event[1]:event[2]] = trigger
-    else:
-        stim_channel = None
+            onset = int(onset)
+            duration = int(duration)
+            offset = onset + duration
+            events.append((onset, offset, trigger))
+
+    events = np.array(events)
+    return events
+
+
+def _synthesize_stim_channel(events, start, stop):
+    """Synthesize a stim channel from events read from a vmrk file
+
+    Parameters
+    ----------
+    events : array, [n_events x 3]
+        Each row representing an event as (onset, offset, trigger) sequence
+        (the format returned by _read_vmrk_events).
+    start : int
+        First sample to return.
+    stop : int
+        Last sample to return.
+
+    Returns
+    -------
+    stim_channel : array, [n_samples]
+        An array containing the whole recording's event marking
+    """
+    # select events overlapping buffer
+    idx = np.logical_and(events[:, 0] < stop, events[:, 1] > start)
+    events = events[idx]
+
+    # make onset and offset relative to buffer
+    events[:, :2] -= start
+
+    # fix start
+    idx = events[:, 0] < 0
+    events[idx, 0] = 0
+
+    # create output buffer
+    stim_channel = np.zeros(stop - start)
+    for onset, offset, trigger in events:
+        stim_channel[onset:offset] = trigger
 
     return stim_channel
 
@@ -289,6 +323,8 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, preload=False):
         The measurement info.
     edf_info : dict
         A dict containing Brain Vision specific parameters.
+    events : array, [n_events x 3]
+        Events from the corresponding vmrk file.
     """
 
     info = Info()
@@ -475,8 +511,8 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, preload=False):
         raise KeyError(err)
 
     # for stim channel
-    stim_channel = _read_vmrk(eeg_info['marker_id'])
-    if stim_channel is not None:
+    events = _read_vmrk_events(eeg_info['marker_id'])
+    if len(events):
         chan_info = {}
         chan_info['ch_name'] = 'STI 014'
         chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -493,7 +529,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, preload=False):
         info['ch_names'].append(chan_info['ch_name'])
         info['chs'].append(chan_info)
 
-    return info, eeg_info
+    return info, eeg_info, events
 
 
 def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
