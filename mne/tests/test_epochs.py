@@ -842,16 +842,16 @@ def test_drop_epochs():
     assert_array_equal(epochs.trial_id, np.array([0, 1, 3, 5, 6]))
     assert_array_equal(epochs[3:].trial_id, np.array([5, 6]))
     assert_array_equal(epochs['1'].trial_id, np.array([0, 1, 3, 5, 6]))
-    epochs.drop_epochs([3], reason='by_id', by_id=True)
+    epochs.drop_epochs([3], reason='use_trial_id', use_trial_id=True)
     assert_array_equal(epochs.trial_id, np.array([0, 1, 5, 6]))
 
     # Use trial_id to drop a trial that's already been dropped
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
-    epochs.drop_epochs([0], reason='1st', by_id=True)
-    epochs.drop_epochs([0], reason='2nd', by_id=True)
+    epochs.drop_epochs([0], reason='1st', use_trial_id=True)
+    epochs.drop_epochs([0], reason='2nd', use_trial_id=True)
     assert_equal(len(epochs.events), 6)
     # Only first reason is recorded: not sure this is great
     assert_equal(epochs.drop_log, [['1st'], [], [], [], [], [], []])
-    epochs.drop_epochs([1], reason='3rd', by_id=True)
+    epochs.drop_epochs([1], reason='3rd', use_trial_id=True)
     assert_array_equal(epochs.trial_id, np.array([2, 3, 4, 5, 6]))
