@@ -346,12 +346,13 @@ def get_meg_helmet_surf(info, trans):
     info : instance of fiff.meas_info.Info
         Measurement info.
     trans : dict
-        The trans file containing the Head<->MRI transform.
+        The head<->MRI transformation, usually obtained using
+        read_trans().
 
     Returns
     -------
     surf : dict
-        The MEG helmet as a surface in MRI coordinates.
+        The MEG helmet as a surface in head coordinates.
     """
     system = _get_meg_system(info)
     fname = op.join(op.split(__file__)[0], 'data', 'helmets',
@@ -362,7 +363,6 @@ def get_meg_helmet_surf(info, trans):
     surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
     transform_source_space_to(surf, FIFF.FIFFV_COORD_HEAD, info['dev_head_t'])
     transform_source_space_to(surf, FIFF.FIFFV_COORD_MRI, trans)
-    del surf['coord_frame']
     return surf
 
 
