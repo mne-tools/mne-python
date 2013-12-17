@@ -754,7 +754,7 @@ class Epochs(_BaseEpochs):
         if indices.ndim > 1:
             raise ValueError("indices must be a scalar or a 1-d array")
     
-        if by_id:
+        if user_trial_id:
             mapping = zip(range(len(self.events)), self.trial_id)
             indices = set(indices)
             indices = np.array([x for x, y in mapping if y in indices])
