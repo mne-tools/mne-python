@@ -719,7 +719,8 @@ class Epochs(_BaseEpochs):
         return is_delayed
 
     @verbose
-    def drop_epochs(self, indices, reason='', by_id=False, verbose=None):
+    def drop_epochs(self, indices, reason='', use_trial_id=False,
+            verbose=None):
         """Drop epochs based on indices or boolean mask
 
         Note that the indices refer to the current set of undropped epochs
@@ -735,28 +736,29 @@ class Epochs(_BaseEpochs):
             Set epochs to remove by specifying indices to remove or a boolean
             mask to apply (where True values get removed). Events are
             correspondingly modified.
-        reason : string
+        reason : str
             Reason for dropping the epochs ('ECG', 'Timeout', 'Blink' etc).
             Default: ''
-        by_id : bool
+        use_trial_id : bool
             If False (default) indices refer to the current set of undropped
-            trials; if True, indices indicate trial IDs.
+            trials; if True, indices refer to original trial IDs (trial IDs
+            that refer to trials that have been dropped previously are 
+            silently ignored).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to raw.verbose.
         """
 
         indices = np.atleast_1d(indices)
-        if indices.dtype == bool:
-            indices = np.where(indices)[0]
 
         if indices.ndim > 1:
             raise ValueError("indices must be a scalar or a 1-d array")
     
-        if by_id:
-            indices = np.array([x for x, y in 
-                    zip(range(len(self.events)), self.trial_id) if
-                    y in set(indices)])
+        if use_trial_id:
+            indices = np.in1d(self.trial_id, indices)
+
+        if indices.dtype == bool:
+            indices = np.where(indices)[0]
 
         out_of_bounds = (indices < 0) | (indices >= len(self.events))
         if out_of_bounds.any():
@@ -765,7 +767,7 @@ class Epochs(_BaseEpochs):
 
         for ind in indices:
             self.drop_log[self.trial_id[ind]].append(reason)
-        self.trial_id = np.delete(self.trial_id, indices, axis=0)
+        self.trial_id = np.delete(self.trial_id, indices)
         self.events = np.delete(self.events, indices, axis=0)
         if self.preload:
             self._data = np.delete(self._data, indices, axis=0)
