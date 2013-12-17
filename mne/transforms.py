@@ -26,24 +26,23 @@ als_ras_trans_mm = als_ras_trans * [0.001, 0.001, 0.001, 1]
 
 def _coord_frame_name(cframe):
     """Map integers to human-readable names"""
-    types = [FIFF.FIFFV_COORD_UNKNOWN, FIFF.FIFFV_COORD_DEVICE,
-             FIFF.FIFFV_COORD_ISOTRAK, FIFF.FIFFV_COORD_HPI,
-             FIFF.FIFFV_COORD_HEAD, FIFF.FIFFV_COORD_MRI,
-             FIFF.FIFFV_MNE_COORD_MRI_VOXEL, FIFF.FIFFV_COORD_MRI_SLICE,
-             FIFF.FIFFV_COORD_MRI_DISPLAY, FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-             FIFF.FIFFV_MNE_COORD_CTF_HEAD, FIFF.FIFFV_MNE_COORD_RAS,
-             FIFF.FIFFV_MNE_COORD_MNI_TAL, FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ,
-             FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ, -1]
-    strs = ['unknown', 'MEG device', 'isotrak', 'hpi', 'head',
-            'MRI (surface RAS)', 'MRI voxel', 'MRI slice', 'MRI display',
-            'CTF MEG device', 'CTF/4D/KIT head', 'RAS (non-zero origin)',
-            'MNI Talairach', 'Talairach (MNI z > 0)', 'Talairach (MNI z < 0)',
-            'unknown']
-    assert len(types) == len(strs)
-    for t, s in zip(types, strs):
-        if cframe == t:
-            return s
-    return strs[-1]
+    types = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
+             FIFF.FIFFV_COORD_DEVICE: 'MEG device',
+             FIFF.FIFFV_COORD_ISOTRAK: 'isotrak',
+             FIFF.FIFFV_COORD_HPI: 'hpi',
+             FIFF.FIFFV_COORD_HEAD: 'head',
+             FIFF.FIFFV_COORD_MRI: 'MRI (surface RAS)',
+             FIFF.FIFFV_MNE_COORD_MRI_VOXEL: 'MRI voxel',
+             FIFF.FIFFV_COORD_MRI_SLICE: 'MRI slice',
+             FIFF.FIFFV_COORD_MRI_DISPLAY: 'MRI display',
+             FIFF.FIFFV_MNE_COORD_CTF_DEVICE: 'CTF MEG device',
+             FIFF.FIFFV_MNE_COORD_CTF_HEAD: 'CTF/4D/KIT head',
+             FIFF.FIFFV_MNE_COORD_RAS: 'RAS (non-zero origin)',
+             FIFF.FIFFV_MNE_COORD_MNI_TAL: 'MNI Talairach',
+             FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: 'Talairach (MNI z > 0)',
+             FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: 'Talairach (MNI z < 0)',
+             -1: 'unknown'}
+    return types.get(cframe, 'unknown')
 
 
 def _print_coord_trans(t, prefix='Coordinate transformation: '):
@@ -402,7 +401,7 @@ def transform_coordinates(filename, pos, orig, dest):
             tag = read_tag(fid, d.pos)
             trans = tag.data
             if (trans['from'] == FIFF.FIFFV_COORD_MRI and
-                trans['to'] == FIFF.FIFFV_COORD_HEAD):
+                    trans['to'] == FIFF.FIFFV_COORD_HEAD):
                 T0 = invert_transform(trans)
             elif (trans['from'] == FIFF.FIFFV_COORD_MRI and
                   trans['to'] == FIFF.FIFFV_MNE_COORD_RAS):

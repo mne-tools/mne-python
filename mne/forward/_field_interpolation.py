@@ -4,11 +4,11 @@ from scipy import linalg
 from ..fiff import FIFF
 from ..fiff.pick import pick_types, pick_info
 from ..fiff.proj import _has_eeg_average_ref_proj
-from ..transforms import (invert_transform, combine_transforms, apply_trans,
-                          _coord_frame_name)
+from ..transforms import (invert_transform, combine_transforms, apply_trans)
 from ._make_forward import _create_coils
 from ._lead_dots import _do_self_dots, _do_surface_dots, _get_legen_table
-from ..utils import logger
+from ..parallel import check_n_jobs
+from ..utils import logger, verbose
 
 
 def _is_axial_coil(coil):
@@ -21,7 +21,7 @@ def _is_axial_coil(coil):
 def _ad_hoc_noise(coils, ctype='meg'):
     v = np.empty(len(coils))
     if ctype == 'meg':
-        axs = [_is_axial_coil(coil) for coil in coils]
+        axs = np.array([_is_axial_coil(coil) for coil in coils], dtype=bool)
         v[axs] = 4e-28  # 20e-15 ** 2
         v[np.logical_not(axs)] = 2.5e-25  # 5e-13 ** 2
     else:
@@ -30,10 +30,8 @@ def _ad_hoc_noise(coils, ctype='meg'):
     return cov
 
 
-def _prepare_field_mapping(info, head_mri_t, surf, ctype='meg',
-                           origin_frame=FIFF.FIFFV_COORD_HEAD,
-                           sphere_origin=(0.0, 0.0, 0.04),
-                           int_rad=0.06, subjects_dir=None):
+def _prepare_field_mapping(info, head_mri_t, surf, ctype, int_rad=0.06,
+                           n_jobs=1):
     """Do the dot products"""
     #
     # Step 1. Prepare the coil definitions
@@ -61,34 +59,25 @@ def _prepare_field_mapping(info, head_mri_t, surf, ctype='meg',
         type_str = 'coils'
         miss = 1e-4  # Smoothing criterion for MEG
     else:  # EEG
-        coils = _create_coils(chs, coil_type='eeg')[0]
+        coils = _create_coils(chs, t=head_mri_t, coil_type='eeg')[0]
         type_str = 'electrodes'
         miss = 1e-3  # Smoothing criterion for EEG
 
     #
     # Step 2. Calculate the dot products
     #
-    my_origin = sphere_origin
-    if origin_frame == FIFF.FIFFV_COORD_HEAD:
-        my_origin = apply_trans(head_mri_t['trans'], my_origin)
-    elif origin_frame != FIFF.FIFFV_COORD_MRI:
-        raise RuntimeError('Origin cannot be specified in %s coordinates'
-                           % _coord_frame_name(origin_frame))
-
+    my_origin = apply_trans(head_mri_t['trans'], np.array([0.0, 0.0, 0.04]))
     noise = _ad_hoc_noise(coils, ctype)
-    if ctype == 'eeg':
-        lut, n_fact = _get_legen_table()
-    else:
-        ctype, n_fact = None, None
-
+    lut, n_fact = _get_legen_table(ctype, False)
     logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
     self_dots = _do_self_dots(int_rad, False, coils, my_origin, ctype,
-                              lut, n_fact)
+                              lut, n_fact, n_jobs)
     sel = np.arange(len(surf['rr']))  # eventually we should do sub-selection
     logger.info('Computing dot products for %i surface locations...'
                 % len(sel))
     surface_dots = _do_surface_dots(int_rad, False, coils, surf,
-                                    sel, my_origin, ctype, lut, n_fact)
+                                    sel, my_origin, ctype, lut, n_fact,
+                                    n_jobs)
 
     #
     # Step 4. Return the result
@@ -113,13 +102,8 @@ def _compute_mapping_matrix(fmd, proj=None):
 
     logger.info('preparing the mapping matrix...')
 
-    # Pick the correct channels from the dot products
-    mat = fmd['self_dots']  # no need to sub-select b/c no bads ignored
-
-    # Pick the correct channels for the noise covariance
-    noise_cov = fmd['noise']  # still don't need to sub-select
-
-    # ...then whitening
+    noise_cov = fmd['noise']
+    # Whiten
     if not noise_cov['diag']:
         whitener = np.zeros((noise_cov['dim'], noise_cov['dim']))
         eig = noise_cov['eig']
@@ -128,12 +112,12 @@ def _compute_mapping_matrix(fmd, proj=None):
         whitener = np.dot(whitener, noise_cov['eigvec'])
     else:
         whitener = np.diag(1.0 / np.sqrt(noise_cov['data'].ravel()))
-    mat = np.dot(whitener.T, np.dot(mat, whitener))
+    whitened_dots = np.dot(whitener.T, np.dot(fmd['self_dots'], whitener))
 
     # SVD is numerically better than the eigenvalue composition even if
     # mat is supposed to be symmetric and positive definite
     logger.info('SVD...')
-    uu, sing, vv = linalg.svd(mat, overwrite_a=True)
+    uu, sing, vv = linalg.svd(whitened_dots, overwrite_a=True)
 
     # Eigenvalue truncation
     sumk = np.cumsum(sing)
@@ -145,14 +129,14 @@ def _compute_mapping_matrix(fmd, proj=None):
 
     # Put the inverse together
     logger.info('Put the inverse together...')
-    mat = np.dot(vv, sing[:, np.newaxis] * uu)
+    inv = np.dot(vv, sing[:, np.newaxis] * uu)
 
     # Sandwich with the whitener
-    mat = np.dot(whitener.T, np.dot(mat, whitener))
+    inv_whitened = np.dot(whitener.T, np.dot(inv, whitener))
 
     # Finally sandwich in the selection matrix
     # This one picks up the correct lead field projection
-    mapping_mat = np.dot(fmd['surface_dots'], mat)
+    mapping_mat = np.dot(fmd['surface_dots'], inv_whitened)
 
     # Optionally apply the average electrode reference to the final field map
     if fmd['kind'] == 'eeg' and do_proj:
@@ -162,7 +146,9 @@ def _compute_mapping_matrix(fmd, proj=None):
     return mapping_mat
 
 
-def make_surface_mapping(info, surf, trans, ctype='meg'):
+@verbose
+def make_surface_mapping(info, surf, trans, ctype='meg', n_jobs=1,
+                         verbose=None):
     """Re-map M/EEG data to a surface
 
     Parameters
@@ -171,11 +157,15 @@ def make_surface_mapping(info, surf, trans, ctype='meg'):
         Measurement info.
     surf : dict
         The surface to map the data to. The required fields are `'rr'` and
-        `'nn'`, in MRI coordinates.
+        `'nn'`, in MRI coordinates (FIFFV_COORD_MRI, 5).
     trans : dict
         The MRI->Head transformation.
     ctype : str
         Must be either `'meg'` or `'eeg'`, determines the type of field.
+    n_jobs : int
+        Number of permutations to run in parallel (requires joblib package).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -192,7 +182,10 @@ def make_surface_mapping(info, surf, trans, ctype='meg'):
     if trans['from'] != FIFF.FIFFV_COORD_HEAD \
             or trans['to'] != FIFF.FIFFV_COORD_MRI:
         raise ValueError('trans must be a MRI<->Head transform')
+    if surf.get('coord_frame', FIFF.FIFFV_COORD_MRI) != FIFF.FIFFV_COORD_MRI:
+        raise RuntimeError('Surface must be in MRI coordinates')
+    n_jobs = check_n_jobs(n_jobs)
 
-    fmd = _prepare_field_mapping(info, trans, surf, ctype)
+    fmd = _prepare_field_mapping(info, trans, surf, ctype, n_jobs=n_jobs)
     mapping_mat = _compute_mapping_matrix(fmd, None)
     return mapping_mat
