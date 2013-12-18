@@ -3,7 +3,7 @@ from scipy import linalg
 
 from ..fiff import FIFF
 from ..fiff.pick import pick_types, pick_info
-from ..fiff.proj import _has_eeg_average_ref_proj
+from ..fiff.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import (invert_transform, combine_transforms, apply_trans)
 from ._make_forward import _create_coils
 from ._lead_dots import _do_self_dots, _do_surface_dots, _get_legen_table
@@ -75,9 +75,8 @@ def _prepare_field_mapping(info, head_mri_t, surf, ctype, int_rad=0.06,
     sel = np.arange(len(surf['rr']))  # eventually we should do sub-selection
     logger.info('Computing dot products for %i surface locations...'
                 % len(sel))
-    surface_dots = _do_surface_dots(int_rad, False, coils, surf,
-                                    sel, my_origin, ctype, lut, n_fact,
-                                    n_jobs)
+    surface_dots = _do_surface_dots(int_rad, False, coils, surf, sel,
+                                    my_origin, ctype, lut, n_fact, n_jobs)
 
     #
     # Step 4. Return the result
@@ -89,18 +88,14 @@ def _prepare_field_mapping(info, head_mri_t, surf, ctype, int_rad=0.06,
     return res
 
 
-def _compute_mapping_matrix(fmd, proj=None):
+def _compute_mapping_matrix(fmd, info):
     """Do the hairy computations"""
-    # C code had bad channel dealings -- this should be taken care of by
-    # our "picks" argument earlier, in _prepare_field_mapping.
-    # XXX However, we might want to incorporate the projection stuff...
-    if 'mapping_mat' in fmd:
-        raise RuntimeError('mapping matrix recomputation attempted')
-    if proj is not None:
-        raise NotImplementedError('projection not supported yet')
-    do_proj = False
-
     logger.info('preparing the mapping matrix...')
+    # assemble a projector and apply it to the data
+    ch_names = [info['ch_names'][p] for p in fmd['picks']]
+    projs = info.get('projs', list())
+    proj_op = make_projector(projs, ch_names)[0]
+    proj_dots = np.dot(proj_op.T, np.dot(fmd['self_dots'], proj_op))
 
     noise_cov = fmd['noise']
     # Whiten
@@ -112,7 +107,7 @@ def _compute_mapping_matrix(fmd, proj=None):
         whitener = np.dot(whitener, noise_cov['eigvec'])
     else:
         whitener = np.diag(1.0 / np.sqrt(noise_cov['data'].ravel()))
-    whitened_dots = np.dot(whitener.T, np.dot(fmd['self_dots'], whitener))
+    whitened_dots = np.dot(whitener.T, np.dot(proj_dots, whitener))
 
     # SVD is numerically better than the eigenvalue composition even if
     # mat is supposed to be symmetric and positive definite
@@ -122,25 +117,29 @@ def _compute_mapping_matrix(fmd, proj=None):
     # Eigenvalue truncation
     sumk = np.cumsum(sing)
     sumk /= sumk[-1]
-    fmd['nest'] = np.where(sumk > (1.0 - fmd['miss']))[0][-1]
+    fmd['nest'] = np.where(sumk > (1.0 - fmd['miss']))[0][0]
     logger.info('Truncate at %d missing %g' % (fmd['nest'], fmd['miss']))
     sing = 1.0 / sing
     sing[fmd['nest'] + 1:] = 0.0
 
     # Put the inverse together
     logger.info('Put the inverse together...')
-    inv = np.dot(vv, sing[:, np.newaxis] * uu)
+    inv = np.dot(vv.T, sing[:, np.newaxis] * uu.T)
 
     # Sandwich with the whitener
     inv_whitened = np.dot(whitener.T, np.dot(inv, whitener))
 
+    # Take into account that the lead fields used to compute
+    # d->surface_dots were unprojected
+    inv_whitened_proj = (np.dot(inv_whitened.T, proj_op)).T
+
     # Finally sandwich in the selection matrix
     # This one picks up the correct lead field projection
-    mapping_mat = np.dot(fmd['surface_dots'], inv_whitened)
+    mapping_mat = np.dot(fmd['surface_dots'], inv_whitened_proj)
 
     # Optionally apply the average electrode reference to the final field map
-    if fmd['kind'] == 'eeg' and do_proj:
-        if _has_eeg_average_ref_proj(proj):
+    if fmd['kind'] == 'eeg':
+        if _has_eeg_average_ref_proj(projs):
             logger.info('The map will have average electrode reference')
             mapping_mat -= np.mean(mapping_mat, axis=0)[np.newaxis, :]
     return mapping_mat
@@ -187,5 +186,5 @@ def make_surface_mapping(info, surf, trans, ctype='meg', n_jobs=1,
     n_jobs = check_n_jobs(n_jobs)
 
     fmd = _prepare_field_mapping(info, trans, surf, ctype, n_jobs=n_jobs)
-    mapping_mat = _compute_mapping_matrix(fmd, None)
+    mapping_mat = _compute_mapping_matrix(fmd, info)
     return mapping_mat

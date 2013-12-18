@@ -105,7 +105,6 @@ def _get_legen_lut(x, lut):
     n_interp = (lut.shape[0] - 1.0)
     # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
     mm = x * (n_interp / 2.0) + 0.5 * n_interp
-
     # slower, more accurate interpolation version
     mm = np.minimum(mm, n_interp - 0.0000000001)
     idx = np.floor(mm).astype(int)
@@ -113,9 +112,9 @@ def _get_legen_lut(x, lut):
     w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
     vals = (1 - w2) * lut[idx] + w2 * lut[idx + 1]
     """
-    # nearest-neighbor version
+    # nearest-neighbor version (could be decent enough...)
     idx = np.round(mm).astype(int)
-    vals = lut[idx]  # much faster
+    vals = lut[idx]
     """
     return vals
 
