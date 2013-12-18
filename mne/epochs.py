@@ -1778,7 +1778,8 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                        if mappings is None else mappings)
     epochs.verbose = verbose
-    epochs.drop_log = []
+    epochs.trial_id = np.arange(len(events))
+    epochs.drop_log = [[] for _ in epochs.trial_id]
     fid.close()
 
     return epochs
