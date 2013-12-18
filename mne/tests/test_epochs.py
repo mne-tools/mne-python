@@ -161,8 +161,13 @@ def test_read_write_epochs():
     assert_array_almost_equal(epochs_read4.get_data(), data)
     # test equalizing loaded one (drop_log property)
     epochs_read4.equalize_event_counts(epochs.event_id)
-
-
+    
+    orig_id = epochs.trial_id.copy()
+    epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
+    epochs.save('test-trial-id.py')
+    assert_array_equal(read_epochs('test-trial-id.py').trial_id,
+                       orig_id)
+    
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
     """
