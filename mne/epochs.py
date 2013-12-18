@@ -12,6 +12,7 @@ from .externals.six import string_types
 
 import copy as cp
 import warnings
+import json
 
 import numpy as np
 
@@ -764,8 +765,8 @@ class Epochs(_BaseEpochs):
             first = indices[out_of_bounds][0]
             raise IndexError("Epoch index %d is out of bounds" % first)
 
-        for ind in indices:
-            self.drop_log[self.trial_id[ind]].append(reason)
+        [self.drop_log[self.trial_id[ii]].append(reason) for ii in indices]
+
         self.trial_id = np.delete(self.trial_id, indices)
         self.events = np.delete(self.events, indices, axis=0)
         if self.preload:
@@ -1235,6 +1236,13 @@ class Epochs(_BaseEpochs):
 
         # undo modifications to data
         data /= decal[np.newaxis, :, np.newaxis]
+
+        write_string(fid, FIFF.FIFFB_MNE_EPOCHS_DROP_LOG,
+                     json.dumps(self.drop_log))
+        
+        write_int(fid, FIFF.FIFFB_MNE_EPOCHS_TRIAL_ID,
+                  self.trial_id)
+
         end_block(fid, FIFF.FIFFB_EPOCHS)
 
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
@@ -1458,7 +1466,7 @@ class Epochs(_BaseEpochs):
         indices = np.concatenate([eq[inds]
                                   for eq, inds in zip(eq_inds, indices)])
         epochs = _check_add_drop_log(epochs, indices)
-        epochs.drop_epochs(indices)
+        epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
 
@@ -1556,7 +1564,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
         e = _check_add_drop_log(e, inds)
-        e.drop_epochs(inds)
+        e.drop_epochs(inds, reason='EQUALIZED_COUNT')
 
 
 def _get_drop_indices(event_times, method):
@@ -1726,6 +1734,12 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
         elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
             tag = read_tag(fid, pos)
             bmax = float(tag.data)
+        elif kind == FIFF.FIFFB_MNE_EPOCHS_TRIAL_ID:
+            tag = read_tag(fid, pos)
+            trial_id = np.array(tag.data)
+        elif kind == FIFF.FIFFB_MNE_EPOCHS_DROP_LOG:
+            tag = read_tag(fid, pos)
+            drop_log = json.loads(tag.data)
 
     if bmin is not None or bmax is not None:
         baseline = (bmin, bmax)
@@ -1778,8 +1792,8 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                        if mappings is None else mappings)
     epochs.verbose = verbose
-    epochs.trial_id = np.arange(len(events))
-    epochs.drop_log = [[] for _ in epochs.trial_id]
+    epochs.trial_id = trial_id
+    epochs.drop_log = drop_log
     fid.close()
 
     return epochs
