@@ -669,10 +669,7 @@ class ICA(object):
             sources = sources[order]
         fig = plot_ica_panel(sources, n_components=n_components,
                              source_idx=source_idx, ncol=ncol, nrow=nrow,
-                             title=title)
-        if show:
-            import matplotlib.pyplot as plt
-            plt.show()
+                             title=title, show=show)
 
         return fig
 
