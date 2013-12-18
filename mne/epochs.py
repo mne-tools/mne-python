@@ -14,7 +14,6 @@ import copy as cp
 import warnings
 
 import numpy as np
-from copy import deepcopy
 
 from .fiff.write import (start_file, start_block, end_file, end_block,
                          write_int, write_float_matrix, write_float,
@@ -1079,7 +1078,7 @@ class Epochs(_BaseEpochs):
             select = key if isinstance(key, slice) else np.atleast_1d(key)
 
         indices = np.nonzero(key_match)[0]
-        epochs.drop_log = [epochs.drop_log[x] for x in indices]
+        epochs.drop_log = [cp.deepcopy(epochs.drop_log[x]) for x in indices]
         epochs.trial_id = epochs.trial_id[key_match]
         epochs.events = np.atleast_2d(epochs.events[key_match])
         if epochs.preload:
@@ -1172,7 +1171,7 @@ class Epochs(_BaseEpochs):
         """Return copy of Epochs instance"""
         raw = self.raw
         del self.raw
-        new = deepcopy(self)
+        new = cp.deepcopy(self)
         self.raw = raw
         new.raw = raw
 
