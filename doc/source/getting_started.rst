@@ -30,7 +30,7 @@ Outside the Martinos Center
 ---------------------------
 
 MNE is written in pure Python making it easy to setup of
-any machine with Python >=2.6, NumPy >= 1.4, SciPy >= 0.7.2
+any machine with Python >=2.6, NumPy >= 1.6, SciPy >= 0.7.2
 and matplotlib >= 1.1.0.
 
 Some isolated functions (e.g. filtering with firwin2) require SciPy >= 0.9.
@@ -60,13 +60,13 @@ https://www.enthought.com/store/
 
 Note that we explicitly support the following Python setups since they reflect our
 development environments and functionality is best tested for them:
-    
+
     * EPD 7.3 (Mac, Linux)
-    
+
     * Canopy >= 1.0 (Mac, Linux)
 
     * Anaconda (Mac)
-    
+
     * Debian / Ubuntu standard system Python + Scipy stack
 
 
@@ -76,7 +76,7 @@ manually adjusting the python interpreter invoked by the nosetests and
 the sphinx-build 'binaries' (http://goo.gl/Atqh26).
 Tested on a recent MacBook Pro running Mac OS X 10.8 and Mac OS X 10.9
 
-If you use another Python setup and you encounter some difficulties please 
+If you use another Python setup and you encounter some difficulties please
 report them on the MNE mailing list or on github to get assistance.
 
 To test that everything works properly, open up IPython::

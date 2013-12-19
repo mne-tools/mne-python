@@ -13,6 +13,12 @@ Changelog
 
    - Add field line interpolation by `Eric Larson`_
 
+API
+~~~
+
+   - The minimum numpy version has been increased to 1.6 from 1.4.
+
+
 .. _changes_0_7:
 
 Version 0.7
