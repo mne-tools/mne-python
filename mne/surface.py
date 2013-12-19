@@ -24,7 +24,7 @@ from .fiff.write import (write_int, write_float, write_float_matrix,
                          start_block, end_file, write_string,
                          write_float_sparse_rcs)
 from .utils import logger, verbose, get_subjects_dir
-from .transforms import transform_source_space_to
+from .transforms import transform_surface_to
 
 
 ##############################################################################
@@ -338,7 +338,7 @@ def get_head_surface(subject, source='bem', subjects_dir=None):
     return surf
 
 
-def get_meg_helmet_surf(info, trans):
+def get_meg_helmet_surf(info, trans=None):
     """Load the MEG helmet associated with the MEG sensors
 
     Parameters
@@ -347,12 +347,13 @@ def get_meg_helmet_surf(info, trans):
         Measurement info.
     trans : dict
         The head<->MRI transformation, usually obtained using
-        read_trans().
+        read_trans(). Can be None, in which case the surface will
+        be in head coordinates instead of MRI coordinates.
 
     Returns
     -------
     surf : dict
-        The MEG helmet as a surface in head coordinates.
+        The MEG helmet as a surface.
     """
     system = _get_meg_system(info)
     fname = op.join(op.split(__file__)[0], 'data', 'helmets',
@@ -361,8 +362,9 @@ def get_meg_helmet_surf(info, trans):
 
     # Ignore what the file says, it's in device coords and we want MRI coords
     surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-    transform_source_space_to(surf, FIFF.FIFFV_COORD_HEAD, info['dev_head_t'])
-    transform_source_space_to(surf, FIFF.FIFFV_COORD_MRI, trans)
+    transform_surface_to(surf, 'head', info['dev_head_t'])
+    if trans is not None:
+        transform_surface_to(surf, 'mri', trans)
     return surf
 
 

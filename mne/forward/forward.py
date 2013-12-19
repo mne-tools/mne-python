@@ -36,7 +36,7 @@ from ..epochs import Epochs
 from ..source_space import (read_source_spaces_from_tree,
                             find_source_space_hemi,
                             _write_source_spaces_to_fid)
-from ..transforms import (transform_source_space_to, invert_transform,
+from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_command_line_tools,
                      run_subprocess, logger, verbose)
@@ -500,7 +500,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     nuse = 0
     for s in src:
         try:
-            s = transform_source_space_to(s, fwd['coord_frame'], mri_head_t)
+            s = transform_surface_to(s, fwd['coord_frame'], mri_head_t)
         except Exception as inst:
             raise ValueError('Could not transform source space (%s)' % inst)
 
@@ -692,8 +692,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     for s in fwd['src']:
         s = deepcopy(s)
         try:
-            s = transform_source_space_to(s, fwd['mri_head_t']['from'],
-                                          fwd['mri_head_t'])
+            s = transform_surface_to(s, fwd['mri_head_t']['from'],
+                                     fwd['mri_head_t'])
         except Exception as inst:
             raise ValueError('Could not transform source space (%s)' % inst)
         src.append(s)
