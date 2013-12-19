@@ -15,6 +15,8 @@ Changelog
 
    - Add `iter_topography` function for radically simplified custom sensor topography plotting by `Denis Engemann`_
 
+   - Add field line interpolation by `Eric Larson`_
+
 .. _changes_0_7:
 
 Version 0.7

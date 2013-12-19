@@ -99,7 +99,19 @@ def _get_legen_table(ctype, volume_integral=False, n_coeff=100,
     return lut, n_fact
 
 
-def _get_legen_lut(x, lut):
+def _get_legen_lut_fast(x, lut):
+    """Return Legendre coefficients for given x values in -1<=x<=1"""
+    # map into table vals (works for both vals and deriv tables)
+    n_interp = (lut.shape[0] - 1.0)
+    # equiv to "(x + 1.0) / 2.0) * n_interp" but faster
+    mm = x * (n_interp / 2.0) + 0.5 * n_interp
+    # nearest-neighbor version (could be decent enough...)
+    idx = np.round(mm).astype(int)
+    vals = lut[idx]
+    return vals
+
+
+def _get_legen_lut_accurate(x, lut):
     """Return Legendre coefficients for given x values in -1<=x<=1"""
     # map into table vals (works for both vals and deriv tables)
     n_interp = (lut.shape[0] - 1.0)
@@ -111,27 +123,22 @@ def _get_legen_lut(x, lut):
     w2 = mm - idx
     w2.shape += tuple([1] * (lut.ndim - w2.ndim))  # expand to correct size
     vals = (1 - w2) * lut[idx] + w2 * lut[idx + 1]
-    """
-    # nearest-neighbor version (could be decent enough...)
-    idx = np.round(mm).astype(int)
-    vals = lut[idx]
-    """
     return vals
 
 
-def _comp_sum_eeg(beta, ctheta, lut, n_fact):
+def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
     """Lead field dot products using Legendre polynomial (P_n) series"""
     # Compute the sum occuring in the evaluation.
     # The result is
     #   sums[:]    (2n+1)^2/n beta^n P_n
-    coeffs = _get_legen_lut(ctheta, lut)
-    betans = np.cumprod(np.tile(beta[:, np.newaxis], (1, lut.shape[1])),
+    coeffs = lut_fun(ctheta)
+    betans = np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
                         axis=1)
     s0 = np.dot(coeffs * betans, n_fact)  # == weighted sum across cols
     return s0
 
 
-def _comp_sums_meg(beta, ctheta, lut, n_fact, volume_integral):
+def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     """Lead field dot products using Legendre polynomial (P_n) series"""
     # Compute the sums occuring in the evaluation.
     # Two point magnetometers on the xz plane are assumed.
@@ -140,8 +147,8 @@ def _comp_sums_meg(beta, ctheta, lut, n_fact, volume_integral):
     #  * sums[:, 1]    n/(2n+1) beta^(n+1) P_n'
     #  * sums[:, 2]    n/((2n+1)(n+1)) beta^(n+1) P_n'
     #  * sums[:, 3]    n/((2n+1)(n+1)) beta^(n+1) P_n''
-    coeffs = _get_legen_lut(ctheta, lut)
-    beta = (np.cumprod(np.tile(beta[:, np.newaxis], (1, lut.shape[1])),
+    coeffs = lut_fun(ctheta)
+    beta = (np.cumprod(np.tile(beta[:, np.newaxis], (1, n_fact.shape[0])),
                        axis=1) * beta[:, np.newaxis])
     # This is equivalent, but slower:
     # sums = np.sum(beta[:, :, np.newaxis] * n_fact * coeffs, axis=1)

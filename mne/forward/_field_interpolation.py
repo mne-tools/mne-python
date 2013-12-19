@@ -6,9 +6,11 @@ from ..fiff.pick import pick_types, pick_info
 from ..fiff.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import (invert_transform, combine_transforms, apply_trans)
 from ._make_forward import _create_coils
-from ._lead_dots import _do_self_dots, _do_surface_dots, _get_legen_table
+from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
+                         _get_legen_lut_fast, _get_legen_lut_accurate)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
+from ..fixes import partial
 
 
 def _is_axial_coil(coil):
@@ -18,9 +20,9 @@ def _is_axial_coil(coil):
     return is_ax
 
 
-def _ad_hoc_noise(coils, ctype='meg'):
+def _ad_hoc_noise(coils, ch_type='meg'):
     v = np.empty(len(coils))
-    if ctype == 'meg':
+    if ch_type == 'meg':
         axs = np.array([_is_axial_coil(coil) for coil in coils], dtype=bool)
         v[axs] = 4e-28  # 20e-15 ** 2
         v[np.logical_not(axs)] = 2.5e-25  # 5e-13 ** 2
@@ -30,15 +32,15 @@ def _ad_hoc_noise(coils, ctype='meg'):
     return cov
 
 
-def _prepare_field_mapping(info, head_mri_t, surf, ctype, int_rad=0.06,
-                           n_jobs=1):
+def _prepare_field_mapping(info, head_mri_t, surf, ch_type, mode,
+                           int_rad=0.06, n_jobs=1):
     """Do the dot products"""
     #
     # Step 1. Prepare the coil definitions
     #
-    if ctype not in ('meg', 'eeg'):
-        raise ValueError('unknown coil type "%s"' % ctype)
-    if ctype == 'meg':
+    if ch_type not in ('meg', 'eeg'):
+        raise ValueError('unknown coil type "%s"' % ch_type)
+    if ch_type == 'meg':
         picks = pick_types(info, meg=True, eeg=False, ref_meg=False)
         logger.info('Prepare MEG mapping...')
     else:
@@ -49,7 +51,7 @@ def _prepare_field_mapping(info, head_mri_t, surf, ctype, int_rad=0.06,
     chs = pick_info(info, picks)['chs']
 
     # create coil defs
-    if ctype == 'meg':
+    if ch_type == 'meg':
         meg_mri_t = combine_transforms(info['dev_head_t'], head_mri_t,
                                        FIFF.FIFFV_COORD_DEVICE,
                                        FIFF.FIFFV_COORD_MRI)
@@ -67,21 +69,29 @@ def _prepare_field_mapping(info, head_mri_t, surf, ctype, int_rad=0.06,
     # Step 2. Calculate the dot products
     #
     my_origin = apply_trans(head_mri_t['trans'], np.array([0.0, 0.0, 0.04]))
-    noise = _ad_hoc_noise(coils, ctype)
-    lut, n_fact = _get_legen_table(ctype, False)
+    noise = _ad_hoc_noise(coils, ch_type)
+    if mode == 'fast':
+        # Use 50 coefficients with nearest-neighbor interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 50)
+        lut_fun = partial(_get_legen_lut_fast, lut=lut)
+    else:  # 'accurate'
+        # Use 100 coefficients with linear interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 100)
+        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
     logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
-    self_dots = _do_self_dots(int_rad, False, coils, my_origin, ctype,
-                              lut, n_fact, n_jobs)
+    self_dots = _do_self_dots(int_rad, False, coils, my_origin, ch_type,
+                              lut_fun, n_fact, n_jobs)
     sel = np.arange(len(surf['rr']))  # eventually we should do sub-selection
     logger.info('Computing dot products for %i surface locations...'
                 % len(sel))
     surface_dots = _do_surface_dots(int_rad, False, coils, surf, sel,
-                                    my_origin, ctype, lut, n_fact, n_jobs)
+                                    my_origin, ch_type, lut_fun, n_fact,
+                                    n_jobs)
 
     #
     # Step 4. Return the result
     #
-    res = dict(kind=ctype, surf=surf, picks=picks, coils=coils,
+    res = dict(kind=ch_type, surf=surf, picks=picks, coils=coils,
                origin=my_origin, noise=noise, self_dots=self_dots,
                surface_dots=surface_dots, int_rad=int_rad, miss=miss)
     logger.info('Field mapping data ready')
@@ -146,8 +156,8 @@ def _compute_mapping_matrix(fmd, info):
 
 
 @verbose
-def make_surface_mapping(info, surf, trans, ctype='meg', n_jobs=1,
-                         verbose=None):
+def make_surface_mapping(info, surf, trans, ch_type='meg', mode='fast',
+                         n_jobs=1, verbose=None):
     """Re-map M/EEG data to a surface
 
     Parameters
@@ -159,8 +169,12 @@ def make_surface_mapping(info, surf, trans, ctype='meg', n_jobs=1,
         `'nn'`, in MRI coordinates (FIFFV_COORD_MRI, 5).
     trans : dict
         The MRI->Head transformation.
-    ctype : str
+    ch_type : str
         Must be either `'meg'` or `'eeg'`, determines the type of field.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used. `'fast'` should be sufficient
+        for most applications.
     n_jobs : int
         Number of permutations to run in parallel (requires joblib package).
     verbose : bool, str, int, or None
@@ -183,8 +197,11 @@ def make_surface_mapping(info, surf, trans, ctype='meg', n_jobs=1,
         raise ValueError('trans must be a MRI<->Head transform')
     if surf.get('coord_frame', FIFF.FIFFV_COORD_MRI) != FIFF.FIFFV_COORD_MRI:
         raise RuntimeError('Surface must be in MRI coordinates')
+    if mode not in ['accurate', 'fast']:
+        raise ValueError('mode must be "accurate" or "fast", not "%s"' % mode)
     n_jobs = check_n_jobs(n_jobs)
 
-    fmd = _prepare_field_mapping(info, trans, surf, ctype, n_jobs=n_jobs)
+    fmd = _prepare_field_mapping(info, trans, surf, ch_type, mode,
+                                 n_jobs=n_jobs)
     mapping_mat = _compute_mapping_matrix(fmd, info)
     return mapping_mat
