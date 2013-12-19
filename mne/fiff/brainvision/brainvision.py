@@ -31,7 +31,6 @@ class RawBrainVision(Raw):
     ----------
     vdhr_fname : str
         Path to the EEG header file.
-
     elp_fname : str | None
         Path to the elp file containing electrode positions.
         If None, sensor locations are (0,0,0).
@@ -44,7 +43,9 @@ class RawBrainVision(Raw):
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-
+    fix_ptb_events : bool
+        Fix events produced by psychtoolbox and recorded through a stim
+        tracker (KIT setup).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -54,12 +55,13 @@ class RawBrainVision(Raw):
     """
     @verbose
     def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
-                 preload=False, verbose=None):
+                 preload=False, fix_ptb_events=False, verbose=None):
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
         self.info, self._eeg_info, self._events = _get_eeg_info(vhdr_fname,
                                                                 elp_fname,
-                                                                elp_names)
+                                                                elp_names,
+                                                                fix_ptb_events)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
@@ -265,6 +267,37 @@ def _synthesize_stim_channel(events, start, stop):
     return stim_channel
 
 
+def _fix_kit_ptb_events(events):
+    """Fix events from a vmrk file recorded with psychtoolbox/stim tracker
+
+    Parameters
+    ----------
+    events : array, [n_events x 3]
+        Events read from a vmrk file, as they are returned by
+        _read_vmrk_events.
+
+    Returns
+    -------
+    fixed_events : array, [n_good_events x 3]
+        Fixed events.
+    """
+    if not np.all(np.diff(events[:, :2], axis=1) == 1):
+        err = ("Not KIT psychtoolbox input data (not all durations are 1)")
+        raise ValueError(err)
+
+    # invert trigger codes
+    events[:, 2] = np.invert(events[:, 2].astype(np.uint8))
+
+    # extend duration until next tigger start
+    events[:-1, 1] = events[1:, 0]
+
+    # remove 0 events
+    idx = np.nonzero(events[:, 2])[0]
+    events = events[idx]
+
+    return events
+
+
 def _get_elp_locs(elp_fname, elp_names):
     """Read a Polhemus ascii file
 
@@ -297,7 +330,8 @@ def _get_elp_locs(elp_fname, elp_names):
     return chs_neuromag
 
 
-def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
+def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None,
+                  fix_ptb_events=False):
     """Extracts all the information from the header file.
 
     Parameters
@@ -313,6 +347,9 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
         in the vhdr file, and fiducials should be specified as "lpa" "nasion",
         "rpa". ELP positions with other names are ignored. If elp_names is not
         None and channels are missing, a KeyError is raised.
+    fix_ptb_events : bool
+        Fix events produced by psychtoolbox and recorded through a stim
+        tracker (KIT setup).
 
     Returns
     -------
@@ -509,6 +546,9 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
 
     # for stim channel
     events = _read_vmrk_events(eeg_info['marker_id'])
+    if fix_ptb_events:
+        events = _fix_kit_ptb_events(events)
+
     if len(events):
         chan_info = {}
         chan_info['ch_name'] = 'STI 014'
@@ -530,7 +570,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
 
 
 def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
-                         preload=False, verbose=None):
+                         preload=False, fix_ptb_events=False, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -549,6 +589,9 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    fix_ptb_events : bool
+        Fix events produced by psychtoolbox and recorded through a stim
+        tracker (KIT setup).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -556,6 +599,6 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     --------
     mne.fiff.Raw : Documentation of attribute and methods.
     """
-    return RawBrainVision(vhdr_fname=vhdr_fname, elp_fname=elp_fname,
-                          elp_names=elp_names, preload=preload,
-                          verbose=verbose)
+    raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
+                         fix_ptb_events, verbose)
+    return raw

@@ -52,6 +52,17 @@ def test_brainvision_data():
     assert_array_almost_equal(times_py, times_bin)
 
 
+def test_fix_ptb_events():
+    """Test fixing events recorded with the ptb/stimtracker setup"""
+    raw = read_raw_brainvision(vhdr_path, fix_ptb_events=True, preload=True)
+    events = [[ 487, 497, 2],
+              [1770, 1780, 1],
+              [3253, 3263, 1],
+              [4936, 4946, 2],
+              [6620, 6630, 1]]
+    assert_array_equal(raw._events, events)
+
+
 def test_read_segment():
     """Test writing raw eeg files when preload is False
     """
