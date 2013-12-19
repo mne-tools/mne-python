@@ -6,6 +6,7 @@
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
+from copy import deepcopy
 
 from .fiff import FIFF
 from .fiff.open import fiff_open
@@ -14,6 +15,7 @@ from .fiff.tree import dir_tree_find
 from .fiff.write import (start_file, end_file, start_block, end_block,
                          write_coord_trans, write_dig_point, write_int)
 from .utils import logger
+from .externals.six import string_types
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -322,15 +324,21 @@ def invert_transform(trans):
     return itrans
 
 
-def transform_source_space_to(src, dest, trans):
-    """Transform source space data to the desired coordinate system
+_frame_dict = dict(meg=FIFF.FIFFV_COORD_DEVICE,
+                   mri=FIFF.FIFFV_COORD_MRI,
+                   head=FIFF.FIFFV_COORD_HEAD)
+
+
+def transform_surface_to(surf, dest, trans):
+    """Transform surface to the desired coordinate system
 
     Parameters
     ----------
     src : dict
-        Source space.
-    dest : int
-        Destination coordinate system (one of mne.fiff.FIFF.FIFFV_COORD_...).
+        Surface.
+    orig: 'meg' | 'mri' | 'head' | int
+        Destination coordinate system. Can be an integer for using
+        FIFF types.
     trans : dict
         Transformation.
 
@@ -339,20 +347,24 @@ def transform_source_space_to(src, dest, trans):
     res : dict
         Transformed source space. Data are modified in-place.
     """
+    if isinstance(dest, string_types):
+        if dest not in _frame_dict:
+            raise KeyError('dest must be one of %s, not "%s"'
+                           % [list(_frame_dict.keys()), dest])
+        dest = _frame_dict[dest]  # convert to integer
+    if surf['coord_frame'] == dest:
+        return surf
 
-    if src['coord_frame'] == dest:
-        return src
-
-    if trans['to'] == src['coord_frame'] and trans['from'] == dest:
+    if trans['to'] == surf['coord_frame'] and trans['from'] == dest:
         trans = invert_transform(trans)
-    elif trans['from'] != src['coord_frame'] or trans['to'] != dest:
+    elif trans['from'] != surf['coord_frame'] or trans['to'] != dest:
         raise ValueError('Cannot transform the source space using this '
                          'coordinate transformation')
 
-    src['coord_frame'] = dest
-    src['rr'] = apply_trans(trans['trans'], src['rr'])
-    src['nn'] = apply_trans(trans['trans'], src['nn'], move=False)
-    return src
+    surf['coord_frame'] = dest
+    surf['rr'] = apply_trans(trans['trans'], surf['rr'])
+    surf['nn'] = apply_trans(trans['trans'], surf['nn'], move=False)
+    return surf
 
 
 def transform_coordinates(filename, pos, orig, dest):

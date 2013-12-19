@@ -13,7 +13,7 @@ import numpy as np
 from ..fiff import read_info, pick_types, pick_info, FIFF, _has_kit_refs
 from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
-from ..transforms import (invert_transform, transform_source_space_to,
+from ..transforms import (invert_transform, transform_surface_to,
                           read_trans, _get_mri_head_t_from_trans_file,
                           apply_trans, _print_coord_trans, _coord_frame_name)
 from ..utils import logger, verbose
@@ -398,7 +398,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     # Transform the source spaces into the appropriate coordinates
     for s in src:
-        transform_source_space_to(s, coord_frame, mri_head_t)
+        transform_surface_to(s, coord_frame, mri_head_t)
     logger.info('Source spaces are now in %s coordinates.'
                 % _coord_frame_name(coord_frame))
 

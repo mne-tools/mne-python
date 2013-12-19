@@ -29,7 +29,7 @@ from ..forward import (compute_depth_prior, read_forward_meas_info,
 from ..source_space import (read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
-from ..transforms import invert_transform, transform_source_space_to
+from ..transforms import invert_transform, transform_surface_to
 from ..source_estimate import _make_stc
 from ..utils import logger, verbose
 from functools import reduce
@@ -269,9 +269,9 @@ def read_inverse_operator(fname, verbose=None):
     nuse = 0
     for k in range(len(inv['src'])):
         try:
-            inv['src'][k] = transform_source_space_to(inv['src'][k],
-                                                      inv['coord_frame'],
-                                                      mri_head_t)
+            inv['src'][k] = transform_surface_to(inv['src'][k],
+                                                 inv['coord_frame'],
+                                                 mri_head_t)
         except Exception as inst:
             fid.close()
             raise Exception('Could not transform source space (%s)' % inst)

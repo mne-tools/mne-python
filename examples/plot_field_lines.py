@@ -26,15 +26,13 @@ setno = 'Left Auditory'
 trans = mne.read_trans(trans_fname)
 evoked = mne.fiff.read_evoked(evoked_fname, setno=setno,
                               baseline=(-0.2, 0.0))
-helmet_surf = mne.get_meg_helmet_surf(evoked.info, trans)
-
-# these need to be in head coordinates
+helmet_surf = mne.get_meg_helmet_surf(evoked.info)
 head_surf = mne.get_head_surface('sample', subjects_dir=subjects_dir)
+head_surf = mne.transform_surface_to(head_surf, 'head', trans)
 
-helmet_map = mne.make_surface_mapping(evoked.info, helmet_surf, trans, 'meg',
+helmet_map = mne.make_surface_mapping(evoked.info, helmet_surf, 'meg',
                                       n_jobs=-1)
-head_map = mne.make_surface_mapping(evoked.info, head_surf, trans, 'eeg',
-                                    n_jobs=-1)
+head_map = mne.make_surface_mapping(evoked.info, head_surf, 'eeg', n_jobs=-1)
 
 # let's look at the N100
 evoked.crop(0.09, 0.10)
@@ -48,25 +46,32 @@ from mayavi import mlab
 alphas = [1.0, 0.5]
 colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
 colormap = mne.viz.mne_analyze_colormap(format='mayavi')
+colormap_lines = np.concatenate([np.tile([0., 0., 255., 255.], (127, 1)),
+                                 np.tile([0., 0., 0., 255.], (2, 1)),
+                                 np.tile([255., 0., 0., 255.], (127, 1))])
 fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 for ii, (surf, data) in enumerate(zip([head_surf, helmet_surf],
                                       [head_data, helmet_data])):
-    x = surf['rr'][:, 0]
-    y = surf['rr'][:, 1]
-    z = surf['rr'][:, 2]
+    x, y, z = surf['rr'].T
     # Make a solid surface
+    vlim = np.max(np.abs(data))
     alpha = alphas[ii]
-    mesh0 = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
-    surf0 = mlab.pipeline.surface(mesh0, color=colors[ii], opacity=alpha)
+    mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+    hsurf = mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
 
-    # Now show our field lines on top
+    # Now show our field pattern
     mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
                                                 scalars=data)
-    surf = mlab.pipeline.surface(mesh)
-    surf.module_manager.scalar_lut_manager.lut.table = colormap
-    cont = mlab.pipeline.contour_surface(mesh, contours=50, line_width=1.0)
-    cont.module_manager.scalar_lut_manager.lut.table = colormap
+    fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim)
+    fsurf.module_manager.scalar_lut_manager.lut.table = colormap
+
+    # And the field lines on top
+    mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
+                                                scalars=data)
+    cont = mlab.pipeline.contour_surface(mesh, contours=21, line_width=1.0,
+                                         vmin=-vlim, vmax=vlim, opacity=alpha)
+    cont.module_manager.scalar_lut_manager.lut.table = colormap_lines
 
 text_str = '%s, t = %0.0f ms' % (setno, 1000 * evoked.times[0])
 mlab.text(0.01, 0.01, text_str, width=0.4)
-mlab.view(10, 60)
+mlab.view(20, 80, roll=-60)

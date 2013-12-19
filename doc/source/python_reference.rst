@@ -534,6 +534,7 @@ Source Space Data
    save_stc_as_volume
    stc_to_label
    transform_coordinates
+   transform_surface_to
    vertex_to_mni
    write_label
 

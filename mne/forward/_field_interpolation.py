@@ -1,10 +1,11 @@
 import numpy as np
 from scipy import linalg
+from copy import deepcopy
 
 from ..fiff import FIFF
 from ..fiff.pick import pick_types, pick_info
 from ..fiff.proj import _has_eeg_average_ref_proj, make_projector
-from ..transforms import (invert_transform, combine_transforms, apply_trans)
+from ..transforms import transform_surface_to
 from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _get_legen_lut_fast, _get_legen_lut_accurate)
@@ -32,9 +33,8 @@ def _ad_hoc_noise(coils, ch_type='meg'):
     return cov
 
 
-def _prepare_field_mapping(info, head_mri_t, surf, ch_type, mode,
-                           int_rad=0.06, n_jobs=1):
-    """Do the dot products"""
+def _prepare_field_mapping(info, surf, ch_type, mode, int_rad=0.06, n_jobs=1):
+    """Do the dot products, assume surf in head coords"""
     #
     # Step 1. Prepare the coil definitions
     #
@@ -50,25 +50,22 @@ def _prepare_field_mapping(info, head_mri_t, surf, ch_type, mode,
         raise RuntimeError('cannot map, no channels found')
     chs = pick_info(info, picks)['chs']
 
-    # create coil defs
+    # create coil defs in head coordinates
     if ch_type == 'meg':
-        meg_mri_t = combine_transforms(info['dev_head_t'], head_mri_t,
-                                       FIFF.FIFFV_COORD_DEVICE,
-                                       FIFF.FIFFV_COORD_MRI)
+        # Put them in head coordinates
         coils = _create_coils(chs, FIFF.FWD_COIL_ACCURACY_NORMAL,
-                              meg_mri_t, coil_type='meg')[0]
-        logger.info('Coil definitions in MRI coordinates created.')
+                              info['dev_head_t'], coil_type='meg')[0]
         type_str = 'coils'
         miss = 1e-4  # Smoothing criterion for MEG
     else:  # EEG
-        coils = _create_coils(chs, t=head_mri_t, coil_type='eeg')[0]
+        coils = _create_coils(chs, coil_type='eeg')[0]
         type_str = 'electrodes'
         miss = 1e-3  # Smoothing criterion for EEG
 
     #
     # Step 2. Calculate the dot products
     #
-    my_origin = apply_trans(head_mri_t['trans'], np.array([0.0, 0.0, 0.04]))
+    my_origin = np.array([0.0, 0.0, 0.04])
     noise = _ad_hoc_noise(coils, ch_type)
     if mode == 'fast':
         # Use 50 coefficients with nearest-neighbor interpolation
@@ -156,7 +153,7 @@ def _compute_mapping_matrix(fmd, info):
 
 
 @verbose
-def make_surface_mapping(info, surf, trans, ch_type='meg', mode='fast',
+def make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
                          n_jobs=1, verbose=None):
     """Re-map M/EEG data to a surface
 
@@ -165,10 +162,8 @@ def make_surface_mapping(info, surf, trans, ch_type='meg', mode='fast',
     info : instance of fiff.meas_info.Info
         Measurement info.
     surf : dict
-        The surface to map the data to. The required fields are `'rr'` and
-        `'nn'`, in MRI coordinates (FIFFV_COORD_MRI, 5).
-    trans : dict
-        The MRI->Head transformation.
+        The surface to map the data to. The required fields are `'rr'`,
+        `'nn'`, and `'coord_frame'`. Must be in head coordinates.
     ch_type : str
         Must be either `'meg'` or `'eeg'`, determines the type of field.
     mode : str
@@ -188,20 +183,20 @@ def make_surface_mapping(info, surf, trans, ch_type='meg', mode='fast',
     """
     if not all([key in surf for key in ['rr', 'nn']]):
         raise KeyError('surf must have both "rr" and "nn"')
-    if trans['from'] == FIFF.FIFFV_COORD_MRI:
-        if not trans['to'] == FIFF.FIFFV_COORD_HEAD:
-            raise ValueError('trans must be a MRI<->Head transform')
-        trans = invert_transform(trans)
-    if trans['from'] != FIFF.FIFFV_COORD_HEAD \
-            or trans['to'] != FIFF.FIFFV_COORD_MRI:
-        raise ValueError('trans must be a MRI<->Head transform')
-    if surf.get('coord_frame', FIFF.FIFFV_COORD_MRI) != FIFF.FIFFV_COORD_MRI:
-        raise RuntimeError('Surface must be in MRI coordinates')
+    if 'coord_frame' not in surf:
+        raise RuntimeError('The surface coordinate frame must be specified')
     if mode not in ['accurate', 'fast']:
         raise ValueError('mode must be "accurate" or "fast", not "%s"' % mode)
-    n_jobs = check_n_jobs(n_jobs)
 
-    fmd = _prepare_field_mapping(info, trans, surf, ch_type, mode,
-                                 n_jobs=n_jobs)
+    # deal with coordinate frames here -- always go to "head" (easiest)
+    if surf['coord_frame'] == FIFF.FIFFV_COORD_MRI:
+        if trans is None or FIFF.FIFFV_COORD_MRI not in [trans['to'],
+                                                         trans['from']]:
+            raise ValueError('trans must be a Head<->MRI transform if the '
+                             'surface is not in head coordinates.')
+        surf = transform_surface_to(deepcopy(surf), 'head', trans)
+
+    n_jobs = check_n_jobs(n_jobs)
+    fmd = _prepare_field_mapping(info, surf, ch_type, mode, n_jobs=n_jobs)
     mapping_mat = _compute_mapping_matrix(fmd, info)
     return mapping_mat
