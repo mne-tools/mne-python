@@ -11,6 +11,8 @@ Changelog
 
    - Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
 
+   - Add field line interpolation by `Eric Larson`_
+
 .. _changes_0_7:
 
 Version 0.7

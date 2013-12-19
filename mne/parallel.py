@@ -120,7 +120,8 @@ def check_n_jobs(n_jobs, allow_cuda=False):
     """
     if _force_serial:
         n_jobs = 1
-        logger.info('... MNE_FORCE_SERIAL set. Processing in forced serial mode.')
+        logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
+                    'serial mode.')
 
     elif not isinstance(n_jobs, int):
         if not allow_cuda:
@@ -132,7 +133,7 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         try:
             import multiprocessing
             n_cores = multiprocessing.cpu_count()
-            n_jobs = n_cores + n_jobs
+            n_jobs = min(n_cores + n_jobs + 1, n_cores)
             if n_jobs <= 0:
                 raise ValueError('If n_jobs has a negative value it must not '
                                  'be less than the number of CPUs present. '

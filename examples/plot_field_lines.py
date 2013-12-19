@@ -18,6 +18,7 @@ import numpy as np
 import mne
 
 data_path = mne.datasets.sample.data_path()
+subjects_dir = data_path + '/subjects'
 evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 setno = 'Left Auditory'
@@ -28,12 +29,12 @@ evoked = mne.fiff.read_evoked(evoked_fname, setno=setno,
 helmet_surf = mne.get_meg_helmet_surf(evoked.info, trans)
 
 # these need to be in head coordinates
-head_surf = mne.get_head_surface('sample')
+head_surf = mne.get_head_surface('sample', subjects_dir=subjects_dir)
 
 helmet_map = mne.make_surface_mapping(evoked.info, helmet_surf, trans, 'meg',
-                                      n_jobs=0)
+                                      n_jobs=-1)
 head_map = mne.make_surface_mapping(evoked.info, head_surf, trans, 'eeg',
-                                    n_jobs=0)
+                                    n_jobs=-1)
 
 # let's look at the N100
 evoked.crop(0.09, 0.10)

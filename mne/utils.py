@@ -740,7 +740,10 @@ def _get_extra_data_path():
         raise ValueError('mne-python config file path could '
                          'not be determined, please report this '
                          'error to mne-python developers')
-    return op.join(val, '.mne')
+    path = op.join(val, '.mne')
+    if not op.isdir(path):
+        os.mkdir(path)
+    return path
 
 
 def get_config_path():
