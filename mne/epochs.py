@@ -40,7 +40,6 @@ from .utils import logger, verbose
 from .externals import six
 
 
-
 class _BaseEpochs(ProjMixin):
     """Abstract base class for Epochs-type classes
 
@@ -106,7 +105,7 @@ class _BaseEpochs(ProjMixin):
         self.decim = decim = int(decim)
         self._bad_dropped = False
         self.drop_log = None
-        self.trial_id = None
+        self.selection = None
         self.detrend = detrend
 
         # Handle measurement info
@@ -575,11 +574,16 @@ class Epochs(_BaseEpochs):
         Names of  of conditions corresponding to event_ids.
     ch_names : list of string
         List of channels' names.
+    selection : array
+        List of indices of selected events (not dropped or ignored etc.)
     drop_log : list of lists
-        This list (same length as events) contains the channel(s),
+        This list (same length as original events) contains the channel(s),
         or the reasons (count equalization, not reaching minimum duration),
         if any, that caused an event in the original event list to be dropped
-        by drop_bad_epochs(). Caveat. The drop log will only know about the
+        by drop_bad_epochs().
+
+        XXX : not sure this is true anymore
+        Caveat. The drop log will only know about the
         events passed to epochs. If the events represent a selection the
         drop log can be misaligned with regard to other external logs (e.g.,
         behavioral responses) that still refer to the complete list of events.
@@ -613,7 +617,8 @@ class Epochs(_BaseEpochs):
     def __init__(self, raw, events, event_id, tmin, tmax, baseline=(None, 0),
                  picks=None, name='Unknown', preload=False, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
-                 reject_tmax=None, detrend=None, add_eeg_ref=True, verbose=None):
+                 reject_tmax=None, detrend=None, add_eeg_ref=True,
+                 verbose=None):
         if raw is None:
             return
 
@@ -650,22 +655,32 @@ class Epochs(_BaseEpochs):
         activate = False if self._check_delayed() else self.proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
+
         # Select the desired events
-        selected = in1d(events[:, 2], list(self.event_id.values()))
+        values = list(self.event_id.values())
+        selected = in1d(events[:, 2], values)
         self.events = events[selected]
-        if len(self.events) > 1:
+
+        n_events = len(self.events)
+        if n_events > 1:
             if np.diff(self.events.astype(np.int64)[:, 0]).min() <= 0:
                 warnings.warn('The events passed to the Epochs constructor '
                               'are not chronologically ordered.',
                               RuntimeWarning)
-        n_events = len(self.events)
+
         if n_events > 0:
             logger.info('%d matching events found' % n_events)
         else:
             raise ValueError('No desired events found.')
 
-        self.trial_id = np.arange(n_events)
-        self.drop_log = [[] for _ in self.trial_id]
+        self.selection = np.where(selected)[0]
+        self.drop_log = []
+        for k in range(len(events)):
+            if events[k, 2] in values:
+                self.drop_log.append([])
+            else:
+                self.drop_log.append(['IGNORED'])
+
         self.preload = preload
         if self.preload:
             self._data = self._get_data_from_disk()
@@ -719,8 +734,7 @@ class Epochs(_BaseEpochs):
         return is_delayed
 
     @verbose
-    def drop_epochs(self, indices, reason='user', use_trial_id=False,
-            verbose=None):
+    def drop_epochs(self, indices, reason='user', verbose=None):
         """Drop epochs based on indices or boolean mask
 
         Note that the indices refer to the current set of undropped epochs
@@ -739,23 +753,14 @@ class Epochs(_BaseEpochs):
         reason : str
             Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
             Default: 'user'.
-        use_trial_id : bool
-            If False (default) indices refer to the current set of undropped
-            trials; if True, indices refer to original trial IDs (trial IDs
-            that refer to trials that have been dropped previously are 
-            silently ignored).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to raw.verbose.
         """
-
         indices = np.atleast_1d(indices)
 
         if indices.ndim > 1:
             raise ValueError("indices must be a scalar or a 1-d array")
-    
-        if use_trial_id:
-            indices = np.in1d(self.trial_id, indices)
 
         if indices.dtype == bool:
             indices = np.where(indices)[0]
@@ -765,9 +770,9 @@ class Epochs(_BaseEpochs):
             first = indices[out_of_bounds][0]
             raise IndexError("Epoch index %d is out of bounds" % first)
 
-        [self.drop_log[self.trial_id[ii]].append(reason) for ii in indices]
+        [self.drop_log[self.selection[ii]].append(reason) for ii in indices]
 
-        self.trial_id = np.delete(self.trial_id, indices)
+        self.selection = np.delete(self.selection, indices)
         self.events = np.delete(self.events, indices, axis=0)
         if self.preload:
             self._data = np.delete(self._data, indices, axis=0)
@@ -878,7 +883,7 @@ class Epochs(_BaseEpochs):
             proj = True if self._check_delayed() else self.proj
             good_events = []
             n_out = 0
-            for idx, trial_id in zip(range(n_events), self.trial_id):
+            for idx, sel in zip(range(n_events), self.selection):
                 epoch, epoch_raw = self._get_epoch_from_disk(idx, proj=proj)
                 is_good, offenders = self._is_good_epoch(epoch)
                 if is_good:
@@ -894,9 +899,9 @@ class Epochs(_BaseEpochs):
                         data[n_out] = epoch
                         n_out += 1
                 else:
-                    self.drop_log[trial_id] += offenders
+                    self.drop_log[sel] += offenders
 
-            self.trial_id = self.trial_id[good_events]
+            self.selection = self.selection[good_events]
             self.events = np.atleast_2d(self.events[good_events])
             self._bad_dropped = True
             logger.info("%d bad epochs dropped"
@@ -1080,7 +1085,7 @@ class Epochs(_BaseEpochs):
 
         indices = np.nonzero(key_match)[0]
         epochs.drop_log = [cp.deepcopy(epochs.drop_log[x]) for x in indices]
-        epochs.trial_id = epochs.trial_id[key_match]
+        epochs.selection = epochs.selection[key_match]
         epochs.events = np.atleast_2d(epochs.events[key_match])
         if epochs.preload:
             epochs._data = epochs._data[select]
@@ -1239,9 +1244,9 @@ class Epochs(_BaseEpochs):
 
         write_string(fid, FIFF.FIFFB_MNE_EPOCHS_DROP_LOG,
                      json.dumps(self.drop_log))
-        
-        write_int(fid, FIFF.FIFFB_MNE_EPOCHS_TRIAL_ID,
-                  self.trial_id)
+
+        write_int(fid, FIFF.FIFFB_MNE_EPOCHS_SELECTION,
+                  self.selection)
 
         end_block(fid, FIFF.FIFFB_EPOCHS)
 
@@ -1734,9 +1739,9 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
         elif kind == FIFF.FIFF_MNE_BASELINE_MAX:
             tag = read_tag(fid, pos)
             bmax = float(tag.data)
-        elif kind == FIFF.FIFFB_MNE_EPOCHS_TRIAL_ID:
+        elif kind == FIFF.FIFFB_MNE_EPOCHS_SELECTION:
             tag = read_tag(fid, pos)
-            trial_id = np.array(tag.data)
+            selection = np.array(tag.data)
         elif kind == FIFF.FIFFB_MNE_EPOCHS_DROP_LOG:
             tag = read_tag(fid, pos)
             drop_log = json.loads(tag.data)
@@ -1792,7 +1797,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                        if mappings is None else mappings)
     epochs.verbose = verbose
-    epochs.trial_id = trial_id
+    epochs.selection = selection
     epochs.drop_log = drop_log
     fid.close()
 
