@@ -728,6 +728,30 @@ def _is_mri_subject(subject, subjects_dir=None):
     return True
 
 
+def read_elp(fname):
+    """Read point coordinates from a text file
+
+    Parameters
+    ----------
+    fname : str
+        Absolute path to laser point file (*.txt).
+
+    Returns
+    -------
+    elp_points : array, [n_points x 3]
+        Point coordinates.
+    """
+    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    elp_points = pattern.findall(open(fname).read())
+    elp_points = np.array(elp_points, dtype=float)
+    if elp_points.shape[1] != 3:
+        err = ("File %r does not contain 3 columns as required; got shape "
+               "%s." % (fname, elp_points.shape))
+        raise ValueError(err)
+
+    return elp_points
+
+
 def read_mri_cfg(subject, subjects_dir=None):
     """Read information from the cfg file of a scaled MRI brain
 

@@ -14,7 +14,7 @@ from ...externals.six.moves import configparser
 
 import numpy as np
 
-from ...coreg import get_ras_to_neuromag_trans
+from ...coreg import get_ras_to_neuromag_trans, read_elp
 from ...transforms import als_ras_trans, apply_trans
 from ...utils import verbose, logger
 from .. import pick_types
@@ -309,10 +309,7 @@ def _get_elp_locs(elp_fname, elp_names):
         Dictionary whose keys are the names from elp_names and whose values
         are the coordinates from the elp file transformed to Neuromag space.
     """
-    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    with open(elp_fname) as fid:
-        elp = pattern.findall(fid.read())
-    coords_orig = np.array(elp, dtype=float)
+    coords_orig = read_elp(elp_fname)
     coords_ras = apply_trans(als_ras_trans, coords_orig)
     chs_ras = dict(zip(elp_names, coords_ras))
     nasion = chs_ras['nasion']
