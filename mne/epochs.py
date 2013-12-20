@@ -1075,19 +1075,18 @@ class Epochs(_BaseEpochs):
             key = [key]
 
         if isinstance(key, list) and isinstance(key[0], string_types):
-            key_match = np.any(np.atleast_2d([epochs._key_match(k)
+            select = np.any(np.atleast_2d([epochs._key_match(k)
                                               for k in key]), axis=0)
-            select = key_match
             epochs.name = ('-'.join(key) if epochs.name == 'Unknown'
                            else 'epochs_%s' % '-'.join(key))
         else:
-            key_match = key
             select = key if isinstance(key, slice) else np.atleast_1d(key)
 
-        for k in np.where(np.logical_not(key_match))[0]:
-            epochs.drop_log[epochs.selection[k]] = ['IGNORED']
-        epochs.selection = epochs.selection[key_match]
-        epochs.events = np.atleast_2d(epochs.events[key_match])
+        key_selection = epochs.selection[select]
+        for k in np.setdiff1d(epochs.selection, key_selection):
+            epochs.drop_log[k] = ['IGNORED']
+        epochs.selection = key_selection
+        epochs.events = np.atleast_2d(epochs.events[select])
         if epochs.preload:
             epochs._data = epochs._data[select]
 
