@@ -75,3 +75,10 @@ def test_read_segment():
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)
     assert_array_equal(raw1._data, raw2._data)
+
+    # save with buffer size smaller than file
+    raw3_file = op.join(tempdir, 'raw3.fif')
+    raw3 = read_raw_brainvision(vhdr_path)
+    raw3.save(raw3_file, buffer_size_sec=2)
+    raw3 = Raw(raw3_file, preload=True)
+    assert_array_equal(raw3._data, raw1._data)
