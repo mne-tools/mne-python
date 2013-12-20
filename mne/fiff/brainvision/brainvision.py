@@ -297,7 +297,7 @@ def _get_elp_locs(elp_fname, elp_names):
     return chs_neuromag
 
 
-def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, preload=False):
+def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
     """Extracts all the information from the header file.
 
     Parameters
@@ -313,9 +313,6 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, preload=False):
         in the vhdr file, and fiducials should be specified as "lpa" "nasion",
         "rpa". ELP positions with other names are ignored. If elp_names is not
         None and channels are missing, a KeyError is raised.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
 
     Returns
     -------
