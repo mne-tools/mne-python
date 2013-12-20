@@ -57,17 +57,23 @@ for ii, (surf, data) in enumerate(zip([head_surf, helmet_surf],
     vlim = np.max(np.abs(data))
     alpha = alphas[ii]
     mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+    mesh.data.point_data.normals = surf['nn']
+    mesh.data.cell_data.normals = None
     hsurf = mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
 
     # Now show our field pattern
     mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
                                                 scalars=data)
+    mesh.data.point_data.normals = surf['nn']
+    mesh.data.cell_data.normals = None
     fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim)
     fsurf.module_manager.scalar_lut_manager.lut.table = colormap
 
     # And the field lines on top
     mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
                                                 scalars=data)
+    mesh.data.point_data.normals = surf['nn']
+    mesh.data.cell_data.normals = None
     cont = mlab.pipeline.contour_surface(mesh, contours=21, line_width=1.0,
                                          vmin=-vlim, vmax=vlim, opacity=alpha)
     cont.module_manager.scalar_lut_manager.lut.table = colormap_lines
