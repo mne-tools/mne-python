@@ -770,7 +770,8 @@ class Epochs(_BaseEpochs):
             first = indices[out_of_bounds][0]
             raise IndexError("Epoch index %d is out of bounds" % first)
 
-        [self.drop_log[self.selection[ii]].append(reason) for ii in indices]
+        for ii in indices:
+            self.drop_log[self.selection[ii]] = [reason]
 
         self.selection = np.delete(self.selection, indices)
         self.events = np.delete(self.events, indices, axis=0)
@@ -1064,7 +1065,6 @@ class Epochs(_BaseEpochs):
     def __getitem__(self, key):
         """Return an Epochs object with a subset of epochs
         """
-
         data = self._data
         del self._data
         epochs = self.copy()
@@ -1083,8 +1083,8 @@ class Epochs(_BaseEpochs):
             key_match = key
             select = key if isinstance(key, slice) else np.atleast_1d(key)
 
-        indices = np.nonzero(key_match)[0]
-        epochs.drop_log = [cp.deepcopy(epochs.drop_log[x]) for x in indices]
+        for k in np.where(np.logical_not(key_match))[0]:
+            epochs.drop_log[epochs.selection[k]] = ['IGNORED']
         epochs.selection = epochs.selection[key_match]
         epochs.events = np.atleast_2d(epochs.events[key_match])
         if epochs.preload:
@@ -1834,16 +1834,6 @@ def bootstrap(epochs, random_state=None):
 
 def _check_add_drop_log(epochs, inds):
     """Aux Function"""
-    new_idx, new_drop_log = 0, []
-    for idx, log in enumerate(epochs.drop_log):
-        if not log:
-            new_idx += 1
-        if new_idx in inds:
-            new_log = ['EQUALIZED_COUNT']
-        elif log:
-            new_log = log
-        else:
-            new_log = []
-        new_drop_log.append(new_log)
-    epochs.drop_log = new_drop_log
+    for idx in inds:
+        epochs.drop_log[epochs.selection[idx]] = ['EQUALIZED_COUNT']
     return epochs
