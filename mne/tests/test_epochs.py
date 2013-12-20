@@ -20,6 +20,7 @@ from mne.utils import _TempDir, requires_pandas, requires_nitime
 from mne.fiff import read_evoked
 from mne.fiff.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
+from mne.externals.six.moves import zip
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -163,8 +164,8 @@ def test_read_write_epochs():
     epochs_read4.equalize_event_counts(epochs.event_id)
 
     epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
-    epochs.save('test-trial-id.py')
-    epochs_read5 = read_epochs('test-trial-id.py')
+    epochs.save('test-epo.fif')
+    epochs_read5 = read_epochs('test-epo.fif')
     assert_array_equal(epochs_read5.selection, epochs.selection)
     assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
 

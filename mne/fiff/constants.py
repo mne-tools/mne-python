@@ -765,5 +765,5 @@ FIFF.FIFF_MNE_RT_COMMAND           = 3700  # realtime command
 FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 
 # MNE epochs bookkeeping
-FIFF.FIFFB_MNE_EPOCHS_SELECTION    = 3800  # the trial id slice
+FIFF.FIFFB_MNE_EPOCHS_SELECTION    = 3800  # the epochs selection
 FIFF.FIFFB_MNE_EPOCHS_DROP_LOG     = 3801  # the drop log

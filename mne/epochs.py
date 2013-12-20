@@ -38,6 +38,7 @@ from .fixes import in1d
 from .viz import _mutable_defaults, plot_epochs
 from .utils import logger, verbose
 from .externals import six
+from .externals.six.moves import zip
 
 
 class _BaseEpochs(ProjMixin):
@@ -734,7 +735,7 @@ class Epochs(_BaseEpochs):
         return is_delayed
 
     @verbose
-    def drop_epochs(self, indices, reason='user', verbose=None):
+    def drop_epochs(self, indices, reason='USER', verbose=None):
         """Drop epochs based on indices or boolean mask
 
         Note that the indices refer to the current set of undropped epochs
@@ -752,7 +753,7 @@ class Epochs(_BaseEpochs):
             correspondingly modified.
         reason : str
             Reason for dropping the epochs ('ECG', 'timeout', 'blink' etc).
-            Default: 'user'.
+            Default: 'USER'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to raw.verbose.
