@@ -1,8 +1,7 @@
-"""Conversion tool from Brain Vision EEG to FIF
+"""Conversion tool from Brain Vision EEG to FIF"""
 
-"""
-
-# Author: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon@nyu.edu>
+#          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
@@ -15,17 +14,17 @@ from ...externals.six.moves import configparser
 
 import numpy as np
 
-from ...fiff import pick_types
+from ...coreg import get_ras_to_neuromag_trans
 from ...transforms import als_ras_trans, apply_trans
 from ...utils import verbose, logger
-from ..raw import Raw
-from ..meas_info import Info
+from .. import pick_types
 from ..constants import FIFF
-from ...coreg import get_ras_to_neuromag_trans
+from ..meas_info import Info
+from ..raw import Raw
 
 
 class RawBrainVision(Raw):
-    """Raw object from Brain Vision eeg file
+    """Raw object from Brain Vision EEG file
 
     Parameters
     ----------
@@ -111,17 +110,13 @@ class RawBrainVision(Raw):
         start : int, (optional)
             first sample to include (first is 0). If omitted, defaults to the
             first sample in data.
-
         stop : int, (optional)
             First sample to not include.
             If omitted, data is included to the end.
-
         sel : array, optional
             Indices of channels to select.
-
         projector : array
             SSP operator to apply to the data.
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -129,7 +124,6 @@ class RawBrainVision(Raw):
         -------
         data : array, [channels x samples]
            the data matrix (channels x samples).
-
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
@@ -340,7 +334,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None,
         Raw EEG header to be read.
     elp_fname : str | None
         Path to the elp file containing electrode positions.
-        If None, sensor locations are (0,0,0).
+        If None, sensor locations are (0, 0, 0).
     elp_names : list | None
         A list of channel names in the same order as the points in the elp
         file. Electrode positions should be specified with the same names as
@@ -353,7 +347,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None,
 
     Returns
     -------
-    info : instance of Info
+    info : Info
         The measurement info.
     edf_info : dict
         A dict containing Brain Vision specific parameters.
