@@ -196,7 +196,7 @@ class RawEDF(Raw):
             # extract data
             fid.seek(data_offset)
             buffer_size = stop - start
-            pointer = start * n_chan
+            pointer = start * n_chan * data_size
             fid.seek(data_offset + pointer)
 
             if 'n_samps' in self._edf_info:
