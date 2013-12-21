@@ -723,12 +723,13 @@ class Epochs(_BaseEpochs):
             print("Bad epochs have not yet been dropped.")
             return
 
-        print("REASON   n")
-        print("------------")
         all_reasons = Counter(sum(self.drop_log, []))
-
-        for reason, nb in all_reasons.most_common():
-            print("%s  %s" % (reason, nb))
+        most_common = all_reasons.most_common()
+        width = len(str(max(x[1] for x in most_common)))
+        print '%-*s Reason' % (width, 'N')
+        print '-' * (width + len('Reason') + 1)
+        for reason, nb in most_common:
+            print '%*d %s' % (width, nb, reason)
 
     def _check_delayed(self):
         """ Aux method
