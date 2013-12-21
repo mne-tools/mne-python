@@ -26,13 +26,14 @@ setno = 'Left Auditory'
 trans = mne.read_trans(trans_fname)
 evoked = mne.fiff.read_evoked(evoked_fname, setno=setno,
                               baseline=(-0.2, 0.0))
-helmet_surf = mne.get_meg_helmet_surf(evoked.info)
+# let's do this in MRI coordinates so they're easy to plot
+helmet_surf = mne.get_meg_helmet_surf(evoked.info, trans)
 head_surf = mne.get_head_surface('sample', subjects_dir=subjects_dir)
-head_surf = mne.transform_surface_to(head_surf, 'head', trans)
 
-helmet_map = mne.make_surface_mapping(evoked.info, helmet_surf, 'meg',
+helmet_map = mne.make_surface_mapping(evoked.info, helmet_surf, 'meg', trans,
                                       n_jobs=-1)
-head_map = mne.make_surface_mapping(evoked.info, head_surf, 'eeg', n_jobs=-1)
+head_map = mne.make_surface_mapping(evoked.info, head_surf, 'eeg', trans,
+                                    n_jobs=-1)
 
 # let's look at the N100
 evoked.crop(0.09, 0.10)
@@ -53,18 +54,22 @@ fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 for ii, (surf, data) in enumerate(zip([head_surf, helmet_surf],
                                       [head_data, helmet_data])):
     x, y, z = surf['rr'].T
+    nn = surf['nn']
+    # make absolutely sure these are normalized for Mayavi
+    nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
+
     # Make a solid surface
     vlim = np.max(np.abs(data))
     alpha = alphas[ii]
     mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
-    mesh.data.point_data.normals = surf['nn']
+    mesh.data.point_data.normals = nn
     mesh.data.cell_data.normals = None
     hsurf = mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
 
     # Now show our field pattern
     mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
                                                 scalars=data)
-    mesh.data.point_data.normals = surf['nn']
+    mesh.data.point_data.normals = nn
     mesh.data.cell_data.normals = None
     fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim)
     fsurf.module_manager.scalar_lut_manager.lut.table = colormap
@@ -72,7 +77,7 @@ for ii, (surf, data) in enumerate(zip([head_surf, helmet_surf],
     # And the field lines on top
     mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
                                                 scalars=data)
-    mesh.data.point_data.normals = surf['nn']
+    mesh.data.point_data.normals = nn
     mesh.data.cell_data.normals = None
     cont = mlab.pipeline.contour_surface(mesh, contours=21, line_width=1.0,
                                          vmin=-vlim, vmax=vlim, opacity=alpha)
@@ -80,4 +85,4 @@ for ii, (surf, data) in enumerate(zip([head_surf, helmet_surf],
 
 text_str = '%s, t = %0.0f ms' % (setno, 1000 * evoked.times[0])
 mlab.text(0.01, 0.01, text_str, width=0.4)
-mlab.view(20, 80, roll=-60)
+mlab.view(10, 60)

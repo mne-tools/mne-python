@@ -44,7 +44,7 @@ def _get_legen_der(xx, n_coeff=100):
 
 
 def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
-                     n_interp=20000):
+                     n_interp=20000, force_calc=False):
     """Return a (generated) LUT of Legendre (derivative) polynomial coeffs"""
     if n_interp % 2 != 0:
         raise RuntimeError('n_interp must be even')
@@ -61,13 +61,14 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
         leg_fun = _get_legen
         extra_str = ''
         lut_shape = (n_interp + 1, n_coeff)
-    if not op.isfile(fname):
+    if not op.isfile(fname) or force_calc:
         n_out = (n_interp // 2)
         logger.info('Generating Legendre%s table...' % extra_str)
         x_interp = np.arange(-n_out, n_out + 1, dtype=np.float64) / n_out
         lut = leg_fun(x_interp, n_coeff).astype(np.float32)
-        with open(fname, 'wb') as fid:
-            fid.write(lut.tostring())
+        if not force_calc:
+            with open(fname, 'wb') as fid:
+                fid.write(lut.tostring())
     else:
         logger.info('Reading Legendre%s table...' % extra_str)
         with open(fname, 'rb', buffering=0) as fid:
