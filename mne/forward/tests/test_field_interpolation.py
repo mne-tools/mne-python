@@ -84,7 +84,7 @@ def _test_eeg_field_interpolation():
     trans = read_trans(trans_fname)
     info = read_info(raw_fname)
     surf = get_head_surface('sample', subjects_dir=subjects_dir)
-    data = make_surface_mapping(info, surf, trans, 'meg')
+    data = make_surface_mapping(info, surf, trans, 'eeg')
     assert_array_equal(data.shape, (2562, 59))  # maps data onto surf
 
 
