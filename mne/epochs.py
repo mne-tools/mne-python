@@ -781,7 +781,7 @@ class Epochs(_BaseEpochs):
             raise IndexError("Epoch index %d is out of bounds" % first)
 
         for ii in indices:
-            self.drop_log[self.selection[ii]] = [reason]
+            self.drop_log[self.selection[ii]].append(reason)
 
         self.selection = np.delete(self.selection, indices)
         self.events = np.delete(self.events, indices, axis=0)
@@ -1479,7 +1479,6 @@ class Epochs(_BaseEpochs):
         # need to re-index indices
         indices = np.concatenate([eq[inds]
                                   for eq, inds in zip(eq_inds, indices)])
-        epochs = _check_add_drop_log(epochs, indices)
         epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
@@ -1577,7 +1576,6 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     event_times = [e.events[:, 0] for e in epochs_list]
     indices = _get_drop_indices(event_times, method)
     for e, inds in zip(epochs_list, indices):
-        e = _check_add_drop_log(e, inds)
         e.drop_epochs(inds, reason='EQUALIZED_COUNT')
 
 
@@ -1839,10 +1837,3 @@ def bootstrap(epochs, random_state=None):
     idx = rng.randint(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
     return epochs_bootstrap
-
-
-def _check_add_drop_log(epochs, inds):
-    """Aux Function"""
-    for idx in inds:
-        epochs.drop_log[epochs.selection[idx]] = ['EQUALIZED_COUNT']
-    return epochs
