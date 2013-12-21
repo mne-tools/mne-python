@@ -388,6 +388,7 @@ class RawKIT(_BaseRaw):
             points.
         """
         if isinstance(hsp, string_types):
+            _, hsp_ext = os.path.splitext(hsp)
             hsp = read_hsp(hsp)
 
         n_pts = len(hsp)
@@ -402,24 +403,28 @@ class RawKIT(_BaseRaw):
             logger.warning(msg)
 
         if isinstance(elp, string_types):
-            elp_points = read_elp(elp)[:8]
-            if len(elp) < 8:
-                err = ("File %r contains fewer than 8 points; got shape "
-                       "%s." % (elp, elp_points.shape))
-                raise ValueError(err)
-            elp = elp_points
+            _, elp_ext = os.path.splitext(elp)
+            elp = read_elp(elp)[:8]
 
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
 
-        hsp = apply_trans(als_ras_trans_mm, hsp)
-        elp = apply_trans(als_ras_trans_mm, elp)
+        if hsp_ext == '.hsp':
+            hsp = apply_trans(als_ras_trans, hsp)
+        else:
+            hsp = apply_trans(als_ras_trans_mm, hsp)
+        if elp_ext == '.elp':
+            elp = apply_trans(als_ras_trans, elp)
+        else:
+            elp = apply_trans(als_ras_trans_mm, elp)
         mrk = apply_trans(als_ras_trans, mrk)
 
         nasion, lpa, rpa = elp[:3]
         nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-        elp = apply_trans(nmtrans, elp)
-        hsp = apply_trans(nmtrans, hsp)
+        if elp_ext != '.elp':
+            elp = apply_trans(nmtrans, elp)
+        if hsp_ext == '.hsp':
+            hsp = apply_trans(nmtrans, hsp)
 
         # device head transform
         trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
