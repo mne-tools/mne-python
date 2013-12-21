@@ -410,9 +410,11 @@ class Evoked(ProjMixin):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted.
-        layout : None | str | Layout
-            Layout name or instance specifying sensor positions (does not need
-            to be specified for Neuromag data).
+        layout : None | Layout
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct layout file
+            is inferred from the data; if no appropriate layout file was found, the
+            layout is automatically generated from the sensor locations.
         vmax : scalar
             The value specfying the range of the color scale (-vmax to +vmax).
             If None, the largest absolute value in the data is used.

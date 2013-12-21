@@ -826,8 +826,9 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         pairs and the RMS for each pair is plotted.
     layout : None | Layout
         Layout instance specifying sensor positions (does not need to
-        be specified for Neuromag data). If possible, the correct layout is
-        inferred from the data.
+        be specified for Neuromag data). If possible, the correct layout file
+        is inferred from the data; if no appropriate layout file was found, the
+        layout is automatically generated from the sensor locations.
     vmax : scalar
         The value specfying the range of the color scale (-vmax to +vmax). If
         None, the largest absolute value in the data is used.
