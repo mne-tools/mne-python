@@ -13,7 +13,6 @@ from .externals.six import string_types
 import copy as cp
 import warnings
 import json
-from collections import Counter
 
 import numpy as np
 
@@ -716,20 +715,40 @@ class Epochs(_BaseEpochs):
         """
         self._get_data_from_disk(out=False)
 
-    def drop_stats(self):
-        """Print some stats about the reasons for dropping some epochs
+    def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
+                      color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED']):
+        """Show the channel stats based on a drop_log from Epochs
+
+        Parameters
+        ----------
+        drop_log : list of lists
+            Epoch drop log from Epochs.drop_log.
+        threshold : float
+            The percentage threshold to use to decide whether or not to
+            plot. Default is zero (always plot).
+        n_max_plot : int
+            Maximum number of channels to show stats for.
+        subject : str
+            The subject name to use in the title of the plot.
+        color : tuple | str
+            Color to use for the bars.
+        width : float
+            Width of the bars.
+        ignore : list
+            The drop reasons to ignore.
+
+        Returns
+        -------
+        perc : float
+            Total percentage of epochs dropped.
         """
         if not self._bad_dropped:
             print("Bad epochs have not yet been dropped.")
             return
 
-        all_reasons = Counter(sum(self.drop_log, []))
-        most_common = all_reasons.most_common()
-        width = len(str(max(x[1] for x in most_common)))
-        print '%-*s Reason' % (width, 'N')
-        print '-' * (width + len('Reason') + 1)
-        for reason, nb in most_common:
-            print '%*d %s' % (width, nb, reason)
+        from .viz import plot_drop_log
+        return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
+                             color=color, width=width, ignore=ignore)
 
     def _check_delayed(self):
         """ Aux method

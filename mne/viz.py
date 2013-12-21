@@ -2399,7 +2399,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
-                  color=(0.9, 0.9, 0.9), width=0.8):
+                  color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED']):
     """Show the channel stats based on a drop_log from Epochs
 
     Parameters
@@ -2417,6 +2417,8 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
         Color to use for the bars.
     width : float
         Width of the bars.
+    ignore : list
+        The drop reasons to ignore.
 
     Returns
     -------
@@ -2426,7 +2428,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
         raise ValueError('drop_log must be a list of lists')
     import matplotlib.pyplot as plt
-    scores = Counter([ch for d in drop_log for ch in d])
+    scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
     perc = 100 * np.mean([len(d) > 0 for d in drop_log])
     if perc < threshold or len(ch_names) == 0:
