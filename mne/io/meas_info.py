@@ -7,6 +7,7 @@
 from copy import deepcopy
 from datetime import datetime as dt
 import os.path as op
+import re
 
 import numpy as np
 from scipy import linalg
@@ -361,7 +362,8 @@ def _read_dig_fif(fid, meas_info):
 def _read_dig_points(fname, comments='%'):
     """Read digitizer data from a text file.
 
-    This function can read space-delimited text files of digitizer data.
+    If fname ends in .hsp or .esp, the function assumes digitizer files in [m],
+    otherwise it assumes space-delimited text files in [mm].
 
     Parameters
     ----------
@@ -374,9 +376,23 @@ def _read_dig_points(fname, comments='%'):
     Returns
     -------
     dig_points : np.ndarray, shape (n_points, 3)
-        Array of dig points.
+        Array of dig points in [mm].
     """
-    dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
+    _, ext = op.splitext(fname)
+    if ext == '.elp' or ext == '.hsp':
+        with open(fname) as fid:
+            file_str = fid.read()
+        value_pattern = "\-?\d+\.?\d*e?\-?\d*"
+        coord_pattern = "({0})\s+({0})\s+({0})\s*$".format(value_pattern)
+        if ext == '.hsp':
+            coord_pattern = '^' + coord_pattern
+        points_str = [m.groups() for m in re.finditer(coord_pattern, file_str,
+                                                      re.MULTILINE)]
+        dig_points = np.array(points_str, dtype=float)
+        dig_points *= 1000
+    else:
+        dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
+
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
         raise ValueError(err)
