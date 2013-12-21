@@ -107,13 +107,8 @@ def _compute_mapping_matrix(fmd, info):
     noise_cov = fmd['noise']
     # Whiten
     if not noise_cov['diag']:
-        whitener = np.zeros((noise_cov['dim'], noise_cov['dim']))
-        eig = noise_cov['eig']
-        nzero = (eig > 0)
-        whitener[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-        whitener = np.dot(whitener, noise_cov['eigvec'])
-    else:
-        whitener = np.diag(1.0 / np.sqrt(noise_cov['data'].ravel()))
+        raise NotImplementedError  # this shouldn't happen
+    whitener = np.diag(1.0 / np.sqrt(noise_cov['data'].ravel()))
     whitened_dots = np.dot(whitener.T, np.dot(proj_dots, whitener))
 
     # SVD is numerically better than the eigenvalue composition even if
@@ -184,7 +179,8 @@ def make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     if not all([key in surf for key in ['rr', 'nn']]):
         raise KeyError('surf must have both "rr" and "nn"')
     if 'coord_frame' not in surf:
-        raise RuntimeError('The surface coordinate frame must be specified')
+        raise KeyError('The surface coordinate frame must be specified '
+                       'in surf["coord_frame"]')
     if mode not in ['accurate', 'fast']:
         raise ValueError('mode must be "accurate" or "fast", not "%s"' % mode)
 

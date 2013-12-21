@@ -2,6 +2,7 @@ import numpy as np
 from os import path as op
 from numpy.polynomial import legendre
 from numpy.testing.utils import assert_allclose, assert_array_equal
+from nose.tools import assert_raises
 
 from mne import (read_trans, make_surface_mapping, get_meg_helmet_surf,
                  get_head_surface)
@@ -10,18 +11,15 @@ from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_table,
                                     _get_legen_lut_fast,
                                     _get_legen_lut_accurate)
-from mne.fiff import read_info
-from mne.transforms import _get_mri_head_t_from_trans_file
+from mne.fiff import read_info, read_evoked, pick_types_evoked
 from mne.fixes import partial
 from mne.externals.six.moves import zip
 
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
-short_raw_fname = op.join(base_dir, 'test_raw.fif')
-trans_txt_fname = op.join(base_dir, 'sample-audvis-raw-trans.txt')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+evoked_fname = op.join(base_dir, 'test-ave.fif')
 
 data_path = sample.data_path(download=False)
-raw_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_raw-trans.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -77,22 +75,60 @@ def test_legendre_val():
     coeffs = _comp_sums_meg(beta, ctheta, fun, n_fact, False)
 
 
+def test_legendre_table():
+    """Test Legendre table calculation
+    """
+    # double-check our table generation
+    n_do = 20
+    for ch_type in ['eeg', 'meg']:
+        lut1, n_fact1 = _get_legen_table(ch_type, n_coeff=50)
+        lut1 = lut1[:, :n_do - 1].copy()
+        n_fact1 = n_fact1[:n_do - 1].copy()
+        lut2, n_fact2 = _get_legen_table(ch_type, n_coeff=n_do,
+                                         force_calc=True)
+        assert_allclose(lut1, lut2)
+        assert_allclose(n_fact1, n_fact2)
+
+
 @sample.requires_sample_data
-def _test_eeg_field_interpolation():
+def test_eeg_field_interpolation():
     """Test interpolation of EEG field onto head
     """
     trans = read_trans(trans_fname)
-    info = read_info(raw_fname)
+    info = read_info(evoked_fname)
     surf = get_head_surface('sample', subjects_dir=subjects_dir)
-    data = make_surface_mapping(info, surf, trans, 'eeg')
-    assert_array_equal(data.shape, (2562, 59))  # maps data onto surf
+    # we must have trans if surface is in MRI coords
+    assert_raises(ValueError, make_surface_mapping, info, surf, 'eeg')
+    data = make_surface_mapping(info, surf, 'eeg', trans, mode='accurate')
+    assert_array_equal(data.shape, (2562, 60))  # maps data onto surf
 
 
-def _test_meg_field_interpolation_helmet():
+def test_meg_field_interpolation_helmet():
     """Test interpolation of MEG field onto helmet
     """
-    info = read_info(short_raw_fname)
+    evoked = read_evoked(evoked_fname, setno='Left Auditory')
+    info = evoked.info
     surf = get_meg_helmet_surf(info)
-    trans = _get_mri_head_t_from_trans_file(trans_txt_fname)
-    data = make_surface_mapping(info, surf, trans, 'meg')
-    assert_array_equal(data.shape, (304, 305))  # data onto surf
+    # let's reduce the number of channels by a bunch to speed it up
+    info['bads'] = info['ch_names'][:200]
+    # bad ch_type
+    assert_raises(ValueError, make_surface_mapping, info, surf, 'foo')
+    # bad mode
+    assert_raises(ValueError, make_surface_mapping, info, surf, 'meg',
+                  mode='foo')
+    # no picks
+    evoked_eeg = pick_types_evoked(evoked, meg=False, eeg=True)
+    assert_raises(RuntimeError, make_surface_mapping, evoked_eeg.info,
+                  surf, 'meg')
+    # bad surface def
+    nn = surf['nn']
+    del surf['nn']
+    assert_raises(KeyError, make_surface_mapping, info, surf, 'meg')
+    surf['nn'] = nn
+    cf = surf['coord_frame']
+    del surf['coord_frame']
+    assert_raises(KeyError, make_surface_mapping, info, surf, 'meg')
+    surf['coord_frame'] = cf
+    # now do it
+    data = make_surface_mapping(info, surf, 'meg', mode='fast')
+    assert_array_equal(data.shape, (304, 106))  # data onto surf
