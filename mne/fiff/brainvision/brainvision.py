@@ -159,13 +159,13 @@ class RawBrainVision(Raw):
                     (start, stop - 1, start / float(sfreq),
                      (stop - 1) / float(sfreq)))
 
+        dtype = np.dtype(eeg_info['dtype'])
+        buffer_size = (stop - start)
+        pointer = start * n_eeg * dtype.itemsize
         with open(self.info['file_id'], 'rb') as f:
-            buffer_size = (stop - start)
-            pointer = start * n_chan
             f.seek(pointer)
             # extract data
-            data = np.fromfile(f, dtype=eeg_info['dtype'],
-                               count=buffer_size * n_eeg)
+            data = np.fromfile(f, dtype=dtype, count=buffer_size * n_eeg)
         if eeg_info['data_orientation'] == 'MULTIPLEXED':
             data = data.reshape((n_eeg, -1), order='F')
         elif eeg_info['data_orientation'] == 'VECTORIZED':
