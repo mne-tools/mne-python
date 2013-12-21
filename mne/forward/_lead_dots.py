@@ -1,7 +1,8 @@
-import numpy as np
-from numpy.polynomial import legendre
 import os
 from os import path as op
+
+import numpy as np
+from numpy.polynomial import legendre
 
 from ..parallel import parallel_func
 from ..utils import logger, _get_extra_data_path
@@ -29,22 +30,20 @@ def _get_legen(x, n_coeff=100):
 
 def _get_legen_der(xx, n_coeff=100):
     """Get Legendre polynomial derivatives expanded about x"""
-    coeffs = list()
-    for x in xx:
-        p0s = [1.0, x]
-        p0ds = [0.0, 1.0]
-        p0dds = [0.0, 0.0]
+    coeffs = np.empty((len(xx), n_coeff, 3))
+    for c, x in zip(coeffs, xx):
+        p0s, p0ds, p0dds = c[:, 0], c[:, 1], c[:, 2]
+        p0s[:2] = [1.0, x]
+        p0ds[:2] = [0.0, 1.0]
+        p0dds[:2] = [0.0, 0.0]
         for n in range(2, n_coeff):
-            p0, p0d, p0dd = _next_legen_der(n, x, p0s[n - 1], p0s[n - 2],
-                                            p0ds[n - 1], p0dds[n - 1])
-            p0s.append(p0)
-            p0ds.append(p0d)
-            p0dds.append(p0dd)
-        coeffs.append(np.array([p0s, p0ds, p0dds]).T)
-    return np.array(coeffs)
+            p0s[n], p0ds[n], p0dds[n] = _next_legen_der(n, x, p0s[n - 1],
+                                            p0s[n - 2], p0ds[n - 1],
+                                            p0dds[n - 1])
+    return coeffs
 
 
-def _get_legen_table(ctype, volume_integral=False, n_coeff=100,
+def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
                      n_interp=20000):
     """Return a (generated) LUT of Legendre (derivative) polynomial coeffs"""
     if n_interp % 2 != 0:
@@ -52,7 +51,7 @@ def _get_legen_table(ctype, volume_integral=False, n_coeff=100,
     fname = op.join(_get_extra_data_path(), 'tables')
     if not op.isdir(fname):
         os.mkdir(fname)
-    if ctype == 'meg':
+    if ch_type == 'meg':
         fname = op.join(fname, 'legder_%s_%s.bin' % (n_coeff, n_interp))
         leg_fun = _get_legen_der
         extra_str = ' derivative'
@@ -77,7 +76,7 @@ def _get_legen_table(ctype, volume_integral=False, n_coeff=100,
 
     # we need this for the integration step
     n_fact = np.arange(1, n_coeff, dtype=float)
-    if ctype == 'meg':
+    if ch_type == 'meg':
         n_facts = list()  # multn, then mult, then multn * (n + 1)
         if volume_integral:
             n_facts.append(n_fact / ((2.0 * n_fact + 1.0)
@@ -161,7 +160,7 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
 # SPHERE DOTS
 
 def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
-                        w1, w2, volume_integral, lut, n_fact, ctype):
+                        w1, w2, volume_integral, lut, n_fact, ch_type):
     """Lead field dot product computation for M/EEG in the sphere model"""
     ct = np.einsum('ik,jk->ij', rr1, rr2)  # outer product, sum over coords
 
@@ -171,7 +170,7 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
     lr1lr2 = lr1[:, np.newaxis] * lr2[np.newaxis, :]
 
     beta = (r * r) / lr1lr2
-    if ctype == 'meg':
+    if ch_type == 'meg':
         sums = _comp_sums_meg(beta.flatten(), ct.flatten(), lut, n_fact,
                               volume_integral)
         sums.shape = (4,) + beta.shape
@@ -219,9 +218,9 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
     return result
 
 
-def _do_self_dots(intrad, volume, coils, r0, ctype, lut, n_fact, n_jobs):
+def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
     """Perform the lead field dot product integrations"""
-    if ctype == 'eeg':
+    if ch_type == 'eeg':
         intrad *= 0.7
     # convert to normalized distances from expansion center
     rmags = [coil['rmag'] - r0[np.newaxis, :] for coil in coils]
@@ -231,14 +230,14 @@ def _do_self_dots(intrad, volume, coils, r0, ctype, lut, n_fact, n_jobs):
     ws = [coil['w'] for coil in coils]
     parallel, p_fun, _ = parallel_func(_do_self_dots_subset, n_jobs)
     prods = parallel(p_fun(intrad, rmags, rlens, cosmags,
-                           ws, volume, lut, n_fact, ctype, idx)
+                           ws, volume, lut, n_fact, ch_type, idx)
                      for idx in np.array_split(np.arange(len(rmags)), n_jobs))
     products = np.sum(prods, axis=0)
     return products
 
 
 def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
-                         n_fact, ctype, idx):
+                         n_fact, ch_type, idx):
     """Helper for parallelization"""
     products = np.zeros((len(rmags), len(rmags)))
     for ci1 in idx:
@@ -247,13 +246,13 @@ def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
                                       rlens[ci1], rlens[ci2],
                                       cosmags[ci1], cosmags[ci2],
                                       ws[ci1], ws[ci2], volume, lut,
-                                      n_fact, ctype)
+                                      n_fact, ch_type)
             products[ci1, ci2] = res
             products[ci2, ci1] = res
     return products
 
 
-def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ctype,
+def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
                      lut, n_fact, n_jobs):
     """Compute the map construction products"""
     virt_ref = False
@@ -265,7 +264,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ctype,
     ws = [coil['w'] for coil in coils]
     rref = None
     refl = None
-    if ctype == 'eeg':
+    if ch_type == 'eeg':
         intrad *= 0.7
         if virt_ref:
             rref = virt_ref[np.newaxis, :] - r0[np.newaxis, :]
@@ -279,7 +278,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ctype,
 
     parallel, p_fun, _ = parallel_func(_do_surface_dots_subset, n_jobs)
     prods = parallel(p_fun(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
-                           this_nn, cosmags, ws, volume, lut, n_fact, ctype,
+                           this_nn, cosmags, ws, volume, lut, n_fact, ch_type,
                            idx)
                      for idx in np.array_split(np.arange(len(rmags)), n_jobs))
     products = np.sum(prods, axis=0)
@@ -287,7 +286,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ctype,
 
 
 def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
-                            this_nn, cosmags, ws, volume, lut, n_fact, ctype,
+                            this_nn, cosmags, ws, volume, lut, n_fact, ch_type,
                             idx):
     """Helper for parallelization"""
     products = np.zeros((len(rsurf), len(rmags)))
@@ -296,12 +295,12 @@ def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
                                   lsurf, rlens[ci],
                                   this_nn, cosmags[ci],
                                   None, ws[ci], volume, lut,
-                                  n_fact, ctype)
+                                  n_fact, ch_type)
         if rref is not None:
             vres = _fast_sphere_dot_r0(intrad, rref, rmags[ci],
                                        refl, rlens[ci],
                                        None, ws[ci], volume,
-                                       lut, n_fact, ctype)
+                                       lut, n_fact, ch_type)
             products[:, ci] = res - vres
         else:
             products[:, ci] = res
