@@ -58,7 +58,12 @@ def test_legendre_val():
         coeffs = np.zeros((n_terms,) + beta.shape)
         coeffs[1:] = (np.cumprod([beta] * (n_terms - 1), axis=0)
                       * (2.0 * n + 1.0) * (2.0 * n + 1.0) / n)
-        c2 = legendre.legval(ctheta, coeffs, tensor=False)
+        # can't use tensor=False here b/c it isn't in old numpy
+        c2 = np.empty((20, 30))
+        for ci1 in range(20):
+            for ci2 in range(30):
+                c2[ci1, ci2] = legendre.legval(ctheta[ci1, ci2],
+                                               coeffs[:, ci1, ci2])
         assert_allclose(c1, c2, 1e-2, 1e-3)  # close enough...
 
     # compare fast and slow for MEG
