@@ -161,8 +161,14 @@ def test_read_write_epochs():
     assert_array_almost_equal(epochs_read4.get_data(), data)
     # test equalizing loaded one (drop_log property)
     epochs_read4.equalize_event_counts(epochs.event_id)
-
-
+    
+    epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
+    epochs.save('test-trial-id.py')
+    epochs_read5 = read_epochs('test-trial-id.py')
+    assert_array_equal(epochs_read5.trial_id, epochs.trial_id)
+    assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
+    
+    
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
     """
@@ -830,6 +836,28 @@ def test_event_ordering():
 def test_drop_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
-    assert_raises(IndexError, epochs.drop_epochs, [len(events)])
+    # Bound checks
+    assert_raises(IndexError, epochs.drop_epochs, [len(epochs.events)])
     assert_raises(IndexError, epochs.drop_epochs, [-1])
     assert_raises(ValueError, epochs.drop_epochs, [[1, 2], [3, 4]])
+
+    # Test trial_id attribute
+    assert_array_equal(epochs.trial_id, np.arange(len(epochs.events)))
+    epochs.drop_epochs([2, 4], reason='d')
+    assert_equal(epochs.drop_log, [[], [], ['d'], [], ['d'], [], []])
+    assert_array_equal(epochs.trial_id, np.array([0, 1, 3, 5, 6]))
+    assert_array_equal(epochs[3:].trial_id, np.array([5, 6]))
+    assert_array_equal(epochs['1'].trial_id, np.array([0, 1, 3, 5, 6]))
+    epochs.drop_epochs([3], reason='use_trial_id', use_trial_id=True)
+    assert_array_equal(epochs.trial_id, np.array([0, 1, 5, 6]))
+
+    # Use trial_id to drop a trial that's already been dropped
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+    epochs.drop_epochs([0], reason='1st', use_trial_id=True)
+    epochs.drop_epochs([0], reason='2nd', use_trial_id=True)
+    assert_equal(len(epochs.events), 6)
+    # Only first reason is recorded: not sure this is great
+    assert_equal(epochs.drop_log, [['1st'], [], [], [], [], [], []])
+    epochs.drop_epochs([1], reason='3rd', use_trial_id=True)
+    assert_array_equal(epochs.trial_id, np.array([2, 3, 4, 5, 6]))
