@@ -13,6 +13,7 @@ from .externals.six import string_types
 import copy as cp
 import warnings
 import json
+from collections import Counter
 
 import numpy as np
 
@@ -714,6 +715,20 @@ class Epochs(_BaseEpochs):
 
         """
         self._get_data_from_disk(out=False)
+
+    def drop_stats(self):
+        """Print some stats about the reasons for dropping some epochs
+        """
+        if not self._bad_dropped:
+            print("Bad epochs have not yet been dropped.")
+            return
+
+        print("REASON   n")
+        print("------------")
+        all_reasons = Counter(sum(self.drop_log, []))
+
+        for reason, nb in all_reasons.most_common():
+            print("%s  %s" % (reason, nb))
 
     def _check_delayed(self):
         """ Aux method

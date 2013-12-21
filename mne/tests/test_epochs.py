@@ -73,7 +73,9 @@ def test_read_epochs_bad_events():
 
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
+    epochs.drop_stats()
     epochs.drop_bad_epochs()
+    epochs.drop_stats()
     evoked = epochs.average()
 
     # Event at the end
@@ -162,6 +164,7 @@ def test_read_write_epochs():
     assert_array_almost_equal(epochs_read4.get_data(), data)
     # test equalizing loaded one (drop_log property)
     epochs_read4.equalize_event_counts(epochs.event_id)
+    epochs.drop_stats()
 
     epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
     epochs.save('test-epo.fif')
