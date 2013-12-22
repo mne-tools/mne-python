@@ -385,7 +385,7 @@ def find_layout(info=None, ch_type=None, chs=None):
     elif has_CTF_grad:
         layout_name = 'CTF-275'
     else:
-        return None
+        raise RuntimeError('Could not find an appropriate layout.')
 
     layout = read_layout(layout_name)
     if not is_old_vv:
