@@ -17,6 +17,9 @@ Changelog
 
    - Add field line interpolation by `Eric Larson`_
 
+   - Add full provenance tacking for epochs and improve `drop_log` by
+   `Tal Linzen`_, `Alex Gramfort`_ and `Denis Engemann`_
+
 API
 ~~~
 
@@ -610,3 +613,5 @@ of commits):
 .. _Christopher Dinh: https://github.com/chdinh
 
 .. _Nick Ward: http://www.ucl.ac.uk/ion/departments/sobell/Research/NWard
+
+.. _Tal Linzen: http://tallinzen.net/
