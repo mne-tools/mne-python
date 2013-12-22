@@ -578,12 +578,20 @@ class Epochs(_BaseEpochs):
     ch_names : list of string
         List of channels' names.
     selection : array
-        List of indices of selected events (not dropped or ignored etc.)
+        List of indices of selected events (not dropped or ignored etc.). For
+        example, if the original event array had 4 events and the second event
+        has been dropped, this attribute would be np.array([0, 2, 3]).
     drop_log : list of lists
-        This list (same length as original events) contains the channel(s),
-        or the reasons (count equalization, not reaching minimum duration),
-        if any, that caused an event in the original event list to be dropped
-        by drop_bad_epochs().
+        A list of the same length as the event array used to initialize the 
+        Epochs object. If the i-th original event is still part of the 
+        selection, drop_log[i] will be an empty list; otherwise it will be
+        a list of the reasons the event is not longer in the selection, e.g.:
+
+        'IGNORED' if it isn't part of the current subset defined by the user;
+        'NO DATA' or 'TOO SHORT' if epoch didn't contain enough data;
+        names of channels that exceeded the amplitude threshold;
+        'EQUALIZED_COUNTS' (see equalize_event_counts);
+        or user-defined reasons (see drop_epochs).
     verbose : bool, str, int, or None
         See above.
 
