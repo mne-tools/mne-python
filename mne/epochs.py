@@ -485,7 +485,9 @@ class Epochs(_BaseEpochs):
     raw : Raw object
         An instance of Raw.
     events : array, of shape [n_events, 3]
-        Returned by the read_events function.
+        The events typically returned by the read_events function.
+        If some events don't match the events of interest as specified
+        by event_id, they will be marked as 'IGNORED' in the drop log.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
         the keys can later be used to acces associated events. Example:
@@ -721,8 +723,6 @@ class Epochs(_BaseEpochs):
 
         Parameters
         ----------
-        drop_log : list of lists
-            Epoch drop log from Epochs.drop_log.
         threshold : float
             The percentage threshold to use to decide whether or not to
             plot. Default is zero (always plot).
@@ -1105,7 +1105,7 @@ class Epochs(_BaseEpochs):
 
         if isinstance(key, list) and isinstance(key[0], string_types):
             select = np.any(np.atleast_2d([epochs._key_match(k)
-                                              for k in key]), axis=0)
+                                           for k in key]), axis=0)
             epochs.name = ('-'.join(key) if epochs.name == 'Unknown'
                            else 'epochs_%s' % '-'.join(key))
         else:
@@ -1745,6 +1745,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     data = None
     bmin, bmax = None, None
     baseline = None
+    drop_log = []
     for k in range(my_epochs['nent']):
         kind = my_epochs['directory'][k].kind
         pos = my_epochs['directory'][k].pos

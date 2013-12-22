@@ -306,8 +306,8 @@ def test_reject_epochs():
     #   --saveavetag -ave --ave test.ave --filteroff
     assert_true(n_events > n_clean_epochs)
     assert_true(n_clean_epochs == 3)
-    assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'],
-                ['MEG 2443'], ['MEG 2443'], ['MEG 2443']])
+    assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'], ['MEG 2443'],
+                                    ['MEG 2443'], ['MEG 2443']])
 
     # Ensure epochs are not dropped based on a bad channel
     raw_2 = raw.copy()
