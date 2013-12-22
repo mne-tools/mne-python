@@ -21,7 +21,7 @@ from .fiff.write import (start_file, start_block, end_file, end_block,
                          write_id, write_string)
 from .fiff.meas_info import read_meas_info, write_meas_info
 from .fiff.open import fiff_open
-from .fiff.raw import _time_as_index, _index_as_time
+from .fiff.raw import _time_as_index, _index_as_time, Raw
 from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
@@ -618,6 +618,9 @@ class Epochs(_BaseEpochs):
                  verbose=None):
         if raw is None:
             return
+        elif not isinstance(raw, Raw):
+            raise ValueError('The first argument to `Epochs` must be `None` '
+                             'or an instance of `mne.fiff.Raw`')
 
         # prepare for calling the base constructor
 
