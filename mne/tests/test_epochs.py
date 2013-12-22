@@ -20,6 +20,7 @@ from mne.utils import _TempDir, requires_pandas, requires_nitime
 from mne.fiff import read_evoked
 from mne.fiff.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
+from mne.externals.six.moves import zip
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -73,6 +74,7 @@ def test_read_epochs_bad_events():
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
     epochs.drop_bad_epochs()
+    epochs.plot_drop_log()
     evoked = epochs.average()
 
     # Event at the end
@@ -161,6 +163,12 @@ def test_read_write_epochs():
     assert_array_almost_equal(epochs_read4.get_data(), data)
     # test equalizing loaded one (drop_log property)
     epochs_read4.equalize_event_counts(epochs.event_id)
+
+    epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
+    epochs.save('test-epo.fif')
+    epochs_read5 = read_epochs('test-epo.fif')
+    assert_array_equal(epochs_read5.selection, epochs.selection)
+    assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
 
 
 def test_epochs_proj():
@@ -285,7 +293,9 @@ def test_evoked_standard_error():
 def test_reject_epochs():
     """Test of epochs rejection
     """
-    epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
+    events1 = events[events[:, 2] == event_id]
+    epochs = Epochs(raw, events1,
+                    event_id, tmin, tmax, baseline=(None, 0),
                     reject=reject, flat=flat)
     assert_raises(RuntimeError, len, epochs)
     n_events = len(epochs.events)
@@ -296,20 +306,21 @@ def test_reject_epochs():
     #   --saveavetag -ave --ave test.ave --filteroff
     assert_true(n_events > n_clean_epochs)
     assert_true(n_clean_epochs == 3)
-    assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'],
-                                    ['MEG 2443'], ['MEG 2443'], ['MEG 2443']])
+    assert_true(epochs.drop_log == [[], [], [], ['MEG 2443'], ['MEG 2443'],
+                                    ['MEG 2443'], ['MEG 2443']])
 
     # Ensure epochs are not dropped based on a bad channel
     raw_2 = raw.copy()
     raw_2.info['bads'] = ['MEG 2443']
     reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
-    epochs = Epochs(raw_2, events, event_id, tmin, tmax, baseline=(None, 0),
+    epochs = Epochs(raw_2, events1, event_id, tmin, tmax, baseline=(None, 0),
                     reject=reject_crazy, flat=flat)
     epochs.drop_bad_epochs()
+
     assert_true(all(['MEG 2442' in e for e in epochs.drop_log]))
     assert_true(all(['MEG 2443' not in e for e in epochs.drop_log]))
 
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+    epochs = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat,
                     reject_tmin=0., reject_tmax=.1)
     data = epochs.get_data()
@@ -634,13 +645,14 @@ def test_epoch_eq():
     epochs.drop_bad_epochs()  # make sure drops are logged
     assert_true(len([l for l in epochs.drop_log if not l]) ==
                 len(epochs.events))
-    drop_log1 = [l for l in epochs.drop_log]  # now copy the log
+    drop_log1 = deepcopy(epochs.drop_log)
     old_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
     epochs.equalize_event_counts(['a', 'b'], copy=False)
     # undo the eq logging
     drop_log2 = [[] if l == ['EQUALIZED_COUNT'] else l for l in
                  epochs.drop_log]
     assert_true(drop_log1 == drop_log2)
+
     assert_true(len([l for l in epochs.drop_log if not l]) ==
                 len(epochs.events))
     new_shapes = [epochs[key].events.shape[0] for key in ['a', 'b', 'c', 'd']]
@@ -830,6 +842,53 @@ def test_event_ordering():
 def test_drop_epochs():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
-    assert_raises(IndexError, epochs.drop_epochs, [len(events)])
+    events1 = events[events[:, 2] == event_id]
+
+    # Bound checks
+    assert_raises(IndexError, epochs.drop_epochs, [len(epochs.events)])
     assert_raises(IndexError, epochs.drop_epochs, [-1])
     assert_raises(ValueError, epochs.drop_epochs, [[1, 2], [3, 4]])
+
+    # Test selection attribute
+    assert_array_equal(epochs.selection,
+                       np.where(events[:, 2] == event_id)[0])
+    assert_equal(len(epochs.drop_log), len(events))
+    assert_true(all(epochs.drop_log[k] == ['IGNORED']
+                 for k in set(range(len(events))) - set(epochs.selection)))
+
+    selection = epochs.selection.copy()
+    epochs.drop_epochs([2, 4], reason='d')
+    assert_equal(len(epochs.drop_log), len(events))
+    assert_equal([epochs.drop_log[k] for k in selection[[2, 4]]], [['d'],['d']])
+    assert_array_equal(events[epochs.selection], events1[[0, 1, 3, 5, 6]])
+    assert_array_equal(events[epochs[3:].selection], events1[[5, 6]])
+    assert_array_equal(events[epochs['1'].selection], events1[[0, 1, 3, 5, 6]])
+
+
+def test_drop_epochs_mult():
+    """Test that subselecting epochs or making less epochs is equivalent"""
+    for preload in [True, False]:
+        epochs1 = Epochs(raw, events, {'a': 1, 'b': 2},
+                         tmin, tmax, picks=picks, reject=reject,
+                         preload=preload)['a']
+        epochs2 = Epochs(raw, events, {'a': 1},
+                         tmin, tmax, picks=picks, reject=reject,
+                         preload=preload)
+
+        if preload:
+            # In the preload case you cannot know the bads if already ignored
+            assert_equal(len(epochs1.drop_log), len(epochs2.drop_log))
+            for d1, d2 in zip(epochs1.drop_log, epochs2.drop_log):
+                if d1 == ['IGNORED']:
+                    assert_true(d2 == ['IGNORED'])
+                if d1 != ['IGNORED'] and d1 != []:
+                    assert_true((d2 == d1) or (d2 == ['IGNORED']))
+                if d1 == []:
+                    assert_true(d2 == [])
+            assert_array_equal(epochs1.events, epochs2.events)
+            assert_array_equal(epochs1.selection, epochs2.selection)
+        else:
+            # In the non preload is should be exactly the same
+            assert_equal(epochs1.drop_log, epochs2.drop_log)
+            assert_array_equal(epochs1.events, epochs2.events)
+            assert_array_equal(epochs1.selection, epochs2.selection)
