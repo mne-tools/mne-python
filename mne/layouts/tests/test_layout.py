@@ -18,6 +18,7 @@ from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout,
                          find_layout)
 
 from mne.fiff import Raw, pick_types, pick_info
+from mne.fiff.kit import read_raw_kit
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')
@@ -34,6 +35,8 @@ bti_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'bti',
 fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
                         'data', 'test_ctf_comp_raw.fif')
 
+fname_kit_157 = op.join(op.dirname(__file__), '..', '..', 'fiff', 'kit',
+                        'tests', 'data', 'test.sqd')
 
 test_info = {'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
  'chs': [{'cal': 1,
@@ -206,6 +209,9 @@ def test_find_layout():
 
     lout = find_layout(Raw(fname_ctf_raw).info)
     assert_true(lout.kind == 'CTF-275')
+
+    lout = find_layout(read_raw_kit(fname_kit_157).info)
+    assert_true(lout.kind == 'KIT-157')
 
     sample_info5['dig'] = []
     assert_raises(RuntimeError, find_layout, sample_info5)
