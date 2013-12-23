@@ -25,7 +25,7 @@ class Layout(object):
     kind : str
         Type of layout (can also be custom for EEG). Valid layouts are
         {'Vectorview-all', 'Vectorview-grad', 'Vectorview-mag',  'CTF-275',
-         'magnesWH3600', 'kit-nyc'}
+         'magnesWH3600', 'KIT-157'}
     path : string
         Path to folder where to find the layout file.
 
