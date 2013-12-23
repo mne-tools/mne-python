@@ -397,7 +397,7 @@ def find_layout(info=None, ch_type=None, chs=None):
 
 
 def _find_topomap_coords(chs, layout=None):
-    """Try to guess the MEG system and return appropriate topomap coordinates
+    """Try to guess the E/MEG layout and return appropriate topomap coordinates
 
     Parameters
     ----------
@@ -439,8 +439,10 @@ def _auto_topomap_coords(chs):
         An array of positions of the 2 dimensional map.
     """
     locs3d = np.array([ch['loc'][:3] for ch in chs
-                       if ch['kind'] == FIFF.FIFFV_MEG_CH])
-
+                       if ch['kind'] in [FIFF.FIFFV_MEG_CH,
+                                         FIFF.FIFFV_EEG_CH]])
+    if not np.any(locs3d):
+        raise RuntimeError('boom')
     # fit the 3d sensor locations to a sphere with center (cx, cy, cz)
     # and radius r
 
