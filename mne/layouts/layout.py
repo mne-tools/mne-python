@@ -20,16 +20,10 @@ from ..externals.six.moves import zip
 class Layout(object):
     """Sensor layouts
 
-    Parameters
-    ----------
-    kind : str
-        Type of layout (can also be custom for EEG). Valid layouts are
-        {'Vectorview-all', 'Vectorview-grad', 'Vectorview-mag',  'CTF-275',
-         'magnesWH3600', 'KIT-157'}
-    path : string
-        Path to folder where to find the layout file.
+    Layouts are typically loaded from a file using read_layout. Only use this
+    class directly if you're constructing a new layout.
 
-    Attributes
+    Parameters
     ----------
     box : tuple of length 4
         The box dimension (x_min, x_max, y_min, y_max)
