@@ -438,7 +438,8 @@ def _auto_topomap_coords(chs):
     locs : array, shape = (n_sensors, 2)
         An array of positions of the 2 dimensional map.
     """
-    locs3d = np.array([ch['loc'][:3] for ch in chs])
+    locs3d = np.array([ch['loc'][:3] for ch in chs
+                       if ch['kind'] == FIFF.FIFFV_MEG_CH])
 
     # fit the 3d sensor locations to a sphere with center (cx, cy, cz)
     # and radius r
@@ -446,7 +447,7 @@ def _auto_topomap_coords(chs):
     # error function
     def err(params):
         r, cx, cy, cz = params
-        return   np.sum((locs3d - [cx, cy, cz]) ** 2, 1) - r ** 2
+        return np.sum((locs3d - [cx, cy, cz]) ** 2, 1) - r ** 2
 
     (r, cx, cy, cz), _ = leastsq(err, (1, 0, 0, 0))
 
