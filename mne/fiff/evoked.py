@@ -476,9 +476,10 @@ class Evoked(ProjMixin):
 
     def as_data_frame(self, picks=None, scale_time=1e3, scalings=None,
                       use_time_index=True, copy=True):
-        """Get the epochs as Pandas DataFrame
+        """Get the Evoked object as a Pandas DataFrame
 
-        Export raw data in tabular structure with MEG channels.
+        Export data in tabular structure: each row corresponds to a time point,
+        and each column to a channel.
 
         Parameters
         ----------
