@@ -435,8 +435,8 @@ def _auto_topomap_coords(chs):
     locs3d = np.array([ch['loc'][:3] for ch in chs
                        if ch['kind'] in [FIFF.FIFFV_MEG_CH,
                                          FIFF.FIFFV_EEG_CH]])
-    if not np.any(locs3d):
-        raise RuntimeError('boom')
+    if len(locs3d) < 1:
+        raise RuntimeError('No MEG or EEG channels found.')
     # fit the 3d sensor locations to a sphere with center (cx, cy, cz)
     # and radius r
 
