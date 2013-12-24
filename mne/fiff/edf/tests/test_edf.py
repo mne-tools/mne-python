@@ -77,7 +77,7 @@ def test_read_segment():
     raw11 = Raw(raw1_file, preload=True)
     data1, times1 = raw1[:, :]
     data11, times11 = raw11[:, :]
-    assert_array_almost_equal(data1, data11, 8)
+    assert_array_almost_equal(data1, data11, 10)
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
@@ -91,6 +91,16 @@ def test_read_segment():
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)
     assert_array_equal(raw1._data, raw2._data)
+
+    # test the _read_segment function by only loading some of the data
+    raw1 = read_raw_edf(edf_path, preload=False)
+    raw2 = read_raw_edf(edf_path, preload=True)
+    blocks = raw1.last_samp / raw1.info['sfreq']
+    seg = int((blocks - 1) * raw1.info['sfreq'])
+    data1, times1 = raw1[:, :seg]
+    data2, times2 = raw2[:, :seg]
+    assert_array_equal(data1, data2)
+    assert_array_equal(times1, times2)
 
 
 def test_append():
