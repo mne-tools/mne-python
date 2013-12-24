@@ -348,6 +348,8 @@ def find_layout(info=None, ch_type=None, chs=None):
                     (FIFF.FIFFV_MEG_CH in channel_types and
                      any([k in ctf_other_types for k in coil_types])))
                     # hack due to MNE-C bug in IO of CTF
+    n_kit_grads = len([ch for ch in chs 
+                       if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD])
 
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad])
     has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
@@ -378,6 +380,8 @@ def find_layout(info=None, ch_type=None, chs=None):
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
         layout_name = 'CTF-275'
+    elif n_kit_grads == 157:
+        layout_name = 'KIT-157'
     else:
         return None
 
