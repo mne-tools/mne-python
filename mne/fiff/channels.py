@@ -4,10 +4,12 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from ..externals.six import string_types
 
 from .tree import dir_tree_find
 from .tag import find_tag
 from .constants import FIFF
+from .pick import channel_type
 
 
 def read_bad_channels(fid, node):
@@ -65,3 +67,34 @@ def _get_meg_system(info):
                 system = 'BabySQUID'
                 break
     return system
+
+
+def contains_ch_type(info, ch_type):
+    """Check whether a certain channel is in an info object
+    Parameters
+    info : instance of mne.fiff.meas_info.Info
+        The measurement information.
+    ch_type : str
+        the channel type to be checked for
+    """
+    if not isinstance(ch_type, string_types):
+        raise ValueError('`ch_type` is of class {actual_class}. It must be '
+                         '`str`'.format(actual_class=type(ch_type)))
+
+    valid_channel_types = ('grad mag eeg stim eog emg ecg ref_meg resp ' 
+                           'exci ias syst misc').split()
+
+    if ch_type not in valid_channel_types:
+        msg = ('The ch_type passed ({passed}) is not valid. '
+               'it must be {valid}')
+        raise ValueError(msg.format(passed=ch_type,
+                                    valid=' or '.join(valid_channel_types)))
+    return ch_type in [channel_type(info, ii) for ii in range(info['nchan'])]
+
+
+class ContainsMixin(object):
+    """Mixin class for Raw, Evoked, Epochs
+    """
+    def __contains__(self, ch_type):
+        """Check channel type membership"""
+        return contains_ch_type(self.info, ch_type)

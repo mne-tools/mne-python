@@ -26,6 +26,13 @@ setno = 'Left Auditory'
 trans = mne.read_trans(trans_fname)
 evoked = mne.fiff.read_evoked(evoked_fname, setno=setno,
                               baseline=(-0.2, 0.0))
+<<<<<<< Local Changes
+
+for time in [0.09, .11]:
+    evoked.plot_field_maps(time=time, trans_fname=trans_fname,
+                           subject='sample', subjects_dir=subjects_dir,
+                           n_jobs=-1)
+=======
 # let's do this in MRI coordinates so they're easy to plot
 helmet_surf = mne.get_meg_helmet_surf(evoked.info, trans)
 head_surf = mne.get_head_surface('sample', subjects_dir=subjects_dir)
@@ -86,3 +93,4 @@ for ii, (surf, data) in enumerate(zip([head_surf, helmet_surf],
 text_str = '%s, t = %0.0f ms' % (setno, 1000 * evoked.times[0])
 mlab.text(0.01, 0.01, text_str, width=0.4)
 mlab.view(10, 60)
+>>>>>>> External Changes

@@ -20,6 +20,9 @@ Changelog
    - Add full provenance tacking for epochs and improve `drop_log` by
    `Tal Linzen`_, `Alex Gramfort`_ and `Denis Engemann`_
 
+   - Add systematic contains method to Raw, Epochs and Evoked for channel type
+   membership testing by `Denis Engemann`_
+
 API
 ~~~
 

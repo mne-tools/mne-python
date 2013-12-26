@@ -20,6 +20,7 @@ from .fiff.write import (start_file, start_block, end_file, end_block,
                          write_int, write_float_matrix, write_float,
                          write_id, write_string)
 from .fiff.meas_info import read_meas_info, write_meas_info
+from .fiff.channels import contains_ch_type
 from .fiff.open import fiff_open
 from .fiff.raw import _time_as_index, _index_as_time, Raw
 from .fiff.tree import dir_tree_find
@@ -28,6 +29,7 @@ from .fiff import Evoked, FIFF
 from .fiff.pick import (pick_types, channel_indices_by_type, channel_type,
                         pick_channels)
 from .fiff.proj import setup_proj, ProjMixin
+from .fiff.channels import ContainsMixin
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
@@ -41,7 +43,7 @@ from .externals import six
 from .externals.six.moves import zip
 
 
-class _BaseEpochs(ProjMixin):
+class _BaseEpochs(ProjMixin, ContainsMixin):
     """Abstract base class for Epochs-type classes
 
     This class provides basic functionality and should never be instantiated

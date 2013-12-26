@@ -16,6 +16,7 @@ from .tree import dir_tree_find
 from .pick import channel_type, pick_types
 from .meas_info import read_meas_info, write_meas_info
 from .proj import ProjMixin
+from .channels import ContainsMixin
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
@@ -32,7 +33,7 @@ aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
-class Evoked(ProjMixin):
+class Evoked(ProjMixin, ContainsMixin):
     """Evoked data
 
     Parameters
