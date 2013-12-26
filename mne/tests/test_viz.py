@@ -444,6 +444,9 @@ def test_plot_topomap():
         plot_evoked_topomap(evoked, times, ch_type='grad')
         plot_evoked_topomap(evoked, times, ch_type='planar1')
         plot_evoked_topomap(evoked, times, ch_type='planar2')
+        plot_evoked_topomap(evoked, times, ch_type='grad', show_names=True)
+        plot_evoked_topomap(evoked, times, ch_type='grad',
+                            show_names=lambda x: x.replace('MEG', ''))
         with warnings.catch_warnings(record=True):  # delaunay triangulation warning
             plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
         assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
