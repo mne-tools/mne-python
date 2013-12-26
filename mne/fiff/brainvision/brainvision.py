@@ -129,9 +129,9 @@ class RawBrainVision(Raw):
 
         Returns
         -------
-        data : array, [channels x samples]
-           the data matrix (channels x samples).
-        times : array, [samples]
+        data : array, shape (n_channels, n_samples)
+           The data.
+        times : array, shape (n_samples,)
             returns the time values corresponding to the samples.
         """
         if sel is not None:
@@ -198,7 +198,7 @@ class RawBrainVision(Raw):
 
         Returns
         -------
-        events : array, [n_events x 3]
+        events : array, shape (n_events, 3)
             Events, each row consisting of an (onset, offset, trigger)
             sequence.
         """
@@ -209,7 +209,7 @@ class RawBrainVision(Raw):
 
         Parameters
         ----------
-        events : array, [n_events x 3]
+        events : array, shape (n_events, 3)
             Events, each row consisting of an (onset, offset, trigger)
             sequence.
         """
@@ -234,7 +234,7 @@ def _read_vmrk_events(fname):
 
     Returns
     -------
-    events : array, [n_events x 3]
+    events : array, shape (n_events, 3)
         An array containing the whole recording's events, each row representing
         an event as (onset, offset, trigger) sequence.
     """
@@ -266,7 +266,7 @@ def _synthesize_stim_channel(events, start, stop):
 
     Parameters
     ----------
-    events : array, [n_events x 3]
+    events : array, shape (n_events, 3)
         Each row representing an event as (onset, offset, trigger) sequence
         (the format returned by _read_vmrk_events).
     start : int
@@ -276,7 +276,7 @@ def _synthesize_stim_channel(events, start, stop):
 
     Returns
     -------
-    stim_channel : array, [n_samples]
+    stim_channel : array, shape (n_samples,)
         An array containing the whole recording's event marking
     """
     # select events overlapping buffer
@@ -350,7 +350,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
         The measurement info.
     edf_info : dict
         A dict containing Brain Vision specific parameters.
-    events : array, [n_events x 3]
+    events : array, shape (n_events, 3)
         Events from the corresponding vmrk file.
     """
 
