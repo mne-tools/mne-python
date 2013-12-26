@@ -1119,8 +1119,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
     if sensors:
         if sensors is True:
             sensors = 'k,'
-        else:
-            ax.plot(pos_x, pos_y, sensors)
+        ax.plot(pos_x, pos_y, sensors)
 
     if ids is not None:
         for p, ch_id in zip(pos, ids): 
