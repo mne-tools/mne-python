@@ -11,6 +11,7 @@ import inspect
 from nose.tools import assert_equal
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
+import mne
 from mne.utils import _TempDir
 from mne.fiff import Raw, pick_types
 from mne.fiff.brainvision import read_raw_brainvision
@@ -52,15 +53,32 @@ def test_brainvision_data():
     assert_array_almost_equal(times_py, times_bin)
 
 
-def test_fix_ptb_events():
-    """Test fixing events recorded with the ptb/stimtracker setup"""
-    raw = read_raw_brainvision(vhdr_path, fix_ptb_events=True, preload=True)
-    events = [[ 487, 497, 2],
-              [1770, 1780, 1],
-              [3253, 3263, 1],
-              [4936, 4946, 2],
-              [6620, 6630, 1]]
-    assert_array_equal(raw._events, events)
+def test_events():
+    """Test reading and modifying events"""
+    raw = read_raw_brainvision(vhdr_path, preload=True)
+
+    # check that events are read and stim channel is synthesized correcly
+    events = raw.get_brainvision_events()
+    assert_array_equal(events, [[ 487, 488, 253],
+                                [ 497, 498, 255],
+                                [1770, 1771, 254],
+                                [1780, 1781, 255],
+                                [3253, 3254, 254],
+                                [3263, 3264, 255],
+                                [4936, 4937, 253],
+                                [4946, 4947, 255],
+                                [6620, 6621, 254],
+                                [6630, 6631, 255]])
+
+    mne_events = mne.find_events(raw)
+    assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
+
+    # modify events and check that stim channel is updated
+    index = events[:, 2] == 255
+    events = events[index]
+    raw.set_brainvision_events(events)
+    mne_events = mne.find_events(raw)
+    assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
 
 def test_read_segment():
