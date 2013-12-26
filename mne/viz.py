@@ -23,6 +23,8 @@ import webbrowser
 
 import copy
 import inspect
+import glob
+
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
@@ -36,13 +38,14 @@ from .baseline import rescale
 from .utils import (get_subjects_dir, get_config, set_config, _check_subject,
                     logger, verbose)
 from .fiff import show_fiff, FIFF
-from .fiff.pick import channel_type, pick_types
+from .fiff.pick import channel_type, pick_types, pick_types_evoked
 from .fiff.proj import make_projector, setup_proj
 from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
 from .externals import six
-
+from .transforms import read_trans
+from .surface import get_head_surface, get_meg_helmet_surf
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -3588,4 +3591,155 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     if show:
         plt.show()
 
+    return fig
+
+
+def plot_evoked_field_lines(evoked, trans_fname=None, subject=None,
+                            subjects_dir=None, time=None, n_jobs=1,
+                            time_label='t = %0.0f ms'):
+    """Plot field lines on head surface and helmet
+
+    Note. This function uses on-the-fly-caching to improve speed
+    on iterating over time points. To empty the cache delete the
+    private `_surf_maps` attribute added to evoked when called
+    for the first time:
+    >>>del evoked._surf_maps
+
+    When eeg channels are present inside the evoked, the corresponding
+    field lines will be shown on the scalp surface. Else only helmet
+    field lines will be shown.
+
+    Parameters
+    ----------
+    evoked : instance of mne.fiff.Evoked
+        The evoked object.
+    time : float | None
+        The time point at which the field map shall be displayed. If None,
+        the average peak latency (across sensor types) is used.
+    trans_fname : str | None
+        The full path to the `*-trans.fif` file produced during
+        coregistration. If None
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None stc.subject will be used. If that
+        is None, the environment will be used.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    time_label : str
+        How to print info about the time instant visualized.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    """
+    from .forward import make_surface_mapping
+
+    if subject is None:
+        if 'SUBJECT' in os.environ:
+            subject = os.environ['SUBJECT']
+        else:
+            raise ValueError('SUBJECT environment variable not set')
+
+    if trans_fname is None:
+        trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
+                                              '*-trans.fif'))
+        if len(trans_fnames) < 1:
+            raise RuntimeError('Could not find the transformation for '
+                               '{subject}'.format(subject=subject))
+        elif len(trans_fnames) > 1:
+            raise RuntimeError('Found multiple transformations for '
+                               '{subject}'.format(subject=subject))
+        trans_fname_ = trans_fnames[0]
+    else:
+        trans_fname_ = trans_fname
+
+    # let's do this in MRI coordinates so they're easy to plot
+    trans = read_trans(trans_fname_)
+    helmet_surf = get_meg_helmet_surf(evoked.info, trans)
+    head_surf = get_head_surface(subject, subjects_dir=subjects_dir)
+
+    types =  list(set([channel_type(evoked.info, idx) for idx, _ in
+                       enumerate(evoked.ch_names)]))
+    types = [t for t in types if t in ['eeg', 'grad', 'mag']]
+
+    time_idx = None
+    if time is None:
+        time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
+    if not evoked.times[0] <= time <= evoked.times[-1]:
+        raise ValueError('`time` (%0.3f) must be inside `evoked.times`' % time)
+    time_idx = np.argmin(np.abs(evoked.times - time))
+
+    types = ' '.join(types).replace('mag', 'meg')
+    types = list(set(types.replace('grad', 'meg').split()))
+    types = [(t, True if t == 'meg' else False, True if t == 'eeg' else False)
+             for t in types]
+
+    surf_mappings = list()
+    # let's allow for some ad-hoc caching.
+    if not hasattr(evoked, '_surf_maps'):
+        evoked._surf_maps = dict()
+
+    for my_type, meg, eeg in types:
+        if my_type == 'meg':
+            surf = helmet_surf
+        else:
+            surf = head_surf
+        if my_type not in evoked._surf_maps:
+            my_map = make_surface_mapping(evoked.info, surf, my_type, trans,
+                                          n_jobs=n_jobs)
+            evoked._surf_maps[my_type] = my_map
+        else:
+            my_map = evoked._surf_maps[my_type]
+
+
+        evoked_my_type = pick_types_evoked(evoked, meg=meg, eeg=eeg)
+        my_map_data = np.dot(my_map, evoked_my_type.data[:, time_idx])
+        surf_mappings.append((surf, my_map_data))
+
+    # Plot them
+    from mayavi import mlab
+    alphas = [1.0, 0.5]
+    colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
+    colormap = mne_analyze_colormap(format='mayavi')
+    colormap_lines = np.concatenate([np.tile([0., 0., 255., 255.], (127, 1)),
+                                     np.tile([0., 0., 0., 255.], (2, 1)),
+                                     np.tile([255., 0., 0., 255.], (127, 1))])
+
+    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+
+    for ii, (surf, data) in enumerate(surf_mappings):
+        x, y, z = surf['rr'].T
+        nn = surf['nn']
+        # make absolutely sure these are normalized for Mayavi
+        nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
+
+        # Make a solid surface
+        vlim = np.max(np.abs(data))
+        alpha = alphas[ii]
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
+        hsurf = mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
+
+        # Now show our field pattern
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
+                                                    scalars=data)
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
+        fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim)
+        fsurf.module_manager.scalar_lut_manager.lut.table = colormap
+
+        # And the field lines on top
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
+                                                    scalars=data)
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
+        cont = mlab.pipeline.contour_surface(mesh, contours=21, line_width=1.0,
+                                             vmin=-vlim, vmax=vlim,
+                                             opacity=alpha)
+        cont.module_manager.scalar_lut_manager.lut.table = colormap_lines
+
+    if '%' in time_label:
+        time_label %= (1e3 * evoked.times[time_idx])
+    mlab.text(0.01, 0.01, text_str, width=0.4)
+    mlab.view(10, 60)
     return fig

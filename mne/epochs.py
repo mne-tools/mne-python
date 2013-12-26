@@ -1450,6 +1450,10 @@ class Epochs(_BaseEpochs):
 
         return epochs_ts
 
+    def __contains__(self, ch_type):
+        print 43
+        return False
+
     def equalize_event_counts(self, event_ids, method='mintime', copy=True):
         """Equalize the number of trials in each condition
 
