@@ -104,9 +104,8 @@ def _data_path(path=None, force_update=False, update_path=True,
         return ''
 
     if not op.exists(folder_path) or force_update:
-        logger.info('Sample data archive %s not found at:\n%s\n'
-                    'It will be downloaded and extracted at this location.'
-                    % (archive_name, folder_path))
+        logger.info('Downloading or reinstalling data archive %s at location %s' % 
+                    (archive_name, path))
 
         if op.exists(martinos_path):
             archive_name = martinos_path
@@ -115,26 +114,27 @@ def _data_path(path=None, force_update=False, update_path=True,
         else:
             archive_name = op.join(path, archive_name)
             rm_archive = True
+            fetch_archive = True
             if op.exists(archive_name):
-                msg = ('Archive already exists at %r. Overwrite it '
-                       '(y/[n])? ' % archive_name)
+                msg = ('Archive already exists. Overwrite it (y/[n])? ')
                 answer = raw_input(msg)
                 if answer.lower() == 'y':
                     os.remove(archive_name)
                 else:
-                    raise IOError('Archive file already exists at target '
-                                  'location %r.' % archive_name)
+                    fetch_archive = False
 
-            _fetch_file(url, archive_name, print_destination=False)
+            if fetch_archive:
+                _fetch_file(url, archive_name, print_destination=False)
 
         if op.exists(folder_path):
             shutil.rmtree(folder_path)
 
-        logger.info('Decompressiong the archive: ' + archive_name)
+        logger.info('Decompressing the archive: ' + archive_name)
         logger.info('... please be patient, this can take some time')
         for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
             try:
                 tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)
+                break
             except tarfile.ReadError as err:
                 logger.info('%s is %s trying "bz2"' % (archive_name, err))
 
