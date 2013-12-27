@@ -857,7 +857,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         be show.
     show : bool
         Call pyplot.show() at the end.
-    show_names : plot
+    show_names : bool
         Show channel names on top of the map.
     """
     import matplotlib.pyplot as plt

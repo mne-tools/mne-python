@@ -444,7 +444,7 @@ class Evoked(ProjMixin):
             projection vectors will be shown.
         show : bool
             Call pyplot.show() at the end.
-        show_names : plot
+        show_names : bool
             Show channel names on top of the map.
         """
         plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
