@@ -857,8 +857,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         be show.
     show : bool
         Call pyplot.show() at the end.
-    show_names : bool
-        Show channel names on top of the map.
+    show_names : bool | callable
+        If True, show channel names on top of the map. If a callable is
+        passed, channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        lambda x: x.replace('MEG ')
     """
     import matplotlib.pyplot as plt
 
@@ -912,8 +915,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     images = []
     for i, t in enumerate(times):
         plt.subplot(1, nax, i + 1)
-        images.append(plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap,
-                      sensors=sensors, res=res, names=names))
+        tp = plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap, 
+                          sensors=sensors, res=res, names=names, 
+                          show_names=show_names)
+        images.append(tp)
         plt.title('%i ms' % (t * 1000))
 
     if colorbar:
@@ -1072,7 +1077,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
 
 
 def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
-                 axis=None, names=None):
+                 axis=None, names=None, show_names=False):
     """Plot a topographic map as image
 
     Parameters
@@ -1095,6 +1100,11 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
         The axis to plot to. If None, the current axis will be used.
     names : list | None
         List of channel names. If None, channel names are not plotted. 
+    show_names : bool | callable
+        If True, show channel names on top of the map. If a callable is
+        passed, channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        lambda x: x.replace('MEG ')
     """
     import matplotlib.pyplot as plt
     from matplotlib import delaunay
@@ -1125,8 +1135,11 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
             sensors = 'k,'
         ax.plot(pos_x, pos_y, sensors)
 
-    if names is not None:
+    if show_names:
+        if show_names is True:
+            show_names = lambda x: x
         for p, ch_id in zip(pos, names): 
+            ch_id = show_names(ch_id)
             ax.text(p[0], p[1], ch_id, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
 
