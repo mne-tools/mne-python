@@ -71,11 +71,18 @@ def _get_meg_system(info):
 
 def contains_ch_type(info, ch_type):
     """Check whether a certain channel is in an info object
+    
     Parameters
+    ---------
     info : instance of mne.fiff.meas_info.Info
         The measurement information.
     ch_type : str
         the channel type to be checked for
+    
+    Returns
+    -------
+    has_ch_type : bool
+        Whether the channel type is present or not.
     """
     if not isinstance(ch_type, string_types):
         raise ValueError('`ch_type` is of class {actual_class}. It must be '
