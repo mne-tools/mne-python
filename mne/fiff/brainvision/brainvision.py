@@ -199,7 +199,7 @@ class RawBrainVision(Raw):
         Returns
         -------
         events : array, shape (n_events, 3)
-            Events, each row consisting of an (onset, offset, trigger)
+            Events, each row consisting of an (onset, duration, trigger)
             sequence.
         """
         return self._events.copy()
@@ -210,7 +210,7 @@ class RawBrainVision(Raw):
         Parameters
         ----------
         events : array, shape (n_events, 3)
-            Events, each row consisting of an (onset, offset, trigger)
+            Events, each row consisting of an (onset, duration, trigger)
             sequence.
         """
         events = np.asarray(events)
@@ -236,7 +236,7 @@ def _read_vmrk_events(fname):
     -------
     events : array, shape (n_events, 3)
         An array containing the whole recording's events, each row representing
-        an event as (onset, offset, trigger) sequence.
+        an event as (onset, duration, trigger) sequence.
     """
     # read vmrk file
     with open(fname) as f:
@@ -254,8 +254,7 @@ def _read_vmrk_events(fname):
             trigger = int(re.findall('S\s?(\d+)', mdesc)[0])
             onset = int(onset)
             duration = int(duration)
-            offset = onset + duration
-            events.append((onset, offset, trigger))
+            events.append((onset, duration, trigger))
 
     events = np.array(events)
     return events
@@ -267,7 +266,7 @@ def _synthesize_stim_channel(events, start, stop):
     Parameters
     ----------
     events : array, shape (n_events, 3)
-        Each row representing an event as (onset, offset, trigger) sequence
+        Each row representing an event as (onset, duration, trigger) sequence
         (the format returned by _read_vmrk_events).
     start : int
         First sample to return.
@@ -280,20 +279,22 @@ def _synthesize_stim_channel(events, start, stop):
         An array containing the whole recording's event marking
     """
     # select events overlapping buffer
-    idx = np.logical_and(events[:, 0] < stop, events[:, 1] > start)
+    onset = events[:, 0]
+    offset = onset + events[:, 1]
+    idx = np.logical_and(onset < stop, offset > start)
     events = events[idx]
 
-    # make onset and offset relative to buffer
-    events[:, :2] -= start
+    # make onset relative to buffer
+    events[:, 0] -= start
 
-    # fix start
+    # fix onsets before buffer start
     idx = events[:, 0] < 0
     events[idx, 0] = 0
 
     # create output buffer
     stim_channel = np.zeros(stop - start)
-    for onset, offset, trigger in events:
-        stim_channel[onset:offset] = trigger
+    for onset, duration, trigger in events:
+        stim_channel[onset:onset + duration] = trigger
 
     return stim_channel
 

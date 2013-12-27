@@ -59,16 +59,16 @@ def test_events():
 
     # check that events are read and stim channel is synthesized correcly
     events = raw.get_brainvision_events()
-    assert_array_equal(events, [[ 487, 488, 253],
-                                [ 497, 498, 255],
-                                [1770, 1771, 254],
-                                [1780, 1781, 255],
-                                [3253, 3254, 254],
-                                [3263, 3264, 255],
-                                [4936, 4937, 253],
-                                [4946, 4947, 255],
-                                [6620, 6621, 254],
-                                [6630, 6631, 255]])
+    assert_array_equal(events, [[ 487, 1, 253],
+                                [ 497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6620, 1, 254],
+                                [6630, 1, 255]])
 
     mne_events = mne.find_events(raw)
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
