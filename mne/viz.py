@@ -861,7 +861,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ')
+        lambda x: x.replace('MEG ', '')
     """
     import matplotlib.pyplot as plt
 
@@ -1104,7 +1104,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ')
+        lambda x: x.replace('MEG ', '')
     """
     import matplotlib.pyplot as plt
     from matplotlib import delaunay
