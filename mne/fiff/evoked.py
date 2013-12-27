@@ -398,7 +398,7 @@ class Evoked(ProjMixin):
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmax=None,
                      cmap='RdBu_r', sensors='k,', colorbar=True, scale=None,
                      unit=None, res=256, size=1, format="%3.1f", proj=False,
-                     show=True, show_ids=False):
+                     show=True, show_names=False):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -444,12 +444,14 @@ class Evoked(ProjMixin):
             projection vectors will be shown.
         show : bool
             Call pyplot.show() at the end.
+        show_names : plot
+            Show channel names on top of the map.
         """
         plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
                             vmax=vmax, cmap=cmap, sensors=sensors,
                             colorbar=colorbar, scale=scale, unit=unit, res=res,
                             proj=proj, size=size, format=format, 
-                            show_ids=show_ids)
+                            show_names=show_names)
 
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime

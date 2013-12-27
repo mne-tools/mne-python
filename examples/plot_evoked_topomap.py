@@ -31,5 +31,8 @@ times = np.arange(0.05, 0.15, 0.01)
 # plot magnetometer data as topomaps
 evoked.plot_topomap(times, ch_type='mag')
 
+# add channel labels
+evoked.plot_topomap(0.1, ch_type='mag', show_ids=True, colorbar=False, size=8)
+
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
 evoked.plot_topomap(times, ch_type='grad')

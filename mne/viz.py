@@ -10,7 +10,6 @@ from __future__ import print_function
 # License: Simplified BSD
 from .externals.six import string_types
 import os
-import re
 import warnings
 from itertools import cycle
 from functools import partial
@@ -812,7 +811,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
                         scale=None, unit=None, res=256, size=1, format='%3.1f',
-                        proj=False, show=True, show_ids=False):
+                        proj=False, show=True, show_names=False):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -858,6 +857,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         be show.
     show : bool
         Call pyplot.show() at the end.
+    show_names : plot
+        Show channel names on top of the map.
     """
     import matplotlib.pyplot as plt
 
@@ -882,9 +883,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             raise ValueError('Times should be between %0.3f and %0.3f. (Got '
                              '%0.3f).' % (tmin, tmax, t))
 
-    picks, pos, merge_grads, ids = _prepare_topo_plot(evoked, ch_type, layout)
-    if not show_ids:
-        ids = None
+    picks, pos, merge_grads, names = _prepare_topo_plot(evoked, ch_type,
+                                                        layout)
+    if not show_names:
+        names = None
 
     n = len(times)
     nax = n + bool(colorbar)
@@ -911,7 +913,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     for i, t in enumerate(times):
         plt.subplot(1, nax, i + 1)
         images.append(plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap,
-                      sensors=sensors, res=res, ids=ids))
+                      sensors=sensors, res=res, names=names))
         plt.title('%i ms' % (t * 1000))
 
     if colorbar:
@@ -1070,7 +1072,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
 
 
 def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
-                 axis=None, ids=None):
+                 axis=None, names=None):
     """Plot a topographic map as image
 
     Parameters
@@ -1091,6 +1093,8 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
         The resolution of the topomap image (n pixels along each side).
     axis : instance of Axes | None
         The axis to plot to. If None, the current axis will be used.
+    names : list | None
+        List of channel names. If None, channel names are not plotted. 
     """
     import matplotlib.pyplot as plt
     from matplotlib import delaunay
@@ -1121,10 +1125,10 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
             sensors = 'k,'
         ax.plot(pos_x, pos_y, sensors)
 
-    if ids is not None:
-        for p, ch_id in zip(pos, ids): 
+    if names is not None:
+        for p, ch_id in zip(pos, names): 
             ax.text(p[0], p[1], ch_id, horizontalalignment='center',
-                    verticalalignment='center')
+                    verticalalignment='center', size='x-small')
 
     xmin, xmax = pos_x.min(), pos_x.max()
     ymin, ymax = pos_y.min(), pos_y.max()
@@ -1937,7 +1941,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
 
-    picks, pos, merge_grads, ids = _prepare_topo_plot(ica, ch_type, layout)
+    picks, pos, merge_grads, names = _prepare_topo_plot(ica, ch_type, layout)
     data = np.atleast_2d(data)
     data = data[:, picks]
 
@@ -2013,16 +2017,7 @@ def _prepare_topo_plot(obj, ch_type, layout):
             pos = [layout.pos[layout.names.index(info['ch_names'][k])] for k in
                    picks]
 
-    regex = re.compile(r'(\d+)')
-    ids = []
-    for name in info['ch_names']:
-        match = regex.search(name) 
-        if match is None:
-            ids.append(name)
-        else:
-            ids.append(int(match.group(1)))
-
-    return picks, pos, merge_grads, ids
+    return picks, pos, merge_grads, info['ch_names']
 
 
 def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
