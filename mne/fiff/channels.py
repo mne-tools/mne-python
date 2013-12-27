@@ -69,8 +69,8 @@ def _get_meg_system(info):
     return system
 
 
-def contains_ch_type(info, ch_type):
-    """Check whether a certain channel is in an info object
+def _contains_ch_type(info, ch_type):
+    """Check whether a certain channel type is in an info object
     
     Parameters
     ---------
@@ -104,4 +104,4 @@ class ContainsMixin(object):
     """
     def __contains__(self, ch_type):
         """Check channel type membership"""
-        return contains_ch_type(self.info, ch_type)
+        return _contains_ch_type(self.info, ch_type)
