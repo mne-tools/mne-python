@@ -25,6 +25,7 @@ from .tag import read_tag
 from .pick import pick_types, channel_type
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
+from .channels import ContainsMixin
 from .compensator import get_current_comp, set_current_comp, make_compensator
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
@@ -35,7 +36,7 @@ from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 
 
-class Raw(ProjMixin):
+class Raw(ProjMixin, ContainsMixin):
     """Raw data
 
     Parameters

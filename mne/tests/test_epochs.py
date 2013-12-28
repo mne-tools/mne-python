@@ -18,6 +18,7 @@ from mne import fiff, Epochs, read_events, pick_events, read_epochs
 from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 from mne.fiff import read_evoked
+from mne.fiff.channels import ContainsMixin
 from mne.fiff.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.externals.six.moves import zip
@@ -892,3 +893,23 @@ def test_drop_epochs_mult():
             assert_equal(epochs1.drop_log, epochs2.drop_log)
             assert_array_equal(epochs1.events, epochs2.events)
             assert_array_equal(epochs1.selection, epochs2.selection)
+
+
+def test_contains():
+    """Test membership API"""
+
+    tests = [(('mag', False), ('grad', 'eeg')),
+             (('grad', False), ('mag', 'eeg')),
+             ((False, True), ('grad', 'mag'))]
+    
+    for (meg, eeg), others in tests:
+        picks_contains = fiff.pick_types(raw.info, meg=meg, eeg=eeg)
+        epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax,
+                        picks=picks_contains, reject=None,
+                        preload=False)
+        test = 'eeg' if eeg is True else meg
+        assert_true(test in epochs)
+        assert_true(not any(o in epochs for o in others))
+    
+    assert_raises(ValueError, epochs.__contains__, 'foo')
+    assert_raises(ValueError, epochs.__contains__, 1)

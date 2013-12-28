@@ -28,6 +28,7 @@ from .fiff import Evoked, FIFF
 from .fiff.pick import (pick_types, channel_indices_by_type, channel_type,
                         pick_channels)
 from .fiff.proj import setup_proj, ProjMixin
+from .fiff.channels import ContainsMixin
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
@@ -41,7 +42,7 @@ from .externals import six
 from .externals.six.moves import zip
 
 
-class _BaseEpochs(ProjMixin):
+class _BaseEpochs(ProjMixin, ContainsMixin):
     """Abstract base class for Epochs-type classes
 
     This class provides basic functionality and should never be instantiated
