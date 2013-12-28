@@ -256,7 +256,7 @@ class RawBrainVision(Raw):
 
         # update events
         self._events = events
-        if self._preloaded:
+        if has_events and self._preloaded:
             start = self.first_samp
             stop = self.last_samp + 1
             self._data[-1] = _synthesize_stim_channel(events, start, stop)
