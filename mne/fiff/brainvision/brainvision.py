@@ -63,16 +63,21 @@ class RawBrainVision(Raw):
             elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None,
                          None] + list(ch_names)
 
+        # Preliminary Raw attributes
+        self._events = np.empty((0, 3))
+        self._preloaded = False
+
+        # Channel info and events
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        self.info, self._eeg_info, self._events = _get_eeg_info(vhdr_fname,
-                                                                elp_fname,
-                                                                elp_names)
+        self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
+                                                          elp_fname,
+                                                          elp_names)
+        self.set_brainvision_events(events)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
         self.verbose = verbose
-        self._preloaded = False
         self.fids = list()
         self._projector = None
         self.comp = None  # no compensation for EEG
@@ -213,10 +218,43 @@ class RawBrainVision(Raw):
             Events, each row consisting of an (onset, duration, trigger)
             sequence.
         """
-        events = np.asarray(events)
+        events = np.copy(events)
         if not events.ndim == 2 and events.shape[1] == 3:
             raise ValueError("[n_events x 3] shaped array required")
 
+        # update info based on presence of stim channel
+        had_events = bool(len(self._events))
+        has_events = bool(len(events))
+        if had_events and not has_events:  # remove stim channel
+            if self.info['ch_names'][-1] != 'STI 014':
+                err = "Last channel is not stim channel; info was modified"
+                raise RuntimeError(err)
+            self.info['nchan'] -= 1
+            del self.info['ch_names'][-1]
+            del self.info['chs'][-1]
+            if self._preloaded:
+                self._data = self._data[:-1]
+        elif has_events and not had_events:  # add stim channel
+            idx = len(self.info['chs']) + 1
+            chan_info = {'ch_name': 'STI 014',
+                         'kind': FIFF.FIFFV_STIM_CH,
+                         'coil_type': FIFF.FIFFV_COIL_NONE,
+                         'logno': idx,
+                         'scanno': idx,
+                         'cal': 1,
+                         'range': 1,
+                         'unit_mul':  0,
+                         'unit': FIFF.FIFF_UNIT_NONE,
+                         'eeg_loc': np.zeros(3),
+                         'loc': np.zeros(12)}
+            self.info['nchan'] += 1
+            self.info['ch_names'].append(chan_info['ch_name'])
+            self.info['chs'].append(chan_info)
+            if self._preloaded:
+                shape = (1, self._data.shape[1])
+                self._data = np.vstack((self._data, np.empty(shape)))
+
+        # update events
         self._events = events
         if self._preloaded:
             start = self.first_samp
@@ -540,23 +578,6 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
 
     # for stim channel
     events = _read_vmrk_events(eeg_info['marker_id'])
-
-    if len(events):
-        chan_info = {}
-        chan_info['ch_name'] = 'STI 014'
-        chan_info['kind'] = FIFF.FIFFV_STIM_CH
-        chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-        chan_info['logno'] = idx + 1
-        chan_info['scanno'] = idx + 1
-        chan_info['cal'] = 1
-        chan_info['range'] = 1
-        chan_info['unit_mul'] = 0
-        chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-        chan_info['eeg_loc'] = np.zeros(3)
-        chan_info['loc'] = np.zeros(12)
-        info['nchan'] = n_chan + 1
-        info['ch_names'].append(chan_info['ch_name'])
-        info['chs'].append(chan_info)
 
     return info, eeg_info, events
 

@@ -9,6 +9,7 @@ import os.path as op
 import inspect
 
 from nose.tools import assert_equal
+import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import mne
@@ -79,6 +80,24 @@ def test_events():
     raw.set_brainvision_events(events)
     mne_events = mne.find_events(raw)
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
+
+    # remove events
+    nchan = raw.info['nchan']
+    ch_name = raw.info['chs'][-2]['ch_name']
+    events = np.empty((0, 3))
+    raw.set_brainvision_events(events)
+    assert_equal(raw.info['nchan'], nchan - 1)
+    assert_equal(len(raw._data), nchan - 1)
+    assert_equal(raw.info['chs'][-1]['ch_name'], ch_name)
+    fname = op.join(tempdir, 'raw_evt.fif')
+    raw.save(fname)
+
+    # add events back in
+    events = [[10, 1, 2]]
+    raw.set_brainvision_events(events)
+    assert_equal(raw.info['nchan'], nchan)
+    assert_equal(len(raw._data), nchan)
+    assert_equal(raw.info['chs'][-1]['ch_name'], 'STI 014')
 
 
 def test_read_segment():
