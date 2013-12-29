@@ -546,7 +546,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
         ch_locs = None
 
     missing_positions = []
-    idxs = xrange(1, len(ch_names) + 1)
+    idxs = range(1, len(ch_names) + 1)
     for idx, ch_name, cal, unit_mul in zip(idxs, ch_names, cals, units):
         if ch_locs is None:
             loc = np.zeros(3)
