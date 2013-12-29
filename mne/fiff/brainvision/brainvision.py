@@ -545,8 +545,16 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
     else:
         ch_locs = None
 
-    for idx, ch_info in enumerate(zip(ch_names, cals, units), 1):
-        ch_name, cal, unit_mul = ch_info
+    missing_positions = []
+    idxs = xrange(1, len(ch_names) + 1)
+    for idx, ch_name, cal, unit_mul in zip(idxs, ch_names, cals, units):
+        if ch_locs is None:
+            loc = np.zeros(3)
+        elif ch_name in ch_locs:
+            loc = ch_locs[ch_name]
+        else:
+            loc = np.zeros(3)
+            missing_positions.append(ch_name)
         chan_info = {}
         chan_info['ch_name'] = ch_name
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
@@ -558,14 +566,6 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
         chan_info['unit_mul'] = unit_mul
         chan_info['unit'] = FIFF.FIFF_UNIT_V
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        missing_positions = []
-        if ch_locs is None:
-            loc = np.zeros(3)
-        elif ch_name in ch_locs:
-            loc = ch_locs[ch_name]
-        else:
-            loc = np.zeros(3)
-            missing_positions.append(ch_name)
         chan_info['eeg_loc'] = loc
         chan_info['loc'] = np.hstack((loc, np.zeros(9)))
         info['chs'].append(chan_info)

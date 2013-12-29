@@ -23,13 +23,13 @@ vhdr_path = op.join(data_dir, 'test.vhdr')
 elp_path = op.join(data_dir, 'test_elp.txt')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None, None,
-             'FP1', 'VEOGt', 'F7', 'GND', 'F8',
-             'FC5', 'F3', 'FZ', 'F4', 'FC6',
-             'FC1', 'FCZ', 'FC2', 'CP5', 'C3',
-             'CZ', 'C4', 'CP6', 'CP1', 'CPZ',
-             'CP2', 'P7', 'P3', 'PZ', 'P4',
-             'P8', 'O1', 'POZ', 'O2', 'A1',
-             'ReRef', 'HEOGL', 'HEOGR', 'VEOGb']
+             'FP1', 'FP2', 'F7', 'GND', 'F8',
+             'FC5', 'F3', 'Fz', 'F4', 'FC6',
+             'FC1', 'FCz', 'FC2', 'CP5', 'C3',
+             'Cz', 'C4', 'CP6', 'CP1', 'CPz',
+             'CP2', 'P7', 'P3', 'Pz', 'P4',
+             'P8', 'O1', 'POz', 'O2', 'A1',
+             'ReRef', 'HL', 'HR', 'Vb']
 
 tempdir = _TempDir()
 
