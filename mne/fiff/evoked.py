@@ -451,11 +451,11 @@ class Evoked(ProjMixin, ContainsMixin):
             delete the prefix 'MEG ' from all channel names, pass the function
             lambda x: x.replace('MEG ', '')
         """
-        plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
-                            vmax=vmax, cmap=cmap, sensors=sensors,
-                            colorbar=colorbar, scale=scale, unit=unit, res=res,
-                            proj=proj, size=size, format=format, 
-                            show_names=show_names)
+        return plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
+                                   vmax=vmax, cmap=cmap, sensors=sensors, 
+                                   colorbar=colorbar, scale=scale, unit=unit,
+                                   res=res, proj=proj, size=size, format=format,
+                                   show_names=show_names)
 
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime
