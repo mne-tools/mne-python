@@ -511,7 +511,7 @@ class Evoked(ProjMixin, ContainsMixin):
         else:
             if not in1d(picks, np.arange(len(self.ch_names))).all():
                 raise ValueError('At least one picked channel is not present '
-                                 'in this eppochs instance.')
+                                 'in this Evoked instance.')
 
         data, times = self.data, self.times
 
