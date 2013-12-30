@@ -6,7 +6,8 @@ Plotting topographic maps of evoked data
 Load evoked data and plot topomaps for selected time points.
 
 """
-# Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
+# Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
+#          Tal Linzen <linzen@nyu.edu>
 #
 # License: BSD (3-clause)
 

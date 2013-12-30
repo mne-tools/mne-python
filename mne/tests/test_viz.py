@@ -2,9 +2,8 @@ import os.path as op
 from functools import wraps
 import numpy as np
 from numpy.testing import assert_raises, assert_equal
+from nose.tools import assert_true
 import warnings
-
-import nose
 
 from mne import fiff, read_events, Epochs, SourceEstimate, read_cov, read_proj
 from mne.layouts import read_layout
@@ -452,9 +451,8 @@ def test_plot_topomap():
                                 show_names=lambda x: x.replace('MEG', ''))
         subplot = [x for x in p.get_children() if
                    isinstance(x, matplotlib.axes.Subplot)][0]
-        nose.tools.assert_true(all('MEG' not in x.get_text()
-                                   for x in subplot.get_children() if
-                                   isinstance(x, matplotlib.text.Text)))
+        assert_true(all('MEG' not in x.get_text() for x in subplot.get_children()
+                        if isinstance(x, matplotlib.text.Text)))
 
         with warnings.catch_warnings(record=True):  # delaunay triangulation warning
             plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
