@@ -522,7 +522,7 @@ def requires_statsmodels(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            from tvtk.api import tvtk  # analysis:ignore
+            import statsmodels
         except ImportError:
             skip = True
 
@@ -530,6 +530,53 @@ def requires_statsmodels(function):
             from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires statsmodels'
                            % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+def requires_patsy(function):
+    """
+    Decorator to skip test if patsy is not available. Patsy should be a statsmodels
+    dependency but apparently it's possible to install statsmodels without it.
+    """
+    @wraps(function)
+    def dec(*args, **kwargs):
+        skip = False
+        try:
+            import patsy
+        except ImportError:
+            skip = True
+
+        if skip is True:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires patsy'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+def requires_sklearn(function):
+    """Decorator to skip test if sklearn is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        required_version = '0.14'
+        skip = False
+        try:
+            import sklearn
+            version = LooseVersion(sklearn.__version__)
+            if version < required_version:
+                skip = True
+        except ImportError:
+            skip = True
+
+        if skip is True:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires sklearn (version >= %s)' %
+                           (function.__name__, required_version))
         ret = function(*args, **kwargs)
 
         return ret
@@ -547,7 +594,6 @@ def make_skipper_dec(module, skip_str):
     return np.testing.dec.skipif(skip, skip_str)
 
 
-requires_sklearn = make_skipper_dec('sklearn', 'scikit-learn not installed')
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
 requires_traits = make_skipper_dec('traits', 'traits not installed')
 
