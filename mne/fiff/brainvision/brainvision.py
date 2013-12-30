@@ -56,7 +56,8 @@ class RawBrainVision(Raw):
     """
     @verbose
     def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
-                 preload=False, reference=None, ch_names=None, verbose=None):
+                 preload=False, reference=None,
+                 eog=['HEOGL', 'HEOGR', 'VEOGb'], ch_names=None, verbose=None):
         # backwards compatibility
         if ch_names is not None:
             if elp_names is not None:
@@ -77,7 +78,7 @@ class RawBrainVision(Raw):
         vhdr_fname = os.path.abspath(vhdr_fname)
         self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
                                                           elp_fname, elp_names,
-                                                          reference)
+                                                          reference, eog)
         self.set_brainvision_events(events)
         logger.info('Creating Raw.info structure...')
 
@@ -391,7 +392,7 @@ def _get_elp_locs(elp_fname, elp_names):
     return chs_neuromag
 
 
-def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, reference=None):
+def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
     """Extracts all the information from the header file.
 
     Parameters
@@ -588,16 +589,21 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, reference=None):
     missing_positions = []
     idxs = range(1, len(ch_names) + 1)
     for idx, ch_name, cal, unit_mul in zip(idxs, ch_names, cals, units):
+        is_eog = ch_name in eog
         if ch_locs is None:
             loc = np.zeros(3)
         elif ch_name in ch_locs:
             loc = ch_locs[ch_name]
         else:
             loc = np.zeros(3)
-            missing_positions.append(ch_name)
+            if not is_eog:
+                missing_positions.append(ch_name)
         chan_info = {}
         chan_info['ch_name'] = ch_name
-        chan_info['kind'] = FIFF.FIFFV_EEG_CH
+        if is_eog:
+            chan_info['kind'] = FIFF.FIFFV_EOG_CH
+        else:
+            chan_info['kind'] = FIFF.FIFFV_EEG_CH
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['logno'] = idx
         chan_info['scanno'] = idx
@@ -613,7 +619,9 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, reference=None):
     # raise error if positions are missing
     if missing_positions:
         err = ("The following positions are missing from the ELP "
-               "definitions: %s" % str(missing_positions))
+               "definitions: %s. If those channels lack positions because "
+               "they are EOG channels use the eog "
+               "parameter" % str(missing_positions))
         raise KeyError(err)
 
     # for stim channel
@@ -623,7 +631,8 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, reference=None):
 
 
 def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
-                         preload=False, reference=None, ch_names=None,
+                         preload=False, reference=None,
+                         eog=['HEOGL', 'HEOGR', 'VEOGb'], ch_names=None,
                          verbose=None):
     """Reader for Brain Vision EEG file
 
@@ -656,5 +665,5 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
-                         reference, ch_names, verbose)
+                         reference, eog, ch_names, verbose)
     return raw
