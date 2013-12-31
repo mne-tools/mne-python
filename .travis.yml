@@ -20,13 +20,24 @@ install:
     - sudo $EASY_INSTALL pip
     - if [ "${OPTDEPS}" == "T" ]; then
         wget -O- http://neuro.debian.net/lists/precise.us-nh.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
         sudo $PIP install nibabel;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
         sudo $PIP install scikit-learn;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
+        sudo $PIP install patsy;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
+        sudo $PIP install statsmodels;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
         sudo apt-get --no-install-recommends install $PYTHON-pandas;
-        sudo apt-get --no-install-recommends install $PYTHON-pandas-lib;
-        if [ "${PYSUF}" != "3" ]; then
+      fi
+    - if [ "${PYSUF}" != "3" ] && [ "${OPTDEPS}" == "T" ]; then
           sudo $PIP install nitime;
-        fi
       fi
     - if [ "${PYSUF}" != "3" ]; then
         sudo apt-get --no-install-recommends install $PYTHON-matplotlib;
