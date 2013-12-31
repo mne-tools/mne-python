@@ -24,10 +24,12 @@ install:
         sudo $PIP install scikit-learn;
         sudo apt-get --no-install-recommends install $PYTHON-pandas;
         sudo apt-get --no-install-recommends install $PYTHON-pandas-lib;
+        if [ "${PYSUF}" != "3" ]; then
+          sudo $PIP install nitime;
+        fi
       fi
     - if [ "${PYSUF}" != "3" ]; then
         sudo apt-get --no-install-recommends install $PYTHON-matplotlib;
-        sudo $PIP install nitime;
         sudo $PIP install coverage;
         sudo $PIP install coveralls;
       else
