@@ -1,4 +1,8 @@
+# coding: utf8
+
 from __future__ import print_function
+from __future__ import unicode_literals
+
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #         Denis Engemann <d.engemann@fz-juelich.de>
 #
@@ -19,6 +23,7 @@ from mne.fiff import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
 from mne import concatenate_events, find_events
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess)
+from mne.externals.six import text_type
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -350,6 +355,12 @@ def test_io_raw():
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
+
+    raw = Raw(fname)
+    raw.info['description'] = text_type('äöé')
+    temp_file = op.join(tempdir, 'raw.fif')
+    raw.save(temp_file, overwrite=True)
+    raw = Raw(tmp_file)
 
 
 def test_io_complex():
