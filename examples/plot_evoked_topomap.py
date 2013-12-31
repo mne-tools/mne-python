@@ -6,7 +6,8 @@ Plotting topographic maps of evoked data
 Load evoked data and plot topomaps for selected time points.
 
 """
-# Author: Christian Brodbeck <christianbrodbeck@nyu.edu>
+# Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
+#          Tal Linzen <linzen@nyu.edu>
 #
 # License: BSD (3-clause)
 
@@ -30,6 +31,10 @@ times = np.arange(0.05, 0.15, 0.01)
 
 # plot magnetometer data as topomaps
 evoked.plot_topomap(times, ch_type='mag')
+
+# add channel labels
+evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
+                    size=8)
 
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
 evoked.plot_topomap(times, ch_type='grad')
