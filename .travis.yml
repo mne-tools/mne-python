@@ -31,7 +31,7 @@ install:
         sudo $PIP install patsy;
       fi
     - if [ "${OPTDEPS}" == "T" ]; then
-        sudo apt-get --no-install-recommends install $PYTHON-pandas;
+        sudo $PIP install pandas;
       fi
     - if [ "${OPTDEPS}" == "T" ]; then
         sudo $PIP install statsmodels;
