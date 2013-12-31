@@ -8,23 +8,39 @@
 language: erlang
 env:
     # Enable python 2 and python 3 builds. Python3.2 available in Ubuntu 12.04.
-    - PYTHON=python EASY_INSTALL=easy_install PIP=pip NOSETESTS=nosetests PYSUF=''
-    - PYTHON=python3 EASY_INSTALL=easy_install3 PIP=pip-3.2 NOSETESTS=nosetests3 PYSUF=3
+    - PYTHON=python EASY_INSTALL=easy_install PIP=pip NOSETESTS=nosetests PYSUF='' OPTDEPS=T
+    - PYTHON=python3 EASY_INSTALL=easy_install3 PIP=pip-3.2 NOSETESTS=nosetests3 PYSUF=3 OPTDEPS=T
+    - PYTHON=python EASY_INSTALL=easy_install PIP=pip NOSETESTS=nosetests PYSUF='' OPTDEPS=F
 install:
     - sudo apt-get update -qq
     - sudo apt-get install $PYTHON-dev $PYTHON-numpy $PYTHON-scipy
     - sudo apt-get install $PYTHON-setuptools $PYTHON-nose
-    - wget -O- http://neuro.debian.net/lists/precise.us-nh.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list
     - sudo apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9
     - sudo apt-get update -qq
-    - sudo apt-get --no-install-recommends install $PYTHON-pandas
-    - sudo apt-get --no-install-recommends install $PYTHON-pandas-lib
     - sudo $EASY_INSTALL pip
-    - sudo $PIP install nibabel
-    - sudo $PIP install scikit-learn
+    - if [ "${OPTDEPS}" == "T" ]; then
+        wget -O- http://neuro.debian.net/lists/precise.us-nh.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
+        sudo $PIP install nibabel;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
+        sudo $PIP install scikit-learn;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
+        sudo $PIP install patsy;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
+        sudo $PIP install pandas;
+      fi
+    - if [ "${OPTDEPS}" == "T" ]; then
+        sudo $PIP install statsmodels;
+      fi
+    - if [ "${PYSUF}" != "3" ] && [ "${OPTDEPS}" == "T" ]; then
+          sudo $PIP install nitime;
+      fi
     - if [ "${PYSUF}" != "3" ]; then
         sudo apt-get --no-install-recommends install $PYTHON-matplotlib;
-        sudo $PIP install nitime;
         sudo $PIP install coverage;
         sudo $PIP install coveralls;
       else
