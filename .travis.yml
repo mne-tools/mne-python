@@ -31,10 +31,10 @@ install:
         sudo $PIP install patsy;
       fi
     - if [ "${OPTDEPS}" == "T" ]; then
-        sudo $PIP install statsmodels;
+        sudo apt-get --no-install-recommends install $PYTHON-pandas;
       fi
     - if [ "${OPTDEPS}" == "T" ]; then
-        sudo apt-get --no-install-recommends install $PYTHON-pandas;
+        sudo $PIP install statsmodels;
       fi
     - if [ "${PYSUF}" != "3" ] && [ "${OPTDEPS}" == "T" ]; then
           sudo $PIP install nitime;
