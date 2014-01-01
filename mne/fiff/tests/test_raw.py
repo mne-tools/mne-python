@@ -268,7 +268,7 @@ def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)
     """
     # test unicode io
-    for chars in [u'äöé', u'a', 'a']:
+    for chars in ['äöé', 'a', 'a']:
         raw = Raw(fif_fname)
         # desc1 = raw.info['description'] =
         desc1 = raw.info['description'] = text_type(chars)
