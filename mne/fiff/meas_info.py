@@ -8,7 +8,7 @@ from copy import deepcopy
 import os.path as op
 import numpy as np
 from scipy import linalg
-from ..externals.six import BytesIO, text_type
+from ..externals.six import BytesIO
 from datetime import datetime as dt
 
 from .open import fiff_open
