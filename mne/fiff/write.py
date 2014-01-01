@@ -3,7 +3,7 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types, b
+from ..externals.six import string_types, b, text_type
 import time
 import numpy as np
 from scipy import linalg
@@ -73,7 +73,9 @@ def write_complex128(fid, kind, data):
 def write_string(fid, kind, data):
     """Writes a string tag"""
     data_size = 1
-    _write(fid, str(data), kind, data_size, FIFF.FIFFT_STRING, '>c')
+    # text_type = str
+    str_data = text_type(data).encode('utf8')
+    _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, '>c')
 
 
 def write_name_list(fid, kind, data):

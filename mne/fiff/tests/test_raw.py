@@ -267,6 +267,16 @@ def test_load_bad_channels():
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)
     """
+    # test unicode io
+    for chars in [u'äöé', u'a', 'a']:
+        raw = Raw(fif_fname)
+        # desc1 = raw.info['description'] =
+        desc1 = raw.info['description'] = text_type(chars)
+        temp_file = op.join(tempdir, 'raw.fif')
+        raw.save(temp_file, overwrite=True)
+        desc2 = Raw(temp_file).info['description']
+        assert_equal(desc1, desc2)
+
     # Let's construct a simple test for IO first
     raw = Raw(fif_fname, preload=True)
     raw.crop(0, 3.5)
@@ -355,12 +365,6 @@ def test_io_raw():
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
-
-    raw = Raw(fname)
-    raw.info['description'] = text_type('äöé')
-    temp_file = op.join(tempdir, 'raw.fif')
-    raw.save(temp_file, overwrite=True)
-    raw = Raw(tmp_file)
 
 
 def test_io_complex():
