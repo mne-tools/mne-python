@@ -399,7 +399,7 @@ class Evoked(ProjMixin, ContainsMixin):
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmax=None,
                      cmap='RdBu_r', sensors='k,', colorbar=True, scale=None,
                      unit=None, res=256, size=1, format="%3.1f", proj=False,
-                     show=True, show_names=False):
+                     show=True, show_names=False, title=True):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -450,12 +450,15 @@ class Evoked(ProjMixin, ContainsMixin):
             passed, channel names will be formatted using the callable; e.g., to
             delete the prefix 'MEG ' from all channel names, pass the function
             lambda x: x.replace('MEG ', '')
+        title : str | bool
+            Title. If True (default), the comment attribute of the Evoked 
+            object is used; if False, no title is drawn.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
                                    vmax=vmax, cmap=cmap, sensors=sensors, 
                                    colorbar=colorbar, scale=scale, unit=unit,
                                    res=res, proj=proj, size=size, format=format,
-                                   show_names=show_names)
+                                   show_names=show_names, title=title)
 
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime
