@@ -10,6 +10,9 @@ space activity is then modified based on this value. Then a single-
 trial regression is performed in each sensor and timepoint individually,
 resulting in an Evoked object which contains the regression coefficient
 (beta value) for each combination of sensor and timepoint.
+
+(See Hauk et al. (2006). The time course of visual word recognition as 
+revealed by linear regression analysis of ERP data. Neuroimage.)
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
 #
