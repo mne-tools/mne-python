@@ -100,34 +100,6 @@ def write_mrk(fname, points):
         raise ValueError(err)
 
 
-def read_elp(fname):
-    """ELP point extraction in Polhemus head space
-
-    Parameters
-    ----------
-    fname : str
-        Absolute path to laser point file acquired from Polhemus system.
-        File formats allowed: *.txt
-
-    Returns
-    -------
-    elp_points : numpy.array, shape = (n_points, 3)
-        Fiducial and marker points in Polhemus head space.
-    """
-    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    elp_points = pattern.findall(open(fname).read())
-    elp_points = np.array(elp_points, dtype=float)
-    if elp_points.shape[1] != 3:
-        err = ("File %r does not contain 3 columns as required; got shape "
-               "%s." % (fname, elp_points.shape))
-        raise ValueError(err)
-    elif len(elp_points) < 8:
-        err = ("File %r contains fewer than 8 points; got shape "
-               "%s." % (fname, elp_points.shape))
-        raise ValueError(err)
-    return elp_points
-
-
 def read_hsp(fname):
     """Read a Polhemus ascii head shape file
 

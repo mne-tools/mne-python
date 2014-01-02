@@ -18,8 +18,8 @@ import numpy as np
 from scipy import linalg
 
 from ...fiff import pick_types
-from ...coreg import fit_matched_points, _decimate_points
-from ...coreg import get_ras_to_neuromag_trans
+from ...coreg import (read_elp, fit_matched_points, _decimate_points,
+                      get_ras_to_neuromag_trans)
 from ...utils import verbose, logger
 from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..raw import Raw
@@ -27,7 +27,7 @@ from ..constants import FIFF
 from ..meas_info import Info
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
-from .coreg import read_elp, read_hsp, read_mrk
+from .coreg import read_hsp, read_mrk
 
 
 class RawKIT(Raw):
@@ -403,7 +403,12 @@ class RawKIT(Raw):
             logger.warning(msg)
 
         if isinstance(elp, string_types):
-            elp = read_elp(elp)[:8]
+            elp_points = read_elp(elp)[:8]
+            if len(elp) < 8:
+                err = ("File %r contains fewer than 8 points; got shape "
+                       "%s." % (elp, elp_points.shape))
+                raise ValueError(err)
+            elp = elp_points
 
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)

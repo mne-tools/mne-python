@@ -51,10 +51,10 @@ except:
     CheckListEditor = trait_wraith
     SceneEditor = trait_wraith
 
-from ..fiff.kit.coreg import read_hsp, read_elp
+from ..fiff.kit.coreg import read_hsp
 from ..fiff.kit.kit import RawKIT, KIT
 from ..transforms import apply_trans, als_ras_trans, als_ras_trans_mm
-from ..coreg import (_decimate_points, fit_matched_points,
+from ..coreg import (read_elp, _decimate_points, fit_matched_points,
                      get_ras_to_neuromag_trans)
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._viewer import HeadViewController, headview_item, PointObject
@@ -169,6 +169,8 @@ class Kit2FiffModel(HasPrivateTraits):
 
         try:
             pts = read_elp(self.fid_file)
+            if len(pts) < 8:
+                raise ValueError("File contains %i points, need 8" % len(pts))
         except Exception as err:
             error(None, str(err), "Error Reading Fiducials")
             self.reset_traits(['fid_file'])

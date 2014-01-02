@@ -9,8 +9,10 @@ import os.path as op
 import inspect
 
 from nose.tools import assert_equal
+import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
+import mne
 from mne.utils import _TempDir
 from mne.fiff import Raw, pick_types
 from mne.fiff.brainvision import read_raw_brainvision
@@ -20,13 +22,14 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
 elp_path = op.join(data_dir, 'test_elp.txt')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
-ch_names = ['FP1', 'VEOGt', 'F7', 'GND', 'F8',
-            'FC5', 'F3', 'FZ', 'F4', 'FC6',
-            'FC1', 'FCZ', 'FC2', 'CP5', 'C3',
-            'CZ', 'C4', 'CP6', 'CP1', 'CPZ',
-            'CP2', 'P7', 'P3', 'PZ', 'P4',
-            'P8', 'O1', 'POZ', 'O2', 'A1',
-            'A2', 'HEOGL', 'HEOGR', 'VEOGb']
+elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None, None,
+             'FP1', 'FP2', 'F7', 'GND', 'F8',
+             'FC5', 'F3', 'Fz', 'F4', 'FC6',
+             'FC1', 'FCz', 'FC2', 'CP5', 'C3',
+             'Cz', 'C4', 'CP6', 'CP1', 'CPz',
+             'CP2', 'P7', 'P3', 'Pz', 'P4',
+             'P8', 'O1', 'POz', 'O2', 'A1',
+             'ReRef', 'HL', 'HR', 'Vb']
 
 tempdir = _TempDir()
 
@@ -35,7 +38,7 @@ def test_brainvision_data():
     """Test reading raw Brain Vision files
     """
     raw_py = read_raw_brainvision(vhdr_path, elp_fname=elp_path,
-                                  ch_names=ch_names, preload=True)
+                                  elp_names=elp_names, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, times_py = raw_py[picks]
 
@@ -49,6 +52,52 @@ def test_brainvision_data():
 
     assert_array_almost_equal(data_py, data_bin)
     assert_array_almost_equal(times_py, times_bin)
+
+
+def test_events():
+    """Test reading and modifying events"""
+    raw = read_raw_brainvision(vhdr_path, preload=True)
+
+    # check that events are read and stim channel is synthesized correcly
+    events = raw.get_brainvision_events()
+    assert_array_equal(events, [[ 487, 1, 253],
+                                [ 497, 1, 255],
+                                [1770, 1, 254],
+                                [1780, 1, 255],
+                                [3253, 1, 254],
+                                [3263, 1, 255],
+                                [4936, 1, 253],
+                                [4946, 1, 255],
+                                [6620, 1, 254],
+                                [6630, 1, 255]])
+
+    mne_events = mne.find_events(raw)
+    assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
+
+    # modify events and check that stim channel is updated
+    index = events[:, 2] == 255
+    events = events[index]
+    raw.set_brainvision_events(events)
+    mne_events = mne.find_events(raw)
+    assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
+
+    # remove events
+    nchan = raw.info['nchan']
+    ch_name = raw.info['chs'][-2]['ch_name']
+    events = np.empty((0, 3))
+    raw.set_brainvision_events(events)
+    assert_equal(raw.info['nchan'], nchan - 1)
+    assert_equal(len(raw._data), nchan - 1)
+    assert_equal(raw.info['chs'][-1]['ch_name'], ch_name)
+    fname = op.join(tempdir, 'raw_evt.fif')
+    raw.save(fname)
+
+    # add events back in
+    events = [[10, 1, 2]]
+    raw.set_brainvision_events(events)
+    assert_equal(raw.info['nchan'], nchan)
+    assert_equal(len(raw._data), nchan)
+    assert_equal(raw.info['chs'][-1]['ch_name'], 'STI 014')
 
 
 def test_read_segment():
@@ -74,3 +123,10 @@ def test_read_segment():
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)
     assert_array_equal(raw1._data, raw2._data)
+
+    # save with buffer size smaller than file
+    raw3_file = op.join(tempdir, 'raw3.fif')
+    raw3 = read_raw_brainvision(vhdr_path)
+    raw3.save(raw3_file, buffer_size_sec=2)
+    raw3 = Raw(raw3_file, preload=True)
+    assert_array_equal(raw3._data, raw1._data)

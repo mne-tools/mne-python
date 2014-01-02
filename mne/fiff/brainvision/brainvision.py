@@ -1,8 +1,7 @@
-"""Conversion tool from Brain Vision EEG to FIF
+"""Conversion tool from Brain Vision EEG to FIF"""
 
-"""
-
-# Author: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon@nyu.edu>
+#          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
@@ -15,35 +14,34 @@ from ...externals.six.moves import configparser
 
 import numpy as np
 
-from ...fiff import pick_types
+from ...coreg import get_ras_to_neuromag_trans, read_elp
 from ...transforms import als_ras_trans, apply_trans
 from ...utils import verbose, logger
-from ..raw import Raw
-from ..meas_info import Info
+from .. import pick_types
 from ..constants import FIFF
-from ...coreg import get_ras_to_neuromag_trans
+from ..meas_info import Info
+from ..raw import Raw
 
 
 class RawBrainVision(Raw):
-    """Raw object from Brain Vision eeg file
+    """Raw object from Brain Vision EEG file
 
     Parameters
     ----------
     vdhr_fname : str
         Path to the EEG header file.
-
     elp_fname : str | None
         Path to the elp file containing electrode positions.
         If None, sensor locations are (0,0,0).
-
-    ch_names : list | None
-        A list of channel names in order of collection of electrode position
-        digitization.
-
+    elp_names : list | None
+        A list of channel names in the same order as the points in the elp
+        file. Electrode positions should be specified with the same names as
+        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
+        "rpa". ELP positions with other names are ignored. If elp_names is not
+        None and channels are missing, a KeyError is raised.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -52,17 +50,34 @@ class RawBrainVision(Raw):
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, vhdr_fname, elp_fname=None, ch_names=None,
-                 preload=False, verbose=None):
+    def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
+                 preload=False, ch_names=None, verbose=None):
+        # backwards compatibility
+        if ch_names is not None:
+            if elp_names is not None:
+                err = ("ch_names is a deprecated parameter, don't specify "
+                       "ch_names if elp_names are specified.")
+                raise TypeError(err)
+            msg = "The ch_names parameter is deprecated. Use elp_names."
+            warnings.warn(msg, DeprecationWarning)
+            elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None,
+                         None] + list(ch_names)
+
+        # Preliminary Raw attributes
+        self._events = np.empty((0, 3))
+        self._preloaded = False
+
+        # Channel info and events
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
-        self.info, self._eeg_info = _get_eeg_info(vhdr_fname, elp_fname,
-                                                  ch_names)
+        self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
+                                                          elp_fname,
+                                                          elp_names)
+        self.set_brainvision_events(events)
         logger.info('Creating Raw.info structure...')
 
         # Raw attributes
         self.verbose = verbose
-        self._preloaded = False
         self.fids = list()
         self._projector = None
         self.comp = None  # no compensation for EEG
@@ -107,32 +122,26 @@ class RawBrainVision(Raw):
         start : int, (optional)
             first sample to include (first is 0). If omitted, defaults to the
             first sample in data.
-
         stop : int, (optional)
             First sample to not include.
             If omitted, data is included to the end.
-
         sel : array, optional
             Indices of channels to select.
-
         projector : array
             SSP operator to apply to the data.
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
         Returns
         -------
-        data : array, [channels x samples]
-           the data matrix (channels x samples).
-
-        times : array, [samples]
+        data : array, shape (n_channels, n_samples)
+           The data.
+        times : array, shape (n_samples,)
             returns the time values corresponding to the samples.
         """
-        if sel is None:
-            sel = list(range(self.info['nchan']))
-        elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
-            return (666, 666)
+        if sel is not None:
+            if len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
+                return (666, 666)
         if projector is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
@@ -162,13 +171,13 @@ class RawBrainVision(Raw):
                     (start, stop - 1, start / float(sfreq),
                      (stop - 1) / float(sfreq)))
 
+        dtype = np.dtype(eeg_info['dtype'])
+        buffer_size = (stop - start)
+        pointer = start * n_eeg * dtype.itemsize
         with open(self.info['file_id'], 'rb') as f:
-            buffer_size = (stop - start)
-            pointer = start * n_chan
             f.seek(pointer)
             # extract data
-            data = np.fromfile(f, dtype=eeg_info['dtype'],
-                               count=buffer_size * n_eeg)
+            data = np.fromfile(f, dtype=dtype, count=buffer_size * n_eeg)
         if eeg_info['data_orientation'] == 'MULTIPLEXED':
             data = data.reshape((n_eeg, -1), order='F')
         elif eeg_info['data_orientation'] == 'VECTORIZED':
@@ -177,60 +186,158 @@ class RawBrainVision(Raw):
         gains = cals * mults
         data = data * gains.T
 
-        stim_channel = np.zeros(data.shape[1])
-        evts = _read_vmrk(eeg_info['marker_id'])
-        if evts is not None:
-            stim_channel[:evts.size] = evts
-        stim_channel = stim_channel[start:stop]
+        if len(self._events):
+            stim_channel = _synthesize_stim_channel(self._events, start, stop)
+            data = np.vstack((data, stim_channel))
 
-        data = np.vstack((data, stim_channel))
-        data = data[sel]
+        if sel is not None:
+            data = data[sel]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / sfreq
 
         return data, times
 
+    def get_brainvision_events(self):
+        """Retrieve the events associated with the Brain Vision Raw object
 
-def _read_vmrk(vmrk_fname):
-    """Extracts the event markers for vmrk file
+        Returns
+        -------
+        events : array, shape (n_events, 3)
+            Events, each row consisting of an (onset, duration, trigger)
+            sequence.
+        """
+        return self._events.copy()
+
+    def set_brainvision_events(self, events):
+        """Set the events (automatically updates the synthesized stim channel)
+
+        Parameters
+        ----------
+        events : array, shape (n_events, 3)
+            Events, each row consisting of an (onset, duration, trigger)
+            sequence.
+        """
+        events = np.copy(events)
+        if not events.ndim == 2 and events.shape[1] == 3:
+            raise ValueError("[n_events x 3] shaped array required")
+
+        # update info based on presence of stim channel
+        had_events = bool(len(self._events))
+        has_events = bool(len(events))
+        if had_events and not has_events:  # remove stim channel
+            if self.info['ch_names'][-1] != 'STI 014':
+                err = "Last channel is not stim channel; info was modified"
+                raise RuntimeError(err)
+            self.info['nchan'] -= 1
+            del self.info['ch_names'][-1]
+            del self.info['chs'][-1]
+            if self._preloaded:
+                self._data = self._data[:-1]
+        elif has_events and not had_events:  # add stim channel
+            idx = len(self.info['chs']) + 1
+            chan_info = {'ch_name': 'STI 014',
+                         'kind': FIFF.FIFFV_STIM_CH,
+                         'coil_type': FIFF.FIFFV_COIL_NONE,
+                         'logno': idx,
+                         'scanno': idx,
+                         'cal': 1,
+                         'range': 1,
+                         'unit_mul':  0,
+                         'unit': FIFF.FIFF_UNIT_NONE,
+                         'eeg_loc': np.zeros(3),
+                         'loc': np.zeros(12)}
+            self.info['nchan'] += 1
+            self.info['ch_names'].append(chan_info['ch_name'])
+            self.info['chs'].append(chan_info)
+            if self._preloaded:
+                shape = (1, self._data.shape[1])
+                self._data = np.vstack((self._data, np.empty(shape)))
+
+        # update events
+        self._events = events
+        if has_events and self._preloaded:
+            start = self.first_samp
+            stop = self.last_samp + 1
+            self._data[-1] = _synthesize_stim_channel(events, start, stop)
+
+
+def _read_vmrk_events(fname):
+    """Read events from a vmrk file
 
     Parameters
     ----------
-    vmrk_fname : str
+    fname : str
         vmrk file to be read.
 
     Returns
     -------
-    stim_channel : array
-        An array containing the whole recording's event marking
+    events : array, shape (n_events, 3)
+        An array containing the whole recording's events, each row representing
+        an event as (onset, duration, trigger) sequence.
     """
-
-    with open(vmrk_fname) as f:
+    # read vmrk file
+    with open(fname) as f:
         # setup config reader
         l = f.readline().strip()
         assert l == 'Brain Vision Data Exchange Marker File, Version 1.0'
         cfg = configparser.SafeConfigParser()
         cfg.readfp(f)
 
+    # extract event informtion
     events = []
     for _, info in cfg.items('Marker Infos'):
-        mtype, mdesc, offset, duration = info.split(',')[:4]
+        mtype, mdesc, onset, duration = info.split(',')[:4]
         if mtype == 'Stimulus':
             trigger = int(re.findall('S\s?(\d+)', mdesc)[0])
-            offset, duration = int(offset), int(duration)
-            events.append((trigger, offset, offset + duration))
-    if events:
-        stim_channel = np.zeros(events[-1][2])
-        for event in events:
-            stim_channel[event[1]:event[2]] = trigger
-    else:
-        stim_channel = None
+            onset = int(onset)
+            duration = int(duration)
+            events.append((onset, duration, trigger))
+
+    events = np.array(events)
+    return events
+
+
+def _synthesize_stim_channel(events, start, stop):
+    """Synthesize a stim channel from events read from a vmrk file
+
+    Parameters
+    ----------
+    events : array, shape (n_events, 3)
+        Each row representing an event as (onset, duration, trigger) sequence
+        (the format returned by _read_vmrk_events).
+    start : int
+        First sample to return.
+    stop : int
+        Last sample to return.
+
+    Returns
+    -------
+    stim_channel : array, shape (n_samples,)
+        An array containing the whole recording's event marking
+    """
+    # select events overlapping buffer
+    onset = events[:, 0]
+    offset = onset + events[:, 1]
+    idx = np.logical_and(onset < stop, offset > start)
+    events = events[idx]
+
+    # make onset relative to buffer
+    events[:, 0] -= start
+
+    # fix onsets before buffer start
+    idx = events[:, 0] < 0
+    events[idx, 0] = 0
+
+    # create output buffer
+    stim_channel = np.zeros(stop - start)
+    for onset, duration, trigger in events:
+        stim_channel[onset:onset + duration] = trigger
 
     return stim_channel
 
 
-def _get_elp_locs(elp_fname, ch_names):
+def _get_elp_locs(elp_fname, elp_names):
     """Read a Polhemus ascii file
 
     Parameters
@@ -238,57 +345,52 @@ def _get_elp_locs(elp_fname, ch_names):
     elp_fname : str
         Path to head shape file acquired from Polhemus system and saved in
         ascii format.
-
-    ch_names : list
+    elp_names : list
         A list in order of EEG electrodes found in the Polhemus digitizer file.
-
 
     Returns
     -------
-    ch_locs : ndarray, shape = (n_points, 3)
-        Electrode points in Neuromag space.
+    ch_locs : dict
+        Dictionary whose keys are the names from elp_names and whose values
+        are the coordinates from the elp file transformed to Neuromag space.
     """
-    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    with open(elp_fname) as fid:
-        elp = pattern.findall(fid.read())
-    elp = np.array(elp, dtype=float)
-    elp = apply_trans(als_ras_trans, elp)
-    nasion, lpa, rpa = elp[:3]
+    coords_orig = read_elp(elp_fname)
+    coords_ras = apply_trans(als_ras_trans, coords_orig)
+    chs_ras = dict(zip(elp_names, coords_ras))
+    nasion = chs_ras['nasion']
+    lpa = chs_ras['lpa']
+    rpa = chs_ras['rpa']
     trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-    elp = apply_trans(trans, elp[8:])
-    ch_locs = dict(zip(ch_names, elp))
-    fid = nasion, lpa, rpa
-
-    return fid, ch_locs
+    coords_neuromag = apply_trans(trans, coords_ras)
+    chs_neuromag = dict(zip(elp_names, coords_neuromag))
+    return chs_neuromag
 
 
-def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
+def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
     """Extracts all the information from the header file.
 
     Parameters
     ----------
     vhdr_fname : str
         Raw EEG header to be read.
-
     elp_fname : str | None
         Path to the elp file containing electrode positions.
-        If None, sensor locations are (0,0,0).
-
-    ch_names : list | None
-        A list of channel names in order of collection of electrode position
-        digitization.
-
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+        If None, sensor locations are (0, 0, 0).
+    elp_names : list | None
+        A list of channel names in the same order as the points in the elp
+        file. Electrode positions should be specified with the same names as
+        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
+        "rpa". ELP positions with other names are ignored. If elp_names is not
+        None and channels are missing, a KeyError is raised.
 
     Returns
     -------
-    info : instance of Info
+    info : Info
         The measurement info.
-
     edf_info : dict
         A dict containing Brain Vision specific parameters.
+    events : array, shape (n_events, 3)
+        Events from the corresponding vmrk file.
     """
 
     info = Info()
@@ -428,23 +530,31 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
     info['nchan'] = n_chan
     info['ch_names'] = ch_names
     info['sfreq'] = sfreq
-    if elp_fname and ch_names:
-        fid, ch_locs = _get_elp_locs(elp_fname, ch_names)
-        nasion, lpa, rpa = fid
-        info['dig'] = [{'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+    if elp_fname and elp_names:
+        ch_locs = _get_elp_locs(elp_fname, elp_names)
+        info['dig'] = [{'r': ch_locs['nasion'],
+                        'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD},
-                       {'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
+                       {'r': ch_locs['lpa'], 'ident': FIFF.FIFFV_POINT_LPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD},
-                       {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
+                       {'r': ch_locs['rpa'], 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD}]
     else:
         ch_locs = None
 
-    for idx, ch_info in enumerate(zip(ch_names, cals, units), 1):
-        ch_name, cal, unit_mul = ch_info
+    missing_positions = []
+    idxs = range(1, len(ch_names) + 1)
+    for idx, ch_name, cal, unit_mul in zip(idxs, ch_names, cals, units):
+        if ch_locs is None:
+            loc = np.zeros(3)
+        elif ch_name in ch_locs:
+            loc = ch_locs[ch_name]
+        else:
+            loc = np.zeros(3)
+            missing_positions.append(ch_name)
         chan_info = {}
         chan_info['ch_name'] = ch_name
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
@@ -456,58 +566,42 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, ch_names=None, preload=False):
         chan_info['unit_mul'] = unit_mul
         chan_info['unit'] = FIFF.FIFF_UNIT_V
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        if ch_locs:
-            if ch_name in ch_locs:
-                chan_info['eeg_loc'] = ch_locs[ch_name]
-        else:
-            chan_info['eeg_loc'] = np.zeros(3)
-        chan_info['loc'] = np.zeros(12)
-        chan_info['loc'][:3] = chan_info['eeg_loc']
+        chan_info['eeg_loc'] = loc
+        chan_info['loc'] = np.hstack((loc, np.zeros(9)))
         info['chs'].append(chan_info)
+
+    # raise error if positions are missing
+    if missing_positions:
+        err = ("The following positions are missing from the ELP "
+               "definitions: %s" % str(missing_positions))
+        raise KeyError(err)
 
     # for stim channel
-    stim_channel = _read_vmrk(eeg_info['marker_id'])
-    if stim_channel is not None:
-        chan_info = {}
-        chan_info['ch_name'] = 'STI 014'
-        chan_info['kind'] = FIFF.FIFFV_STIM_CH
-        chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-        chan_info['logno'] = idx + 1
-        chan_info['scanno'] = idx + 1
-        chan_info['cal'] = 1
-        chan_info['range'] = 1
-        chan_info['unit_mul'] = 0
-        chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-        chan_info['eeg_loc'] = np.zeros(3)
-        chan_info['loc'] = np.zeros(12)
-        info['nchan'] = n_chan + 1
-        info['ch_names'].append(chan_info['ch_name'])
-        info['chs'].append(chan_info)
+    events = _read_vmrk_events(eeg_info['marker_id'])
 
-    return info, eeg_info
+    return info, eeg_info, events
 
 
-def read_raw_brainvision(vhdr_fname, elp_fname=None, ch_names=None,
-                         preload=False, verbose=None):
+def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
+                         preload=False, ch_names=None, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-
     elp_fname : str | None
         Path to the elp file containing electrode positions.
         If None, sensor locations are (0,0,0).
-
-    ch_names : list | None
-        A list of channel names in order of collection of electrode position
-        digitization.
-
+    elp_names : list | None
+        A list of channel names in the same order as the points in the elp
+        file. Electrode positions should be specified with the same names as
+        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
+        "rpa". ELP positions with other names are ignored. If elp_names is not
+        None and channels are missing, a KeyError is raised.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -515,5 +609,6 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, ch_names=None,
     --------
     mne.fiff.Raw : Documentation of attribute and methods.
     """
-    return RawBrainVision(vhdr_fname=vhdr_fname, elp_fname=elp_fname,
-                          ch_names=ch_names, preload=preload, verbose=verbose)
+    raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
+                         ch_names, verbose)
+    return raw
