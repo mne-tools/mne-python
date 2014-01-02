@@ -11,6 +11,7 @@ import os.path as op
 import gzip
 import re
 import uuid
+import sys
 
 from .constants import FIFF
 from ..utils import logger
@@ -73,7 +74,9 @@ def write_complex128(fid, kind, data):
 def write_string(fid, kind, data):
     """Writes a string tag"""
     data_size = 1
-    str_data = text_type(data).encode('utf8')
+    f = text_type
+    str_data = (f(data) if sys.version[0] == '3' else
+                f(data).encode('utf-8'))
     _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, '>c')
 
 

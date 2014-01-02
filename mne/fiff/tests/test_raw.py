@@ -12,6 +12,7 @@ import os
 import os.path as op
 from copy import deepcopy
 import warnings
+import sys
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -268,14 +269,17 @@ def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)
     """
     # test unicode io
-    for chars in ['äöé', 'a', 'a']:
-        raw = Raw(fif_fname)
-        # desc1 = raw.info['description'] =
-        desc1 = raw.info['description'] = text_type(chars)
-        temp_file = op.join(tempdir, 'raw.fif')
-        raw.save(temp_file, overwrite=True)
-        desc2 = Raw(temp_file).info['description']
-        assert_equal(desc1, desc2)
+    for chars in ['äöé', 'a']:
+        if sys.version[0] == '3':
+            chars = chars.encode()
+        with Raw(fif_fname) as r:
+            # desc1 = raw.info['description'] =
+            desc1 = r.info['description'] = chars
+            temp_file = op.join(tempdir, 'raw.fif')
+            r.save(temp_file, overwrite=True)
+            with Raw(temp_file) as r2:
+                desc2 = r2.info['description']
+            assert_equal('%s' % desc1, '%s' % desc2)
 
     # Let's construct a simple test for IO first
     raw = Raw(fif_fname, preload=True)
