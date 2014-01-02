@@ -1,15 +1,21 @@
 """
 ====================================================================
-Sensor space regression
+Sensor space least squares regression
 ====================================================================
+
+Predict single trial activity from a continuous variable. This example
+simulates MEG data based on the auditory trials in the sample data set.
+Each auditory stimulus is assumed to have a different volume; sensor
+space activity is then modified based on this value. Then a single-
+trial regression is performed in each sensor and timepoint individually,
+resulting in an Evoked object which contains the regression coefficient
+(beta value) for each combination of sensor and timepoint.
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
 #
 # License: BSD (3-clause)
 
 print(__doc__)
-
-import logging
 
 import numpy as np
 import scipy
@@ -56,8 +62,10 @@ volume = mean_volume + np.random.randn(len(events)) * stddev_volume
 # and that haven't been dropped due to amplitude thresholds or other reasons
 selection_volume = volume[epochs.selection]
 
-# Assume regression coefficient is proportional to mean activity
-betas = evoked.data * 0.5
+# Assume regression coefficient is proportional to mean activity: sensor where
+# the mean response to auditory stimuli is higher would presumably be more
+# sensitive to the volume of the stimulus
+betas = evoked.data * 2
 
 for epoch, vol in zip(epochs, selection_volume):
     epoch += betas * vol
@@ -65,34 +73,43 @@ for epoch, vol in zip(epochs, selection_volume):
 ###############################################################################
 # Run regression
 
-def regress(epochs, v):
-    intercept = np.ones((len(epochs),))
-    design_matrix = np.column_stack([intercept, v])
+def least_squares(epochs, design_matrix, names):
+    n_epochs, n_channels, n_times = epochs.get_data().shape
+    assert design_matrix.shape[0] == n_epochs
 
     # Flatten channels and timepoints into a single dimension
-    shape = epochs.get_data().shape
-    y = np.reshape(epochs.get_data(), [shape[0], -1])
+    y = np.reshape(epochs.get_data(), (n_epochs, n_channels * n_times))
     betas, _, _, _ = scipy.linalg.lstsq(design_matrix, y)
 
     beta_maps = {}
-    for x, predictor in zip(betas, ['intercept', 'volume']):
+    for x, predictor in zip(betas, names):
         beta_map = evoked.copy()
-        beta_map.data = np.reshape(x, shape[1:])
+        beta_map.data = np.reshape(x, (n_channels, n_times))
         beta_map.comment = predictor
         beta_maps[predictor] = beta_map
     return beta_maps
 
-beta_maps = regress(epochs, selection_volume)
-plot_args = dict(ch_type='grad', size=5, times=[0.1, 0.2, 0.3])
-volume_plot_args = plot_args.copy()
-volume_plot_args.update(dict(vmax=50))
-print 'Intercept beta map:'
-beta_maps['intercept'].plot_topomap(**plot_args)
-print 'Volume beta map:'
-beta_maps['volume'].plot_topomap(**volume_plot_args)
+names = ['Intercept', 'Volume']
 
-# Permute predictor to make sure that beta values go down to essentially zero
-shuffled = selection_volume[np.random.permutation(len(selection_volume))]
-shuffled_beta_maps = regress(epochs, shuffled)
-print 'Permuted volume beta map:'
-p = shuffled_beta_maps['volume'].plot_topomap(**volume_plot_args)
+intercept = np.ones((len(epochs),))
+design_matrix = np.column_stack([intercept, selection_volume])
+beta_maps = least_squares(epochs, design_matrix, names)
+
+print('Intercept beta map:')
+beta_maps['Intercept'].plot_topomap(ch_type='grad', size=3, times=[0.1, 0.2],
+                                    vmax=200)
+
+print('Volume beta map:')
+beta_maps['Volume'].plot_topomap(ch_type='grad', size=3, times=[0.1, 0.2], 
+                                 vmax=200)
+
+# Repeat the regression with a permuted version of the predictor vector. The
+# beta values should be very close to 0 this time, since the permuted volume
+# values should not be correlated with neural activity
+shuffled_volume = selection_volume[np.random.permutation(len(selection_volume))]
+shuffled_design_matrix = np.column_stack([intercept, shuffled_volume])
+shuffled_beta_maps = least_squares(epochs, shuffled_design_matrix, names)
+
+print('Permuted volume beta map:')
+shuffled_beta_maps['Volume'].plot_topomap(ch_type='grad', size=3,
+                                          times=[0.1, 0.2], vmax=200)
