@@ -421,10 +421,8 @@ class RawKIT(_BaseRaw):
 
         nasion, lpa, rpa = elp[:3]
         nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-        if elp_ext != '.elp':
-            elp = apply_trans(nmtrans, elp)
-        if hsp_ext == '.hsp':
-            hsp = apply_trans(nmtrans, hsp)
+        elp = apply_trans(nmtrans, elp)
+        hsp = apply_trans(nmtrans, hsp)
 
         # device head transform
         trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
