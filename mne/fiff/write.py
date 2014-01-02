@@ -75,8 +75,7 @@ def write_string(fid, kind, data):
     """Writes a string tag"""
     data_size = 1
     f = text_type
-    str_data = (f(data) if sys.version[0] == '3' else
-                f(data).encode('utf-8'))
+    str_data = (f(data) if sys.version[0] == '3' else f(data).encode('utf-8'))
     _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, '>c')
 
 
