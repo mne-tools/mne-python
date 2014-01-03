@@ -863,18 +863,22 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         delete the prefix 'MEG ' from all channel names, pass the function
         lambda x: x.replace('MEG ', '')
     title : str | bool
-        Title. If True (default), the comment attribute of the Evoked 
-        object is used; if False, no title is drawn.
+        Title. If True (default), the channel type is used. If False, no title
+        is drawn.
     """
     import matplotlib.pyplot as plt
 
+    if ch_type.startswith('planar'):
+        key = 'grad'
+    else:
+        key = ch_type
+
     if scale is None:
-        if ch_type.startswith('planar'):
-            key = 'grad'
-        else:
-            key = ch_type
         scale = DEFAULTS['scalings'][key]
         unit = DEFAULTS['units'][key]
+
+    if title is True:
+        title = DEFAULTS['titles'][key]
 
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
@@ -945,9 +949,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                       plot_update_proj_callback=_plot_update_evoked_topomap)
         _draw_proj_checkbox(None, params)
 
-    if title is True:
-        title = evoked.comment
-    elif title is False:
+    if title is False:
         title = ''
     fig.text(0.5, 1, title, horizontalalignment='center',
              verticalalignment='top', size='x-large')

@@ -464,7 +464,7 @@ def test_plot_topomap():
         p = plot_evoked_topomap(evoked, times, ch_type='eeg', title=False)
         test_title(p, '')
         p = plot_evoked_topomap(evoked, times, ch_type='eeg', title=True)
-        test_title(p, 'Left Auditory')
+        test_title(p, 'EEG')
         p = plot_evoked_topomap(evoked, times, ch_type='eeg', title='Custom')
         test_title(p, 'Custom')
 
