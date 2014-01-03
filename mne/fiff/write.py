@@ -74,7 +74,7 @@ def write_complex128(fid, kind, data):
 def write_string(fid, kind, data):
     """Writes a string tag"""
     data_size = 1
-    str_data = str(text_type(data).encode('utf-8'))
+    str_data = str(data.encode('utf-8'))
     _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, '>c')
 
 
