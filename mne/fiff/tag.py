@@ -342,12 +342,12 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">f8",
                                             shape=shape, rlims=rlims)
             elif tag.type == FIFF.FIFFT_STRING:
-                # tag.data = _fromstring_rows(fid, tag.size, dtype=">U",
-                #                             shape=shape, rlims=rlims)
-                tag.data = fid.read(tag.size)
-                tag.data = text_type(tag.data.decode('utf-8'))
-                if tag.data.startswith("b'"):  # XXX terrible hack
-                    tag.data = eval(tag.data).decode('utf-8')
+                tag.data = _fromstring_rows(fid, tag.size, dtype=">c",
+                                            shape=shape, rlims=rlims)
+
+                # Always decode to unicode.
+                tag.data = text_type(tag.data.tostring().decode('utf-8'))
+
             elif tag.type == FIFF.FIFFT_DAU_PACK16:
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">i2",
                                             shape=shape, rlims=rlims)

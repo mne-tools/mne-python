@@ -20,8 +20,10 @@ from ..utils import logger
 def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
     if isinstance(data, np.ndarray):
         data_size *= data.size
-    if isinstance(data, str):
-        data_size *= len(data)
+
+    # XXX for string types the data size is used as
+    # computed in ``write_string``.
+
     fid.write(np.array(kind, dtype='>i4').tostring())
     fid.write(np.array(FIFFT_TYPE, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
@@ -73,9 +75,11 @@ def write_complex128(fid, kind, data):
 
 def write_string(fid, kind, data):
     """Writes a string tag"""
-    data_size = 1
-    str_data = str(data.encode('utf-8'))
-    _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, '>c')
+
+    str_data = data.encode('utf-8')  # Use unicode or bytes depending on Py2/3
+    data_size = len(str_data)  # therefore compute size here
+    my_dtype = '>a'  # py2/3 compatible on writing -- don't ask me why
+    _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, my_dtype)
 
 
 def write_name_list(fid, kind, data):
