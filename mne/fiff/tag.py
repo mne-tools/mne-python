@@ -9,7 +9,7 @@ import gzip
 import sys
 import numpy as np
 from scipy import linalg
-from ..externals.six import b, text_type, u
+from ..externals.six import b, text_type
 
 from .constants import FIFF
 

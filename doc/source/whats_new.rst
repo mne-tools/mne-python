@@ -23,6 +23,8 @@ Changelog
    - Add systematic contains method to Raw, Epochs and Evoked for channel type
    membership testing by `Denis Engemann`_
 
+   - Add fiff unicode writing and reading support by `Denis Engemann`_
+
 API
 ~~~
 

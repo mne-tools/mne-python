@@ -21,7 +21,7 @@ from mne.fiff import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
 from mne import concatenate_events, find_events
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess)
-from mne.externals.six import text_type, u, b
+from mne.externals.six import text_type, b
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 

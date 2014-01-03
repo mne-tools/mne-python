@@ -3,7 +3,7 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types, b, text_type, u
+from ..externals.six import string_types, b
 import time
 import numpy as np
 from scipy import linalg
