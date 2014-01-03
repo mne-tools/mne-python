@@ -275,95 +275,95 @@ def test_io_raw():
                 desc2 = r2.info['description']
             assert_equal(desc1, desc2)
 
-    # # Let's construct a simple test for IO first
-    # raw = Raw(fif_fname, preload=True)
-    # raw.crop(0, 3.5)
-    # # put in some data that we know the values of
-    # data = np.random.randn(raw._data.shape[0], raw._data.shape[1])
-    # raw._data[:, :] = data
-    # # save it somewhere
-    # fname = op.join(tempdir, 'test_copy_raw.fif')
-    # raw.save(fname, buffer_size_sec=1.0)
-    # # read it in, make sure the whole thing matches
-    # raw = Raw(fname)
-    # assert_true(np.allclose(data, raw[:, :][0], 1e-6, 1e-20))
-    # # let's read portions across the 1-sec tag boundary, too
-    # inds = raw.time_as_index([1.75, 2.25])
-    # sl = slice(inds[0], inds[1])
-    # assert_true(np.allclose(data[:, sl], raw[:, sl][0], 1e-6, 1e-20))
-    #
-    # # now let's do some real I/O
-    # fnames_in = [fif_fname, fif_gz_fname, ctf_fname]
-    # fnames_out = ['raw.fif', 'raw.fif.gz', 'raw.fif']
-    # for fname_in, fname_out in zip(fnames_in, fnames_out):
-    #     fname_out = op.join(tempdir, fname_out)
-    #     raw = Raw(fname_in)
-    #
-    #     nchan = raw.info['nchan']
-    #     ch_names = raw.info['ch_names']
-    #     meg_channels_idx = [k for k in range(nchan)
-    #                         if ch_names[k][0] == 'M']
-    #     n_channels = 100
-    #     meg_channels_idx = meg_channels_idx[:n_channels]
-    #     start, stop = raw.time_as_index([0, 5])
-    #     data, times = raw[meg_channels_idx, start:(stop + 1)]
-    #     meg_ch_names = [ch_names[k] for k in meg_channels_idx]
-    #
-    #     # Set up pick list: MEG + STI 014 - bad channels
-    #     include = ['STI 014']
-    #     include += meg_ch_names
-    #     picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
-    #                        misc=True, ref_meg=True, include=include,
-    #                        exclude='bads')
-    #
-    #     # Writing with drop_small_buffer True
-    #     raw.save(fname_out, picks, tmin=0, tmax=4, buffer_size_sec=3,
-    #              drop_small_buffer=True, overwrite=True)
-    #     raw2 = Raw(fname_out, preload=True)
-    #
-    #     sel = pick_channels(raw2.ch_names, meg_ch_names)
-    #     data2, times2 = raw2[sel, :]
-    #     assert_true(times2.max() <= 3)
-    #
-    #     # Writing
-    #     raw.save(fname_out, picks, tmin=0, tmax=5, overwrite=True)
-    #
-    #     if fname_in == fif_fname or fname_in == fif_fname + '.gz':
-    #         assert_true(len(raw.info['dig']) == 146)
-    #
-    #     raw2 = Raw(fname_out)
-    #
-    #     sel = pick_channels(raw2.ch_names, meg_ch_names)
-    #     data2, times2 = raw2[sel, :]
-    #
-    #     assert_true(np.allclose(data, data2, 1e-6, 1e-20))
-    #     assert_allclose(times, times2)
-    #     assert_allclose(raw.info['sfreq'], raw2.info['sfreq'], rtol=1e-5)
-    #
-    #     # check transformations
-    #     for trans in ['dev_head_t', 'dev_ctf_t', 'ctf_head_t']:
-    #         if raw.info[trans] is None:
-    #             assert_true(raw2.info[trans] is None)
-    #         else:
-    #             assert_array_equal(raw.info[trans]['trans'],
-    #                                raw2.info[trans]['trans'])
-    #
-    #             # check transformation 'from' and 'to'
-    #             if trans.startswith('dev'):
-    #                 from_id = FIFF.FIFFV_COORD_DEVICE
-    #             else:
-    #                 from_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
-    #             if trans[4:8] == 'head':
-    #                 to_id = FIFF.FIFFV_COORD_HEAD
-    #             else:
-    #                 to_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
-    #             for raw_ in [raw, raw2]:
-    #                 assert_true(raw_.info[trans]['from'] == from_id)
-    #                 assert_true(raw_.info[trans]['to'] == to_id)
-    #
-    #     if fname_in == fif_fname or fname_in == fif_fname + '.gz':
-    #         assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
-    #
+    # Let's construct a simple test for IO first
+    raw = Raw(fif_fname, preload=True)
+    raw.crop(0, 3.5)
+    # put in some data that we know the values of
+    data = np.random.randn(raw._data.shape[0], raw._data.shape[1])
+    raw._data[:, :] = data
+    # save it somewhere
+    fname = op.join(tempdir, 'test_copy_raw.fif')
+    raw.save(fname, buffer_size_sec=1.0)
+    # read it in, make sure the whole thing matches
+    raw = Raw(fname)
+    assert_true(np.allclose(data, raw[:, :][0], 1e-6, 1e-20))
+    # let's read portions across the 1-sec tag boundary, too
+    inds = raw.time_as_index([1.75, 2.25])
+    sl = slice(inds[0], inds[1])
+    assert_true(np.allclose(data[:, sl], raw[:, sl][0], 1e-6, 1e-20))
+
+    # now let's do some real I/O
+    fnames_in = [fif_fname, fif_gz_fname, ctf_fname]
+    fnames_out = ['raw.fif', 'raw.fif.gz', 'raw.fif']
+    for fname_in, fname_out in zip(fnames_in, fnames_out):
+        fname_out = op.join(tempdir, fname_out)
+        raw = Raw(fname_in)
+
+        nchan = raw.info['nchan']
+        ch_names = raw.info['ch_names']
+        meg_channels_idx = [k for k in range(nchan)
+                            if ch_names[k][0] == 'M']
+        n_channels = 100
+        meg_channels_idx = meg_channels_idx[:n_channels]
+        start, stop = raw.time_as_index([0, 5])
+        data, times = raw[meg_channels_idx, start:(stop + 1)]
+        meg_ch_names = [ch_names[k] for k in meg_channels_idx]
+
+        # Set up pick list: MEG + STI 014 - bad channels
+        include = ['STI 014']
+        include += meg_ch_names
+        picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
+                           misc=True, ref_meg=True, include=include,
+                           exclude='bads')
+
+        # Writing with drop_small_buffer True
+        raw.save(fname_out, picks, tmin=0, tmax=4, buffer_size_sec=3,
+                 drop_small_buffer=True, overwrite=True)
+        raw2 = Raw(fname_out, preload=True)
+
+        sel = pick_channels(raw2.ch_names, meg_ch_names)
+        data2, times2 = raw2[sel, :]
+        assert_true(times2.max() <= 3)
+
+        # Writing
+        raw.save(fname_out, picks, tmin=0, tmax=5, overwrite=True)
+
+        if fname_in == fif_fname or fname_in == fif_fname + '.gz':
+            assert_true(len(raw.info['dig']) == 146)
+
+        raw2 = Raw(fname_out)
+
+        sel = pick_channels(raw2.ch_names, meg_ch_names)
+        data2, times2 = raw2[sel, :]
+
+        assert_true(np.allclose(data, data2, 1e-6, 1e-20))
+        assert_allclose(times, times2)
+        assert_allclose(raw.info['sfreq'], raw2.info['sfreq'], rtol=1e-5)
+
+        # check transformations
+        for trans in ['dev_head_t', 'dev_ctf_t', 'ctf_head_t']:
+            if raw.info[trans] is None:
+                assert_true(raw2.info[trans] is None)
+            else:
+                assert_array_equal(raw.info[trans]['trans'],
+                                   raw2.info[trans]['trans'])
+
+                # check transformation 'from' and 'to'
+                if trans.startswith('dev'):
+                    from_id = FIFF.FIFFV_COORD_DEVICE
+                else:
+                    from_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
+                if trans[4:8] == 'head':
+                    to_id = FIFF.FIFFV_COORD_HEAD
+                else:
+                    to_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
+                for raw_ in [raw, raw2]:
+                    assert_true(raw_.info[trans]['from'] == from_id)
+                    assert_true(raw_.info[trans]['to'] == to_id)
+
+        if fname_in == fif_fname or fname_in == fif_fname + '.gz':
+            assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
+
 
 def test_io_complex():
     """Test IO with complex data types

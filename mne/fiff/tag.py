@@ -345,8 +345,6 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 # tag.data = _fromstring_rows(fid, tag.size, dtype=">U",
                 #                             shape=shape, rlims=rlims)
                 tag.data = fid.read(tag.size)
-                # Use unicode or bytes depending on Py2/3
-                # import pdb; pdb.set_trace()
                 tag.data = text_type(tag.data.decode('utf-8'))
                 if tag.data.startswith("b'"):  # XXX terrible hack
                     tag.data = eval(tag.data).decode('utf-8')
