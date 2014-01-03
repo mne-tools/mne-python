@@ -98,11 +98,11 @@ intercept = np.ones((len(epochs),))
 design_matrix = np.column_stack([intercept, selection_volume])
 beta_maps = least_squares(epochs, design_matrix, names)
 
-def plot_beta_map(m, title):
+def plot_beta_map(m):
     return m.plot_topomap(ch_type='grad', size=3, times=[0.1, 0.2], vmax=200)
 
-plot_beta_map(beta_maps['Intercept'], 'Intercept')
-plot_beta_map(beta_maps['Volume'], 'Volume')
+plot_beta_map(beta_maps['Intercept'])
+plot_beta_map(beta_maps['Volume'])
 
 # Repeat the regression with a permuted version of the predictor vector. The
 # beta values should be very close to 0 this time, since the permuted volume
@@ -111,4 +111,4 @@ shuffled_volume = selection_volume[np.random.permutation(len(selection_volume))]
 shuffled_design_matrix = np.column_stack([intercept, shuffled_volume])
 shuffled_beta_maps = least_squares(epochs, shuffled_design_matrix, names)
 
-plot_beta_map(shuffled_beta_maps['Volume'], 'Permuted volume')
+plot_beta_map(shuffled_beta_maps['Volume'])
