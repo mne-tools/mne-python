@@ -878,7 +878,9 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         unit = DEFAULTS['units'][key]
 
     if title is True:
-        title = DEFAULTS['titles'][key]
+        number = 's' if evoked.info['nchan'] > 1 else ''
+        title = '%s (%d channel%s)' % (DEFAULTS['titles'][key], 
+                                       evoked.info['nchan'], number)
 
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
