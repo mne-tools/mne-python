@@ -536,10 +536,12 @@ def requires_statsmodels(function):
 
     return dec
 
+
 def requires_patsy(function):
     """
-    Decorator to skip test if patsy is not available. Patsy should be a statsmodels
-    dependency but apparently it's possible to install statsmodels without it.
+    Decorator to skip test if patsy is not available. Patsy should be a
+    statsmodels dependency but apparently it's possible to install statsmodels
+    without it.
     """
     @wraps(function)
     def dec(*args, **kwargs):
@@ -559,6 +561,7 @@ def requires_patsy(function):
 
     return dec
 
+
 def requires_sklearn(function):
     """Decorator to skip test if sklearn is not available"""
     @wraps(function)
@@ -575,8 +578,8 @@ def requires_sklearn(function):
 
         if skip is True:
             from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires sklearn (version >= %s)' %
-                           (function.__name__, required_version))
+            raise SkipTest('Test %s skipped, requires sklearn (version >= %s)'
+                           % (function.__name__, required_version))
         ret = function(*args, **kwargs)
 
         return ret
