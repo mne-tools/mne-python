@@ -40,12 +40,9 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 inv_fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, aud_r=2)
-snr = 1.0  # use smaller SNR for raw data
-lambda2 = 1.0 / snr ** 2
-method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
-# Setup for reading the raw data
 raw = fiff.Raw(raw_fname, preload=True)
 events = mne.read_events(event_fname)
 subjects_dir = data_path + '/subjects'
@@ -87,6 +84,9 @@ for epoch, vol in zip(epochs, selection_volume):
     epoch += betas * vol
 
 # Apply inverse operator
+snr = 1.0  # use smaller SNR for raw data
+lambda2 = 1.0 / snr ** 2
+method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 inverse_operator = read_inverse_operator(inv_fname)
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_ori="normal")
@@ -94,7 +94,6 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
 ###############################################################################
 # Run regression
 
-from datetime import datetime
 def least_squares(stcs, design_matrix, names):
     data = np.array([x.data for x in stcs])
     n_epochs, n_vertices, n_times = data.shape
@@ -119,17 +118,15 @@ intercept = np.ones((len(epochs),))
 design_matrix = np.column_stack([intercept, selection_volume])
 beta_maps = least_squares(stcs, design_matrix, names)
 
-def plot_beta_map(b):
-    p = b.plot(subjects_dir=subjects_dir)
+def plot_beta_map(b, fig, title):
+    p = b.plot(subjects_dir=subjects_dir, figure=fig)
     p.scale_data_colormap(fmin=2, fmid=4, fmax=6, transparent=True)
     p.set_time(100)
+    p.add_text(0.05, 0.95, title, title)
     return p
 
-print('Intercept beta map:')
-plot_beta_map(beta_maps['Intercept'])
-
-print('Volume beta map:')
-plot_beta_map(beta_maps['Volume'])
+plot_beta_map(beta_maps['Intercept'], 0, 'Intercept')
+plot_beta_map(beta_maps['Volume'], 1, 'Volume')
 
 # Repeat the regression with a permuted version of the predictor vector. The
 # beta values should be very close to 0 this time, since the permuted volume
@@ -138,5 +135,4 @@ shuffled_volume = selection_volume[np.random.permutation(len(selection_volume))]
 shuffled_design_matrix = np.column_stack([intercept, shuffled_volume])
 shuffled_beta_maps = least_squares(stcs, shuffled_design_matrix, names)
 
-print('Permuted volume beta map:')
-plot_beta_map(shuffled_beta_maps['Volume'])
+plot_beta_map(shuffled_beta_maps['Volume'], 2, 'Permuted volume')
