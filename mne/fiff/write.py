@@ -3,7 +3,7 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types, b, text_type
+from ..externals.six import string_types, b, text_type, u
 import time
 import numpy as np
 from scipy import linalg
@@ -74,8 +74,7 @@ def write_complex128(fid, kind, data):
 def write_string(fid, kind, data):
     """Writes a string tag"""
     data_size = 1
-    f = text_type
-    str_data = (f(data) if sys.version[0] == '3' else f(data).encode('utf-8'))
+    str_data = str(text_type(data).encode('utf-8'))
     _write(fid, str_data, kind, data_size, FIFF.FIFFT_STRING, '>c')
 
 
