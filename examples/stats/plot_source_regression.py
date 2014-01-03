@@ -40,21 +40,13 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 inv_fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
-<<<<<<< HEAD
+subjects_dir = data_path + '/subjects'
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, aud_r=2)
-=======
-tmin, tmax = -0.2, 0.5
-event_id = dict(aud_l=1, aud_r=2)
-snr = 1.0  # use smaller SNR for raw data
-lambda2 = 1.0 / snr ** 2
-method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
-# Setup for reading the raw data
->>>>>>> b8f333e3b2a9f369f5a08456871b1f0c669b3bb4
+
 raw = fiff.Raw(raw_fname, preload=True)
 events = mne.read_events(event_fname)
-subjects_dir = data_path + '/subjects'
 
 raw.info['bads'] = ['MEG 2443']  # set bad channels
 picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False,
@@ -93,12 +85,9 @@ for epoch, vol in zip(epochs, selection_volume):
     epoch += betas * vol
 
 # Apply inverse operator
-<<<<<<< HEAD
 snr = 1.0  # use smaller SNR for raw data
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
-=======
->>>>>>> b8f333e3b2a9f369f5a08456871b1f0c669b3bb4
 inverse_operator = read_inverse_operator(inv_fname)
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_ori="normal")
@@ -106,10 +95,6 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
 ###############################################################################
 # Run regression
 
-<<<<<<< HEAD
-=======
-from datetime import datetime
->>>>>>> b8f333e3b2a9f369f5a08456871b1f0c669b3bb4
 def least_squares(stcs, design_matrix, names):
     data = np.array([x.data for x in stcs])
     n_epochs, n_vertices, n_times = data.shape
