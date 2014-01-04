@@ -1,4 +1,5 @@
 from __future__ import print_function
+
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #         Denis Engemann <d.engemann@fz-juelich.de>
 #
@@ -8,6 +9,7 @@ import os
 import os.path as op
 from copy import deepcopy
 import warnings
+import sys
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -19,6 +21,7 @@ from mne.fiff import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
 from mne import concatenate_events, find_events
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess)
+from mne.externals.six import text_type, b
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -262,6 +265,16 @@ def test_load_bad_channels():
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)
     """
+    # test unicode io
+    for chars in [b'\xc3\xa4\xc3\xb6\xc3\xa9', b'a']:
+        with Raw(fif_fname) as r:
+            desc1 = r.info['description'] = chars.decode('utf-8')
+            temp_file = op.join(tempdir, 'raw.fif')
+            r.save(temp_file, overwrite=True)
+            with Raw(temp_file) as r2:
+                desc2 = r2.info['description']
+            assert_equal(desc1, desc2)
+
     # Let's construct a simple test for IO first
     raw = Raw(fif_fname, preload=True)
     raw.crop(0, 3.5)

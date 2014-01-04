@@ -4,11 +4,12 @@
 # License: BSD (3-clause)
 
 import struct
-import numpy as np
-from scipy import linalg
 import os
 import gzip
-from ..externals.six import b
+import sys
+import numpy as np
+from scipy import linalg
+from ..externals.six import b, text_type
 
 from .constants import FIFF
 
@@ -343,8 +344,10 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
             elif tag.type == FIFF.FIFFT_STRING:
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">c",
                                             shape=shape, rlims=rlims)
-                # Use unicode or bytes depending on Py2/3
-                tag.data = str(tag.data.tostring().decode())
+
+                # Always decode to unicode.
+                tag.data = text_type(tag.data.tostring().decode('utf-8'))
+
             elif tag.type == FIFF.FIFFT_DAU_PACK16:
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">i2",
                                             shape=shape, rlims=rlims)
