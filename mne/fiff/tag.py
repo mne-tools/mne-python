@@ -346,7 +346,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                                             shape=shape, rlims=rlims)
 
                 # Always decode to unicode.
-                tag.data = text_type(tag.data.tostring().decode('utf-8'))
+                td = tag.data.tostring().decode('utf-8', 'ignore')
+                tag.data = text_type(td)
 
             elif tag.type == FIFF.FIFFT_DAU_PACK16:
                 tag.data = _fromstring_rows(fid, tag.size, dtype=">i2",
