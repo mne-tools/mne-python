@@ -34,10 +34,10 @@ trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 subject_dirname = os.path.join('{subjects_dir}', '{subject}')
 bem_dirname = os.path.join(subject_dirname, 'bem')
 surf_dirname = os.path.join(subject_dirname, 'surf')
-bem_fname = os.path.join(bem_dirname, "{subject}-{name}-bem.fif")
-fid_fname = os.path.join(bem_dirname, "{subject}-fiducials.fif")
+bem_fname = os.path.join(bem_dirname, "{subject}-{name}.fif")
+head_bem_fname = pformat(bem_fname, name='head')
+fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
-head_bem_fname = os.path.join(bem_dirname, "{subject}-head.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
 
 
@@ -663,9 +663,17 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
 
     # BEM files
     paths['bem'] = bem = []
-    bem.append(head_bem_fname)
-    bem_file = pformat(bem_fname, name='inner_skull')
-    bem.append(bem_file)
+    path = head_bem_fname.format(subjects_dir=subjects_dir, subject=subject)
+    if os.path.exists(path):
+        bem.append('head')
+    bem_pattern = pformat(bem_fname, subjects_dir=subjects_dir,
+                          subject=subject, name='*-bem')
+    re_pattern = pformat(bem_fname, subjects_dir=subjects_dir, subject=subject,
+                         name='(.+)')
+    for path in iglob(bem_pattern):
+        match = re.match(re_pattern, path)
+        name = match.group(1)
+        bem.append(name)
 
     # fiducials
     paths['fid'] = [fid_fname]
@@ -678,7 +686,7 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
         dup.append(fname)
 
     # check presence of required files
-    for ftype in ['surf', 'bem', 'fid', 'duplicate']:
+    for ftype in ['surf', 'fid', 'duplicate']:
         for fname in paths[ftype]:
             path = fname.format(subjects_dir=subjects_dir, subject=subject)
             path = os.path.realpath(path)
@@ -720,12 +728,29 @@ def _is_mri_subject(subject, subjects_dir=None):
     if not os.path.exists(fname):
         return False
 
-    fname = bem_fname.format(subjects_dir=subjects_dir, subject=subject,
-                             name='*')
-    if len(glob(fname)) == 0:
-        return False
-
     return True
+
+
+def _mri_subject_has_bem(subject, subjects_dir=None):
+    """Check whether an mri subject has a file matching the bem pattern
+
+    Parameters
+    ----------
+    subject : str
+        Name of the subject.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+
+    Returns
+    -------
+    has_bem_file : bool
+        Whether ``subject`` has a bem file.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    pattern = bem_fname.format(subjects_dir=subjects_dir, subject=subject,
+                               name='*-bem')
+    fnames = glob(pattern)
+    return bool(len(fnames))
 
 
 def read_elp(fname):
@@ -824,6 +849,74 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
     config.set("MRI Scaling", 'version', '1')
     with open(fname, 'w') as fid:
         config.write(fid)
+
+
+def _scale_params(subject_to, subject_from, scale, subjects_dir):
+    subjects_dir = get_subjects_dir(subjects_dir, True)
+    if (subject_from is None) != (scale is None):
+        err = ("Need to provide either both subject_from and scale "
+               "parameters, or neither.")
+        raise TypeError(err)
+
+    if subject_from is None:
+        cfg = read_mri_cfg(subject_to, subjects_dir)
+        subject_from = cfg['subject_from']
+        n_params = cfg['n_params']
+        scale = cfg['scale']
+    else:
+        scale = np.asarray(scale)
+        if scale.ndim == 0:
+            n_params = 1
+        elif scale.shape == (3,):
+            n_params = 3
+        else:
+            err = ("Invalid shape for scale parameer. Need scalar or array of "
+                   "length 3. Got %s." % str(scale))
+            raise ValueError(err)
+
+    return subjects_dir, subject_from, n_params, scale
+
+
+def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
+              subjects_dir=None):
+    """Scale a bem file
+
+    Parameters
+    ----------
+    subject_to : str
+        Name of the scaled MRI subject (the destination mri subject).
+    bem_name : str
+        Name of the bem file. For example, to scale
+        ``fsaverage-inner_skull-bem.fif``, the bem_name would be
+        "inner_skull-bem".
+    subject_from : None | str
+        The subject from which to read the source space. If None, subject_from
+        is read from subject_to's config file.
+    scale : None | float | array, shape = (3,)
+        Scaling factor. Has to be specified if subjects_from is specified,
+        otherwise it is read from subject_to's config file.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+    """
+    subjects_dir, subject_from, _, scale = _scale_params(subject_to,
+                                                         subject_from, scale,
+                                                         subjects_dir)
+
+    src = bem_fname.format(subjects_dir=subjects_dir, subject=subject_from,
+                           name=bem_name)
+    dst = bem_fname.format(subjects_dir=subjects_dir, subject=subject_to,
+                           name=bem_name)
+
+    if os.path.exists(dst):
+        raise IOError("File alredy exists: %s" % dst)
+
+    surfs = read_bem_surfaces(src)
+    if len(surfs) != 1:
+        err = ("BEM file with more than one surface: %r" % src)
+        raise NotImplementedError(err)
+    surf0 = surfs[0]
+    surf0['rr'] = surf0['rr'] * scale
+    write_bem_surface(dst, surf0)
 
 
 def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
@@ -940,17 +1033,8 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         write_surface(dest, pts * scale, tri)
 
     # BEM files [in m]
-    for fname in paths['bem']:
-        src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
-        src = os.path.realpath(src)
-        surfs = read_bem_surfaces(src)
-        if len(surfs) != 1:
-            err = ("BEM file with more than one surface: %r" % src)
-            raise NotImplementedError(err)
-        surf0 = surfs[0]
-        surf0['rr'] = surf0['rr'] * scale
-        dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
-        write_bem_surface(dest, surf0)
+    for bem_name in paths['bem']:
+        scale_bem(subject_to, bem_name, subject_from, scale, subjects_dir)
 
     # fiducials [in m]
     for fname in paths['fid']:
@@ -1002,27 +1086,10 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
-    subjects_dir = get_subjects_dir(subjects_dir, True)
-    if (subject_from is None) != (scale is None):
-        err = ("Need to provide either both subject_from and scale "
-               "parameters, or neither.")
-        raise TypeError(err)
-
-    if subject_from is None:
-        cfg = read_mri_cfg(subject_to, subjects_dir)
-        subject_from = cfg['subject_from']
-        n_params = cfg['n_params']
-        scale = cfg['scale']
-    else:
-        scale = np.asarray(scale)
-        if scale.ndim == 0:
-            n_params = 1
-        elif scale.shape == (3,):
-            n_params = 3
-        else:
-            err = ("Invalid shape for scale parameer. Need scalar or array of "
-                   "length 3. Got %s." % str(scale))
-            raise ValueError(err)
+    subjects_dir, subject_from, n_params, scale = _scale_params(subject_to,
+                                                                subject_from,
+                                                                scale,
+                                                                subjects_dir)
 
     # find the source space file names
     if src_name.isdigit():

@@ -45,7 +45,8 @@ except:
 
 from ..fiff import FIFF, Raw, read_fiducials
 from ..surface import read_bem_surfaces
-from ..coreg import _is_mri_subject, create_default_subject
+from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
+                     create_default_subject)
 from ..utils import get_config
 
 
@@ -348,6 +349,9 @@ class MRISubjectSource(HasPrivateTraits):
     # info
     can_create_fsaverage = Property(Bool, depends_on=['subjects_dir',
                                                       'subjects'])
+    subject_has_bem = Property(Bool, depends_on=['subjects_dir', 'subject'],
+                               desc="whether the subject has a file matching "
+                               "the bem file name pattern")
     bem_pattern = Property(depends_on='mri_dir')
 
     @cached_property
@@ -380,6 +384,12 @@ class MRISubjectSource(HasPrivateTraits):
             subjects = ['']
 
         return subjects
+
+    @cached_property
+    def _get_subject_has_bem(self):
+        if not self.subject:
+            return False
+        return _mri_subject_has_bem(self.subject, self.subjects_dir)
 
     def create_fsaverage(self):
         if not self.subjects_dir:
