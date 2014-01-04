@@ -1,64 +1,50 @@
-# Adapted from M. Brett's .yaml file for nipy:
-# https://github.com/nipy/nipy/blob/master/.travis.yml
-#
-# We pretend to be erlang because we need can't use the python support in
-# travis-ci; it uses virtualenvs, they do not have numpy, scipy, matplotlib,
-# and it is impractical to build them
+language: python
 
-language: erlang
 env:
-    # Enable python 2 and python 3 builds. Python3.2 available in Ubuntu 12.04.
+    # Enable python 2 and python 3 builds
     # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
     #            scikit-learn, patsy, nibabel; in the case of Python 2, also 
     #            nitime
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
-    - PYTHON=python EASY_INSTALL=easy_install PIP=pip NOSETESTS=nosetests PYSUF='' DEPS=full
-    - PYTHON=python3 EASY_INSTALL=easy_install3 PIP=pip-3.2 NOSETESTS=nosetests3 PYSUF=3 DEPS=full
-    - PYTHON=python EASY_INSTALL=easy_install PIP=pip NOSETESTS=nosetests PYSUF='' DEPS=minimal
+    - PYTHON=2.7 DEPS=full
+    - PYTHON=3.3 DEPS=full
+    - PYTHON=2.7 DEPS=minimal
+# Setup anaconda
+before_install:
+  - wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/anaconda/bin:$PATH
+  - conda update --yes conda
+  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
+  - sudo rm -rf /dev/shm
+  - sudo ln -s /run/shm /dev/shm
+
 install:
-    - sudo apt-get update -qq
-    - sudo apt-get install $PYTHON-dev $PYTHON-numpy $PYTHON-scipy
-    - sudo apt-get install $PYTHON-setuptools $PYTHON-nose
-    - sudo $EASY_INSTALL pip
-    - if [ "${DEPS}" == "full" ]; then
-        sudo apt-key adv --recv-keys --keyserver pgp.mit.edu 2649A5A9;
-        wget -O- http://neuro.debian.net/lists/precise.us-nh.full | sudo tee /etc/apt/sources.list.d/neurodebian.sources.list;
-        sudo apt-get update -qq;
-        sudo $PIP install nibabel;
-        sudo $PIP install scikit-learn;
-        sudo $PIP install patsy;
-        sudo $PIP install pandas;
-        sudo $PIP install statsmodels;
-        if [ "${PYSUF}" != "3" ]; then
-          sudo $PIP install nitime;
-        fi;
-      fi
-    - if [ "${PYSUF}" != "3" ]; then
-        sudo apt-get --no-install-recommends install $PYTHON-matplotlib;
-        sudo $PIP install coverage;
-        sudo $PIP install coveralls;
-      else
-        sudo $EASY_INSTALL -U distribute;
-        sudo $PIP install matplotlib;
-      fi
+    - conda create -n testenv --yes pip python=$PYTHON
+    - source activate testenv
+    - conda install --yes ipython==1.1.0 numpy scipy nose matplotlib
+    - if [ "${DEPS}" == "full" ]; then conda install --yes pandas statsmodels scikit-learn patsy; pip install nibabel; if [ ${PYTHON:0:1} == "2" ]; then pip install nitime; fi; fi;
+    - if [ ${PYTHON:0:1} == "2" ]; then pip install coverage; pip install coveralls; fi;
     - MNE_FORCE_SERIAL=1
     - MNE_SKIP_SAMPLE_DATASET_TESTS=1
-    - $PYTHON setup.py build
-    - $PYTHON setup.py install --user
+    - python setup.py build
+    - python setup.py install
     - myscripts='browse_raw bti2fiff surf2bem'
-    - PATH=${PATH}:~/.local/bin/
     - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
     - cd ~
-    - MNE_DIR=$($PYTHON -c 'import mne;print(mne.__path__[0])')
+    - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
     - ln -s ${SRC_DIR}/mne/fiff/tests/data ${MNE_DIR}/fiff/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/bti/tests/data ${MNE_DIR}/fiff/bti/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/edf/tests/data ${MNE_DIR}/fiff/edf/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/kit/tests/data ${MNE_DIR}/fiff/kit/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/brainvision/tests/data ${MNE_DIR}/fiff/brainvision/tests/data
+
 script:
     - cd ${MNE_DIR}/../
-    - ${NOSETESTS} -v --exe mne
+    - nosetests -v --exe mne
+
 after_success:
-    - if [ "${PYSUF}" != "3" ]; then coveralls; fi
+    - if [ ${PYTHON:0:1} == "2" ]; then coveralls; fi
