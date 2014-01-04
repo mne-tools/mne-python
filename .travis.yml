@@ -44,7 +44,7 @@ install:
 
 script:
     - cd ${MNE_DIR}/../
-    - nosetests -v --with-coverage --exe mne
+    - nosetests -v --with-coverage --cover-package=mne
 
 after_success:
     - coveralls
