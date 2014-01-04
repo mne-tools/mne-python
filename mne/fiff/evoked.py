@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
+from ..externals.six import string_types, text_type
 from copy import deepcopy
 import numpy as np
 import warnings
@@ -297,7 +297,7 @@ class Evoked(ProjMixin, ContainsMixin):
         write_evoked(fname, self)
 
     def __repr__(self):
-        s = "comment : %r" % self.comment
+        s = "comment : '%s'" % self.comment
         s += ", time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", n_epochs : %d" % self.nave
         s += ", n_channels x n_times : %s x %s" % self.data.shape

@@ -1093,7 +1093,7 @@ class Epochs(_BaseEpochs):
         s += ', baseline : %s' % str(self.baseline)
         if len(self.event_id) > 1:
             counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
-                      for k, v in self.event_id.items()]
+                      for k, v in sorted(self.event_id.items())]
             s += ',\n %s' % ', '.join(counts)
 
         return '<Epochs  |  %s>' % s

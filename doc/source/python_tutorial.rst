@@ -235,7 +235,7 @@ Read epochs:
     145 matching events found
     >>> print(epochs)
     <Epochs  |  n_events : 145 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0),
-     'aud_r': 73, 'aud_l': 72>
+     'aud_l': 72, 'aud_r': 73>
 
 Get single epochs for one condition:
 
