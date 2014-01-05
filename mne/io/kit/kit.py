@@ -390,7 +390,8 @@ class RawKIT(_BaseRaw):
         if isinstance(hsp, string_types):
             _, hsp_ext = os.path.splitext(hsp)
             hsp = read_hsp(hsp)
-
+            if hsp_ext == '.hsp':
+                hsp = hsp[3:]
         n_pts = len(hsp)
         if n_pts > KIT.DIG_POINTS:
             hsp = _decimate_points(hsp, 5)

@@ -126,3 +126,16 @@ def test_legacy_head_dev_t():
     trans = raw.info['dev_head_t']['trans']
     trans_leg = raw_leg.info['dev_head_t']['trans']
     assert_array_almost_equal(trans, trans_leg, decimal=5)
+
+    raw_pts = np.array([point['r'] for point in raw.info['dig']])
+    raw_leg_pts = np.array([point['r'] for point in raw_leg.info['dig']])
+
+    # test elp
+    err = 'There is a problem with elp points for txt and legacy.'
+    assert_array_almost_equal(raw_pts[:8], raw_leg_pts[:8], decimal=5,
+                              err_msg=err)
+
+    # test hsp
+    err = 'There is a problem with hsp points for txt and legacy.'
+    assert_array_almost_equal(raw_pts[8:], raw_leg_pts[8:], decimal=5,
+                              err_msg=err)

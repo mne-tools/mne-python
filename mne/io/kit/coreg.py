@@ -118,7 +118,7 @@ def read_elp(fname):
     exp_not = '[eE]?[-+]?\d*'
     pattern = re.compile('(%s%s)\s+' % (float_not, exp_not) +
                          '(%s%s)\s+' % (float_not, exp_not) +
-                         '(%s%s)\s+' % (float_not, exp_not))
+                         '(%s%s)\s*[\n\r]*' % (float_not, exp_not))
     elp_points = pattern.findall(open(fname).read())
     elp_points = np.array(elp_points, dtype=float)
     if elp_points.shape[1] != 3:
@@ -147,7 +147,11 @@ def read_hsp(fname):
         Headshape points in Polhemus head space.
         File formats allowed: *.txt, *.pickled
     """
-    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    float_not = '\-?\d+\.?\d*'
+    exp_not = '[eE]?[-+]?\d*'
+    pattern = re.compile('(%s%s)\s+' % (float_not, exp_not) +
+                         '(%s%s)\s+' % (float_not, exp_not) +
+                         '(%s%s)\s*[\n\r]*' % (float_not, exp_not))
     with open(fname) as fid:
         hsp_points = pattern.findall(fid.read())
     hsp_points = np.array(hsp_points, dtype=float)
