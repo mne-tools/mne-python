@@ -1,11 +1,15 @@
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
+import os
+import glob
 
 from ..fiff import FIFF
 from ..fiff.pick import pick_types, pick_info
+from ..surface import get_head_surface, get_meg_helmet_surf
+
 from ..fiff.proj import _has_eeg_average_ref_proj, make_projector
-from ..transforms import transform_surface_to
+from ..transforms import transform_surface_to, read_trans
 from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _get_legen_lut_fast, _get_legen_lut_accurate)
@@ -196,3 +200,95 @@ def make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     fmd = _prepare_field_mapping(info, surf, ch_type, mode, n_jobs=n_jobs)
     mapping_mat = _compute_mapping_matrix(fmd, info)
     return mapping_mat
+
+
+def _get_trans(subject, subjects_dir=None, trans_fname=None):
+    if subject is None:
+        if 'SUBJECT' in os.environ:
+            subject = os.environ['SUBJECT']
+        else:
+            raise ValueError('SUBJECT environment variable not set')
+
+    if trans_fname is None:
+        trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
+                                              '*-trans.fif'))
+        if len(trans_fnames) < 1:
+            raise RuntimeError('Could not find the transformation for '
+                               '{subject}'.format(subject=subject))
+        elif len(trans_fnames) > 1:
+            raise RuntimeError('Found multiple transformations for '
+                               '{subject}'.format(subject=subject))
+        trans_fname_ = trans_fnames[0]
+    else:
+        trans_fname_ = trans_fname
+    return trans_fname_
+
+
+def make_surface_map(evoked, trans_fname=None, subject=None,
+                     subjects_dir=None, ch_type=None, mode='fast', n_jobs=1):
+    """Compute surface maps used for field display in 3D
+
+    Parameters
+    ----------
+    evoked : Evoked | Epochs | Raw
+        The measurement file. Need to have info attribute.
+    trans_fname : str | None
+        The full path to the `*-trans.fif` file produced during
+        coregistration. If None
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None stc.subject will be used. If that
+        is None, the environment will be used.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    ch_type : None | 'eeg' | 'meg'
+        If None, a map for each available channel type will be returned.
+        Else only the specified type will be used.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used. `'fast'` should be sufficient
+        for most applications.
+    n_jobs : int
+        The number of jobs to run in parallel
+
+    Returns
+    -------
+    surf_maps : list
+        The surface maps used then in field plots.
+    """
+    info = evoked.info
+
+    trans_fname_ = _get_trans(subject, subjects_dir, trans_fname)
+
+    # let's do this in MRI coordinates so they're easy to plot
+    trans = read_trans(trans_fname_)
+
+    if ch_type is None:
+        types = [t for t in ['eeg', 'meg'] if t in evoked]
+    else:
+        types = [ch_type]
+
+    surfs = []
+    for this_type in types:
+        if this_type == 'meg':
+            surf = get_meg_helmet_surf(info, trans)
+        else:
+            surf = get_head_surface(subject, subjects_dir=subjects_dir)
+        surfs.append(surf)
+
+    surf_maps = list()
+
+    for this_type, this_surf in zip(types, surfs):
+        data = make_surface_mapping(evoked.info, this_surf, this_type, trans,
+                                    n_jobs=n_jobs)
+
+        this_map = dict()
+        this_map['data'] = data
+        this_map['surf'] = this_surf
+        this_map['ch_type'] = this_type
+        # XXX should store the channel names used in data to avoid issues
+        # (fix make_surface_mapping)
+        surf_maps.append(this_map)
+
+    return surf_maps
