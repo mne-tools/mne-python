@@ -43,8 +43,8 @@ def test_bdf_data():
     data_eeglab = raw_eeglab[picks]
 
     assert_array_almost_equal(data_py, data_eeglab)
-    
-    # Manually checking that float coordinates are imported       
+
+    # Manually checking that float coordinates are imported
     assert_true((raw_py.info['chs'][0]['eeg_loc']).any())
     assert_true((raw_py.info['chs'][25]['eeg_loc']).any())
     assert_true((raw_py.info['chs'][63]['eeg_loc']).any())
@@ -71,17 +71,17 @@ def test_edf_data():
 def test_read_segment():
     """Test writing raw edf files when preload is False
     """
-    raw1 = read_raw_edf(bdf_path, hpts=hpts_path, preload=False)
+    raw1 = read_raw_edf(edf_path, preload=False)
     raw1_file = op.join(tempdir, 'raw1.fif')
-    raw1.save(raw1_file, overwrite=True)
+    raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
     raw11 = Raw(raw1_file, preload=True)
     data1, times1 = raw1[:, :]
     data11, times11 = raw11[:, :]
-    assert_array_almost_equal(data1, data11, 8)
+    assert_array_almost_equal(data1, data11, 10)
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
-    raw2 = read_raw_edf(bdf_path, hpts=hpts_path, preload=True)
+    raw2 = read_raw_edf(edf_path, preload=True)
     raw2_file = op.join(tempdir, 'raw2.fif')
     raw2.save(raw2_file, overwrite=True)
     data2, times2 = raw2[:, :]
@@ -92,6 +92,16 @@ def test_read_segment():
     raw2 = Raw(raw2_file, preload=True)
     assert_array_equal(raw1._data, raw2._data)
 
+    # test the _read_segment function by only loading some of the data
+    raw1 = read_raw_edf(edf_path, preload=False)
+    raw2 = read_raw_edf(edf_path, preload=True)
+    blocks = int(raw1.last_samp / raw1.info['sfreq'])
+    seg = (blocks - 1) * raw1.info['sfreq']
+    data1, times1 = raw1[:, :seg]
+    data2, times2 = raw2[:, :seg]
+    assert_array_equal(data1, data2)
+    assert_array_equal(times1, times2)
+
 
 def test_append():
     """Test appending raw edf objects using Raw.append
@@ -101,4 +111,4 @@ def test_append():
     raw0 = raw.copy()
     raw1 = raw.copy()
     raw0.append(raw1)
-    assert_true(2*len(raw) == len(raw0))
+    assert_true(2 * len(raw) == len(raw0))
