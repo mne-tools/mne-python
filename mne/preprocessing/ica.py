@@ -534,7 +534,6 @@ class ICA(object):
                                ecg=True, eog=True, stim=True, exclude='bads')
 
         # merge copied instance and picked data with sources
-        start, stop = _check_start_stop(raw, start, stop)
         sources = self.get_sources_raw(raw, start=start, stop=stop)
         if raw._preloaded:  # get data and temporarily delete
             data, times = raw._data, raw._times
@@ -545,6 +544,7 @@ class ICA(object):
             raw._data, raw._times = data, times
 
         # populate copied raw.
+        start, stop = _check_start_stop(raw, start, stop)
         out.fids = []
         data_, times_ = raw[picks, start:stop]
         out._data = np.r_[sources, data_]
@@ -660,7 +660,6 @@ class ICA(object):
         -------
         fig : instance of pyplot.Figure
         """
-        start, stop = _check_start_stop(raw, start, stop)
         sources = self.get_sources_raw(raw, start=start, stop=stop)
 
         if order is not None:
@@ -765,11 +764,10 @@ class ICA(object):
         scores : ndarray
             scores for each source as returned from score_func
         """
-        start, stop = _check_start_stop(raw, start, stop)
         sources = self.get_sources_raw(raw=raw, start=start, stop=stop)
-
         # auto target selection
         if target is not None:
+            start, stop = _check_start_stop(raw, start, stop)
             if hasattr(target, 'ndim'):
                 if target.ndim < 2:
                     target = target.reshape(1, target.shape[-1])
@@ -1134,12 +1132,13 @@ class ICA(object):
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
             full_var = np.var(data, axis=1).sum()
-        
+
         data = pca.fit_transform(data.T)
 
         if isinstance(self.n_components, float):
             logger.info('Selecting PCA components by explained variance.')
-            # compute eplained variance manually, cf. sklearn bug fixed in #2664
+            # compute eplained variance manually, cf. sklearn bug
+            # fixed in #2664
             explained_variance_ratio_ = pca.explained_variance_ / full_var
             n_components_ = np.sum(explained_variance_ratio_.cumsum()
                                    <= self.n_components)
@@ -1161,8 +1160,9 @@ class ICA(object):
         del pca
         # update number of components
         self.n_components_ = sel.stop
-        if self.n_pca_components > len(self.pca_components_):
-            self.n_pca_components = len(self.pca_components_)
+        if self.n_pca_components is not None:
+            if self.n_pca_components > len(self.pca_components_):
+                self.n_pca_components = len(self.pca_components_)
 
         # Take care of ICA
         from sklearn.decomposition import FastICA  # to avoid strong dep.
@@ -1212,7 +1212,7 @@ class ICA(object):
         pca_data[:n_components] = fast_dot(self.mixing_matrix_, sources)
         data = fast_dot(self.pca_components_[:n_components].T,
                         pca_data[:n_components])
-        if n_pca_components > n_components:
+        if n_pca_components is not None and n_pca_components > n_components:
             data += fast_dot(self.pca_components_[n_components:_n_pca_comp].T,
                              pca_data[n_components:_n_pca_comp])
 
@@ -1237,8 +1237,9 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
                        <= _n_pca_comp).sum()
         logger.info('Selected %i PCA components by explained '
                     'variance' % _n_pca_comp)
-    elif _n_pca_comp is None:
+    elif _n_pca_comp is None or _n_pca_comp < ica.n_components_:
         _n_pca_comp = ica.n_components_
+
     return _n_pca_comp
 
 

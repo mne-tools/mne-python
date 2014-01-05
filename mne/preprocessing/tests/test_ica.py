@@ -405,6 +405,7 @@ def test_ica_additional():
 
     # test float n pca components
     ica.pca_explained_variance_ = np.array([0.2] * 5)
+    ica.n_components_ = 0
     for ncomps, expected in [[0.3, 1], [0.9, 4], [1, 1]]:
         ncomps_ = _check_n_pca_components(ica, ncomps)
         assert_true(ncomps_ == expected)
