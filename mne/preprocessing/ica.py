@@ -1562,8 +1562,9 @@ _ica_node = namedtuple('Node', 'name target score_func criterion')
 
 
 def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
-                    ecg_criterion, eog_ch, eog_score_func, eog_criterion,
-                    skew_criterion, kurt_criterion, var_criterion, add_nodes):
+                      ecg_criterion, eog_ch, eog_score_func, eog_criterion,
+                      skew_criterion, kurt_criterion, var_criterion,
+                      add_nodes):
     """Aux Function"""
 
     nodes = []
