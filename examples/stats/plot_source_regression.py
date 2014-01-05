@@ -29,8 +29,7 @@ import mne
 from mne import fiff
 from mne.datasets import sample
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
-from mne.source_estimate import SourceEstimate
-from mne.stats.regression import OLSSourceEstimates
+from mne.stats.regression import ols_source_estimates
 
 logger = logging.getLogger('mne')
 logger.setLevel(logging.WARNING)
@@ -100,8 +99,7 @@ names = ['Intercept', 'Volume']
 
 intercept = np.ones((len(epochs),))
 design_matrix = np.column_stack([intercept, selection_volume])
-ols = OLSSourceEstimates(stcs, design_matrix, names)
-fit = ols.fit()
+ols = ols_source_estimates(stcs, design_matrix, names)
 
 def plot_beta_map(b, fig, title):
     p = b.plot(subjects_dir=subjects_dir, figure=fig)
@@ -110,15 +108,13 @@ def plot_beta_map(b, fig, title):
     p.add_text(0.05, 0.95, title, title)
     return p
 
-plot_beta_map(fit.beta['Intercept'], 0, 'Intercept')
-plot_beta_map(fit.beta['Volume'], 1, 'Volume')
+plot_beta_map(ols['beta']['Intercept'], 0, 'Intercept')
+plot_beta_map(ols['beta']['Volume'], 1, 'Volume')
 
 # Repeat the regression with a permuted version of the predictor vector. The
 # beta values should be very close to 0 this time, since the permuted volume
 # values should not be correlated with neural activity
 shuffled_volume = selection_volume[np.random.permutation(len(selection_volume))]
 shuffled_design_matrix = np.column_stack([intercept, shuffled_volume])
-shuffled_ols = OLSSourceEstimates(stcs, shuffled_design_matrix, names)
-shuffled_fit = shuffled_ols.fit()
-
-plot_beta_map(shuffled_fit.beta['Volume'], 2, 'Permuted volume')
+shuffled_ols = ols_source_estimates(stcs, shuffled_design_matrix, names)
+plot_beta_map(ols['beta']['Volume'], 2, 'Permuted volume')
