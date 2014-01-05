@@ -141,7 +141,7 @@ def _compute_cov_epochs(epochs, n_jobs):
     if n_epochs == 0:
         raise RuntimeError('No good epochs found')
 
-    n_chan, n_samples = epochs.__iter__().next().shape
+    n_chan, n_samples = epochs.info['nchan'], len(epochs.times)
     _check_n_samples(n_samples * n_epochs, n_chan)
     data = sum(data)
     return data
