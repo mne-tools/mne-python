@@ -30,6 +30,7 @@ from mne import fiff
 from mne.datasets import sample
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.source_estimate import SourceEstimate
+from mne.stats.regression import OLSSourceEstimates
 
 logger = logging.getLogger('mne')
 logger.setLevel(logging.WARNING)
@@ -95,29 +96,12 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
 ###############################################################################
 # Run regression
 
-def least_squares(stcs, design_matrix, names):
-    data = np.array([x.data for x in stcs])
-    n_epochs, n_vertices, n_times = data.shape
-    assert design_matrix.shape[0] == n_epochs
-
-    # Flatten channels and timepoints into a single dimension
-    y = np.reshape(data, (n_epochs, n_vertices * n_times))
-
-    betas, _, _, _ = scipy.linalg.lstsq(design_matrix, y)
-    s = stcs[0]
-    beta_maps = {}
-    for x, predictor in zip(betas, names):
-        data = np.reshape(x, (n_vertices, n_times))
-        beta_map = SourceEstimate(data, vertices=s.vertno, tmin=s.tmin,
-                                  tstep=s.tstep, subject=s.subject)
-        beta_maps[predictor] = beta_map
-    return beta_maps
-
 names = ['Intercept', 'Volume']
 
 intercept = np.ones((len(epochs),))
 design_matrix = np.column_stack([intercept, selection_volume])
-beta_maps = least_squares(stcs, design_matrix, names)
+ols = OLSSourceEstimates(stcs, design_matrix, names)
+fit = ols.fit()
 
 def plot_beta_map(b, fig, title):
     p = b.plot(subjects_dir=subjects_dir, figure=fig)
@@ -126,14 +110,15 @@ def plot_beta_map(b, fig, title):
     p.add_text(0.05, 0.95, title, title)
     return p
 
-plot_beta_map(beta_maps['Intercept'], 0, 'Intercept')
-plot_beta_map(beta_maps['Volume'], 1, 'Volume')
+plot_beta_map(fit.beta['Intercept'], 0, 'Intercept')
+plot_beta_map(fit.beta['Volume'], 1, 'Volume')
 
 # Repeat the regression with a permuted version of the predictor vector. The
 # beta values should be very close to 0 this time, since the permuted volume
 # values should not be correlated with neural activity
 shuffled_volume = selection_volume[np.random.permutation(len(selection_volume))]
 shuffled_design_matrix = np.column_stack([intercept, shuffled_volume])
-shuffled_beta_maps = least_squares(stcs, shuffled_design_matrix, names)
+shuffled_ols = OLSSourceEstimates(stcs, shuffled_design_matrix, names)
+shuffled_fit = shuffled_ols.fit()
 
-plot_beta_map(shuffled_beta_maps['Volume'], 2, 'Permuted volume')
+plot_beta_map(shuffled_fit.beta['Volume'], 2, 'Permuted volume')
