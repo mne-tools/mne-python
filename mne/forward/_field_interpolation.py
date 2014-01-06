@@ -96,6 +96,9 @@ def _prepare_field_mapping(info, surf, ch_type, mode, int_rad=0.06, n_jobs=1):
                origin=my_origin, noise=noise, self_dots=self_dots,
                surface_dots=surface_dots, int_rad=int_rad, miss=miss)
     logger.info('Field mapping data ready')
+
+    # XXX how much of the above keys do we need and shall return in
+    # make_surface_mapping ?
     return res
 
 
@@ -197,6 +200,11 @@ def make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         surf = transform_surface_to(deepcopy(surf), 'head', trans)
 
     n_jobs = check_n_jobs(n_jobs)
+    # XXX do we need a _prepare_field_mapping function? why not having it here?
+    # then make_surface_mapping would return a dict
+    # make_surface_mapping should contain the map including for bad channels
+    # then as for the forward, the selection of the good channels should
+    # happen at the last moment
     fmd = _prepare_field_mapping(info, surf, ch_type, mode, n_jobs=n_jobs)
     mapping_mat = _compute_mapping_matrix(fmd, info)
     return mapping_mat
