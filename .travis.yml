@@ -61,5 +61,5 @@ after_success:
     - if [ "${PYTHON}" == "2.7" ] && [ "${DEPS}" == "full" ]; then
         echo "Running coveralls";
         cd ${SRC_DIR};
-        coveralls -v;
+        coveralls;
       fi;
