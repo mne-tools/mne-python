@@ -49,4 +49,7 @@ script:
     - nosetests
 
 after_success:
-    - coveralls
+    - if [ "${PYTHON}" == "3.3" ] && [ "$DEPS" == "full" ]; then
+        echo "Running coveralls";
+        coveralls -v;
+      fi
