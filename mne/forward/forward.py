@@ -1030,7 +1030,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
         warnings.warn('The maximum current magnitude is %0.1f nAm, which is '
                       'very large. Are you trying to apply the forward model '
                       'to dSPM values? The result will only be correct if '
-                      'currents are used.' % 1e9 * max_cur)
+                      'currents are used.' % (1e9 * max_cur))
 
     src_sel = _stc_src_sel(fwd['src'], stc)
     n_src = sum([len(v) for v in stc.vertno])
