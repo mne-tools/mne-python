@@ -493,7 +493,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
     if n_ffts is not None and len(n_ffts) != len(freq_bins):
-        raise ValueError('When specifiying number of FFT samples, one value '
+        raise ValueError('When specifying number of FFT samples, one value '
                          'must be provided per frequency bin')
     if mt_bandwidths is not None and len(mt_bandwidths) != len(freq_bins):
         raise ValueError('When using multitaper mode and specifying '

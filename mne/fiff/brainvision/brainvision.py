@@ -284,7 +284,7 @@ def _read_vmrk_events(fname):
         cfg = configparser.SafeConfigParser()
         cfg.readfp(f)
 
-    # extract event informtion
+    # extract event information
     events = []
     for _, info in cfg.items('Marker Infos'):
         mtype, mdesc, onset, duration = info.split(',')[:4]

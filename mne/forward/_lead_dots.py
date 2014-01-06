@@ -128,7 +128,7 @@ def _get_legen_lut_accurate(x, lut):
 
 def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
     """Lead field dot products using Legendre polynomial (P_n) series"""
-    # Compute the sum occuring in the evaluation.
+    # Compute the sum occurring in the evaluation.
     # The result is
     #   sums[:]    (2n+1)^2/n beta^n P_n
     coeffs = lut_fun(ctheta)
@@ -140,7 +140,7 @@ def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
 
 def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
     """Lead field dot products using Legendre polynomial (P_n) series"""
-    # Compute the sums occuring in the evaluation.
+    # Compute the sums occurring in the evaluation.
     # Two point magnetometers on the xz plane are assumed.
     # The four sums are:
     #  * sums[:, 0]    n(n+1)/(2n+1) beta^(n+1) P_n

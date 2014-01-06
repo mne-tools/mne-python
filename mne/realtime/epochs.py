@@ -347,7 +347,7 @@ class RtEpochs(_BaseEpochs):
             The raw epoch (only calibration has been applied) over all
             channels.
         event_samp : int
-            The time in samples when the epoch occured.
+            The time in samples when the epoch occurred.
         event_id : int
             The event ID of the epoch.
         """

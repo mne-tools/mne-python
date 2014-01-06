@@ -84,7 +84,7 @@ class CoregModel(HasPrivateTraits):
 
     Notes
     -----
-    Transform from head to mri space is modeled with the following steps:
+    Transform from head to mri space is modelled with the following steps:
 
      * move the head shape to its nasion position
      * rotate the head shape with user defined rotation around its nasion
