@@ -25,7 +25,13 @@ install:
     - conda create -n testenv --yes pip python=$PYTHON
     - source activate testenv
     - conda install --yes ipython==1.1.0 numpy scipy nose matplotlib
-    - if [ "${DEPS}" == "full" ]; then conda install --yes pandas statsmodels scikit-learn patsy; pip install nibabel; if [ ${PYTHON:0:1} == "2" ]; then pip install nitime; fi; fi;
+    - if [ "${DEPS}" == "full" ]; then
+        conda install --yes pandas statsmodels scikit-learn patsy;
+        pip install nibabel;
+        if [ ${PYTHON:0:1} == "2" ];
+          then pip install nitime;
+        fi;
+      fi;
     - pip install coverage; pip install coveralls
     - MNE_FORCE_SERIAL=1
     - MNE_SKIP_SAMPLE_DATASET_TESTS=1
