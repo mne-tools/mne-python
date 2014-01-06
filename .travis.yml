@@ -28,8 +28,8 @@ install:
     - if [ "${DEPS}" == "full" ]; then
         conda install --yes pandas statsmodels scikit-learn patsy;
         pip install nibabel;
-        if [ ${PYTHON:0:1} == "2" ];
-          then pip install nitime;
+        if [ ${PYTHON:0:1} == "2" ]; then
+          pip install nitime;
         fi;
       fi;
     - pip install coverage; pip install coveralls
@@ -49,7 +49,7 @@ install:
     - ln -s ${SRC_DIR}/mne/fiff/brainvision/tests/data ${MNE_DIR}/fiff/brainvision/tests/data
     - ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg
     - ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc
-    # Link it back to the src dir location, since coveralls should be run from there
+    # Link coverage to src dir, coveralls should be run from there (needs git calls)
     - ln -s ${MNE_DIR}/../.coverage ${SRC_DIR}/.coverage
 
 script:
@@ -58,8 +58,8 @@ script:
 
 after_success:
     # Need to run from source dir to exectue "git" commands
-    - if [ "${PYTHON}" == "2.7" ] && [ "${DEPS}" == "minimal" ]; then
+    - if [ "${PYTHON}" == "2.7" ] && [ "${DEPS}" == "full" ]; then
         echo "Running coveralls";
         cd ${SRC_DIR};
         coveralls -v;
-      fi
+      fi;
