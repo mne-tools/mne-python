@@ -224,8 +224,8 @@ def _get_trans(subject, subjects_dir=None, trans_fname=None):
     return trans_fname_
 
 
-def make_surface_map(evoked, trans_fname=None, subject=None,
-                     subjects_dir=None, ch_type=None, mode='fast', n_jobs=1):
+def make_field_map(evoked, trans_fname=None, subject=None, subjects_dir=None,
+                   ch_type=None, mode='fast', n_jobs=1):
     """Compute surface maps used for field display in 3D
 
     Parameters

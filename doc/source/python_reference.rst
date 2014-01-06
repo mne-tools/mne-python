@@ -429,7 +429,7 @@ Forward Modeling
    convert_forward_solution
    do_forward_solution
    make_forward_solution
-   make_surface_mapping
+   make_field_map
    read_bem_surfaces
    read_forward_solution
    read_trans
@@ -449,7 +449,7 @@ Forward Modeling
 
    restrict_forward_to_label
    restrict_forward_to_stc
-
+   make_surface_mapping
 
 Inverse Solutions
 =================

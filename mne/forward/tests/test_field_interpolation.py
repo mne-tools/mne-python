@@ -4,8 +4,9 @@ from numpy.polynomial import legendre
 from numpy.testing.utils import assert_allclose, assert_array_equal
 from nose.tools import assert_raises
 
-from mne import (read_trans, make_surface_mapping, get_meg_helmet_surf,
-                 get_head_surface)
+from mne import read_trans
+from mne.forward import (make_surface_mapping, get_meg_helmet_surf,
+                         get_head_surface)
 from mne.datasets import sample
 from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_table,

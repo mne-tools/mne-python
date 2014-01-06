@@ -27,10 +27,11 @@ setno = 'Left Auditory'
 evoked = mne.fiff.read_evoked(evoked_fname, setno=setno,
                               baseline=(-0.2, 0.0))
 
-
-surf_maps = mne.make_surface_map(evoked, trans_fname=trans_fname,
-                             subject='sample', subjects_dir=subjects_dir,
-                             n_jobs=-1)
+# Compute the field maps to project MEG and EEG data to MEG helmet
+# and scalp surface
+maps = mne.make_field_map(evoked, trans_fname=trans_fname,
+                          subject='sample', subjects_dir=subjects_dir,
+                          n_jobs=-1)
 
 for time in [0.09, .11]:
-    mne.viz.plot_evoked_field(evoked, surf_maps, time=time)
+    mne.viz.plot_evoked_field(evoked, maps, time=time)
