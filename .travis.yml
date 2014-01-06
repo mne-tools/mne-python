@@ -32,7 +32,7 @@ install:
           pip install nitime;
         fi;
       fi;
-    - pip install coverage; pip install coveralls
+    - pip install coverage; pip install coveralls; pip install nose-timer
     - MNE_FORCE_SERIAL=1
     - MNE_SKIP_SAMPLE_DATASET_TESTS=1
     - python setup.py build
@@ -54,7 +54,7 @@ install:
 
 script:
     - cd ${MNE_DIR}/../
-    - nosetests
+    - nosetests --with-timer --timer-top-n 20
 
 after_success:
     # Need to run from source dir to exectue "git" commands
