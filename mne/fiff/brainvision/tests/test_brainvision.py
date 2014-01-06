@@ -71,14 +71,14 @@ def test_events():
                                 [6620, 1, 254],
                                 [6630, 1, 255]])
 
-    mne_events = mne.find_events(raw)
+    mne_events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
     # modify events and check that stim channel is updated
     index = events[:, 2] == 255
     events = events[index]
     raw.set_brainvision_events(events)
-    mne_events = mne.find_events(raw)
+    mne_events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events[:, [0, 2]], mne_events[:, [0, 2]])
 
     # remove events
