@@ -3,7 +3,7 @@ language: python
 env:
     # Enable python 2 and python 3 builds
     # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
-    #            scikit-learn, patsy, nibabel; in the case of Python 2, also 
+    #            scikit-learn, patsy, nibabel; in the case of Python 2, also
     #            nitime
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
