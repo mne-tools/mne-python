@@ -811,7 +811,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
                         scale=None, unit=None, res=256, size=1, format='%3.1f',
-                        proj=False, show=True, show_names=False):
+                        proj=False, show=True, show_names=False, title=True):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -862,16 +862,25 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
         lambda x: x.replace('MEG ', '')
+    title : str | bool
+        Title. If True (default), the channel type is used. If False, no title
+        is drawn.
     """
     import matplotlib.pyplot as plt
 
+    if ch_type.startswith('planar'):
+        key = 'grad'
+    else:
+        key = ch_type
+
     if scale is None:
-        if ch_type.startswith('planar'):
-            key = 'grad'
-        else:
-            key = ch_type
         scale = DEFAULTS['scalings'][key]
         unit = DEFAULTS['units'][key]
+
+    if title is True:
+        number = 's' if evoked.info['nchan'] > 1 else ''
+        title = '%s (%d channel%s)' % (DEFAULTS['titles'][key], 
+                                       evoked.info['nchan'], number)
 
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
@@ -897,7 +906,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     height = size * 1. + max(0, 0.1 * (3 - size))
     fig = plt.figure(figsize=(width, height))
     w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
-    top_frame = max(.05, .2 / size)
+    top_frame = max((0.05 if title is False else 0.15), .2 / size)
     fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
                         top=1 - top_frame)
     time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
@@ -942,6 +951,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                       plot_update_proj_callback=_plot_update_evoked_topomap)
         _draw_proj_checkbox(None, params)
 
+    if title is False:
+        title = ''
+    fig.text(0.5, 1, title, horizontalalignment='center',
+             verticalalignment='top', size='x-large')
     if show:
         plt.show()
 
