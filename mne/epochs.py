@@ -511,6 +511,8 @@ class Epochs(_BaseEpochs):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
+        The baseline (a, b) includes both endpoints, i.e. all 
+        timepoints t such that a <= t <= b.
     picks : None (default) or array of int
         Indices of channels to include (if None, all channels
         are used).
@@ -1149,6 +1151,11 @@ class Epochs(_BaseEpochs):
         -------
         epochs : Epochs instance
             The cropped epochs.
+
+        Note
+        ----
+        Unlike Python slices, MNE time intervals include both their end points;
+        crop(tmin, tmax) returns the interval tmin <= t <= tmax.
         """
         if not self.preload:
             raise RuntimeError('Modifying data of epochs is only supported '
