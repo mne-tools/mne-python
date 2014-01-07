@@ -3,7 +3,7 @@ language: python
 env:
     # Enable python 2 and python 3 builds
     # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
-    #            scikit-learn, patsy, nibabel; in the case of Python 2, also 
+    #            scikit-learn, patsy, nibabel; in the case of Python 2, also
     #            nitime
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
@@ -25,8 +25,14 @@ install:
     - conda create -n testenv --yes pip python=$PYTHON
     - source activate testenv
     - conda install --yes ipython==1.1.0 numpy scipy nose matplotlib
-    - if [ "${DEPS}" == "full" ]; then conda install --yes pandas statsmodels scikit-learn patsy; pip install nibabel; if [ ${PYTHON:0:1} == "2" ]; then pip install nitime; fi; fi;
-    - if [ ${PYTHON:0:1} == "2" ]; then pip install coverage; pip install coveralls; fi;
+    - if [ "${DEPS}" == "full" ]; then
+        conda install --yes pandas statsmodels scikit-learn patsy;
+        pip install nibabel;
+        if [ ${PYTHON:0:1} == "2" ]; then
+          pip install nitime;
+        fi;
+      fi;
+    - pip install coverage; pip install coveralls; pip install nose-timer
     - MNE_FORCE_SERIAL=1
     - MNE_SKIP_SAMPLE_DATASET_TESTS=1
     - python setup.py build
@@ -41,10 +47,25 @@ install:
     - ln -s ${SRC_DIR}/mne/fiff/edf/tests/data ${MNE_DIR}/fiff/edf/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/kit/tests/data ${MNE_DIR}/fiff/kit/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/brainvision/tests/data ${MNE_DIR}/fiff/brainvision/tests/data
+    - ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg
+    - ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc
+    # Link coverage to src dir, coveralls should be run from there (needs git calls)
+    - ln -s ${MNE_DIR}/../.coverage ${SRC_DIR}/.coverage
 
 script:
     - cd ${MNE_DIR}/../
-    - nosetests -v --exe mne
+    - # Nose-timer has bugs on 3+ as of Jan 2014
+    - if [ "{PYTHON}" == "2.7" ]; then
+        nosetests --with-timer --timer-top-n 20;
+      else
+        nosetests;
+      fi
 
 after_success:
-    - if [ ${PYTHON:0:1} == "2" ]; then coveralls; fi
+    # Need to run from source dir to exectue "git" commands
+    # Only do "2.7" "full" here, since that is our most complete testing condition
+    - if [ "${PYTHON}" == "2.7" ] && [ "${DEPS}" == "full" ]; then
+        echo "Running coveralls";
+        cd ${SRC_DIR};
+        coveralls;
+      fi;
