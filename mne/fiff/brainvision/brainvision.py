@@ -450,7 +450,8 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, reference=None):
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
     sfreq = int(sfreq)
-    n_chan = cfg.getint('Common Infos', 'NumberOfChannels')
+    n_data_chan = cfg.getint('Common Infos', 'NumberOfChannels')
+    n_eeg_chan = n_data_chan + bool(reference)
 
     # check binary format
     assert cfg.get('Common Infos', 'DataFormat') == 'BINARY'
@@ -472,9 +473,10 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, reference=None):
                                   % binary_format)
 
     # load channel labels
-    ch_names = ['UNKNOWN'] * n_chan
-    cals = [np.nan] * n_chan
-    units = []
+    ch_names = ['UNKNOWN'] * n_eeg_chan
+    cals = np.empty(n_eeg_chan)
+    cals[:] = np.nan
+    units = ['UNKNOWN'] * n_eeg_chan
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0])
         name, _, resolution, unit = props.split(',')[:4]
@@ -482,18 +484,17 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, reference=None):
         cals[n - 1] = float(resolution)
         unit = unit.replace('\xc2', '')  # Remove unwanted control characters
         if u(unit) == u('\xb5V'):
-            units.append(1e-6)
+            units[n - 1] = 1e-6
         elif unit == 'V':
-            units.append(0)
+            units[n - 1] = 0
         else:
-            units.append(unit)
+            units[n - 1] = unit
 
     # add reference channel info
     if reference:
-        ch_names.append(reference)
-        cals.append(cals[-1])
-        units.append(units[-1])
-        n_chan += 1
+        ch_names[-1] = reference
+        cals[-1] = cals[-2]
+        units[-1] = units[-2]
 
     # Attempts to extract filtering info from header. If not found, both are
     # set to zero.
@@ -556,7 +557,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, reference=None):
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    info['nchan'] = n_chan
+    info['nchan'] = n_eeg_chan
     info['ch_names'] = ch_names
     info['sfreq'] = sfreq
     if elp_fname and elp_names:
