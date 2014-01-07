@@ -454,6 +454,18 @@ def test_plot_topomap():
         assert_true(all('MEG' not in x.get_text() for x in subplot.get_children()
                         if isinstance(x, matplotlib.text.Text)))
 
+        # Test title
+        def get_texts(p):
+            return [x.get_text() for x in p.get_children() if
+                    isinstance(x, matplotlib.text.Text)]
+
+        p = plot_evoked_topomap(evoked, times, ch_type='eeg')
+        assert_equal(len(get_texts(p)), 0)
+        p = plot_evoked_topomap(evoked, times, ch_type='eeg', title='Custom')
+        texts = get_texts(p)
+        assert_equal(len(texts), 1)
+        assert_equal(texts[0], 'Custom')
+
         with warnings.catch_warnings(record=True):  # delaunay triangulation warning
             plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
         assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
