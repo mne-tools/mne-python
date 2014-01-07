@@ -54,7 +54,12 @@ install:
 
 script:
     - cd ${MNE_DIR}/../
-    - nosetests --with-timer --timer-top-n 20
+    - # Nose-timer has bugs on 3+ as of Jan 2014
+    - if [ "{PYTHON}" == "2.7" ]; then
+        nosetests --with-timer --timer-top-n 20;
+      else
+        nosetests;
+      fi
 
 after_success:
     # Need to run from source dir to exectue "git" commands
