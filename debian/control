@@ -21,9 +21,9 @@ Build-Depends: debhelper (>= 9),
                xauth,
                libgl1-mesa-dri,
                python-coverage
-Standards-Version: 3.9.4
-Vcs-Git: git://anonscm.debian.org/debian-med/python-mne.git
+Standards-Version: 3.9.5
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=debian-med/python-mne.git
+Vcs-Git: git://anonscm.debian.org/debian-med/python-mne.git
 Homepage: http://martinos.org/mne
 X-Python-Version: >= 2.6
 
@@ -49,4 +49,3 @@ Description: Python modules for MEG and EEG data analysis
  This package is designed for sensor- and source-space analysis of MEG
  and EEG data, including frequency-domain and time-frequency analyses
  and non-parametric statistics.
-

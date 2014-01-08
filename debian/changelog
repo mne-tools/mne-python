@@ -1,6 +1,10 @@
-python-mne (0.7.1-1) experimental; urgency=low
+python-mne (0.7.1-1) unstable; urgency=low
 
+  [ Alexandre Gramfort ]
   * Fresh upstream release
+
+  [ Andreas Tille ]
+  * cme fix dpkg-control
 
  -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Wed, 8 Jan 2014 17:00:00 -0400
 
