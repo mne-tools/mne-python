@@ -45,9 +45,9 @@ def coregistration(tabbed=False, split=True, scene_width=01, raw=None,
     All parameters are optional, since they can be set through the GUI.
     Step by step instructions for the coregistrations can be accessed as
     slides, `for subjects with structural MRI
-    <http://www.slideshare.net/slideshow/embed_code/28598463>`_ and `for
+    <http://www.slideshare.net/mne-python/mnepython-coregistration>`_ and `for
     subjects for which no MRI is available
-    <http://www.slideshare.net/slideshow/embed_code/28598561>`_.
+    <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width)
