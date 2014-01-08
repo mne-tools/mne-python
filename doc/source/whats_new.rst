@@ -110,6 +110,35 @@ API
 
    - `plot_evoked` and `Epochs.plot` now open a new figure by default. To plot on an existing figure please specify the `axes` parameter.
 
+
+Authors
+~~~~~~~~~
+
+The committer list for this release is the following (preceded by number
+of commits):
+
+   * 336  Denis A. Engemann
+   * 202  Eric Larson
+   * 193  Roman Goj
+   * 138  Alexandre Gramfort
+   *  99  Mainak Jas
+   *  75  Christian Brodbeck
+   *  60  Martin Luessi
+   *  40  Teon Brooks
+   *  29  Romain Trachel
+   *  28  Andrew Dykstra
+   *  12  Mark Wronkiewicz
+   *  10  Christoph Dinh
+   *   8  Alan Leggitt
+   *   3  Yaroslav Halchenko
+   *   3  Daniel Strohmeier
+   *   2  Mads Jensen
+   *   2  Praveen Sripad
+   *   1  Luke Bloy
+   *   1  Emanuele Olivetti
+   *   1  Yousra BEKHTI
+
+
 .. _changes_0_6:
 
 Version 0.6

@@ -417,11 +417,12 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
     if hpts and os.path.lexists(hpts):
         fid = open(hpts, 'rb').read()
         locs = {}
-        temp = re.findall('eeg\s(\w+)\s(-?\d+)\s(-?\d+)\s(-?\d+)', fid)
-        temp = temp + re.findall('cardinal\s(\d+)\s(-?\d+)\s(-?\d+)\s(-?\d+)',
-                                 fid)
+        temp = re.findall('eeg\s(\w+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)',
+                          fid)
+        temp += re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
+                           '[\d,.]+)', fid)
         for loc in temp:
-            coord = np.array(map(int, loc[1:]))
+            coord = np.array(map(float, loc[1:]))
             coord = apply_trans(als_ras_trans_mm, coord)
             locs[loc[0].lower()] = coord
         trans = get_ras_to_neuromag_trans(nasion=locs['2'], lpa=locs['1'],
