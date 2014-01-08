@@ -127,9 +127,9 @@ def test_discrete_source_space():
         run_subprocess(['mne_volume_source_space', '--meters',
                         '--pos',  temp_pos, '--src', temp_name])
         src_c = read_source_spaces(temp_name)
+        pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
         src_new = setup_volume_source_space('sample', None,
-                                            pos=dict(rr=src[0]['rr'][v],
-                                                     nn=src[0]['nn'][v]),
+                                            pos=pos_dict,
                                             subjects_dir=subjects_dir)
         _compare_source_spaces(src_c, src_new, mode='approx')
         assert_allclose(src[0]['rr'][v], src_new[0]['rr'],
@@ -141,6 +141,9 @@ def test_discrete_source_space():
         write_source_spaces(temp_name, src_c)
         src_c2 = read_source_spaces(temp_name)
         _compare_source_spaces(src_c, src_c2)
+
+        # now do MRI
+        setup_volume_source_space('sample', pos=pos_dict, mri=fname_mri)
     finally:
         if op.isfile(temp_name):
             os.remove(temp_name)

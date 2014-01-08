@@ -1348,7 +1348,6 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
     ras = np.eye(3)
     sp['src_mri_t'] = _make_voxel_ras_trans(r0, ras, voxel_size)
     sp['vol_dims'] = maxn - minn + 1
-    sp['voxel_dims'] = voxel_size
     return sp
 
 
