@@ -897,7 +897,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     n = len(times)
     nax = n + bool(colorbar)
     width = size * nax
-    height = size * 1. + max(0, 0.1 * (3 - size))
+    height = size * 1. + max(0, 0.1 * (4 - size))
     fig = plt.figure(figsize=(width, height))
     w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
     top_frame = max((0.05 if title is None else 0.15), .2 / size)
@@ -918,8 +918,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     images = []
     for i, t in enumerate(times):
         plt.subplot(1, nax, i + 1)
-        tp = plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap, 
-                          sensors=sensors, res=res, names=names, 
+        tp = plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap,
+                          sensors=sensors, res=res, names=names,
                           show_names=show_names)
         images.append(tp)
         plt.title('%i ms' % (t * 1000))
@@ -946,8 +946,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         _draw_proj_checkbox(None, params)
 
     if title is not None:
-        fig.text(0.5, 1, title, horizontalalignment='center',
-                 verticalalignment='top', size='x-large')
+        plt.suptitle(title, verticalalignment='top', size='x-large')
+        tight_layout(pad=2.0)
     if show:
         plt.show()
 
