@@ -1,3 +1,9 @@
+python-mne (0.7.1-1) experimental; urgency=low
+
+  * Fresh upstream release
+
+ -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Wed, 8 Jan 2014 17:00:00 -0400
+
 python-mne (0.7-1) unstable; urgency=low
 
   * Initial packaging (Closes: #728797)
