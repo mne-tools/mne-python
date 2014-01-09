@@ -1357,7 +1357,6 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     import matplotlib as mpl
     projs = params['projs']
     # turn on options dialog
-    global fig_proj
 
     labels = [p['desc'] for p in projs]
     actives = [p['active'] for p in projs] if draw_current_state else \
