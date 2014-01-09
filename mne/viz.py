@@ -108,10 +108,7 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     """
     import matplotlib.pyplot as plt
     if fig is None:
-        print('getting fig')
         fig = plt.gcf()
-    else:
-        print('fig passed')
 
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         fig.canvas.draw()
@@ -1317,7 +1314,6 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
     if axes_init is None:
         plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
-        tight_layout(fig=fig)
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
@@ -1330,6 +1326,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     if show and plt.get_backend() != 'agg':
         plt.show()
         fig.canvas.draw()  # for axes plots update axes.
+    tight_layout(fig=fig)
 
     return fig
 
@@ -1360,15 +1357,21 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     import matplotlib as mpl
     projs = params['projs']
     # turn on options dialog
-    fig_proj = figure_nobar()
+    global fig_proj
+
+    labels = [p['desc'] for p in projs]
+    actives = [p['active'] for p in projs] if draw_current_state else \
+              [True] * len(params['projs'])
+
+    width = max([len(p['desc']) for p in projs]) / 6.0 + 0.5
+    height = len(projs) / 6.0 + 0.5
+    fig_proj = figure_nobar(figsize=(width, height))
     fig_proj.canvas.set_window_title('SSP projection vectors')
     ax_temp = plt.axes((0, 0, 1, 1))
     ax_temp.get_yaxis().set_visible(False)
     ax_temp.get_xaxis().set_visible(False)
     fig_proj.add_axes(ax_temp)
-    labels = [p['desc'] for p in projs]
-    actives = [p['active'] for p in projs] if draw_current_state else \
-              [True] * len(params['projs'])
+
     proj_checks = mpl.widgets.CheckButtons(ax_temp, labels=labels,
                                            actives=actives)
     # change already-applied projectors to red
@@ -1377,18 +1380,14 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
             for x in proj_checks.lines[ii]:
                 x.set_color('r')
     # make minimal size
-    width = max([len(p['desc']) for p in projs]) / 6.0 + 0.5
-    height = len(projs) / 6.0 + 0.5
-    # have to try/catch when there's no toolbar
-    try:
-        fig_proj.set_size_inches((width, height), forward=True)
-    except Exception:
-        pass
     # pass key presses from option dialog over
+
     proj_checks.on_clicked(partial(_toggle_proj, params=params))
     params['proj_checks'] = proj_checks
+
     # this should work for non-test cases
     try:
+        fig_proj.canvas.draw()
         fig_proj.show()
     except Exception:
         pass
@@ -1520,7 +1519,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         scale_factor = scale_factors[1] if is_common else scale_factors[0]
 
         if (isinstance(scale_factor, (np.ndarray, list, tuple))
-            and len(unique_vertnos) == len(scale_factor)):
+             and len(unique_vertnos) == len(scale_factor)):
             scale_factor = scale_factor[idx]
 
         x, y, z = points[v]
