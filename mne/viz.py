@@ -1359,8 +1359,8 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     # turn on options dialog
 
     labels = [p['desc'] for p in projs]
-    actives = [p['active'] for p in projs] if draw_current_state else \
-              [True] * len(params['projs'])
+    actives = ([p['active'] for p in projs] if draw_current_state else
+               [True] * len(params['projs']))
 
     width = max([len(p['desc']) for p in projs]) / 6.0 + 0.5
     height = len(projs) / 6.0 + 0.5
