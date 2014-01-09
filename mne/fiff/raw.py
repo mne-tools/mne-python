@@ -1023,8 +1023,8 @@ class Raw(ProjMixin, ContainsMixin):
             if projector is not None:
                 data = np.dot(projector, data)
 
-            if (drop_small_buffer and (first > start)
-                                            and (len(times) < buffer_size)):
+            if ((drop_small_buffer and (first > start)
+                 and (len(times) < buffer_size))):
                 logger.info('Skipping data chunk due to small buffer ... '
                             '[done]')
                 break

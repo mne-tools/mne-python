@@ -92,7 +92,7 @@ def _check_delayed_ssp(container):
         raise RuntimeError('No projs found in evoked.')
 
 
-def tight_layout(pad=1.2, h_pad=None, w_pad=None):
+def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     """ Adjust subplot parameters to give specified padding.
 
     Note. For plotting please use this function instead of plt.tight_layout
@@ -107,10 +107,15 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None):
         Defaults to `pad_inches`.
     """
     import matplotlib.pyplot as plt
-    try:
+    if fig is None:
+        print('getting fig')
         fig = plt.gcf()
-        fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
+    else:
+        print('fig passed')
+
+    try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         fig.canvas.draw()
+        fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
     except:
         msg = ('Matplotlib function \'tight_layout\'%s.'
                ' Skipping subpplot adjusment.')
@@ -947,7 +952,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     if title is not None:
         plt.suptitle(title, verticalalignment='top', size='x-large')
-        tight_layout(pad=2.0)
+        tight_layout(pad=2.0, fig=fig)
     if show:
         plt.show()
 
@@ -1144,7 +1149,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
     if show_names:
         if show_names is True:
             show_names = lambda x: x
-        for p, ch_id in zip(pos, names): 
+        for p, ch_id in zip(pos, names):
             ch_id = show_names(ch_id)
             ax.text(p[0], p[1], ch_id, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
@@ -1255,6 +1260,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     fig = None
     if axes is None:
         fig, axes = plt.subplots(n_channel_types, 1)
+
     if isinstance(axes, plt.Axes):
         axes = [axes]
     elif isinstance(axes, np.ndarray):
@@ -1311,7 +1317,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
     if axes_init is None:
         plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
-        tight_layout()
+        tight_layout(fig=fig)
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
@@ -1322,7 +1328,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         _draw_proj_checkbox(None, params)
 
     if show and plt.get_backend() != 'agg':
-        fig.show()
+        plt.show()
         fig.canvas.draw()  # for axes plots update axes.
 
     return fig
@@ -1628,7 +1634,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         plt.imshow(C[idx][:, idx], interpolation="nearest")
         plt.title(name)
     plt.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
-    tight_layout()
+    tight_layout(fig=fig_cov)
 
     fig_svd = None
     if show_svd:
@@ -1640,12 +1646,13 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
             plt.xlabel('Eigenvalue index')
             plt.semilogy(np.sqrt(s) * scaling)
             plt.title(name)
-            tight_layout()
+            tight_layout(fig=fig_svd)
 
     if show:
         plt.show()
 
     return fig_cov, fig_svd
+
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
@@ -1981,7 +1988,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
         ax.set_xticks([])
         ax.set_frame_on(False)
 
-    tight_layout()
+    tight_layout(fig=fig)
     if colorbar:
         vmax_ = normalize_colors(vmin=-vmax, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=vmax_)
@@ -2012,7 +2019,7 @@ def _prepare_topo_plot(obj, ch_type, layout):
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
-                    np.unique([ch['coil_type'] for ch in info['chs']])):
+            np.unique([ch['coil_type'] for ch in info['chs']])):
         from .layouts.layout import _pair_grad_sensors
         picks, pos = _pair_grad_sensors(info, layout)
         merge_grads = True
@@ -2142,7 +2149,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         ax2.axvline(0, color='m', linewidth=3, linestyle='--')
         if colorbar:
             plt.colorbar(im, cax=ax3)
-            tight_layout()
+            tight_layout(fig=this_fig)
 
     if show:
         plt.show()
@@ -3161,8 +3168,9 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
         ax_list = [ax]
 
     make_label = False
+    fig = None
     if ax is None:
-        plt.figure()
+        fig = plt.figure()
         ax_list = list()
         for ii in range(len(picks_list)):
             # Make x-axes change together
@@ -3172,6 +3180,8 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
             else:
                 ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
         make_label = True
+    else:
+        fig = ax_list[0].get_figure()
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
@@ -3202,8 +3212,9 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
             ax.set_title(title)
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
-        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1)
+        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
     plt.show()
+    return fig
 
 
 @verbose
@@ -3460,7 +3471,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         for ii, ax in zip(this_inds, axes):
             vars(ax)[this_view] = {'idx': ii, 'reject': False}
 
-    tight_layout()
+    tight_layout(fig=fig)
     navigation = figure_nobar(figsize=(3, 1.5))
     from matplotlib import gridspec
     gs = gridspec.GridSpec(2, 2)
@@ -3547,7 +3558,7 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     time_grid, freq_grid = np.meshgrid(time_bounds, freq_bounds)
 
     # Plotting the results
-    plt.figure(figsize=(9, 6))
+    fig = plt.figure(figsize=(9, 6))
     plt.pcolor(time_grid, freq_grid, source_power[:, source_index, :],
                cmap=plt.cm.jet)
     ax = plt.gca()
@@ -3573,7 +3584,7 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     plt.grid(True, ls='-')
     if colorbar:
         plt.colorbar()
-    tight_layout()
+    tight_layout(fig=fig)
 
     # Covering frequency gaps with horizontal bars
     for lower_bound, upper_bound in gap_bounds:
@@ -3582,3 +3593,5 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
 
     if show:
         plt.show()
+
+    return fig

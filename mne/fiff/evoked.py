@@ -392,9 +392,10 @@ class Evoked(ProjMixin, ContainsMixin):
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
         """
-        plot_evoked(self, picks=picks, exclude=exclude, unit=unit, show=show,
-                    ylim=ylim, proj=proj, xlim=xlim, hline=hline, units=units,
-                    scalings=scalings, titles=titles, axes=axes)
+        return plot_evoked(self, picks=picks, exclude=exclude, unit=unit,
+                           show=show, ylim=ylim, proj=proj, xlim=xlim,
+                           hline=hline, units=units, scalings=scalings,
+                           titles=titles, axes=axes)
 
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmax=None,
                      cmap='RdBu_r', sensors='k,', colorbar=True, scale=None,
@@ -413,9 +414,10 @@ class Evoked(ProjMixin, ContainsMixin):
             ted in pairs and the RMS for each pair is plotted.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found, the
-            layout is automatically generated from the sensor locations.
+            be specified for Neuromag data). If possible, the correct
+            layout file is inferred from the data; if no appropriate layout
+            file was found, the layout is automatically generated from the
+            sensor locations.
         vmax : scalar
             The value specfying the range of the color scale (-vmax to +vmax).
             If None, the largest absolute value in the data is used.
@@ -447,16 +449,18 @@ class Evoked(ProjMixin, ContainsMixin):
             Call pyplot.show() at the end.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g., to
-            delete the prefix 'MEG ' from all channel names, pass the function
-            lambda x: x.replace('MEG ', '')
+            passed, channel names will be formatted using the callable; e.g.,
+            to delete the prefix 'MEG ' from all channel names, pass the
+            function lambda x: x.replace('MEG ', '')
         title : str | None
             Title. If None (default), no title is displayed.
         """
-        return plot_evoked_topomap(self, times=times, ch_type=ch_type, layout=layout,
-                                   vmax=vmax, cmap=cmap, sensors=sensors, 
+        return plot_evoked_topomap(self, times=times, ch_type=ch_type,
+                                   layout=layout,
+                                   vmax=vmax, cmap=cmap, sensors=sensors,
                                    colorbar=colorbar, scale=scale, unit=unit,
-                                   res=res, proj=proj, size=size, format=format,
+                                   res=res, proj=proj, size=size,
+                                   format=format,
                                    show_names=show_names, title=title)
 
     def to_nitime(self, picks=None):
