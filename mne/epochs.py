@@ -474,8 +474,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin):
         fig : Instance of matplotlib.figure.Figure
             The figure.
         """
-        plot_epochs(self, epoch_idx=epoch_idx, picks=picks, scalings=scalings,
-                    title_str=title_str, show=show, block=block)
+        return plot_epochs(self, epoch_idx=epoch_idx, picks=picks,
+                           scalings=scalings, title_str=title_str,
+                           show=show, block=block)
 
 
 class Epochs(_BaseEpochs):
