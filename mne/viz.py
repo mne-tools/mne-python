@@ -3647,7 +3647,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         if map_type == 'eeg':
             pick = pick_types(evoked.info, meg=False, eeg=True)
         else:
-            pick = pick_types(evoked.info, meg=True, eeg=False)
+            pick = pick_types(evoked.info, meg=True, eeg=False, ref_meg=False)
 
         ch_names = [evoked.ch_names[k] for k in pick]
 
