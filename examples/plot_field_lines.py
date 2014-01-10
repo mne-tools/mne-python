@@ -35,4 +35,4 @@ maps = mne.make_field_map(evoked, trans_fname=trans_fname,
                           n_jobs=1)
 
 for time in [0.09, .11]:
-    mne.viz.plot_evoked_field(evoked, maps, time=time)
+    evoked.plot_field(maps, time=time)

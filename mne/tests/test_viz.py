@@ -547,4 +547,4 @@ def test_plot_evoked_field():
                           subject='sample', subjects_dir=subjects_dir,
                           n_jobs=1)
 
-    plot_evoked_field(evoked, maps, time=0.1)
+    evoked.plot_field(maps, time=0.1)

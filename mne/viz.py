@@ -3592,8 +3592,8 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     return fig
 
 
-def plot_evoked_field(evoked, surf_maps, time=None, n_jobs=1,
-                      time_label='t = %0.0f ms'):
+def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
+                      n_jobs=1):
     """Plot MEG/EEG fields on head surface and helmet in 3D
 
     Parameters
@@ -3601,7 +3601,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, n_jobs=1,
     evoked : instance of mne.fiff.Evoked
         The evoked object.
     surf_maps : list
-        The surface mapping information obtained with make_surface_map.
+        The surface mapping information obtained with make_field_map.
     time : float | None
         The time point at which the field map shall be displayed. If None,
         the average peak latency (across sensor types) is used.
