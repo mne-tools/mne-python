@@ -2698,17 +2698,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                   n_times=n_times, events=events)
 
     # set up plotting
-    fig = figure_nobar(facecolor=bgcolor)
-    fig.canvas.set_window_title('mne_browse_raw')
     size = get_config('MNE_BROWSE_RAW_SIZE')
     if size is not None:
         size = size.split(',')
         size = tuple([float(s) for s in size])
         # have to try/catch when there's no toolbar
-        try:
-            fig.set_size_inches(size, forward=True)
-        except Exception:
-            pass
+    fig = figure_nobar(facecolor=bgcolor, figsize=size)
+    fig.canvas.set_window_title('mne_browse_raw')
     ax = plt.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
     ax.set_title(title, fontsize=12)
     ax_hscroll = plt.subplot2grid((10, 10), (9, 0), colspan=9)
