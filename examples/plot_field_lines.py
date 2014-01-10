@@ -32,7 +32,7 @@ evoked = mne.fiff.read_evoked(evoked_fname, setno=setno,
 # and scalp surface
 maps = mne.make_field_map(evoked, trans_fname=trans_fname,
                           subject='sample', subjects_dir=subjects_dir,
-                          n_jobs=-1)
+                          n_jobs=1)
 
 for time in [0.09, .11]:
     mne.viz.plot_evoked_field(evoked, maps, time=time)
