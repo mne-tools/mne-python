@@ -1,11 +1,12 @@
 import os.path as op
 from functools import wraps
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
+from numpy.testing import assert_raises
 from nose.tools import assert_true
 import warnings
 
 from mne import fiff, read_events, Epochs, SourceEstimate, read_cov, read_proj
+from mne import make_field_map
 from mne.layouts import read_layout
 from mne.fiff.pick import pick_channels_evoked
 from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
@@ -14,7 +15,7 @@ from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_sparse_source_estimates, plot_source_estimates,
                      plot_cov, mne_analyze_colormap, plot_image_epochs,
                      plot_connectivity_circle, circular_layout, plot_drop_log,
-                     compare_fiff, plot_source_spectrogram)
+                     compare_fiff, plot_source_spectrogram, plot_evoked_field)
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
@@ -531,3 +532,19 @@ def test_plot_source_spectrogram():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_source_spectrogram([stc, stc], [[1, 2], [3, 4]])
     assert_raises(ValueError, plot_source_spectrogram, [], [])
+
+
+@requires_mayavi
+@sample.requires_sample_data
+def test_plot_evoked_field():
+    trans_fname = op.join(data_dir, 'MEG', 'sample',
+                          'sample_audvis_raw-trans.fif')
+    setno = 'Left Auditory'
+    evoked = fiff.read_evoked(evoked_fname, setno=setno,
+                              baseline=(-0.2, 0.0))
+    evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # make it fast
+    maps = make_field_map(evoked, trans_fname=trans_fname,
+                          subject='sample', subjects_dir=subjects_dir,
+                          n_jobs=1)
+
+    plot_evoked_field(evoked, maps, time=0.1)
