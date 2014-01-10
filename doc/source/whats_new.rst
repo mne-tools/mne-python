@@ -25,7 +25,7 @@ Changelog
 
    - Add fiff unicode writing and reading support by `Denis Engemann`_
 
-   - Add 3d MEG/EEG field plotting function and evoked method by `Denis Engemann`_ and  `Alex Gramfort`_
+   - Add 3D MEG/EEG field plotting function and evoked method by `Denis Engemann`_ and  `Alex Gramfort`_
 
 
 API
