@@ -5,8 +5,8 @@ from numpy.testing.utils import assert_allclose, assert_array_equal
 from nose.tools import assert_raises
 
 from mne import read_trans
-from mne.forward import make_surface_mapping
-from mne.surface import get_meg_helmet_surf, get_head_surface
+from mne.forward import _make_surface_mapping
+from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import sample
 from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_table,
@@ -97,10 +97,10 @@ def test_eeg_field_interpolation():
     """
     trans = read_trans(trans_fname)
     info = read_info(evoked_fname)
-    surf = get_head_surface('sample', subjects_dir=subjects_dir)
+    surf = get_head_surf('sample', subjects_dir=subjects_dir)
     # we must have trans if surface is in MRI coords
-    assert_raises(ValueError, make_surface_mapping, info, surf, 'eeg')
-    data = make_surface_mapping(info, surf, 'eeg', trans, mode='accurate')
+    assert_raises(ValueError, _make_surface_mapping, info, surf, 'eeg')
+    data = _make_surface_mapping(info, surf, 'eeg', trans, mode='accurate')
     assert_array_equal(data.shape, (2562, 60))  # maps data onto surf
 
 
@@ -113,23 +113,23 @@ def test_meg_field_interpolation_helmet():
     # let's reduce the number of channels by a bunch to speed it up
     info['bads'] = info['ch_names'][:200]
     # bad ch_type
-    assert_raises(ValueError, make_surface_mapping, info, surf, 'foo')
+    assert_raises(ValueError, _make_surface_mapping, info, surf, 'foo')
     # bad mode
-    assert_raises(ValueError, make_surface_mapping, info, surf, 'meg',
+    assert_raises(ValueError, _make_surface_mapping, info, surf, 'meg',
                   mode='foo')
     # no picks
     evoked_eeg = pick_types_evoked(evoked, meg=False, eeg=True)
-    assert_raises(RuntimeError, make_surface_mapping, evoked_eeg.info,
+    assert_raises(RuntimeError, _make_surface_mapping, evoked_eeg.info,
                   surf, 'meg')
     # bad surface def
     nn = surf['nn']
     del surf['nn']
-    assert_raises(KeyError, make_surface_mapping, info, surf, 'meg')
+    assert_raises(KeyError, _make_surface_mapping, info, surf, 'meg')
     surf['nn'] = nn
     cf = surf['coord_frame']
     del surf['coord_frame']
-    assert_raises(KeyError, make_surface_mapping, info, surf, 'meg')
+    assert_raises(KeyError, _make_surface_mapping, info, surf, 'meg')
     surf['coord_frame'] = cf
     # now do it
-    data = make_surface_mapping(info, surf, 'meg', mode='fast')
+    data = _make_surface_mapping(info, surf, 'meg', mode='fast')
     assert_array_equal(data.shape, (304, 106))  # data onto surf

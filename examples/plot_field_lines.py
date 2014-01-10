@@ -22,6 +22,7 @@ data_path = mne.datasets.sample.data_path()
 subjects_dir = data_path + '/subjects'
 evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+# If trans_fname is set to None then only MEG estimates can be visualized
 setno = 'Left Auditory'
 
 evoked = mne.fiff.read_evoked(evoked_fname, setno=setno,

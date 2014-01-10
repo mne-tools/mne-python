@@ -3616,7 +3616,6 @@ def plot_evoked_field(evoked, surf_maps, time=None, n_jobs=1,
         The mayavi figure.
     """
     types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
-    # from .surface import get_head_surface, get_meg_helmet_surf
 
     time_idx = None
     if time is None:
@@ -3626,7 +3625,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, n_jobs=1,
         raise ValueError('`time` (%0.3f) must be inside `evoked.times`' % time)
     time_idx = np.argmin(np.abs(evoked.times - time))
 
-    types = [sm['ch_type'] for sm in surf_maps]
+    types = [sm['kind'] for sm in surf_maps]
 
     # Plot them
     from mayavi import mlab
@@ -3642,12 +3641,27 @@ def plot_evoked_field(evoked, surf_maps, time=None, n_jobs=1,
     for ii, this_map in enumerate(surf_maps):
         surf = this_map['surf']
         map_data = this_map['data']
-        map_type = this_map['ch_type']
+        map_type = this_map['kind']
+        map_ch_names = this_map['ch_names']
 
         if map_type == 'eeg':
             pick = pick_types(evoked.info, meg=False, eeg=True)
         else:
             pick = pick_types(evoked.info, meg=True, eeg=False)
+
+        ch_names = [evoked.ch_names[k] for k in pick]
+
+        set_ch_names = set(ch_names)
+        set_map_ch_names = set(map_ch_names)
+        if set_ch_names != set_map_ch_names:
+            message = ['Channels in map and data do not match.']
+            diff = set_map_ch_names - set_ch_names
+            if len(diff):
+                message += ['%s not in data file. ' % list(diff)]
+            diff = set_ch_names - set_map_ch_names
+            if len(diff):
+                message += ['%s not in map file.' % list(diff)]
+            raise RuntimeError(' '.join(message))
 
         data = np.dot(map_data, evoked.data[pick, time_idx])
 

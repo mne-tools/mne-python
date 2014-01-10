@@ -9,7 +9,7 @@ from mne.datasets import sample
 from mne import (read_bem_surfaces, write_bem_surface, read_surface,
                  write_surface, decimate_surface)
 from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
-                         fast_cross_3d, get_head_surface,
+                         fast_cross_3d, get_head_surf,
                          get_meg_helmet_surf)
 from mne.utils import _TempDir, requires_tvtk
 from mne.fiff import read_info
@@ -44,8 +44,8 @@ def test_helmet():
 def test_head():
     """Test loading the head surface
     """
-    surf_1 = get_head_surface('sample', subjects_dir=subjects_dir)
-    surf_2 = get_head_surface('sample', 'head', subjects_dir=subjects_dir)
+    surf_1 = get_head_surf('sample', subjects_dir=subjects_dir)
+    surf_2 = get_head_surf('sample', 'head', subjects_dir=subjects_dir)
     assert_true(len(surf_1['rr']) < len(surf_2['rr']))  # BEM vs dense head
 
 

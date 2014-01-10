@@ -294,8 +294,7 @@ def read_bem_solution(fname, verbose=None):
 ###############################################################################
 # AUTOMATED SURFACE FINDING
 
-# XXX : why not get_head_surf to be consistent with get_meg_helmet_surf ?
-def get_head_surface(subject, source='bem', subjects_dir=None):
+def get_head_surf(subject, source='bem', subjects_dir=None):
     """Load the subject head surface
 
     Parameters

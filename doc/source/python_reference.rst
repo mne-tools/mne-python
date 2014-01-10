@@ -233,7 +233,7 @@ Visualization
    plot_drop_log
    plot_evoked
    plot_evoked_topomap
-   plot_evoked_field_lines
+   plot_evoked_field
    plot_ica_panel
    plot_image_epochs
    plot_raw
@@ -449,7 +449,7 @@ Forward Modeling
 
    restrict_forward_to_label
    restrict_forward_to_stc
-   make_surface_mapping
+
 
 Inverse Solutions
 =================
