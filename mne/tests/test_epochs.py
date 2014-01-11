@@ -75,7 +75,6 @@ def test_read_epochs_bad_events():
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
     epochs.drop_bad_epochs()
-    epochs.plot_drop_log()
     evoked = epochs.average()
 
     # Event at the end

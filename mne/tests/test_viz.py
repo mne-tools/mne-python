@@ -371,7 +371,8 @@ def test_plot_drop_log():
     """
     epochs = _get_epochs()
     epochs.drop_bad_epochs()
-    plot_drop_log(epochs.drop_log)
+    epochs.plot_drop_log()
+
     plot_drop_log([['One'], [], []])
     plot_drop_log([['One'], ['Two'], []])
     plot_drop_log([['One'], ['One', 'Two'], []])
