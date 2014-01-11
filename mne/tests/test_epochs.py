@@ -172,6 +172,9 @@ def test_read_write_epochs():
     assert_array_equal(epochs_read5.selection, epochs.selection)
     assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
 
+    # Test that one can drop channels on read file
+    epochs_read5.drop_channels(epochs_read5.ch_names[:1])
+
 
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)

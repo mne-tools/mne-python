@@ -1846,6 +1846,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     # Put it all together
     epochs.preload = True
     epochs.raw = None
+    epochs.picks = np.arange(data.shape[1])
     epochs._bad_dropped = True
     epochs.events = events
     epochs._data = data
