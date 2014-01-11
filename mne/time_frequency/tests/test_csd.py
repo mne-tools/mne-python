@@ -1,5 +1,6 @@
 import numpy as np
-from nose.tools import assert_raises, assert_equal, assert_almost_equal
+from nose.tools import (assert_raises, assert_equal, assert_almost_equal,
+                        assert_true)
 from numpy.testing import assert_array_equal
 from os import path as op
 
