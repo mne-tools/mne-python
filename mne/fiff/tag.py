@@ -97,8 +97,7 @@ def read_big(fid, size=None):
         >>> with open(fname, 'rb') as fid: y = np.fromstring(read_big(fid))
         >>> assert np.all(x == y)
         >>> fid_gz = gzip.open(fname_gz, 'wb')
-        >>> fid_gz.write(x.tostring()) # doctest: +SKIP 
-        24000000
+        >>> _ = fid_gz.write(x.tostring())
         >>> fid_gz.close()
         >>> fid_gz = gzip.open(fname_gz, 'rb')
         >>> y = np.fromstring(read_big(fid_gz))
