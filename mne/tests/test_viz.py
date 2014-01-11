@@ -549,8 +549,9 @@ def test_plot_evoked_field():
     evoked = fiff.read_evoked(evoked_fname, setno=setno,
                               baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
-    maps = make_field_map(evoked, trans_fname=trans_fname,
-                          subject='sample', subjects_dir=subjects_dir,
-                          n_jobs=1)
+    for t in ['meg', None]:
+        maps = make_field_map(evoked, trans_fname=trans_fname,
+                              subject='sample', subjects_dir=subjects_dir,
+                              n_jobs=1, ch_type=t)
 
-    evoked.plot_field(maps, time=0.1)
+        evoked.plot_field(maps, time=0.1)
