@@ -40,6 +40,7 @@ from .viz import _mutable_defaults, plot_epochs
 from .utils import logger, verbose
 from .externals import six
 from .externals.six.moves import zip
+from .utils import deprecated
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin):
@@ -512,7 +513,7 @@ class Epochs(_BaseEpochs):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-        The baseline (a, b) includes both endpoints, i.e. all 
+        The baseline (a, b) includes both endpoints, i.e. all
         timepoints t such that a <= t <= b.
     picks : None (default) or array of int
         Indices of channels to include (if None, all channels
@@ -586,8 +587,8 @@ class Epochs(_BaseEpochs):
         example, if the original event array had 4 events and the second event
         has been dropped, this attribute would be np.array([0, 2, 3]).
     drop_log : list of lists
-        A list of the same length as the event array used to initialize the 
-        Epochs object. If the i-th original event is still part of the 
+        A list of the same length as the event array used to initialize the
+        Epochs object. If the i-th original event is still part of the
         selection, drop_log[i] will be an empty list; otherwise it will be
         a list of the reasons the event is not longer in the selection, e.g.:
 
@@ -700,6 +701,7 @@ class Epochs(_BaseEpochs):
         else:
             self._data = None
 
+    @deprecated('drop_picks with be removed in v0.9. Use drop_channels.')
     def drop_picks(self, bad_picks):
         """Drop some picks
 
@@ -707,6 +709,29 @@ class Epochs(_BaseEpochs):
         """
         self.picks = list(self.picks)
         idx = [k for k, p in enumerate(self.picks) if p not in bad_picks]
+        self.picks = [self.picks[k] for k in idx]
+
+        # XXX : could maybe be factorized
+        self.info['chs'] = [self.info['chs'][k] for k in idx]
+        self.info['ch_names'] = [self.info['ch_names'][k] for k in idx]
+        self.info['nchan'] = len(idx)
+
+        if self._projector is not None:
+            self._projector = self._projector[idx][:, idx]
+
+        if self.preload:
+            self._data = self._data[:, idx, :]
+
+    def drop_channels(self, ch_names):
+        """Drop some channels
+
+        Parameters
+        ----------
+        ch_names : list
+            The list of channels to remove.
+        """
+        bad_idx = [self.ch_names.index(c) for c in ch_names]
+        idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         self.picks = [self.picks[k] for k in idx]
 
         # XXX : could maybe be factorized

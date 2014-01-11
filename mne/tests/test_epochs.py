@@ -100,7 +100,8 @@ def test_read_write_epochs():
 
     eog_picks = fiff.pick_types(raw.info, meg=False, eeg=False, stim=False,
                                 eog=True, exclude='bads')
-    epochs.drop_picks(eog_picks)
+    eog_ch_names = [raw.ch_names[k] for k in eog_picks]
+    epochs.drop_channels(eog_ch_names)
     assert_true(len(epochs.info['chs']) == len(epochs.ch_names)
                 == epochs.get_data().shape[1])
     data_no_eog = epochs.get_data()

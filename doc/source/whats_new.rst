@@ -35,6 +35,7 @@ API
 
    - Epochs object now has a selection attribute to track provenance of selected Epochs. The length of the drop_log attribute is now the same as the length of the original events passed to Epochs. In earlier versions it had the length of the events filtered by event_id. Epochs has also now a plot_drop_log method.
 
+   - Deprecate Epochs.drop_picks in favor of a new method called drop_channels
 
 .. _changes_0_7:
 
