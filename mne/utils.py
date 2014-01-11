@@ -1004,7 +1004,7 @@ class ProgressBar(object):
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{}{}] {:.05f} {} {}   '
+    template = '\r[{0}{1}] {:.05f} {2} {3}   '
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
                  progress_character='.', spinner=False):

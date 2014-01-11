@@ -8,7 +8,7 @@ import os
 import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import (assert_equal, assert_almost_equal, assert_false,
-                        assert_less, assert_raises, assert_true)
+                        assert_raises, assert_true)
 
 import mne
 from mne.datasets import sample
@@ -58,16 +58,16 @@ def test_coreg_model():
     model.fit_auricular_points()
     old_x = lpa_distance ** 2 + rpa_distance ** 2
     new_x = model.lpa_distance ** 2 + model.rpa_distance ** 2
-    assert_less(new_x, old_x)
+    assert_true(new_x < old_x)
 
     model.fit_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
              + model.nasion_distance ** 2)
-    assert_less(new_x, old_x)
+    assert_true(new_x < old_x)
 
     model.fit_hsp_points()
-    assert_less(np.mean(model.point_distance), avg_point_distance)
+    assert_true(np.mean(model.point_distance) < avg_point_distance)
 
     model.save_trans(trans_dst)
     trans = mne.read_trans(trans_dst)
@@ -134,13 +134,13 @@ def test_coreg_model_with_fsaverage():
     model.fit_scale_auricular_points()
     old_x = lpa_distance ** 2 + rpa_distance ** 2
     new_x = model.lpa_distance ** 2 + model.rpa_distance ** 2
-    assert_less(new_x, old_x)
+    assert_true(new_x < old_x)
 
     model.fit_scale_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
              + model.nasion_distance ** 2)
-    assert_less(new_x, old_x)
+    assert_true(new_x < old_x)
 
     model.fit_scale_hsp_points()
     avg_point_distance_1param = np.mean(model.point_distance)
@@ -156,7 +156,7 @@ def test_coreg_model_with_fsaverage():
     # scale with 3 parameters
     model.n_scale_params = 3
     model.fit_scale_hsp_points()
-    assert_less(np.mean(model.point_distance), avg_point_distance_1param)
+    assert_true(np.mean(model.point_distance) < avg_point_distance_1param)
 
     # test switching raw disables point omission
     assert_equal(model.hsp.n_omitted, 1)

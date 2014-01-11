@@ -125,8 +125,8 @@ def test_compute_epochs_csd_on_artificial_data():
     data_csd_mt = compute_epochs_csd(epochs_sin, mode='multitaper')
     fourier_power = np.abs(data_csd_fourier.data[0, 0]) * sfreq
     mt_power = np.abs(data_csd_mt.data[0, 0]) * sfreq
-    assert_true(abs(fourier_power - signal_power) <= 0.5) 
-    assert_almost_equal(mt_power, signal_power, delta=1)
+    assert_true(abs(fourier_power - signal_power) <= 0.5)
+    assert_true(abs(mt_power - signal_power) <= 1)
 
     # Power per sample should not depend on time window length
     for tmax in [0.2, 0.4, 0.6, 0.8]:
