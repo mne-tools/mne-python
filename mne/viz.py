@@ -23,6 +23,7 @@ import webbrowser
 
 import copy
 import inspect
+
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
@@ -1107,7 +1108,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
     axis : instance of Axes | None
         The axis to plot to. If None, the current axis will be used.
     names : list | None
-        List of channel names. If None, channel names are not plotted. 
+        List of channel names. If None, channel names are not plotted.
     show_names : bool | callable
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
@@ -3588,4 +3589,115 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     if show:
         plt.show()
 
+    return fig
+
+
+def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
+                      n_jobs=1):
+    """Plot MEG/EEG fields on head surface and helmet in 3D
+
+    Parameters
+    ----------
+    evoked : instance of mne.fiff.Evoked
+        The evoked object.
+    surf_maps : list
+        The surface mapping information obtained with make_field_map.
+    time : float | None
+        The time point at which the field map shall be displayed. If None,
+        the average peak latency (across sensor types) is used.
+    time_label : str
+        How to print info about the time instant visualized.
+    n_jobs : int
+        Number of jobs to run in parallel.
+
+    Returns
+    -------
+    fig : instance of mlab.Figure
+        The mayavi figure.
+    """
+    types = [t for t in ['eeg', 'grad', 'mag'] if t in evoked]
+
+    time_idx = None
+    if time is None:
+        time = np.mean([evoked.get_peak(ch_type=t)[1] for t in types])
+
+    if not evoked.times[0] <= time <= evoked.times[-1]:
+        raise ValueError('`time` (%0.3f) must be inside `evoked.times`' % time)
+    time_idx = np.argmin(np.abs(evoked.times - time))
+
+    types = [sm['kind'] for sm in surf_maps]
+
+    # Plot them
+    from mayavi import mlab
+    alphas = [1.0, 0.5]
+    colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
+    colormap = mne_analyze_colormap(format='mayavi')
+    colormap_lines = np.concatenate([np.tile([0., 0., 255., 255.], (127, 1)),
+                                     np.tile([0., 0., 0., 255.], (2, 1)),
+                                     np.tile([255., 0., 0., 255.], (127, 1))])
+
+    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+
+    for ii, this_map in enumerate(surf_maps):
+        surf = this_map['surf']
+        map_data = this_map['data']
+        map_type = this_map['kind']
+        map_ch_names = this_map['ch_names']
+
+        if map_type == 'eeg':
+            pick = pick_types(evoked.info, meg=False, eeg=True)
+        else:
+            pick = pick_types(evoked.info, meg=True, eeg=False, ref_meg=False)
+
+        ch_names = [evoked.ch_names[k] for k in pick]
+
+        set_ch_names = set(ch_names)
+        set_map_ch_names = set(map_ch_names)
+        if set_ch_names != set_map_ch_names:
+            message = ['Channels in map and data do not match.']
+            diff = set_map_ch_names - set_ch_names
+            if len(diff):
+                message += ['%s not in data file. ' % list(diff)]
+            diff = set_ch_names - set_map_ch_names
+            if len(diff):
+                message += ['%s not in map file.' % list(diff)]
+            raise RuntimeError(' '.join(message))
+
+        data = np.dot(map_data, evoked.data[pick, time_idx])
+
+        x, y, z = surf['rr'].T
+        nn = surf['nn']
+        # make absolutely sure these are normalized for Mayavi
+        nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
+
+        # Make a solid surface
+        vlim = np.max(np.abs(data))
+        alpha = alphas[ii]
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
+        mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
+
+        # Now show our field pattern
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
+                                                    scalars=data)
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
+        fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim)
+        fsurf.module_manager.scalar_lut_manager.lut.table = colormap
+
+        # And the field lines on top
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
+                                                    scalars=data)
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
+        cont = mlab.pipeline.contour_surface(mesh, contours=21, line_width=1.0,
+                                             vmin=-vlim, vmax=vlim,
+                                             opacity=alpha)
+        cont.module_manager.scalar_lut_manager.lut.table = colormap_lines
+
+    if '%' in time_label:
+        time_label %= (1e3 * evoked.times[time_idx])
+    mlab.text(0.01, 0.01, time_label, width=0.4)
+    mlab.view(10, 60)
     return fig

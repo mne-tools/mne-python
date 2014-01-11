@@ -1,11 +1,12 @@
 import os.path as op
 from functools import wraps
 import numpy as np
-from numpy.testing import assert_raises, assert_equal
-from nose.tools import assert_true
+from numpy.testing import assert_raises
+from nose.tools import assert_true, assert_equal
 import warnings
 
 from mne import fiff, read_events, Epochs, SourceEstimate, read_cov, read_proj
+from mne import make_field_map
 from mne.layouts import read_layout
 from mne.fiff.pick import pick_channels_evoked
 from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
@@ -136,7 +137,10 @@ def test_plot_topo():
             assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'])
 
         evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
-        plot_topo(evoked_delayed_ssp, layout, proj='interactive')
+        ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
+        picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
+                                                         ch_names)
+        plot_topo(picked_evoked_delayed_ssp, layout, proj='interactive')
 
 
 def test_plot_topo_tfr():
@@ -196,11 +200,13 @@ def test_plot_evoked():
         evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
         evoked_delayed_ssp.plot(proj='interactive')
         evoked_delayed_ssp.apply_proj()
-        assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive')
+        assert_raises(RuntimeError, evoked_delayed_ssp.plot,
+                      proj='interactive')
         evoked_delayed_ssp.info['projs'] = []
-        assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive')
-        assert_raises(RuntimeError, evoked_delayed_ssp.plot, proj='interactive',
-                      axes='foo')
+        assert_raises(RuntimeError, evoked_delayed_ssp.plot,
+                      proj='interactive')
+        assert_raises(RuntimeError, evoked_delayed_ssp.plot,
+                      proj='interactive', axes='foo')
         plt.close('all')
 
 
@@ -386,7 +392,7 @@ def test_plot_raw():
         data_ax = fig.get_axes()[0]
         _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
         _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
-        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in first axes
+        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
         _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
         _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
@@ -451,7 +457,8 @@ def test_plot_topomap():
                                 show_names=lambda x: x.replace('MEG', ''))
         subplot = [x for x in p.get_children() if
                    isinstance(x, matplotlib.axes.Subplot)][0]
-        assert_true(all('MEG' not in x.get_text() for x in subplot.get_children()
+        assert_true(all('MEG' not in x.get_text()
+                        for x in subplot.get_children()
                         if isinstance(x, matplotlib.text.Text)))
 
         # Test title
@@ -466,7 +473,8 @@ def test_plot_topomap():
         assert_equal(len(texts), 1)
         assert_equal(texts[0], 'Custom')
 
-        with warnings.catch_warnings(record=True):  # delaunay triangulation warning
+        # delaunay triangulation warning
+        with warnings.catch_warnings(record=True):
             plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
         assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                       proj='interactive')  # projs have already been applied
@@ -487,7 +495,6 @@ def test_plot_topomap():
                 ch['loc'].fill(0)
         assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                       times, ch_type='eeg')
-        
 
 
 def test_compare_fiff():
@@ -531,3 +538,20 @@ def test_plot_source_spectrogram():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_source_spectrogram([stc, stc], [[1, 2], [3, 4]])
     assert_raises(ValueError, plot_source_spectrogram, [], [])
+
+
+@requires_mayavi
+@sample.requires_sample_data
+def test_plot_evoked_field():
+    trans_fname = op.join(data_dir, 'MEG', 'sample',
+                          'sample_audvis_raw-trans.fif')
+    setno = 'Left Auditory'
+    evoked = fiff.read_evoked(evoked_fname, setno=setno,
+                              baseline=(-0.2, 0.0))
+    evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
+    for t in ['meg', None]:
+        maps = make_field_map(evoked, trans_fname=trans_fname,
+                              subject='sample', subjects_dir=subjects_dir,
+                              n_jobs=1, ch_type=t)
+
+        evoked.plot_field(maps, time=0.1)

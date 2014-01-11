@@ -80,13 +80,25 @@ plt.show()
 noise_cov = mne.compute_covariance(epochs.crop(None, 0, copy=True))
 
 ###############################################################################
+# Visualize fields on MEG helmet
+
+trans_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
+
+maps = mne.make_field_map(evoked[0], trans_fname=trans_fname,
+                          subject='spm', subjects_dir=subjects_dir,
+                          n_jobs=1)
+
+evoked[0].plot_field(maps, time=0.170)
+
+
+###############################################################################
 # Compute forward model
 
 # Make source space
 src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
                              overwrite=True)
 
-mri = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
+mri = trans_fname
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(contrast.info, mri=mri, src=src, bem=bem)
 forward = mne.convert_forward_solution(forward, surf_ori=True)

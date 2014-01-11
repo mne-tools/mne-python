@@ -233,6 +233,7 @@ Visualization
    plot_drop_log
    plot_evoked
    plot_evoked_topomap
+   plot_evoked_field
    plot_ica_panel
    plot_image_epochs
    plot_raw
@@ -428,7 +429,7 @@ Forward Modeling
    convert_forward_solution
    do_forward_solution
    make_forward_solution
-   make_surface_mapping
+   make_field_map
    read_bem_surfaces
    read_forward_solution
    read_trans

@@ -2,10 +2,11 @@ import numpy as np
 from os import path as op
 from numpy.polynomial import legendre
 from numpy.testing.utils import assert_allclose, assert_array_equal
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_true
 
-from mne import (read_trans, make_surface_mapping, get_meg_helmet_surf,
-                 get_head_surface)
+from mne import read_trans
+from mne.forward import _make_surface_mapping, make_field_map
+from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import sample
 from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_table,
@@ -91,19 +92,32 @@ def test_legendre_table():
 
 
 @sample.requires_sample_data
-def test_eeg_field_interpolation():
+def test_make_field_map_eeg():
     """Test interpolation of EEG field onto head
     """
     trans = read_trans(trans_fname)
-    info = read_info(evoked_fname)
-    surf = get_head_surface('sample', subjects_dir=subjects_dir)
+    evoked = read_evoked(evoked_fname, setno='Left Auditory')
+    evoked.info['bads'] = ['MEG 2443', 'EEG 053']  # add some bads
+    surf = get_head_surf('sample', subjects_dir=subjects_dir)
     # we must have trans if surface is in MRI coords
-    assert_raises(ValueError, make_surface_mapping, info, surf, 'eeg')
-    data = make_surface_mapping(info, surf, 'eeg', trans, mode='accurate')
-    assert_array_equal(data.shape, (2562, 60))  # maps data onto surf
+    assert_raises(ValueError, _make_surface_mapping, evoked.info, surf, 'eeg')
+
+    evoked = pick_types_evoked(evoked, meg=False, eeg=True)
+    fmd = make_field_map(evoked, trans_fname=trans_fname,
+                         subject='sample', subjects_dir=subjects_dir)
+
+    # trans is necessary for EEG only
+    assert_raises(RuntimeError, make_field_map, evoked, trans_fname=None,
+                  subject='sample', subjects_dir=subjects_dir)
+
+    fmd = make_field_map(evoked, trans_fname=trans_fname,
+                         subject='sample', subjects_dir=subjects_dir)
+    assert_true(len(fmd) == 1)
+    assert_array_equal(fmd[0]['data'].shape, (2562, 59))  # maps data onto surf
+    assert_true(len(fmd[0]['ch_names']), 59)
 
 
-def test_meg_field_interpolation_helmet():
+def test_make_field_map_meg():
     """Test interpolation of MEG field onto helmet
     """
     evoked = read_evoked(evoked_fname, setno='Left Auditory')
@@ -112,23 +126,30 @@ def test_meg_field_interpolation_helmet():
     # let's reduce the number of channels by a bunch to speed it up
     info['bads'] = info['ch_names'][:200]
     # bad ch_type
-    assert_raises(ValueError, make_surface_mapping, info, surf, 'foo')
+    assert_raises(ValueError, _make_surface_mapping, info, surf, 'foo')
     # bad mode
-    assert_raises(ValueError, make_surface_mapping, info, surf, 'meg',
+    assert_raises(ValueError, _make_surface_mapping, info, surf, 'meg',
                   mode='foo')
     # no picks
     evoked_eeg = pick_types_evoked(evoked, meg=False, eeg=True)
-    assert_raises(RuntimeError, make_surface_mapping, evoked_eeg.info,
+    assert_raises(RuntimeError, _make_surface_mapping, evoked_eeg.info,
                   surf, 'meg')
     # bad surface def
     nn = surf['nn']
     del surf['nn']
-    assert_raises(KeyError, make_surface_mapping, info, surf, 'meg')
+    assert_raises(KeyError, _make_surface_mapping, info, surf, 'meg')
     surf['nn'] = nn
     cf = surf['coord_frame']
     del surf['coord_frame']
-    assert_raises(KeyError, make_surface_mapping, info, surf, 'meg')
+    assert_raises(KeyError, _make_surface_mapping, info, surf, 'meg')
     surf['coord_frame'] = cf
-    # now do it
-    data = make_surface_mapping(info, surf, 'meg', mode='fast')
-    assert_array_equal(data.shape, (304, 106))  # data onto surf
+
+    # now do it with make_field_map
+    evoked = pick_types_evoked(evoked, meg=True, eeg=False)
+    fmd = make_field_map(evoked, trans_fname=None,
+                         subject='sample', subjects_dir=subjects_dir)
+    assert_true(len(fmd) == 1)
+    assert_array_equal(fmd[0]['data'].shape, (304, 106))  # maps data onto surf
+    assert_true(len(fmd[0]['ch_names']), 106)
+
+    assert_raises(ValueError, make_field_map, evoked, ch_type='foobar')

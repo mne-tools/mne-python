@@ -71,14 +71,14 @@ def _get_meg_system(info):
 
 def _contains_ch_type(info, ch_type):
     """Check whether a certain channel type is in an info object
-    
+
     Parameters
     ---------
     info : instance of mne.fiff.meas_info.Info
         The measurement information.
     ch_type : str
         the channel type to be checked for
-    
+
     Returns
     -------
     has_ch_type : bool
@@ -88,7 +88,7 @@ def _contains_ch_type(info, ch_type):
         raise ValueError('`ch_type` is of class {actual_class}. It must be '
                          '`str`'.format(actual_class=type(ch_type)))
 
-    valid_channel_types = ('grad mag eeg stim eog emg ecg ref_meg resp ' 
+    valid_channel_types = ('grad mag eeg stim eog emg ecg ref_meg resp '
                            'exci ias syst misc').split()
 
     if ch_type not in valid_channel_types:
@@ -104,4 +104,9 @@ class ContainsMixin(object):
     """
     def __contains__(self, ch_type):
         """Check channel type membership"""
-        return _contains_ch_type(self.info, ch_type)
+        if ch_type == 'meg':
+            has_ch_type = (_contains_ch_type(self.info, 'mag') or
+                           _contains_ch_type(self.info, 'grad'))
+        else:
+            has_ch_type = _contains_ch_type(self.info, ch_type)
+        return has_ch_type

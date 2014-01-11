@@ -1,11 +1,15 @@
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
+import os
+import glob
 
 from ..fiff import FIFF
 from ..fiff.pick import pick_types, pick_info
+from ..surface import get_head_surf, get_meg_helmet_surf
+
 from ..fiff.proj import _has_eeg_average_ref_proj, make_projector
-from ..transforms import transform_surface_to
+from ..transforms import transform_surface_to, read_trans
 from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _get_legen_lut_fast, _get_legen_lut_accurate)
@@ -33,73 +37,11 @@ def _ad_hoc_noise(coils, ch_type='meg'):
     return cov
 
 
-def _prepare_field_mapping(info, surf, ch_type, mode, int_rad=0.06, n_jobs=1):
-    """Do the dot products, assume surf in head coords"""
-    #
-    # Step 1. Prepare the coil definitions
-    #
-    if ch_type not in ('meg', 'eeg'):
-        raise ValueError('unknown coil type "%s"' % ch_type)
-    if ch_type == 'meg':
-        picks = pick_types(info, meg=True, eeg=False, ref_meg=False)
-        logger.info('Prepare MEG mapping...')
-    else:
-        picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
-        logger.info('Prepare EEG mapping...')
-    if len(picks) == 0:
-        raise RuntimeError('cannot map, no channels found')
-    chs = pick_info(info, picks)['chs']
-
-    # create coil defs in head coordinates
-    if ch_type == 'meg':
-        # Put them in head coordinates
-        coils = _create_coils(chs, FIFF.FWD_COIL_ACCURACY_NORMAL,
-                              info['dev_head_t'], coil_type='meg')[0]
-        type_str = 'coils'
-        miss = 1e-4  # Smoothing criterion for MEG
-    else:  # EEG
-        coils = _create_coils(chs, coil_type='eeg')[0]
-        type_str = 'electrodes'
-        miss = 1e-3  # Smoothing criterion for EEG
-
-    #
-    # Step 2. Calculate the dot products
-    #
-    my_origin = np.array([0.0, 0.0, 0.04])
-    noise = _ad_hoc_noise(coils, ch_type)
-    if mode == 'fast':
-        # Use 50 coefficients with nearest-neighbor interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 50)
-        lut_fun = partial(_get_legen_lut_fast, lut=lut)
-    else:  # 'accurate'
-        # Use 100 coefficients with linear interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 100)
-        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
-    logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
-    self_dots = _do_self_dots(int_rad, False, coils, my_origin, ch_type,
-                              lut_fun, n_fact, n_jobs)
-    sel = np.arange(len(surf['rr']))  # eventually we should do sub-selection
-    logger.info('Computing dot products for %i surface locations...'
-                % len(sel))
-    surface_dots = _do_surface_dots(int_rad, False, coils, surf, sel,
-                                    my_origin, ch_type, lut_fun, n_fact,
-                                    n_jobs)
-
-    #
-    # Step 4. Return the result
-    #
-    res = dict(kind=ch_type, surf=surf, picks=picks, coils=coils,
-               origin=my_origin, noise=noise, self_dots=self_dots,
-               surface_dots=surface_dots, int_rad=int_rad, miss=miss)
-    logger.info('Field mapping data ready')
-    return res
-
-
 def _compute_mapping_matrix(fmd, info):
     """Do the hairy computations"""
     logger.info('preparing the mapping matrix...')
     # assemble a projector and apply it to the data
-    ch_names = [info['ch_names'][p] for p in fmd['picks']]
+    ch_names = fmd['ch_names']
     projs = info.get('projs', list())
     proj_op = make_projector(projs, ch_names)[0]
     proj_dots = np.dot(proj_op.T, np.dot(fmd['self_dots'], proj_op))
@@ -148,8 +90,8 @@ def _compute_mapping_matrix(fmd, info):
 
 
 @verbose
-def make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
-                         n_jobs=1, verbose=None):
+def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
+                          n_jobs=1, verbose=None):
     """Re-map M/EEG data to a surface
 
     Parameters
@@ -161,6 +103,9 @@ def make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         `'nn'`, and `'coord_frame'`. Must be in head coordinates.
     ch_type : str
         Must be either `'meg'` or `'eeg'`, determines the type of field.
+    trans : None | dict
+        If None, no transformation applied. Should be a Head<->MRI
+        transformation.
     mode : str
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
@@ -193,6 +138,170 @@ def make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         surf = transform_surface_to(deepcopy(surf), 'head', trans)
 
     n_jobs = check_n_jobs(n_jobs)
-    fmd = _prepare_field_mapping(info, surf, ch_type, mode, n_jobs=n_jobs)
-    mapping_mat = _compute_mapping_matrix(fmd, info)
-    return mapping_mat
+
+    #
+    # Step 1. Prepare the coil definitions
+    # Do the dot products, assume surf in head coords
+    #
+    if ch_type not in ('meg', 'eeg'):
+        raise ValueError('unknown coil type "%s"' % ch_type)
+    if ch_type == 'meg':
+        picks = pick_types(info, meg=True, eeg=False, ref_meg=False)
+        logger.info('Prepare MEG mapping...')
+    else:
+        picks = pick_types(info, meg=False, eeg=True, ref_meg=False)
+        logger.info('Prepare EEG mapping...')
+    if len(picks) == 0:
+        raise RuntimeError('cannot map, no channels found')
+    chs = pick_info(info, picks)['chs']
+
+    # create coil defs in head coordinates
+    if ch_type == 'meg':
+        # Put them in head coordinates
+        coils = _create_coils(chs, FIFF.FWD_COIL_ACCURACY_NORMAL,
+                              info['dev_head_t'], coil_type='meg')[0]
+        type_str = 'coils'
+        miss = 1e-4  # Smoothing criterion for MEG
+    else:  # EEG
+        coils = _create_coils(chs, coil_type='eeg')[0]
+        type_str = 'electrodes'
+        miss = 1e-3  # Smoothing criterion for EEG
+
+    #
+    # Step 2. Calculate the dot products
+    #
+    my_origin = np.array([0.0, 0.0, 0.04])
+    int_rad = 0.06
+    noise = _ad_hoc_noise(coils, ch_type)
+    if mode == 'fast':
+        # Use 50 coefficients with nearest-neighbor interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 50)
+        lut_fun = partial(_get_legen_lut_fast, lut=lut)
+    else:  # 'accurate'
+        # Use 100 coefficients with linear interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 100)
+        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
+    logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
+    self_dots = _do_self_dots(int_rad, False, coils, my_origin, ch_type,
+                              lut_fun, n_fact, n_jobs)
+    sel = np.arange(len(surf['rr']))  # eventually we should do sub-selection
+    logger.info('Computing dot products for %i surface locations...'
+                % len(sel))
+    surface_dots = _do_surface_dots(int_rad, False, coils, surf, sel,
+                                    my_origin, ch_type, lut_fun, n_fact,
+                                    n_jobs)
+
+    #
+    # Step 4. Return the result
+    #
+    ch_names = [c['ch_name'] for c in chs]
+    fmd = dict(kind=ch_type, surf=surf, ch_names=ch_names, coils=coils,
+               origin=my_origin, noise=noise, self_dots=self_dots,
+               surface_dots=surface_dots, int_rad=int_rad, miss=miss)
+    logger.info('Field mapping data ready')
+
+    fmd['data'] = _compute_mapping_matrix(fmd, info)
+
+    # Remove some unecessary fields
+    del fmd['self_dots']
+    del fmd['surface_dots']
+    del fmd['int_rad']
+    del fmd['miss']
+    return fmd
+
+
+def _find_trans(subject, subjects_dir=None):
+    if subject is None:
+        if 'SUBJECT' in os.environ:
+            subject = os.environ['SUBJECT']
+        else:
+            raise ValueError('SUBJECT environment variable not set')
+
+    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
+                                          '*-trans.fif'))
+    if len(trans_fnames) < 1:
+        raise RuntimeError('Could not find the transformation for '
+                           '{subject}'.format(subject=subject))
+    elif len(trans_fnames) > 1:
+        raise RuntimeError('Found multiple transformations for '
+                           '{subject}'.format(subject=subject))
+    return trans_fnames[0]
+
+
+def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
+                   ch_type=None, mode='fast', n_jobs=1):
+    """Compute surface maps used for field display in 3D
+
+    Parameters
+    ----------
+    evoked : Evoked | Epochs | Raw
+        The measurement file. Need to have info attribute.
+    trans_fname : str | 'auto' | None
+        The full path to the `*-trans.fif` file produced during
+        coregistration. If present or found using 'auto'
+        the maps will be in MRI coordinates.
+        If None, map for EEG data will not be available.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None, map for EEG data will not be available.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    ch_type : None | 'eeg' | 'meg'
+        If None, a map for each available channel type will be returned.
+        Else only the specified type will be used.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used. `'fast'` should be sufficient
+        for most applications.
+    n_jobs : int
+        The number of jobs to run in parallel.
+
+    Returns
+    -------
+    surf_maps : list
+        The surface maps to be used for field plots. The list contains
+        separate ones for MEG and EEG (if both MEG and EEG are present).
+    """
+    info = evoked.info
+
+    if ch_type is None:
+        types = [t for t in ['eeg', 'meg'] if t in evoked]
+    else:
+        if ch_type not in ['eeg', 'meg']:
+            raise ValueError("ch_type should be 'eeg' or 'meg' (got %s)"
+                             % ch_type)
+        types = [ch_type]
+
+    if trans_fname == 'auto':
+        # let's try to do this in MRI coordinates so they're easy to plot
+        trans_fname = _find_trans(subject, subjects_dir)
+
+    if 'eeg' in types and trans_fname is None:
+        print('No trans file available. EEG data ignored.')
+        types.remove('eeg')
+
+    if len(types) == 0:
+        raise RuntimeError('No data available for mapping.')
+
+    trans = None
+    if trans_fname is not None:
+        trans = read_trans(trans_fname)
+
+    surfs = []
+    for this_type in types:
+        if this_type == 'meg':
+            surf = get_meg_helmet_surf(info, trans)
+        else:
+            surf = get_head_surf(subject, subjects_dir=subjects_dir)
+        surfs.append(surf)
+
+    surf_maps = list()
+
+    for this_type, this_surf in zip(types, surfs):
+        this_map = _make_surface_mapping(evoked.info, this_surf, this_type, trans,
+                                         n_jobs=n_jobs)
+        this_map['surf'] = this_surf  # XXX : a bit weird...
+        surf_maps.append(this_map)
+
+    return surf_maps

@@ -26,6 +26,7 @@ from .write import (start_file, start_block, end_file, end_block,
                     write_id)
 
 from ..viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
+from ..viz import plot_evoked_field
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
@@ -462,6 +463,30 @@ class Evoked(ProjMixin, ContainsMixin):
                                    res=res, proj=proj, size=size,
                                    format=format,
                                    show_names=show_names, title=title)
+
+    def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
+                   n_jobs=1):
+        """Plot MEG/EEG fields on head surface and helmet in 3D
+
+        Parameters
+        ----------
+        surf_maps : list
+            The surface mapping information obtained with make_field_map.
+        time : float | None
+            The time point at which the field map shall be displayed. If None,
+            the average peak latency (across sensor types) is used.
+        time_label : str
+            How to print info about the time instant visualized.
+        n_jobs : int
+            Number of jobs to run in parallel.
+
+        Returns
+        -------
+        fig : instance of mlab.Figure
+            The mayavi figure.
+        """
+        return plot_evoked_field(self, surf_maps, time=time, time_label=time_label,
+                                 n_jobs=n_jobs)
 
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime
