@@ -260,18 +260,22 @@ def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
     Returns
     -------
     surf_maps : list
-        The surface maps to be used for field plots.
+        The surface maps to be used for field plots. The list contains
+        separate ones for MEG and EEG (if both MEG and EEG are present).
     """
     info = evoked.info
-
-    if trans_fname == 'auto':
-        # let's try to do this in MRI coordinates so they're easy to plot
-        trans_fname = _find_trans(subject, subjects_dir)
 
     if ch_type is None:
         types = [t for t in ['eeg', 'meg'] if t in evoked]
     else:
+        if ch_type not in ['eeg', 'meg']:
+            raise ValueError("ch_type should be 'eeg' or 'meg' (got %s)"
+                             % ch_type)
         types = [ch_type]
+
+    if trans_fname == 'auto':
+        # let's try to do this in MRI coordinates so they're easy to plot
+        trans_fname = _find_trans(subject, subjects_dir)
 
     if 'eeg' in types and trans_fname is None:
         print('No trans file available. EEG data ignored.')
