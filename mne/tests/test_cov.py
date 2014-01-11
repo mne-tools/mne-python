@@ -200,7 +200,8 @@ def test_evoked_whiten():
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
 
-    noise_cov = regularize(cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1)
+    noise_cov = regularize(cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1,
+                           exclude='bads')
 
     evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
     whiten_baseline_data = evoked_white.data[picks][:, evoked.times < 0]
