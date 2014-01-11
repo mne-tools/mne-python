@@ -25,14 +25,12 @@ trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 # If trans_fname is set to None then only MEG estimates can be visualized
 setno = 'Left Auditory'
 
-evoked = mne.fiff.read_evoked(evoked_fname, setno=setno,
-                              baseline=(-0.2, 0.0))
+evoked = mne.fiff.read_evoked(evoked_fname, setno=setno, baseline=(-0.2, 0.0))
 
 # Compute the field maps to project MEG and EEG data to MEG helmet
 # and scalp surface
-maps = mne.make_field_map(evoked, trans_fname=trans_fname,
-                          subject='sample', subjects_dir=subjects_dir,
-                          n_jobs=1)
+maps = mne.make_field_map(evoked, trans_fname=trans_fname, subject='sample',
+                          subjects_dir=subjects_dir, n_jobs=1)
 
-for time in [0.09, .11]:
-    evoked.plot_field(maps, time=time)
+# explore several points in time
+[evoked.plot_field(maps, time=time) for time in [0.09, .11]]
