@@ -26,7 +26,7 @@ from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
 from .fiff.pick import (pick_types, channel_indices_by_type, channel_type,
-                        pick_channels)
+                        pick_channels, pick_info)
 from .fiff.proj import setup_proj, ProjMixin
 from .fiff.channels import ContainsMixin
 from .fiff.evoked import aspect_rev
@@ -711,10 +711,7 @@ class Epochs(_BaseEpochs):
         idx = [k for k, p in enumerate(self.picks) if p not in bad_picks]
         self.picks = [self.picks[k] for k in idx]
 
-        # XXX : could maybe be factorized
-        self.info['chs'] = [self.info['chs'][k] for k in idx]
-        self.info['ch_names'] = [self.info['ch_names'][k] for k in idx]
-        self.info['nchan'] = len(idx)
+        self.info = pick_info(self.info, idx, copy=False)
 
         if self._projector is not None:
             self._projector = self._projector[idx][:, idx]
@@ -734,10 +731,7 @@ class Epochs(_BaseEpochs):
         idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         self.picks = [self.picks[k] for k in idx]
 
-        # XXX : could maybe be factorized
-        self.info['chs'] = [self.info['chs'][k] for k in idx]
-        self.info['ch_names'] = [self.info['ch_names'][k] for k in idx]
-        self.info['nchan'] = len(idx)
+        self.info = pick_info(self.info, idx, copy=False)
 
         if self._projector is not None:
             self._projector = self._projector[idx][:, idx]

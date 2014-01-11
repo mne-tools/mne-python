@@ -7,7 +7,6 @@
 from ..externals.six import string_types
 from copy import deepcopy
 import re
-from warnings import warn
 
 import numpy as np
 from .constants import FIFF
@@ -259,7 +258,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     return sel
 
 
-def pick_info(info, sel=[]):
+def pick_info(info, sel=[], copy=True):
     """Restrict an info structure to a selection of channels
 
     Parameters
@@ -268,21 +267,24 @@ def pick_info(info, sel=[]):
         Info structure from evoked or raw data.
     sel : list of int
         Indices of channels to include.
+    copy : bool
+        If copy is False, info is modified inplace.
 
     Returns
     -------
     res : dict
         Info structure restricted to a selection of channels.
     """
+    if copy:
+        info = deepcopy(info)
 
-    res = deepcopy(info)
     if len(sel) == 0:
         raise ValueError('Warning : No channels match the selection.')
 
-    res['chs'] = [res['chs'][k] for k in sel]
-    res['ch_names'] = [res['ch_names'][k] for k in sel]
-    res['nchan'] = len(sel)
-    return res
+    info['chs'] = [info['chs'][k] for k in sel]
+    info['ch_names'] = [info['ch_names'][k] for k in sel]
+    info['nchan'] = len(sel)
+    return info
 
 
 def _has_kit_refs(info, picks):
