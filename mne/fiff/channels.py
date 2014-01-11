@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Denis Engmeann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -10,6 +11,7 @@ from .tree import dir_tree_find
 from .tag import find_tag
 from .constants import FIFF
 from .pick import channel_type, pick_info
+from ..utils import verbose
 
 
 def read_bad_channels(fid, node):
@@ -97,6 +99,37 @@ def _contains_ch_type(info, ch_type):
         raise ValueError(msg.format(passed=ch_type,
                                     valid=' or '.join(valid_channel_types)))
     return ch_type in [channel_type(info, ii) for ii in range(info['nchan'])]
+
+@verbose
+def equalize_channels(candidates, verbose=None):
+    """Equalize channel picks for a collection of MNE-Python objects
+    
+    Parameters
+    ----------
+    candidates : list
+        list Raw | Epochs | Evoked.
+    verbose : None | bool
+        whether to be verbose or not.
+
+    Note. This function operates inplace.
+    """
+    from . import Raw
+    from .. import Epochs
+    from . import Evoked
+
+    if not all([isinstance(c, (Raw, Epochs, Evoked)) for c in candidates]):
+        valid = ['Raw', 'Epochs', 'Evoked']
+        raise ValueError('candidates must be ' + ' or '.join(valid))
+    
+    chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
+    chan_template = candidates[chan_max_idx].ch_names
+    channels = [set(c.ch_names) for c in candidates]
+    common_channels = set(chan_template).intersection(*channels)
+    for c in candidates:
+        drop_them = list(set(c.ch_names) - common_channels)
+        if drop_them:
+            c.drop_channels(drop_them)
+     
 
 
 class ContainsMixin(object):
