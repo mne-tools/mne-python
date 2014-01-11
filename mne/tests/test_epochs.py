@@ -684,7 +684,7 @@ def test_epoch_eq():
             epochs[key]
         except KeyError:
             caught += 1
-    assert_raises(caught == 2)
+    assert_raises(Exception, caught == 2)
     assert_true(not np.any(epochs.events[:, 2] == 1))
     assert_true(not np.any(epochs.events[:, 2] == 2))
     epochs = combine_event_ids(epochs, ['c', 'd'], {'cd': 34})
