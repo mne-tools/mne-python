@@ -223,8 +223,8 @@ class RawBrainVision(Raw):
             raise ValueError("[n_events x 3] shaped array required")
 
         # update info based on presence of stim channel
-        had_events = bool(len(self._events) > 0)
-        has_events = bool(len(events) > 0)
+        had_events = bool(len(self._events))
+        has_events = bool(len(events))
         if had_events and not has_events:  # remove stim channel
             if self.info['ch_names'][-1] != 'STI 014':
                 err = "Last channel is not stim channel; info was modified"
