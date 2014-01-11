@@ -556,7 +556,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
     return noise_cov
 
 
-def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
+def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, verbose=None):
     """Regularize noise covariance matrix
 
@@ -576,8 +576,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
         Regularization factor for MEG gradiometers.
     eeg : float
         Regularization factor for EEG.
-    exclude : list | None
-        List of channels to mark as bad. If None, bads channels
+    exclude : list | 'bads'
+        List of channels to mark as bad. If 'bads', bads channels
         are extracted from both info['bads'] and cov['bads'].
     proj : bool
         Apply or not projections to keep rank of data.
@@ -590,7 +590,11 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
         The regularized covariance matrix.
     """
     cov = cp.deepcopy(cov)
-    if exclude is 'bads':
+
+    if exclude is None:
+        raise ValueError('exclude must be a list of strings or "bads"')
+
+    if exclude == 'bads':
         exclude = info['bads'] + cov['bads']
 
     sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
