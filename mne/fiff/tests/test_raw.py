@@ -888,3 +888,14 @@ def test_set_eeg_reference():
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
                                         copy=False)
     assert_true(raw is reref)
+
+
+def test_drop_channels_mixin():
+    """Test channels-dropping functionality
+    """
+    raw = Raw(fif_fname, preload=True)
+    drop_ch = raw.ch_names[:3]
+    ch_names = raw.ch_names[3:]
+    raw.drop_channels(drop_ch)
+    assert_equal(ch_names, raw.ch_names)
+    assert_equal(len(ch_names), raw._data.shape[0])

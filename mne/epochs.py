@@ -28,7 +28,7 @@ from .fiff import Evoked, FIFF
 from .fiff.pick import (pick_types, channel_indices_by_type, channel_type,
                         pick_channels, pick_info)
 from .fiff.proj import setup_proj, ProjMixin
-from .fiff.channels import ContainsMixin
+from .fiff.channels import ContainsMixin, DropChannelsMixin
 from .fiff.evoked import aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
@@ -43,7 +43,7 @@ from .externals.six.moves import zip
 from .utils import deprecated
 
 
-class _BaseEpochs(ProjMixin, ContainsMixin):
+class _BaseEpochs(ProjMixin, ContainsMixin, DropChannelsMixin):
     """Abstract base class for Epochs-type classes
 
     This class provides basic functionality and should never be instantiated
@@ -709,26 +709,6 @@ class Epochs(_BaseEpochs):
         """
         self.picks = list(self.picks)
         idx = [k for k, p in enumerate(self.picks) if p not in bad_picks]
-        self.picks = [self.picks[k] for k in idx]
-
-        self.info = pick_info(self.info, idx, copy=False)
-
-        if self._projector is not None:
-            self._projector = self._projector[idx][:, idx]
-
-        if self.preload:
-            self._data = self._data[:, idx, :]
-
-    def drop_channels(self, ch_names):
-        """Drop some channels
-
-        Parameters
-        ----------
-        ch_names : list
-            The list of channels to remove.
-        """
-        bad_idx = [self.ch_names.index(c) for c in ch_names]
-        idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         self.picks = [self.picks[k] for k in idx]
 
         self.info = pick_info(self.info, idx, copy=False)

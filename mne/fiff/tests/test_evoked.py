@@ -249,4 +249,14 @@ def test_get_peak():
     assert_raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
     assert_raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
 
+def test_drop_channels_mixin():
+    """Test channels-dropping functionality
+    """
+    evoked = read_evoked(fname, setno=0, proj=True)
+    drop_ch = evoked.ch_names[:3]
+    ch_names = evoked.ch_names[3:]
+    evoked.drop_channels(drop_ch)
+    assert_equal(ch_names, evoked.ch_names)
+    assert_equal(len(ch_names), len(evoked.data))
+
     

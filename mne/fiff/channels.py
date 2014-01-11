@@ -9,7 +9,7 @@ from ..externals.six import string_types
 from .tree import dir_tree_find
 from .tag import find_tag
 from .constants import FIFF
-from .pick import channel_type
+from .pick import channel_type, pick_info
 
 
 def read_bad_channels(fid, node):
@@ -110,3 +110,39 @@ class ContainsMixin(object):
         else:
             has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
+
+class DropChannelsMixin(object):
+    """Mixin class for Raw, Evoked, Epochs
+    """
+
+    def drop_channels(self, ch_names):
+        """Drop some channels
+
+        Parameters
+        ----------
+        ch_names : list
+            The list of channels to remove.
+        """
+        # avoid circular imports
+        from . import Raw
+        from .. import Epochs
+        from . import Evoked
+
+        bad_idx = [self.ch_names.index(c) for c in ch_names]
+        idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
+        if hasattr(self, 'picks'):
+            self.picks = [self.picks[k] for k in idx]
+
+        self.info = pick_info(self.info, idx, copy=False)
+
+        if getattr(self, '_projector') is not None:
+            self._projector = self._projector[idx][:, idx]
+
+        if isinstance(self, Raw) and getattr(self, '_preloaded'):
+            self._data = self._data[idx, :]
+
+        if isinstance(self, Epochs) and getattr(self, 'preload'):
+            self._data = self._data[:, idx, :]
+
+        if isinstance(self, Evoked):
+            self.data = self.data[idx, :]

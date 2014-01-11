@@ -27,6 +27,7 @@ Changelog
 
    - Add 3D MEG/EEG field plotting function and evoked method by `Denis Engemann`_ and  `Alex Gramfort`_
 
+   - Add consistent channel-dropping methods to Raw, Epochs and Evoked by `Denis Engemann`_ and  `Alex Gramfort`_
 
 API
 ~~~
