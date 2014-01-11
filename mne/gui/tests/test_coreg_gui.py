@@ -7,8 +7,7 @@ import os
 import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import (assert_equal, assert_almost_equal, assert_false,
-                        assert_is_instance, assert_less, assert_raises,
-                        assert_true)
+                        assert_raises, assert_true)
 
 import mne
 from mne.datasets import sample
@@ -46,8 +45,8 @@ def test_coreg_model():
 
     model.hsp.file = raw_path
     assert_allclose(model.hsp.lpa, [[-7.137e-2, 0, 5.122e-9]], 1e-4)
-    assert_allclose(model.hsp.rpa, [[ 7.527e-2, 0, 5.588e-9]], 1e-4)
-    assert_allclose(model.hsp.nasion, [[ 3.725e-9, 1.026e-1, 4.191e-9]], 1e-4)
+    assert_allclose(model.hsp.rpa, [[+7.527e-2, 0, 5.588e-9]], 1e-4)
+    assert_allclose(model.hsp.nasion, [[+3.725e-9, 1.026e-1, 4.191e-9]], 1e-4)
     assert_true(model.has_fid_data)
 
     lpa_distance = model.lpa_distance
@@ -58,16 +57,16 @@ def test_coreg_model():
     model.fit_auricular_points()
     old_x = lpa_distance ** 2 + rpa_distance ** 2
     new_x = model.lpa_distance ** 2 + model.rpa_distance ** 2
-    assert_less(new_x, old_x)
+    assert_true(new_x < old_x)
 
     model.fit_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
              + model.nasion_distance ** 2)
-    assert_less(new_x, old_x)
+    assert_true(new_x < old_x)
 
     model.fit_hsp_points()
-    assert_less(np.mean(model.point_distance), avg_point_distance)
+    assert_true(np.mean(model.point_distance) < avg_point_distance)
 
     model.save_trans(trans_dst)
     trans = mne.read_trans(trans_dst)
@@ -94,8 +93,8 @@ def test_coreg_model():
     assert_almost_equal(model.rot_z, rot_z)
 
     # info
-    assert_is_instance(model.fid_eval_str, basestring)
-    assert_is_instance(model.points_eval_str, basestring)
+    assert_true(isinstance(model.fid_eval_str, basestring))
+    assert_true(isinstance(model.points_eval_str, basestring))
 
 
 @sample.requires_sample_data
@@ -134,17 +133,17 @@ def test_coreg_model_with_fsaverage():
     model.fit_scale_auricular_points()
     old_x = lpa_distance ** 2 + rpa_distance ** 2
     new_x = model.lpa_distance ** 2 + model.rpa_distance ** 2
-    assert_less(new_x, old_x)
+    assert_true(new_x < old_x)
 
     model.fit_scale_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
     new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
              + model.nasion_distance ** 2)
-    assert_less(new_x, old_x)
+    assert_true(new_x < old_x)
 
     model.fit_scale_hsp_points()
     avg_point_distance_1param = np.mean(model.point_distance)
-    assert_less(avg_point_distance_1param, avg_point_distance)
+    assert_true(avg_point_distance_1param < avg_point_distance)
 
     desc, func, args, kwargs = model.get_scaling_job('test')
     assert_true(isinstance(desc, basestring))
@@ -156,7 +155,7 @@ def test_coreg_model_with_fsaverage():
     # scale with 3 parameters
     model.n_scale_params = 3
     model.fit_scale_hsp_points()
-    assert_less(np.mean(model.point_distance), avg_point_distance_1param)
+    assert_true(np.mean(model.point_distance) < avg_point_distance_1param)
 
     # test switching raw disables point omission
     assert_equal(model.hsp.n_omitted, 1)
