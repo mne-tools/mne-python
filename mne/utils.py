@@ -1244,7 +1244,7 @@ def sizeof_fmt(num):
         quotient = float(num) / 1024 ** exponent
         unit = units[exponent]
         num_decimals = decimals[exponent]
-        format_string = '{:.%sf} {}' % (num_decimals)
+        format_string = '{0:.%sf} {1}' % (num_decimals)
         return format_string.format(quotient, unit)
     if num == 0:
         return '0 bytes'
