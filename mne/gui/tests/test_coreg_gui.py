@@ -8,8 +8,7 @@ import os
 import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import (assert_equal, assert_almost_equal, assert_false,
-                        assert_is_instance, assert_less, assert_raises,
-                        assert_true)
+                        assert_less, assert_raise, assert_true)
 
 import mne
 from mne.datasets import sample
@@ -95,8 +94,8 @@ def test_coreg_model():
     assert_almost_equal(model.rot_z, rot_z)
 
     # info
-    assert_is_instance(model.fid_eval_str, string_types)
-    assert_is_instance(model.points_eval_str, string_types)
+    assert_true(isinstance(model.fid_eval_str, string_types))
+    assert_true(isinstance(model.points_eval_str, string_types))
 
 
 @sample.requires_sample_data
