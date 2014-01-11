@@ -23,6 +23,7 @@ import atexit
 from math import log
 import json
 import ftplib
+import inspect
 
 import numpy as np
 import scipy
@@ -221,7 +222,11 @@ def run_subprocess(command, *args, **kwargs):
     output = (stdout_, stderr)
     if p.returncode:
         print(output)
-        raise subprocess.CalledProcessError(p.returncode, command, output)
+        err_fun = subprocess.CalledProcessError.__init__
+        if 'output' in inspect.getargspec(err_fun).args:
+            raise subprocess.CalledProcessError(p.returncode, command, output)
+        else:
+            raise subprocess.CalledProcessError(p.returncode, command)
 
     return output
 
@@ -1004,7 +1009,7 @@ class ProgressBar(object):
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{}{}] {:.05f} {} {}   '
+    template = '\r[{0}{1}] {2:.05f} {3} {4}   '
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
                  progress_character='.', spinner=False):
@@ -1244,7 +1249,7 @@ def sizeof_fmt(num):
         quotient = float(num) / 1024 ** exponent
         unit = units[exponent]
         num_decimals = decimals[exponent]
-        format_string = '{:.%sf} {}' % (num_decimals)
+        format_string = '{0:.%sf} {1}' % (num_decimals)
         return format_string.format(quotient, unit)
     if num == 0:
         return '0 bytes'

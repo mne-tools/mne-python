@@ -1500,8 +1500,8 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         logger.info('Running forward solution generation command with '
                     'subjects_dir %s' % subjects_dir)
         run_subprocess(cmd, env=env)
-    except Exception as exception:
-        raise exception
+    except:
+        raise
     else:
         fwd = read_forward_solution(op.join(path, fname), verbose=False)
     finally:
