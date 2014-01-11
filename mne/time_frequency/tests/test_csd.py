@@ -140,9 +140,8 @@ def test_compute_epochs_csd_on_artificial_data():
                                                   fmax=np.inf, n_fft=n_fft)
             fourier_power_per_sample = np.abs(data_csd_fourier.data[0, 0]) *\
                 sfreq / data_csd_fourier.n_fft
-            assert_almost_equal(signal_power_per_sample,
-                                fourier_power_per_sample, delta=0.003)
-
+            assert_true(abs(signal_power_per_sample -
+                            fourier_power_per_sample) < 0.003)
         # Power per sample should not depend on number of tapers
         for n_tapers in [1, 2, 3, 5]:
             for add_n_fft in [30, 0, 30]:
@@ -160,5 +159,5 @@ def test_compute_epochs_csd_on_artificial_data():
                     delta = 0.05
                 else:
                     delta = 0.004
-                assert_almost_equal(signal_power_per_sample,
-                                    mt_power_per_sample, delta=delta)
+                assert_true(abs(signal_power_per_sample - mt_power_per_sample)
+                            < delta)
