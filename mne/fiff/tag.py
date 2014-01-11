@@ -101,7 +101,7 @@ def read_big(fid, size=None):
         24000000
         >>> fid_gz.close()
         >>> fid_gz = gzip.open(fname_gz, 'rb')
-        >>> y = np.fromstring(read_big(fid))
+        >>> y = np.fromstring(read_big(fid_gz))
         >>> assert np.all(x == y)
         >>> shutil.rmtree(os.path.dirname(fname))
         >>> fid_gz.close()
