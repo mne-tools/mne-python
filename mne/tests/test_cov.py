@@ -179,6 +179,7 @@ def test_regularize_cov():
     """Test cov regularization
     """
     raw = Raw(raw_fname, preload=False)
+    raw.info['bads'].append(raw.ch_names[0])
     noise_cov = read_cov(cov_fname)
     # Regularize noise cov
     reg_noise_cov = regularize(noise_cov, raw.info,
@@ -206,13 +207,3 @@ def test_evoked_whiten():
     assert_true(np.all(mean_baseline < 1.))
     assert_true(np.all(mean_baseline > 0.2))
     
-    
-def test_regularize_bad_channels():
-    import mne
-    raw = Raw(raw_fname, preload=False)
-    raw.info['bads'].append(raw.ch_names[0])
-    noise_cov = read_cov(cov_fname)
-    reg_noise_cov = regularize(noise_cov, raw.info,
-                               mag=0.1, grad=0.1, eeg=0.1, proj=True,
-                               exclude='bads')
-
