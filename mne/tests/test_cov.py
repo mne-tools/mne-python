@@ -183,7 +183,8 @@ def test_regularize_cov():
     noise_cov = read_cov(cov_fname)
     # Regularize noise cov
     reg_noise_cov = regularize(noise_cov, raw.info,
-                               mag=0.1, grad=0.1, eeg=0.1, proj=True)
+                               mag=0.1, grad=0.1, eeg=0.1, proj=True, 
+                               exclude='bads')
     assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
     assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
     assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)
