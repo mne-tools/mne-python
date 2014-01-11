@@ -11,7 +11,7 @@ from .tree import dir_tree_find
 from .tag import find_tag
 from .constants import FIFF
 from .pick import channel_type, pick_info
-from ..utils import verbose
+from ..utils import verbose, logger
 
 
 def read_bad_channels(fid, node):
@@ -123,14 +123,20 @@ def equalize_channels(candidates, verbose=None):
     
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
+    logger.info('Identiying common channels ...')
     channels = [set(c.ch_names) for c in candidates]
     common_channels = set(chan_template).intersection(*channels)
+    dropped = list()
     for c in candidates:
         drop_them = list(set(c.ch_names) - common_channels)
         if drop_them:
             c.drop_channels(drop_them)
-     
-
+            dropped.extend(drop_them)
+    if dropped:
+        dropped = list(set(dropped))
+        logger.info('Dropped the following channels:\n%s' % dropped)
+    else:
+        logger.info('all channels are corresponding, nothing to do.')
 
 class ContainsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
