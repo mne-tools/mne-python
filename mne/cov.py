@@ -590,7 +590,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
         The regularized covariance matrix.
     """
     cov = cp.deepcopy(cov)
-    if exclude is None:
+    if exclude is 'bads':
         exclude = info['bads'] + cov['bads']
 
     sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
