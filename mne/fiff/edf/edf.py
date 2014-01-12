@@ -11,6 +11,7 @@ import calendar
 import datetime
 import re
 import warnings
+from math import ceil, floor
 
 import numpy as np
 
@@ -177,6 +178,9 @@ class RawEDF(Raw):
         annot = self._edf_info['annot']
         annotmap = self._edf_info['annotmap']
 
+        blockstart = int(floor(float(start) / sfreq) * sfreq)
+        blockstop = int(ceil(float(stop) / sfreq) * sfreq)
+
         if start >= stop:
             raise ValueError('No data in this range')
 
@@ -195,8 +199,8 @@ class RawEDF(Raw):
         with open(self.info['file_id'], 'rb') as fid:
             # extract data
             fid.seek(data_offset)
-            buffer_size = stop - start
-            pointer = start * n_chan * data_size
+            buffer_size = blockstop - blockstart
+            pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
 
             if 'n_samps' in self._edf_info:
@@ -204,7 +208,7 @@ class RawEDF(Raw):
                 max_samp = float(np.max(n_samps))
                 blocks = int(buffer_size / max_samp)
             else:
-                blocks = int(buffer_size / sfreq)
+                blocks = int(ceil(float(buffer_size) / sfreq))
             datas = []
             # bdf data: 24bit data
             if self._edf_info['subtype'] == '24BIT':
@@ -257,7 +261,9 @@ class RawEDF(Raw):
                 mask = 255 * np.ones(stim.shape, int)
                 stim = np.bitwise_and(stim, mask)
                 data[stim_channel] = stim
-        data = data[sel]
+        datastart = start - blockstart
+        datastop = stop - blockstart
+        data = data[sel, datastart:datastop]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / self.info['sfreq']

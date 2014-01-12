@@ -95,10 +95,10 @@ def test_read_segment():
     # test the _read_segment function by only loading some of the data
     raw1 = read_raw_edf(edf_path, preload=False)
     raw2 = read_raw_edf(edf_path, preload=True)
-    blocks = int(raw1.last_samp / raw1.info['sfreq'])
-    seg = (blocks - 1) * raw1.info['sfreq']
-    data1, times1 = raw1[:, :seg]
-    data2, times2 = raw2[:, :seg]
+
+    # select some random range of data to compare
+    data1, times1 = raw1[:, 345:417]
+    data2, times2 = raw2[:, 345:417]
     assert_array_equal(data1, data2)
     assert_array_equal(times1, times2)
 
