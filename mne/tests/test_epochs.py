@@ -76,7 +76,6 @@ def test_read_epochs_bad_events():
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
     epochs.drop_bad_epochs()
-    epochs.plot_drop_log()
     evoked = epochs.average()
 
     # Event at the end
@@ -101,7 +100,8 @@ def test_read_write_epochs():
 
     eog_picks = fiff.pick_types(raw.info, meg=False, eeg=False, stim=False,
                                 eog=True, exclude='bads')
-    epochs.drop_picks(eog_picks)
+    eog_ch_names = [raw.ch_names[k] for k in eog_picks]
+    epochs.drop_channels(eog_ch_names)
     assert_true(len(epochs.info['chs']) == len(epochs.ch_names)
                 == epochs.get_data().shape[1])
     data_no_eog = epochs.get_data()
@@ -171,6 +171,9 @@ def test_read_write_epochs():
     epochs_read5 = read_epochs('test-epo.fif')
     assert_array_equal(epochs_read5.selection, epochs.selection)
     assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
+
+    # Test that one can drop channels on read file
+    epochs_read5.drop_channels(epochs_read5.ch_names[:1])
 
 
 def test_epochs_proj():
