@@ -42,6 +42,11 @@ class RawBrainVision(Raw):
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    reference : None | str
+        Name of the electrode which served as the reference in the recording.
+        If a name is provided, a corresponding channel is added and its data
+        is set to 0. This is useful for later re-referencing. The name should
+        correspond to a name in elp_names.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -51,7 +56,7 @@ class RawBrainVision(Raw):
     """
     @verbose
     def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
-                 preload=False, ch_names=None, verbose=None):
+                 preload=False, reference=None, ch_names=None, verbose=None):
         # backwards compatibility
         if ch_names is not None:
             if elp_names is not None:
@@ -71,8 +76,8 @@ class RawBrainVision(Raw):
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
         self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
-                                                          elp_fname,
-                                                          elp_names)
+                                                          elp_fname, elp_names,
+                                                          reference)
         self.set_brainvision_events(events)
         logger.info('Creating Raw.info structure...')
 
@@ -89,6 +94,7 @@ class RawBrainVision(Raw):
         dtype = int(self._eeg_info['dtype'][-1])
         n_chan = self.info['nchan']
         self.last_samp = (n_samples // (dtype * (n_chan - 1))) - 1
+        self._reference = reference
 
         if preload:
             self._preloaded = preload
@@ -152,25 +158,26 @@ class RawBrainVision(Raw):
         #  Initial checks
         start = int(start)
         stop = int(stop)
-
-        eeg_info = self._eeg_info
-        sfreq = self.info['sfreq']
-        n_chan = self.info['nchan']
-        cals = np.array([chan_info['cal'] for chan_info in self.info['chs']])
-        mults = np.array([chan_info['unit_mul'] for chan_info
-                          in self.info['chs']])
-        picks = pick_types(self.info, meg=False, eeg=True, exclude=[])
-        n_eeg = picks.size
-        cals = np.atleast_2d(cals[picks])
-        mults = np.atleast_2d(mults[picks])
-
         if start >= stop:
             raise ValueError('No data in this range')
+
+        # assemble channel information
+        eeg_info = self._eeg_info
+        sfreq = self.info['sfreq']
+        chs = self.info['chs']
+        if self._reference:
+            chs = chs[:-1]
+        if len(self._events):
+            chs = chs[:-1]
+        n_eeg = len(chs)
+        cals = np.atleast_2d([chan_info['cal'] for chan_info in chs])
+        mults = np.atleast_2d([chan_info['unit_mul'] for chan_info in chs])
 
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (start, stop - 1, start / float(sfreq),
                      (stop - 1) / float(sfreq)))
 
+        # read data
         dtype = np.dtype(eeg_info['dtype'])
         buffer_size = (stop - start)
         pointer = start * n_eeg * dtype.itemsize
@@ -186,9 +193,17 @@ class RawBrainVision(Raw):
         gains = cals * mults
         data = data * gains.T
 
+        # add reference channel and stim channel (if applicable)
+        data_segments = [data]
+        if self._reference:
+            shape = (1, data.shape[1])
+            ref_channel = np.zeros(shape)
+            data_segments.append(ref_channel)
         if len(self._events):
             stim_channel = _synthesize_stim_channel(self._events, start, stop)
-            data = np.vstack((data, stim_channel))
+            data_segments.append(stim_channel)
+        if len(data_segments) > 1:
+            data = np.vstack(data_segments)
 
         if sel is not None:
             data = data[sel]
@@ -366,7 +381,7 @@ def _get_elp_locs(elp_fname, elp_names):
     return chs_neuromag
 
 
-def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
+def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None, reference=None):
     """Extracts all the information from the header file.
 
     Parameters
@@ -382,6 +397,11 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
         in the vhdr file, and fiducials should be specified as "lpa" "nasion",
         "rpa". ELP positions with other names are ignored. If elp_names is not
         None and channels are missing, a KeyError is raised.
+    reference : None | str
+        Name of the electrode which served as the reference in the recording.
+        If a name is provided, a corresponding channel is added and its data
+        is set to 0. This is useful for later re-referencing. The name should
+        correspond to a name in elp_names.
 
     Returns
     -------
@@ -430,7 +450,8 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
     sfreq = int(sfreq)
-    n_chan = cfg.getint('Common Infos', 'NumberOfChannels')
+    n_data_chan = cfg.getint('Common Infos', 'NumberOfChannels')
+    n_eeg_chan = n_data_chan + bool(reference)
 
     # check binary format
     assert cfg.get('Common Infos', 'DataFormat') == 'BINARY'
@@ -452,21 +473,28 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
                                   % binary_format)
 
     # load channel labels
-    ch_names = ['UNKNOWN'] * n_chan
-    cals = np.ones(n_chan) * np.nan
-    units = []
+    ch_names = ['UNKNOWN'] * n_eeg_chan
+    cals = np.empty(n_eeg_chan)
+    cals[:] = np.nan
+    units = ['UNKNOWN'] * n_eeg_chan
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0])
         name, _, resolution, unit = props.split(',')[:4]
         ch_names[n - 1] = name
-        cals[n - 1] = resolution
+        cals[n - 1] = float(resolution)
         unit = unit.replace('\xc2', '')  # Remove unwanted control characters
         if u(unit) == u('\xb5V'):
-            units.append(1e-6)
+            units[n - 1] = 1e-6
         elif unit == 'V':
-            units.append(0)
+            units[n - 1] = 0
         else:
-            units.append(unit)
+            units[n - 1] = unit
+
+    # add reference channel info
+    if reference:
+        ch_names[-1] = reference
+        cals[-1] = cals[-2]
+        units[-1] = units[-2]
 
     # Attempts to extract filtering info from header. If not found, both are
     # set to zero.
@@ -484,6 +512,8 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
         lowpass = []
         highpass = []
         for i, ch in enumerate(ch_names, 1):
+            if ch == reference:
+                continue
             line = settings[idx + i].split()
             assert ch in line
             highpass.append(line[5])
@@ -527,7 +557,7 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    info['nchan'] = n_chan
+    info['nchan'] = n_eeg_chan
     info['ch_names'] = ch_names
     info['sfreq'] = sfreq
     if elp_fname and elp_names:
@@ -583,7 +613,8 @@ def _get_eeg_info(vhdr_fname, elp_fname=None, elp_names=None):
 
 
 def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
-                         preload=False, ch_names=None, verbose=None):
+                         preload=False, reference=None, ch_names=None,
+                         verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -602,6 +633,11 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
+    reference : None | str
+        Name of the electrode which served as the reference in the recording.
+        If a name is provided, a corresponding channel is added and its data
+        is set to 0. This is useful for later re-referencing. The name should
+        correspond to a name in elp_names.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -610,5 +646,5 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     mne.fiff.Raw : Documentation of attribute and methods.
     """
     raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
-                         ch_names, verbose)
+                         reference, ch_names, verbose)
     return raw
