@@ -935,7 +935,7 @@ def test_equalize_channels():
     """Test equalization of channels
     """
     epochs1 = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+                     baseline=(None, 0), proj=False)
     epochs2 = epochs1.copy()
     ch_names = epochs1.ch_names[2:]
     epochs1.drop_channels(epochs1.ch_names[:1])

@@ -250,6 +250,7 @@ def test_get_peak():
     assert_raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
     assert_raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
 
+
 def test_drop_channels_mixin():
     """Test channels-dropping functionality
     """

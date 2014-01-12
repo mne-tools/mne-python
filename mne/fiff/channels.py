@@ -173,15 +173,15 @@ class DropChannelsMixin(object):
             self.picks = [self.picks[k] for k in idx]
 
         self.info = pick_info(self.info, idx, copy=False)
-
-        if getattr(self, '_projector') is not None:
+        
+        my_get = lambda attr: getattr(self, attr, None)
+        
+        if my_get('_projector') is not None:
             self._projector = self._projector[idx][:, idx]
 
-        if isinstance(self, Raw) and getattr(self, '_preloaded'):
+        if isinstance(self, Raw) and my_get('_preloaded'):
             self._data = self._data[idx, :]
-
-        if isinstance(self, Epochs) and getattr(self, 'preload'):
+        elif isinstance(self, Epochs) and my_get('preload'):
             self._data = self._data[:, idx, :]
-
-        if isinstance(self, Evoked):
+        elif isinstance(self, Evoked):
             self.data = self.data[idx, :]
