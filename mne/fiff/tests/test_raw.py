@@ -18,7 +18,7 @@ from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fiff import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
                       get_chpi_positions, set_eeg_reference)
-from mne import concatenate_events, find_events
+from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess)
 from mne.externals.six import text_type, b
@@ -888,3 +888,29 @@ def test_set_eeg_reference():
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
                                         copy=False)
     assert_true(raw is reref)
+
+
+def test_drop_channels_mixin():
+    """Test channels-dropping functionality
+    """
+    raw = Raw(fif_fname, preload=True)
+    drop_ch = raw.ch_names[:3]
+    ch_names = raw.ch_names[3:]
+    raw.drop_channels(drop_ch)
+    assert_equal(ch_names, raw.ch_names)
+    assert_equal(len(ch_names), raw._data.shape[0])
+
+
+def test_equalize_channels():
+    """Test equalization of channels
+    """
+    raw1 = Raw(fif_fname)
+
+    raw2 = raw1.copy()
+    ch_names = raw1.ch_names[2:]
+    raw1.drop_channels(raw1.ch_names[:1])
+    raw2.drop_channels(raw2.ch_names[1:2])
+    my_comparison = [raw1, raw2]
+    equalize_channels(my_comparison)
+    for e in my_comparison:
+        assert_equal(ch_names, e.ch_names)

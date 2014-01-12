@@ -11,6 +11,7 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises
 
+from mne import equalize_channels
 from mne.fiff import read_evoked, write_evoked, pick_types
 from mne.fiff.evoked import _get_peak
 from mne.utils import _TempDir, requires_pandas, requires_nitime
@@ -249,4 +250,27 @@ def test_get_peak():
     assert_raises(ValueError, _get_peak, data + 1e3, times, mode='neg')
     assert_raises(ValueError, _get_peak, data - 1e3, times, mode='pos')
 
-    
+
+def test_drop_channels_mixin():
+    """Test channels-dropping functionality
+    """
+    evoked = read_evoked(fname, setno=0, proj=True)
+    drop_ch = evoked.ch_names[:3]
+    ch_names = evoked.ch_names[3:]
+    evoked.drop_channels(drop_ch)
+    assert_equal(ch_names, evoked.ch_names)
+    assert_equal(len(ch_names), len(evoked.data))
+
+
+def test_equalize_channels():
+    """Test equalization of channels
+    """
+    evoked1 = read_evoked(fname, setno=0, proj=True)
+    evoked2 = evoked1.copy()
+    ch_names = evoked1.ch_names[2:]
+    evoked1.drop_channels(evoked1.ch_names[:1])
+    evoked2.drop_channels(evoked2.ch_names[1:2])
+    my_comparison = [evoked1, evoked2]
+    equalize_channels(my_comparison)
+    for e in my_comparison:
+        assert_equal(ch_names, e.ch_names)

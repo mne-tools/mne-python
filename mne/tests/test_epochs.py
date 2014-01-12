@@ -14,7 +14,8 @@ import numpy as np
 import copy as cp
 import warnings
 
-from mne import fiff, Epochs, read_events, pick_events, read_epochs
+from mne import (fiff, Epochs, read_events, pick_events, read_epochs,
+                 equalize_channels)
 from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 from mne.fiff import read_evoked
@@ -916,3 +917,30 @@ def test_contains():
     
     assert_raises(ValueError, epochs.__contains__, 'foo')
     assert_raises(ValueError, epochs.__contains__, 1)
+
+
+def test_drop_channels_mixin():
+    """Test channels-dropping functionality
+    """
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+    drop_ch = epochs.ch_names[:3]
+    ch_names = epochs.ch_names[3:]
+    epochs.drop_channels(drop_ch)
+    assert_equal(ch_names, epochs.ch_names)
+    assert_equal(len(ch_names), epochs.get_data().shape[1])
+
+
+def test_equalize_channels():
+    """Test equalization of channels
+    """
+    epochs1 = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), proj=False)
+    epochs2 = epochs1.copy()
+    ch_names = epochs1.ch_names[2:]
+    epochs1.drop_channels(epochs1.ch_names[:1])
+    epochs2.drop_channels(epochs2.ch_names[1:2])
+    my_comparison = [epochs1, epochs2]
+    equalize_channels(my_comparison)
+    for e in my_comparison:
+        assert_equal(ch_names, e.ch_names)

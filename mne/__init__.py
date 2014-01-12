@@ -50,6 +50,7 @@ from .proj import (read_proj, write_proj, compute_proj_epochs,
 from .selection import read_selection
 from .dipole import read_dip
 from .layouts.layout import find_layout
+from .fiff.channels import equalize_channels
 
 from . import beamformer
 from . import connectivity
