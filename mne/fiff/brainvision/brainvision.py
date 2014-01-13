@@ -277,16 +277,26 @@ def _read_vmrk_events(fname):
         an event as (onset, duration, trigger) sequence.
     """
     # read vmrk file
-    with open(fname) as f:
-        # setup config reader
-        l = f.readline().strip()
-        assert l == 'Brain Vision Data Exchange Marker File, Version 1.0'
-        cfg = configparser.SafeConfigParser()
-        cfg.readfp(f)
+    with open(fname) as fid:
+        txt = fid.read()
+
+    start_tag = 'Brain Vision Data Exchange Marker File, Version 1.0'
+    if not txt.startswith(start_tag):
+        raise ValueError("vmrk file should start with %r" % start_tag)
+
+    # extract Marker Infos block
+    m = re.search("\[Marker Infos\]", txt)
+    if not m:
+        return np.zeros(0)
+    mk_txt = txt[m.end():]
+    m = re.search("\[.*\]", mk_txt)
+    if m:
+        mk_txt = mk_txt[:m.start()]
 
     # extract event information
+    items = re.findall("^Mk\d+=(.*)", mk_txt, re.MULTILINE)
     events = []
-    for _, info in cfg.items('Marker Infos'):
+    for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
         if mtype == 'Stimulus':
             trigger = int(re.findall('S\s?(\d+)', mdesc)[0])
