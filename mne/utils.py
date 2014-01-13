@@ -1004,7 +1004,7 @@ class ProgressBar(object):
     """
 
     spinner_symbols = ['|', '/', '-', '\\']
-    template = '\r[{}{}] {:.05f} {} {}   '
+    template = '\r[{0}{1}] {2:.05f} {3} {4}   '
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
                  progress_character='.', spinner=False):
@@ -1244,7 +1244,7 @@ def sizeof_fmt(num):
         quotient = float(num) / 1024 ** exponent
         unit = units[exponent]
         num_decimals = decimals[exponent]
-        format_string = '{:.%sf} {}' % (num_decimals)
+        format_string = '{0:.%sf} {1}' % (num_decimals)
         return format_string.format(quotient, unit)
     if num == 0:
         return '0 bytes'

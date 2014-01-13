@@ -300,7 +300,7 @@ class RawSource(HasPrivateTraits):
     def _get_fid_points(self):
         if not self.raw:
             return {}
-        digs = {d['ident']: d for d in self.fid_dig}
+        digs = dict((d['ident'], d) for d in self.fid_dig)
         return digs
 
     @cached_property
