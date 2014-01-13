@@ -9,6 +9,7 @@ env:
     #               dependencies are supposed to be skipped
     - PYTHON=2.7 DEPS=full
     - PYTHON=3.3 DEPS=full
+    - PYTHON=2.6 DEPS=full
     - PYTHON=2.7 DEPS=minimal
 # Setup anaconda
 before_install:
