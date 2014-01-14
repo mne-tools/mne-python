@@ -598,22 +598,25 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
             loc = np.zeros(3)
             if not is_eog:
                 missing_positions.append(ch_name)
-        chan_info = {}
-        chan_info['ch_name'] = ch_name
+
         if is_eog:
-            chan_info['kind'] = FIFF.FIFFV_EOG_CH
+            kind = FIFF.FIFFV_EOG_CH
         else:
-            chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
-        chan_info['logno'] = idx
-        chan_info['scanno'] = idx
-        chan_info['cal'] = cal
-        chan_info['range'] = 1.
-        chan_info['unit_mul'] = unit_mul
-        chan_info['unit'] = FIFF.FIFF_UNIT_V
-        chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        chan_info['eeg_loc'] = loc
-        chan_info['loc'] = np.hstack((loc, np.zeros(9)))
+            kind = FIFF.FIFFV_EEG_CH
+
+        chan_info = {'ch_name': ch_name,
+                     'coil_type': FIFF.FIFFV_COIL_EEG,
+                     'kind': kind,
+                     'logno': idx,
+                     'scanno': idx,
+                     'cal': cal,
+                     'range': 1.,
+                     'unit_mul': unit_mul,
+                     'unit': FIFF.FIFF_UNIT_V,
+                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                     'eeg_loc': loc,
+                     'loc': np.hstack((loc, np.zeros(9)))}
+
         info['chs'].append(chan_info)
 
     # raise error if positions are missing
