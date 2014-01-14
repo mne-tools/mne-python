@@ -14,7 +14,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import mne
 from mne.utils import _TempDir
-from mne.fiff import Raw, pick_types
+from mne.fiff import FIFF, Raw, pick_types
 from mne.fiff.brainvision import read_raw_brainvision
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -30,6 +30,7 @@ elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None, None,
              'CP2', 'P7', 'P3', 'Pz', 'P4',
              'P8', 'O1', 'POz', 'O2', 'A1',
              'ReRef', 'HL', 'HR', 'Vb']
+eog = ('HL', 'HR', 'Vb')
 
 tempdir = _TempDir()
 
@@ -37,21 +38,33 @@ tempdir = _TempDir()
 def test_brainvision_data():
     """Test reading raw Brain Vision files
     """
-    raw_py = read_raw_brainvision(vhdr_path, elp_fname=elp_path,
-                                  elp_names=elp_names, preload=True)
+    raw_py = read_raw_brainvision(vhdr_path, elp_path, elp_names, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, times_py = raw_py[picks]
 
     print(raw_py)  # to test repr
     print(raw_py.info)  # to test Info repr
 
-    # this fif was generated using MNE-C
+    # compare with a file that was generated using MNE-C
     raw_bin = Raw(eeg_bin, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_bin, times_bin = raw_bin[picks]
 
     assert_array_almost_equal(data_py, data_bin)
     assert_array_almost_equal(times_py, times_bin)
+
+    # Make sure EOG channels are marked correctly
+    raw_py = read_raw_brainvision(vhdr_path, elp_path, elp_names, eog=eog,
+                                  preload=True)
+    for ch in raw_py.info['chs']:
+        if ch['ch_name'] in eog:
+            assert_equal(ch['kind'], FIFF.FIFFV_EOG_CH)
+        elif ch['ch_name'] in elp_names:
+            assert_equal(ch['kind'], FIFF.FIFFV_EEG_CH)
+        elif ch['ch_name'] == 'STI 014':
+            assert_equal(ch['kind'], FIFF.FIFFV_STIM_CH)
+        else:
+            raise RuntimeError("Unknown Channel: %s" % ch['ch_name'])
 
 
 def test_events():
