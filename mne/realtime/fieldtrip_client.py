@@ -15,6 +15,7 @@ import struct
 import numpy
 import copy
 import time
+import threading
 
 VERSION = 1
 PUT_HDR = 0x101
@@ -509,9 +510,21 @@ class FtClient:
         return struct.unpack('II', resp_buf[0:8])
 
 
+def _buffer_recv_worker(ft_client, timeout):
+    """Worker thread that constantly receives buffers"""
+    try:
+        for raw_buffer in ft_client.raw_buffers(timeout):
+            ft_client._push_raw_buffer(raw_buffer)
+    except RuntimeError as err:
+        # something is wrong, the server stopped (or something)
+        ft_client._recv_thread = None
+        print('Buffer receive thread stopped: %s' % err)
+
+
 # The following additions make the Fieldtrip client MNE-Python compatible
 class MneFtClient(object):
-    def __init__(self, ft_client, raw, verbose=None):
+    def __init__(self, ft_client, raw, tmin, tmax, buffer_size,
+                 timeout=numpy.inf, verbose=None):
 
         self.raw = raw
         self.ft_header = ft_client.getHeader()
@@ -529,6 +542,15 @@ class MneFtClient(object):
 
         self.info = copy.deepcopy(self.raw.info)
 
+        sfreq = self.raw.info['sfreq']
+        self.tmin_samp = int(round(sfreq * tmin))
+        self.tmax_samp = int(round(sfreq * tmax))
+        self.buffer_size = buffer_size
+        self.timeout = timeout
+
+        self._recv_thread = None
+        self._recv_callbacks = list()
+
     def get_measurement_info(self):
         """Returns the measurement info.
 
@@ -539,79 +561,86 @@ class MneFtClient(object):
         """
         return self.info
 
-    def send_data(self, epochs, picks, tmin, tmax, buffer_size,
-                  timeout=numpy.inf):
-        """Read from raw object and send them to RtEpochs for processing.
+    def register_receive_callback(self, callback):
+        """Register a raw buffer receive callback
 
         Parameters
         ----------
-        epochs : instance of RtEpochs
-            The epochs object.
-        picks : array of int
-            Indices of channels.
-        tmin : float
-            Time instant to start receiving buffers.
-        tmax : float
-            Time instant to stop receiving buffers.
-        buffer_size : int
-            Size of each buffer in terms of number of samples.
-        timeout : float
-            Maximum time to wait when no data is received.
+        callback : callable
+            The callback. The raw buffer is passed as the first parameter
+            to callback.
+        """
+        if callback not in self._recv_callbacks:
+            self._recv_callbacks.append(callback)
+
+    def unregister_receive_callback(self, callback):
+        """Unregister a raw buffer receive callback
+        """
+        if callback in self._recv_callbacks:
+            self._recv_callbacks.remove(callback)
+
+    def _push_raw_buffer(self, raw_buffer):
+        """Push raw buffer to clients using callbacks"""
+        for callback in self._recv_callbacks:
+            callback(raw_buffer)
+
+    def start_receive_thread(self, nchan):
+        """Start the receive thread
+
+        If the measurement has not been started, it will also be started.
+
+        Parameters
+        ----------
+        nchan : int
+            The number of channels in the data.
         """
 
-        sfreq = self.info['sfreq']
-        tmin_samp = int(round(sfreq * tmin))
-        tmax_samp = int(round(sfreq * tmax))
+        if self._recv_thread is None:
 
-        iter_times = zip(list(range(tmin_samp, tmax_samp, buffer_size)),
-                         list(range(buffer_size, tmax_samp, buffer_size)))
+            self._recv_thread = threading.Thread(target=_buffer_recv_worker,
+                                                 args=(self, self.timeout))
+            self._recv_thread.start()
+
+    def stop_receive_thread(self, nchan, stop_measurement=False):
+        """Stop the receive thread
+
+        Parameters
+        ----------
+        stop_measurement : bool
+            Also stop the measurement.
+        """
+        if self._recv_thread is not None:
+            self._recv_thread.stop()
+            self._recv_thread = None
+
+    def raw_buffers(self, timeout):
+        """Return an iterator over raw buffers
+
+        Returns
+        -------
+        raw_buffer : generator
+            Generator for iteration over raw buffers.
+        """
+
+        iter_times = zip(list(range(self.tmin_samp, self.tmax_samp,
+                              self.buffer_size)),
+                         list(range(self.buffer_size, self.tmax_samp,
+                              self.buffer_size)))
 
         for ii, (start, stop) in enumerate(iter_times):
-            # channels are picked in _append_epoch_to_queue.
-            # No need to pick here
-            
-            # wait till data is available
+            raw_buffer = self.ft_client.getData([start, stop])
+
+            # wait till data buffer is available
             start_time = time.time()  # init delay counter.
-
-            while True:
+            while raw_buffer is None:
                 current_time = time.time()
-                data = self.ft_client.getData([start, stop])
-                
-                if data is not None:
-                    break
-                elif (current_time > start_time + timeout):
+                if (current_time > start_time + timeout):
                     raise StopIteration
-
                 time.sleep(0.1)
+                raw_buffer = self.ft_client.getData([start, stop])
 
-            # add some sleep time here with a timeout
+            raw_buffer = raw_buffer.transpose()
+            # To allow changes to data matrix
+            raw_buffer.flags.writeable = True
 
-            data = data.transpose()
-            data.flags.writeable = True  # To allow changes to data matrix
-
-            # to undo the calibration done in _process_raw_buffer
-            cals = numpy.zeros(self.info['nchan'])
-            for k in range(self.info['nchan']):
-                cals[k] = (self.info['chs'][k]['range']
-                           * self.info['chs'][k]['cal'])
-
-            self._cals = cals[:, None]
-            data[picks, :] = data[picks, :] / self._cals
-
-            epochs._process_raw_buffer(data)
-
-    def register_receive_callback(self, x):
-        """API boilerplate"""
-        pass
-
-    def start_receive_thread(self, x):
-        """API boilerplate"""
-        pass
-
-    def unregister_receive_callback(self, x):
-        """API boilerplate"""
-        pass
-
-    def _stop_receive_thread(self):
-        """API boilerplate"""
-        pass
+            yield raw_buffer
