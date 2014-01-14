@@ -144,7 +144,7 @@ def test_coreg_model_with_fsaverage():
 
     model.fit_scale_hsp_points()
     avg_point_distance_1param = np.mean(model.point_distance)
-    assert_less(avg_point_distance_1param, avg_point_distance)
+    assert_true(avg_point_distance_1param < avg_point_distance)
 
     desc, func, args, kwargs = model.get_scaling_job('test')
     assert_true(isinstance(desc, string_types))
