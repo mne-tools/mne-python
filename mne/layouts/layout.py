@@ -14,7 +14,6 @@ from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from ..fiff import FIFF, pick_types
 from ..utils import _clean_names
 from ..externals.six.moves import map
-from ..externals.six.moves import zip
 
 
 class Layout(object):
@@ -333,8 +332,12 @@ def find_layout(info=None, ch_type=None, chs=None):
     coil_types = set([ch['coil_type'] for ch in chs])
     channel_types = set([ch['kind'] for ch in chs])
 
-    has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
-    has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
+    has_vv_mag = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_MAG_T1,
+                                                FIFF.FIFFV_COIL_VV_MAG_T2,
+                                                FIFF.FIFFV_COIL_VV_MAG_T3]])
+    has_vv_grad = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
+                                                 FIFF.FIFFV_COIL_VV_PLANAR_T2,
+                                                 FIFF.FIFFV_COIL_VV_PLANAR_T3]])
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
