@@ -61,14 +61,14 @@ CHUNK_CTF_RES4 = 7
 CHUNK_NEUROMAG_FIF = 8
 
 # List for converting FieldTrip datatypes to Numpy datatypes
-numpyType = ['int8', 'uint8', 'uint16', 'uint32', 'uint64',
+numpy_type = ['int8', 'uint8', 'uint16', 'uint32', 'uint64',
              'int8', 'int16', 'int32', 'int64', 'float32', 'float64']
 # Corresponding word sizes
-wordSize = [1, 1, 2, 4, 8, 1, 2, 4, 8, 4, 8]
+word_size = [1, 1, 2, 4, 8, 1, 2, 4, 8, 4, 8]
 # FieldTrip data type as indexed by numpy dtype.num
 # this goes  0 => nothing, 1..4 => int8, uint8, int16, uint16, 7..10 =>
 # int32, uint32, int64, uint64  11..12 => float32, float64
-dataType = [-1, 5, 1, 6, 2, -1, -1, 7, 3, 8, 4, 9, 10]
+data_type = [-1, 5, 1, 6, 2, -1, -1, 7, 3, 8, 4, 9, 10]
 
 
 def serialize(A):
@@ -80,10 +80,10 @@ def serialize(A):
 
     if isinstance(A, numpy.ndarray):
         dt = A.dtype
-        if not(dt.isnative) or dt.num < 1 or dt.num >= len(dataType):
+        if not(dt.isnative) or dt.num < 1 or dt.num >= len(data_type):
             return (DATATYPE_UNKNOWN, None)
 
-        ft = dataType[dt.num]
+        ft = data_type[dt.num]
         if ft == -1:
             return (DATATYPE_UNKNOWN, None)
 
@@ -114,110 +114,28 @@ class Chunk:
 class Header:
     """Class for storing header information in the FieldTrip buffer format"""
     def __init__(self):
-        self.nChannels = 0
-        self.nSamples = 0
-        self.nEvents = 0
-        self.fSample = 0.0
-        self.dataType = 0
+        self.n_channels = 0
+        self.n_samples = 0
+        self.n_events = 0
+        self.f_sample = 0.0
+        self.data_type = 0
         self.chunks = {}
         self.labels = []
 
     def __str__(self):
-        return ('Channels.: %i\nSamples..: %i\nEvents...: %i'
-                '\nSampFreq.: %f\nDataType.: %s\n') % (self.nChannels,
-                                                       self.nSamples,
-                                                       self.nEvents,
-                                                       self.fSample,
-                                                       numpyType[self.dataType]
-                                                       )
-
-
-class Event:
-    """Class for storing events in the FieldTrip buffer format"""
-    def __init__(self, S=None):
-        if S is None:
-            self.type = ''
-            self.value = ''
-            self.sample = 0
-            self.offset = 0
-            self.duration = 0
-        else:
-            self.deserialize(S)
-
-    def __str__(self):
-        return ('Type.....: %s\nValue....: %s\nSample...: %i'
-                '\nOffset...: %i\nDuration.: %i\n') % (str(self.type),
-                                                       str(self.value),
-                                                       self.sample,
-                                                       self.offset,
-                                                       self.duration)
-
-    def deserialize(self, buf):
-        bufsize = len(buf)
-        if bufsize < 32:
-            return 0
-
-        (type_type, type_numel, value_type, value_numel, sample,
-         offset, duration, bsiz) = struct.unpack('IIIIIiiI', buf[0:32])
-
-        self.sample = sample
-        self.offset = offset
-        self.duration = duration
-
-        st = type_numel * wordSize[type_type]
-        sv = value_numel * wordSize[value_type]
-
-        if bsiz + 32 > bufsize or st + sv > bsiz:
-            raise IOError('Invalid event definition -- \
-                           does not fit in given buffer')
-
-        raw_type = buf[32:32 + st]
-        raw_value = buf[32 + st:32 + st + sv]
-
-        if type_type == 0:
-            self.type = raw_type
-        else:
-            self.type = numpy.ndarray((type_numel),
-                                      dtype=numpyType[type_type],
-                                      buffer=raw_type)
-
-        if value_type == 0:
-            self.value = raw_value
-        else:
-            self.value = numpy.ndarray((value_numel),
-                                       dtype=numpyType[value_type],
-                                       buffer=raw_value)
-
-        return bsiz + 32
-
-    def serialize(self):
-        """Returns the contents of this event as a string, ready to send over
-           the network, or None in case of conversion problems.
-        """
-        type_type, type_buf = serialize(self.type)
-        if type_type == DATATYPE_UNKNOWN:
-            return None
-        type_size = len(type_buf)
-        type_numel = type_size / wordSize[type_type]
-
-        value_type, value_buf = serialize(self.value)
-        if value_type == DATATYPE_UNKNOWN:
-            return None
-        value_size = len(value_buf)
-        value_numel = value_size / wordSize[value_type]
-
-        bufsize = type_size + value_size
-
-        S = struct.pack('IIIIIiiI', type_type, type_numel, value_type,
-                        value_numel, int(self.sample), int(self.offset),
-                        int(self.duration), bufsize)
-        return S + type_buf + value_buf
+        return ('Channels.: %i\n_samples..: %i\n_events...: %i'
+                '\n_sampFreq.: %f\n_dataType.: %s\n') % (self.n_channels,
+                                                         self.n_samples,
+                                                         self.n_events,
+                                                         self.f_sample,
+                                                         numpy_type[self.data_type]
+                                                         )
 
 
 class FtClient:
     """Class for managing a client connection to a FieldTrip buffer."""
     def __init__(self):
-        self.isConnected = False
+        self.is_connected = False
         self.sock = []
 
     def connect(self, hostname, port=1972):
@@ -226,18 +144,18 @@ class FtClient:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.connect((hostname, port))
         self.sock.setblocking(True)
-        self.isConnected = True
+        self.is_connected = True
 
     def disconnect(self):
         """disconnect() -- close a connection."""
-        if self.isConnected:
+        if self.is_connected:
             self.sock.close()
             self.sock = []
-            self.isConnected = False
+            self.is_connected = False
 
-    def sendRaw(self, request):
+    def send_raw(self, request):
         """Send all bytes of the string 'request' out to socket."""
-        if not(self.isConnected):
+        if not(self.is_connected):
             raise IOError('Not connected to FieldTrip buffer')
 
         N = len(request)
@@ -245,15 +163,15 @@ class FtClient:
         while nw < N:
             nw += self.sock.send(request[nw:])
 
-    def sendRequest(self, command, payload=None):
+    def send_request(self, command, payload=None):
         if payload is None:
             request = struct.pack('HHI', VERSION, command, 0)
         else:
             request = struct.pack('HHI', VERSION,
                                   command, len(payload)) + payload
-        self.sendRaw(request)
+        self.send_raw(request)
 
-    def receiveResponse(self, minBytes=0):
+    def receive_response(self, min_bytes=0):
         """Receive response from server on socket 's' and return it as
         (status,bufsize,payload).
         """
@@ -276,13 +194,13 @@ class FtClient:
             payload = None
         return (command, bufsize, payload)
 
-    def getHeader(self):
-        """getHeader() -- grabs header information from the buffer an returns
+    def get_header(self):
+        """get_header() -- grabs header information from the buffer an returns
         it as a Header object.
         """
 
-        self.sendRequest(GET_HDR)
-        (status, bufsize, payload) = self.receiveResponse()
+        self.send_request(GET_HDR)
+        (status, bufsize, payload) = self.receive_response()
 
         if status == GET_ERR:
             return None
@@ -301,11 +219,11 @@ class FtClient:
                                        payload[0:24])
 
         H = Header()
-        H.nChannels = nchans
-        H.nSamples = nsamp
-        H.nEvents = nevt
-        H.fSample = fsamp
-        H.dataType = dtype
+        H.n_channels = nchans
+        H.n_samples = nsamp
+        H.n_events = nevt
+        H.f_sample = fsamp
+        H.data_type = dtype
 
         if bfsiz > 0:
             offset = 24
@@ -321,51 +239,59 @@ class FtClient:
 
             if H.chunks.has_key(CHUNK_CHANNEL_NAMES):
                 L = H.chunks[CHUNK_CHANNEL_NAMES].split('\0')
-                numLab = len(L)
-                if numLab >= H.nChannels:
-                    H.labels = L[0:H.nChannels]
+                num_lab = len(L)
+                if num_lab >= H.n_channels:
+                    H.labels = L[0:H.n_channels]
 
         return H
 
-    def putHeader(self, nChannels, fSample, dataType,
-                  labels=None, chunks=None):
-        haveLabels = False
+    def put_header(self, n_channels, f_sample, data_type,
+                   labels=None, chunks=None):
+        have_labels = False
         extras = ''
         if not(labels is None):
-            serLabels = ''
+            ser_labels = ''
             try:
-                for n in range(0, nChannels):
-                    serLabels += labels[n] + '\0'
+                for n in range(0, n_channels):
+                    ser_labels += labels[n] + '\0'
             except:
                 raise ValueError('Channels names (labels), if given, must \
-                                  be a list of N=numChannels strings')
+                                  be a list of N=num_channels strings')
 
             extras = struct.pack('II', CHUNK_CHANNEL_NAMES,
-                                 len(serLabels)) + serLabels
-            haveLabels = True
+                                 len(ser_labels)) + ser_labels
+            have_labels = True
 
         if not(chunks is None):
             for chunk_type, chunk_data in chunks:
-                if haveLabels and chunk_type == CHUNK_CHANNEL_NAMES:
+                if have_labels and chunk_type == CHUNK_CHANNEL_NAMES:
                     # ignore channel names chunk in case we got labels
                     continue
                 extras += struct.pack('II', chunk_type,
                                       len(chunk_data)) + chunk_data
 
-        sizeChunks = len(extras)
+        size_chunks = len(extras)
 
-        hdef = struct.pack('IIIfII', nChannels,
-                           0, 0, fSample, dataType, sizeChunks)
+        hdef = struct.pack('IIIfII', n_channels,
+                           0, 0, f_sample, data_type, size_chunks)
         request = struct.pack('HHI', VERSION, PUT_HDR,
-                              sizeChunks + len(hdef)) + hdef + extras
-        self.sendRaw(request)
-        (status, bufsize, resp_buf) = self.receiveResponse()
+                              size_chunks + len(hdef)) + hdef + extras
+        self.send_raw(request)
+        (status, bufsize, resp_buf) = self.receive_response()
         if status != PUT_OK:
             raise IOError('Header could not be written')
 
-    def getData(self, index=None):
-        """
-        getData([indices]) -- retrieve data samples and return them as a
+    def get_data(self, index=None):
+        """Retrieves data samples
+
+        Parameters
+        ----------
+        index : 
+
+        Returns
+        -------
+
+        get_data([indices]) -- retrieve data samples and return them as a
         Numpy array, samples in rows(!). The 'indices' argument is optional,
         and if given, must be a tuple or list with inclusive, zero-based
         start/end indices.
@@ -377,9 +303,9 @@ class FtClient:
             indS = int(index[0])
             indE = int(index[1])
             request = struct.pack('HHIII', VERSION, GET_DAT, 8, indS, indE)
-        self.sendRaw(request)
+        self.send_raw(request)
 
-        (status, bufsize, payload) = self.receiveResponse()
+        (status, bufsize, payload) = self.receive_response()
         if status == GET_ERR:
             return None
 
@@ -393,74 +319,16 @@ class FtClient:
 
         (nchans, nsamp, datype, bfsiz) = struct.unpack('IIII', payload[0:16])
 
-        if bfsiz < bufsize - 16 or datype >= len(numpyType):
+        if bfsiz < bufsize - 16 or datype >= len(numpy_type):
             raise IOError('Invalid DATA packet received')
 
         raw = payload[16:bfsiz + 16]
-        D = numpy.ndarray((nsamp, nchans), dtype=numpyType[datype], buffer=raw)
+        D = numpy.ndarray((nsamp, nchans), dtype=numpy_type[datype], buffer=raw)
 
         return D
 
-    def getEvents(self, index=None):
-        """getEvents([indices]) -- retrieve events and return them as a list of
-           Event objects. The 'indices' argument is optional, and if given,
-           must be a tuple or list with inclusive, zero-based start/end
-           indices. The 'type' and 'value' fields of the event will be
-           converted to strings or Numpy arrays.
-        """
-
-        if index is None:
-            request = struct.pack('HHI', VERSION, GET_EVT, 0)
-        else:
-            indS = int(index[0])
-            indE = int(index[1])
-            request = struct.pack('HHIII', VERSION, GET_EVT, 8, indS, indE)
-        self.sendRaw(request)
-
-        (status, bufsize, resp_buf) = self.receiveResponse()
-        if status == GET_ERR:
-            return []
-
-        if status != GET_OK:
-            self.disconnect()
-            raise IOError('Bad response from buffer server - disconnecting')
-
-        offset = 0
-        E = []
-        while 1:
-            e = Event()
-            nextOffset = e.deserialize(resp_buf[offset:])
-            if nextOffset == 0:
-                break
-            E.append(e)
-            offset = offset + nextOffset
-
-        return E
-
-    def putEvents(self, E):
-        """putEvents(E) -- writes a single or multiple events, depending on
-           whether an 'Event' object, or a list of 'Event' objects is
-           given as an argument.
-        """
-        if isinstance(E, Event):
-            buf = E.serialize()
-        else:
-            buf = ''
-            num = 0
-            for e in E:
-                if not(isinstance(e, Event)):
-                    raise 'Element %i in given list is not an Event' % num
-                buf = buf + e.serialize()
-                num = num + 1
-
-        self.sendRequest(PUT_EVT, buf)
-        (status, bufsize, resp_buf) = self.receiveResponse()
-
-        if status != PUT_OK:
-            raise IOError('Events could not be written.')
-
-    def putData(self, D):
-        """putData(D) -- writes samples that must be given as a NUMPY array,
+    def put_data(self, D):
+        """put_data(D) -- writes samples that must be given as a NUMPY array,
            samples x channels. The type of the samples (D) and the number of
            channels must match the corresponding quantities in the FieldTrip
            buffer.
@@ -470,27 +338,27 @@ class FtClient:
             raise ValueError('Data must be given as a NUMPY array \
                              (samples x channels)')
 
-        nSamp = D.shape[0]
-        nChan = D.shape[1]
+        n_samp = D.shape[0]
+        n_chan = D.shape[1]
 
-        (dataType, dataBuf) = serialize(D)
+        (data_type, data_buf) = serialize(D)
 
-        dataBufSize = len(dataBuf)
+        data_bufSize = len(data_buf)
 
-        request = struct.pack('HHI', VERSION, PUT_DAT, 16 + dataBufSize)
-        dataDef = struct.pack('IIII', nChan, nSamp, dataType, dataBufSize)
-        self.sendRaw(request + dataDef + dataBuf)
+        request = struct.pack('HHI', VERSION, PUT_DAT, 16 + data_bufSize)
+        data_def = struct.pack('IIII', n_chan, n_samp, data_type, data_bufSize)
+        self.send_raw(request + data_def + data_buf)
 
-        (status, bufsize, resp_buf) = self.receiveResponse()
+        (status, bufsize, resp_buf) = self.receive_response()
         if status != PUT_OK:
             raise IOError('Samples could not be written.')
 
     def poll(self):
 
         request = struct.pack('HHIIII', VERSION, WAIT_DAT, 12, 0, 0, 0)
-        self.sendRaw(request)
+        self.send_raw(request)
 
-        (status, bufsize, resp_buf) = self.receiveResponse()
+        (status, bufsize, resp_buf) = self.receive_response()
 
         if status != WAIT_OK or bufsize < 8:
             raise IOError('Polling failed.')
@@ -500,9 +368,9 @@ class FtClient:
     def wait(self, nsamples, nevents, timeout):
         request = struct.pack('HHIIII', VERSION, WAIT_DAT, 12,
                               int(nsamples), int(nevents), int(timeout))
-        self.sendRaw(request)
+        self.send_raw(request)
 
-        (status, bufsize, resp_buf) = self.receiveResponse()
+        (status, bufsize, resp_buf) = self.receive_response()
 
         if status != WAIT_OK or bufsize < 8:
             raise IOError('Wait request failed.')
@@ -527,7 +395,7 @@ class MneFtClient(object):
                  timeout=numpy.inf, verbose=None):
 
         self.raw = raw
-        self.ft_header = ft_client.getHeader()
+        self.ft_header = ft_client.get_header()
         self.verbose = verbose
 
         if self.ft_header is None:
@@ -535,8 +403,8 @@ class MneFtClient(object):
 
         self.ft_client = copy.deepcopy(ft_client)
 
-        self.raw.info['nchan'] = self.ft_header.nChannels
-        self.raw.info['sfreq'] = self.ft_header.fSample
+        self.raw.info['nchan'] = self.ft_header.n_channels
+        self.raw.info['sfreq'] = self.ft_header.f_sample
         self.raw.info['ch_names'] = self.ft_header.labels
         self.ch_names = self.ft_header.labels
 
@@ -628,7 +496,7 @@ class MneFtClient(object):
                               self.buffer_size)))
 
         for ii, (start, stop) in enumerate(iter_times):
-            raw_buffer = self.ft_client.getData([start, stop])
+            raw_buffer = self.ft_client.get_data([start, stop])
 
             # wait till data buffer is available
             start_time = time.time()  # init delay counter.
@@ -637,7 +505,7 @@ class MneFtClient(object):
                 if (current_time > start_time + timeout):
                     raise StopIteration
                 time.sleep(0.1)
-                raw_buffer = self.ft_client.getData([start, stop])
+                raw_buffer = self.ft_client.get_data([start, stop])
 
             raw_buffer = raw_buffer.transpose()
             # To allow changes to data matrix
