@@ -47,6 +47,9 @@ class RawBrainVision(Raw):
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
         correspond to a name in elp_names.
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -413,6 +416,9 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
         correspond to a name in elp_names.
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the vhdr file.
 
     Returns
     -------
@@ -660,6 +666,9 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
         correspond to a name in elp_names.
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
