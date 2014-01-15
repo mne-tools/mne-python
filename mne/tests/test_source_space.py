@@ -143,7 +143,8 @@ def test_discrete_source_space():
         _compare_source_spaces(src_c, src_c2)
 
         # now do MRI
-        setup_volume_source_space('sample', pos=pos_dict, mri=fname_mri)
+        assert_raises(ValueError, setup_volume_source_space, 'sample',
+                      pos=pos_dict, mri=fname_mri)
     finally:
         if op.isfile(temp_name):
             os.remove(temp_name)
