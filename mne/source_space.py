@@ -973,7 +973,8 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         with the spacing given by `pos` in mm, generating a volume source
         space. If dict, pos['rr'] and pos['nn'] will be used as the source
         space locations (in meters) and normals, respectively, creating a
-        discrete source space.
+        discrete source space. NOTE: For a discrete source space (`pos` is
+        a dict), `mri` must be None.
     mri : str | None
         The filename of an MRI volume (mgh or mgz) to create the
         interpolation matrix over. Source estimates obtained in the
@@ -1063,6 +1064,10 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         if not all([key in pos for key in ['rr', 'nn']]):
             raise KeyError('pos, if dict, must contain "rr" and "nn"')
         pos_extra = 'dict()'
+        if mri is not None:
+            raise ValueError('Cannot create interpolation matrix for '
+                             'discrete source space, mri must be None if '
+                             'pos is a dict')
     else:  # pos should be float-like
         try:
             pos = float(pos)
@@ -1348,7 +1353,6 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
     ras = np.eye(3)
     sp['src_mri_t'] = _make_voxel_ras_trans(r0, ras, voxel_size)
     sp['vol_dims'] = maxn - minn + 1
-    sp['voxel_dims'] = voxel_size
     return sp
 
 
