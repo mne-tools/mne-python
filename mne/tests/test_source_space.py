@@ -111,6 +111,7 @@ def test_add_source_space_distances():
 
 @sample.requires_sample_data
 @requires_mne
+@requires_nibabel(vox2ras_tkr=True)
 def test_discrete_source_space():
     """Test setting up (and reading/writing) discrete source spaces
     """
