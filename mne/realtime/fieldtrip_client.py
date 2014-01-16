@@ -12,9 +12,8 @@
 
 import socket
 import struct
-import numpy
+import numpy as np
 import copy
-import time
 import threading
 
 VERSION = 1
@@ -62,7 +61,7 @@ CHUNK_NEUROMAG_FIF = 8
 
 # List for converting FieldTrip datatypes to Numpy datatypes
 numpy_type = ['int8', 'uint8', 'uint16', 'uint32', 'uint64',
-             'int8', 'int16', 'int32', 'int64', 'float32', 'float64']
+              'int8', 'int16', 'int32', 'int64', 'float32', 'float64']
 # Corresponding word sizes
 word_size = [1, 1, 2, 4, 8, 1, 2, 4, 8, 4, 8]
 # FieldTrip data type as indexed by numpy dtype.num
@@ -78,7 +77,7 @@ def serialize(A):
     if isinstance(A, str):
         return (0, A)
 
-    if isinstance(A, numpy.ndarray):
+    if isinstance(A, np.ndarray):
         dt = A.dtype
         if not(dt.isnative) or dt.num < 1 or dt.num >= len(data_type):
             return (DATATYPE_UNKNOWN, None)
@@ -132,7 +131,7 @@ class Header:
                                                          )
 
 
-class FtClient:
+class FtClient(object):
     """Class for managing a client connection to a FieldTrip buffer."""
     def __init__(self):
         self.is_connected = False
@@ -237,7 +236,7 @@ class FtClient:
                 H.chunks[chunk_type] = payload[offset:offset + chunk_len]
                 offset += chunk_len
 
-            if H.chunks.has_key(CHUNK_CHANNEL_NAMES):
+            if CHUNK_CHANNEL_NAMES in H.chunks:
                 L = H.chunks[CHUNK_CHANNEL_NAMES].split('\0')
                 num_lab = len(L)
                 if num_lab >= H.n_channels:
@@ -245,56 +244,18 @@ class FtClient:
 
         return H
 
-    def put_header(self, n_channels, f_sample, data_type,
-                   labels=None, chunks=None):
-        have_labels = False
-        extras = ''
-        if not(labels is None):
-            ser_labels = ''
-            try:
-                for n in range(0, n_channels):
-                    ser_labels += labels[n] + '\0'
-            except:
-                raise ValueError('Channels names (labels), if given, must \
-                                  be a list of N=num_channels strings')
-
-            extras = struct.pack('II', CHUNK_CHANNEL_NAMES,
-                                 len(ser_labels)) + ser_labels
-            have_labels = True
-
-        if not(chunks is None):
-            for chunk_type, chunk_data in chunks:
-                if have_labels and chunk_type == CHUNK_CHANNEL_NAMES:
-                    # ignore channel names chunk in case we got labels
-                    continue
-                extras += struct.pack('II', chunk_type,
-                                      len(chunk_data)) + chunk_data
-
-        size_chunks = len(extras)
-
-        hdef = struct.pack('IIIfII', n_channels,
-                           0, 0, f_sample, data_type, size_chunks)
-        request = struct.pack('HHI', VERSION, PUT_HDR,
-                              size_chunks + len(hdef)) + hdef + extras
-        self.send_raw(request)
-        (status, bufsize, resp_buf) = self.receive_response()
-        if status != PUT_OK:
-            raise IOError('Header could not be written')
-
     def get_data(self, index=None):
-        """Retrieves data samples
+        """Retrieves data samples.
 
         Parameters
         ----------
-        index : 
+        index : None(default) or tuple of length 2
+            The start and stop index of the samples to be retreived.
 
         Returns
         -------
-
-        get_data([indices]) -- retrieve data samples and return them as a
-        Numpy array, samples in rows(!). The 'indices' argument is optional,
-        and if given, must be a tuple or list with inclusive, zero-based
-        start/end indices.
+        data : array of float, shape=(nchan, n_times)
+            The buffer data
         """
 
         if index is None:
@@ -323,35 +284,13 @@ class FtClient:
             raise IOError('Invalid DATA packet received')
 
         raw = payload[16:bfsiz + 16]
-        D = numpy.ndarray((nsamp, nchans), dtype=numpy_type[datype], buffer=raw)
+        data = np.ndarray((nsamp, nchans), dtype=numpy_type[datype],
+                          buffer=raw).transpose()
 
-        return D
+        # To allow changes to data matrix
+        data.flags.writeable = True
 
-    def put_data(self, D):
-        """put_data(D) -- writes samples that must be given as a NUMPY array,
-           samples x channels. The type of the samples (D) and the number of
-           channels must match the corresponding quantities in the FieldTrip
-           buffer.
-        """
-
-        if not(isinstance(D, numpy.ndarray)) or len(D.shape) != 2:
-            raise ValueError('Data must be given as a NUMPY array \
-                             (samples x channels)')
-
-        n_samp = D.shape[0]
-        n_chan = D.shape[1]
-
-        (data_type, data_buf) = serialize(D)
-
-        data_bufSize = len(data_buf)
-
-        request = struct.pack('HHI', VERSION, PUT_DAT, 16 + data_bufSize)
-        data_def = struct.pack('IIII', n_chan, n_samp, data_type, data_bufSize)
-        self.send_raw(request + data_def + data_buf)
-
-        (status, bufsize, resp_buf) = self.receive_response()
-        if status != PUT_OK:
-            raise IOError('Samples could not be written.')
+        return data
 
     def poll(self):
 
@@ -365,9 +304,27 @@ class FtClient:
 
         return struct.unpack('II', resp_buf[0:8])
 
-    def wait(self, nsamples, nevents, timeout):
+    def wait(self, n_samples, n_events, timeout):
+        """Makes client wait for newly arrived samples or events.
+
+        Parameters
+        ----------
+        n_samples : int
+            Maximum number of samples after which server responds.
+        n_events : int
+            Maximum number of events after which server responds.
+        timeout : int
+            Maximum time (in ms) after which server responds.
+
+        Returns
+        -------
+        samples : int
+            Number of samples when server responds.
+        events : int
+            Number of events when server responds.
+        """
         request = struct.pack('HHIIII', VERSION, WAIT_DAT, 12,
-                              int(nsamples), int(nevents), int(timeout))
+                              int(n_samples), int(n_events), int(timeout))
         self.send_raw(request)
 
         (status, bufsize, resp_buf) = self.receive_response()
@@ -379,7 +336,7 @@ class FtClient:
 
 
 def _buffer_recv_worker(ft_client, timeout):
-    """Worker thread that constantly receives buffers"""
+    """Worker thread that constantly receives buffers."""
     try:
         for raw_buffer in ft_client.raw_buffers(timeout):
             ft_client._push_raw_buffer(raw_buffer)
@@ -392,7 +349,7 @@ def _buffer_recv_worker(ft_client, timeout):
 # The following additions make the Fieldtrip client MNE-Python compatible
 class MneFtClient(object):
     def __init__(self, ft_client, raw, tmin, tmax, buffer_size,
-                 timeout=numpy.inf, verbose=None):
+                 timeout=np.inf, verbose=None):
 
         self.raw = raw
         self.ft_header = ft_client.get_header()
@@ -430,7 +387,7 @@ class MneFtClient(object):
         return self.info
 
     def register_receive_callback(self, callback):
-        """Register a raw buffer receive callback
+        """Register a raw buffer receive callback.
 
         Parameters
         ----------
@@ -442,18 +399,18 @@ class MneFtClient(object):
             self._recv_callbacks.append(callback)
 
     def unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback
+        """Unregister a raw buffer receive callback.
         """
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)
 
     def _push_raw_buffer(self, raw_buffer):
-        """Push raw buffer to clients using callbacks"""
+        """Push raw buffer to clients using callbacks."""
         for callback in self._recv_callbacks:
             callback(raw_buffer)
 
     def start_receive_thread(self, nchan):
-        """Start the receive thread
+        """Start the receive thread.
 
         If the measurement has not been started, it will also be started.
 
@@ -496,19 +453,12 @@ class MneFtClient(object):
                               self.buffer_size)))
 
         for ii, (start, stop) in enumerate(iter_times):
+
+            # wait for currect number of samples to be available
+            self.ft_client.wait(stop, np.iinfo(np.uint32).max,
+                                np.iinfo(np.uint32).max)
+
+            # get the samples
             raw_buffer = self.ft_client.get_data([start, stop])
-
-            # wait till data buffer is available
-            start_time = time.time()  # init delay counter.
-            while raw_buffer is None:
-                current_time = time.time()
-                if (current_time > start_time + timeout):
-                    raise StopIteration
-                time.sleep(0.1)
-                raw_buffer = self.ft_client.get_data([start, stop])
-
-            raw_buffer = raw_buffer.transpose()
-            # To allow changes to data matrix
-            raw_buffer.flags.writeable = True
 
             yield raw_buffer
