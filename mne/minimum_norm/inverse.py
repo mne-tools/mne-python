@@ -766,7 +766,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         sol *= noise_norm
 
     tstep = 1.0 / evoked.info['sfreq']
-    tmin = float(evoked.first) / evoked.info['sfreq']
+    tmin = float(evoked.times[0])
     vertno = _get_vertno(inv['src'])
     subject = _subject_from_inverse(inverse_operator)
 
