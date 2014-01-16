@@ -32,6 +32,9 @@ Changelog
    - Add `equalize_channnels` function to set common channels for a list of
    Raw, Epochs, or Evoked objects by `Denis Engemann`_
 
+   - Bug fix -- incorrect `times` attribute when stc was computed using `apply_inverse` after decimation at epochs stage for certain, arbitrary sample frequencies by `Denis Engemann`_
+
+
 API
 ~~~
 
