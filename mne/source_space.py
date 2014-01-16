@@ -1023,6 +1023,10 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     if mri is not None:
         if not op.isfile(mri):
             raise IOError('mri file "%s" not found' % mri)
+        if pos is not None:
+            raise ValueError('Cannot create interpolation matrix for '
+                             'discrete source space, mri must be None if '
+                             'pos is a dict')
         if not has_nibabel(vox2ras_tkr=True):
             raise RuntimeError('nibabel with "vox2ras_tkr" property is '
                                'required to process mri data, consider '
@@ -1064,10 +1068,6 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         if not all([key in pos for key in ['rr', 'nn']]):
             raise KeyError('pos, if dict, must contain "rr" and "nn"')
         pos_extra = 'dict()'
-        if mri is not None:
-            raise ValueError('Cannot create interpolation matrix for '
-                             'discrete source space, mri must be None if '
-                             'pos is a dict')
     else:  # pos should be float-like
         try:
             pos = float(pos)
