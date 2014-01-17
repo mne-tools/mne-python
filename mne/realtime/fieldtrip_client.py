@@ -93,7 +93,6 @@ class FtClient(object):
     """Class for managing a client connection to a FieldTrip buffer."""
     def __init__(self):
         self.is_connected = False
-        self.sock = []
 
     def connect(self, host, port=1972):
         """Connect client to Fieldtrip buffer.
@@ -116,7 +115,6 @@ class FtClient(object):
 
         if self.is_connected:
             self.sock.close()
-            self.sock = []
             self.is_connected = False
 
     def send_raw(self, request):
@@ -342,7 +340,7 @@ class FieldTripClient(object):
     host : str
         Hostname (or IP address) of the host where Fieldtrip buffer is running.
     port : int
-        Port to use for the command connection.
+        Port to use for the connection.
     tmin : float
         Time instant to start receiving buffers.
     tmax : float
@@ -354,7 +352,6 @@ class FieldTripClient(object):
     """
     def __init__(self, raw, host='localhost', port=1972, tmin=0,
                  tmax=np.inf, buffer_size=1000, verbose=None):
-
         self.raw = raw
         self.verbose = verbose
         self.info = copy.deepcopy(self.raw.info)
@@ -370,7 +367,6 @@ class FieldTripClient(object):
         self._recv_callbacks = list()
 
     def __enter__(self):
-
         # instantiate Fieldtrip client and connect
         self.ft_client = FtClient()
         self.ft_client.connect(self.host, self.port)
@@ -397,7 +393,6 @@ class FieldTripClient(object):
         return self
 
     def __exit__(self, type, value, traceback):
-
         self.ft_client.disconnect()
 
     def get_measurement_info(self):
@@ -423,8 +418,7 @@ class FieldTripClient(object):
             self._recv_callbacks.append(callback)
 
     def unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback.
-        """
+        """Unregister a raw buffer receive callback."""
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)
 

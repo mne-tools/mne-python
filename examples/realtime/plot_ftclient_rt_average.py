@@ -7,7 +7,7 @@ This example demonstrates how to connect the MNE real-time
 system to the Fieldtrip buffer using FieldTripClient class.
 
 Since the Fieldtrip buffer does not contain all the
-meta-information required by the MNE real-time processing
+measurement information required by the MNE real-time processing
 pipeline, a raw object must be provided to instantiate MneFtClient.
 Together with RtEpochs, this can be used to compute evoked
 responses using moving averages.
@@ -25,7 +25,7 @@ from mne.realtime import FieldTripClient, RtEpochs
 
 import matplotlib.pyplot as plt
 
-# file containing meta-information
+# file containing measurement information
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.fiff.Raw(raw_fname, preload=False)
@@ -38,7 +38,8 @@ picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # 'with' statement is required for a clean exit
-with FieldTripClient(raw=raw, host='localhost', port=1972) as rt_client:
+with FieldTripClient(raw=raw, host='localhost', port=1972,
+                     tmax=150) as rt_client:
 
     # create the real-time epochs object
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
