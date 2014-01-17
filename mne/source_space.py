@@ -1023,7 +1023,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     if mri is not None:
         if not op.isfile(mri):
             raise IOError('mri file "%s" not found' % mri)
-        if pos is not None:
+        if isinstance(pos, dict):
             raise ValueError('Cannot create interpolation matrix for '
                              'discrete source space, mri must be None if '
                              'pos is a dict')
