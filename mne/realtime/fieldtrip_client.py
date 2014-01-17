@@ -12,26 +12,17 @@
 
 import socket
 import struct
-import numpy as np
 import copy
 import threading
 
+import numpy as np
+
 VERSION = 1
-PUT_HDR = 0x101
-PUT_DAT = 0x102
-PUT_EVT = 0x103
-PUT_OK = 0x104
-PUT_ERR = 0x105
 GET_HDR = 0x201
 GET_DAT = 0x202
 GET_EVT = 0x203
 GET_OK = 0x204
 GET_ERR = 0x205
-FLUSH_HDR = 0x301
-FLUSH_DAT = 0x302
-FLUSH_EVT = 0x303
-FLUSH_OK = 0x304
-FLUSH_ERR = 0x305
 WAIT_DAT = 0x402
 WAIT_OK = 0x404
 WAIT_ERR = 0x405
@@ -70,39 +61,6 @@ word_size = [1, 1, 2, 4, 8, 1, 2, 4, 8, 4, 8]
 data_type = [-1, 5, 1, 6, 2, -1, -1, 7, 3, 8, 4, 9, 10]
 
 
-def serialize(A):
-    """Returns Fieldtrip data type and string representation of the given
-    object, if possible.
-    """
-    if isinstance(A, str):
-        return (0, A)
-
-    if isinstance(A, np.ndarray):
-        dt = A.dtype
-        if not(dt.isnative) or dt.num < 1 or dt.num >= len(data_type):
-            return (DATATYPE_UNKNOWN, None)
-
-        ft = data_type[dt.num]
-        if ft == -1:
-            return (DATATYPE_UNKNOWN, None)
-
-        if A.flags['C_CONTIGUOUS']:
-            # great, just use the array's buffer interface
-            return (ft, str(A.data))
-
-        # otherwise, we need a copy to C order
-        AC = A.copy('C')
-        return (ft, str(AC.data))
-
-    if isinstance(A, int):
-        return (DATATYPE_INT32, struct.pack('i', A))
-
-    if isinstance(A, float):
-        return (DATATYPE_FLOAT64, struct.pack('d', A))
-
-    return (DATATYPE_UNKNOWN, None)
-
-
 class Chunk:
     def __init__(self):
         self.type = 0
@@ -111,7 +69,7 @@ class Chunk:
 
 
 class Header:
-    """Class for storing header information in the FieldTrip buffer format"""
+    """Class for storing header information in the FieldTrip buffer format."""
     def __init__(self):
         self.n_channels = 0
         self.n_samples = 0
@@ -137,23 +95,39 @@ class FtClient(object):
         self.is_connected = False
         self.sock = []
 
-    def connect(self, hostname, port=1972):
-        """connect(hostname [, port]) -- make a connection, default port
-        is 1972."""
+    def connect(self, host, port=1972):
+        """Connect client to Fieldtrip buffer.
+
+        Parameters
+        ----------
+        host : str
+            Hostname (or IP address) of the host where Fieldtrip buffer is
+            running.
+        port : int
+            Port to use for the command connection.
+        """
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect((hostname, port))
+        self.sock.connect((host, port))
         self.sock.setblocking(True)
         self.is_connected = True
 
     def disconnect(self):
-        """disconnect() -- close a connection."""
+        """Close connection."""
+
         if self.is_connected:
             self.sock.close()
             self.sock = []
             self.is_connected = False
 
     def send_raw(self, request):
-        """Send all bytes of the string 'request' out to socket."""
+        """Send request to Fieldtrip buffer.
+
+        Parameters
+        ----------
+        request : str
+            The request sent to the server.
+        """
+
         if not(self.is_connected):
             raise IOError('Not connected to FieldTrip buffer')
 
@@ -163,6 +137,15 @@ class FtClient(object):
             nw += self.sock.send(request[nw:])
 
     def send_request(self, command, payload=None):
+        """Send request to Fieldtrip buffer.
+
+        Parameters
+        ----------
+        command : int
+            The command to the Fieldtrip buffer (e.g. GET_HDR).
+        payload : str
+            Message payload to server.
+        """
         if payload is None:
             request = struct.pack('HHI', VERSION, command, 0)
         else:
@@ -170,16 +153,25 @@ class FtClient(object):
                                   command, len(payload)) + payload
         self.send_raw(request)
 
-    def receive_response(self, min_bytes=0):
-        """Receive response from server on socket 's' and return it as
-        (status,bufsize,payload).
+    def receive_response(self):
+        """Receive response from server.
+
+        Returns
+        -------
+        status : int
+            The status of the response (e.g. GET_OK, GET_ERR).
+        buf_size : int
+            Number of bytes of additional information attached
+            to response.
+        payload : str
+            Message payload received from server.
         """
 
         resp_hdr = self.sock.recv(8)
         while len(resp_hdr) < 8:
             resp_hdr += self.sock.recv(8 - len(resp_hdr))
 
-        (version, command, bufsize) = struct.unpack('HHI', resp_hdr)
+        version, command, bufsize = struct.unpack('HHI', resp_hdr)
 
         if version != VERSION:
             self.disconnect()
@@ -191,15 +183,19 @@ class FtClient(object):
                 payload += self.sock.recv(bufsize - len(payload))
         else:
             payload = None
-        return (command, bufsize, payload)
+        return command, bufsize, payload
 
     def get_header(self):
-        """get_header() -- grabs header information from the buffer an returns
-        it as a Header object.
+        """Get header information from buffer.
+
+        Returns
+        -------
+        header : Header object
+            An instance of Header.
         """
 
         self.send_request(GET_HDR)
-        (status, bufsize, payload) = self.receive_response()
+        status, bufsize, payload = self.receive_response()
 
         if status == GET_ERR:
             return None
@@ -217,12 +213,12 @@ class FtClient(object):
          dtype, bfsiz) = struct.unpack('IIIfII',
                                        payload[0:24])
 
-        H = Header()
-        H.n_channels = nchans
-        H.n_samples = nsamp
-        H.n_events = nevt
-        H.f_sample = fsamp
-        H.data_type = dtype
+        header = Header()
+        header.n_channels = nchans
+        header.n_samples = nsamp
+        header.n_events = nevt
+        header.f_sample = fsamp
+        header.data_type = dtype
 
         if bfsiz > 0:
             offset = 24
@@ -233,16 +229,16 @@ class FtClient(object):
                 offset += 8
                 if offset + chunk_len < bufsize:
                     break
-                H.chunks[chunk_type] = payload[offset:offset + chunk_len]
+                header.chunks[chunk_type] = payload[offset:offset + chunk_len]
                 offset += chunk_len
 
-            if CHUNK_CHANNEL_NAMES in H.chunks:
-                L = H.chunks[CHUNK_CHANNEL_NAMES].split('\0')
+            if CHUNK_CHANNEL_NAMES in header.chunks:
+                L = header.chunks[CHUNK_CHANNEL_NAMES].split('\0')
                 num_lab = len(L)
-                if num_lab >= H.n_channels:
-                    H.labels = L[0:H.n_channels]
+                if num_lab >= header.n_channels:
+                    header.labels = L[0:header.n_channels]
 
-        return H
+        return header
 
     def get_data(self, index=None):
         """Retrieves data samples.
@@ -255,18 +251,19 @@ class FtClient(object):
         Returns
         -------
         data : array of float, shape=(nchan, n_times)
-            The buffer data
+            The buffer data.
         """
 
         if index is None:
             request = struct.pack('HHI', VERSION, GET_DAT, 0)
         else:
-            indS = int(index[0])
-            indE = int(index[1])
-            request = struct.pack('HHIII', VERSION, GET_DAT, 8, indS, indE)
+            start_idx = int(index[0])
+            end_idx = int(index[1])
+            request = struct.pack('HHIII', VERSION, GET_DAT, 8, start_idx,
+                                  end_idx)
         self.send_raw(request)
 
-        (status, bufsize, payload) = self.receive_response()
+        status, bufsize, payload = self.receive_response()
         if status == GET_ERR:
             return None
 
@@ -278,7 +275,7 @@ class FtClient(object):
             self.disconnect()
             raise IOError('Invalid DATA packet received (too few bytes)')
 
-        (nchans, nsamp, datype, bfsiz) = struct.unpack('IIII', payload[0:16])
+        nchans, nsamp, datype, bfsiz = struct.unpack('IIII', payload[0:16])
 
         if bfsiz < bufsize - 16 or datype >= len(numpy_type):
             raise IOError('Invalid DATA packet received')
@@ -291,18 +288,6 @@ class FtClient(object):
         data.flags.writeable = True
 
         return data
-
-    def poll(self):
-
-        request = struct.pack('HHIIII', VERSION, WAIT_DAT, 12, 0, 0, 0)
-        self.send_raw(request)
-
-        (status, bufsize, resp_buf) = self.receive_response()
-
-        if status != WAIT_OK or bufsize < 8:
-            raise IOError('Polling failed.')
-
-        return struct.unpack('II', resp_buf[0:8])
 
     def wait(self, n_samples, n_events, timeout):
         """Makes client wait for newly arrived samples or events.
@@ -327,7 +312,7 @@ class FtClient(object):
                               int(n_samples), int(n_events), int(timeout))
         self.send_raw(request)
 
-        (status, bufsize, resp_buf) = self.receive_response()
+        status, bufsize, resp_buf = self.receive_response()
 
         if status != WAIT_OK or bufsize < 8:
             raise IOError('Wait request failed.')
@@ -335,10 +320,10 @@ class FtClient(object):
         return struct.unpack('II', resp_buf[0:8])
 
 
-def _buffer_recv_worker(ft_client, timeout):
+def _buffer_recv_worker(ft_client):
     """Worker thread that constantly receives buffers."""
     try:
-        for raw_buffer in ft_client.raw_buffers(timeout):
+        for raw_buffer in ft_client.raw_buffers():
             ft_client._push_raw_buffer(raw_buffer)
     except RuntimeError as err:
         # something is wrong, the server stopped (or something)
@@ -347,34 +332,73 @@ def _buffer_recv_worker(ft_client, timeout):
 
 
 # The following additions make the Fieldtrip client MNE-Python compatible
-class MneFtClient(object):
-    def __init__(self, ft_client, raw, tmin, tmax, buffer_size,
-                 timeout=np.inf, verbose=None):
+class FieldTripClient(object):
+    """ Realtime FieldTrip client
+
+    Parameters
+    ----------
+    raw : Raw object
+        An instance of Raw.
+    host : str
+        Hostname (or IP address) of the host where Fieldtrip buffer is running.
+    port : int
+        Port to use for the command connection.
+    tmin : float
+        Time instant to start receiving buffers.
+    tmax : float
+        Time instant to stop receiving buffers.
+    buffer_size : int
+        Size of each buffer in terms of number of samples.
+    verbose : bool, str, int, or None
+        Log verbosity see mne.verbose.
+    """
+    def __init__(self, raw, host='localhost', port=1972, tmin=0,
+                 tmax=np.inf, buffer_size=1000, verbose=None):
 
         self.raw = raw
-        self.ft_header = ft_client.get_header()
         self.verbose = verbose
+        self.info = copy.deepcopy(self.raw.info)
+
+        self.tmin = tmin
+        self.tmax = tmax
+        self.buffer_size = buffer_size
+
+        self.host = host
+        self.port = port
+
+        self._recv_thread = None
+        self._recv_callbacks = list()
+
+    def __enter__(self):
+
+        # instantiate Fieldtrip client and connect
+        self.ft_client = FtClient()
+        self.ft_client.connect(self.host, self.port)
+
+        self.ft_header = self.ft_client.get_header()
 
         if self.ft_header is None:
             raise RuntimeError('Failed to retrieve Fieldtrip header!')
 
-        self.ft_client = copy.deepcopy(ft_client)
-
+        # modify info attributes according to the fieldtrip header
         self.raw.info['nchan'] = self.ft_header.n_channels
         self.raw.info['sfreq'] = self.ft_header.f_sample
         self.raw.info['ch_names'] = self.ft_header.labels
         self.ch_names = self.ft_header.labels
 
-        self.info = copy.deepcopy(self.raw.info)
-
+        # find start and end samples
         sfreq = self.raw.info['sfreq']
-        self.tmin_samp = int(round(sfreq * tmin))
-        self.tmax_samp = int(round(sfreq * tmax))
-        self.buffer_size = buffer_size
-        self.timeout = timeout
+        self.tmin_samp = int(round(sfreq * self.tmin))
+        if self.tmax != np.inf:
+            self.tmax_samp = int(round(sfreq * self.tmax))
+        else:
+            self.tmax_samp = np.iinfo(np.uint32).max
 
-        self._recv_thread = None
-        self._recv_callbacks = list()
+        return self
+
+    def __exit__(self, type, value, traceback):
+
+        self.ft_client.disconnect()
 
     def get_measurement_info(self):
         """Returns the measurement info.
@@ -423,7 +447,7 @@ class MneFtClient(object):
         if self._recv_thread is None:
 
             self._recv_thread = threading.Thread(target=_buffer_recv_worker,
-                                                 args=(self, self.timeout))
+                                                 args=(self, ))
             self._recv_thread.start()
 
     def stop_receive_thread(self, nchan, stop_measurement=False):
@@ -438,7 +462,7 @@ class MneFtClient(object):
             self._recv_thread.stop()
             self._recv_thread = None
 
-    def raw_buffers(self, timeout):
+    def raw_buffers(self):
         """Return an iterator over raw buffers
 
         Returns

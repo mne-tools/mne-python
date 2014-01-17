@@ -10,5 +10,5 @@
 from .client import RtClient
 from .epochs import RtEpochs
 from .mockclient import MockRtClient
-from .fieldtrip_client import FtClient, MneFtClient
+from .fieldtrip_client import FieldTripClient
 from .stim_server_client import StimServer, StimClient
