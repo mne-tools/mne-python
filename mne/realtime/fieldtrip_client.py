@@ -166,14 +166,19 @@ class FtClient(object):
         """
 
         resp_hdr = self.sock.recv(8)
-        while len(resp_hdr) < 8:
-            resp_hdr += self.sock.recv(8 - len(resp_hdr))
+
+        try:
+            while len(resp_hdr) < 8:
+                resp_hdr += self.sock.recv(8 - len(resp_hdr))
+        except Exception:
+            self.disconnect()
+            raise IOError('Bad response from buffer server ... disconnecting')
 
         version, command, bufsize = struct.unpack('HHI', resp_hdr)
 
         if version != VERSION:
             self.disconnect()
-            raise IOError('Bad response from buffer server - disconnecting')
+            raise IOError('Bad response from buffer server ... disconnecting')
 
         if bufsize > 0:
             payload = self.sock.recv(bufsize)
@@ -442,6 +447,7 @@ class FieldTripClient(object):
 
             self._recv_thread = threading.Thread(target=_buffer_recv_worker,
                                                  args=(self, ))
+            self._recv_thread.daemon = True
             self._recv_thread.start()
 
     def stop_receive_thread(self, nchan, stop_measurement=False):
