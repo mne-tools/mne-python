@@ -777,31 +777,40 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     return subjects_dir
 
 
-def _get_extra_data_path():
+def _get_extra_data_path(home_dir=None):
     """Get path to extra data (config, tables, etc.)"""
-    # this has been checked on OSX64, Linux64, and Win32
-    if 'nt' == os.name.lower():
-        val = os.getenv('APPDATA')
-    else:
-        # This is a more robust way of getting the user's home folder on Linux
-        # platforms (not sure about OSX, Unix or BSD) than checking the HOME
-        # environment variable.  If the user is running some sort of script
-        # that isn't launched via the command line (e.g. a script launched via
-        # Upstart) then the HOME environment variable will not be set.
-        val = os.path.expanduser('~')
+    if home_dir is None:
+        # this has been checked on OSX64, Linux64, and Win32
+        if 'nt' == os.name.lower():
+            home_dir = os.getenv('APPDATA')
+        else:
+            # This is a more robust way of getting the user's home folder on
+            # Linux platforms (not sure about OSX, Unix or BSD) than checking
+            # the HOME environment variable. If the user is running some sort
+            # of script that isn't launched via the command line (e.g. a script
+            # launched via Upstart) then the HOME environment variable will
+            # not be set.
+            home_dir = os.path.expanduser('~')
 
-    if val is None:
-        raise ValueError('mne-python config file path could '
-                         'not be determined, please report this '
-                         'error to mne-python developers')
-    path = op.join(val, '.mne')
+        if home_dir is None:
+            raise ValueError('mne-python config file path could '
+                             'not be determined, please report this '
+                             'error to mne-python developers')
+
+    path = op.join(home_dir, '.mne')
     if not op.isdir(path):
         os.mkdir(path)
     return path
 
 
-def get_config_path():
+def get_config_path(home_dir=None):
     """Get path to standard mne-python config file
+
+    Parameters
+    ----------
+    home_dir : str | None
+        The folder that contains the .mne config folder.
+        If None, it is found automatically.
 
     Returns
     -------
@@ -810,7 +819,8 @@ def get_config_path():
         will be '%APPDATA%\.mne\mne-python.json'. On every other
         system, this will be ~/.mne/mne-python.json.
     """
-    val = op.join(_get_extra_data_path(), 'mne-python.json')
+    val = op.join(_get_extra_data_path(home_dir=home_dir),
+                  'mne-python.json')
     return val
 
 
@@ -875,7 +885,7 @@ known_config_wildcards = [
     ]
 
 
-def get_config(key, default=None, raise_error=False):
+def get_config(key, default=None, raise_error=False, home_dir=None):
     """Read mne(-python) preference from env, then mne-python config
 
     Parameters
@@ -888,6 +898,9 @@ def get_config(key, default=None, raise_error=False):
     raise_error : bool
         If True, raise an error if the key is not found (instead of returning
         default).
+    home_dir : str | None
+        The folder that contains the .mne config folder.
+        If None, it is found automatically.
 
     Returns
     -------
@@ -903,7 +916,7 @@ def get_config(key, default=None, raise_error=False):
         return os.environ[key]
 
     # second, look for it in mne-python config file
-    config_path = get_config_path()
+    config_path = get_config_path(home_dir=home_dir)
     if not op.isfile(config_path):
         key_found = False
         val = default
@@ -926,7 +939,7 @@ def get_config(key, default=None, raise_error=False):
     return val
 
 
-def set_config(key, value):
+def set_config(key, value, home_dir=None):
     """Set mne-python preference in config
 
     Parameters
@@ -936,8 +949,10 @@ def set_config(key, value):
     value : str |  None
         The value to assign to the preference key. If None, the key is
         deleted.
+    home_dir : str | None
+        The folder that contains the .mne config folder.
+        If None, it is found automatically.
     """
-
     if not isinstance(key, string_types):
         raise ValueError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
@@ -949,7 +964,7 @@ def set_config(key, value):
         warnings.warn('Setting non-standard config type: "%s"' % key)
 
     # Read all previous values
-    config_path = get_config_path()
+    config_path = get_config_path(home_dir=home_dir)
     if op.isfile(config_path):
         with open(config_path, 'r') as fid:
             config = json.load(fid)
