@@ -1,3 +1,9 @@
+python-mne (0.7.1-3) neurodebian; urgency=low
+
+  * Set back X-Python-Version to >= 2.6
+
+ -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Sat, 18 Jan 2014 17:00:00 -0400
+
 python-mne (0.7.1-2) neurodebian; urgency=low
 
   * Boost X-Python-Version to >= 2.7 to provide installable
