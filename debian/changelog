@@ -1,5 +1,7 @@
 python-mne (0.7.3-1) unstable; urgency=low
 
+  * New upstream version
+    Closes: #735811
   * Set back X-Python-Version to >= 2.6
 
  -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Sat, 18 Jan 2014 17:00:00 -0400
