@@ -12,6 +12,9 @@ from ..utils import (set_log_level, set_log_file, _TempDir,
                      _url_to_local_path, sizeof_fmt)
 from ..fiff import Evoked, show_fiff
 
+writes_config = np.testing.dec.skipif(get_config('MNE_SKIP_CONFIG_TESTS',
+                                                 'false') == 'true',
+                                      'Skipping config-writing test')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
@@ -115,6 +118,7 @@ def test_logging():
     assert_equal(new_lines, old_lines)
 
 
+@writes_config
 def test_config():
     """Test mne-python config file support"""
     key = '_MNE_PYTHON_CONFIG_TESTING'
