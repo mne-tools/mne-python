@@ -61,16 +61,20 @@ class Tee(object):
 def get_data(url):
     """Helper function to get data over http or from a local file"""
     if url.startswith('http://'):
-        resp = urllib2.urlopen(url)
-        encoding = resp.headers.dict.get('content-encoding', 'plain')
-        data = resp.read()
-        if encoding == 'plain':
-            pass
-        elif encoding == 'gzip':
-            data = StringIO(data)
-            data = gzip.GzipFile(fileobj=data).read()
-        else:
-            raise RuntimeError('unknown encoding')
+        try:
+            resp = urllib2.urlopen(url)
+            encoding = resp.headers.dict.get('content-encoding', 'plain')
+            data = resp.read()
+            if encoding == 'plain':
+                pass
+            elif encoding == 'gzip':
+                data = StringIO(data)
+                data = gzip.GzipFile(fileobj=data).read()
+            else:
+                raise RuntimeError('unknown encoding')
+        except urllib2.HTTPError as err:
+            print 'Error downloading %s: %s' % (url, str(err))
+            return ''
     else:
         with open(url, 'r') as fid:
             data = fid.read()

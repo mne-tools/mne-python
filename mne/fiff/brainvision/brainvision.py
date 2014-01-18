@@ -205,16 +205,27 @@ def _read_vmrk(vmrk_fname):
     stim_channel : array
         An array containing the whole recording's event marking
     """
+    # read vmrk file
+    with open(vmrk_fname) as fid:
+        txt = fid.read()
 
-    with open(vmrk_fname) as f:
-    # setup config reader
-        assert (f.readline().strip() ==
-                'Brain Vision Data Exchange Marker File, Version 1.0')
+    start_tag = 'Brain Vision Data Exchange Marker File, Version 1.0'
+    if not txt.startswith(start_tag):
+        raise ValueError("vmrk file should start with %r" % start_tag)
 
-        cfg = SafeConfigParser()
-        cfg.readfp(f)
+    # extract Marker Infos block
+    m = re.search("\[Marker Infos\]", txt)
+    if not m:
+        return np.zeros(0)
+    mk_txt = txt[m.end():]
+    m = re.search("\[.*\]", mk_txt)
+    if m:
+        mk_txt = mk_txt[:m.start()]
+
+    # extract event information
+    items = re.findall("^Mk\d+=(.*)", mk_txt, re.MULTILINE)
     events = []
-    for _, info in cfg.items('Marker Infos'):
+    for info in items:
         mtype, mdesc, offset, duration = info.split(',')[:4]
         if mtype == 'Stimulus':
             trigger = int(re.findall('S\s?(\d+)', mdesc)[0])
