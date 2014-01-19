@@ -957,7 +957,9 @@ def test_illegal_event_id():
                     baseline=(None, 0), proj=False)
 
     epochs.event_id['does_not_exist'] = 12345678
+    warnings.resetwarnings()
     warnings.simplefilter('always', RuntimeWarning)
+
     with warnings.catch_warnings(record=True) as w:
         epochs['does_not_exist'].average()
         assert_equal(len(w), 1)
