@@ -32,6 +32,9 @@ Changelog
    - Add `equalize_channnels` function to set common channels for a list of
    Raw, Epochs, or Evoked objects by `Denis Engemann`_
 
+   - Add `plot_events` function to visually display paradigm by `Alex Gramfort`_
+
+
 BUG
 ~~~
 
