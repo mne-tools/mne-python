@@ -952,14 +952,3 @@ def test_illegal_event_id():
 
     assert_raises(ValueError, Epochs, raw, events, event_id_illegal, tmin,
                   tmax, picks=picks, baseline=(None, 0), proj=False)
-
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), proj=False)
-
-    epochs.event_id['does_not_exist'] = 12345678
-    warnings.resetwarnings()
-    warnings.simplefilter('always')
-
-    with warnings.catch_warnings(record=True) as w:
-        epochs['does_not_exist'].average()
-        assert_equal(len(w), 1)
