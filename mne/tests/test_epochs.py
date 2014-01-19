@@ -859,7 +859,7 @@ def test_drop_epochs():
                        np.where(events[:, 2] == event_id)[0])
     assert_equal(len(epochs.drop_log), len(events))
     assert_true(all(epochs.drop_log[k] == ['IGNORED']
-                 for k in set(range(len(events))) - set(epochs.selection)))
+                for k in set(range(len(events))) - set(epochs.selection)))
 
     selection = epochs.selection.copy()
     epochs.drop_epochs([2, 4], reason='d')
@@ -905,7 +905,7 @@ def test_contains():
     tests = [(('mag', False), ('grad', 'eeg')),
              (('grad', False), ('mag', 'eeg')),
              ((False, True), ('grad', 'mag'))]
-    
+
     for (meg, eeg), others in tests:
         picks_contains = fiff.pick_types(raw.info, meg=meg, eeg=eeg)
         epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax,
@@ -914,7 +914,7 @@ def test_contains():
         test = 'eeg' if eeg is True else meg
         assert_true(test in epochs)
         assert_true(not any(o in epochs for o in others))
-    
+
     assert_raises(ValueError, epochs.__contains__, 'foo')
     assert_raises(ValueError, epochs.__contains__, 1)
 
@@ -944,3 +944,20 @@ def test_equalize_channels():
     equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
+
+
+def test_illegal_event_id():
+    """Test handling of invalid events ids"""
+    event_id_illegal = dict(aud_l=1, does_not_exist=12345678)
+
+    assert_raises(ValueError, Epochs, raw, events, event_id_illegal, tmin,
+                  tmax, picks=picks, baseline=(None, 0), proj=False)
+
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), proj=False)
+
+    epochs.event_id['does_not_exist'] = 12345678
+    warnings.simplefilter('always', RuntimeWarning)
+    with warnings.catch_warnings(record=True) as w:
+        epochs['does_not_exist'].average()
+        assert_equal(len(w), 1)

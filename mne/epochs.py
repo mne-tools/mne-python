@@ -435,6 +435,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, DropChannelsMixin):
         # otherwise the apply_proj will be confused
         evoked.proj = True if self.proj is True else None
         evoked.verbose = self.verbose
+        if evoked.nave < 1:
+            warnings.warn('evoked object is empty (based on less '
+                          'than 1 epoch)', RuntimeWarning)
 
         return evoked
 
@@ -669,6 +672,10 @@ class Epochs(_BaseEpochs):
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
 
+        for key, val in self.event_id.items():
+            if val not in events[:, 2]:
+                raise ValueError('No matching events found for %s '
+                                 '(event id %i)' % (key, val))
         # Select the desired events
         values = list(self.event_id.values())
         selected = in1d(events[:, 2], values)
