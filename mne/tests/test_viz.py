@@ -15,7 +15,7 @@ from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_sparse_source_estimates, plot_source_estimates,
                      plot_cov, mne_analyze_colormap, plot_image_epochs,
                      plot_connectivity_circle, circular_layout, plot_drop_log,
-                     compare_fiff, plot_source_spectrogram)
+                     compare_fiff, plot_source_spectrogram, plot_events)
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
@@ -556,3 +556,9 @@ def test_plot_evoked_field():
                               n_jobs=1, ch_type=t)
 
         evoked.plot_field(maps, time=0.1)
+
+
+def test_plot_events():
+    raw = _get_raw()
+    events = _get_events()
+    plot_events(events, raw.info['sfreq'], raw.first_samp)

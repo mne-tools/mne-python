@@ -4,6 +4,7 @@ Find events in a raw file
 =========================
 
 Find events from the stimulation/trigger channel in the raw data.
+The plot them to get an idea of the paradigm.
 """
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
@@ -29,3 +30,6 @@ mne.write_events('events.fif', events)
 for ind, before, after in events[:5]:
     print("At sample %d stim channel went from %d to %d"
           % (ind, before, after))
+
+# Plot the events to get an idea of the paradigm
+mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
