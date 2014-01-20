@@ -6,12 +6,12 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_equal, assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
-                 labels_from_parc, parc_from_labels)
+                 labels_from_parc, parc_from_labels, split_label)
 from mne.label import Label
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
 from mne.fixes import in1d
@@ -274,6 +274,40 @@ def test_parc_from_labels():
     colors2[0] = 1.1
     assert_raises(ValueError, parc_from_labels, labels, colors2,
                   annot_fname=fnames[0], overwrite=True)
+
+
+@sample.requires_sample_data
+def test_split_label():
+    aparc_ = labels_from_parc('fsaverage', parc='aparc', hemi='lh',
+                              subjects_dir=subjects_dir)[0]
+    aparc = {l.name: l for l in aparc_}
+    lingual = aparc['lingual-lh']
+
+    # split with names
+    parts = ('lingual_post', 'lingual_ant')
+    post, ant = split_label(lingual, parts, subjects_dir=subjects_dir)
+
+    # check output names
+    assert_equal(post.name, parts[0])
+    assert_equal(ant.name, parts[1])
+
+    # check vertices add up
+    lingual_reconst = post + ant
+    lingual_reconst.name = lingual.name
+    lingual_reconst.comment = lingual.comment
+    assert_labels_equal(lingual_reconst, lingual)
+
+    # compare vertices with freesurfer split
+    antmost = split_label(lingual, 40, subjects_dir=subjects_dir)[-1]
+    fs_vert = [210, 4401, 7405, 12079, 16276, 18956, 26356, 32713, 32716,
+               32719, 36047, 36050, 42797, 42798, 42799, 59281, 59282, 59283,
+               71864, 71865, 71866, 71874, 71883, 79901, 79903, 79910, 103024,
+               107849, 107850, 122928, 139356, 139357, 139373, 139374, 139375,
+               139376, 139377, 139378, 139381, 149117, 149118, 149120, 149127]
+    assert_array_equal(antmost.vertices, fs_vert)
+
+    # check default label name
+    assert_equal(antmost.name, "lingual_div40-lh")
 
 
 @sample.requires_sample_data

@@ -38,7 +38,7 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            add_source_space_distances)
 from .epochs import Epochs, read_epochs
 from .label import (label_time_courses, read_label, label_sign_flip,
-                    write_label, stc_to_label, grow_labels, Label,
+                    write_label, stc_to_label, grow_labels, Label, split_label,
                     BiHemiLabel, labels_from_parc, parc_from_labels)
 from .misc import parse_config, read_reject_parameters
 from .coreg import (create_default_subject, scale_bem, scale_mri, scale_labels,

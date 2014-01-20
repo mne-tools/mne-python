@@ -8,14 +8,16 @@ from .externals.six import string_types
 from os import path as op
 import os
 import copy as cp
-import numpy as np
 import re
+
+import numpy as np
 from scipy import linalg, sparse
 
 from .utils import get_subjects_dir, _check_subject, logger, verbose
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
-from .surface import read_surface
+from .source_space import read_source_spaces
+from .surface import read_surface, _read_surface_geom
 from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters
 from .externals.six import b
@@ -505,6 +507,127 @@ def write_label(filename, label, verbose=None):
         fid.write(b("%d %f %f %f %f\n" % tuple(d)))
 
     return label
+
+
+def split_label(label, parts=2, subject=None, subjects_dir=None):
+    """Split a Label into two or more parts
+
+    Parameters
+    ----------
+    label : Label | str
+        Label which is to be split (Label object or path to a label file).
+    parts : int >= 2 | tuple of str
+        A sequence of strings specifying label names for the new labels (from
+        posterior to anterior), or the number of new labels to create (default
+        is 2). If a number is specified, names of the new labels will be the
+        input label's name with div1, div2 etc. appended.
+    subject : None | str
+        Subject which this label belongs to (needed to locate surface file;
+        should only be specified if it is not specified in the label).
+    subjects_dir : None | str
+        Path to SUBJECTS_DIR if it is not set in the environment.
+
+    Returns
+    -------
+    labels : list of Label (len = n_parts)
+        The labels, starting from the lowest to the highest end of the
+        projection axis.
+
+    Notes
+    -----
+    Works by finding the label's principal eigen-axis on the spherical surface,
+    projecting all label vertex coordinates onto this axis and dividing them at
+    regular spatial intervals.
+    """
+    # find the label
+    if isinstance(label, BiHemiLabel):
+        raise TypeError("Can only split labels restricted to one hemisphere.")
+    elif isinstance(label, basestring):
+        label = read_label(label)
+
+    # find the parts
+    if np.isscalar(parts):
+        n_parts = int(parts)
+        if label.name.endswith(('lh', 'rh')):
+            basename = label.name[:-3]
+            name_ext = label.name[-3:]
+        else:
+            basename = label.name
+            name_ext = ''
+        name_pattern = "%s_div%%i%s" % (basename, name_ext)
+        names = tuple(name_pattern % i for i in range(1, n_parts + 1))
+    else:
+        names = parts
+        n_parts = len(names)
+
+    if n_parts < 2:
+        raise ValueError("Can't split label into %i parts" % n_parts)
+
+    # find the subject
+    subjects_dir = get_subjects_dir(subjects_dir)
+    if label.subject is None and subject is None:
+        raise TypeError("The subject needs to be specified.")
+    elif subject is None:
+        subject = label.subject
+    elif label.subject is None:
+        pass
+    elif subject != label.subject:
+        err = ("The label specifies a different subject (%r) from the subject "
+               "parameter (%r)." % label.subject, subject)
+        raise ValueError(err)
+
+    # find the label coordinates on the spherical surface
+    surf_fname = '.'.join((label.hemi, 'sphere'))
+    surf_path = os.path.join(subjects_dir, subject, "surf", surf_fname)
+    surface = _read_surface_geom(surf_path, add_geom=True)
+    points = surface['rr'][label.vertices]
+
+    # find the axis vector
+    # center label coordinates
+    center = np.mean(points, axis=0)
+    centered_points = points - center
+    distance = np.linalg.norm(centered_points, axis=1)
+    # find vertex closest to the center
+    i_closest = np.argmin(distance)
+    closest_vertex = label.vertices[i_closest]
+    normal = surface['nn'][closest_vertex]
+    # project all vertex coordinates on the tangential plane for this point
+    q, _ = linalg.qr(normal[:, np.newaxis])
+    tangent_u = q[:, 1:]
+    m_obs = np.dot(centered_points, tangent_u)
+    # find principal eigendirection
+    m_cov = np.dot(m_obs.T, m_obs)
+    w, vr = linalg.eig(m_cov)
+    i = np.argmax(w)
+    eigendir = vr[:, i]
+    # project back into 3d space
+    axis = np.dot(tangent_u, eigendir)
+    # orient them from posterior to anterior
+    if axis[1] < 0:
+        axis *= -1
+
+    # project the label on the axis
+    proj = np.dot(points, axis)
+
+    # assign mark (new label index)
+    proj -= proj.min()
+    proj /= (proj.max() / n_parts)
+    mark = proj // 1
+    mark[mark == n_parts] = n_parts - 1
+
+    # construct new labels
+    labels = []
+    for i, name in enumerate(names):
+        idx = (mark == i)
+        vert = label.vertices[idx]
+        pos = label.pos[idx]
+        values = label.values[idx]
+        hemi = label.hemi
+        comment = label.comment
+        lbl = Label(vert, pos, values, hemi, comment, name, None, subject)
+        labels.append(lbl)
+
+    return labels
 
 
 def label_time_courses(labelfile, stcfile):
