@@ -341,7 +341,7 @@ def test_grow_labels():
     # these were chosen manually in mne_analyze
     should_be_in = [[49, 227], [51207, 48794]]
     hemis = [0, 1]
-    labels = grow_labels('sample', seeds, 3, hemis, n_jobs=2)
+    labels = grow_labels('sample', seeds, 3, hemis, subjects_dir, n_jobs=2)
 
     for label, seed, hemi, sh in zip(labels, seeds, hemis, should_be_in):
         assert(np.any(label.vertices == seed))
