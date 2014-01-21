@@ -606,11 +606,12 @@ def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
     fig : Instance of matplotlib.figure.Figure
         Images of induced power at sensor locations
     """
-    times = epochs.times[::decim] * 1e3
+    times = epochs.times[::decim].copy()
     if mode is not None:
         if baseline is None:
             baseline = epochs.baseline
         power = rescale(power.copy(), times, baseline, mode)
+    times *= 1e3
     if dB:
         power = 20 * np.log10(power)
     if vmin is None:
