@@ -3701,3 +3701,39 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     mlab.text(0.01, 0.01, time_label, width=0.4)
     mlab.view(10, 60)
     return fig
+
+
+def plot_events(events, sfreq, first_samp=0, show=True):
+    """Plot events to get a visual display of the paradigm
+
+    Parameters
+    ----------
+    events : array, shape (n_events, 3)
+        The events.
+    sfreq : float
+        The sample frequency.
+    first_samp : int
+        The index of the first sample. Typically the raw.first_samp
+        attribute. It is needed for recordings on a Neuromag
+        system as the events are defined relative to the system
+        start and not to the beginning of the recording.
+    show : bool
+        Call pyplot.show() at the end.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure object containing the plot.
+    """
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    min_event = np.min(events[:, 2])
+    max_event = np.max(events[:, 2])
+    plt.plot((events[:, 0] - first_samp) / sfreq, events[:, 2], '.')
+    plt.ylim([min_event - 1, max_event + 1])
+    plt.xlabel('Time (s)')
+    plt.ylabel('Events id')
+    plt.grid('on')
+    if show:
+        plt.show()
+    return fig

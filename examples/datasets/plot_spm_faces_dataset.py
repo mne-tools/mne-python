@@ -41,6 +41,10 @@ picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
+
+# plot the events to get an idea of the paradigm
+mne.viz.plot_events(events, raw.info['sfreq'])
+
 event_ids = {"faces":1, "scrambled":2}
 
 tmin, tmax = -0.2, 0.6
