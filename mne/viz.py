@@ -2230,7 +2230,8 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         raise ValueError('format must be either matplotlib or mayavi')
 
 
-def circular_layout(node_names, node_order, start_pos=90, start_between=True):
+def circular_layout(node_names, node_order, start_pos=90, start_between=True,
+                    group_boundaries=None, group_sep=10):
     """Create layout arranging nodes on a circle.
 
     Parameters
@@ -2247,6 +2248,11 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True):
     start_between : bool
         If True, the layout starts with the position between the nodes. This is
         the same as adding "180. / len(node_names)" to start_pos.
+    group_boundaries : None | array-like
+        List of of boundaries between groups at which point a "group_sep" will
+        be inserted. E.g. "[0, len(node_names) / 2]" will create two groups.
+    group_sep : float
+        Group separation angle in degrees. See "group_boundaries".
 
     Returns
     -------
@@ -2258,16 +2264,41 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True):
     if len(node_order) != n_nodes:
         raise ValueError('node_order has to be the same length as node_names')
 
+    if group_boundaries is not None:
+        boundaries = np.array(group_boundaries, dtype=np.int)
+        if np.any(boundaries >= n_nodes) or np.any(boundaries < 0):
+            raise ValueError('"group_boundaries" has to be between 0 and '
+                             'n_nodes - 1.')
+        if len(boundaries) > 1 and np.any(np.diff(boundaries) <= 0):
+            raise ValueError('"group_boundaries" must have non-decreasing '
+                             'values.')
+        n_group_sep = len(group_boundaries)
+    else:
+        n_group_sep = 0
+        boundaries = None
+
     # convert it to a list with indices
     node_order = [node_order.index(name) for name in node_names]
     node_order = np.array(node_order)
     if len(np.unique(node_order)) != n_nodes:
         raise ValueError('node_order has repeated entries')
 
-    if start_between:
-        start_pos += 180. / n_nodes
+    node_sep = (360. - n_group_sep * group_sep) / n_nodes
 
-    node_angles = start_pos + 360 * node_order / float(n_nodes)
+    if start_between:
+        start_pos += node_sep / 2
+
+        if boundaries is not None and boundaries[0] == 0:
+            # special case when a group separator is at the start
+            start_pos += group_sep / 2
+            boundaries = boundaries[1:] if n_group_sep > 1 else None
+
+    node_angles = np.ones(n_nodes, dtype=np.float) * node_sep
+    node_angles[0] = start_pos
+    if boundaries is not None:
+        node_angles[boundaries] += group_sep
+
+    node_angles = np.cumsum(node_angles)[node_order]
 
     return node_angles
 
@@ -2277,7 +2308,11 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              node_colors=None, facecolor='black',
                              textcolor='white', node_edgecolor='black',
                              linewidth=1.5, colormap='hot', vmin=None,
-                             vmax=None, colorbar=True, title=None):
+                             vmax=None, colorbar=True, title=None,
+                             colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
+                             fontsize_title=12, fontsize_names=8,
+                             fontsize_colorbar=8, padding=6.,
+                             figure=None, subplot=111):
     """Visualize connectivity as a circular graph.
 
     Note: This code is based on the circle graph example by Nicolas P. Rougier
@@ -2325,11 +2360,32 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Display a colorbar or not.
     title : str
         The figure title.
+    colorbar_size = float
+        Size of the colorbar.
+    colorbar_pos = 2-tuple
+        Position of the colorbar.
+    fontsize_title : int
+        Font size to use for title.
+    fontsize_names : int
+        Font size to use for node names.
+    fontsize_colorbar : int
+        Font size to use for colorbar.
+    padding : float
+        Space to add around figure to accommodate long labels.
+    figure : None | instance of matplotlib.pyplot.Figure
+        The figure to use. If None, a new figure with the specified background
+        color will be created.
+    subplot : int | 3-tuple
+        Location of the subplot when creating figures with multiple plots. E.g.
+        121 or (1, 2, 1) for 1 row, 2 columns, plot 1. See
+        matplotlib.pyplot.subplot.
 
     Returns
     -------
-    fig : instance of pyplot.Figure
+    figure : instance of matplotlib.pyplot.Figure
         The figure handle.
+    axes : instance of matplotlib.axes.PolarAxesSubplot
+        The subplot handle.
     """
     import matplotlib.pyplot as plt
     import matplotlib.path as m_path
@@ -2378,17 +2434,20 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         colormap = plt.get_cmap(colormap)
 
     # Make figure background the same colors as axes
-    fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
+    if figure is None:
+        figure = plt.figure(figsize=(8, 8), facecolor=facecolor)
 
     # Use a polar axes
-    axes = plt.subplot(111, polar=True, axisbg=facecolor)
+    if not isinstance(subplot, tuple):
+        subplot = (subplot,)
+    axes = plt.subplot(*subplot, polar=True, axisbg=facecolor)
 
     # No ticks, we'll put our own
     plt.xticks([])
     plt.yticks([])
 
-    # Set y axes limit
-    plt.ylim(0, 10)
+    # Set y axes limit, add additonal space if requested
+    plt.ylim(0, 10 + padding)
 
     # Draw lines between connected nodes, only draw the strongest connections
     if n_lines is not None and len(con) > n_lines:
@@ -2473,8 +2532,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         axes.add_patch(patch)
 
     # Draw ring with colored nodes
-    radii = np.ones(n_nodes) * 10
-    bars = axes.bar(node_angles, radii, width=node_width, bottom=9,
+    height = np.ones(n_nodes) * 1.0
+    bars = axes.bar(node_angles, height, width=node_width, bottom=9,
                     edgecolor=node_edgecolor, lw=2, facecolor='.9',
                     align='center')
 
@@ -2491,26 +2550,27 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
             angle_deg += 180
             ha = 'right'
 
-        plt.text(angle_rad, 10.4, name, size=10, rotation=angle_deg,
-                 rotation_mode='anchor', horizontalalignment=ha,
-                 verticalalignment='center', color=textcolor)
+        axes.text(angle_rad, 10.4, name, size=fontsize_names,
+                  rotation=angle_deg, rotation_mode='anchor',
+                  horizontalalignment=ha, verticalalignment='center',
+                  color=textcolor)
 
     if title is not None:
-        plt.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.75)
-        plt.figtext(0.03, 0.95, title, color=textcolor, fontsize=14)
-    else:
-        plt.subplots_adjust(left=0.2, bottom=0.2, right=0.8, top=0.8)
+        plt.title(title, color=textcolor, fontsize=fontsize_title,
+                  axes=axes)
 
     if colorbar:
         norm = normalize_colors(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap=colormap, norm=norm)
         sm.set_array(np.linspace(vmin, vmax))
-        ax = fig.add_axes([.92, 0.03, .015, .25])
-        cb = fig.colorbar(sm, cax=ax)
+        cb = plt.colorbar(sm, ax=axes, use_gridspec=False,
+                          shrink=colorbar_size,
+                          anchor=colorbar_pos)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
+        cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
 
-    return fig
+    return figure, axes
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
