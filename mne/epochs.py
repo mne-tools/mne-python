@@ -1771,6 +1771,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     data = None
     bmin, bmax = None, None
     baseline = None
+    selection = None
     drop_log = []
     for k in range(my_epochs['nent']):
         kind = my_epochs['directory'][k].kind
