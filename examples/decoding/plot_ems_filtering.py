@@ -123,10 +123,10 @@ iter_comparisons = [
     (surrogates_py, spatial_filter_py)
 ]
 
-from numpy.testing import asser_array_almost_equal
+from numpy.testing import assert_array_almost_equal
 
-asser_array_almost_equal(surrogates, surrogates_py)
-asser_array_almost_equal(spatial_filter, spatial_filter_py)
+assert_array_almost_equal(surrogates, surrogates_py)
+assert_array_almost_equal(spatial_filter, spatial_filter_py)
 
 
 import matplotlib.pyplot as plt
