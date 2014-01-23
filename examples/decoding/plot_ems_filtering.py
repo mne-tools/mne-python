@@ -24,7 +24,6 @@ import numpy as np
 import mne
 from mne import fiff
 from mne.datasets import sample
-from mne.epochs import combine_event_ids
 data_path = sample.data_path()
 
 # Set parameters
@@ -116,7 +115,8 @@ process = Popen(run_matlab, stdin=False, stdout=None, shell=False)
 
 process.communicate()  # call and quit matlab
 
-surrogates = io.loadmat(var_name1 + '.mat')[var_name1]
+surrogates = io.loadmat(var_name1 + '.mat'
+    )[var_name1]
 spatial_filter = io.loadmat(var_name2 + '.mat')[var_name2]
 
 from mne.decoding import compute_ems
@@ -133,7 +133,6 @@ from nose.tools import assert_equal
 
 assert_equal(surrogates_py.shape, surrogates.shape)
 assert_equal(spatial_filter_py.shape, spatial_filter.shape)
-
 
 assert_array_almost_equal(surrogates, surrogates_py, 9)
 assert_array_almost_equal(spatial_filter, spatial_filter_py)
