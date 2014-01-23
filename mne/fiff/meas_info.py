@@ -535,7 +535,7 @@ def write_info(fname, info, data_type=None, reset_range=True):
     Parameters
     ----------
     fname : str
-        Open file descriptor
+        The name of the file. Should end by -info.fif.
     info : instance of mne.fiff.meas_info.Info
         The measurement info structure
     data_type : int
