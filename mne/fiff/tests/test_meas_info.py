@@ -64,3 +64,13 @@ def test_info():
         info_str = '%s' % obj.info
         assert_equal(len(info_str.split('\n')), (len(obj.info.keys()) + 2))
         assert_true(all(k in info_str for k in obj.info.keys()))
+
+
+def test_read_write_info():
+    """Test IO of info
+    """
+    info = fiff.read_info(raw_fname)
+    temp_file = op.join(tempdir, 'info.fif')
+    fiff.write_info(temp_file, info)
+    info2 = fiff.read_info(temp_file)
+    assert_true(len(info['chs']) == len(info2['chs']))

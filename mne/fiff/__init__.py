@@ -8,7 +8,7 @@
 from .constants import FIFF
 from .open import fiff_open, show_fiff
 from .evoked import Evoked, read_evoked, write_evoked
-from .meas_info import read_fiducials, write_fiducials, read_info
+from .meas_info import read_fiducials, write_fiducials, read_info, write_info
 from .raw import (Raw, start_writing_raw, write_raw_buffer,
                   finish_writing_raw, concatenate_raws, get_chpi_positions,
                   set_eeg_reference)

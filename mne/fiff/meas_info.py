@@ -434,7 +434,7 @@ def write_extra_meas_info(fid, info):
 
 
 def write_meas_info(fid, info, data_type=None, reset_range=True):
-    """Write measurement info in fif file.
+    """Write measurement info into a file id (from a fif file)
 
     Parameters
     ----------
@@ -527,3 +527,26 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_ch_info(fid, c)
 
     end_block(fid, FIFF.FIFFB_MEAS_INFO)
+
+
+def write_info(fname, info, data_type=None, reset_range=True):
+    """Write measurement info in fif file.
+
+    Parameters
+    ----------
+    fname : str
+        Open file descriptor
+    info : instance of mne.fiff.meas_info.Info
+        The measurement info structure
+    data_type : int
+        The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
+        5 (FIFFT_DOUBLE), or 16 (mne.fiff.FIFF.FIFFT_DAU_PACK16) for
+        raw data.
+    reset_range : bool
+        If True, info['chs'][k]['range'] will be set to unity.
+    """
+    fid = start_file(fname)
+    start_block(fid, FIFF.FIFFB_MEAS)
+    write_meas_info(fid, info, data_type, reset_range)
+    end_block(fid, FIFF.FIFFB_MEAS)
+    end_file(fid)
