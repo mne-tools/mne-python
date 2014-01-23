@@ -79,13 +79,16 @@ label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
 fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
-
+con_methods = ['pli', 'wpli2_debiased']
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
-        method='wpli2_debiased', mode='multitaper', sfreq=sfreq, fmin=fmin,
+        method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
         fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
-con = con[:, :, 0]
+# for each method
+con_res = dict()
+for method, c in zip(con_methods, con):
+    con_res[method] = c[:, :, 0]
 
 # Now, we visualize the connectivity using a circular graph layout
 
@@ -112,14 +115,25 @@ node_order = list()
 node_order.extend(lh_labels[::-1])  # reverse the order
 node_order.extend(rh_labels)
 
-node_angles = circular_layout(label_names, node_order, start_pos=90)
+node_angles = circular_layout(label_names, node_order, start_pos=90,
+                              group_boundaries=[0, len(label_names) / 2])
 
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.
-plot_connectivity_circle(con, label_names, n_lines=300, node_angles=node_angles,
-                         node_colors=label_colors,
+plot_connectivity_circle(con_res['pli'], label_names, n_lines=300,
+                         node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
-                               'Condition')
+                               'Condition (PLI)')
 import matplotlib.pyplot as plt
 plt.savefig('circle.png', facecolor='black')
+
+# Plot connectivity for both methods in the same plot
+fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
+no_names = [''] * len(label_names)
+for ii, method in enumerate(con_methods):
+    plot_connectivity_circle(con_res[method], no_names, n_lines=300,
+                             node_angles=node_angles, node_colors=label_colors,
+                             title=method, padding=0, fontsize_colorbar=6,
+                             fig=fig, subplot=(1, 2, ii + 1))
+
 plt.show()
