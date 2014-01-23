@@ -420,7 +420,8 @@ def _accumulate_normals(tris, tri_nn, npts):
     nn = np.zeros((npts, 3))
     for verts in tris.T:  # note this only loops 3x (number of verts per tri)
         for idx in range(3):  # x, y, z
-            nn[:, idx] += np.bincount(verts, tri_nn[:, idx], minlength=npts)
+            nn[:, idx] += np.bincount(verts, weights=tri_nn[:, idx],
+                                      minlength=npts)
     return nn
 
 
