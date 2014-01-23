@@ -50,22 +50,28 @@ def compute_ems(data, conditions, objective_function=None):
     if objective_function is None:
         objective_function = _ems_diff
 
+    if not isinstance(conditions, np.ndarray):
+        conditions = np.array(conditions)
+
+    # make sure indices are bool if they're not positional
+    if tuple(np.unique(conditions)) == (0, 1):
+        conditions = conditions.astype(bool)
+
     from sklearn.cross_validation import LeaveOneOut
 
-    loo = LeaveOneOut(n_epochs)
-    for train_indices, epoch_idx in loo:
+    for train_indices, epoch_idx in LeaveOneOut(n_epochs):
         print('.. processing epoch %i' % epoch_idx)
         d = objective_function(data, conditions, train_indices)
+        # take norm over channels (matlab uses 2-norm)
         for time_idx in np.arange(n_times):
-            d[:, time_idx] /= norm(d[:, time_idx])
+            d[:, time_idx] /= norm(d[:, time_idx], ord=2)
 
         # update spatial filter
         spatial_filter += d
-        # take norm over channels
-        surrogate_trials[epoch_idx] = np.sum(np.squeeze(data[epoch_idx])
-                                             * spatial_filter, axis=0)
 
         # compute surrogates
+        surrogate_trials[epoch_idx] = np.nansum(np.squeeze(data[epoch_idx])
+                                                * spatial_filter, axis=0)
 
     spatial_filter /= n_epochs
 
@@ -76,9 +82,9 @@ def _ems_diff(data, conditions, train):
     """defaut diff objective function
     """
 
-    sum1, sum2 = [data[conditions[i]].sum(axis=0) for i in [0, 1]]
-    n1, n2 = conditions[0].sum(), conditions[1].sum()
-    m1 = (sum1 - data[train].sum(axis=0)) / (n1 - len(train))
-    m2 = (sum2 - data[train].sum(axis=0)) / (n2 - len(train))
+    data_a, data_b = [data[conditions[i]] for i in [0, 1]]
+    sum1, sum2 = np.nansum(data_a, axis=0), np.nansum(data_b, axis=0)
+    m1 = (sum1 - np.nansum(data[train], axis=0)) / (len(data_b) - len(train))
+    m2 = (sum2 - np.nansum(data[train], axis=0)) / (len(data_b) - len(train))
 
     return m1 - m2

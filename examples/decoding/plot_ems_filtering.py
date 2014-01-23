@@ -77,7 +77,12 @@ conditions = [c.astype(int) for c in conditions]
 ###############################################################################
 # Now it's time for some hacking ...
 
+import glob
+import os
 from scipy import io
+
+[os.remove(k) for k in glob.glob('*.mat')]
+
 
 io.savemat('epochs_data.mat', {'data': data2,
                                'conditions': conditions})
@@ -85,10 +90,10 @@ io.savemat('epochs_data.mat', {'data': data2,
 var_name1, var_name2 = 'surrogates', 'spatial_filter'
 my_pwd = op.abspath(op.curdir)  # expand path
 
+
 # this requires
 # https://gist.github.com/dengemann/640d202f84befff1545d
 # in the local directory
-
 my_matlab_code = """
 disp('reading data ...');
 epochs = load('epochs_data.mat');
@@ -107,7 +112,7 @@ run_matlab.append(my_matlab_code)
 
 from subprocess import Popen, PIPE
 
-process = Popen(run_matlab, stdin=PIPE, stdout=None, shell=False)
+process = Popen(run_matlab, stdin=False, stdout=None, shell=False)
 
 process.communicate()  # call and quit matlab
 
@@ -124,6 +129,11 @@ iter_comparisons = [
 ]
 
 from numpy.testing import assert_array_almost_equal
+from nose.tools import assert_equal
+
+assert_equal(surrogates_py.shape, surrogates.shape)
+assert_equal(spatial_filter_py.shape, spatial_filter.shape)
+
 
 assert_array_almost_equal(surrogates, surrogates_py)
 assert_array_almost_equal(spatial_filter, spatial_filter_py)
