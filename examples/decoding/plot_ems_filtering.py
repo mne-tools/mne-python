@@ -135,7 +135,7 @@ assert_equal(surrogates_py.shape, surrogates.shape)
 assert_equal(spatial_filter_py.shape, spatial_filter.shape)
 
 
-assert_array_almost_equal(surrogates, surrogates_py)
+assert_array_almost_equal(surrogates, surrogates_py, 9)
 assert_array_almost_equal(spatial_filter, spatial_filter_py)
 
 

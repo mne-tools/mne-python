@@ -1,10 +1,10 @@
 import numpy as np
-# import scipy
-# import sklearn
 from scipy.linalg import norm
+from ..utils import logger, verbose
 
 
-def compute_ems(data, conditions, objective_function=None):
+@verbose
+def compute_ems(data, conditions, objective_function=None, verbose=None):
     """Compute event-matched spatial filter
 
     This version operates on the entire timecourse. No time window needs to
@@ -34,6 +34,9 @@ def compute_ems(data, conditions, objective_function=None):
             return numpy.ndarray (n_channels, n_times)
 
         If None, the difference function as described in [1]
+    verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
 
     Returns
     -------
@@ -60,7 +63,7 @@ def compute_ems(data, conditions, objective_function=None):
     from sklearn.cross_validation import LeaveOneOut
 
     for train_indices, epoch_idx in LeaveOneOut(n_epochs):
-        print('.. processing epoch %i' % epoch_idx)
+        logger.info('.. processing epoch %i' % epoch_idx)
         d = objective_function(data, conditions, train_indices)
         # take norm over channels (matlab uses 2-norm)
         for time_idx in np.arange(n_times):
@@ -71,7 +74,7 @@ def compute_ems(data, conditions, objective_function=None):
 
         # compute surrogates
         surrogate_trials[epoch_idx] = np.nansum(np.squeeze(data[epoch_idx])
-                                                * spatial_filter, axis=0)
+                                                * d, axis=0)
 
     spatial_filter /= n_epochs
 
