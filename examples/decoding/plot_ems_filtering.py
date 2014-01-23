@@ -116,10 +116,18 @@ spatial_filter = io.loadmat(var_name2 + '.mat')[var_name2]
 
 from mne.decoding import compute_ems
 
+surrogates_py, spatial_filter_py = compute_ems(data, conditions)
+
 iter_comparisons = [
     (surrogates, spatial_filter),
-    compute_ems(data, conditions)
+    (surrogates_py, spatial_filter_py)
 ]
+
+from numpy.testing import asser_array_almost_equal
+
+asser_array_almost_equal(surrogates, surrogates_py)
+asser_array_almost_equal(spatial_filter, spatial_filter_py)
+
 
 import matplotlib.pyplot as plt
 
@@ -132,7 +140,7 @@ for ii, (tsurrogate, sfilter) in enumerate(iter_comparisons):
 
     plt.figure()
     plt.title('single surrogate trial - %s' % lang)
-    plt.imshow(surrogates[order], origin='lower', aspect='auto',
+    plt.imshow(tsurrogate[order], origin='lower', aspect='auto',
                extent=[times[0], times[-1], 1, len(epochs)])
     plt.xlabel('Time (ms)')
     plt.ylabel('Trials (reordered by condition)')
@@ -141,7 +149,7 @@ for ii, (tsurrogate, sfilter) in enumerate(iter_comparisons):
     plt.figure()
     plt.title('Average EMS signal - %s' % lang)
     for key, value in epochs.event_id.items():
-        ems_ave = surrogates[epochs.events[:, 2] == value]
+        ems_ave = tsurrogate[epochs.events[:, 2] == value]
         ems_ave /= 4e-11
         plt.plot(times, ems_ave.mean(0), label=key)
     plt.xlabel('Time (ms)')
@@ -151,6 +159,6 @@ for ii, (tsurrogate, sfilter) in enumerate(iter_comparisons):
 
     # visualize spatial filter
     evoked = epochs.average()
-    evoked.data = spatial_filter
+    evoked.data = sfilter
     evoked.plot_topomap(ch_type='grad', title=lang)
     plt.savefig('fig-%s-3.png' % lang)
