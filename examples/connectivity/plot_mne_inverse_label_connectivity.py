@@ -86,7 +86,9 @@ con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
 # for each method
-con = {m: c[:, :, 0] for m, c in zip(con_methods, con)}
+con_res = dict()
+for method, c in zip(con_methods, con):
+    con_res[method] = c[:, :, 0]
 
 # Now, we visualize the connectivity using a circular graph layout
 
@@ -118,8 +120,8 @@ node_angles = circular_layout(label_names, node_order, start_pos=90,
 
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.
-plot_connectivity_circle(con['pli'], label_names, n_lines=300, node_angles=node_angles,
-                         node_colors=label_colors,
+plot_connectivity_circle(con_res['pli'], label_names, n_lines=300,
+                         node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition (PLI)')
 import matplotlib.pyplot as plt
@@ -129,9 +131,9 @@ plt.savefig('circle.png', facecolor='black')
 fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
 no_names = [''] * len(label_names)
 for ii, method in enumerate(con_methods):
-    plot_connectivity_circle(con[method], no_names, n_lines=300,
+    plot_connectivity_circle(con_res[method], no_names, n_lines=300,
                              node_angles=node_angles, node_colors=label_colors,
                              title=method, padding=0, fontsize_colorbar=6,
-                             figure=fig, subplot=(1, 2, ii + 1))
+                             fig=fig, subplot=(1, 2, ii + 1))
 
 plt.show()

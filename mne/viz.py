@@ -2312,7 +2312,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
                              fontsize_title=12, fontsize_names=8,
                              fontsize_colorbar=8, padding=6.,
-                             figure=None, subplot=111):
+                             fig=None, subplot=111):
     """Visualize connectivity as a circular graph.
 
     Note: This code is based on the circle graph example by Nicolas P. Rougier
@@ -2360,9 +2360,9 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Display a colorbar or not.
     title : str
         The figure title.
-    colorbar_size = float
+    colorbar_size : float
         Size of the colorbar.
-    colorbar_pos = 2-tuple
+    colorbar_pos : 2-tuple
         Position of the colorbar.
     fontsize_title : int
         Font size to use for title.
@@ -2372,7 +2372,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Font size to use for colorbar.
     padding : float
         Space to add around figure to accommodate long labels.
-    figure : None | instance of matplotlib.pyplot.Figure
+    fig : None | instance of matplotlib.pyplot.Figure
         The figure to use. If None, a new figure with the specified background
         color will be created.
     subplot : int | 3-tuple
@@ -2382,7 +2382,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
     Returns
     -------
-    figure : instance of matplotlib.pyplot.Figure
+    fig : instance of matplotlib.pyplot.Figure
         The figure handle.
     axes : instance of matplotlib.axes.PolarAxesSubplot
         The subplot handle.
@@ -2434,8 +2434,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         colormap = plt.get_cmap(colormap)
 
     # Make figure background the same colors as axes
-    if figure is None:
-        figure = plt.figure(figsize=(8, 8), facecolor=facecolor)
+    if fig is None:
+        fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
 
     # Use a polar axes
     if not isinstance(subplot, tuple):
@@ -2570,7 +2570,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
 
-    return figure, axes
+    return fig, axes
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
