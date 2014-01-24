@@ -17,7 +17,7 @@ from scipy.io import loadmat
 tempdir = _TempDir()
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
-curdir = op.join(op.realpath(op.curdir))
+curdir = op.join(op.dirname(__file__))
 
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
