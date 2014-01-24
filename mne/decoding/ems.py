@@ -10,11 +10,11 @@ def compute_ems(epochs, conditions=None, objective_function=None,
                 picks=None, verbose=None):
     """Compute event-matched spatial filter on epochs
 
-    This version operates on the entire timecourse. No time window needs to
+    This version operates on the entire time course. No time window needs to
     be specified. The result is a spatial filter at each time point and a
-    corresponding timecourse. Intuitively, the result gives the similarity
+    corresponding time course. Intuitively, the result gives the similarity
     between the filter at each time point and the data vector (sensors) at
-    that timepoint.
+    that time point.
 
     References
     ----------
@@ -29,7 +29,7 @@ def compute_ems(epochs, conditions=None, objective_function=None,
     conditions : list-like | list of str
         Either a list or an array of indices or bool arrays or a list of
         strings. If a list of strings, strings must match the
-        epochs.event_id's key as well as the number of conditios supported
+        epochs.event_id's key as well as the number of conditions supported
         by the objective_function.
     objective_function : callable
         The objective function to maximize. Must comply with the following
@@ -40,9 +40,12 @@ def compute_ems(epochs, conditions=None, objective_function=None,
             return numpy.ndarray (n_channels, n_times)
 
         If None, the difference function as described in [1]
+    picks : array-like | None
+        Channels to be included. If None only good data channels are used.
+        Defaults to None
     verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to self.verbose.
 
     Returns
     -------
@@ -78,8 +81,7 @@ def compute_ems(epochs, conditions=None, objective_function=None,
 
 
 def _compute_ems(data, conditions, objective_function=None, verbose=None):
-    """Aux function
-    """
+    """Aux function"""
 
     n_epochs, n_channels, n_times = data.shape
     spatial_filter = np.zeros((n_channels, n_times))

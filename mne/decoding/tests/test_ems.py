@@ -37,7 +37,7 @@ def test_ems():
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
-    """'bootrtap'
+    """'bootstrap'
     scipy.io.savemat('test_ems.mat', {'data': np.transpose(epochs_data,
                                                            [1, 2, 0]),
                                       'conds': conditions})

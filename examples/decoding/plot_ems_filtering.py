@@ -11,10 +11,9 @@ data to a single time course that reveals experimental effects",
 BMC Neuroscience 2013, 14:122
 """
 
-# Author: Denisb Engemann <denis.engemann@gmail.com>
+# Author: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
-
 
 print(__doc__)
 
@@ -46,7 +45,6 @@ picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
 # Read epochs
 
 reject = dict(grad=4000e-13, eog=150e-6)
-# reject = dict(mag=4e-12, eog=150e-6)
 
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                     baseline=None, reject=reject)
