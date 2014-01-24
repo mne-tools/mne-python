@@ -36,7 +36,8 @@ def test_ems():
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
-    """'bootstrap'
+
+    """how to create data for tests against matlab
     scipy.io.savemat('test_ems.mat', {'data': np.transpose(epochs_data,
                                                            [1, 2, 0]),
                                       'conds': conditions})
@@ -45,6 +46,7 @@ def test_ems():
     [trl, sfl] = ems_ncond(epochs.data, boolean(epochs.conds))
     save('sfl.mat', 'sfl')
     """
+
     assert_raises(ValueError, compute_ems, epochs, [1, 'hahah'])
     trial_surrogates, spatial_filter = compute_ems(epochs)
 
@@ -54,8 +56,8 @@ def test_ems():
                                                      np.array(conditions))
     surrogates = [trial_surrogates4, trial_surrogates3, trial_surrogates]
     spatial_filters = [spatial_filter, spatial_filter3, spatial_filter4]
-    """
-    # critical tests gainst matlab
+
+    """critical tests against matlab
     trial_surrogates2, spatial_filter2 = [loadmat(op.join(curdir, k))[k[:3]]
                                           for k in ['trl.mat', 'sfl.mat']]
     sorrogates.append(trial_surrogates2)
