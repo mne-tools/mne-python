@@ -12,7 +12,6 @@ from numpy.testing import assert_array_almost_equal
 from mne import fiff, Epochs, read_events
 from mne.utils import _TempDir, requires_sklearn
 from mne.decoding import compute_ems
-from scipy.io import loadmat
 
 tempdir = _TempDir()
 
@@ -37,6 +36,7 @@ def test_ems():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
 
+    # XXX : can you remove this?
     """how to create data for tests against matlab
     scipy.io.savemat('test_ems.mat', {'data': np.transpose(epochs_data,
                                                            [1, 2, 0]),
@@ -57,6 +57,7 @@ def test_ems():
     surrogates = [trial_surrogates4, trial_surrogates3, trial_surrogates]
     spatial_filters = [spatial_filter, spatial_filter3, spatial_filter4]
 
+    # XXX : can you remove this?
     """critical tests against matlab
     trial_surrogates2, spatial_filter2 = [loadmat(op.join(curdir, k))[k[:3]]
                                           for k in ['trl.mat', 'sfl.mat']]
@@ -66,6 +67,6 @@ def test_ems():
     candidates = combinations(surrogates, 2)
     candidates2 = combinations(spatial_filters, 2)
 
-    for a, b  in list(candidates2) +  list(candidates):
+    for a, b in list(candidates2) + list(candidates):
         assert_equal(a.shape, b.shape)
         assert_array_almost_equal(a, b, 15)

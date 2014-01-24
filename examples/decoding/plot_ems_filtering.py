@@ -9,6 +9,10 @@ the experimental effect as described in:
 Aaron Schurger, Sebastien Marti, and Stanislas Dehaene, "Reducing multi-sensor
 data to a single time course that reveals experimental effects",
 BMC Neuroscience 2013, 14:122
+
+XXX : can you explain a bit the idea? and what figures display?
+
+XXX : how do you explain a difference in the baseline?
 """
 
 # Author: Denis Engemann <denis.engemann@gmail.com>
@@ -26,7 +30,7 @@ data_path = sample.data_path()
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_ids = {'AudL': 1, 'VisL': 2}
+event_ids = {'AudL': 1, 'VisL': 3}
 tmin = -0.2
 tmax = 0.5
 

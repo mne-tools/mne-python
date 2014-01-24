@@ -1,7 +1,9 @@
 import numpy as np
 from scipy.linalg import norm
+
 from ..externals.six import string_types
 from ..utils import logger, verbose
+from ..fiff import pick_types
 
 
 @verbose
@@ -25,11 +27,11 @@ def compute_ems(epochs, conditions=None, objective_function=None,
     ----------
     epochs : instance of mne.Epochs
         The epochs.
-    conditions : list-like | list of str
+    conditions : list-like | list of str | None
         Either a list or an array of indices or bool arrays or a list of
         strings. If a list of strings, strings must match the
         epochs.event_id's key as well as the number of conditions supported
-        by the objective_function.
+        by the objective_function. If None keys in epochs.event_id are used.
     objective_function : callable
         The objective function to maximize. Must comply with the following
         API:
@@ -38,7 +40,7 @@ def compute_ems(epochs, conditions=None, objective_function=None,
             ...
             return numpy.ndarray (n_channels, n_times)
 
-        If None, the difference function as described in [1]
+        If None, the difference function as described in [1] is used.
     picks : array-like | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
@@ -53,10 +55,11 @@ def compute_ems(epochs, conditions=None, objective_function=None,
     mean_spatial_filter : instance of numpy.ndarray (n_channels, n_times)
         The set of spatial filters.
     """
+    if picks is None:
+        picks = pick_types(epochs.info, meg=True, eeg=True)
 
     data = epochs.get_data()
-    if picks is not None:
-        data = data[:, picks]
+    data = data[:, picks]
 
     if conditions is None:
         conditions = list(sorted(epochs.event_id.keys()))
@@ -65,8 +68,8 @@ def compute_ems(epochs, conditions=None, objective_function=None,
        any(isinstance(k, string_types) for k in conditions)):
         if not all([k in epochs.event_id for k in conditions]):
             raise ValueError('Not all condition-keys present, pleas check')
-        conditions = np.array([epochs.events[:, 2] == epochs.event_id[k] for
-                               k in conditions])
+        events = epochs.events
+        conditions = [events[:, 2] == epochs.event_id[k] for k in conditions]
 
     if not isinstance(conditions, np.ndarray):
         conditions = np.array(conditions)
@@ -81,7 +84,6 @@ def compute_ems(epochs, conditions=None, objective_function=None,
 
 def _compute_ems(data, conditions, objective_function=None, verbose=None):
     """Aux function"""
-
     n_epochs, n_channels, n_times = data.shape
     spatial_filter = np.zeros((n_channels, n_times))
     surrogate_trials = np.zeros((n_epochs, n_times))
@@ -102,8 +104,7 @@ def _compute_ems(data, conditions, objective_function=None, verbose=None):
         spatial_filter += d
 
         # compute surrogates
-        surrogate_trials[epoch_idx] = np.sum(np.squeeze(data[epoch_idx])
-                                             * d, axis=0)
+        surrogate_trials[epoch_idx] = np.sum(data[epoch_idx[0]] * d, axis=0)
 
     spatial_filter /= n_epochs
 
@@ -112,10 +113,12 @@ def _compute_ems(data, conditions, objective_function=None, verbose=None):
 
 def _ems_diff(data, conditions, train):
     """defaut diff objective function"""
-
     data_a, data_b = [data[conditions[i]] for i in [0, 1]]
+    # XXX : what if there is more than 2 conditions?
     sum1, sum2 = np.sum(data_a, axis=0), np.sum(data_b, axis=0)
     m1 = (sum1 - np.sum(data[train], axis=0)) / (len(data_b) - len(train))
+    # XXX : len(data_b) - len(train) is negative ??? is that expected?
+    # same below:
     m2 = (sum2 - np.sum(data[train], axis=0)) / (len(data_b) - len(train))
-
+    # XXX : will this work well with mixed channels type?
     return m1 - m2
