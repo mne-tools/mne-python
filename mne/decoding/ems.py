@@ -1,11 +1,14 @@
 import numpy as np
 from scipy.linalg import norm
+from ..externals.six import string_types
 from ..utils import logger, verbose
 
 
+
 @verbose
-def compute_ems(data, conditions, objective_function=None, verbose=None):
-    """Compute event-matched spatial filter
+def compute_ems(epochs, conditions=None, objective_function=None,
+                picks=None, verbose=None):
+    """Compute event-matched spatial filter on epochs
 
     This version operates on the entire timecourse. No time window needs to
     be specified. The result is a spatial filter at each time point and a
@@ -21,10 +24,13 @@ def compute_ems(data, conditions, objective_function=None, verbose=None):
 
     Parameters
     ----------
-    data  : numpy.ndarray (n_epochs, n_channels, n_times)
-        The data matrix
-    conditions : list-like
-        a list or an array of indices or bool arrays.
+    epochs : instance of mne.Epochs
+        The epochs.
+    conditions : list-like | list of str
+        Either a list or an array of indices or bool arrays or a list of
+        strings. If a list of strings, strings must match the
+        epochs.event_id's key as well as the number of conditios supported
+        by the objective_function.
     objective_function : callable
         The objective function to maximize. Must comply with the following
         API:
@@ -46,12 +52,19 @@ def compute_ems(data, conditions, objective_function=None, verbose=None):
         The set of spatial filters.
     """
 
-    n_epochs, n_channels, n_times = data.shape
-    spatial_filter = np.zeros((n_channels, n_times))
-    surrogate_trials = np.zeros((n_epochs, n_times))
+    data = epochs.get_data()
+    if picks is not None:
+        data = data[:, picks]
 
-    if objective_function is None:
-        objective_function = _ems_diff
+    if conditions is None:
+        conditions = list(sorted(epochs.event_id.keys()))
+
+    if (isinstance(conditions, list) and
+       any(isinstance(k, string_types) for k in conditions)):
+        if not all([k in epochs.event_id for k in conditions]):
+            raise ValueError('Not all condition-keys present, pleas check')
+        conditions = np.array([epochs.events[:, 2] == epochs.event_id[k] for
+                               k in conditions])
 
     if not isinstance(conditions, np.ndarray):
         conditions = np.array(conditions)
@@ -59,6 +72,21 @@ def compute_ems(data, conditions, objective_function=None, verbose=None):
     # make sure indices are bool if they're not positional
     if tuple(np.unique(conditions)) == (0, 1):
         conditions = conditions.astype(bool)
+
+    return _compute_ems(data, conditions,
+                        objective_function=objective_function, verbose=None)
+
+
+def _compute_ems(data, conditions, objective_function=None, verbose=None):
+    """Aux function
+    """
+
+    n_epochs, n_channels, n_times = data.shape
+    spatial_filter = np.zeros((n_channels, n_times))
+    surrogate_trials = np.zeros((n_epochs, n_times))
+
+    if objective_function is None:
+        objective_function = _ems_diff
 
     from sklearn.cross_validation import LeaveOneOut
 

@@ -3,13 +3,13 @@
 # License: BSD (3-clause)
 
 import os.path as op
+from itertools import combinations
 
 from nose.tools import assert_equal, assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
 from mne import fiff, Epochs, read_events
-from mne.decoding.csp import CSP
 from mne.utils import _TempDir, requires_sklearn
 from mne.decoding import compute_ems
 from scipy.io import loadmat
@@ -37,9 +37,6 @@ def test_ems():
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
-    epochs_data = epochs.get_data()
-    n_channels = epochs_data.shape[1]
-    conditions = [np.intp(epochs.events[:, 2] == k) for k in (1, 3)]
     """'bootrtap'
     scipy.io.savemat('test_ems.mat', {'data': np.transpose(epochs_data,
                                                            [1, 2, 0]),
@@ -49,10 +46,19 @@ def test_ems():
     [trl, sfl] = ems_ncond(epochs.data, boolean(epochs.conds))
     save('sfl.mat', 'sfl')
     """
-    trial_surrogates, spatial_filter = compute_ems(epochs_data, conditions)
+    assert_raises(ValueError, compute_ems, epochs, [1, 'hahah'])
+    trial_surrogates, spatial_filter = compute_ems(epochs)
     trial_surrogates2, spatial_filter2 = [loadmat(op.join(curdir, k))[k[:3]]
                                           for k in ['trl.mat', 'sfl.mat']]
-    for a, b in [(trial_surrogates, trial_surrogates2),
-                 (spatial_filter, spatial_filter2)]:
+    conditions = [np.intp(epochs.events[:, 2] == k) for k in [1, 3]]
+    trial_surrogates3, spatial_filter3 = compute_ems(epochs, conditions)
+    trial_surrogates4, spatial_filter4 = compute_ems(epochs,
+                                                     np.array(conditions))
+    candidates = combinations([trial_surrogates4, trial_surrogates3,
+                               trial_surrogates2, trial_surrogates], 2)
+    candidates2 = combinations([spatial_filter4, spatial_filter3,
+                                spatial_filter2, spatial_filter], 2)
+
+    for a, b  in list(candidates2) +  list(candidates):
         assert_equal(a.shape, b.shape)
         assert_array_almost_equal(a, b, 15)
