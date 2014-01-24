@@ -4,7 +4,6 @@ from ..externals.six import string_types
 from ..utils import logger, verbose
 
 
-
 @verbose
 def compute_ems(epochs, conditions=None, objective_function=None,
                 picks=None, verbose=None):
@@ -103,8 +102,8 @@ def _compute_ems(data, conditions, objective_function=None, verbose=None):
         spatial_filter += d
 
         # compute surrogates
-        surrogate_trials[epoch_idx] = np.nansum(np.squeeze(data[epoch_idx])
-                                                * d, axis=0)
+        surrogate_trials[epoch_idx] = np.sum(np.squeeze(data[epoch_idx])
+                                             * d, axis=0)
 
     spatial_filter /= n_epochs
 
@@ -115,8 +114,8 @@ def _ems_diff(data, conditions, train):
     """defaut diff objective function"""
 
     data_a, data_b = [data[conditions[i]] for i in [0, 1]]
-    sum1, sum2 = np.nansum(data_a, axis=0), np.nansum(data_b, axis=0)
-    m1 = (sum1 - np.nansum(data[train], axis=0)) / (len(data_b) - len(train))
-    m2 = (sum2 - np.nansum(data[train], axis=0)) / (len(data_b) - len(train))
+    sum1, sum2 = np.sum(data_a, axis=0), np.sum(data_b, axis=0)
+    m1 = (sum1 - np.sum(data[train], axis=0)) / (len(data_b) - len(train))
+    m2 = (sum2 - np.sum(data[train], axis=0)) / (len(data_b) - len(train))
 
     return m1 - m2
