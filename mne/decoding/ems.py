@@ -112,8 +112,7 @@ def _compute_ems(data, conditions, objective_function=None, verbose=None):
 
 
 def _ems_diff(data, conditions, train):
-    """defaut diff objective function
-    """
+    """defaut diff objective function"""
 
     data_a, data_b = [data[conditions[i]] for i in [0, 1]]
     sum1, sum2 = np.nansum(data_a, axis=0), np.nansum(data_b, axis=0)

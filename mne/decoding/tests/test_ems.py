@@ -28,8 +28,7 @@ event_id = dict(aud_l=1, vis_l=3)
 
 @requires_sklearn
 def test_ems():
-    """Test event-matched spatial filters
-    """
+    """Test event-matched spatial filters"""
     raw = fiff.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
