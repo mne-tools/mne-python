@@ -10,29 +10,28 @@ Changelog
 ~~~~~~~~~
 
    - Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
-   
+
    - Add `get_peak` method for evoked and stc objects by  `Denis Engemann`_
 
    - Add `iter_topography` function for radically simplified custom sensor topography plotting by `Denis Engemann`_
 
    - Add field line interpolation by `Eric Larson`_
 
-   - Add full provenance tacking for epochs and improve `drop_log` by
-   `Tal Linzen`_, `Alex Gramfort`_ and `Denis Engemann`_
+   - Add full provenance tacking for epochs and improve `drop_log` by `Tal Linzen`_, `Alex Gramfort`_ and `Denis Engemann`_
 
-   - Add systematic contains method to Raw, Epochs and Evoked for channel type
-   membership testing by `Denis Engemann`_
+   - Add systematic contains method to Raw, Epochs and Evoked for channel type membership testing by `Denis Engemann`_
 
    - Add fiff unicode writing and reading support by `Denis Engemann`_
 
    - Add 3D MEG/EEG field plotting function and evoked method by `Denis Engemann`_ and  `Alex Gramfort`_
 
    - Add consistent channel-dropping methods to Raw, Epochs and Evoked by `Denis Engemann`_ and  `Alex Gramfort`_
-   
-   - Add `equalize_channnels` function to set common channels for a list of
-   Raw, Epochs, or Evoked objects by `Denis Engemann`_
+
+   - Add `equalize_channnels` function to set common channels for a list of Raw, Epochs, or Evoked objects by `Denis Engemann`_
 
    - Add `plot_events` function to visually display paradigm by `Alex Gramfort`_
+
+   - Improved connectivity circle plot by `Martin Luessi`_
 
 
 BUG
