@@ -29,7 +29,8 @@ event_id = dict(aud_l=1, vis_l=3)
 def test_ems():
     """Test event-matched spatial filters"""
     raw = fiff.Raw(raw_fname, preload=False)
-    events = read_events(event_name)
+    events = np.r_[read_events(event_name), [[38711,     0,     1]]]
+
     picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     picks = picks[1:13:3]
@@ -46,6 +47,9 @@ def test_ems():
     [trl, sfl] = ems_ncond(epochs.data, boolean(epochs.conds))
     save('sfl.mat', 'sfl')
     """
+
+    assert_raises(ValueError, compute_ems, epochs, [1, 3])
+    epochs.equalize_event_counts(epochs.event_id, copy=False)
 
     assert_raises(ValueError, compute_ems, epochs, [1, 'hahah'])
     trial_surrogates, spatial_filter = compute_ems(epochs)
@@ -70,3 +74,15 @@ def test_ems():
     for a, b in list(candidates2) + list(candidates):
         assert_equal(a.shape, b.shape)
         assert_array_almost_equal(a, b, 15)
+
+    events = read_events(event_name)
+    event_id2 = dict(aud_l=1, aud_r=2, vis_l=3)
+    epochs = Epochs(raw, events, event_id2, tmin, tmax, picks=picks,
+                    baseline=(None, 0), preload=True)
+    epochs.equalize_event_counts(epochs.event_id, copy=False)
+
+    n_expected = sum([len(epochs[k]) for k in ['aud_l', 'vis_l']])
+
+    trial_surrogates, spatial_filter = compute_ems(epochs,
+                                                   ['aud_l', 'vis_l'])
+    assert_equal(n_expected, len(trial_surrogates))

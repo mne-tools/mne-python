@@ -4,6 +4,7 @@ from scipy.linalg import norm
 from ..externals.six import string_types
 from ..utils import logger, verbose
 from ..fiff import pick_types
+from collections import Counter
 
 
 @verbose
@@ -57,6 +58,11 @@ def compute_ems(epochs, conditions=None, objective_function=None,
     """
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True)
+
+    if not len(set(Counter(epochs.events[:, 2]).values())) == 1:
+        raise ValueError('the same number of epochs is required by '
+                         'this function. Please consider '
+                         '`epochs.equalize_event_counts`')
 
     data = epochs.get_data()
     data = data[:, picks]
