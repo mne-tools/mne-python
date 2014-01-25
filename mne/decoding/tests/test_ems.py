@@ -52,24 +52,19 @@ def test_ems():
     epochs.equalize_event_counts(epochs.event_id, copy=False)
 
     assert_raises(ValueError, compute_ems, epochs, [1, 'hahah'])
-    trial_surrogates, spatial_filter = compute_ems(epochs)
+    surrogates, filters, conditions = compute_ems(epochs)
+    assert_equal(list(set(conditions)), [1, 3])
 
     conditions = [np.intp(epochs.events[:, 2] == k) for k in [1, 3]]
-    trial_surrogates3, spatial_filter3 = compute_ems(epochs, conditions)
-    trial_surrogates4, spatial_filter4 = compute_ems(epochs,
-                                                     np.array(conditions))
-    surrogates = [trial_surrogates4, trial_surrogates3, trial_surrogates]
-    spatial_filters = [spatial_filter, spatial_filter3, spatial_filter4]
+    surrogates3, filters3 = compute_ems(epochs, conditions)[:2]
+    surrogates4, filters4 = compute_ems(epochs,
+                                                     np.array(conditions))[:2]
 
-    # XXX : can you remove this?
-    """critical tests against matlab
-    trial_surrogates2, spatial_filter2 = [loadmat(op.join(curdir, k))[k[:3]]
-                                          for k in ['trl.mat', 'sfl.mat']]
-    sorrogates.append(trial_surrogates2)
-    spatial_filters.append(spatial_filter2)
-    """
+    surrogates = [surrogates4, surrogates3, surrogates]
+    filterss = [filters, filters3, filters4]
+
     candidates = combinations(surrogates, 2)
-    candidates2 = combinations(spatial_filters, 2)
+    candidates2 = combinations(filterss, 2)
 
     for a, b in list(candidates2) + list(candidates):
         assert_equal(a.shape, b.shape)
@@ -83,6 +78,8 @@ def test_ems():
 
     n_expected = sum([len(epochs[k]) for k in ['aud_l', 'vis_l']])
 
-    trial_surrogates, spatial_filter = compute_ems(epochs,
-                                                   ['aud_l', 'vis_l'])
-    assert_equal(n_expected, len(trial_surrogates))
+    assert_raises(ValueError, compute_ems, epochs)
+    surrogates, filters, conditions = compute_ems(epochs, ['aud_r', 'vis_l'])
+    assert_equal(n_expected, len(surrogates))
+    assert_equal(n_expected, len(conditions))
+    assert_equal(list(set(conditions)), [2, 3])

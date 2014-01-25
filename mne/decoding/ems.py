@@ -1,3 +1,4 @@
+import operator
 import numpy as np
 from scipy.linalg import norm
 
@@ -55,6 +56,8 @@ def compute_ems(epochs, conditions=None, objective_function=None,
         The trial surrogates.
     mean_spatial_filter : instance of numpy.ndarray (n_channels, n_times)
         The set of spatial filters.
+    conditions : ndarray (n_epochs)
+        The conditions used. Values correpsond to original event ids.
     """
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True)
@@ -64,44 +67,28 @@ def compute_ems(epochs, conditions=None, objective_function=None,
                          'this function. Please consider '
                          '`epochs.equalize_event_counts`')
 
-    data = epochs.get_data()
-    data = data[:, picks]
+    conditions_ = _check_conditions(epochs, conditions)
 
-    if conditions is None:
-        conditions = list(sorted(epochs.event_id.keys()))
+    epochs = epochs[reduce(operator.add, conditions_)]
+    conditions_ = _check_conditions(epochs, conditions)
 
-    if (isinstance(conditions, list) and
-       any(isinstance(k, string_types) for k in conditions)):
-        if not all([k in epochs.event_id for k in conditions]):
-            raise ValueError('Not all condition-keys present, pleas check')
-        events = epochs.events
-        conditions = [events[:, 2] == epochs.event_id[k] for k in conditions]
-
-    if not isinstance(conditions, np.ndarray):
-        conditions = np.array(conditions)
-
-    # make sure indices are bool if they're not positional
-    if tuple(np.unique(conditions)) == (0, 1):
-        conditions = conditions.astype(bool)
-
-    return _compute_ems(data, conditions,
-                        objective_function=objective_function, verbose=None)
-
-
-def _compute_ems(data, conditions, objective_function=None, verbose=None):
-    """Aux function"""
-    n_epochs, n_channels, n_times = data.shape
+    data = epochs.get_data()[:, picks]
+    n_epochs = np.sum(conditions_)
+    n_channels, n_times = data.shape[1:]
     spatial_filter = np.zeros((n_channels, n_times))
     surrogate_trials = np.zeros((n_epochs, n_times))
 
     if objective_function is None:
         objective_function = _ems_diff
+        if len(conditions_) != 2:
+            raise ValueError('The default `objective_function` '
+                             'parameterexpects exactly 2 conditions but '
+                             'you gave me %i' % len(conditions_))
 
     from sklearn.cross_validation import LeaveOneOut
-
     for train_indices, epoch_idx in LeaveOneOut(n_epochs):
         logger.info('.. processing epoch %i' % epoch_idx)
-        d = objective_function(data, conditions, train_indices)
+        d = objective_function(data, conditions_, train_indices)
         # take norm over channels (matlab uses 2-norm)
         for time_idx in np.arange(n_times):
             d[:, time_idx] /= norm(d[:, time_idx], ord=2)
@@ -114,13 +101,19 @@ def _compute_ems(data, conditions, objective_function=None, verbose=None):
 
     spatial_filter /= n_epochs
 
-    return surrogate_trials, spatial_filter
+    # create updated conditions indices for sorting
+    values = zip(*list(sorted(epochs.event_id.items())))[1]
+    conditions_ = conditions_.astype(int)
+    for ii, val in enumerate(values):
+        this_cond = conditions_[ii]
+        this_cond[this_cond.nonzero()] = val
+
+    return surrogate_trials, spatial_filter, conditions_.sum(axis=0)
 
 
 def _ems_diff(data, conditions, train):
     """defaut diff objective function"""
     data_a, data_b = [data[conditions[i]] for i in [0, 1]]
-    # XXX : what if there is more than 2 conditions?
     sum1, sum2 = np.sum(data_a, axis=0), np.sum(data_b, axis=0)
     m1 = (sum1 - np.sum(data[train], axis=0)) / (len(data_b) - len(train))
     # XXX : len(data_b) - len(train) is negative ??? is that expected?
@@ -128,3 +121,35 @@ def _ems_diff(data, conditions, train):
     m2 = (sum2 - np.sum(data[train], axis=0)) / (len(data_b) - len(train))
     # XXX : will this work well with mixed channels type?
     return m1 - m2
+
+
+def _check_conditions(epochs, conditions):
+    """Aux function"""
+
+    if conditions is None:
+        conditions = list(sorted(epochs.event_id.keys()))
+
+    if (isinstance(conditions, list) and
+       any(isinstance(k, string_types) for k in conditions)):
+        if not all([k in epochs.event_id for k in conditions]):
+            raise ValueError('Not all condition-keys present, pleas check')
+        events = epochs.events
+        # special care to avoid path dependant mappings and orders
+        conditions = list(sorted([k for k in epochs.event_id if k in
+                                  conditions]))
+        conditions = [events[:, 2] == epochs.event_id[k] for k in conditions]
+
+    if not isinstance(conditions, np.ndarray):
+        conditions = np.array(conditions)
+
+    # make sure indices are bool if they're not positional
+    if tuple(np.unique(conditions)) == (0, 1):
+        conditions = conditions.astype(bool)
+
+    if not conditions.dtype == bool:
+        conditions_ = np.zeros(len(epochs)).astype(bool)
+        for c in conditions:
+            conditions_[c] = True
+        conditions = conditions_
+
+    return conditions

@@ -30,7 +30,7 @@ data_path = sample.data_path()
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_ids = {'AudL': 1, 'VisL': 3}
+event_ids = {'AudL': 1, 'VisL': 3, 'AudR': 2, 'VisR': 4}
 tmin = -0.2
 tmax = 0.5
 
@@ -54,30 +54,31 @@ epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
                     baseline=None, reject=reject)
 
 # Let's equalize the trial counts in each condition
-epochs.equalize_event_counts(['AudL', 'VisL'], copy=False)
+epochs.equalize_event_counts(epochs.event_id, copy=False)
 
 picks = fiff.pick_types(epochs.info, meg='grad', exclude='bads')
 
-surrogate_trials, spatial_filters = compute_ems(epochs, ['AudL', 'VisL'],
-                                                picks=picks)
-
-order = epochs.events[:, 2].argsort()
-times = epochs.times * 1e3
+surrogates, filters, conditions = compute_ems(epochs, ['AudL', 'VisL'],
+                                              picks=picks)
 
 import matplotlib.pyplot as plt
 
+times = epochs.times * 1e3
+
 plt.figure()
 plt.title('single trial surrogates')
-plt.imshow(surrogate_trials[order], origin='lower', aspect='auto',
-           extent=[times[0], times[-1], 1, len(epochs)])
+plt.imshow(surrogates[conditions.argsort()], origin='lower', aspect='auto',
+           extent=[times[0], times[-1], 1, len(surrogates)])
 plt.xlabel('Time (ms)')
 plt.ylabel('Trials (reordered by condition)')
 
 plt.figure()
 plt.title('Average EMS signal')
-for key, value in epochs.event_id.items():
-    ems_ave = surrogate_trials[epochs.events[:, 2] == value]
-    ems_ave /= 4e-11
+
+mappings = [(k, v) for k, v in event_ids.items() if v in conditions]
+for key, value in mappings:
+    ems_ave = surrogates[conditions == value]
+    ems_ave /= 4e-11  # scale gradiometers
     plt.plot(times, ems_ave.mean(0), label=key)
 plt.xlabel('Time (ms)')
 plt.ylabel('fT/cm')
@@ -85,5 +86,5 @@ plt.legend(loc='best')
 
 # visualize spatial filters across time
 evoked = epochs.average()
-evoked.data = spatial_filters
+evoked.data = filters
 evoked.plot_topomap(ch_type='grad')
