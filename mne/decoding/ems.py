@@ -4,6 +4,7 @@ from scipy.linalg import norm
 
 from ..externals.six import string_types
 from ..utils import logger, verbose
+from ..fixes import partial
 from ..fiff import pick_types
 from collections import Counter
 
@@ -78,6 +79,7 @@ def compute_ems(epochs, conditions=None, objective_function=None,
     spatial_filter = np.zeros((n_channels, n_times))
     surrogate_trials = np.zeros((n_epochs, n_times))
 
+    extra_args = {}
     if objective_function is None:
         objective_function = _ems_diff
         if len(conditions_) != 2:
@@ -85,10 +87,17 @@ def compute_ems(epochs, conditions=None, objective_function=None,
                              'parameterexpects exactly 2 conditions but '
                              'you gave me %i' % len(conditions_))
 
+        data_a, data_b = [data[conditions_[i]] for i in [0, 1]]
+        sum1, sum2 = np.sum(data_a, axis=0), np.sum(data_b, axis=0)
+        extra_args.update({'data_a': data_a,  'data_b': data_b,
+                           'sum1': sum1, 'sum2': sum2})
+        objective_function = partial(objective_function, **extra_args)
+
     from sklearn.cross_validation import LeaveOneOut
+
     for train_indices, epoch_idx in LeaveOneOut(n_epochs):
         logger.info('.. processing epoch %i' % epoch_idx)
-        d = objective_function(data, conditions_, train_indices)
+        d = objective_function(data[train_indices], conditions_)
         # take norm over channels (matlab uses 2-norm)
         for time_idx in np.arange(n_times):
             d[:, time_idx] /= norm(d[:, time_idx], ord=2)
@@ -111,15 +120,12 @@ def compute_ems(epochs, conditions=None, objective_function=None,
     return surrogate_trials, spatial_filter, conditions_.sum(axis=0)
 
 
-def _ems_diff(data, conditions, train):
+def _ems_diff(data, conditions, **kwargs):
     """defaut diff objective function"""
-    data_a, data_b = [data[conditions[i]] for i in [0, 1]]
-    sum1, sum2 = np.sum(data_a, axis=0), np.sum(data_b, axis=0)
-    m1 = (sum1 - np.sum(data[train], axis=0)) / (len(data_b) - len(train))
-    # XXX : len(data_b) - len(train) is negative ??? is that expected?
-    # same below:
-    m2 = (sum2 - np.sum(data[train], axis=0)) / (len(data_b) - len(train))
-    # XXX : will this work well with mixed channels type?
+
+    p = kwargs
+    m1 = (p['sum1'] - np.sum(data, axis=0)) / (len(p['data_b']) - 1)
+    m2 = (p['sum2'] - np.sum(data, axis=0)) / (len(p['data_b']) - 1)
     return m1 - m2
 
 
