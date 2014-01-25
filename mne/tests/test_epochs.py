@@ -731,6 +731,8 @@ def test_access_by_name():
 
     epochs3 = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
                      tmin, tmax, picks=picks, preload=True)
+    assert_equal(list(epochs3[['a', 'b']].event_id.values()),
+                 [1, 2])
     epochs4 = epochs['a']
     epochs5 = epochs3['a']
     assert_array_equal(epochs4.events, epochs5.events)
@@ -741,7 +743,6 @@ def test_access_by_name():
                                   epochs6.events[:, 2] == 2)))
     assert_array_equal(epochs.events, epochs6.events)
     assert_array_almost_equal(epochs.get_data(), epochs6.get_data(), 20)
-
 
 @requires_pandas
 def test_as_data_frame():
