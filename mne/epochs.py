@@ -457,7 +457,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, DropChannelsMixin):
         picks : array-like | None
             Channels to be included. If None only good data channels are used.
             Defaults to None
-            scalings : dict | None
         scalings : dict | None
             Scale factors for the traces. If None, defaults to:
             `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
@@ -1139,6 +1138,10 @@ class Epochs(_BaseEpochs):
         epochs.events = np.atleast_2d(epochs.events[select])
         if epochs.preload:
             epochs._data = epochs._data[select]
+
+        # update event id to reflect new content of epochs
+        epochs.event_id = dict((k, v) for k, v in epochs.event_id.items()
+                               if v in epochs.events[:, 2])
 
         return epochs
 
