@@ -37,17 +37,6 @@ def test_ems():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
 
-    # XXX : can you remove this?
-    """how to create data for tests against matlab
-    scipy.io.savemat('test_ems.mat', {'data': np.transpose(epochs_data,
-                                                           [1, 2, 0]),
-                                      'conds': conditions})
-    # matlab
-    epochs = load('test_ems.mat')
-    [trl, sfl] = ems_ncond(epochs.data, boolean(epochs.conds))
-    save('sfl.mat', 'sfl')
-    """
-
     assert_raises(ValueError, compute_ems, epochs, [1, 3])
     epochs.equalize_event_counts(epochs.event_id, copy=False)
 
@@ -57,8 +46,7 @@ def test_ems():
 
     conditions = [np.intp(epochs.events[:, 2] == k) for k in [1, 3]]
     surrogates3, filters3 = compute_ems(epochs, conditions)[:2]
-    surrogates4, filters4 = compute_ems(epochs,
-                                                     np.array(conditions))[:2]
+    surrogates4, filters4 = compute_ems(epochs, np.array(conditions))[:2]
 
     surrogates = [surrogates4, surrogates3, surrogates]
     filterss = [filters, filters3, filters4]
