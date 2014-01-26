@@ -10,7 +10,7 @@ from collections import Counter
 
 
 @verbose
-def compute_ems(epochs, conditions=None, objective_function=None,
+def compute_ems(epochs, conditions=None,
                 picks=None, verbose=None):
     """Compute event-matched spatial filter on epochs
 
@@ -35,15 +35,6 @@ def compute_ems(epochs, conditions=None, objective_function=None,
         strings. If a list of strings, strings must match the
         epochs.event_id's key as well as the number of conditions supported
         by the objective_function. If None keys in epochs.event_id are used.
-    objective_function : callable
-        The objective function to maximize. Must comply with the following
-        API:
-
-        def objective_function(data, conditions, **kwargs):
-            ...
-            return numpy.ndarray (n_channels, n_times)
-
-        If None, the difference function as described in [1] is used.
     picks : array-like | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
@@ -73,19 +64,34 @@ def compute_ems(epochs, conditions=None, objective_function=None,
     epochs = epochs[reduce(operator.add, conditions_)]
     conditions_ = _check_conditions(epochs, conditions)
 
-    data = epochs.get_data()[:, picks]
+    epochs = epochs.copy()
+    data = epochs.get_data()
+    epochs.drop_channels([epochs.ch_names[i] for i in np.arange(data.shape[1])
+                          if i not in picks])
+    scaling = None
+    if sum([k in epochs for k in ['mag', 'grad', 'eeg']]) > 1:
+        scaling = np.atleast_1d(np.std(data)) ** -1
+
+    data = data[:, picks]
+
+    if scaling is not None:
+        data *= scaling
+        logger.info('...multiple sensor types found, rescaling data. '
+                    'This will result in arbitrary units')
+
     n_epochs = np.sum(conditions_)
     n_channels, n_times = data.shape[1:]
     spatial_filter = np.zeros((n_channels, n_times))
     surrogate_trials = np.zeros((n_epochs, n_times))
 
     extra_args = {}
+    objective_function = None  # implement later
     if objective_function is None:
         objective_function = _ems_diff
         if len(conditions_) != 2:
-            raise ValueError('The default `objective_function` '
-                             'parameterexpects exactly 2 conditions but '
-                             'you gave me %i' % len(conditions_))
+            raise ValueError('Currently this function expects exactly 2 '
+                             'conditions but you gave me %i' %
+                             len(conditions_))
 
         data_a, data_b = [data[conditions_[i]] for i in [0, 1]]
         sum1, sum2 = np.sum(data_a, axis=0), np.sum(data_b, axis=0)
