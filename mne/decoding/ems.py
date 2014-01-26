@@ -5,13 +5,14 @@ from scipy.linalg import norm
 from ..externals.six import string_types
 from ..utils import logger, verbose
 from ..fixes import partial
+from ..parallel import parallel_func
 from ..fiff import pick_types
 from collections import Counter
 
 
 @verbose
 def compute_ems(epochs, conditions=None,
-                picks=None, verbose=None):
+                picks=None, verbose=None, n_jobs=1):
     """Compute event-matched spatial filter on epochs
 
     This version operates on the entire time course. No time window needs to
@@ -38,6 +39,8 @@ def compute_ems(epochs, conditions=None,
     picks : array-like | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
+    n_jobs : int
+        Number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to self.verbose.
@@ -80,9 +83,7 @@ def compute_ems(epochs, conditions=None,
                     'This will result in arbitrary units')
 
     n_epochs = np.sum(conditions_)
-    n_channels, n_times = data.shape[1:]
-    spatial_filter = np.zeros((n_channels, n_times))
-    surrogate_trials = np.zeros((n_epochs, n_times))
+    n_times = len(epochs.times)
 
     extra_args = {}
     objective_function = None  # implement later
@@ -101,20 +102,15 @@ def compute_ems(epochs, conditions=None,
 
     from sklearn.cross_validation import LeaveOneOut
 
-    for train_indices, epoch_idx in LeaveOneOut(n_epochs):
-        logger.info('.. processing epoch %i' % epoch_idx)
-        d = objective_function(data[train_indices], conditions_)
-        # take norm over channels (matlab uses 2-norm)
-        for time_idx in np.arange(n_times):
-            d[:, time_idx] /= norm(d[:, time_idx], ord=2)
+    iter_times = np.arange(n_times)
+    parallel, p_func, _ = parallel_func(_run_ems, n_jobs=n_jobs)
+    out = parallel(p_func(objective_function, data, train_indices, conditions_,
+                          iter_times, epoch_idx, extra_args)
+                   for train_indices, epoch_idx in LeaveOneOut(n_epochs))
 
-        # update spatial filter
-        spatial_filter += d
-
-        # compute surrogates
-        surrogate_trials[epoch_idx] = np.sum(data[epoch_idx[0]] * d, axis=0)
-
-    spatial_filter /= n_epochs
+    surrogate_trials, spatial_filter = zip(*out)
+    surrogate_trials = np.array(surrogate_trials)
+    spatial_filter = np.mean(spatial_filter, axis=0)
 
     # create updated conditions indices for sorting
     values = zip(*list(sorted(epochs.event_id.items())))[1]
@@ -133,6 +129,17 @@ def _ems_diff(data, conditions, **kwargs):
     m1 = (p['sum1'] - np.sum(data, axis=0)) / (len(p['data_b']) - 1)
     m2 = (p['sum2'] - np.sum(data, axis=0)) / (len(p['data_b']) - 1)
     return m1 - m2
+
+
+def _run_ems(objective_function, data, train_indices, conditions_,
+             iter_times, epoch_idx, extra_args):
+    d = objective_function(data[train_indices], conditions_, **extra_args)
+    # take norm over channels (matlab uses 2-norm)
+    for time_idx in iter_times:
+        d[:, time_idx] /= norm(d[:, time_idx], ord=2)
+
+    # compute surrogates
+    return np.sum(data[epoch_idx[0]] * d, axis=0), d
 
 
 def _check_conditions(epochs, conditions):
