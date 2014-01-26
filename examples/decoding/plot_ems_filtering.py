@@ -65,7 +65,7 @@ surrogates, filters, conditions = compute_ems(epochs, ['AudL', 'VisL'])
 
 import matplotlib.pyplot as plt
 
-times = epochs.times * 1e31
+times = epochs.times * 1e3
 plt.figure()
 plt.title('single trial surrogates')
 plt.imshow(surrogates[conditions.argsort()], origin='lower', aspect='auto',
@@ -79,7 +79,7 @@ plt.title('Average EMS signal')
 mappings = [(k, v) for k, v in event_ids.items() if v in conditions]
 for key, value in mappings:
     ems_ave = surrogates[conditions == value]
-    ems_ave *= 4e11
+    ems_ave *= 1e13
     plt.plot(times, ems_ave.mean(0), label=key)
 plt.xlabel('Time (ms)')
 plt.ylabel('fT/cm')
