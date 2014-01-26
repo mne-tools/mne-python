@@ -54,6 +54,7 @@ def compute_ems(epochs, conditions=None,
     conditions : ndarray (n_epochs)
         The conditions used. Values correpsond to original event ids.
     """
+    logger.info('...computing surrogate time series. This can take some time')
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True)
 

@@ -21,8 +21,6 @@ We will first plot a trials x times image of the single trials and order the
 trials by condition. A second plot shows the average time series for each
 condition. Finally a topographic plot is created which exhibits the
 temporal evolution of the spatial filters.
-
-
 """
 
 # Author: Denis Engemann <denis.engemann@gmail.com>
