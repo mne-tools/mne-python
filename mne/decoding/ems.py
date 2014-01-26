@@ -1,13 +1,13 @@
 import operator
+from functools import reduce
 import numpy as np
 from scipy.linalg import norm
 
 from ..externals.six import string_types
 from ..utils import logger, verbose
-from ..fixes import partial
+from ..fixes import partial, Counter
 from ..parallel import parallel_func
 from ..fiff import pick_types
-from collections import Counter
 
 
 @verbose
