@@ -130,7 +130,7 @@ def _ems_diff(data, conditions, **kwargs):
     """defaut diff objective function"""
 
     p = kwargs
-    m1 = (p['sum1'] - np.sum(data, axis=0)) / (len(p['data_b']) - 1)
+    m1 = (p['sum1'] - np.sum(data, axis=0)) / (len(p['data_a']) - 1)
     m2 = (p['sum2'] - np.sum(data, axis=0)) / (len(p['data_b']) - 1)
     return m1 - m2
 
