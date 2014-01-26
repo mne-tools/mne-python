@@ -63,6 +63,9 @@ def compute_ems(epochs, conditions=None,
                          'this function. Please consider '
                          '`epochs.equalize_event_counts`')
 
+    if isinstance(conditions, tuple):
+        conditions = list
+
     conditions_ = _check_conditions(epochs, conditions)
 
     epochs = epochs[reduce(operator.add, conditions_)]
