@@ -8,7 +8,9 @@ from ...utils import get_config, verbose
 from ...fixes import partial
 from ..utils import has_dataset, _data_path, _doc
 
+
 has_spm_data = partial(has_dataset, name='spm')
+
 
 @verbose
 def data_path(path=None, force_update=False, update_path=True,
@@ -23,8 +25,10 @@ data_path.__doc__ = _doc.format(name='spm',
 
 # Allow forcing of sample dataset skip (for tests) using:
 # `make test-no-sample`
-skip_spm = get_config('MNE_SKIP_SPM_DATASET_TESTS', 'false') == 'true'
-has_spm_data = has_dataset('spm')
-requires_spm_data = np.testing.dec.skipif(not has_spm_data
-                                          or skip_spm,
+def _skip_spm_sample_data():
+    skip_spm = get_config('MNE_SKIP_SPM_DATASET_TESTS', 'false') == 'true'
+    skip = skip_spm or not has_spm_data()
+    return skip
+
+requires_spm_data = np.testing.dec.skipif(_skip_spm_sample_data,
                                           'Requires spm dataset')

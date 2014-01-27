@@ -104,7 +104,7 @@ def _data_path(path=None, force_update=False, update_path=True,
         return ''
 
     if not op.exists(folder_path) or force_update:
-        logger.info('Downloading or reinstalling data archive %s at location %s' % 
+        logger.info('Downloading or reinstalling data archive %s at location %s' %
                     (archive_name, path))
 
         if op.exists(martinos_path):
@@ -181,5 +181,5 @@ def has_dataset(name):
     """Helper for sample dataset presence"""
     endswith = {'sample': 'MNE-sample-data',
                 'spm': 'MNE-spm-face'}[name]
-    dp = _data_path(download=False, name=name, check_version=False) 
+    dp = _data_path(download=False, name=name, check_version=False)
     return dp.endswith(endswith)
