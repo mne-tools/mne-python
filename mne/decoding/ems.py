@@ -51,7 +51,7 @@ def compute_ems(epochs, conditions=None,
         The trial surrogates.
     mean_spatial_filter : ndarray, shape (n_channels, n_times)
         The set of spatial filters.
-    conditions : ndarray, shape (n_epochs)
+    conditions : ndarray, shape (n_epochs,)
         The conditions used. Values correpsond to original event ids.
     """
     logger.info('...computing surrogate time series. This can take some time')
