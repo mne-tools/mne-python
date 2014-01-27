@@ -47,11 +47,11 @@ def compute_ems(epochs, conditions=None,
 
     Returns
     -------
-    surrogate_trials : numpy.ndarray (trials, n_trials, n_time_points)
+    surrogate_trials : ndarray, shape (trials, n_trials, n_time_points)
         The trial surrogates.
-    mean_spatial_filter : instance of numpy.ndarray (n_channels, n_times)
+    mean_spatial_filter : ndarray, shape (n_channels, n_times)
         The set of spatial filters.
-    conditions : ndarray (n_epochs)
+    conditions : ndarray, shape (n_epochs)
         The conditions used. Values correpsond to original event ids.
     """
     logger.info('...computing surrogate time series. This can take some time')
@@ -77,7 +77,7 @@ def compute_ems(epochs, conditions=None,
                           if i not in picks])
     scaling = None
     if sum([k in epochs for k in ['mag', 'grad', 'eeg']]) > 1:
-        scaling = np.atleast_1d(np.std(data)) ** -1
+        scaling = 1. / np.atleast_1d(np.std(data))
 
     data = data[:, picks]
 

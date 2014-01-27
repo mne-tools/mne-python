@@ -79,7 +79,7 @@ plt.title('Average EMS signal')
 mappings = [(k, v) for k, v in event_ids.items() if v in conditions]
 for key, value in mappings:
     ems_ave = surrogates[conditions == value]
-    ems_ave *= 1e13
+    ems_ave *= 1e3
     plt.plot(times, ems_ave.mean(0), label=key)
 plt.xlabel('Time (ms)')
 plt.ylabel('fT/cm')
