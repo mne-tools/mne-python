@@ -437,7 +437,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, output='onset',
-                consecutive='increasing', min_duration=0):
+                consecutive='increasing', min_duration=None):
     """Find events from raw file
 
     Parameters
@@ -463,7 +463,8 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         the first.
     min_duration : float
         The minimum duration of a change in the events channel required
-        to consider it as an event (in seconds).
+        to consider it as an event (in seconds). By default this value is set
+        to the equivalent of 2 samples.
 
     Returns
     -------
@@ -532,6 +533,9 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     --------
     find_stim_steps : Find all the steps in the stim channel.
     """
+    if min_duration is None:
+        min_duration = 2 / raw.info['sfreq']
+    
     min_samples = min_duration * raw.info['sfreq']
 
     # pull stim channel from config if necessary
