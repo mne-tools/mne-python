@@ -29,15 +29,16 @@ event_id = dict(aud_l=1, vis_l=3)
 def test_ems():
     """Test event-matched spatial filters"""
     raw = fiff.Raw(raw_fname, preload=False)
-    events = np.r_[read_events(event_name), [[39927,     0,     1]]]
+
+    # create unequal number of events
+    events = np.r_[read_events(event_name), [[32102,     0,     1]]]
 
     picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
-
-    assert_raises(ValueError, compute_ems, epochs, [1, 3])
+    assert_raises(ValueError, compute_ems, epochs, ['aud_l', 'vis_l'])
     epochs.equalize_event_counts(epochs.event_id, copy=False)
 
     assert_raises(ValueError, compute_ems, epochs, [1, 'hahah'])

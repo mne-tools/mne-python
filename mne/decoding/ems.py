@@ -59,7 +59,7 @@ def compute_ems(epochs, conditions=None,
         picks = pick_types(epochs.info, meg=True, eeg=True)
 
     if not len(set(Counter(epochs.events[:, 2]).values())) == 1:
-        raise ValueError('the same number of epochs is required by '
+        raise ValueError('The same number of epochs is required by '
                          'this function. Please consider '
                          '`epochs.equalize_event_counts`')
 
@@ -155,7 +155,7 @@ def _check_conditions(epochs, conditions):
     if (isinstance(conditions, list) and
        any(isinstance(k, string_types) for k in conditions)):
         if not all([k in epochs.event_id for k in conditions]):
-            raise ValueError('Not all condition-keys present, pleas check')
+            raise ValueError('Not all condition-keys present, please check')
         events = epochs.events
         # special care to avoid path dependant mappings and orders
         conditions = list(sorted([k for k in epochs.event_id if k in
