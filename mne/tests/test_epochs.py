@@ -71,18 +71,23 @@ def test_read_epochs_bad_events():
     # Event at the beginning
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
-    evoked = epochs.average()
+    with warnings.catch_warnings(record=True):
+        evoked = epochs.average()
 
     epochs = Epochs(raw, np.array([[raw.first_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
     epochs.drop_bad_epochs()
-    evoked = epochs.average()
+    with warnings.catch_warnings(record=True):
+        evoked = epochs.average()
 
     # Event at the end
     epochs = Epochs(raw, np.array([[raw.last_samp, 0, event_id]]),
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
-    evoked = epochs.average()
-    assert evoked
+
+    with warnings.catch_warnings(record=True):
+        evoked = epochs.average()
+        assert evoked
+    warnings.resetwarnings()
 
 
 def test_read_write_epochs():

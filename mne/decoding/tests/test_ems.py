@@ -29,7 +29,7 @@ event_id = dict(aud_l=1, vis_l=3)
 def test_ems():
     """Test event-matched spatial filters"""
     raw = fiff.Raw(raw_fname, preload=False)
-    events = np.r_[read_events(event_name), [[38711,     0,     1]]]
+    events = np.r_[read_events(event_name), [[39927,     0,     1]]]
 
     picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
