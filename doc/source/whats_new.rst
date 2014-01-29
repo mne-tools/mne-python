@@ -33,6 +33,8 @@ Changelog
 
    - Improved connectivity circle plot by `Martin Luessi`_
 
+   - Add ability to anonymize measurement info by `Eric Larson`_
+
 
 BUG
 ~~~

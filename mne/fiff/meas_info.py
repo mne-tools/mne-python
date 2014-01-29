@@ -20,7 +20,8 @@ from .ctf import read_ctf_comp, write_ctf_comp
 from .channels import read_bad_channels
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
-                    write_coord_trans, write_ch_info, write_name_list)
+                    write_coord_trans, write_ch_info, write_name_list,
+                    write_julian)
 from ..utils import logger, verbose
 
 
@@ -70,6 +71,10 @@ class Info(dict):
         st += '\n>'
         st %= non_empty
         return st
+
+    def _anonymize(self):
+        if self.get('subject_info') is not None:
+            del self['subject_info']
 
 
 def read_fiducials(fname):
@@ -212,6 +217,7 @@ def read_meas_info(fid, tree, verbose=None):
     description = None
     proj_id = None
     proj_name = None
+    line_freq = None
     p = 0
     for k in range(meas_info['nent']):
         kind = meas_info['directory'][k].kind
@@ -256,6 +262,9 @@ def read_meas_info(fid, tree, verbose=None):
         elif kind == FIFF.FIFF_PROJ_NAME:
             tag = read_tag(fid, pos)
             proj_name = tag.data
+        elif kind == FIFF.FIFF_LINE_FREQ:
+            tag = read_tag(fid, pos)
+            line_freq = float(tag.data)
 
     # Check that we have everything we need
     if nchan is None:
@@ -338,6 +347,39 @@ def read_meas_info(fid, tree, verbose=None):
     else:
         info = Info(file_id=None)
 
+    subject_info = dir_tree_find(meas_info, FIFF.FIFFB_SUBJECT)
+    if len(subject_info) == 1:
+        print(len(subject_info))
+        subject_info = subject_info[0]
+        si = dict()
+        for k in range(subject_info['nent']):
+            kind = subject_info['directory'][k].kind
+            pos = subject_info['directory'][k].pos
+            if kind == FIFF.FIFF_SUBJ_ID:
+                tag = read_tag(fid, pos)
+                si['id'] = int(tag.data)
+            elif kind == FIFF.FIFF_SUBJ_HIS_ID:
+                tag = read_tag(fid, pos)
+                si['his_id'] = str(tag.data)
+            elif kind == FIFF.FIFF_SUBJ_LAST_NAME:
+                tag = read_tag(fid, pos)
+                si['last_name'] = str(tag.data)
+            elif kind == FIFF.FIFF_SUBJ_FIRST_NAME:
+                tag = read_tag(fid, pos)
+                si['first_name'] = str(tag.data)
+            elif kind == FIFF.FIFF_SUBJ_BIRTH_DAY:
+                tag = read_tag(fid, pos)
+                si['birthday'] = tag.data
+            elif kind == FIFF.FIFF_SUBJ_SEX:
+                tag = read_tag(fid, pos)
+                si['sex'] = int(tag.data)
+            elif kind == FIFF.FIFF_SUBJ_HAND:
+                tag = read_tag(fid, pos)
+                si['hand'] = int(tag.data)
+    else:
+        si = None
+    info['subject_info'] = si
+
     #   Load extra information blocks
     read_extra_meas_info(fid, tree, info)
 
@@ -370,6 +412,7 @@ def read_meas_info(fid, tree, verbose=None):
     info['sfreq'] = sfreq
     info['highpass'] = highpass if highpass is not None else 0
     info['lowpass'] = lowpass if lowpass is not None else info['sfreq'] / 2.0
+    info['line_freq'] = line_freq
 
     #   Add the channel information and make a list of channel names
     #   for convenience
@@ -407,8 +450,7 @@ def read_extra_meas_info(fid, tree, info):
     # this and its partner, write_extra_meas_info, could be made more
     # comprehensive (i.e.., actually parse and read the data instead of
     # just storing it for later)
-    blocks = [FIFF.FIFFB_SUBJECT, FIFF.FIFFB_EVENTS,
-              FIFF.FIFFB_HPI_RESULT, FIFF.FIFFB_HPI_MEAS,
+    blocks = [FIFF.FIFFB_EVENTS, FIFF.FIFFB_HPI_RESULT, FIFF.FIFFB_HPI_MEAS,
               FIFF.FIFFB_PROCESSING_HISTORY]
     info['orig_blocks'] = blocks
 
@@ -513,6 +555,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     write_float(fid, FIFF.FIFF_SFREQ, info['sfreq'])
     write_float(fid, FIFF.FIFF_LOWPASS, info['lowpass'])
     write_float(fid, FIFF.FIFF_HIGHPASS, info['highpass'])
+    if info.get('line_freq') is not None:
+        write_float(fid, FIFF.FIFF_LINE_FREQ, info['line_freq'])
     if data_type is not None:
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
 
@@ -525,6 +569,26 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         if reset_range is True:
             c['range'] = 1.0
         write_ch_info(fid, c)
+
+    # Subject information
+    if info.get('subject_info') is not None:
+        start_block(fid, FIFF.FIFFB_SUBJECT)
+        si = info['subject_info']
+        if si.get('id') is not None:
+            write_int(fid, FIFF.FIFF_SUBJ_ID, si['id'])
+        if si.get('his_id') is not None:
+            write_string(fid, FIFF.FIFF_SUBJ_HIS_ID, si['his_id'])
+        if si.get('last_name') is not None:
+            write_string(fid, FIFF.FIFF_SUBJ_LAST_NAME, si['last_name'])
+        if si.get('first_name') is not None:
+            write_string(fid, FIFF.FIFF_SUBJ_FIRST_NAME, si['first_name'])
+        if si.get('birthday') is not None:
+            write_julian(fid, FIFF.FIFF_SUBJ_BIRTH_DAY, si['birthday'])
+        if si.get('sex') is not None:
+            write_int(fid, FIFF.FIFF_SUBJ_SEX, si['sex'])
+        if si.get('hand') is not None:
+            write_int(fid, FIFF.FIFF_SUBJ_HAND, si['hand'])
+        end_block(fid, FIFF.FIFFB_SUBJECT)
 
     end_block(fid, FIFF.FIFFB_MEAS_INFO)
 
