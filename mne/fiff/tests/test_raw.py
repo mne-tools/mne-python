@@ -9,7 +9,6 @@ import os
 import os.path as op
 from copy import deepcopy
 import warnings
-import sys
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -40,13 +39,15 @@ tempdir = _TempDir()
 
 
 def test_subject_info():
+    """Test reading subject information
+    """
     raw = Raw(fif_fname)
     raw.crop(0, 1)
     assert_true(raw.info['subject_info'] is None)
     # fake some subject data
     keys = ['id', 'his_id', 'last_name', 'first_name', 'birthday', 'sex',
             'hand']
-    vals = [1, 'foobar', 'bar', 'foo', (1901, 02, 03), 0, 1]
+    vals = [1, 'foobar', 'bar', 'foo', (1901, 2, 3), 0, 1]
     subject_info = dict()
     for key, val in zip(keys, vals):
         subject_info[key] = val
