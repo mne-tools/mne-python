@@ -437,7 +437,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, output='onset',
-                consecutive='increasing', min_duration=None):
+                consecutive='increasing', min_duration=None, one_sample=True):
     """Find events from raw file
 
     Parameters
@@ -465,6 +465,11 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         The minimum duration of a change in the events channel required
         to consider it as an event (in seconds). By default this value is set
         to the equivalent of 2 samples.
+    one_sample : bool
+        When True, find_events will check to make sure there are no one sample
+        long events. If there are it will issue a ValueError warning that you
+        should consider changing min_duration. This check can be skipped by
+        setting one_sample to False.
 
     Returns
     -------
@@ -533,9 +538,6 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     --------
     find_stim_steps : Find all the steps in the stim channel.
     """
-    if min_duration is None:
-        min_duration = 2 / raw.info['sfreq']
-    
     min_samples = min_duration * raw.info['sfreq']
 
     # pull stim channel from config if necessary
@@ -548,6 +550,16 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 
     events = _find_events(data, raw.first_samp, verbose=verbose, output=output,
                           consecutive=consecutive, min_samples=min_samples)
+                          
+    # add safety check for spurious events (for ex. from neuromag syst.) by
+    # checking the number of single sample events
+    if one_sample is True:
+        n_single = np.sum(np.diff(events[:, 0]) == 1)
+        if ( n_single > 0 ):
+            raise ValueError("You have %d one sample long triggers. These are "
+            "very unusual and you may want to set min_duration to  2 / "
+            "raw.info['sfreq']. Alternatively, if you believe you have 1 "
+            "sample long triggers you may set one_sample to false")
 
     return events
 
