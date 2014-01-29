@@ -330,6 +330,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
     info['proj_id'] = None
     info['proj_name'] = None
     info['experimenter'] = None
+    info['line_freq'] = None
+    info['subject_info'] = None
 
     edf_info = dict()
     edf_info['annot'] = annot
