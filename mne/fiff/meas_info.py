@@ -571,7 +571,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_ch_info(fid, c)
 
     # Subject information
-    if info['subject_info'] is not None:
+    if info.get('subject_info') is not None:
         start_block(fid, FIFF.FIFFB_SUBJECT)
         si = info['subject_info']
         if si.get('id') is not None:

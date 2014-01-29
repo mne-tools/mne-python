@@ -21,7 +21,7 @@ from mne.fiff import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
 from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess)
-from mne.externals.six import text_type, b
+from mne.externals.six.moves import zip
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -37,6 +37,31 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 tempdir = _TempDir()
+
+
+def test_subject_info():
+    raw = Raw(fif_fname)
+    raw.crop(0, 1)
+    assert_true(raw.info['subject_info'] is None)
+    # fake some subject data
+    keys = ['id', 'his_id', 'last_name', 'first_name', 'birthday', 'sex',
+            'hand']
+    vals = [1, 'foobar', 'bar', 'foo', (1901, 02, 03), 0, 1]
+    subject_info = dict()
+    for key, val in zip(keys, vals):
+        subject_info[key] = val
+    raw.info['subject_info'] = subject_info
+    out_fname = op.join(tempdir, 'test_subj_info_raw.fif')
+    raw.save(out_fname, overwrite=True)
+    raw_read = Raw(out_fname)
+    for key in keys:
+        assert_equal(subject_info[key], raw_read.info['subject_info'][key])
+    raw_read.anonymize()
+    assert_true(raw_read.info.get('subject_info') is None)
+    out_fname_anon = op.join(tempdir, 'test_subj_info_anon_raw.fif')
+    raw_read.save(out_fname_anon, overwrite=True)
+    raw_read = Raw(out_fname_anon)
+    assert_true(raw_read.info.get('subject_info') is None)
 
 
 def test_get_chpi():
