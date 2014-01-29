@@ -349,7 +349,6 @@ def read_meas_info(fid, tree, verbose=None):
 
     subject_info = dir_tree_find(meas_info, FIFF.FIFFB_SUBJECT)
     if len(subject_info) == 1:
-        print(len(subject_info))
         subject_info = subject_info[0]
         si = dict()
         for k in range(subject_info['nent']):
