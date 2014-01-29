@@ -11,10 +11,10 @@ import os.path as op
 import gzip
 import re
 import uuid
-import sys
 
 from .constants import FIFF
 from ..utils import logger
+from ..externals.jdcal import jcal2jd
 
 
 def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
@@ -71,6 +71,15 @@ def write_complex128(fid, kind, data):
     data_size = 16
     data = np.array(data, dtype='>c16').T
     _write(fid, data, kind, data_size, FIFF.FIFFT_COMPLEX_FLOAT, '>c16')
+
+
+def write_julian(fid, kind, data):
+    """Writes a Julian-formatted date to a FIF file"""
+    assert len(data) == 3
+    data_size = 4
+    jd = np.sum(jcal2jd(*data))
+    data = np.array(jd, dtype='>i4')
+    _write(fid, data, kind, data_size, FIFF.FIFFT_JULIAN, '>i4')
 
 
 def write_string(fid, kind, data):

@@ -6,10 +6,10 @@
 import struct
 import os
 import gzip
-import sys
 import numpy as np
 from scipy import linalg
 from ..externals.six import b, text_type
+from ..externals.jdcal import jd2jcal
 
 from .constants import FIFF
 
@@ -458,6 +458,9 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 for _ in range(tag.size // 16 - 1):
                     s = fid.read(4 * 4)
                     tag.data.append(Tag(*struct.unpack(">iIii", s)))
+            elif tag.type == FIFF.FIFFT_JULIAN:
+                tag.data = int(np.fromstring(fid.read(4), dtype=">i4"))
+                tag.data = jd2jcal(tag.data)
             else:
                 raise Exception('Unimplemented tag data type %s' % tag.type)
 

@@ -119,6 +119,7 @@ FIFF.FIFF_SUBAVE_FIRST   = 231    # The first epoch # contained in the subaverag
 FIFF.FIFF_NAME           = 233          # Intended to be a short name.
 FIFF.FIFF_DESCRIPTION    = FIFF.FIFF_COMMENT # (Textual) Description of an object
 FIFF.FIFF_DIG_STRING     = 234          # String of digitized points
+FIFF.FIFF_LINE_FREQ      = 235    # Line frequency
 #
 # HPI fitting program tags
 #

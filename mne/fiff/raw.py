@@ -403,6 +403,12 @@ class Raw(ProjMixin, ContainsMixin, DropChannelsMixin):
         # set the data
         self._data[sel, start:stop] = value
 
+    def anonymize(self):
+        """Anonymize data
+
+        This function will remove info['subject_info'] if it exists."""
+        self.info._anonymize()
+
     @verbose
     def apply_function(self, fun, picks, dtype, n_jobs, verbose=None, *args,
                        **kwargs):

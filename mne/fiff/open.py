@@ -189,6 +189,8 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                         postpend += ' ... dict len=' + str(len(tag.data))
                     elif isinstance(tag.data, string_types):
                         postpend += ' ... str len=' + str(len(tag.data))
+                    elif isinstance(tag.data, (list, tuple)):
+                        postpend += ' ... list len=' + str(len(tag.data))
                     else:
                         postpend += ' ... (unknown type)'
                 postpend = '>' * 20 + 'BAD' if not good else postpend
