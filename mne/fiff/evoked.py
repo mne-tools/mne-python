@@ -891,10 +891,10 @@ def write_evoked(fname, evoked):
 
 def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     """Get feature-index and time of maximum signal from 2D array
-    
+
     Note. This is a 'getter', not a 'finder'. For non-evoked type
     data and continuous signals, please use proper peak detection algorithms.
-    
+
     Parameters
     ----------
     data : instance of numpy.ndarray (n_locations, n_times)
@@ -928,7 +928,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
         tmin = times[0]
     if tmax == None:
         tmax = times[-1]
-    
+
     if tmin < times.min():
         raise ValueError('The tmin value is out of bounds. It must be '
                          'within {0} and {1}'.format(times.min(), times.max()))

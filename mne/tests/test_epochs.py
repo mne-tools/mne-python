@@ -17,7 +17,9 @@ import warnings
 from mne import (fiff, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels)
 from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
-from mne.utils import _TempDir, requires_pandas, requires_nitime
+from mne.utils import (_TempDir, requires_pandas, requires_nitime,
+                       clean_warning_registry)
+
 from mne.fiff import read_evoked
 from mne.fiff.channels import ContainsMixin
 from mne.fiff.proj import _has_eeg_average_ref_proj
@@ -43,6 +45,22 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 tempdir = _TempDir()
+
+clean_warning_registry()  # really clean warning stack
+
+
+def test_event_ordering():
+    """Test event order"""
+    events2 = events.copy()
+    np.random.shuffle(events2)
+    for ii, eve in enumerate([events, events2]):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always', RuntimeWarning)
+            Epochs(raw, eve, event_id, tmin, tmax,
+                   baseline=(None, 0), reject=reject, flat=flat)
+            assert_equal(len(w), ii)
+            if ii > 0:
+                assert_true('chronologically' in '%s' % w[-1].message)
 
 
 def test_epochs_bad_baseline():
@@ -834,20 +852,6 @@ def test_epochs_proj_mixin():
     data = epochs.get_data().copy()
     epochs.apply_proj()
     assert_allclose(np.dot(epochs._projector, data[0]), epochs._data[0])
-
-
-def test_event_ordering():
-    """Test event order"""
-    events2 = events.copy()
-    np.random.shuffle(events2)
-    for ii, eve in enumerate([events, events2]):
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always', RuntimeWarning)
-            Epochs(raw, eve, event_id, tmin, tmax,
-                   baseline=(None, 0), reject=reject, flat=flat)
-            assert_equal(len(w), ii)
-            if ii > 0:
-                assert_true('chronologically' in '%s' % w[-1].message)
 
 
 def test_drop_epochs():

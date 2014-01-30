@@ -117,7 +117,7 @@ def compute_ems(epochs, conditions=None,
     spatial_filter = np.mean(spatial_filter, axis=0)
 
     # create updated conditions indices for sorting
-    values = zip(*list(sorted(epochs.event_id.items())))[1]
+    _, values = zip(*list(sorted(epochs.event_id.items())))
     conditions_ = conditions_.astype(int)
     for ii, val in enumerate(values):
         this_cond = conditions_[ii]
