@@ -2337,7 +2337,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
                              fontsize_title=12, fontsize_names=8,
                              fontsize_colorbar=8, padding=6.,
-                             fig=None, subplot=111):
+                             fig=None, subplot=111, interactive=True):
     """Visualize connectivity as a circular graph.
 
     Note: This code is based on the circle graph example by Nicolas P. Rougier
@@ -2404,6 +2404,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Location of the subplot when creating figures with multiple plots. E.g.
         121 or (1, 2, 1) for 1 row, 2 columns, plot 1. See
         matplotlib.pyplot.subplot.
+	interactive : bool
+		When enabled, click on a node to show only connections to that node
 
     Returns
     -------
@@ -2595,14 +2597,14 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
 
-    return fig, axes
     #Add callback for interaction
-    callback = partial(_plot_connectivity_circle_onpick, fig=fig,
-        indices=indices, n_nodes=n_nodes)
+	if interactive:
+		callback = partial(_plot_connectivity_circle_onpick, fig=fig,
+			indices=indices, n_nodes=n_nodes)
 
-    fig.canvas.mpl_connect('button_press_event',callback)
+		fig.canvas.mpl_connect('button_press_event',callback)
 
-    return fig
+    return fig,axes
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
