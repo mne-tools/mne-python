@@ -2303,6 +2303,31 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
     return node_angles
 
 
+def _plot_connectivity_circle_onpick(event, fig=None, indices=None, n_nodes=0,
+                                     ylim=[9,10]):
+    """Isolates connections around a single node when user left clicks a node.
+    
+    On right click, resets all connections."""
+
+    if event.button==1:             #left click
+        #click must be near node radius
+        if not ylim[0] <= event.ydata <= ylim[1]: return
+
+        #approximate position on circle
+        node = int( n_nodes*event.xdata/(np.pi*2) + .5*np.pi/n_nodes )
+        
+        patches = fig.get_axes()[0].patches
+        for e,(i,j) in enumerate(zip(indices[0],indices[1])):
+            patches[e].set_visible(node in [i,j])
+        fig.canvas.draw()
+        
+    if event.button==3:             #right click
+        patches = fig.get_axes()[0].patches
+        for e in xrange(indices.shape[1]):
+            patches[e].set_visible(True)
+        fig.canvas.draw()
+
+
 def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              node_angles=None, node_width=None,
                              node_colors=None, facecolor='black',
@@ -2571,6 +2596,13 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         plt.setp(cb_yticks, color=textcolor)
 
     return fig, axes
+    #Add callback for interaction
+    callback = partial(_plot_connectivity_circle_onpick, fig=fig,
+        indices=indices, n_nodes=n_nodes)
+
+    fig.canvas.mpl_connect('button_press_event',callback)
+
+    return fig
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
