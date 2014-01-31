@@ -1177,6 +1177,7 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
     Returns
     -------
     labels : list of Label
