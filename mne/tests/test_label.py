@@ -41,7 +41,7 @@ tempdir = _TempDir()
 
 
 def assert_labels_equal(l0, l1, decimal=5):
-    for attr in ['comment', 'hemi', 'subject']:
+    for attr in ['comment', 'hemi', 'subject', 'color']:
         attr0 = getattr(l0, attr)
         attr1 = getattr(l1, attr)
         msg = "label.%s: %r != %r" % (attr, attr0, attr1)
@@ -71,9 +71,9 @@ def test_label_addition():
     idx0 = list(range(7))
     idx1 = list(range(7, 10))  # non-overlapping
     idx2 = list(range(5, 10))  # overlapping
-    l0 = Label(idx0, pos[idx0], values[idx0], 'lh')
+    l0 = Label(idx0, pos[idx0], values[idx0], 'lh', color='red')
     l1 = Label(idx1, pos[idx1], values[idx1], 'lh')
-    l2 = Label(idx2, pos[idx2], values[idx2], 'lh')
+    l2 = Label(idx2, pos[idx2], values[idx2], 'lh', color=(0, 1, 0, .5))
 
     assert len(l0) == len(idx0)
 
@@ -81,6 +81,7 @@ def test_label_addition():
     l01 = l0 + l1
     assert len(l01) == len(l0) + len(l1)
     assert_array_equal(l01.values[:len(l0)], l0.values)
+    assert_equal(l01.color, l0.color)
 
     # adding overlappig labels
     l = l0 + l2
@@ -90,6 +91,8 @@ def test_label_addition():
     assert l.values[i] == l0.values[i0] + l2.values[i2]
     assert l.values[0] == l0.values[0]
     assert_array_equal(np.unique(l.vertices), np.unique(idx0 + idx2))
+    target_color = tuple((u + v) / 2 for u, v in zip(l0.color, l2.color))
+    assert_equal(l.color, target_color)
 
     # adding lh and rh
     l2.hemi = 'rh'
@@ -259,6 +262,19 @@ def test_parc_from_labels():
         idx = names.index(label.name)
         assert_labels_equal(label, labels2[idx])
         assert_array_almost_equal(np.array(color), np.array(colors2[idx]))
+
+    # same with label-internal colors
+    for fname in fnames:
+        parc_from_labels(labels, annot_fname=fname, overwrite=True)
+    labels3, _ = labels_from_parc('sample', subjects_dir=subjects_dir,
+                                  annot_fname=fnames[0])
+    labels33, _ = labels_from_parc('sample', subjects_dir=subjects_dir,
+                                   annot_fname=fnames[1])
+    labels3.extend(labels33)
+    names3 = [label.name for label in labels3]
+    for label in labels:
+        idx = names3.index(label.name)
+        assert_labels_equal(label, labels3[idx])
 
     # make sure we can't overwrite things
     assert_raises(ValueError, parc_from_labels, labels, colors,
