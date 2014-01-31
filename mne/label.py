@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 from .externals.six import string_types
+from colorsys import hsv_to_rgb, rgb_to_hsv
 from os import path as op
 import os
 import copy as cp
@@ -22,6 +23,39 @@ from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters
 from .externals.six import b
 from .externals.six.moves import zip
+
+
+def _blend_colors(color_1, color_2):
+    """Blend two colors in HSV space
+
+    Parameters
+    ----------
+    color_1, color_2 : tuple
+        RGBA tuples with values between 0 and 1.
+
+    Returns
+    -------
+    color : tuple
+        RGBA tuple of the combined color. Saturation, value and alpha are
+        averaged, whereas the new hue is determined as angle half way between
+        the two input colors' hues.
+    """
+    r_1, g_1, b_1, a_1 = color_1
+    h_1, s_1, v_1 = rgb_to_hsv(r_1, g_1, b_1)
+    r_2, g_2, b_2, a_2 = color_2
+    h_2, s_2, v_2 = rgb_to_hsv(r_2, g_2, b_2)
+    hue_diff = abs(h_1 - h_2)
+    if hue_diff < 0.5:
+        h = min(h_1, h_2) + hue_diff / 2.
+    else:
+        h = max(h_1, h_2) + (1. - hue_diff) / 2.
+        h %= 1.
+    s = (s_1 + s_2) / 2.
+    v = (v_1 + v_2) / 2.
+    r, g, b = hsv_to_rgb(h, s, v)
+    a = (a_1 + a_2) / 2.
+    color = (r, g, b, a)
+    return color
 
 
 class Label(object):
@@ -218,7 +252,7 @@ class Label(object):
         elif other.color is None:
             color = self.color
         else:
-            color = tuple((v + w) / 2 for v, w in zip(self.color, other.color))
+            color = _blend_colors(self.color, other.color)
 
         verbose = self.verbose or other.verbose
 

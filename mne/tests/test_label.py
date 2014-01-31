@@ -12,7 +12,7 @@ from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
                  labels_from_parc, parc_from_labels, split_label)
-from mne.label import Label
+from mne.label import Label, _blend_colors
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
 from mne.fixes import in1d
 
@@ -91,8 +91,7 @@ def test_label_addition():
     assert l.values[i] == l0.values[i0] + l2.values[i2]
     assert l.values[0] == l0.values[0]
     assert_array_equal(np.unique(l.vertices), np.unique(idx0 + idx2))
-    target_color = tuple((u + v) / 2 for u, v in zip(l0.color, l2.color))
-    assert_equal(l.color, target_color)
+    assert_equal(l.color, _blend_colors(l0.color, l2.color))
 
     # adding lh and rh
     l2.hemi = 'rh'
