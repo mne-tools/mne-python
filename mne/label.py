@@ -8,6 +8,7 @@ from .externals.six import string_types
 from os import path as op
 import os
 import copy as cp
+import random
 import re
 
 import numpy as np
@@ -46,11 +47,16 @@ class Label(object):
         Kept as information but not used by the object itself.
     subject : str | None
         Name of the subject the label is from.
+    color : None | matplotlib color
+        Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Attributes
     ----------
+    color : None | tuple
+        Default label color, represented as RGBA tuple with values between 0
+        and 1.
     comment : str
         Comment from the first line of the label file.
     hemi : 'lh' | 'rh'
@@ -71,13 +77,18 @@ class Label(object):
     """
     @verbose
     def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
-                 name=None, filename=None, subject=None, verbose=None):
+                 name=None, filename=None, subject=None, color=None,
+                 verbose=None):
+        # check parameters
         if not isinstance(hemi, string_types):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
         vertices = np.asarray(vertices)
         if np.any(np.diff(vertices.astype(int)) <= 0):
             raise ValueError('Vertices must be ordered in increasing '
                              'order.')
+        if color is not None:
+            from matplotlib.colors import colorConverter
+            color = colorConverter.to_rgba(color)
 
         if values is None:
             values = np.ones(len(vertices))
@@ -101,6 +112,7 @@ class Label(object):
         self.comment = comment
         self.verbose = verbose
         self.subject = _check_subject(None, subject, False)
+        self.color = color
         self.name = name
         self.filename = filename
 
@@ -112,6 +124,7 @@ class Label(object):
         self.comment = state['comment']
         self.verbose = state['verbose']
         self.subject = state.get('subject', None)
+        self.color = state.get('color', None)
         self.name = state['name']
         self.filename = state['filename']
 
@@ -123,6 +136,7 @@ class Label(object):
                    comment=self.comment,
                    verbose=self.verbose,
                    subject=self.subject,
+                   color=self.color,
                    name=self.name,
                    filename=self.filename)
         return out
@@ -188,16 +202,28 @@ class Label(object):
             pos = np.vstack((self.pos, other.pos))
             values = np.hstack((self.values, other.values))
 
-        name0 = self.name if self.name else 'unnamed'
-        name1 = other.name if other.name else 'unnamed'
-
         indcs = np.argsort(vertices)
         vertices, pos, values = vertices[indcs], pos[indcs, :], values[indcs]
 
         comment = "%s + %s" % (self.comment, other.comment)
+
+        name0 = self.name if self.name else 'unnamed'
+        name1 = other.name if other.name else 'unnamed'
         name = "%s + %s" % (name0, name1)
+
+        if self.color is None and other.color is None:
+            color = None
+        elif self.color is None:
+            color = other.color
+        elif other.color is None:
+            color = self.color
+        else:
+            color = tuple((v + w) / 2 for v, w in zip(self.color, other.color))
+
+        verbose = self.verbose or other.verbose
+
         label = Label(vertices, pos, values, self.hemi, comment, name, None,
-                      self.subject)
+                      self.subject, color, verbose)
         return label
 
     def save(self, filename):
@@ -450,7 +476,7 @@ class BiHemiLabel(object):
         return BiHemiLabel(lh, rh, name=name)
 
 
-def read_label(filename, subject=None):
+def read_label(filename, subject=None, color=None):
     """Read FreeSurfer Label file
 
     Parameters
@@ -463,6 +489,8 @@ def read_label(filename, subject=None):
         incompatible labels and SourceEstimates (e.g., ones from other
         subjects). Note that due to file specification limitations, the
         subject name isn't saved to or loaded from files written to disk.
+    color : None | matplotlib color
+        Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
 
     Returns
     -------
@@ -1217,12 +1245,12 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
             pos = vert_pos[vertices, :]
             values = np.zeros(len(vertices))
             name = label_name.decode() + '-' + hemi
+            label_rgba = tuple(label_rgba / 255.)
             label = Label(vertices, pos, values, hemi, name=name,
-                          subject=subject)
+                          subject=subject, color=label_rgba)
             labels.append(label)
 
             # store the color
-            label_rgba = tuple(label_rgba / 255.)
             label_colors.append(label_rgba)
 
         n_read = len(labels) - n_read
@@ -1303,7 +1331,7 @@ def _write_annot(fname, annot, ctab, names):
 
 
 @verbose
-def parc_from_labels(labels, colors, subject=None, parc=None,
+def parc_from_labels(labels, colors=None, subject=None, parc=None,
                      annot_fname=None, overwrite=False, subjects_dir=None,
                      verbose=None):
     """Create a FreeSurfer parcellation from labels
@@ -1313,10 +1341,11 @@ def parc_from_labels(labels, colors, subject=None, parc=None,
     labels : list with instances of mne.Label
         The labels to create a parcellation from.
     colors : list of tuples | None
-        RGBA color to write into the colortable for each label. If None,
-        the colors are created based on the alphabetical order of the label
-        names. Note: Per hemisphere, each label must have a unique color,
-        otherwise the stored parcellation will be invalid.
+        RGBA color to write into the colortable for each label. If None
+        (default), the colors are retrieved from the label objects or, if not
+        available in the labels, created based on the alphabetical order of
+        the label names. Note: Per hemisphere, each label must have a unique
+        color, otherwise the stored parcellation will be invalid.
     subject : str | None
         The subject for which to write the parcellation for.
     parc : str | None
@@ -1368,8 +1397,19 @@ def parc_from_labels(labels, colors, subject=None, parc=None,
             hemi_colors = [colors[names.index('%s-%s' % (label.name, hemi))]
                            for label in hemi_labels]
         else:
-            import matplotlib.pyplot as plt
-            hemi_colors = plt.cm.spectral(np.linspace(0, 1, n_hemi_labels))
+            hemi_colors = [label.color for label in hemi_labels]
+            if any(color is None for color in hemi_colors):
+                import matplotlib.pyplot as plt
+                for i in range(n_hemi_labels):
+                    if hemi_colors[i] is None:
+                        pos = i / (n_hemi_labels - 1)
+                        color = plt.cm.spectral(pos)
+                        # make sure to have no duplicate colors
+                        while color in hemi_colors:
+                            color = (random.uniform(0, 1),
+                                     random.uniform(0, 1),
+                                     random.uniform(0, 1), 1.)
+                        hemi_colors[i] = color
 
         # Creat annot and color table array to write
         max_vert = 0
