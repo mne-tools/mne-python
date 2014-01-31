@@ -1221,10 +1221,14 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
                                           subjects_dir)
 
+    if regexp is not None:
+        # allow for convenient substring match
+        r_ = (re.compile('.*%s.*' % regexp if regexp.replace('_', '').isalnum()
+              else regexp))
+
     # now we are ready to create the labels
     n_read = 0
     labels = list()
-    label_colors = list()
     for fname, hemi in zip(annot_fname, hemis):
         # read annotation
         annot, ctab, label_names = _read_annot(fname)
@@ -1242,40 +1246,30 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
             if len(vertices) == 0:
                 # label is not part of cortical surface
                 continue
+            name = label_name.decode() + '-' + hemi
+            if (regexp is not None) and not r_.match(name):
+                continue
             pos = vert_pos[vertices, :]
             values = np.zeros(len(vertices))
-            name = label_name.decode() + '-' + hemi
             label_rgba = tuple(label_rgba / 255.)
             label = Label(vertices, pos, values, hemi, name=name,
                           subject=subject, color=label_rgba)
             labels.append(label)
 
-            # store the color
-            label_colors.append(label_rgba)
-
         n_read = len(labels) - n_read
         logger.info('   read %d labels from %s' % (n_read, fname))
 
-    if regexp is not None:
-        # allow for convenient substring match
-        r_ = (re.compile('.*%s.*' % regexp if regexp.replace('_', '').isalnum()
-              else regexp))
+    # sort the labels by label name
+    labels = sorted(labels, key=lambda l: l.name)
 
-    # sort the labels and colors by label name
-    names = [label.name for label in labels]
-    labels_ = [(label, color) for (name, label, color)
-               in sorted(zip(names, labels, label_colors))
-               if (r_.match(name) if regexp else True)]
-    if len(labels_) > 0:
-        labels = [l[0] for l in labels_]
-        label_colors = [l[1] for l in labels_]
-    else:
-        raise RuntimeError('The regular expression supplied did not match.')
-    # convert tuples to lists
-    labels = list(labels)
-    label_colors = list(label_colors)
+    if len(labels) == 0:
+        msg = 'No labels found.'
+        if regexp is not None:
+            msg += ' Maybe the regular expression %r did not match?' % regexp
+        raise RuntimeError(msg)
+
+    label_colors = [l.color for l in labels]
     logger.info('[done]')
-
     return labels, label_colors
 
 
