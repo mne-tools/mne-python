@@ -301,6 +301,11 @@ def test_parc_from_labels():
     colors2[0] = 1.1
     assert_raises(ValueError, parc_from_labels, labels, colors2,
                   annot_fname=fnames[0], overwrite=True)
+    # overlapping labels
+    label_dict = {label.name: label for label in labels}
+    labels.append(label_dict['precuneus-lh'] + label_dict['cuneus-lh'])
+    assert_raises(ValueError, parc_from_labels, labels, None,
+                  annot_fname=fnames[0], overwrite=True)
 
 
 @sample.requires_sample_data

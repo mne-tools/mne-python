@@ -1549,6 +1549,13 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
             annot_id = (ctab[ii, 0] + ctab[ii, 1] * 2 ** 8
                         + ctab[ii, 2] * 2 ** 16)
 
+            # make sure the label is not overwriting another label
+            if np.any(annot[label.vertices]):
+                msg = ("Label %r occupies vertices that are also occupied by "
+                       "another label. Each vertex can only be occupied by a "
+                       "single label in *.annot files." % label.name)
+                raise ValueError(msg)
+
             annot[label.vertices] = annot_id
 
         # convert to FreeSurfer alpha values
