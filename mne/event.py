@@ -438,7 +438,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, output='onset',
                 consecutive='increasing', min_duration=0, 
-                short_event_warn=1):
+                shortest_event=2):
     """Find events from raw file
 
     Parameters
@@ -464,13 +464,10 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         the first.
     min_duration : float
         The minimum duration of a change in the events channel required
-        to consider it as an event (in seconds). By default this value is set
-        to the equivalent of 2 samples.
-    short_event_warn : int
-        find_events will check to make sure there are no events shorter than
-        the number of samples this integer is set to (default is 1). If there 
-        are short events, it will issue a ValueError suggesting that you should
-        consider changing min_duration.
+        to consider it as an event (in seconds).
+    shortest_event : int
+        Minimum number of samples an event must last (default is 2). If the
+        duration is less than this an exception will be raised.
 
     Returns
     -------
@@ -554,13 +551,13 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
                           
     # add safety check for spurious events (for ex. from neuromag syst.) by
     # checking the number of low sample events
-    n_single = np.sum(np.diff(events[:, 0]) == short_event_warn)
-    if ( n_single > 0 ):
-        raise ValueError(("You have %i events shorter than the "
+    n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
+    if n_short_events > 0:
+        raise ValueError("You have %i events shorter than the "
                           "short_event_warn. These are very unusual and you "
                           "may want to set min_duration to a larger value e.g."
-                          " x / raw.info['sfreq']. Where x > shortest event "
-                          " length.") % (n_single))
+                          " x / raw.info['sfreq']. Where x = 1 sample shorter "
+                          "than the shortest event length." % (n_short_events))
 
     return events
 

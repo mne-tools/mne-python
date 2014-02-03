@@ -3,7 +3,8 @@ import os
 
 from nose.tools import assert_true
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_raises)
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, find_stim_steps, fiff)
@@ -157,7 +158,9 @@ def test_find_events():
                         [31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_array_equal(find_events(raw, output='step', consecutive=True),
+    assert_raises(ValueError,find_events,raw, output='step', consecutive=True)
+    assert_array_equal(find_events(raw, output='step', consecutive=True,
+                                   shortest_event=1),
                        [[10, 0, 5],
                         [20, 5, 6],
                         [30, 6, 5],
