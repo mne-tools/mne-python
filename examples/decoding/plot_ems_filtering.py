@@ -86,8 +86,8 @@ plt.ylabel('fT/cm')
 plt.legend(loc='best')
 
 
-plt.show()
 # visualize spatial filters across time
+plt.show()
 evoked = epochs.average()
 evoked.data = filters
 evoked.plot_topomap(ch_type=ch_type)
