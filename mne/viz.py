@@ -2310,20 +2310,23 @@ def _plot_connectivity_circle_onpick(event, fig=None, indices=None, n_nodes=0,
     On right click, resets all connections."""
 
     if event.button==1:             #left click
+        if event.inaxes is None: return
+
         #click must be near node radius
         if not ylim[0] <= event.ydata <= ylim[1]: return
 
         #approximate position on circle
         node = int( n_nodes*event.xdata/(np.pi*2) + .5*np.pi/n_nodes )
         
-        patches = fig.get_axes()[0].patches
+        patches = event.inaxes.patches
         for e,(i,j) in enumerate(zip(indices[0],indices[1])):
             patches[e].set_visible(node in [i,j])
         fig.canvas.draw()
         
     if event.button==3:             #right click
-        patches = fig.get_axes()[0].patches
-        for e in xrange(indices.shape[1]):
+        if event.inaxes is None: return
+        patches = event.inaxes.patches
+        for e in xrange(np.size(indices,axis=1)):
             patches[e].set_visible(True)
         fig.canvas.draw()
 
