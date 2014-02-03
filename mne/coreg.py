@@ -1124,6 +1124,7 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
                 subject_to)
     logger.info("Scale factor: %s", scale)
     for ss in sss:
+        ss['subject_his_id'] = subject_to
         ss['rr'] = ss['rr'] * scale
         if norm_scale is not None:
             nn = ss['nn'] * norm_scale
