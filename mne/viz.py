@@ -2304,7 +2304,7 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
 
 
 def _plot_connectivity_circle_onpick(event, fig=None, indices=None, n_nodes=0,
-                                     ylim=[9,10]):
+                                     node_angles=None, ylim=[9, 10]):
     """Isolates connections around a single node when user left clicks a node.
     
     On right click, resets all connections."""
@@ -2315,8 +2315,9 @@ def _plot_connectivity_circle_onpick(event, fig=None, indices=None, n_nodes=0,
         #click must be near node radius
         if not ylim[0] <= event.ydata <= ylim[1]: return
 
-        #approximate position on circle
-        node = int( n_nodes*event.xdata/(np.pi*2) + .5*np.pi/n_nodes )
+        #all angles in range [0, 2*pi]
+        node_angles = node_angles % (np.pi * 2)
+        node = np.argmin(np.abs( event.xdata - node_angles ))
         
         patches = event.inaxes.patches
         for e,(i,j) in enumerate(zip(indices[0],indices[1])):
@@ -2407,8 +2408,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Location of the subplot when creating figures with multiple plots. E.g.
         121 or (1, 2, 1) for 1 row, 2 columns, plot 1. See
         matplotlib.pyplot.subplot.
-	interactive : bool
-		When enabled, click on a node to show only connections to that node
+    interactive : bool
+        When enabled, click on a node to show only connections to that node
 
     Returns
     -------
@@ -2603,7 +2604,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     #Add callback for interaction
 	if interactive:
 		callback = partial(_plot_connectivity_circle_onpick, fig=fig,
-			indices=indices, n_nodes=n_nodes)
+			indices=indices, n_nodes=n_nodes, node_angles=node_angles)
 
 		fig.canvas.mpl_connect('button_press_event',callback)
 
