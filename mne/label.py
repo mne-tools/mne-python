@@ -1002,7 +1002,7 @@ def _verts_within_dist(graph, source, max_dist):
     return verts, dist
 
 
-def _grow_labels(seeds, extents, hemis, dist, vert):
+def _grow_labels(seeds, extents, hemis, dist, vert, subject):
     """Helper for parallelization of grow_labels
     """
     labels = []
@@ -1015,7 +1015,8 @@ def _grow_labels(seeds, extents, hemis, dist, vert):
                       pos=vert[hemi][label_verts],
                       values=label_dist,
                       hemi=hemi,
-                      comment=comment)
+                      comment=comment,
+                      subject=subject)
         labels.append(label)
     return labels
 
@@ -1096,7 +1097,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
     seeds = np.array_split(seeds, n_jobs)
     extents = np.array_split(extents, n_jobs)
     hemis = np.array_split(hemis, n_jobs)
-    labels = sum(parallel(my_grow_labels(s, e, h, dist, vert)
+    labels = sum(parallel(my_grow_labels(s, e, h, dist, vert, subject)
                           for s, e, h in zip(seeds, extents, hemis)), [])
     return labels
 
