@@ -1440,9 +1440,7 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
                         hemi_colors[i] = color
 
         # Creat annot and color table array to write
-        max_vert = 0
-        for label in hemi_labels:
-            max_vert = max(max_vert, np.max(label.vertices))
+        max_vert = max(np.max(label.vertices) for label in hemi_labels)
         n_vertices = max_vert + 1
         annot = np.zeros(n_vertices, dtype=np.int)
         ctab = np.zeros((n_hemi_labels, 4), dtype=np.int32)
