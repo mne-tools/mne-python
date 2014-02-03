@@ -2306,28 +2306,30 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
 def _plot_connectivity_circle_onpick(event, fig=None, indices=None, n_nodes=0,
                                      node_angles=None, ylim=[9, 10]):
     """Isolates connections around a single node when user left clicks a node.
-    
+
     On right click, resets all connections."""
 
-    if event.button==1:             #left click
-        if event.inaxes is None: return
+    if event.button == 1:  # left click
+        if event.inaxes is None:
+            return
 
-        #click must be near node radius
-        if not ylim[0] <= event.ydata <= ylim[1]: return
+        # click must be near node radius
+        if not ylim[0] <= event.ydata <= ylim[1]:
+            return
 
-        #all angles in range [0, 2*pi]
+        # all angles in range [0, 2*pi]
         node_angles = node_angles % (np.pi * 2)
-        node = np.argmin(np.abs( event.xdata - node_angles ))
-        
+        node = np.argmin(np.abs(event.xdata - node_angles))
+
         patches = event.inaxes.patches
-        for e,(i,j) in enumerate(zip(indices[0],indices[1])):
-            patches[e].set_visible(node in [i,j])
+        for e, (i, j) in enumerate(zip(indices[0], indices[1])):
+            patches[e].set_visible(node in [i, j])
         fig.canvas.draw()
-        
-    if event.button==3:             #right click
-        if event.inaxes is None: return
+    elif event.button == 3:  # right click
+        if event.inaxes is None:
+            return
         patches = event.inaxes.patches
-        for e in xrange(np.size(indices,axis=1)):
+        for e in xrange(np.size(indices, axis=1)):
             patches[e].set_visible(True)
         fig.canvas.draw()
 
@@ -2409,7 +2411,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         121 or (1, 2, 1) for 1 row, 2 columns, plot 1. See
         matplotlib.pyplot.subplot.
     interactive : bool
-        When enabled, click on a node to show only connections to that node
+        When enabled, left-click on a node to show only connections to that
+        node. Right-click shows all connections.
 
     Returns
     -------
@@ -2602,13 +2605,14 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         plt.setp(cb_yticks, color=textcolor)
 
     #Add callback for interaction
-	if interactive:
-		callback = partial(_plot_connectivity_circle_onpick, fig=fig,
-			indices=indices, n_nodes=n_nodes, node_angles=node_angles)
+    if interactive:
+        callback = partial(_plot_connectivity_circle_onpick, fig=fig,
+                           indices=indices, n_nodes=n_nodes,
+                           node_angles=node_angles)
 
-		fig.canvas.mpl_connect('button_press_event',callback)
+        fig.canvas.mpl_connect('button_press_event', callback)
 
-    return fig,axes
+    return fig, axes
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
