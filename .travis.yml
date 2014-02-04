@@ -64,9 +64,6 @@ script:
 
 after_success:
     # Need to run from source dir to exectue "git" commands
-    # Only do "2.7" "full" here, since that is our most complete testing condition
-    - if [ "${PYTHON}" == "2.7" ] && [ "${DEPS}" == "full" ]; then
-        echo "Running coveralls";
-        cd ${SRC_DIR};
-        coveralls;
-      fi;
+    - echo "Running coveralls";
+    - cd ${SRC_DIR};
+    - coveralls;
