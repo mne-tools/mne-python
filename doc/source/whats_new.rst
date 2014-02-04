@@ -35,6 +35,7 @@ Changelog
 
    - Add ability to anonymize measurement info by `Eric Larson`_
 
+   - Add callback to connectivity circle plot to isolate connections to clicked nodes `Roan LaPlante`_
 
 BUG
 ~~~
