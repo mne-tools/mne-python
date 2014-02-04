@@ -7,6 +7,7 @@ from nose.plugins.skip import SkipTest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import warnings
+from scipy.spatial.distance import cdist
 
 from mne.datasets import sample
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
@@ -16,20 +17,53 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_scipy_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
-
-from scipy.spatial.distance import cdist
+from mne.externals.six.moves import zip
 
 # WARNING: test_source_space is imported by forward, so download=False
 # is critical here, otherwise on first import of MNE users will have to
 # download the whole sample dataset!
+base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
+fname_small = op.join(base_dir, 'small-src.fif.gz')
 fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
                     'sample-5120-bem.fif')
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 
 tempdir = _TempDir()
+
+
+@requires_scipy_version('0.11')
+def test_add_patch_info():
+    """Test adding patch info to source space"""
+    # let's setup a small source space
+    src = read_source_spaces(fname_small)
+    src_new = read_source_spaces(fname_small)
+    for s in src_new:
+        s['nearest'] = None
+        s['nearest_dist'] = None
+        s['pinfo'] = None
+
+    # test that no patch info is added for small dist_limit
+    try:
+        add_source_space_distances(src_new, dist_limit=0.00001)
+    except RuntimeError:  # what we throw when scipy version is wrong
+        pass
+    else:
+        assert_true(all(s['nearest'] is None for s in src_new))
+        assert_true(all(s['nearest_dist'] is None for s in src_new))
+        assert_true(all(s['pinfo'] is None for s in src_new))
+
+    # now let's use one that works
+    add_source_space_distances(src_new)
+
+    for s1, s2 in zip(src, src_new):
+        assert_array_equal(s1['nearest'], s2['nearest'])
+        assert_allclose(s1['nearest_dist'], s2['nearest_dist'], atol=1e-7)
+        assert_equal(len(s1['pinfo']), len(s2['pinfo']))
+        for p1, p2 in zip(s1['pinfo'], s2['pinfo']):
+            assert_array_equal(p1, p2)
 
 
 @sample.requires_sample_data
@@ -426,3 +460,52 @@ def test_vertex_to_mni_fs_nibabel():
         coords_2 = vertex_to_mni(vertices, hemis, subject, mode='freesurfer')
         # less than 0.1 mm error
         assert_allclose(coords, coords_2, atol=0.1)
+
+
+# The following code was used to generate small-src.fif.gz.
+# Unfortunately the C code bombs when trying to add source space distances,
+# possibly due to incomplete "faking" of a smaller surface on our part here.
+"""
+# -*- coding: utf-8 -*-
+
+import os
+import numpy as np
+import mne
+
+data_path = mne.datasets.sample.data_path()
+src = mne.setup_source_space('sample', fname=None, spacing='oct5')
+hemis = ['lh', 'rh']
+fnames = [data_path + '/subjects/sample/surf/%s.decimated' % h for h in hemis]
+
+vs = list()
+for s, fname in zip(src, fnames):
+    coords = s['rr'][s['vertno']]
+    vs.append(s['vertno'])
+    idx = -1 * np.ones(len(s['rr']))
+    idx[s['vertno']] = np.arange(s['nuse'])
+    faces = s['use_tris']
+    faces = idx[faces]
+    mne.write_surface(fname, coords, faces)
+
+# we need to move sphere surfaces
+spheres = [data_path + '/subjects/sample/surf/%s.sphere' % h for h in hemis]
+for s in spheres:
+    os.rename(s, s + '.bak')
+try:
+    for s, v in zip(spheres, vs):
+        coords, faces = mne.read_surface(s + '.bak')
+        coords = coords[v]
+        mne.write_surface(s, coords, faces)
+    src = mne.setup_source_space('sample', fname=None, spacing='oct4',
+                                 surface='decimated')
+finally:
+    for s in spheres:
+        os.rename(s + '.bak', s)
+
+fname = 'small-src.fif'
+fname_gz = fname + '.gz'
+mne.write_source_spaces(fname, src)
+mne.utils.run_subprocess(['mne_add_patch_info', '--src', fname,
+                          '--srcp', fname])
+mne.write_source_spaces(fname_gz, mne.read_source_spaces(fname))
+"""
