@@ -2303,16 +2303,15 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
     return node_angles
 
 
-def _plot_connectivity_circle_onpick(event, fig=None, indices=None, n_nodes=0,
-                                     node_angles=None, ylim=[9, 10]):
+def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
+                                     n_nodes=0, node_angles=None, ylim=[9, 10]):
     """Isolates connections around a single node when user left clicks a node.
 
     On right click, resets all connections."""
+    if event.inaxes != axes:
+        return
 
     if event.button == 1:  # left click
-        if event.inaxes is None:
-            return
-
         # click must be near node radius
         if not ylim[0] <= event.ydata <= ylim[1]:
             return
@@ -2322,15 +2321,13 @@ def _plot_connectivity_circle_onpick(event, fig=None, indices=None, n_nodes=0,
         node = np.argmin(np.abs(event.xdata - node_angles))
 
         patches = event.inaxes.patches
-        for e, (i, j) in enumerate(zip(indices[0], indices[1])):
-            patches[e].set_visible(node in [i, j])
+        for ii, (x, y) in enumerate(zip(indices[0], indices[1])):
+            patches[ii].set_visible(node in [x, y])
         fig.canvas.draw()
     elif event.button == 3:  # right click
-        if event.inaxes is None:
-            return
         patches = event.inaxes.patches
-        for e in xrange(np.size(indices, axis=1)):
-            patches[e].set_visible(True)
+        for ii in xrange(np.size(indices, axis=1)):
+            patches[ii].set_visible(True)
         fig.canvas.draw()
 
 
@@ -2607,7 +2604,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     #Add callback for interaction
     if interactive:
         callback = partial(_plot_connectivity_circle_onpick, fig=fig,
-                           indices=indices, n_nodes=n_nodes,
+                           axes=axes, indices=indices, n_nodes=n_nodes,
                            node_angles=node_angles)
 
         fig.canvas.mpl_connect('button_press_event', callback)
