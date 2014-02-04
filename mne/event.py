@@ -553,8 +553,8 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     # checking the number of low sample events
     n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
     if n_short_events > 0:
-        raise ValueError("You have %i events shorter than "
-                         "shortest_event. These are very unusual and you "
+        raise ValueError("You have %i events shorter than the "
+                         "short_event_warn. These are very unusual and you "
                          "may want to set min_duration to a larger value e.g."
                          " x / raw.info['sfreq']. Where x = 1 sample shorter "
                          "than the shortest event length." % (n_short_events))
