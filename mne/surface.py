@@ -828,6 +828,9 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = _read_surface_geom(surf_name, norm_rr=True, add_geom=False)
+        if not len(from_surf['rr']) == surf['np']:
+            raise RuntimeError('Mismatch between number of surface vertices, '
+                               'possible parcellation error?')
         _normalize_vectors(ico_surf['rr'])
 
         # Make the maps

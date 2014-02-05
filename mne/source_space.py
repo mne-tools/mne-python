@@ -1548,6 +1548,11 @@ def _get_solids(tri_rrs, fros):
 def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     """Compute inter-source distances along the cortical surface
 
+    This function will also try to add patch info for the source space.
+    It will only occur if the ``dist_limit`` is sufficiently high that all
+    points on the surface are within ``dist_limit`` of a point in the
+    source space.
+
     Parameters
     ----------
     src : instance of SourceSpaces
@@ -1606,13 +1611,26 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
                                '> 0.13 is installed')
 
     parallel, p_fun, _ = parallel_func(_do_src_distances, n_jobs)
+    min_dists = list()
+    min_idxs = list()
+    logger.info('Calculating source space distances (limit=%s mm)...'
+                % (1000 * dist_limit))
     for s in src:
         connectivity = mesh_dist(s['tris'], s['rr'])
         d = parallel(p_fun(connectivity, s['vertno'], r, dist_limit)
                      for r in np.array_split(np.arange(len(s['vertno'])),
                                              n_jobs))
-        d = np.concatenate(d, axis=0)
-        # convert to sparse representation
+        # deal with indexing so we can add patch info
+        min_idx = np.array([dd[1] for dd in d])
+        min_dist = np.array([dd[2] for dd in d])
+        midx = np.argmin(min_dist, axis=0)
+        range_idx = np.arange(len(s['rr']))
+        min_dist = min_dist[midx, range_idx]
+        min_idx = min_idx[midx, range_idx]
+        min_dists.append(min_dist)
+        min_idxs.append(min_idx)
+        # now actually deal with distances, convert to sparse representation
+        d = np.concatenate([dd[0] for dd in d], axis=0)
         i, j = np.meshgrid(s['vertno'], s['vertno'])
         d = d.ravel()
         i = i.ravel()
@@ -1622,6 +1640,16 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
                               shape=(s['np'], s['np']), dtype=np.float32)
         s['dist'] = d
         s['dist_limit'] = np.array([dist_limit], np.float32)
+
+    # Let's see if our distance was sufficient to allow for patch info
+    if not any([np.any(np.isinf(md)) for md in min_dists]):
+        # Patch info can be added!
+        for s, min_dist, min_idx in zip(src, min_dists, min_idxs):
+            s['nearest'] = min_idx
+            s['nearest_dist'] = min_dist
+            _add_patch_info(s)
+    else:
+        logger.info('Not adding patch information, dist_limit too small')
     return src
 
 
@@ -1633,9 +1661,20 @@ def _do_src_distances(con, vertno, run_inds, limit):
         func = sparse.csgraph.dijkstra
     chunk_size = 100  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
+    n_chunks = len(lims) - 1
     d = np.empty((len(run_inds), len(vertno)))
-    for l1, l2 in zip(lims[:-1], lims[1:]):
+    min_dist = np.empty((n_chunks, con.shape[0]))
+    min_idx = np.empty((n_chunks, con.shape[0]), np.int32)
+    range_idx = np.arange(con.shape[0])
+    for li, (l1, l2) in enumerate(zip(lims[:-1], lims[1:])):
         idx = vertno[run_inds[l1:l2]]
-        d[l1:l2] = func(con, indices=idx)[:, vertno]
+        out = func(con, indices=idx)
+        midx = np.argmin(out, axis=0)
+        min_idx[li] = idx[midx]
+        min_dist[li] = out[midx, range_idx]
+        d[l1:l2] = out[:, vertno]
+    midx = np.argmin(min_dist, axis=0)
+    min_dist = min_dist[midx, range_idx]
+    min_idx = min_idx[midx, range_idx]
     d[d == np.inf] = 0  # scipy will give us np.inf for uncalc. distances
-    return d
+    return d, min_idx, min_dist
