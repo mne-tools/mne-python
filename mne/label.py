@@ -195,9 +195,10 @@ class Label(object):
         indcs = np.argsort(vertices)
         vertices, pos, values = vertices[indcs], pos[indcs, :], values[indcs]
 
-        label = Label(vertices, pos=pos, values=values, hemi=self.hemi,
-                      comment="%s + %s" % (self.comment, other.comment),
-                      name="%s + %s" % (name0, name1))
+        comment = "%s + %s" % (self.comment, other.comment)
+        name = "%s + %s" % (name0, name1)
+        label = Label(vertices, pos, values, self.hemi, comment, name, None,
+                      self.subject)
         return label
 
     def save(self, filename):
