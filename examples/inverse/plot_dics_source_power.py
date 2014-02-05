@@ -12,6 +12,7 @@ in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
 
 # Author: Roman Goj <roman.goj@gmail.com>
+#         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -56,24 +57,23 @@ forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 # As fsum is False compute_epochs_csd returns a list of CrossSpectralDensity
 # instances than can then be passed to dics_source_power
 data_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=0.04, tmax=0.15,
-                               fmin=30, fmax=50, fsum=False)
+                               fmin=15, fmax=30, fsum=False)
 noise_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
-                                tmax=-0.001, fmin=30, fmax=50, fsum=False)
+                                tmax=-0.001, fmin=15, fmax=30, fsum=False)
 
 # Compute DICS spatial filter and estimate source power
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
 
-# Plot source power separately for each frequency of interest
-pow_lim = [[1.88, 2.41, 2.94],   # limits for source power at 36.4 Hz
-           [1.41, 1.65, 1.89]]   # limits for source power at 45.5 Hz
+from scipy.stats import scoreatpercentile  # for thresholding
+
 for i, csd in enumerate(data_csds):
     message = 'DICS source power at %0.1f Hz' % csd.frequencies[0]
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                      time_label=message, figure=i)
-    data = stc.data[:, i]
+    fmin, fmax = [scoreatpercentile(stc.data[:, i], ii) for ii in [95, 100]]
+    fmid = fmin + (fmax - fmin) / 2
     brain.set_data_time_index(i)
-    brain.scale_data_colormap(fmin=pow_lim[i][0], fmid=pow_lim[i][1],
-                              fmax=pow_lim[i][2], transparent=True)
+    brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax, transparent=True)
     brain.show_view('lateral')
     # Uncomment line below to save images
     #brain.save_image('DICS_source_power_freq_%d.png' % csd.frequencies[0])
