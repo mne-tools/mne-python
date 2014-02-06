@@ -300,8 +300,8 @@ def test_split_label():
     lingual_reconst.comment = lingual.comment
     assert_labels_equal(lingual_reconst, lingual)
 
-    # compare vertices with freesurfer split
-    antmost = split_label(lingual, 40, subjects_dir=subjects_dir)[-1]
+    # compare fs_like split with freesurfer split
+    antmost = split_label(lingual, 40, None, subjects_dir, True)[-1]
     fs_vert = [210, 4401, 7405, 12079, 16276, 18956, 26356, 32713, 32716,
                32719, 36047, 36050, 42797, 42798, 42799, 59281, 59282, 59283,
                71864, 71865, 71866, 71874, 71883, 79901, 79903, 79910, 103024,

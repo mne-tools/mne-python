@@ -17,7 +17,7 @@ from .utils import get_subjects_dir, _check_subject, logger, verbose
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .source_space import read_source_spaces
-from .surface import read_surface, _read_surface_geom
+from .surface import read_surface, fast_cross_3d
 from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters
 from .externals.six import b
@@ -510,7 +510,8 @@ def write_label(filename, label, verbose=None):
     return label
 
 
-def split_label(label, parts=2, subject=None, subjects_dir=None):
+def split_label(label, parts=2, subject=None, subjects_dir=None,
+                fs_like=False):
     """Split a Label into two or more parts
 
     Parameters
@@ -527,6 +528,11 @@ def split_label(label, parts=2, subject=None, subjects_dir=None):
         should only be specified if it is not specified in the label).
     subjects_dir : None | str
         Path to SUBJECTS_DIR if it is not set in the environment.
+    fs_like : bool
+        By default (``False``) ``split_label`` uses an algorithm that is
+        slightly optimized for performance and numerical precision. Set
+        ``fs_like`` to ``True`` in order to replicate label splits from
+        Freesurfer's ``mris_divide_parcellation``.
 
     Returns
     -------
@@ -577,21 +583,34 @@ def split_label(label, parts=2, subject=None, subjects_dir=None):
                "parameter (%r)." % label.subject, subject)
         raise ValueError(err)
 
-    # find the label coordinates on the spherical surface
+    # find the spherical surface
     surf_fname = '.'.join((label.hemi, 'sphere'))
     surf_path = os.path.join(subjects_dir, subject, "surf", surf_fname)
-    surface = _read_surface_geom(surf_path, add_geom=True)
-    points = surface['rr'][label.vertices]
-
-    # find the axis vector
-    # center label coordinates
+    surface_points, surface_tris = read_surface(surf_path)
+    # find the label coordinates on the surface
+    points = surface_points[label.vertices]
     center = np.mean(points, axis=0)
     centered_points = points - center
-    distance = np.linalg.norm(centered_points, axis=1)
-    # find vertex closest to the center
-    i_closest = np.argmin(distance)
-    closest_vertex = label.vertices[i_closest]
-    normal = surface['nn'][closest_vertex]
+
+    # find the label's normal
+    if fs_like:
+        # find the Freesurfer vertex closest to the center
+        distance = np.linalg.norm(centered_points, axis=1)
+        i_closest = np.argmin(distance)
+        closest_vertex = label.vertices[i_closest]
+        # find the normal according to freesurfer convention
+        idx = np.any(surface_tris == closest_vertex, axis=1)
+        tris_for_normal = surface_tris[idx]
+        r1 = surface_points[tris_for_normal[:, 0], :]
+        r2 = surface_points[tris_for_normal[:, 1], :]
+        r3 = surface_points[tris_for_normal[:, 2], :]
+        tri_normals = fast_cross_3d((r2 - r1), (r3 - r1))
+        normal = np.mean(tri_normals, axis=0)
+        normal /= linalg.norm(normal)
+    else:
+        # Normal of the center
+        normal = center / linalg.norm(center)
+
     # project all vertex coordinates on the tangential plane for this point
     q, _ = linalg.qr(normal[:, np.newaxis])
     tangent_u = q[:, 1:]
