@@ -281,10 +281,9 @@ def test_parc_from_labels():
 
 @sample.requires_sample_data
 def test_split_label():
-    aparc_ = labels_from_parc('fsaverage', parc='aparc', hemi='lh',
-                              subjects_dir=subjects_dir)[0]
-    aparc = {l.name: l for l in aparc_}
-    lingual = aparc['lingual-lh']
+    aparc = labels_from_parc('fsaverage', 'aparc', 'lh', regexp='lingual',
+                             subjects_dir=subjects_dir)[0]
+    lingual = aparc[0]
 
     # split with names
     parts = ('lingual_post', 'lingual_ant')
