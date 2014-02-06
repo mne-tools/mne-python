@@ -16,7 +16,6 @@ from scipy import linalg, sparse
 from .utils import get_subjects_dir, _check_subject, logger, verbose
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
-from .source_space import read_source_spaces
 from .surface import read_surface, fast_cross_3d
 from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters
