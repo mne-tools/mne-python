@@ -510,7 +510,7 @@ def write_label(filename, label, verbose=None):
 
 
 def split_label(label, parts=2, subject=None, subjects_dir=None,
-                fs_like=False):
+                freesurfer=False):
     """Split a Label into two or more parts
 
     Parameters
@@ -527,11 +527,11 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
         should only be specified if it is not specified in the label).
     subjects_dir : None | str
         Path to SUBJECTS_DIR if it is not set in the environment.
-    fs_like : bool
+    freesurfer : bool
         By default (``False``) ``split_label`` uses an algorithm that is
         slightly optimized for performance and numerical precision. Set
-        ``fs_like`` to ``True`` in order to replicate label splits from
-        Freesurfer's ``mris_divide_parcellation``.
+        ``freesurfer`` to ``True`` in order to replicate label splits from
+        FreeSurfer's ``mris_divide_parcellation``.
 
     Returns
     -------
@@ -572,7 +572,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     # find the subject
     subjects_dir = get_subjects_dir(subjects_dir)
     if label.subject is None and subject is None:
-        raise TypeError("The subject needs to be specified.")
+        raise ValueError("The subject needs to be specified.")
     elif subject is None:
         subject = label.subject
     elif label.subject is None:
@@ -592,7 +592,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     centered_points = points - center
 
     # find the label's normal
-    if fs_like:
+    if freesurfer:
         # find the Freesurfer vertex closest to the center
         distance = np.linalg.norm(centered_points, axis=1)
         i_closest = np.argmin(distance)
