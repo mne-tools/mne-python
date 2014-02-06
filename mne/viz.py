@@ -1640,7 +1640,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     if show_svd:
         fig_svd = plt.figure()
         for k, (idx, name, unit, scaling) in enumerate(idx_names):
-            _, s, _ = linalg.svd(C[idx][:, idx])
+            s = linalg.svd(C[idx][:, idx], compute_uv=False)
             plt.subplot(1, len(idx_names), k + 1)
             plt.ylabel('Noise std (%s)' % unit)
             plt.xlabel('Eigenvalue index')
