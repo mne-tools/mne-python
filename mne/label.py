@@ -355,6 +355,42 @@ class Label(object):
         label.subject = subject_to
         return label
 
+    def split(self, parts=2, subject=None, subjects_dir=None,
+              freesurfer=False):
+        """Split the Label into two or more parts
+
+        Parameters
+        ----------
+        parts : int >= 2 | tuple of str
+            A sequence of strings specifying label names for the new labels (from
+            posterior to anterior), or the number of new labels to create (default
+            is 2). If a number is specified, names of the new labels will be the
+            input label's name with div1, div2 etc. appended.
+        subject : None | str
+            Subject which this label belongs to (needed to locate surface file;
+            should only be specified if it is not specified in the label).
+        subjects_dir : None | str
+            Path to SUBJECTS_DIR if it is not set in the environment.
+        freesurfer : bool
+            By default (``False``) ``split_label`` uses an algorithm that is
+            slightly optimized for performance and numerical precision. Set
+            ``freesurfer`` to ``True`` in order to replicate label splits from
+            FreeSurfer's ``mris_divide_parcellation``.
+
+        Returns
+        -------
+        labels : list of Label (len = n_parts)
+            The labels, starting from the lowest to the highest end of the
+            projection axis.
+
+        Notes
+        -----
+        Works by finding the label's principal eigen-axis on the spherical surface,
+        projecting all label vertex coordinates onto this axis and dividing them at
+        regular spatial intervals.
+        """
+        return split_label(self, parts, subject, subjects_dir, freesurfer)
+
 
 class BiHemiLabel(object):
     """A freesurfer/MNE label with vertices in both hemispheres

@@ -34,7 +34,7 @@ label_rh_fname = op.join(test_path, 'test-rh.label')
 tempdir = _TempDir()
 
 # This code was used to generate the "fake" test labels:
-#for hemi in ['lh', 'rh']:
+# for hemi in ['lh', 'rh']:
 #    label = Label(np.unique((np.random.rand(100) * 10242).astype(int)),
 #                  hemi=hemi, comment='Test ' + hemi, subject='fsaverage')
 #    label.save(op.join(test_path, 'test-%s.label' % hemi))
@@ -298,6 +298,11 @@ def test_split_label():
     lingual_reconst.name = lingual.name
     lingual_reconst.comment = lingual.comment
     assert_labels_equal(lingual_reconst, lingual)
+
+    # compare output of Label.split() method
+    post1, ant1 = lingual.split(parts, subjects_dir=subjects_dir)
+    assert_labels_equal(post1, post)
+    assert_labels_equal(ant1, ant)
 
     # compare fs_like split with freesurfer split
     antmost = split_label(lingual, 40, None, subjects_dir, True)[-1]
