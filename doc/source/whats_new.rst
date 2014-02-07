@@ -41,6 +41,8 @@ Changelog
    
    - Add `split_label` function to divide labels into multiple parts by `Christian Brodbeck`_
 
+   - Add `color` attribute to `Label` objects by `Christian Brodbeck`_
+
 BUG
 ~~~
 
