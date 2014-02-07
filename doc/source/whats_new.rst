@@ -38,6 +38,8 @@ Changelog
    - Add callback to connectivity circle plot to isolate connections to clicked nodes `Roan LaPlante`_
 
    - Add ability to add patch information to source spaces by `Eric Larson`_
+   
+   - Add `split_label` function to divide labels into multiple parts by `Christian Brodbeck`_
 
 BUG
 ~~~

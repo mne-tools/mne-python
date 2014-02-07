@@ -6,12 +6,12 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_equal, assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
-                 labels_from_parc, parc_from_labels)
+                 labels_from_parc, parc_from_labels, split_label)
 from mne.label import Label
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
 from mne.fixes import in1d
@@ -34,7 +34,7 @@ label_rh_fname = op.join(test_path, 'test-rh.label')
 tempdir = _TempDir()
 
 # This code was used to generate the "fake" test labels:
-#for hemi in ['lh', 'rh']:
+# for hemi in ['lh', 'rh']:
 #    label = Label(np.unique((np.random.rand(100) * 10242).astype(int)),
 #                  hemi=hemi, comment='Test ' + hemi, subject='fsaverage')
 #    label.save(op.join(test_path, 'test-%s.label' % hemi))
@@ -42,7 +42,10 @@ tempdir = _TempDir()
 
 def assert_labels_equal(l0, l1, decimal=5):
     for attr in ['comment', 'hemi', 'subject']:
-        assert_true(getattr(l0, attr) == getattr(l1, attr))
+        attr0 = getattr(l0, attr)
+        attr1 = getattr(l1, attr)
+        msg = "label.%s: %r != %r" % (attr, attr0, attr1)
+        assert_equal(attr0, attr1, msg)
     for attr in ['vertices', 'pos', 'values']:
         a0 = getattr(l0, attr)
         a1 = getattr(l1, attr)
@@ -277,6 +280,44 @@ def test_parc_from_labels():
 
 
 @sample.requires_sample_data
+def test_split_label():
+    aparc = labels_from_parc('fsaverage', 'aparc', 'lh', regexp='lingual',
+                             subjects_dir=subjects_dir)[0]
+    lingual = aparc[0]
+
+    # split with names
+    parts = ('lingual_post', 'lingual_ant')
+    post, ant = split_label(lingual, parts, subjects_dir=subjects_dir)
+
+    # check output names
+    assert_equal(post.name, parts[0])
+    assert_equal(ant.name, parts[1])
+
+    # check vertices add up
+    lingual_reconst = post + ant
+    lingual_reconst.name = lingual.name
+    lingual_reconst.comment = lingual.comment
+    assert_labels_equal(lingual_reconst, lingual)
+
+    # compare output of Label.split() method
+    post1, ant1 = lingual.split(parts, subjects_dir=subjects_dir)
+    assert_labels_equal(post1, post)
+    assert_labels_equal(ant1, ant)
+
+    # compare fs_like split with freesurfer split
+    antmost = split_label(lingual, 40, None, subjects_dir, True)[-1]
+    fs_vert = [210, 4401, 7405, 12079, 16276, 18956, 26356, 32713, 32716,
+               32719, 36047, 36050, 42797, 42798, 42799, 59281, 59282, 59283,
+               71864, 71865, 71866, 71874, 71883, 79901, 79903, 79910, 103024,
+               107849, 107850, 122928, 139356, 139357, 139373, 139374, 139375,
+               139376, 139377, 139378, 139381, 149117, 149118, 149120, 149127]
+    assert_array_equal(antmost.vertices, fs_vert)
+
+    # check default label name
+    assert_equal(antmost.name, "lingual_div40-lh")
+
+
+@sample.requires_sample_data
 @requires_sklearn
 def test_stc_to_label():
     """Test stc_to_label
@@ -341,7 +382,7 @@ def test_grow_labels():
     # these were chosen manually in mne_analyze
     should_be_in = [[49, 227], [51207, 48794]]
     hemis = [0, 1]
-    labels = grow_labels('sample', seeds, 3, hemis, n_jobs=2)
+    labels = grow_labels('sample', seeds, 3, hemis, subjects_dir, n_jobs=2)
 
     for label, seed, hemi, sh in zip(labels, seeds, hemis, should_be_in):
         assert(np.any(label.vertices == seed))
