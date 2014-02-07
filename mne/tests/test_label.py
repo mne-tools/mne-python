@@ -75,11 +75,11 @@ def test_label_addition():
     l1 = Label(idx1, pos[idx1], values[idx1], 'lh')
     l2 = Label(idx2, pos[idx2], values[idx2], 'lh', color=(0, 1, 0, .5))
 
-    assert len(l0) == len(idx0)
+    assert_equal(len(l0), len(idx0))
 
     # adding non-overlapping labels
     l01 = l0 + l1
-    assert len(l01) == len(l0) + len(l1)
+    assert_equal(len(l01), len(l0) + len(l1))
     assert_array_equal(l01.values[:len(l0)], l0.values)
     assert_equal(l01.color, l0.color)
 
@@ -88,8 +88,8 @@ def test_label_addition():
     i0 = np.where(l0.vertices == 6)[0][0]
     i2 = np.where(l2.vertices == 6)[0][0]
     i = np.where(l.vertices == 6)[0][0]
-    assert l.values[i] == l0.values[i0] + l2.values[i2]
-    assert l.values[0] == l0.values[0]
+    assert_equal(l.values[i], l0.values[i0] + l2.values[i2])
+    assert_equal(l.values[0], l0.values[0])
     assert_array_equal(np.unique(l.vertices), np.unique(idx0 + idx2))
     assert_equal(l.color, _blend_colors(l0.color, l2.color))
 
@@ -97,11 +97,11 @@ def test_label_addition():
     l2.hemi = 'rh'
     # this now has deprecated behavior
     bhl = l0 + l2
-    assert bhl.hemi == 'both'
-    assert len(bhl) == len(l0) + len(l2)
+    assert_equal(bhl.hemi, 'both')
+    assert_equal(len(bhl), len(l0) + len(l2))
 
-    bhl = l1 + bhl
-    assert_labels_equal(bhl.lh, l01)
+    bhl2 = l1 + bhl
+    assert_labels_equal(bhl2.lh, l01)
 
 
 @sample.requires_sample_data
@@ -401,12 +401,12 @@ def test_grow_labels():
     labels = grow_labels('sample', seeds, 3, hemis, subjects_dir, n_jobs=2)
 
     for label, seed, hemi, sh in zip(labels, seeds, hemis, should_be_in):
-        assert(np.any(label.vertices == seed))
-        assert np.all(in1d(sh, label.vertices))
+        assert_true(np.any(label.vertices == seed))
+        assert_true(np.all(in1d(sh, label.vertices)))
         if hemi == 0:
-            assert(label.hemi == 'lh')
+            assert_equal(label.hemi, 'lh')
         else:
-            assert(label.hemi == 'rh')
+            assert_equal(label.hemi, 'rh')
 
 
 @sample.requires_sample_data
