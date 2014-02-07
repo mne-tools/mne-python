@@ -99,6 +99,14 @@ def _split_colors(color, n):
     return tuple(rgba_colors)
 
 
+def _n_colors(n):
+    "Produce a list of n unique RGBA color tuples"
+    import matplotlib.pyplot as plt
+    pos = np.linspace(0, 1, n, False)
+    colors = plt.cm.spectral(pos)
+    return map(tuple, colors)
+
+
 class Label(object):
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere
 
@@ -1171,6 +1179,12 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
     hemis = np.array_split(hemis, n_jobs)
     labels = sum(parallel(my_grow_labels(s, e, h, dist, vert, subject)
                           for s, e, h in zip(seeds, extents, hemis)), [])
+
+    # add a unique color to each label
+    colors = _n_colors(len(labels))
+    for label, color in zip(labels, colors):
+        label.color = color
+
     return labels
 
 
