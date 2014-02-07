@@ -561,6 +561,8 @@ def read_label(filename, subject=None, color=None):
         subject name isn't saved to or loaded from files written to disk.
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
+        Note that due to file specification limitations, the color isn't saved
+        to or loaded from files written to disk.
 
     Returns
     -------
@@ -571,16 +573,10 @@ def read_label(filename, subject=None, color=None):
             pos            locations in meters (columns 2 - 4 divided by 1000)
             values         values at the vertices (column 5)
     """
-    fid = open(filename, 'r')
-    comment = fid.readline().replace('\n', '')[1:]
     if subject is not None and not isinstance(subject, string_types):
         raise TypeError('subject must be a string')
 
-    nv = int(fid.readline())
-    data = np.empty((5, nv))
-    for i, line in enumerate(fid):
-        data[:, i] = line.split()
-
+    # find hemi
     basename = op.basename(filename)
     if basename.endswith('lh.label') or basename.startswith('lh.'):
         hemi = 'lh'
@@ -589,7 +585,24 @@ def read_label(filename, subject=None, color=None):
     else:
         raise ValueError('Cannot find which hemisphere it is. File should end'
                          ' with lh.label or rh.label')
-    fid.close()
+
+    # find name
+    if basename.startswith(('lh.', 'rh.')):
+        if basename.endswith('.label'):
+            basename_ = basename[3:-6]
+        else:
+            basename_ = basename[3:]
+    else:
+        basename_ = basename[:-9]
+    name = "%s-%s" % (basename_, hemi)
+
+    # read the file
+    with open(filename, 'r') as fid:
+        comment = fid.readline().replace('\n', '')[1:]
+        nv = int(fid.readline())
+        data = np.empty((5, nv))
+        for i, line in enumerate(fid):
+            data[:, i] = line.split()
 
     # let's make sure everything is ordered correctly
     vertices = np.array(data[0], dtype=np.int32)
@@ -600,8 +613,8 @@ def read_label(filename, subject=None, color=None):
     pos = pos[order]
     values = values[order]
 
-    label = Label(vertices=vertices, pos=pos, values=values, hemi=hemi,
-                  comment=comment, filename=filename, subject=subject)
+    label = Label(vertices, pos, values, hemi, comment, name, filename,
+                  subject, color)
 
     return label
 

@@ -119,6 +119,13 @@ def test_label_io():
     """Test IO of label files
     """
     label = read_label(label_fname)
+
+    # label attributes
+    assert_equal(label.name, 'test-lh')
+    assert_is(label.subject, None)
+    assert_is(label.color, None)
+
+    # save and reload
     label.save(op.join(tempdir, 'foo'))
     label2 = read_label(op.join(tempdir, 'foo-lh.label'))
     assert_labels_equal(label, label2)
