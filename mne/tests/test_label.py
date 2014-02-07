@@ -99,9 +99,11 @@ def test_label_addition():
     bhl = l0 + l2
     assert_equal(bhl.hemi, 'both')
     assert_equal(len(bhl), len(l0) + len(l2))
+    assert_equal(bhl.color, l.color)
 
     bhl2 = l1 + bhl
     assert_labels_equal(bhl2.lh, l01)
+    assert_equal(bhl2.color, _blend_colors(l1.color, bhl.color))
 
 
 @sample.requires_sample_data

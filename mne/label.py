@@ -30,16 +30,25 @@ def _blend_colors(color_1, color_2):
 
     Parameters
     ----------
-    color_1, color_2 : tuple
-        RGBA tuples with values between 0 and 1.
+    color_1, color_2 : None | tuple
+        RGBA tuples with values between 0 and 1. None if no color is available.
+        If both colors are None, the output is None. If only one is None, the
+        output is the other color.
 
     Returns
     -------
-    color : tuple
+    color : None | tuple
         RGBA tuple of the combined color. Saturation, value and alpha are
         averaged, whereas the new hue is determined as angle half way between
         the two input colors' hues.
     """
+    if color_1 is None and color_2 is None:
+        return None
+    elif color_1 is None:
+        return color_2
+    elif color_2 is None:
+        return color_1
+
     r_1, g_1, b_1, a_1 = color_1
     h_1, s_1, v_1 = rgb_to_hsv(r_1, g_1, b_1)
     r_2, g_2, b_2, a_2 = color_2
@@ -233,7 +242,8 @@ class Label(object):
                     lh, rh = self.copy(), other.copy()
                 else:
                     lh, rh = other.copy(), self.copy()
-                return BiHemiLabel(lh, rh, name=name)
+                color = _blend_colors(self.color, other.color)
+                return BiHemiLabel(lh, rh, name, color)
         else:
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
@@ -277,15 +287,7 @@ class Label(object):
         name1 = other.name if other.name else 'unnamed'
         name = "%s + %s" % (name0, name1)
 
-        if self.color is None and other.color is None:
-            color = None
-        elif self.color is None:
-            color = other.color
-        elif other.color is None:
-            color = self.color
-        else:
-            color = _blend_colors(self.color, other.color)
-
+        color = _blend_colors(self.color, other.color)
         verbose = self.verbose or other.verbose
 
         label = Label(vertices, pos, values, self.hemi, comment, name, None,
@@ -506,7 +508,7 @@ class BiHemiLabel(object):
     """
     hemi = 'both'
 
-    def __init__(self, lh, rh, name=None):
+    def __init__(self, lh, rh, name=None, color=None):
         if lh.subject != rh.subject:
             raise ValueError('lh.subject (%s) and rh.subject (%s) must '
                              'agree' % (lh.subject, rh.subject))
@@ -514,6 +516,7 @@ class BiHemiLabel(object):
         self.rh = rh
         self.name = name
         self.subject = lh.subject
+        self.color = color
 
     def __repr__(self):
         temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
@@ -539,7 +542,8 @@ class BiHemiLabel(object):
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         name = '%s + %s' % (self.name, other.name)
-        return BiHemiLabel(lh, rh, name=name)
+        color = _blend_colors(self.color, other.color)
+        return BiHemiLabel(lh, rh, name, color)
 
 
 def read_label(filename, subject=None, color=None):
