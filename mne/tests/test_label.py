@@ -312,6 +312,7 @@ def test_split_label():
     lingual_reconst = post + ant
     lingual_reconst.name = lingual.name
     lingual_reconst.comment = lingual.comment
+    lingual_reconst.color = lingual.color
     assert_labels_equal(lingual_reconst, lingual)
 
     # compare output of Label.split() method

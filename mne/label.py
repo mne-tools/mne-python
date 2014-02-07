@@ -58,6 +58,38 @@ def _blend_colors(color_1, color_2):
     return color
 
 
+def _split_colors(color, n):
+    """Create n colors in HSV space that occupy a gradient in value
+
+    Parameters
+    ----------
+    color : tuple
+        RGBA tuple with values between 0 and 1.
+    n : int >= 2
+        Number of colors on the gradient.
+
+    Returns
+    -------
+    colors : tuple of tuples, len = n
+        N RGBA tuples that occupy a gradient in value (low to high) but share
+        saturation and hue with the input color.
+    """
+    r, g, b, a = color
+    h, s, v = rgb_to_hsv(r, g, b)
+    gradient_range = np.sqrt(n / 10.)
+    if v > 0.5:
+        v_max = min(0.95, v + gradient_range / 2)
+        v_min = max(0.05, v_max - gradient_range)
+    else:
+        v_min = max(0.05, v - gradient_range / 2)
+        v_max = min(0.95, v_min + gradient_range)
+
+    hsv_colors = ((h, s, v_) for v_ in np.linspace(v_min, v_max, n))
+    rgb_colors = (hsv_to_rgb(h_, s_, v_) for h_, s_, v_ in hsv_colors)
+    rgba_colors = ((r_, g_, b_, a,) for r_, g_, b_ in rgb_colors)
+    return tuple(rgba_colors)
+
+
 class Label(object):
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere
 
@@ -732,16 +764,23 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     mark = proj // 1
     mark[mark == n_parts] = n_parts - 1
 
+    # colors
+    if label.color is None:
+        colors = (None,) * n_parts
+    else:
+        colors = _split_colors(label.color, n_parts)
+
     # construct new labels
     labels = []
-    for i, name in enumerate(names):
+    for i, name, color in zip(range(n_parts), names, colors):
         idx = (mark == i)
         vert = label.vertices[idx]
         pos = label.pos[idx]
         values = label.values[idx]
         hemi = label.hemi
         comment = label.comment
-        lbl = Label(vert, pos, values, hemi, comment, name, None, subject)
+        lbl = Label(vert, pos, values, hemi, comment, name, None, subject,
+                    color)
         labels.append(lbl)
 
     return labels
