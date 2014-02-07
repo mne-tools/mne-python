@@ -1133,10 +1133,10 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
 
     Returns
     -------
-    labels : list of Labels. The labels' ``comment`` attribute contains
-        information on the seed vertex and extent; the ``values``  attribute
-        contains distance from the seed in millimeters
-
+    labels : list of Label
+        The labels' ``comment`` attribute contains information on the seed
+        vertex and extent; the ``values``  attribute contains distance from the
+        seed in millimeters
     """
     subjects_dir = get_subjects_dir(subjects_dir)
     n_jobs = check_n_jobs(n_jobs)
