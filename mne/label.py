@@ -295,7 +295,18 @@ class Label(object):
         return label
 
     def save(self, filename):
-        "calls write_label to write the label to disk"
+        """Write to disk as FreeSurfer *.label file
+
+        Parameters
+        ----------
+        filename : string
+            Path to label file to produce.
+
+        Notes
+        -----
+        Note that due to file specification limitations, the Label's subject
+        and color attributes are not saved to disk.
+        """
         write_label(filename, self)
 
     def copy(self):
@@ -631,6 +642,11 @@ def write_label(filename, label, verbose=None):
         The label object to save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Notes
+    -----
+    Note that due to file specification limitations, the Label's subject and
+    color attributes are not saved to disk.
     """
     hemi = label.hemi
     path_head, name = op.split(filename)
