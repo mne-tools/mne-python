@@ -630,7 +630,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     # find the label's normal
     if freesurfer:
         # find the Freesurfer vertex closest to the center
-        distance = np.linalg.norm(centered_points, axis=1)
+        distance = np.sqrt(np.sum(centered_points ** 2, axis=1))
         i_closest = np.argmin(distance)
         closest_vertex = label.vertices[i_closest]
         # find the normal according to freesurfer convention
