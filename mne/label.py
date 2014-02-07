@@ -584,7 +584,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     # find the label
     if isinstance(label, BiHemiLabel):
         raise TypeError("Can only split labels restricted to one hemisphere.")
-    elif isinstance(label, basestring):
+    elif isinstance(label, string_types):
         label = read_label(label)
 
     # find the parts
