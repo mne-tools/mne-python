@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_equal, assert_true, assert_raises
+from nose.tools import assert_equal, assert_is, assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
@@ -56,7 +56,7 @@ def test_label_subject():
     """Test label subject name extraction
     """
     label = read_label(label_fname)
-    assert_true(label.subject is None)
+    assert_is(label.subject, None)
     assert_true('unknown' in repr(label))
     label = read_label(label_fname, subject='fsaverage')
     assert_true(label.subject == 'fsaverage')
