@@ -929,8 +929,8 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     -------
     labels : list of Labels | list of list of Labels
         The generated labels. If connected is False, it returns
-        a list of Labels (One per hemisphere). If no Label is available
-        in an hemisphere, None is returned. If connected is True,
+        a list of Labels (one per hemisphere). If no Label is available
+        in a hemisphere, None is returned. If connected is True,
         it returns for each hemisphere a list of connected labels
         ordered in decreasing order depending of the maximum value in the stc.
         If no Label is available in an hemisphere, an empty list is returned.
@@ -1011,7 +1011,8 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
                 this_labels = []
         else:
             this_labels = []
-            for c in clusters:
+            colors = _n_colors(len(clusters))
+            for c, color in zip(clusters, colors):
                 idx_use = c
                 for k in range(smooth):
                     e_use = e[:, idx_use]
@@ -1023,7 +1024,8 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
                               values=np.ones(len(idx_use)),
                               hemi=hemi,
                               comment='Label from stc',
-                              subject=subject)
+                              subject=subject,
+                              color=color)
                 this_labels.append(label)
 
             if not connected:
