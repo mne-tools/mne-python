@@ -55,20 +55,19 @@ def _compute_mapping_matrix(fmd, info):
 
     # SVD is numerically better than the eigenvalue composition even if
     # mat is supposed to be symmetric and positive definite
-    logger.info('SVD...')
-    uu, sing, vv = linalg.svd(whitened_dots, overwrite_a=True)
+    uu, sing, vv = linalg.svd(whitened_dots, full_matrices=False,
+                              overwrite_a=True)
 
     # Eigenvalue truncation
     sumk = np.cumsum(sing)
     sumk /= sumk[-1]
     fmd['nest'] = np.where(sumk > (1.0 - fmd['miss']))[0][0]
     logger.info('Truncate at %d missing %g' % (fmd['nest'], fmd['miss']))
-    sing = 1.0 / sing
-    sing[fmd['nest'] + 1:] = 0.0
+    sing = 1.0 / sing[:fmd['nest']]
 
     # Put the inverse together
     logger.info('Put the inverse together...')
-    inv = np.dot(vv.T, sing[:, np.newaxis] * uu.T)
+    inv = np.dot(uu[:, :fmd['nest']] * sing, vv[:fmd['nest']]).T
 
     # Sandwich with the whitener
     inv_whitened = np.dot(whitener.T, np.dot(inv, whitener))
