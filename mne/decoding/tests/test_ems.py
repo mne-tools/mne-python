@@ -31,8 +31,8 @@ def test_ems():
     raw = fiff.Raw(raw_fname, preload=False)
 
     # create unequal number of events
-    events = np.r_[read_events(event_name), [[32102,     0,     1]]]
-
+    events = read_events(event_name)
+    events[-2, 2] = 3
     picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     picks = picks[1:13:3]
@@ -61,6 +61,7 @@ def test_ems():
 
     events = read_events(event_name)
     event_id2 = dict(aud_l=1, aud_r=2, vis_l=3)
+    # import pdb;pdb.set_trace()
     epochs = Epochs(raw, events, event_id2, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs.equalize_event_counts(epochs.event_id, copy=False)
@@ -72,3 +73,4 @@ def test_ems():
     assert_equal(n_expected, len(surrogates))
     assert_equal(n_expected, len(conditions))
     assert_equal(list(set(conditions)), [2, 3])
+    raw.close()

@@ -67,7 +67,6 @@ def compute_ems(epochs, conditions=None,
         conditions = list(conditions)
 
     conditions_ = _check_conditions(epochs, conditions)
-
     epochs = epochs[reduce(operator.add, conditions_)]
     conditions_ = _check_conditions(epochs, conditions)
 
