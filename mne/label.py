@@ -5,9 +5,11 @@
 # License: BSD (3-clause)
 
 from .externals.six import string_types
+from colorsys import hsv_to_rgb, rgb_to_hsv
 from os import path as op
 import os
 import copy as cp
+import random
 import re
 
 import numpy as np
@@ -21,6 +23,88 @@ from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters
 from .externals.six import b
 from .externals.six.moves import zip
+
+
+def _blend_colors(color_1, color_2):
+    """Blend two colors in HSV space
+
+    Parameters
+    ----------
+    color_1, color_2 : None | tuple
+        RGBA tuples with values between 0 and 1. None if no color is available.
+        If both colors are None, the output is None. If only one is None, the
+        output is the other color.
+
+    Returns
+    -------
+    color : None | tuple
+        RGBA tuple of the combined color. Saturation, value and alpha are
+        averaged, whereas the new hue is determined as angle half way between
+        the two input colors' hues.
+    """
+    if color_1 is None and color_2 is None:
+        return None
+    elif color_1 is None:
+        return color_2
+    elif color_2 is None:
+        return color_1
+
+    r_1, g_1, b_1, a_1 = color_1
+    h_1, s_1, v_1 = rgb_to_hsv(r_1, g_1, b_1)
+    r_2, g_2, b_2, a_2 = color_2
+    h_2, s_2, v_2 = rgb_to_hsv(r_2, g_2, b_2)
+    hue_diff = abs(h_1 - h_2)
+    if hue_diff < 0.5:
+        h = min(h_1, h_2) + hue_diff / 2.
+    else:
+        h = max(h_1, h_2) + (1. - hue_diff) / 2.
+        h %= 1.
+    s = (s_1 + s_2) / 2.
+    v = (v_1 + v_2) / 2.
+    r, g, b = hsv_to_rgb(h, s, v)
+    a = (a_1 + a_2) / 2.
+    color = (r, g, b, a)
+    return color
+
+
+def _split_colors(color, n):
+    """Create n colors in HSV space that occupy a gradient in value
+
+    Parameters
+    ----------
+    color : tuple
+        RGBA tuple with values between 0 and 1.
+    n : int >= 2
+        Number of colors on the gradient.
+
+    Returns
+    -------
+    colors : tuple of tuples, len = n
+        N RGBA tuples that occupy a gradient in value (low to high) but share
+        saturation and hue with the input color.
+    """
+    r, g, b, a = color
+    h, s, v = rgb_to_hsv(r, g, b)
+    gradient_range = np.sqrt(n / 10.)
+    if v > 0.5:
+        v_max = min(0.95, v + gradient_range / 2)
+        v_min = max(0.05, v_max - gradient_range)
+    else:
+        v_min = max(0.05, v - gradient_range / 2)
+        v_max = min(0.95, v_min + gradient_range)
+
+    hsv_colors = ((h, s, v_) for v_ in np.linspace(v_min, v_max, n))
+    rgb_colors = (hsv_to_rgb(h_, s_, v_) for h_, s_, v_ in hsv_colors)
+    rgba_colors = ((r_, g_, b_, a,) for r_, g_, b_ in rgb_colors)
+    return tuple(rgba_colors)
+
+
+def _n_colors(n):
+    "Produce a list of n unique RGBA color tuples"
+    import matplotlib.pyplot as plt
+    pos = np.linspace(0, 1, n, False)
+    colors = plt.cm.spectral(pos)
+    return map(tuple, colors)
 
 
 class Label(object):
@@ -46,11 +130,16 @@ class Label(object):
         Kept as information but not used by the object itself.
     subject : str | None
         Name of the subject the label is from.
+    color : None | matplotlib color
+        Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Attributes
     ----------
+    color : None | tuple
+        Default label color, represented as RGBA tuple with values between 0
+        and 1.
     comment : str
         Comment from the first line of the label file.
     hemi : 'lh' | 'rh'
@@ -71,13 +160,18 @@ class Label(object):
     """
     @verbose
     def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
-                 name=None, filename=None, subject=None, verbose=None):
+                 name=None, filename=None, subject=None, color=None,
+                 verbose=None):
+        # check parameters
         if not isinstance(hemi, string_types):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
         vertices = np.asarray(vertices)
         if np.any(np.diff(vertices.astype(int)) <= 0):
             raise ValueError('Vertices must be ordered in increasing '
                              'order.')
+        if color is not None:
+            from matplotlib.colors import colorConverter
+            color = colorConverter.to_rgba(color)
 
         if values is None:
             values = np.ones(len(vertices))
@@ -101,6 +195,7 @@ class Label(object):
         self.comment = comment
         self.verbose = verbose
         self.subject = _check_subject(None, subject, False)
+        self.color = color
         self.name = name
         self.filename = filename
 
@@ -112,6 +207,7 @@ class Label(object):
         self.comment = state['comment']
         self.verbose = state['verbose']
         self.subject = state.get('subject', None)
+        self.color = state.get('color', None)
         self.name = state['name']
         self.filename = state['filename']
 
@@ -123,6 +219,7 @@ class Label(object):
                    comment=self.comment,
                    verbose=self.verbose,
                    subject=self.subject,
+                   color=self.color,
                    name=self.name,
                    filename=self.filename)
         return out
@@ -153,7 +250,8 @@ class Label(object):
                     lh, rh = self.copy(), other.copy()
                 else:
                     lh, rh = other.copy(), self.copy()
-                return BiHemiLabel(lh, rh, name=name)
+                color = _blend_colors(self.color, other.color)
+                return BiHemiLabel(lh, rh, name, color)
         else:
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
@@ -188,20 +286,35 @@ class Label(object):
             pos = np.vstack((self.pos, other.pos))
             values = np.hstack((self.values, other.values))
 
-        name0 = self.name if self.name else 'unnamed'
-        name1 = other.name if other.name else 'unnamed'
-
         indcs = np.argsort(vertices)
         vertices, pos, values = vertices[indcs], pos[indcs, :], values[indcs]
 
         comment = "%s + %s" % (self.comment, other.comment)
+
+        name0 = self.name if self.name else 'unnamed'
+        name1 = other.name if other.name else 'unnamed'
         name = "%s + %s" % (name0, name1)
+
+        color = _blend_colors(self.color, other.color)
+        verbose = self.verbose or other.verbose
+
         label = Label(vertices, pos, values, self.hemi, comment, name, None,
-                      self.subject)
+                      self.subject, color, verbose)
         return label
 
     def save(self, filename):
-        "calls write_label to write the label to disk"
+        """Write to disk as FreeSurfer *.label file
+
+        Parameters
+        ----------
+        filename : string
+            Path to label file to produce.
+
+        Notes
+        -----
+        Note that due to file specification limitations, the Label's subject
+        and color attributes are not saved to disk.
+        """
         write_label(filename, self)
 
     def copy(self):
@@ -414,7 +527,7 @@ class BiHemiLabel(object):
     """
     hemi = 'both'
 
-    def __init__(self, lh, rh, name=None):
+    def __init__(self, lh, rh, name=None, color=None):
         if lh.subject != rh.subject:
             raise ValueError('lh.subject (%s) and rh.subject (%s) must '
                              'agree' % (lh.subject, rh.subject))
@@ -422,6 +535,7 @@ class BiHemiLabel(object):
         self.rh = rh
         self.name = name
         self.subject = lh.subject
+        self.color = color
 
     def __repr__(self):
         temp = "<BiHemiLabel  |  %s, lh : %i vertices,  rh : %i vertices>"
@@ -447,10 +561,11 @@ class BiHemiLabel(object):
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         name = '%s + %s' % (self.name, other.name)
-        return BiHemiLabel(lh, rh, name=name)
+        color = _blend_colors(self.color, other.color)
+        return BiHemiLabel(lh, rh, name, color)
 
 
-def read_label(filename, subject=None):
+def read_label(filename, subject=None, color=None):
     """Read FreeSurfer Label file
 
     Parameters
@@ -463,6 +578,10 @@ def read_label(filename, subject=None):
         incompatible labels and SourceEstimates (e.g., ones from other
         subjects). Note that due to file specification limitations, the
         subject name isn't saved to or loaded from files written to disk.
+    color : None | matplotlib color
+        Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
+        Note that due to file specification limitations, the color isn't saved
+        to or loaded from files written to disk.
 
     Returns
     -------
@@ -473,16 +592,10 @@ def read_label(filename, subject=None):
             pos            locations in meters (columns 2 - 4 divided by 1000)
             values         values at the vertices (column 5)
     """
-    fid = open(filename, 'r')
-    comment = fid.readline().replace('\n', '')[1:]
     if subject is not None and not isinstance(subject, string_types):
         raise TypeError('subject must be a string')
 
-    nv = int(fid.readline())
-    data = np.empty((5, nv))
-    for i, line in enumerate(fid):
-        data[:, i] = line.split()
-
+    # find hemi
     basename = op.basename(filename)
     if basename.endswith('lh.label') or basename.startswith('lh.'):
         hemi = 'lh'
@@ -491,7 +604,24 @@ def read_label(filename, subject=None):
     else:
         raise ValueError('Cannot find which hemisphere it is. File should end'
                          ' with lh.label or rh.label')
-    fid.close()
+
+    # find name
+    if basename.startswith(('lh.', 'rh.')):
+        if basename.endswith('.label'):
+            basename_ = basename[3:-6]
+        else:
+            basename_ = basename[3:]
+    else:
+        basename_ = basename[:-9]
+    name = "%s-%s" % (basename_, hemi)
+
+    # read the file
+    with open(filename, 'r') as fid:
+        comment = fid.readline().replace('\n', '')[1:]
+        nv = int(fid.readline())
+        data = np.empty((5, nv))
+        for i, line in enumerate(fid):
+            data[:, i] = line.split()
 
     # let's make sure everything is ordered correctly
     vertices = np.array(data[0], dtype=np.int32)
@@ -502,8 +632,8 @@ def read_label(filename, subject=None):
     pos = pos[order]
     values = values[order]
 
-    label = Label(vertices=vertices, pos=pos, values=values, hemi=hemi,
-                  comment=comment, filename=filename, subject=subject)
+    label = Label(vertices, pos, values, hemi, comment, name, filename,
+                  subject, color)
 
     return label
 
@@ -520,6 +650,11 @@ def write_label(filename, label, verbose=None):
         The label object to save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Notes
+    -----
+    Note that due to file specification limitations, the Label's subject and
+    color attributes are not saved to disk.
     """
     hemi = label.hemi
     path_head, name = op.split(filename)
@@ -670,16 +805,23 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     mark = proj // 1
     mark[mark == n_parts] = n_parts - 1
 
+    # colors
+    if label.color is None:
+        colors = (None,) * n_parts
+    else:
+        colors = _split_colors(label.color, n_parts)
+
     # construct new labels
     labels = []
-    for i, name in enumerate(names):
+    for i, name, color in zip(range(n_parts), names, colors):
         idx = (mark == i)
         vert = label.vertices[idx]
         pos = label.pos[idx]
         values = label.values[idx]
         hemi = label.hemi
         comment = label.comment
-        lbl = Label(vert, pos, values, hemi, comment, name, None, subject)
+        lbl = Label(vert, pos, values, hemi, comment, name, None, subject,
+                    color)
         labels.append(lbl)
 
     return labels
@@ -787,8 +929,8 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     -------
     labels : list of Labels | list of list of Labels
         The generated labels. If connected is False, it returns
-        a list of Labels (One per hemisphere). If no Label is available
-        in an hemisphere, None is returned. If connected is True,
+        a list of Labels (one per hemisphere). If no Label is available
+        in a hemisphere, None is returned. If connected is True,
         it returns for each hemisphere a list of connected labels
         ordered in decreasing order depending of the maximum value in the stc.
         If no Label is available in an hemisphere, an empty list is returned.
@@ -869,7 +1011,8 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
                 this_labels = []
         else:
             this_labels = []
-            for c in clusters:
+            colors = _n_colors(len(clusters))
+            for c, color in zip(clusters, colors):
                 idx_use = c
                 for k in range(smooth):
                     e_use = e[:, idx_use]
@@ -881,7 +1024,8 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
                               values=np.ones(len(idx_use)),
                               hemi=hemi,
                               comment='Label from stc',
-                              subject=subject)
+                              subject=subject,
+                              color=color)
                 this_labels.append(label)
 
             if not connected:
@@ -940,7 +1084,7 @@ def _verts_within_dist(graph, source, max_dist):
     return verts, dist
 
 
-def _grow_labels(seeds, extents, hemis, dist, vert):
+def _grow_labels(seeds, extents, hemis, dist, vert, subject):
     """Helper for parallelization of grow_labels
     """
     labels = []
@@ -953,7 +1097,8 @@ def _grow_labels(seeds, extents, hemis, dist, vert):
                       pos=vert[hemi][label_verts],
                       values=label_dist,
                       hemi=hemi,
-                      comment=comment)
+                      comment=comment,
+                      subject=subject)
         labels.append(label)
     return labels
 
@@ -990,10 +1135,10 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
 
     Returns
     -------
-    labels : list of Labels. The labels' ``comment`` attribute contains
-        information on the seed vertex and extent; the ``values``  attribute
-        contains distance from the seed in millimeters
-
+    labels : list of Label
+        The labels' ``comment`` attribute contains information on the seed
+        vertex and extent; the ``values``  attribute contains distance from the
+        seed in millimeters
     """
     subjects_dir = get_subjects_dir(subjects_dir)
     n_jobs = check_n_jobs(n_jobs)
@@ -1034,8 +1179,14 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
     seeds = np.array_split(seeds, n_jobs)
     extents = np.array_split(extents, n_jobs)
     hemis = np.array_split(hemis, n_jobs)
-    labels = sum(parallel(my_grow_labels(s, e, h, dist, vert)
+    labels = sum(parallel(my_grow_labels(s, e, h, dist, vert, subject)
                           for s, e, h in zip(seeds, extents, hemis)), [])
+
+    # add a unique color to each label
+    colors = _n_colors(len(labels))
+    for label, color in zip(labels, colors):
+        label.color = color
+
     return labels
 
 
@@ -1177,6 +1328,7 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
     Returns
     -------
     labels : list of Label
@@ -1192,10 +1344,14 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
                                           subjects_dir)
 
+    if regexp is not None:
+        # allow for convenient substring match
+        r_ = (re.compile('.*%s.*' % regexp if regexp.replace('_', '').isalnum()
+              else regexp))
+
     # now we are ready to create the labels
     n_read = 0
     labels = list()
-    label_colors = list()
     for fname, hemi in zip(annot_fname, hemis):
         # read annotation
         annot, ctab, label_names = _read_annot(fname)
@@ -1213,40 +1369,30 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
             if len(vertices) == 0:
                 # label is not part of cortical surface
                 continue
+            name = label_name.decode() + '-' + hemi
+            if (regexp is not None) and not r_.match(name):
+                continue
             pos = vert_pos[vertices, :]
             values = np.zeros(len(vertices))
-            name = label_name.decode() + '-' + hemi
-            label = Label(vertices, pos, values, hemi, name=name,
-                          subject=subject)
-            labels.append(label)
-
-            # store the color
             label_rgba = tuple(label_rgba / 255.)
-            label_colors.append(label_rgba)
+            label = Label(vertices, pos, values, hemi, name=name,
+                          subject=subject, color=label_rgba)
+            labels.append(label)
 
         n_read = len(labels) - n_read
         logger.info('   read %d labels from %s' % (n_read, fname))
 
-    if regexp is not None:
-        # allow for convenient substring match
-        r_ = (re.compile('.*%s.*' % regexp if regexp.replace('_', '').isalnum()
-              else regexp))
+    # sort the labels by label name
+    labels = sorted(labels, key=lambda l: l.name)
 
-    # sort the labels and colors by label name
-    names = [label.name for label in labels]
-    labels_ = [(label, color) for (name, label, color)
-               in sorted(zip(names, labels, label_colors))
-               if (r_.match(name) if regexp else True)]
-    if len(labels_) > 0:
-        labels = [l[0] for l in labels_]
-        label_colors = [l[1] for l in labels_]
-    else:
-        raise RuntimeError('The regular expression supplied did not match.')
-    # convert tuples to lists
-    labels = list(labels)
-    label_colors = list(label_colors)
+    if len(labels) == 0:
+        msg = 'No labels found.'
+        if regexp is not None:
+            msg += ' Maybe the regular expression %r did not match?' % regexp
+        raise RuntimeError(msg)
+
+    label_colors = [l.color for l in labels]
     logger.info('[done]')
-
     return labels, label_colors
 
 
@@ -1302,7 +1448,7 @@ def _write_annot(fname, annot, ctab, names):
 
 
 @verbose
-def parc_from_labels(labels, colors, subject=None, parc=None,
+def parc_from_labels(labels, colors=None, subject=None, parc=None,
                      annot_fname=None, overwrite=False, subjects_dir=None,
                      verbose=None):
     """Create a FreeSurfer parcellation from labels
@@ -1312,10 +1458,11 @@ def parc_from_labels(labels, colors, subject=None, parc=None,
     labels : list with instances of mne.Label
         The labels to create a parcellation from.
     colors : list of tuples | None
-        RGBA color to write into the colortable for each label. If None,
-        the colors are created based on the alphabetical order of the label
-        names. Note: Per hemisphere, each label must have a unique color,
-        otherwise the stored parcellation will be invalid.
+        RGBA color to write into the colortable for each label. If None
+        (default), the colors are retrieved from the label objects or, if not
+        available in the labels, created based on the alphabetical order of
+        the label names. Note: Per hemisphere, each label must have a unique
+        color, otherwise the stored parcellation will be invalid.
     subject : str | None
         The subject for which to write the parcellation for.
     parc : str | None
@@ -1367,13 +1514,22 @@ def parc_from_labels(labels, colors, subject=None, parc=None,
             hemi_colors = [colors[names.index('%s-%s' % (label.name, hemi))]
                            for label in hemi_labels]
         else:
-            import matplotlib.pyplot as plt
-            hemi_colors = plt.cm.spectral(np.linspace(0, 1, n_hemi_labels))
+            hemi_colors = [label.color for label in hemi_labels]
+            if any(color is None for color in hemi_colors):
+                import matplotlib.pyplot as plt
+                for i in range(n_hemi_labels):
+                    if hemi_colors[i] is None:
+                        pos = i / (n_hemi_labels - 1)
+                        color = plt.cm.spectral(pos)
+                        # make sure to have no duplicate colors
+                        while color in hemi_colors:
+                            color = (random.uniform(0, 1),
+                                     random.uniform(0, 1),
+                                     random.uniform(0, 1), 1.)
+                        hemi_colors[i] = color
 
         # Creat annot and color table array to write
-        max_vert = 0
-        for label in hemi_labels:
-            max_vert = max(max_vert, np.max(label.vertices))
+        max_vert = max(np.max(label.vertices) for label in hemi_labels)
         n_vertices = max_vert + 1
         annot = np.zeros(n_vertices, dtype=np.int)
         ctab = np.zeros((n_hemi_labels, 4), dtype=np.int32)
