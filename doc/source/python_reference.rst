@@ -99,6 +99,7 @@ Functions:
    get_head_surf
    get_meg_helmet_surf
    parse_config
+   read_annot
    read_bem_solution
    read_bem_surfaces
    read_cov
@@ -116,6 +117,7 @@ Functions:
    read_surface
    read_trans
    save_stc_as_volume
+   write_annot
    write_bem_surface
    write_cov
    write_events
@@ -532,10 +534,10 @@ Source Space Data
    grade_to_tris
    grade_to_vertices
    grow_labels
-   labels_from_parc
    label_sign_flip
    morph_data
    morph_data_precomputed
+   read_annot
    read_dip
    read_label
    read_source_estimate
@@ -545,6 +547,7 @@ Source Space Data
    transform_coordinates
    transform_surface_to
    vertex_to_mni
+   write_annot
    write_label
 
 
