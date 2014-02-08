@@ -534,6 +534,7 @@ Source Space Data
    read_label
    read_source_estimate
    save_stc_as_volume
+   split_label
    stc_to_label
    transform_coordinates
    transform_surface_to
