@@ -15,7 +15,8 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
-from .utils import get_subjects_dir, _check_subject, logger, verbose
+from .utils import (get_subjects_dir, _check_subject, logger, verbose,
+                    deprecated)
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .surface import read_surface, fast_cross_3d
@@ -1299,9 +1300,22 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
 
 @verbose
+@deprecated("mne.labels_from_parc() is deprecated and will be removed in mne "
+            "release 0.9. Use mne.read_annot() instead (note change in return "
+            "values).")
 def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                      annot_fname=None, regexp=None, subjects_dir=None,
                      verbose=None):
+    """Deprecated (will be removed in mne 0.9). Use read_annot() instead"""
+    labels = read_annot(subject, parc, hemi, surf_name, annot_fname, regexp,
+                        subjects_dir, verbose)
+    label_colors = [l.color for l in labels]
+    return labels, label_colors
+
+
+@verbose
+def read_annot(subject, parc='aparc', hemi='both', surf_name='white',
+               annot_fname=None, regexp=None, subjects_dir=None, verbose=None):
     """Read labels from FreeSurfer parcellation
 
     Note: Only cortical labels will be returned.
@@ -1333,8 +1347,6 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     -------
     labels : list of Label
         The labels, sorted by label name (ascending).
-    colors : list of tuples
-        RGBA color for obtained from the parc color table for each label.
     """
     logger.info('Reading labels from parcellation..')
 
@@ -1391,9 +1403,8 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
             msg += ' Maybe the regular expression %r did not match?' % regexp
         raise RuntimeError(msg)
 
-    label_colors = [l.color for l in labels]
     logger.info('[done]')
-    return labels, label_colors
+    return labels
 
 
 def _write_annot(fname, annot, ctab, names):
