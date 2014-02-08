@@ -1523,6 +1523,12 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
                 raise ValueError('File %s exists. Use "overwrite=True" to '
                                  'overwrite it' % fname)
 
+    # prepare container for data to save:
+    to_save = []
+    # keep track of issues found in the labels
+    duplicate_colors = []
+    invalid_colors = []
+    overlap = []
     for hemi, fname in zip(hemis, annot_fname):
         hemi_labels = [label for label in labels if label.hemi == hemi]
         n_hemi_labels = len(hemi_labels)
@@ -1532,15 +1538,15 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
         hemi_labels.sort(key=lambda label: label.name)
 
         # convert colors to 0-255 RGBA tuples
-        hemi_colors = [tuple(int(round(255 * i)) for i in label.color)
-                       if label.color is not None else None
+        hemi_colors = [None if label.color is None else
+                       tuple(int(round(255 * i)) for i in label.color)
                        for label in hemi_labels]
 
         # make sure to have no duplicate colors in hemi labels
         labels_by_color = defaultdict(list)
         for label, color in zip(hemi_labels, hemi_colors):
             labels_by_color[color].append(label.name)
-        duplicates = []
+
         for color, names in labels_by_color.iteritems():
             if color is None:
                 continue
@@ -1548,20 +1554,22 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
             if color[:3] == (0, 0, 0):
                 # we cannot have an all-zero color, otherw. e.g. tksurfer
                 # refuses to read the parcellation
-                msg = ('    At least on e label contains a color with, "r=0, '
+                msg = ('    At least one label contains a color with, "r=0, '
                        'g=0, b=0" value. Some FreeSurfer tools may fail to '
                        'read the parcellation')
                 logger.warning(msg)
 
-            if len(names) > 1:
-                duplicates.append("%r: %r" % (color, names))
+            if any(i > 255 for i in color):
+                if len(names) == 1:
+                    name = names[0]
+                else:
+                    name = names
+                msg = ("%s (%s)" % (name, hemi))
+                invalid_colors.append(msg)
 
-        if duplicates:
-            msg = ("All labels in one hemisphere must have a unique color. "
-                   "The following labels have the same color values in "
-                   "%s:" % hemi)
-            duplicates.insert(0, msg)
-            raise ValueError(os.linesep.join(duplicates))
+            if len(names) > 1:
+                msg = "%s (%s)" % (names, hemi)
+                duplicate_colors.append(msg)
 
         # replace None values (labels with unspecified color)
         if labels_by_color[None]:
@@ -1586,14 +1594,16 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
         ctab = np.array(hemi_colors, dtype=np.int32)
         # create the annotation ids from the colors
         annot_id_coding = np.array((1, 2 ** 8, 2 ** 16))
-        annot_ids = np.sum(ctab[:, :3] * annot_id_coding, axis=1)
+        annot_ids = list(np.sum(ctab[:, :3] * annot_id_coding, axis=1))
         for label, annot_id in zip(hemi_labels, annot_ids):
             # make sure the label is not overwriting another label
             if np.any(annot[label.vertices]):
-                msg = ("Label %r occupies vertices that are also occupied by "
-                       "another label. Each vertex can only be occupied by a "
-                       "single label in *.annot files." % label.name)
-                raise ValueError(msg)
+                other_ids = set(annot[label.vertices])
+                other_ids.discard(0)
+                other_indices = [annot_ids.index(i) for i in other_ids]
+                other_names = [hemi_labels[i].name for i in other_indices]
+                msg = ("%s overlaps %s" % (label.name, other_names))
+                overlap.append(msg)
 
             annot[label.vertices] = annot_id
 
@@ -1605,8 +1615,33 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
         # remove hemi ending in names
         hemi_names = [name[:-3] if name.endswith(hemi) else name
                       for name in hemi_names]
-        # write it
-        logger.info('   writing %d labels to %s' % (n_hemi_labels, fname))
+
+        to_save.append((fname, annot, ctab, hemi_names))
+
+    issues = []
+    if duplicate_colors:
+        msg = ("Some labels have the same color values (all labels in one "
+               "hemisphere must have a unique color):")
+        duplicate_colors.insert(0, msg)
+        issues.append(os.linesep.join(duplicate_colors))
+    if invalid_colors:
+        msg = ("Some labels have invalid color values (all colors should be "
+               "RGBA tuples with values between 0 and 1)")
+        invalid_colors.insert(0, msg)
+        issues.append(os.linesep.join(invalid_colors))
+    if overlap:
+        msg = ("Some labels occupy vertices that are also occupied by one or "
+               "more other labels. Each vertex can only be occupied by a "
+               "single label in *.annot files.")
+        overlap.insert(0, msg)
+        issues.append(os.linesep.join(overlap))
+
+    if issues:
+        raise ValueError('\n\n'.join(issues))
+
+    # write it
+    for fname, annot, ctab, hemi_names in to_save:
+        logger.info('   writing %d labels to %s' % (len(hemi_names), fname))
         _write_annot(fname, annot, ctab, hemi_names)
 
     logger.info('[done]')
