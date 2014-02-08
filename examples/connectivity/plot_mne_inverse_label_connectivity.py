@@ -58,8 +58,8 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_ori="normal", return_generator=True)
 
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
-labels, label_colors = mne.labels_from_parc('sample', parc='aparc',
-                                            subjects_dir=subjects_dir)
+labels = mne.read_annot('sample', parc='aparc', subjects_dir=subjects_dir)
+label_colors = [label.color for label in labels]
 
 # Average the source estimates within each label using sign-flips to reduce
 # signal cancellations, also here we return a generator

@@ -19,7 +19,7 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
                                  compute_morph_matrix, grade_to_vertices)
 
 from mne.minimum_norm import read_inverse_operator
-from mne.label import labels_from_parc, label_sign_flip
+from mne.label import read_annot, label_sign_flip
 from mne.utils import _TempDir, requires_pandas, requires_sklearn
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -107,8 +107,7 @@ def test_expand():
     """
     stc = read_source_estimate(fname, 'sample')
     assert_true('sample' in repr(stc))
-    labels_lh, _ = labels_from_parc('sample', hemi='lh',
-                                    subjects_dir=subjects_dir)
+    labels_lh = read_annot('sample', 'aparc', 'lh', subjects_dir=subjects_dir)
     stc_limited = stc.in_label(labels_lh[0] + labels_lh[1])
     stc_new = stc_limited.copy()
     stc_new.data.fill(0)
@@ -235,10 +234,8 @@ def test_extract_label_time_course():
     n_verts = len(vertices[0]) + len(vertices[1])
 
     # get some labels
-    labels_lh, _ = labels_from_parc('sample', hemi='lh',
-                                    subjects_dir=subjects_dir)
-    labels_rh, _ = labels_from_parc('sample', hemi='rh',
-                                    subjects_dir=subjects_dir)
+    labels_lh = read_annot('sample', hemi='lh', subjects_dir=subjects_dir)
+    labels_rh = read_annot('sample', hemi='rh', subjects_dir=subjects_dir)
     labels = list()
     labels.extend(labels_lh[:5])
     labels.extend(labels_rh[:4])
@@ -425,7 +422,7 @@ def test_transform():
     data = np.concatenate((stcs_t[0].data[:, :, None],
                            stcs_t[1].data[:, :, None]), axis=2)
     data_t = stc.transform_data(_my_trans)
-    assert_array_equal(data, data_t) # check against stc.transform_data()
+    assert_array_equal(data, data_t)  # check against stc.transform_data()
 
     # data_t.ndim > 2 & copy is False
     assert_raises(ValueError, stc.transform, _my_trans, copy=False)
@@ -434,7 +431,7 @@ def test_transform():
     tmp = deepcopy(stc)
     stc_t = stc.transform(np.abs, copy=True)
     assert_true(isinstance(stc_t, SourceEstimate))
-    assert_array_equal(stc.data, tmp.data) # xfrm doesn't modify original?
+    assert_array_equal(stc.data, tmp.data)  # xfrm doesn't modify original?
 
     # data_t.ndim = 2 & copy is False
     times = np.round(1000 * stc.times)
@@ -544,12 +541,12 @@ def test_get_peak():
         assert_raises(ValueError, stc.get_peak, tmin=-100)
         assert_raises(ValueError, stc.get_peak, tmax=90)
         assert_raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
-    
+
         vert_idx, time_idx = stc.get_peak()
         vertno = np.concatenate(stc.vertno) if ii == 0 else stc.vertno
         assert_true(vert_idx in vertno)
         assert_true(time_idx in stc.times)
-    
+
         ch_idx, time_idx = stc.get_peak(vert_as_index=True,
                                         time_as_index=True)
         assert_true(vert_idx < stc.data.shape[0])
