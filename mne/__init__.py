@@ -40,7 +40,7 @@ from .epochs import Epochs, read_epochs
 from .label import (label_time_courses, read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
                     BiHemiLabel, labels_from_parc, parc_from_labels,
-                    read_annot)
+                    read_annot, write_annot)
 from .misc import parse_config, read_reject_parameters
 from .coreg import (create_default_subject, scale_bem, scale_mri, scale_labels,
                     scale_source_space)
