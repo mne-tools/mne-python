@@ -238,7 +238,7 @@ def test_read_annot_annot2labels():
 
 
 @sample.requires_sample_data
-def test_parc_from_labels():
+def test_write_annot():
     """Test writing FreeSurfer parcellation from labels"""
 
     labels = read_annot('sample', subjects_dir=subjects_dir)
@@ -298,11 +298,24 @@ def test_parc_from_labels():
                   overwrite=True)
 
     # overlapping labels
+    labels_ = labels[:]
     cuneus_lh = labels[6]
     precuneus_lh = labels[50]
-    labels.append(precuneus_lh + cuneus_lh)
-    assert_raises(ValueError, write_annot, labels, annot_fname=fnames[0],
+    labels_.append(precuneus_lh + cuneus_lh)
+    assert_raises(ValueError, write_annot, labels_, annot_fname=fnames[0],
                   overwrite=True)
+
+    # unlabeled vertices
+    labels_lh = [label for label in labels if label.name.endswith('lh')]
+    write_annot(labels_lh[1:], 'sample', annot_fname=fnames[0], overwrite=True,
+                subjects_dir=subjects_dir)
+    labels_reloaded = read_annot('sample', annot_fname=fnames[0],
+                                 subjects_dir=subjects_dir)
+    assert_equal(len(labels_lh), len(labels_reloaded))
+    label0 = labels_lh[0]
+    label1 = labels_reloaded[-1]
+    assert_equal(label1.name, "unknown-lh")
+    assert_true(np.all(np.in1d(label0.vertices, label1.vertices)))
 
 
 @sample.requires_sample_data

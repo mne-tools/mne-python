@@ -10,7 +10,7 @@ from colorsys import hsv_to_rgb, rgb_to_hsv
 from os import path as op
 import os
 import copy as cp
-import random
+from random import randint
 import re
 
 import numpy as np
@@ -1459,6 +1459,33 @@ def _write_annot(fname, annot, ctab, names):
             np.array(color[:4], dtype='>i4').tofile(fid)
 
 
+def _random_freesurfer_color(alpha, taken=None):
+    """Generate a Freesurfer color with random RGB values
+
+    Parameters
+    ----------
+    alpha : int, 255 >= alpha >= 0
+        Desired alpha value.
+    taken : None | array_like, shape (n_colors, 3 | 4)
+        Colors that are already occupied and should be avoided.
+
+    Returns
+    -------
+    random_color : tuple, len 4
+        RGBA tuple of the random color (values are int between 0 and 255).
+    """
+    taken = np.atleast_2d(taken)[:, :3]
+    if len(taken) >= 256 ** 3 - 1:
+        raise ValueError("All possibilities are exhausted...")
+
+    rgb = avoid = (0, 0, 0)
+    while (rgb == avoid) or (rgb in taken):
+        rgb = (randint(0, 255), randint(0, 255), randint(0, 255))
+    rgba = rgb + (alpha,)
+    return rgba
+
+
+
 @verbose
 @deprecated("mne.parc_from_labels() is deprecated and will be removed in mne "
             "release 0.9. Use mne.write_annot() instead (note change in input "
@@ -1581,25 +1608,36 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
                     color_ = plt.cm.spectral(pos)
                     color = tuple(int(round(255 * i)) for i in color_)
                     # make sure to add no duplicate or invalid color
-                    while color in hemi_colors or color == (0, 0, 0, 255):
-                        color = (random.randint(0, 255),
-                                 random.randint(0, 255),
-                                 random.randint(0, 255), 255)
+                    if color in hemi_colors:
+                        avoid = filter(None, hemi_colors)
+                        color = _random_freesurfer_color(255, avoid)
                     hemi_colors[i] = color
 
+        # find number of vertices in surface
+        if subject is not None and subjects_dir is not None:
+            fpath = os.path.join(subjects_dir, subject, 'surf', '%s.white' % hemi)
+            points, _ = read_surface(fpath)
+            n_vertices = len(points)
+        else:
+            max_vert = max(np.max(label.vertices) for label in hemi_labels)
+            n_vertices = max_vert + 1
+            msg = ('    Number of vertices in the surface could not be '
+                   'verified because the surface file could not be found; '
+                   'specify subject and subjects_dir parameters.')
+            logger.warning(msg)
+
         # Create annot and color table array to write
-        max_vert = max(np.max(label.vertices) for label in hemi_labels)
-        n_vertices = max_vert + 1
-        annot = np.zeros(n_vertices, dtype=np.int)
+        annot = np.empty(n_vertices, dtype=np.int)
+        annot[:] = -1
         ctab = np.array(hemi_colors, dtype=np.int32)
         # create the annotation ids from the colors
         annot_id_coding = np.array((1, 2 ** 8, 2 ** 16))
         annot_ids = list(np.sum(ctab[:, :3] * annot_id_coding, axis=1))
         for label, annot_id in zip(hemi_labels, annot_ids):
             # make sure the label is not overwriting another label
-            if np.any(annot[label.vertices]):
+            if np.any(annot[label.vertices] != -1):
                 other_ids = set(annot[label.vertices])
-                other_ids.discard(0)
+                other_ids.discard(-1)
                 other_indices = [annot_ids.index(i) for i in other_ids]
                 other_names = [hemi_labels[i].name for i in other_indices]
                 msg = ("%s overlaps %s" % (label.name, other_names))
@@ -1607,10 +1645,30 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
 
             annot[label.vertices] = annot_id
 
+        hemi_names = [label.name for label in hemi_labels]
+
+        # Assign unlabeled vertices to an "unknown" label
+        unlabeled = (annot == -1)
+        if np.any(unlabeled):
+            # find an unused color (try shades of gray first)
+            for i in range(1, 257):
+                if (i, i, i) not in ctab[:, :3]:
+                    break
+            if i < 256:
+                color = (i, i, i, 0)
+            else:
+                color = _random_freesurfer_color(0, ctab)
+
+            # find the id
+            annot_id = np.sum(annot_id_coding * color[:3])
+
+            # update data to write
+            annot[unlabeled] = annot_id
+            ctab = np.vstack((ctab, color))
+            hemi_names.append("unknown")
+
         # convert to FreeSurfer alpha values
         ctab[:, 3] = 255 - ctab[:, 3]
-
-        hemi_names = [label.name for label in hemi_labels]
 
         # remove hemi ending in names
         hemi_names = [name[:-3] if name.endswith(hemi) else name
