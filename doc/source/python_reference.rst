@@ -12,6 +12,12 @@ are collected in a separate section. Functions and classes that are not below
 a module heading are found in the :py:mod:`mne` namespace.
 
 
+.. toctree::
+   :maxdepth: 2
+   
+   python_reference
+
+
 Classes
 =======
 
