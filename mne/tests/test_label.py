@@ -298,8 +298,9 @@ def test_parc_from_labels():
                   overwrite=True)
 
     # overlapping labels
-    label_dict = {label.name: label for label in labels}
-    labels.append(label_dict['precuneus-lh'] + label_dict['cuneus-lh'])
+    cuneus_lh = labels[6]
+    precuneus_lh = labels[50]
+    labels.append(precuneus_lh + cuneus_lh)
     assert_raises(ValueError, write_annot, labels, annot_fname=fnames[0],
                   overwrite=True)
 
