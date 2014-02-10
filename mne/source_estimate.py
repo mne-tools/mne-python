@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Mads Jensen <mje.mads@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -2555,6 +2556,8 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     elif mode == 'pca_flip':
        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
+    elif mode == 'max':
+        pass 
     else:
         raise ValueError('%s is an invalid mode' % mode)
 
@@ -2595,6 +2598,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     scale = linalg.norm(s) / np.sqrt(len(vertidx))
 
                     label_tc[i] = sign * scale * V[0]
+        elif mode == 'max':
+            for i, vertidx in enumerate(label_vertidx):
+                if vertidx is not None:
+                    label_tc[i] = np.max(np.abs(stc.data[vertidx, :]), axis=0)
         else:
             raise ValueError('%s is an invalid mode' % mode)
 
@@ -2625,6 +2632,7 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     and flip is a sing-flip vector based on the vertex normals. This procedure
     assures that the phase does not randomly change by 180 degrees from one
     stc to the next.
+    'max': Max value within each label.
 
     Parameters
     ----------
