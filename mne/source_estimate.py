@@ -2557,7 +2557,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'max':
-        pass 
+        pass # we calculate the maximum value later 
     else:
         raise ValueError('%s is an invalid mode' % mode)
 
