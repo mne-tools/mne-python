@@ -1650,6 +1650,10 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
         # Assign unlabeled vertices to an "unknown" label
         unlabeled = (annot == -1)
         if np.any(unlabeled):
+            msg = ("Assigning %i unlabeled vertices to "
+                   "'unknown-%s'" % (unlabeled.sum(), hemi))
+            logger.info(msg)
+
             # find an unused color (try shades of gray first)
             for i in range(1, 257):
                 if (i, i, i) not in ctab[:, :3]:
