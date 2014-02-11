@@ -9,6 +9,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Add 'max' mode for extract_label_time_course by `Mads Jensen`_ 
+
    - Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
 
    - Add `get_peak` method for evoked and stc objects by  `Denis Engemann`_
