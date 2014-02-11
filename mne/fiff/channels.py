@@ -186,11 +186,12 @@ class DropChannelsMixin(object):
         elif isinstance(self, Evoked):
             self.data = self.data[idx, :]
 
+
 def rename_channels(info, alias):
-    """Rename channels and optionally change the sensor type.    
+    """Rename channels and optionally change the sensor type.
     Note: this only changes between the following sensor types: eeg, eog,
     emg, ecg, and misc. It also cannot change to eeg.
-    
+
     Parameters
     ----------
     info : dict
@@ -198,40 +199,40 @@ def rename_channels(info, alias):
     alias : dict
         a dictionary mapping the old channel to a new channel name {'EEG061' :
         'EEG161'}. If changing the sensor type, make the new name a tuple with
-        the name (str) and the new channel type (str) 
+        the name (str) and the new channel type (str)
         {'EEG061',('EOG061','eog')}.
-    
+
     Notes
     -----
     this function assumes ch_names is in the same order as chs, which should be
-    true in all cases (since it is not part of fiff: it is only there for 
+    true in all cases (since it is not part of fiff: it is only there for
     convenience in cases like these), but people do crazy stuff.
     """
-    human2fiff = {'eeg' : FIFF.FIFFV_EEG_CH, 
-                  'eog' : FIFF.FIFFV_EOG_CH, 
-                  'emg' : FIFF.FIFFV_EMG_CH, 
-                  'ecg' : FIFF.FIFFV_ECG_CH, 
-                  'misc' : FIFF.FIFFV_MISC_CH}
+    human2fiff = {'eeg': FIFF.FIFFV_EEG_CH,
+                  'eog': FIFF.FIFFV_EOG_CH,
+                  'emg': FIFF.FIFFV_EMG_CH,
+                  'ecg': FIFF.FIFFV_ECG_CH,
+                  'misc': FIFF.FIFFV_MISC_CH}
     ch_names = info['ch_names']
     bads = info['bads']
     chs = info['chs']
     for ch_name in alias.keys():
         if ch_name not in ch_names:
-            raise RuntimeError("This channel name %s doesn't exist in info." 
+            raise RuntimeError("This channel name %s doesn't exist in info."
                                % ch_name)
         else:
             c_ind = ch_names.index(ch_name)
-            if type(alias[ch_name]) is str: # just name change
+            if type(alias[ch_name]) is str:  # just name change
                 chs[c_ind]['ch_name'] = alias[ch_name]
-                if ch_name in bads: # check bads
+                if ch_name in bads:  # check bads
                     bads[bads.index(ch_name)] = alias[ch_name]
-            elif type(alias[ch_name]) is tuple: # name and type change
+            elif type(alias[ch_name]) is tuple:  # name and type change
                 fiff_accept = human2fiff.values()
                 fiff_accept.append(chs[c_ind]['kind'])
                 if (len(fiff_accept) > len(set(fiff_accept))):
                     if alias[ch_name][1] in human2fiff:
-                        chs[c_ind]['ch_name'] = alias[ch_name][0] 
-                        if ch_name in bads: # check bads
+                        chs[c_ind]['ch_name'] = alias[ch_name][0]
+                        if ch_name in bads:  # check bads
                             bads[bads.index(ch_name)] = alias[ch_name][0]
                         chs[c_ind]['kind'] = human2fiff[alias[ch_name][1]]
                         if chs[c_ind]['kind'] is human2fiff['eeg']:
@@ -239,7 +240,7 @@ def rename_channels(info, alias):
                                                'eeg channels!')
                     else:
                         raise RuntimeError('This function cannot change to '
-                                           'this channel type: %s.' % 
+                                           'this channel type: %s.' %
                                            alias[ch_name][1])
                 else:
                     raise RuntimeError('This function will not change from'
@@ -250,12 +251,10 @@ def rename_channels(info, alias):
                 raise RuntimeError('Your alias is not configured properly. '
                                    'Please see the help: mne.rename_channels?')
 
-    # Reset ch_names and Check that all the channel names are unique 
+    # Reset ch_names and Check that all the channel names are unique.
     info['chs'] = chs
     info['ch_names'] = [ch['ch_name'] for ch in chs]
     if (len(info['ch_names']) > len(set(info['ch_names']))):
         raise RuntimeError('You have created duplicate channel names. '
                            'Please check that your not renaming a channel to a'
                            ' name that already exists in ch_names')
-                           
-                           
