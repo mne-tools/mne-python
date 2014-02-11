@@ -9,8 +9,6 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - Add 'max' mode for extract_label_time_course by `Mads Jensen`_ 
-
    - Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
 
    - Add `get_peak` method for evoked and stc objects by  `Denis Engemann`_
@@ -44,6 +42,8 @@ Changelog
    - Add `split_label` function to divide labels into multiple parts by `Christian Brodbeck`_
 
    - Add `color` attribute to `Label` objects by `Christian Brodbeck`_
+
+   - Add 'max' mode for extract_label_time_course by `Mads Jensen`_ 
 
 BUG
 ~~~
@@ -649,3 +649,5 @@ of commits):
 .. _Tal Linzen: http://tallinzen.net/
 
 .. _Roan LaPlante: https://github.com/aestrivex
+
+.. _Mads Jensen: http://cnru.dk/people/mads-jensen

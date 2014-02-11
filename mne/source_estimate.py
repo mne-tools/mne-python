@@ -2557,7 +2557,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'max':
-        pass # we calculate the maximum value later 
+        pass  # we calculate the maximum value later
     else:
         raise ValueError('%s is an invalid mode' % mode)
 
@@ -2620,19 +2620,24 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     parameter.
 
     Valid values for mode are:
-    'mean': Average within each label.
-    'mean_flip': Average within each label with sign flip depending on source
-    orientation.
-    'pca_flip': Apply an SVD to the time courses within each label and use the
-    scaled and sign-flipped first right-singular vector as the label time
-    course. The scaling is performed such that the power of the label time
-    course is the same as the average per-vertex time course power within
-    the label. The sign of the resulting time course is adjusted by multiplying
-    it with "sign(dot(u, flip))" where u is the first left-singular vector,
-    and flip is a sing-flip vector based on the vertex normals. This procedure
-    assures that the phase does not randomly change by 180 degrees from one
-    stc to the next.
-    'max': Max value within each label.
+    --------------------------
+
+    mean : Average within each label.
+
+    mean_flip : Average within each label with sign flip depending on source
+        orientation.
+
+    pca_flip : Apply an SVD to the time courses within each label and use the
+        scaled and sign-flipped first right-singular vector as the label time
+        course. The scaling is performed such that the power of the label time
+        course is the same as the average per-vertex time course power within
+        the label. The sign of the resulting time course is adjusted by
+        multiplying it with "sign(dot(u, flip))" where u is the first
+        left-singular vector, and flip is a sing-flip vector based on the
+        vertex normals. This procedure assures that the phase does not randomly
+        change by 180 degrees from one stc to the next.
+
+    max : Max value within each label.
 
     Parameters
     ----------
