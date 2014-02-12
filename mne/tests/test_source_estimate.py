@@ -246,7 +246,8 @@ def test_extract_label_time_course():
     n_labels = len(labels)
 
     label_means = np.arange(n_labels)[:, None] * np.ones((n_labels, n_times))
-
+    label_maxs = np.arange(n_labels)[:, None] * np.ones((n_labels, n_times))
+    
     # compute the mean with sign flip
     label_means_flipped = np.zeros_like(label_means)
     for i, label in enumerate(labels):
@@ -287,7 +288,7 @@ def test_extract_label_time_course():
         assert_array_equal(arr, np.zeros((1, n_times)))
 
     # test the different modes
-    modes = ['mean', 'mean_flip', 'pca_flip']
+    modes = ['mean', 'mean_flip', 'pca_flip', 'max']
 
     for mode in modes:
         label_tc = extract_label_time_course(stcs, labels, src, mode=mode)
@@ -303,6 +304,8 @@ def test_extract_label_time_course():
                 assert_array_almost_equal(tc1, label_means)
             if mode == 'mean_flip':
                 assert_array_almost_equal(tc1, label_means_flipped)
+            if mode == 'max':
+                assert_array_almost_equal(tc1, label_maxs)
 
     # test label with very few vertices (check SVD conditionals)
     label = Label(vertices=src[0]['vertno'][:2], hemi='lh')
