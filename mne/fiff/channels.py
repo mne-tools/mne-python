@@ -208,7 +208,6 @@ def rename_channels(info, alias):
                   'emg': FIFF.FIFFV_EMG_CH,
                   'ecg': FIFF.FIFFV_ECG_CH,
                   'misc': FIFF.FIFFV_MISC_CH}
-    ch_names = info['ch_names']
     bads = info['bads']
     chs = info['chs']
     info['ch_names'] = [ch['ch_name'] for ch in chs]  # reset for safety
