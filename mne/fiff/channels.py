@@ -189,7 +189,8 @@ class DropChannelsMixin(object):
 
 def rename_channels(info, alias):
     """Rename channels and optionally change the sensor type.
-    Note: this only changes between the following sensor types: eeg, eog,
+    
+    Note: This only changes between the following sensor types: eeg, eog,
     emg, ecg, and misc. It also cannot change to eeg.
 
     Parameters
