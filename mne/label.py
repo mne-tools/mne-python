@@ -1587,15 +1587,11 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
                 logger.warning(msg)
 
             if any(i > 255 for i in color):
-                if len(names) == 1:
-                    name = names[0]
-                else:
-                    name = names
-                msg = ("%s (%s)" % (name, hemi))
+                msg = ("%s: %s (%s)" % (color, ', '.join(names), hemi))
                 invalid_colors.append(msg)
 
             if len(names) > 1:
-                msg = "%s (%s)" % (names, hemi)
+                msg = "%s: %s (%s)" % (color, ', '.join(names), hemi)
                 duplicate_colors.append(msg)
 
         # replace None values (labels with unspecified color)
@@ -1638,9 +1634,10 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
             if np.any(annot[label.vertices] != -1):
                 other_ids = set(annot[label.vertices])
                 other_ids.discard(-1)
-                other_indices = [annot_ids.index(i) for i in other_ids]
-                other_names = [hemi_labels[i].name for i in other_indices]
-                msg = ("%s overlaps %s" % (label.name, other_names))
+                other_indices = (annot_ids.index(i) for i in other_ids)
+                other_names = (hemi_labels[i].name for i in other_indices)
+                other_repr = ', '.join(other_names)
+                msg = "%s: %s overlaps %s" % (hemi, label.name, other_repr)
                 overlap.append(msg)
 
             annot[label.vertices] = annot_id
