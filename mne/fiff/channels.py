@@ -189,7 +189,7 @@ class DropChannelsMixin(object):
 
 def rename_channels(info, alias):
     """Rename channels and optionally change the sensor type.
-    
+
     Note: This only changes between the following sensor types: eeg, eog,
     emg, ecg, and misc. It also cannot change to eeg.
 
@@ -202,12 +202,6 @@ def rename_channels(info, alias):
         'EEG161'}. If changing the sensor type, make the new name a tuple with
         the name (str) and the new channel type (str)
         {'EEG061',('EOG061','eog')}.
-
-    Notes
-    -----
-    this function assumes ch_names is in the same order as chs, which should be
-    true in all cases (since it is not part of fiff: it is only there for
-    convenience in cases like these), but people do crazy stuff.
     """
     human2fiff = {'eeg': FIFF.FIFFV_EEG_CH,
                   'eog': FIFF.FIFFV_EOG_CH,
@@ -217,6 +211,8 @@ def rename_channels(info, alias):
     ch_names = info['ch_names']
     bads = info['bads']
     chs = info['chs']
+    info['ch_names'] = [ch['ch_name'] for ch in chs]  # reset for safety
+    ch_names = info['ch_names']
     for ch_name in alias.keys():
         if ch_name not in ch_names:
             raise RuntimeError("This channel name %s doesn't exist in info."
