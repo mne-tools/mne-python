@@ -23,22 +23,22 @@ def test_rename_channels():
     # Error Tests
     # Test channel name exists in ch_names
     alias = {'EEG 160': 'EEG060'}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    assert_raises(ValueError, rename_channels, info, alias)
     # Test change to EEG channel
     alias = {'EOG 061': ('EEG 061', 'eeg')}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    assert_raises(ValueError, rename_channels, info, alias)
     # Test change to illegal channel type
     alias = {'EOG 061': ('MEG 061', 'meg')}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    assert_raises(ValueError, rename_channels, info, alias)
     # Test channel type which you are changing from e.g. MEG
     alias = {'MEG 2641': ('MEG2641', 'eeg')}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    assert_raises(ValueError, rename_channels, info, alias)
     # Test improper alias configuration
     alias = {'MEG 2641': 1.0}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    assert_raises(ValueError, rename_channels, info, alias)
     # Test duplicate named channels
     alias = {'EEG 060': 'EOG 061'}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    assert_raises(ValueError, rename_channels, info, alias)
     # Test successful changes
     # Test ch_name and ch_names are changed
     info2 = deepcopy(info)  # for consistency at the start of each test
