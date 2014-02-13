@@ -22,29 +22,29 @@ def test_rename_channels():
     info = fiff.read_info(raw_fname)
     # Error Tests
     # Test channel name exists in ch_names
-    alias = {'EEG 160': 'EEG060'}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    mapping = {'EEG 160': 'EEG060'}
+    assert_raises(ValueError, rename_channels, info, mapping)
     # Test change to EEG channel
-    alias = {'EOG 061': ('EEG 061', 'eeg')}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    mapping = {'EOG 061': ('EEG 061', 'eeg')}
+    assert_raises(ValueError, rename_channels, info, mapping)
     # Test change to illegal channel type
-    alias = {'EOG 061': ('MEG 061', 'meg')}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    mapping = {'EOG 061': ('MEG 061', 'meg')}
+    assert_raises(ValueError, rename_channels, info, mapping)
     # Test channel type which you are changing from e.g. MEG
-    alias = {'MEG 2641': ('MEG2641', 'eeg')}
-    assert_raises(RuntimeError, rename_channels, info, alias)
-    # Test improper alias configuration
-    alias = {'MEG 2641': 1.0}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    mapping = {'MEG 2641': ('MEG2641', 'eeg')}
+    assert_raises(ValueError, rename_channels, info, mapping)
+    # Test improper mapping configuration
+    mapping = {'MEG 2641': 1.0}
+    assert_raises(ValueError, rename_channels, info, mapping)
     # Test duplicate named channels
-    alias = {'EEG 060': 'EOG 061'}
-    assert_raises(RuntimeError, rename_channels, info, alias)
+    mapping = {'EEG 060': 'EOG 061'}
+    assert_raises(ValueError, rename_channels, info, mapping)
     # Test successful changes
     # Test ch_name and ch_names are changed
     info2 = deepcopy(info)  # for consistency at the start of each test
     info2['bads'] = ['EEG 060', 'EOG 061']
-    alias = {'EEG 060': 'EEG060', 'EOG 061': 'EOG061'}
-    rename_channels(info2, alias)
+    mapping = {'EEG 060': 'EEG060', 'EOG 061': 'EOG061'}
+    rename_channels(info2, mapping)
     assert_true(info2['chs'][374]['ch_name'] == 'EEG060')
     assert_true(info2['ch_names'][374] == 'EEG060')
     assert_true('EEG060' in info2['bads'])
@@ -54,8 +54,8 @@ def test_rename_channels():
     # Test type change
     info2 = deepcopy(info)
     info2['bads'] = ['EEG 060', 'EEG 059']
-    alias = {'EEG 060': ('EOG 060', 'eog'), 'EEG 059': ('EOG 059', 'eog')}
-    rename_channels(info2, alias)
+    mapping = {'EEG 060': ('EOG 060', 'eog'), 'EEG 059': ('EOG 059', 'eog')}
+    rename_channels(info2, mapping)
     assert_true(info2['chs'][374]['ch_name'] == 'EOG 060')
     assert_true(info2['ch_names'][374] == 'EOG 060')
     assert_true('EOG 060' in info2['bads'])
