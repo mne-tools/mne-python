@@ -44,6 +44,8 @@ Changelog
    - Add `color` attribute to `Label` objects by `Christian Brodbeck`_
 
    - Add 'max' mode for extract_label_time_course by `Mads Jensen`_ 
+   
+   - Add `rename_channels` function to change channel names and types in info object by `Dan Wakeman`_ and `Denis Engemann`_
 
 BUG
 ~~~
@@ -651,3 +653,5 @@ of commits):
 .. _Roan LaPlante: https://github.com/aestrivex
 
 .. _Mads Jensen: http://cnru.dk/people/mads-jensen
+
+.. _Dan Wakeman: https://github.com/dgwakeman

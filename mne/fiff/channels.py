@@ -185,3 +185,66 @@ class DropChannelsMixin(object):
             self._data = self._data[:, idx, :]
         elif isinstance(self, Evoked):
             self.data = self.data[idx, :]
+
+
+def rename_channels(info, mapping):
+    """Rename channels and optionally change the sensor type.
+
+    Note: This only changes between the following sensor types: eeg, eog,
+    emg, ecg, and misc. It also cannot change to eeg.
+
+    Parameters
+    ----------
+    info : dict
+        Measurement info.
+    mapping : dict
+        a dictionary mapping the old channel to a new channel name {'EEG061' :
+        'EEG161'}. If changing the sensor type, make the new name a tuple with
+        the name (str) and the new channel type (str)
+        {'EEG061',('EOG061','eog')}.
+    """
+    human2fiff = {'eog': FIFF.FIFFV_EOG_CH,
+                  'emg': FIFF.FIFFV_EMG_CH,
+                  'ecg': FIFF.FIFFV_ECG_CH,
+                  'misc': FIFF.FIFFV_MISC_CH}
+
+    bads, chs = info['bads'], info['chs']
+    ch_names = info['ch_names']
+    new_names, new_kinds, new_bads = list(), list(), list() 
+    
+    # first check and assemble clean mappings of index and name
+    for ch_name, new_name in mapping.items():
+        if ch_name not in ch_names:
+            raise ValueError("This channel name (%s) doesn't exist in info."
+                              % ch_name)
+
+        c_ind = ch_names.index(ch_name)
+        if not isinstance(new_name, (string_types, tuple)):
+            raise ValueError('Your mapping is not configured properly. '
+                             'Please see the help: mne.rename_channels?')
+                              
+        elif isinstance(new_name, tuple):  # name and type change
+            new_name, new_type =  new_name  # unpack
+            if new_type not in human2fiff:
+                raise ValueError('This function cannot change to this '
+                                 'channel type: %s.' % new_type)
+            new_kinds.append((c_ind, human2fiff[new_type]))
+        
+        if new_name in ch_names:
+            raise ValueError('The new name ({new}) already exists. Choose a '
+                             'unique name'.format(new=new_name))
+
+        new_names.append((c_ind, new_name))
+        if ch_name in bads:  # check bads
+            new_bads.append((bads.index(ch_name), new_name))
+
+    # Reset ch_names and Check that all the channel names are unique.
+    for key, collection in [('ch_name', new_names), ('kind', new_kinds)]:
+         for c_ind, new_name in collection:
+            chs[c_ind][key] = new_name
+    for c_ind, new_name in new_bads:
+        bads[c_ind] = new_name
+
+    # reference magic, please don't change (with the local binding
+    # it doesn't work)
+    info['ch_names'] = [c['ch_name'] for c in chs]
