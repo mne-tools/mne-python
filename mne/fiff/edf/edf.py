@@ -220,7 +220,7 @@ class RawEDF(Raw):
                 data = (data[:, 0] + (data[:, 1] << 8) + (data[:, 2] << 16))
                 # 24th bit determines the sign
                 data[data >= (1 << 23)] -= (1 << 24)
-                data = data.reshape((sfreq, n_chan, blocks), order='F')
+                data = data.reshape((int(sfreq), n_chan, blocks), order='F')
                 for i in range(blocks):
                     datas.append(data[:, :, i].T)
             else:
@@ -242,7 +242,7 @@ class RawEDF(Raw):
                 else:
                     data = np.fromfile(fid, dtype='<i2',
                                        count=buffer_size * n_chan)
-                    data = data.reshape((sfreq, n_chan, blocks), order='F')
+                    data = data.reshape((int(sfreq), n_chan, blocks), order='F')
                     for i in range(blocks):
                         datas.append(data[:, :, i].T)
         if 'n_samps' in self._edf_info:
@@ -417,7 +417,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         assert fid.tell() == header_nbytes
     physical_ranges = physical_max - physical_min
     cals = digital_max - digital_min
-    info['sfreq'] = int(n_samples_per_record / record_length)
+    info['sfreq'] = n_samples_per_record / float(record_length)
     edf_info['nsamples'] = n_records * n_samples_per_record
 
     # Some keys to be consistent with FIF measurement info
@@ -536,7 +536,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     annotmap : str
         Path to annotation map file containing mapping from label to trigger.
 
-    sfreq : int
+    sfreq : float
         Sampling frequency.
 
     data_length : int
