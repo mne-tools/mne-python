@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_equal, assert_is, assert_true, assert_raises
+from nose.tools import assert_equal, assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
@@ -14,7 +14,7 @@ from mne import (label_time_courses, read_label, stc_to_label,
                  labels_from_parc, parc_from_labels, split_label)
 from mne.label import Label, _blend_colors
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
-from mne.fixes import in1d
+from mne.fixes import in1d, assert_is
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
