@@ -63,6 +63,9 @@ epochs.equalize_event_counts(epochs.event_id, copy=False)
 # compute surrogate time series
 surrogates, filters, conditions = compute_ems(epochs, ['AudL', 'VisL'])
 
+# demean
+surrogates -= surrogates[:, epochs.times < 0].mean(axis=1)[:, None]
+
 import matplotlib.pyplot as plt
 
 times = epochs.times * 1e3
