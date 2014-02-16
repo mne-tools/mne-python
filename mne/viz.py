@@ -2644,7 +2644,8 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     import matplotlib.pyplot as plt
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
-    perc = 100 * np.mean([len(d) > 0 for d in drop_log])
+    perc = 100 * np.mean([len(d) > 0 for d in drop_log
+                          if not any([r in ignore for r in d])])
     if perc < threshold or len(ch_names) == 0:
         return perc
     counts = 100 * np.array(list(scores.values()), dtype=float) / len(drop_log)
