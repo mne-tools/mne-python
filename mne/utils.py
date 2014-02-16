@@ -885,14 +885,15 @@ known_config_wildcards = [
     ]
 
 
-def get_config(key, default=None, raise_error=False, home_dir=None):
+def get_config(key=None, default=None, raise_error=False, home_dir=None):
     """Read mne(-python) preference from env, then mne-python config
 
     Parameters
     ----------
-    key : str
+    key : None | str
         The preference key to look for. The os evironment is searched first,
         then the mne-python config file is parsed.
+        If None, all the config parameters present in the path are returned
     default : str | None
         Value to return if the key is not found.
     raise_error : bool
@@ -904,11 +905,11 @@ def get_config(key, default=None, raise_error=False, home_dir=None):
 
     Returns
     -------
-    value : str | None
+    value : str | None | dict
         The preference key value.
     """
 
-    if not isinstance(key, string_types):
+    if key and not isinstance(key, string_types):
         raise ValueError('key must be a string')
 
     # first, check to see if key is in env
@@ -923,6 +924,12 @@ def get_config(key, default=None, raise_error=False, home_dir=None):
     else:
         with open(config_path, 'r') as fid:
             config = json.load(fid)
+            if not key:
+                #json object is returned as Unicode encoded
+                #encode it to byte-oriented representation
+                #config = {key.encode("utf-8"): value.encode("utf-8")
+                #          for key, value in config.iteritems()}
+                return config
         key_found = True if key in config else False
         val = config.get(key, default)
 
