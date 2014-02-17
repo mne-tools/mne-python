@@ -137,6 +137,11 @@ def test_config():
         set_config(key, None, home_dir=tempdir)
     if old_val is not None:
         os.environ[key] = old_val
+    # Check if get_config with no input returns all config
+    key = 'MNE_PYTHON_TESTING_KEY'
+    config = {key: value}
+    set_config(key, value, home_dir=tempdir)
+    assert_equal(get_config(home_dir=tempdir), config)
 
 
 def test_show_fiff():
