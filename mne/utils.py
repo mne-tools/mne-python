@@ -893,7 +893,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     key : None | str
         The preference key to look for. The os evironment is searched first,
         then the mne-python config file is parsed.
-        If None, all the config parameters present in the path are returned
+        If None, all the config parameters present in the path are returned.
     default : str | None
         Value to return if the key is not found.
     raise_error : bool
@@ -905,11 +905,11 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
 
     Returns
     -------
-    value : str | None | dict
+    value : dict | str | None
         The preference key value.
     """
 
-    if key and not isinstance(key, string_types):
+    if key is not None and not isinstance(key, string_types):
         raise ValueError('key must be a string')
 
     # first, check to see if key is in env
@@ -924,11 +924,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     else:
         with open(config_path, 'r') as fid:
             config = json.load(fid)
-            if not key:
-                #json object is returned as Unicode encoded
-                #encode it to byte-oriented representation
-                #config = {key.encode("utf-8"): value.encode("utf-8")
-                #          for key, value in config.iteritems()}
+            if key is not None:
                 return config
         key_found = True if key in config else False
         val = config.get(key, default)
