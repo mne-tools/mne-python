@@ -924,7 +924,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     else:
         with open(config_path, 'r') as fid:
             config = json.load(fid)
-            if key is not None:
+            if key is None:
                 return config
         key_found = True if key in config else False
         val = config.get(key, default)
