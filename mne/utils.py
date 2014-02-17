@@ -913,7 +913,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
         raise ValueError('key must be a string')
 
     # first, check to see if key is in env
-    if key in os.environ:
+    if key is not None and key in os.environ:
         return os.environ[key]
 
     # second, look for it in mne-python config file
