@@ -145,7 +145,7 @@ def test_read_write_epochs():
     assert_equal(epochs_read.event_id, epochs.event_id)
 
     epochs.event_id.pop('1')
-    epochs.event_id.update({'a': 1})
+    epochs.event_id.update({'a:a': 1})  # test allow for ':' in key
     epochs.save(op.join(tempdir, 'foo-epo.fif'))
     epochs_read2 = read_epochs(op.join(tempdir, 'foo-epo.fif'))
     assert_equal(epochs_read2.event_id, epochs.event_id)

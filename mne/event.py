@@ -167,9 +167,10 @@ def _read_events_fif(fid, tree):
     else:
         mappings = None
 
-    if mappings is not None:
-        m_ = (m.split(':') for m in mappings.split(';'))
-        mappings = dict((k, int(v)) for k, v in m_)
+    if mappings is not None:  # deal with ':' in keys
+        m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
+              for m in mappings.split(';')]
+        mappings = dict((k, int(v)) for v, k in m_)
     event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
