@@ -29,7 +29,7 @@ Start with the :ref:`examples-index`.
 Outside the Martinos Center
 ---------------------------
 
-MNE is written in pure Python making it easy to setup of
+MNE is written in pure Python making it easy to setup on
 any machine with Python >=2.6, NumPy >= 1.6, SciPy >= 0.7.2
 and matplotlib >= 1.1.0.
 
@@ -105,9 +105,34 @@ runtime accordingly.
 
 Now that you have a working Python environment you can install MNE.
 
-You can manually get the latest version of the code at:
+The first decision you must make is whether you want the most recent stable version or the 
+development version (this contains new features, that have yet to reach a stable state). 
+
+Stable Version Instructions
+---------------------------
+
+You can also install the latest Stable Version with easy_install::
+
+    easy_install -U mne
+
+or with pip::
+
+    pip install mne --upgrade
+
+Development Version Instructions
+--------------------------------
+
+If you know you will be contributing to the project please see: 
+http://martinos.org/mne/dev/contributing.html
+
+If you just want to start using the latest development version (the most up to date)::
+
+    pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+
+Alternatively, you can manually get the latest version of the code at:
 
 https://github.com/mne-tools/mne-python
+you can use the zip download button on the bottom right of the page.
 
 Then from the mne-python folder (containing a setup.py file) you can install with::
 
@@ -116,18 +141,9 @@ Then from the mne-python folder (containing a setup.py file) you can install wit
 or if you don't have admin access to your python setup (permission denied when install) use::
 
     python setup.py install --user
-
-You can also install the latest release with easy_install::
-
-    easy_install -U mne
-
-or with pip::
-
-    pip install mne --upgrade
-
-For the latest development version (the most up to date)::
-
-    pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+    
+Check and Optimize Installation
+-------------------------------
 
 To check that everything went fine, in ipython, type::
 
