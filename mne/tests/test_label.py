@@ -14,7 +14,7 @@ from mne import (label_time_courses, read_label, stc_to_label,
                  read_annot, write_annot, split_label)
 from mne.label import Label, _blend_colors
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
-from mne.fixes import in1d, assert_is
+from mne.fixes import in1d, assert_is, assert_is_not
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -164,7 +164,7 @@ def test_read_annot():
     for label in labels_lh:
         assert_true(label.name.endswith('-lh'))
         assert_true(label.hemi == 'lh')
-        assert_true(label.color is not None)
+        assert_is_not(label.color, None)
 
     # read labels using annot_fname
     annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
@@ -173,7 +173,7 @@ def test_read_annot():
     for label in labels_rh:
         assert_true(label.name.endswith('-rh'))
         assert_true(label.hemi == 'rh')
-        assert_true(label.color is not None)
+        assert_is_not(label.color, None)
 
     # combine the lh, rh, labels and sort them
     labels_lhrh = list()
