@@ -818,7 +818,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             step_down_include = np.ones(n_tests, dtype=bool)
             under = np.where(cluster_pv < step_down_p)[0]
             for ci in under:
-                step_down_include[clusters[inds[ci]]] = False
+                step_down_include[clusters[ci]] = False
             if connectivity is None:
                 step_down_include.shape = sample_shape
             step_down_iteration += 1
