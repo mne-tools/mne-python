@@ -786,11 +786,11 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                 seeds = list(seed + np.arange(n_permutations))
 
         # Step 3: repeat permutations for step-down-in-jumps procedure
-        smallest_p = -1
+        smallest_new_p = -1
         clusters_kept = 0
         step_down_include = None  # start out including all points
         step_down_iteration = 0
-        while smallest_p < step_down_p:
+        while smallest_new_p < step_down_p:
             # actually do the clustering for each partition
             if include is not None:
                 if step_down_include is not None:
@@ -810,22 +810,25 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             # clusters themselves
             inds = np.argsort(cluster_pv)
             ord_pv = cluster_pv[inds]
-            smallest_p = ord_pv[clusters_kept]
+            if clusters_kept == len(clusters):
+                # no more point in continuing, all clusters excluded!
+                smallest_new_p = np.inf
+            else:
+                smallest_new_p = ord_pv[clusters_kept]
             step_down_include = np.ones(n_tests, dtype=bool)
             under = np.where(cluster_pv < step_down_p)[0]
             for ci in under:
-                step_down_include[clusters[ci]] = False
+                step_down_include[clusters[inds[ci]]] = False
             if connectivity is None:
                 step_down_include.shape = sample_shape
             step_down_iteration += 1
             if step_down_p > 0:
-                extra_text = 'additional ' if step_down_iteration > 1 else ''
+                a_text = 'additional ' if step_down_iteration > 1 else ''
                 new_count = under.size - clusters_kept
                 plural = '' if new_count == 1 else 's'
-                logger.info('Step-down-in-jumps iteration'
-                            '%i found %i %scluster%s'
-                            % (step_down_iteration, new_count,
-                               extra_text, plural))
+                logger.info('Step-down-in-jumps iteration #%i found %i %s'
+                            'cluster%s to exclude from subsequent iterations'
+                            % (step_down_iteration, new_count, a_text, plural))
             clusters_kept += under.size
 
         # The clusters should have the same shape as the samples
