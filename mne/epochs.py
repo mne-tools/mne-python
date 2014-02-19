@@ -707,7 +707,7 @@ class Epochs(_BaseEpochs):
         else:
             self._data = None
 
-    @deprecated('drop_picks with be removed in v0.9. Use drop_channels.')
+    @deprecated('drop_picks will be removed in v0.9. Use drop_channels.')
     def drop_picks(self, bad_picks):
         """Drop some picks
 

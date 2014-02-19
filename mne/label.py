@@ -1320,9 +1320,8 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
 
 @verbose
-@deprecated("mne.labels_from_parc() is deprecated and will be removed in mne "
-            "release 0.9. Use mne.read_annot() instead (note change in return "
-            "values).")
+@deprecated("labels_from_parc() will be removed in release 0.9. Use "
+            "read_annot() instead (note the change in return values).")
 def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                      annot_fname=None, regexp=None, subjects_dir=None,
                      verbose=None):
@@ -1479,9 +1478,9 @@ def _write_annot(fname, annot, ctab, names):
 
 
 @verbose
-@deprecated("mne.parc_from_labels() is deprecated and will be removed in mne "
-            "release 0.9. Use mne.write_annot() instead (note change in input "
-            "parameters).")
+@deprecated("parc_from_labels() will be removed in release 0.9. Use "
+            "write_annot() instead (note the change in the function "
+            "signature).")
 def parc_from_labels(labels, colors=None, subject=None, parc=None,
                      annot_fname=None, overwrite=False, subjects_dir=None,
                      verbose=None):
