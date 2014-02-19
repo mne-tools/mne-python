@@ -786,11 +786,11 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                 seeds = list(seed + np.arange(n_permutations))
 
         # Step 3: repeat permutations for step-down-in-jumps procedure
-        smallest_new_p = -1
-        clusters_kept = 0
+        n_removed = 1  # number of new clusters added
+        total_removed = 0
         step_down_include = None  # start out including all points
-        step_down_iteration = 0
-        while smallest_new_p < step_down_p:
+        n_step_downs = 0
+        while n_removed > 0:
             # actually do the clustering for each partition
             if include is not None:
                 if step_down_include is not None:
@@ -806,30 +806,22 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             H0 = np.concatenate(H0)
             cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
 
-            # sort them by significance; for backward compat, don't sort the
-            # clusters themselves
-            inds = np.argsort(cluster_pv)
-            ord_pv = cluster_pv[inds]
-            if clusters_kept == len(clusters):
-                # no more point in continuing, all clusters excluded!
-                smallest_new_p = np.inf
-            else:
-                smallest_new_p = ord_pv[clusters_kept]
+            # figure out how many new ones will be removed for step-down
+            to_remove = np.where(cluster_pv < step_down_p)[0]
+            n_removed = to_remove.size - total_removed
+            total_removed = to_remove.size
             step_down_include = np.ones(n_tests, dtype=bool)
-            under = np.where(cluster_pv < step_down_p)[0]
-            for ci in under:
-                step_down_include[clusters[ci]] = False
+            for ti in to_remove:
+                step_down_include[clusters[ti]] = False
             if connectivity is None:
                 step_down_include.shape = sample_shape
-            step_down_iteration += 1
+            n_step_downs += 1
             if step_down_p > 0:
-                a_text = 'additional ' if step_down_iteration > 1 else ''
-                new_count = under.size - clusters_kept
-                plural = '' if new_count == 1 else 's'
+                a_text = 'additional ' if n_step_downs > 1 else ''
+                pl = '' if n_removed == 1 else 's'
                 logger.info('Step-down-in-jumps iteration #%i found %i %s'
                             'cluster%s to exclude from subsequent iterations'
-                            % (step_down_iteration, new_count, a_text, plural))
-            clusters_kept += under.size
+                            % (n_step_downs, n_removed, a_text, pl))
 
         # The clusters should have the same shape as the samples
         clusters = _reshape_clusters(clusters, sample_shape)
