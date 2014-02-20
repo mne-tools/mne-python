@@ -1570,7 +1570,7 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
             labels_by_color[tuple(color)].append(label.name)
 
         # check label colors
-        for color, names in labels_by_color.iteritems():
+        for color, names in labels_by_color.items():
             if color == no_color_rgb:
                 continue
 
