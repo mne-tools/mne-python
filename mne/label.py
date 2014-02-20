@@ -5,17 +5,18 @@
 # License: BSD (3-clause)
 
 from .externals.six import string_types
+from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
 from os import path as op
 import os
 import copy as cp
-import random
 import re
 
 import numpy as np
 from scipy import linalg, sparse
 
-from .utils import get_subjects_dir, _check_subject, logger, verbose
+from .utils import (get_subjects_dir, _check_subject, logger, verbose,
+                    deprecated)
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .surface import read_surface, fast_cross_3d
@@ -99,12 +100,32 @@ def _split_colors(color, n):
     return tuple(rgba_colors)
 
 
-def _n_colors(n):
-    "Produce a list of n unique RGBA color tuples"
-    import matplotlib.pyplot as plt
+def _n_colors(n, bytes_=False):
+    """Produce a list of n unique RGBA color tuples based on the hsv colormap
+
+    Parameters
+    ----------
+    n : int
+        NUmber of colors.
+    bytes : bool
+        Return colors as integers values between 0 and 255 (instead of floats
+        between 0 and 1).
+
+    Returns
+    -------
+    colors : array, shape (n, 4)
+        RGBA color values.
+    """
+    n_max = 2 ** 10
+    if n > n_max:
+        err = "Can't produce more than %i unique colors" % n_max
+        raise NotImplementedError(err)
+
+    from matplotlib.cm import get_cmap
+    cm = get_cmap('hsv', n_max)
     pos = np.linspace(0, 1, n, False)
-    colors = plt.cm.spectral(pos)
-    return map(tuple, colors)
+    colors = cm(pos, bytes=bytes_)
+    return colors
 
 
 class Label(object):
@@ -1299,9 +1320,21 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
 
 @verbose
+@deprecated("labels_from_parc() will be removed in release 0.9. Use "
+            "read_annot() instead (note the change in return values).")
 def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                      annot_fname=None, regexp=None, subjects_dir=None,
                      verbose=None):
+    """Deprecated (will be removed in mne 0.9). Use read_annot() instead"""
+    labels = read_annot(subject, parc, hemi, surf_name, annot_fname, regexp,
+                        subjects_dir, verbose)
+    label_colors = [l.color for l in labels]
+    return labels, label_colors
+
+
+@verbose
+def read_annot(subject, parc='aparc', hemi='both', surf_name='white',
+               annot_fname=None, regexp=None, subjects_dir=None, verbose=None):
     """Read labels from FreeSurfer parcellation
 
     Note: Only cortical labels will be returned.
@@ -1333,8 +1366,6 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
     -------
     labels : list of Label
         The labels, sorted by label name (ascending).
-    colors : list of tuples
-        RGBA color for obtained from the parc color table for each label.
     """
     logger.info('Reading labels from parcellation..')
 
@@ -1391,9 +1422,8 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
             msg += ' Maybe the regular expression %r did not match?' % regexp
         raise RuntimeError(msg)
 
-    label_colors = [l.color for l in labels]
     logger.info('[done]')
-    return labels, label_colors
+    return labels
 
 
 def _write_annot(fname, annot, ctab, names):
@@ -1448,39 +1478,15 @@ def _write_annot(fname, annot, ctab, names):
 
 
 @verbose
+@deprecated("parc_from_labels() will be removed in release 0.9. Use "
+            "write_annot() instead (note the change in the function "
+            "signature).")
 def parc_from_labels(labels, colors=None, subject=None, parc=None,
                      annot_fname=None, overwrite=False, subjects_dir=None,
                      verbose=None):
-    """Create a FreeSurfer parcellation from labels
-
-    Parameters
-    ----------
-    labels : list with instances of mne.Label
-        The labels to create a parcellation from.
-    colors : list of tuples | None
-        RGBA color to write into the colortable for each label. If None
-        (default), the colors are retrieved from the label objects or, if not
-        available in the labels, created based on the alphabetical order of
-        the label names. Note: Per hemisphere, each label must have a unique
-        color, otherwise the stored parcellation will be invalid.
-    subject : str | None
-        The subject for which to write the parcellation for.
-    parc : str | None
-        The parcellation name to use.
-    annot_fname : str | None
-        Filename of the .annot file. If not None, only this file is written
-        and 'parc' and 'subject' are ignored.
-    overwrite : bool
-        Overwrite files if they already exist.
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-    """
-    logger.info('Writing labels to parcellation..')
-
-    # do some input checking
+    """Deprecated (will be removed in mne 0.9). Use write_annot() instead"""
     if colors is not None:
+        # do some input checking
         colors = np.asarray(colors)
         if colors.shape[1] != 4:
             raise ValueError('Each color must have 4 values')
@@ -1488,6 +1494,40 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
             raise ValueError('colors must have the same length as labels')
         if np.any(colors < 0) or np.any(colors > 1):
             raise ValueError('color values must be between 0 and 1')
+
+        # assign colors to labels
+        labels = [label.copy() for label in labels]
+        for label, color in zip(labels, colors):
+            label.color = color
+
+    write_annot(labels, subject, parc, overwrite, subjects_dir, annot_fname,
+                verbose)
+
+
+@verbose
+def write_annot(labels, subject=None, parc=None, overwrite=False,
+                subjects_dir=None, annot_fname=None, verbose=None):
+    """Create a FreeSurfer parcellation from labels
+
+    Parameters
+    ----------
+    labels : list with instances of mne.Label
+        The labels to create a parcellation from.
+    subject : str | None
+        The subject for which to write the parcellation for.
+    parc : str | None
+        The parcellation name to use.
+    overwrite : bool
+        Overwrite files if they already exist.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    annot_fname : str | None
+        Filename of the .annot file. If not None, only this file is written
+        and 'parc' and 'subject' are ignored.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    logger.info('Writing labels to parcellation..')
 
     subjects_dir = get_subjects_dir(subjects_dir)
 
@@ -1501,8 +1541,14 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
                 raise ValueError('File %s exists. Use "overwrite=True" to '
                                  'overwrite it' % fname)
 
-    names = ['%s-%s' % (label.name, label.hemi) for label in labels]
-
+    # prepare container for data to save:
+    to_save = []
+    # keep track of issues found in the labels
+    duplicate_colors = []
+    invalid_colors = []
+    overlap = []
+    no_color = (-1, -1, -1, -1)
+    no_color_rgb = (-1, -1, -1)
     for hemi, fname in zip(hemis, annot_fname):
         hemi_labels = [label for label in labels if label.hemi == hemi]
         n_hemi_labels = len(hemi_labels)
@@ -1510,57 +1556,148 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
             # no labels for this hemisphere
             continue
         hemi_labels.sort(key=lambda label: label.name)
-        if colors is not None:
-            hemi_colors = [colors[names.index('%s-%s' % (label.name, hemi))]
-                           for label in hemi_labels]
-        else:
-            hemi_colors = [label.color for label in hemi_labels]
-            if any(color is None for color in hemi_colors):
-                import matplotlib.pyplot as plt
-                for i in range(n_hemi_labels):
-                    if hemi_colors[i] is None:
-                        pos = i / (n_hemi_labels - 1)
-                        color = plt.cm.spectral(pos)
-                        # make sure to have no duplicate colors
-                        while color in hemi_colors:
-                            color = (random.uniform(0, 1),
-                                     random.uniform(0, 1),
-                                     random.uniform(0, 1), 1.)
-                        hemi_colors[i] = color
 
-        # Creat annot and color table array to write
-        max_vert = max(np.max(label.vertices) for label in hemi_labels)
-        n_vertices = max_vert + 1
-        annot = np.zeros(n_vertices, dtype=np.int)
-        ctab = np.zeros((n_hemi_labels, 4), dtype=np.int32)
-        for ii, (label, color) in enumerate(zip(hemi_labels, hemi_colors)):
-            ctab[ii] = np.round(255 * np.asarray(color))
-            if np.all(ctab[ii, :3] == 0):
+        # convert colors to 0-255 RGBA tuples
+        hemi_colors = [no_color if label.color is None else
+                       tuple(int(round(255 * i)) for i in label.color)
+                       for label in hemi_labels]
+        ctab = np.array(hemi_colors, dtype=np.int32)
+        ctab_rgb = ctab[:, :3]
+
+        # make dict to check label colors (for annot ID only R, G and B count)
+        labels_by_color = defaultdict(list)
+        for label, color in zip(hemi_labels, ctab_rgb):
+            labels_by_color[tuple(color)].append(label.name)
+
+        # check label colors
+        for color, names in labels_by_color.iteritems():
+            if color == no_color_rgb:
+                continue
+
+            if color == (0, 0, 0):
                 # we cannot have an all-zero color, otherw. e.g. tksurfer
                 # refuses to read the parcellation
-                if colors is not None:
-                    logger.warning('    Colormap contains color with, "r=0, '
-                                   'g=0, b=0" value. Some FreeSurfer tools '
-                                   'may fail to read the parcellation')
-                else:
-                    ctab[ii, :3] = 1
+                msg = ('    At least one label contains a color with, "r=0, '
+                       'g=0, b=0" value. Some FreeSurfer tools may fail to '
+                       'read the parcellation')
+                logger.warning(msg)
 
-            # create the annotation id from the color
-            annot_id = (ctab[ii, 0] + ctab[ii, 1] * 2 ** 8
-                        + ctab[ii, 2] * 2 ** 16)
+            if any(i > 255 for i in color):
+                msg = ("%s: %s (%s)" % (color, ', '.join(names), hemi))
+                invalid_colors.append(msg)
+
+            if len(names) > 1:
+                msg = "%s: %s (%s)" % (color, ', '.join(names), hemi)
+                duplicate_colors.append(msg)
+
+        # replace None values (labels with unspecified color)
+        if labels_by_color[no_color_rgb]:
+            default_colors = _n_colors(n_hemi_labels, True)
+            safe_color_i = 0  # keep track of colors known to be in hemi_colors
+            for i in xrange(n_hemi_labels):
+                if ctab[i, 0] == -1:
+                    color = default_colors[i]
+                    # make sure to add no duplicate color
+                    while color[:3] in ctab_rgb:
+                        color = default_colors[safe_color_i]
+                        safe_color_i += 1
+                    # assign the color
+                    ctab[i] = color
+
+        # find number of vertices in surface
+        if subject is not None and subjects_dir is not None:
+            fpath = os.path.join(subjects_dir, subject, 'surf', '%s.white' % hemi)
+            points, _ = read_surface(fpath)
+            n_vertices = len(points)
+        else:
+            max_vert = max(np.max(label.vertices) for label in hemi_labels)
+            n_vertices = max_vert + 1
+            msg = ('    Number of vertices in the surface could not be '
+                   'verified because the surface file could not be found; '
+                   'specify subject and subjects_dir parameters.')
+            logger.warning(msg)
+
+        # Create annot and color table array to write
+        annot = np.empty(n_vertices, dtype=np.int)
+        annot[:] = -1
+        # create the annotation ids from the colors
+        annot_id_coding = np.array((1, 2 ** 8, 2 ** 16))
+        annot_ids = list(np.sum(ctab_rgb * annot_id_coding, axis=1))
+        for label, annot_id in zip(hemi_labels, annot_ids):
+            # make sure the label is not overwriting another label
+            if np.any(annot[label.vertices] != -1):
+                other_ids = set(annot[label.vertices])
+                other_ids.discard(-1)
+                other_indices = (annot_ids.index(i) for i in other_ids)
+                other_names = (hemi_labels[i].name for i in other_indices)
+                other_repr = ', '.join(other_names)
+                msg = "%s: %s overlaps %s" % (hemi, label.name, other_repr)
+                overlap.append(msg)
 
             annot[label.vertices] = annot_id
+
+        hemi_names = [label.name for label in hemi_labels]
+
+        # Assign unlabeled vertices to an "unknown" label
+        unlabeled = (annot == -1)
+        if np.any(unlabeled):
+            msg = ("Assigning %i unlabeled vertices to "
+                   "'unknown-%s'" % (unlabeled.sum(), hemi))
+            logger.info(msg)
+
+            # find an unused color (try shades of gray first)
+            for i in range(1, 257):
+                if (i, i, i) not in ctab_rgb:
+                    break
+            if i < 256:
+                color = (i, i, i, 0)
+            else:
+                err = ("Need one free shade of gray for 'unknown' label. "
+                       "Please modify your label colors, or assign the "
+                       "unlabeled vertices to another label.")
+                raise ValueError(err)
+
+            # find the id
+            annot_id = np.sum(annot_id_coding * color[:3])
+
+            # update data to write
+            annot[unlabeled] = annot_id
+            ctab = np.vstack((ctab, color))
+            hemi_names.append("unknown")
 
         # convert to FreeSurfer alpha values
         ctab[:, 3] = 255 - ctab[:, 3]
 
-        hemi_names = [label.name for label in hemi_labels]
-
         # remove hemi ending in names
         hemi_names = [name[:-3] if name.endswith(hemi) else name
                       for name in hemi_names]
-        # write it
-        logger.info('   writing %d labels to %s' % (n_hemi_labels, fname))
+
+        to_save.append((fname, annot, ctab, hemi_names))
+
+    issues = []
+    if duplicate_colors:
+        msg = ("Some labels have the same color values (all labels in one "
+               "hemisphere must have a unique color):")
+        duplicate_colors.insert(0, msg)
+        issues.append(os.linesep.join(duplicate_colors))
+    if invalid_colors:
+        msg = ("Some labels have invalid color values (all colors should be "
+               "RGBA tuples with values between 0 and 1)")
+        invalid_colors.insert(0, msg)
+        issues.append(os.linesep.join(invalid_colors))
+    if overlap:
+        msg = ("Some labels occupy vertices that are also occupied by one or "
+               "more other labels. Each vertex can only be occupied by a "
+               "single label in *.annot files.")
+        overlap.insert(0, msg)
+        issues.append(os.linesep.join(overlap))
+
+    if issues:
+        raise ValueError('\n\n'.join(issues))
+
+    # write it
+    for fname, annot, ctab, hemi_names in to_save:
+        logger.info('   writing %d labels to %s' % (len(hemi_names), fname))
         _write_annot(fname, annot, ctab, hemi_names)
 
     logger.info('[done]')

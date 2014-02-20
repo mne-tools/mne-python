@@ -11,10 +11,10 @@ from nose.tools import assert_equal, assert_true, assert_raises
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
-                 labels_from_parc, parc_from_labels, split_label)
+                 read_annot, write_annot, split_label)
 from mne.label import Label, _blend_colors
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
-from mne.fixes import in1d, assert_is
+from mne.fixes import in1d, assert_is, assert_is_not
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -150,34 +150,30 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 
 @sample.requires_sample_data
-def test_labels_from_parc():
+def test_read_annot():
     """Test reading labels from FreeSurfer parcellation
     """
     # test some invalid inputs
-    assert_raises(ValueError, labels_from_parc, 'sample', hemi='bla',
+    assert_raises(ValueError, read_annot, 'sample', hemi='bla',
                   subjects_dir=subjects_dir)
-    assert_raises(ValueError, labels_from_parc, 'sample',
+    assert_raises(ValueError, read_annot, 'sample',
                   annot_fname='bla.annot', subjects_dir=subjects_dir)
 
     # read labels using hemi specification
-    labels_lh, colors_lh = labels_from_parc('sample', hemi='lh',
-                                            subjects_dir=subjects_dir)
+    labels_lh = read_annot('sample', hemi='lh', subjects_dir=subjects_dir)
     for label in labels_lh:
         assert_true(label.name.endswith('-lh'))
         assert_true(label.hemi == 'lh')
-
-    assert_true(len(labels_lh) == len(colors_lh))
+        assert_is_not(label.color, None)
 
     # read labels using annot_fname
     annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
-    labels_rh, colors_rh = labels_from_parc('sample', annot_fname=annot_fname,
-                                            subjects_dir=subjects_dir)
-
-    assert_true(len(labels_rh) == len(colors_rh))
-
+    labels_rh = read_annot('sample', annot_fname=annot_fname,
+                           subjects_dir=subjects_dir)
     for label in labels_rh:
         assert_true(label.name.endswith('-rh'))
         assert_true(label.hemi == 'rh')
+        assert_is_not(label.color, None)
 
     # combine the lh, rh, labels and sort them
     labels_lhrh = list()
@@ -188,9 +184,7 @@ def test_labels_from_parc():
     labels_lhrh = [label for (name, label) in sorted(zip(names, labels_lhrh))]
 
     # read all labels at once
-    labels_both, colors = labels_from_parc('sample', subjects_dir=subjects_dir)
-
-    assert_true(len(labels_both) == len(colors))
+    labels_both = read_annot('sample', subjects_dir=subjects_dir)
 
     # we have the same result
     _assert_labels_equal(labels_lhrh, labels_both)
@@ -199,22 +193,21 @@ def test_labels_from_parc():
     assert_true(len(labels_both) == 68)
 
     # test regexp
-    label = labels_from_parc('sample', parc='aparc.a2009s', regexp='Angu',
-                             subjects_dir=subjects_dir)[0][0]
+    label = read_annot('sample', parc='aparc.a2009s', regexp='Angu',
+                       subjects_dir=subjects_dir)[0]
     assert_true(label.name == 'G_pariet_inf-Angular-lh')
     # silly, but real regexp:
-    label = labels_from_parc('sample', parc='aparc.a2009s',
-                             regexp='.*-.{4,}_.{3,3}-L',
-                             subjects_dir=subjects_dir)[0][0]
+    label = read_annot('sample', 'aparc.a2009s', regexp='.*-.{4,}_.{3,3}-L',
+                       subjects_dir=subjects_dir)[0]
     assert_true(label.name == 'G_oc-temp_med-Lingual-lh')
-    assert_raises(RuntimeError, labels_from_parc, 'sample', parc='aparc',
+    assert_raises(RuntimeError, read_annot, 'sample', parc='aparc',
                   annot_fname=annot_fname, regexp='JackTheRipper',
                   subjects_dir=subjects_dir)
 
 
 @sample.requires_sample_data
 @requires_mne
-def test_labels_from_parc_annot2labels():
+def test_read_annot_annot2labels():
     """Test reading labels from parc. by comparing with mne_annot2labels
     """
 
@@ -237,7 +230,7 @@ def test_labels_from_parc_annot2labels():
 
         return labels
 
-    labels, _ = labels_from_parc('sample', subjects_dir=subjects_dir)
+    labels = read_annot('sample', subjects_dir=subjects_dir)
     labels_mne = _mne_annot2labels('sample', subjects_dir, 'aparc')
 
     # we have the same result, mne does not fill pos, so ignore it
@@ -245,39 +238,37 @@ def test_labels_from_parc_annot2labels():
 
 
 @sample.requires_sample_data
-def test_parc_from_labels():
+def test_write_annot():
     """Test writing FreeSurfer parcellation from labels"""
 
-    labels, colors = labels_from_parc('sample', subjects_dir=subjects_dir)
+    labels = read_annot('sample', subjects_dir=subjects_dir)
 
     # write left and right hemi labels:
     fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
 
     for fname in fnames:
-        parc_from_labels(labels, colors, annot_fname=fname)
+        write_annot(labels, annot_fname=fname)
 
     # read it back
-    labels2, colors2 = labels_from_parc('sample', subjects_dir=subjects_dir,
-                                        annot_fname=fnames[0])
-    labels22, colors22 = labels_from_parc('sample', subjects_dir=subjects_dir,
-                                          annot_fname=fnames[1])
+    labels2 = read_annot('sample', subjects_dir=subjects_dir,
+                         annot_fname=fnames[0])
+    labels22 = read_annot('sample', subjects_dir=subjects_dir,
+                          annot_fname=fnames[1])
     labels2.extend(labels22)
-    colors2.extend(colors22)
 
     names = [label.name for label in labels2]
 
-    for label, color in zip(labels, colors):
+    for label in labels:
         idx = names.index(label.name)
         assert_labels_equal(label, labels2[idx])
-        assert_array_almost_equal(np.array(color), np.array(colors2[idx]))
 
     # same with label-internal colors
     for fname in fnames:
-        parc_from_labels(labels, annot_fname=fname, overwrite=True)
-    labels3, _ = labels_from_parc('sample', subjects_dir=subjects_dir,
-                                  annot_fname=fnames[0])
-    labels33, _ = labels_from_parc('sample', subjects_dir=subjects_dir,
-                                   annot_fname=fnames[1])
+        write_annot(labels, annot_fname=fname, overwrite=True)
+    labels3 = read_annot('sample', subjects_dir=subjects_dir,
+                         annot_fname=fnames[0])
+    labels33 = read_annot('sample', subjects_dir=subjects_dir,
+                          annot_fname=fnames[1])
     labels3.extend(labels33)
     names3 = [label.name for label in labels3]
     for label in labels:
@@ -285,28 +276,52 @@ def test_parc_from_labels():
         assert_labels_equal(label, labels3[idx])
 
     # make sure we can't overwrite things
-    assert_raises(ValueError, parc_from_labels, labels, colors,
-                  annot_fname=fnames[0])
+    assert_raises(ValueError, write_annot, labels, annot_fname=fnames[0])
 
     # however, this works
-    parc_from_labels(labels, colors=None, annot_fname=fnames[0],
-                     overwrite=True)
+    write_annot(labels, annot_fname=fnames[0], overwrite=True)
 
-    # test some other invalid inputs
-    assert_raises(ValueError, parc_from_labels, labels[:-1], colors,
-                  annot_fname=fnames[0], overwrite=True)
-    colors2 = np.asarray(colors)
-    assert_raises(ValueError, parc_from_labels, labels, colors2[:, :3],
-                  annot_fname=fnames[0], overwrite=True)
-    colors2[0] = 1.1
-    assert_raises(ValueError, parc_from_labels, labels, colors2,
-                  annot_fname=fnames[0], overwrite=True)
+    # label without color
+    labels_ = labels[:]
+    labels_[0] = labels_[0].copy()
+    labels_[0].color = None
+    write_annot(labels_, annot_fname=fnames[0], overwrite=True)
+
+    # duplicate color
+    labels_[0].color = labels_[2].color
+    assert_raises(ValueError, write_annot, labels_, annot_fname=fnames[0],
+                  overwrite=True)
+
+    # invalid color inputs
+    labels_[0].color = (1.1, 1., 1., 1.)
+    assert_raises(ValueError, write_annot, labels_, annot_fname=fnames[0],
+                  overwrite=True)
+
+    # overlapping labels
+    labels_ = labels[:]
+    cuneus_lh = labels[6]
+    precuneus_lh = labels[50]
+    labels_.append(precuneus_lh + cuneus_lh)
+    assert_raises(ValueError, write_annot, labels_, annot_fname=fnames[0],
+                  overwrite=True)
+
+    # unlabeled vertices
+    labels_lh = [label for label in labels if label.name.endswith('lh')]
+    write_annot(labels_lh[1:], 'sample', annot_fname=fnames[0], overwrite=True,
+                subjects_dir=subjects_dir)
+    labels_reloaded = read_annot('sample', annot_fname=fnames[0],
+                                 subjects_dir=subjects_dir)
+    assert_equal(len(labels_lh), len(labels_reloaded))
+    label0 = labels_lh[0]
+    label1 = labels_reloaded[-1]
+    assert_equal(label1.name, "unknown-lh")
+    assert_true(np.all(np.in1d(label0.vertices, label1.vertices)))
 
 
 @sample.requires_sample_data
 def test_split_label():
-    aparc = labels_from_parc('fsaverage', 'aparc', 'lh', regexp='lingual',
-                             subjects_dir=subjects_dir)[0]
+    aparc = read_annot('fsaverage', 'aparc', 'lh', regexp='lingual',
+                       subjects_dir=subjects_dir)
     lingual = aparc[0]
 
     # split with names
