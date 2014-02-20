@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 from collections import defaultdict
 from colorsys import hsv_to_rgb, rgb_to_hsv
 from os import path as op
@@ -22,8 +21,8 @@ from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
 from .surface import read_surface, fast_cross_3d
 from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters
-from .externals.six import b
-from .externals.six.moves import zip
+from .externals.six import b, string_types
+from .externals.six.moves import zip, xrange
 
 
 def _blend_colors(color_1, color_2):
