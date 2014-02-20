@@ -52,6 +52,7 @@ BUG
 
    - Fix incorrect `times` attribute when stc was computed using `apply_inverse` after decimation at epochs stage for certain, arbitrary sample frequencies by `Denis Engemann`_
 
+   - Fix corner case error for step-down-in-jumps permutation test (when step-down threshold was high enough to include all clusters) by `Eric Larson`_
 
 API
 ~~~
