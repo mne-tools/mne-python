@@ -62,20 +62,22 @@ def _bem_lin_field_coeffs_simple(dest, normal, tri_rr, tri_nn, tri_area):
     return out
 
 
-def _lin_field_coeff(s, mult, rmags, cosmags, ws, lims, func, n_jobs):
+def _lin_field_coeff(s, mult, rmags, cosmags, ws, counts, func, n_jobs):
     """Use the linear field approximation to get field coefficients"""
     parallel, p_fun, _ = parallel_func(_do_lin_field_coeff, n_jobs)
     nas = np.array_split
-    coeffs = parallel(p_fun(s['rr'], t, tn, ta, rmags, cosmags, ws, lims, func)
+    coeffs = parallel(p_fun(s['rr'], t, tn, ta,
+                            rmags, cosmags, ws, counts, func)
                       for t, tn, ta in zip(nas(s['tris'], n_jobs),
                                            nas(s['tri_nn'], n_jobs),
                                            nas(s['tri_area'], n_jobs)))
     return mult * np.sum(coeffs, axis=0)
 
 
-def _do_lin_field_coeff(rr, t, tn, ta, rmags, cosmags, ws, lims, func):
+def _do_lin_field_coeff(rr, t, tn, ta, rmags, cosmags, ws, counts, func):
     """Actually get field coefficients (parallel-friendly)"""
-    coeff = np.zeros((len(lims) - 1, len(rr)))
+    coeff = np.zeros((len(counts), len(rr)))
+    bins = np.repeat(np.arange(len(counts)), counts)
     for tri, tri_nn, tri_area in zip(t, tn, ta):
         # Accumulate the coefficients for each triangle node
         # and add to the corresponding coefficient matrix
@@ -89,8 +91,9 @@ def _do_lin_field_coeff(rr, t, tn, ta, rmags, cosmags, ws, lims, func):
         #    coeff[j][tri + off] += mult * res
 
         xx = func(rmags, cosmags, tri_rr, tri_nn, tri_area)
-        yy = np.c_[np.zeros((3, 1)), np.cumsum(xx * ws, axis=1)]
-        zz = np.diff(yy[:, lims], axis=1)
+        # only loops 3x (one per direction)
+        zz = np.array([np.bincount(bins, weights=x * ws,
+                                   minlength=len(counts)) for x in xx])
         coeff[:, tri] += zz.T
     return coeff
 
@@ -110,15 +113,15 @@ def _bem_specify_coils(bem, coils, coord_frame, n_jobs):
     # Process each of the surfaces
     rmags = np.concatenate([coil['rmag'] for coil in coils])
     cosmags = np.concatenate([coil['cosmag'] for coil in coils])
-    lims = np.cumsum(np.r_[0, [len(coil['rmag']) for coil in coils]])
+    counts = np.array([len(coil['rmag']) for coil in coils])
     ws = np.concatenate([coil['w'] for coil in coils])
 
     lens = np.cumsum(np.r_[0, [len(s['rr']) for s in bem['surfs']]])
-    coeff = np.empty((len(lims) - 1, lens[-1]))
+    coeff = np.empty((len(counts), lens[-1]))
     for o1, o2, surf, mult in zip(lens[:-1], lens[1:],
                                   bem['surfs'], bem['field_mult']):
         coeff[:, o1:o2] = _lin_field_coeff(surf, mult, rmags, cosmags,
-                                           ws, lims, func, n_jobs)
+                                           ws, counts, func, n_jobs)
     # put through the bem
     sol = np.dot(coeff, bem['solution'])
     return sol
