@@ -55,7 +55,7 @@ picks = fiff.pick_types(raw.info, meg=ch_type, eeg=False, stim=False, eog=True,
 reject = dict(grad=4000e-13, eog=150e-6)
 
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
-                    baseline=None, reject=reject, preload=True)
+                    baseline=None, reject=reject)
 
 # Let's equalize the trial counts in each condition
 epochs.equalize_event_counts(epochs.event_id, copy=False)
