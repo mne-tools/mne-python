@@ -41,27 +41,12 @@ def test_ems():
     assert_raises(ValueError, compute_ems, epochs, ['aud_l', 'vis_l'])
     epochs.equalize_event_counts(epochs.event_id, copy=False)
 
-    assert_raises(ValueError, compute_ems, epochs, [1, 'hahah'])
+    assert_raises(KeyError, compute_ems, epochs, ['blah', 'hahah'])
     surrogates, filters, conditions = compute_ems(epochs)
     assert_equal(list(set(conditions)), [1, 3])
 
-    conditions = [np.intp(epochs.events[:, 2] == k) for k in [1, 3]]
-    surrogates3, filters3 = compute_ems(epochs, conditions)[:2]
-    surrogates4, filters4 = compute_ems(epochs, np.array(conditions))[:2]
-
-    surrogates = [surrogates4, surrogates3, surrogates]
-    filterss = [filters, filters3, filters4]
-
-    candidates = combinations(surrogates, 2)
-    candidates2 = combinations(filterss, 2)
-
-    for a, b in list(candidates2) + list(candidates):
-        assert_equal(a.shape, b.shape)
-        assert_array_almost_equal(a, b, 15)
-
     events = read_events(event_name)
     event_id2 = dict(aud_l=1, aud_r=2, vis_l=3)
-    # import pdb;pdb.set_trace()
     epochs = Epochs(raw, events, event_id2, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs.equalize_event_counts(epochs.event_id, copy=False)

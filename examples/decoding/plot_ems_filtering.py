@@ -55,16 +55,13 @@ picks = fiff.pick_types(raw.info, meg=ch_type, eeg=False, stim=False, eog=True,
 reject = dict(grad=4000e-13, eog=150e-6)
 
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
-                    baseline=None, reject=reject)
+                    baseline=None, reject=reject, preload=True)
 
 # Let's equalize the trial counts in each condition
 epochs.equalize_event_counts(epochs.event_id, copy=False)
 
 # compute surrogate time series
 surrogates, filters, conditions = compute_ems(epochs, ['AudL', 'VisL'])
-
-# demean
-surrogates -= surrogates[:, epochs.times < 0].mean(axis=1)[:, None]
 
 import matplotlib.pyplot as plt
 
