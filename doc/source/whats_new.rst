@@ -47,6 +47,9 @@ Changelog
    
    - Add `rename_channels` function to change channel names and types in info object by `Dan Wakeman`_ and `Denis Engemann`_
 
+   - Add  `compute_ems` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
+
+
 BUG
 ~~~
 

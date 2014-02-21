@@ -1365,3 +1365,12 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
         cleaned.append(name)
 
     return cleaned
+
+
+def clean_warning_registry():
+    """Safe way to reset warniings """
+    warnings.resetwarnings()
+    reg = "__warningregistry__"
+    for mod in sys.modules.values():
+        if hasattr(mod, reg):
+            getattr(mod, reg).clear()
