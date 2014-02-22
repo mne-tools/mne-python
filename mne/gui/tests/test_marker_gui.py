@@ -26,22 +26,45 @@ def test_combine_markers_model():
     from mne.gui._marker_gui import CombineMarkersModel
 
     model = CombineMarkersModel()
+
+    # set one marker file
     assert_false(model.mrk3.can_save)
     model.mrk1.file = mrk_pre_path
     assert_true(model.mrk3.can_save)
-    assert_array_equal(model.mrk1.points, model.mrk3.points)
+    assert_array_equal(model.mrk3.points, model.mrk1.points)
 
+    # setting second marker file
     model.mrk2.file = mrk_pre_path
-    assert_array_equal(model.mrk1.points, model.mrk3.points)
+    assert_array_equal(model.mrk3.points, model.mrk1.points)
 
-    model.mrk2._clear_fired()
+    # set second marker
+    model.mrk2.clear = True
     model.mrk2.file = mrk_post_path
     assert_true(np.any(model.mrk3.points))
+    points_interpolate_mrk1_mrk2 = model.mrk3.points
 
+    # change interpolation method
     model.mrk3.method = 'Average'
     mrk_avg = read_mrk(mrk_avg_path)
     assert_array_equal(model.mrk3.points, mrk_avg)
 
+    # clear second marker
+    model.mrk2.clear = True
+    assert_array_equal(model.mrk1.points, model.mrk3.points)
+
+    # I/O
+    model.mrk2.file = mrk_post_path
     model.mrk3.save(tgt_fname)
     mrk_io = read_mrk(tgt_fname)
     assert_array_equal(mrk_io, model.mrk3.points)
+
+    # exlude an individual marker
+    model.mrk1.use = [1, 2, 3, 4]
+    assert_array_equal(model.mrk3.points[0], model.mrk2.points[0])
+    assert_array_equal(model.mrk3.points[1:], mrk_avg[1:])
+
+    # reset model
+    model.clear = True
+    model.mrk1.file = mrk_pre_path
+    model.mrk2.file = mrk_post_path
+    assert_array_equal(model.mrk3.points, points_interpolate_mrk1_mrk2)

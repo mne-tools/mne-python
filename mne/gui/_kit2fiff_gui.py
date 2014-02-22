@@ -262,8 +262,7 @@ class Kit2FiffModel(HasPrivateTraits):
 
     def clear_all(self):
         """Clear all specified input parameters"""
-        self.markers.mrk1.clear = True
-        self.markers.mrk2.clear = True
+        self.markers.clear = True
         self.reset_traits(['sqd_file', 'hsp_file', 'fid_file'])
 
     def get_event_info(self):
