@@ -186,7 +186,7 @@ class MarkerPointSource(MarkerPoints):
             self.points = pts
 
     def _clear_fired(self):
-        self.reset_traits(['file', 'points'])
+        self.reset_traits(['file', 'points', 'use'])
 
     def _edit_fired(self):
         self.edit_traits(view=mrk_view_edit)
@@ -312,8 +312,15 @@ class CombineMarkersModel(HasPrivateTraits):
     mrk2 = Instance(MarkerPointSource)
     mrk3 = Instance(MarkerPointDest)
 
+    clear = Button(desc="Clear the current marker data")
+
     # stats
     distance = Property(Str, depends_on=['mrk1.points', 'mrk2.points'])
+
+    def _clear_fired(self):
+        self.mrk1.clear = True
+        self.mrk2.clear = True
+        self.mrk3.reset_traits(['method'])
 
     def _mrk1_default(self):
         mrk = MarkerPointSource()
