@@ -29,12 +29,13 @@ To test that everything works properly, open up IPython::
 Now that you have a working Python environment you can install MNE.
 
 The first decision you must make is whether you want the most recent stable version or the 
-development version (this contains new features, that have yet to reach a stable state). 
+development version (this contains new features, however the function names and usage examples
+may not be fully settled).
 
 Stable Version Instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can also install the latest Stable Version with easy_install::
+You can also install the latest stable version with easy_install::
 
     easy_install -U mne
 
@@ -47,7 +48,7 @@ Now that you have installed mne, check and optimize the installation (:ref:`chec
 Development Version Instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you know you will be contributing to the project please see: 
+If you know you would like to contribute to the project please follow the instructions here: 
 http://martinos.org/mne/dev/contributing.html
 
 If you just want to start using the latest development version (the most up to date)::
