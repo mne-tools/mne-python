@@ -4,5 +4,6 @@ source = mne
 include = */mne/*
 omit =
     */mne/externals/*
+    */doc/*
     */bin/*
     */setup.py
