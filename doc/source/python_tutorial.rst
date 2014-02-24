@@ -46,6 +46,18 @@ Installation of the required materials
 See :ref:`getting_started` with Python.
 
 
+The expected location for the MNE-sample data is my-path-to/mne-python/examples.
+If you downloaded data and an example asks you whether to download it again, make sure
+the data reside in the examples directory and you run the script from its current directory.
+
+From IPython e.g. say::
+
+cd examples/preprocessing
+
+
+%run plot_find_ecg_artifacts.py
+
+
 From raw data to evoked data
 ----------------------------
 
