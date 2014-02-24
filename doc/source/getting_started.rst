@@ -35,11 +35,7 @@ may not be fully settled).
 Stable Version Instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You can also install the latest stable version with easy_install::
-
-    easy_install -U mne
-
-or with pip::
+You can also install the latest stable version with with pip::
 
     pip install mne --upgrade
     
@@ -55,19 +51,6 @@ If you just want to start using the latest development version (the most up to d
 
     pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
 
-Alternatively, you can manually get the latest version of the code at:
-
-https://github.com/mne-tools/mne-python
-you can use the zip download button on the bottom right of the page.
-
-Then from the mne-python folder (containing a setup.py file) you can install with::
-
-    python setup.py install
-
-or if you don't have admin access to your python setup (permission denied when install) use::
-
-    python setup.py install --user
-    
 .. _check_and_optimize:
 Check and Optimize Installation
 -------------------------------
