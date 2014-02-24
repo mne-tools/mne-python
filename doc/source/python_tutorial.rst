@@ -45,47 +45,17 @@ Installation of the required materials
 
 See :ref:`getting_started` with Python.
 
-Get the code
-^^^^^^^^^^^^
 
-  You can manually get the latest version of the code at:
+.. note:: The expected location for the MNE-sample data is my-path-to/mne-python/examples.
+    If you downloaded data and an example asks you whether to download it again, make sure
+    the data reside in the examples directory and you run the script from its current directory.
 
-  https://github.com/mne-tools/mne-python
+    From IPython e.g. say::
 
-  Then from the mne-python folder (containing a setup.py file) you can install with::
-
-      python setup.py install
-
-  You can also install the latest release with easy_install::
-
-      easy_install -U mne
-
-  or with pip::
-
-      pip install mne --upgrade
-
-  For the latest development version (the most up to date)::
-
-      pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+    cd examples/preprocessing
 
 
-Make life easier
-~~~~~~~~~~~~~~~~
-
-  For optimal performance we recommend using numpy / scipy with the multi-threaded
-  ATLAS, gotoblas2, or intel MKL. For example, the Enthought Canopy and the Anaconda distributions
-  ship with tested MKL-compiled numpy / scipy versions. Depending on the use case and your system
-  this may speed up operations by a factor greater than 10.
-
-  The expected location for the MNE-sample data is my-path-to/mne-python/examples.
-  If you downloaded data and an example asks you whether to download it again, make sure
-  the data reside in the examples directory and you run the script from its current directory.
-
-  From IPython e.g. say::
-
-   cd examples/preprocessing
-
-   %run plot_find_ecg_artifacts.py
+    %run plot_find_ecg_artifacts.py
 
 
 From raw data to evoked data
