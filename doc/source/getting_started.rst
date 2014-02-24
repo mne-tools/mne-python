@@ -49,7 +49,7 @@ Development Version Instructions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you know you would like to contribute to the project please follow the instructions here: 
-http://martinos.org/mne/dev/contributing.html
+:ref:`using-git`
 
 If you just want to start using the latest development version (the most up to date)::
 
