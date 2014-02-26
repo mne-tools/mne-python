@@ -169,9 +169,9 @@ def stat_fun(*args):
     # The following expression catches the list input, swaps the first and the
     # second dimension and puts the remaining observations in the third
     # dimension.
-    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_subjects,
-                                                       n_conditions, n_times *
-                                                       n_vertices_fsave)
+    data = np.squeeze(np.swapaxes(np.array(args), 1, 0))
+    data = data.reshape(n_subjects, n_conditions,  # generalized if buffer used
+                        data.size / (n_subjects * n_conditions))
     return f_twoway_rm(data, factor_levels=factor_levels, effects=effects,
                        return_pvals=return_pvals)[0]
                        #  drop p-values (empty array).
@@ -192,9 +192,10 @@ connectivity = spatial_tris_connectivity(lh_source_space)
 
 #    Now let's actually do the clustering. Please relax, on a small
 #    notebook and one single thread only this will take a couple of minutes ...
-#    To speed things up a bit we will
-pthresh = 0.001
+pthresh = 0.0005
 f_thresh = f_threshold_twoway_rm(n_subjects, factor_levels, effects, pthresh)
+
+#    To speed things up a bit we will ...
 n_permutations = 100  # ... run fewer permutations (reduces sensitivity)
 
 print('Clustering.')
@@ -261,10 +262,12 @@ for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_ids)):
     plt.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
                      alpha=0.5, label='')
 
+ymin, ymax = mean_tc.min() -5, mean_tc.max() + 5 
 plt.xlabel('Time (ms)')
 plt.ylabel('Activation (F-values)')
 plt.xlim(times[[0, -1]])
-plt.fill_betweenx(np.arange(*plt.ylim()), times[inds_t[0]],
+plt.ylim(ymin, ymax)
+plt.fill_betweenx(np.arange(ymin, ymax), times[inds_t[0]],
                   times[inds_t[-1]], color='orange', alpha=0.3)
 plt.legend()
 plt.title('Interaction between stimulus-modality and location.')
