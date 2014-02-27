@@ -444,8 +444,8 @@ def test_ica_twice():
     """Test running ICA twice"""
     raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     picks = fiff.pick_types(raw.info, meg='grad', exclude='bads')
-    n_components=0.9
-    max_pca_components=None
+    n_components = 0.9
+    max_pca_components = None
     n_pca_components = 1.1
     with warnings.catch_warnings(record=True):
         ica1 = ICA(n_components=n_components, max_pca_components=max_pca_components,
