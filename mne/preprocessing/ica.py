@@ -1192,7 +1192,6 @@ class ICA(object):
                              'n_components and max_pca_components.')
 
         n_components = self.n_components_
-        n_pca_components = self.n_pca_components
 
         # Apply first PCA
         if self.pca_mean_ is not None:
@@ -1212,7 +1211,7 @@ class ICA(object):
         pca_data[:n_components] = fast_dot(self.mixing_matrix_, sources)
         data = fast_dot(self.pca_components_[:n_components].T,
                         pca_data[:n_components])
-        if n_pca_components is not None and n_pca_components > n_components:
+        if self.n_pca_components is not None and _n_pca_comp > n_components:
             data += fast_dot(self.pca_components_[n_components:_n_pca_comp].T,
                              pca_data[n_components:_n_pca_comp])
 

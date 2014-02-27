@@ -438,3 +438,22 @@ def test_ica_reject_buffer():
     assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in open(drop_log) if 'detected' in l]
     assert_equal(len(log), 1)
+
+@requires_sklearn
+def test_ica_twice():
+    """Test running ICA twice"""
+    raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    picks = fiff.pick_types(raw.info, meg='grad', exclude='bads')
+    n_components = 0.9
+    max_pca_components = None
+    n_pca_components = 1.1
+    with warnings.catch_warnings(record=True):
+        ica1 = ICA(n_components=n_components, max_pca_components=max_pca_components,
+                   n_pca_components=n_pca_components, random_state=0)
+
+        ica1.decompose_raw(raw, picks=picks, decim=3)
+        raw_new = ica1.pick_sources_raw(raw, n_pca_components=n_pca_components)
+        ica2 = ICA(n_components=n_components, max_pca_components=max_pca_components,
+                   n_pca_components=1.0, random_state=0)
+        ica2.decompose_raw(raw_new, picks=picks, decim=3)
+        assert_equal(ica1.n_components_, ica2.n_components_)
