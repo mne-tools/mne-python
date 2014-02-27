@@ -57,6 +57,8 @@ BUG
 
    - Fix corner case error for step-down-in-jumps permutation test (when step-down threshold was high enough to include all clusters) by `Eric Larson`_
 
+  - Fix selection of total number of components via float when picking ICA sources by `Denis Engemann`_ and `Qunxi Dong`_
+
 API
 ~~~
 
@@ -661,3 +663,5 @@ of commits):
 .. _Mads Jensen: http://cnru.dk/people/mads-jensen
 
 .. _Dan Wakeman: https://github.com/dgwakeman
+
+.. _Qunxi Dong: https://github.com/dongqunxi
