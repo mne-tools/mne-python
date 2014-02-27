@@ -1184,8 +1184,7 @@ class ICA(object):
         else:
             exclude = self.exclude = list(set(self.exclude + list(exclude)))
 
-        n_pca_components = self.n_pca_components
-        _n_pca_comp = _check_n_pca_components(self, n_pca_components,
+        _n_pca_comp = _check_n_pca_components(self, self.n_pca_components,
                                               self.verbose)
 
         if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components):
@@ -1212,7 +1211,7 @@ class ICA(object):
         pca_data[:n_components] = fast_dot(self.mixing_matrix_, sources)
         data = fast_dot(self.pca_components_[:n_components].T,
                         pca_data[:n_components])
-        if n_pca_components is not None and _n_pca_comp > n_components:
+        if self.n_pca_components is not None and _n_pca_comp > n_components:
             data += fast_dot(self.pca_components_[n_components:_n_pca_comp].T,
                              pca_data[n_components:_n_pca_comp])
 
