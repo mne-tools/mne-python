@@ -1597,7 +1597,7 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
                 if ctab[i, 0] == -1:
                     color = default_colors[i]
                     # make sure to add no duplicate color
-                    while color[:3] in ctab_rgb:
+                    while np.any(np.all(color[:3] == ctab_rgb, 1)):
                         color = default_colors[safe_color_i]
                         safe_color_i += 1
                     # assign the color
@@ -1646,7 +1646,7 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
 
             # find an unused color (try shades of gray first)
             for i in range(1, 257):
-                if (i, i, i) not in ctab_rgb:
+                if not np.any(np.all((i, i, i) == ctab_rgb, 1)):
                     break
             if i < 256:
                 color = (i, i, i, 0)
