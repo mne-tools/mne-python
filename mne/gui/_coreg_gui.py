@@ -71,7 +71,7 @@ from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _point_cloud_error)
 from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
-from ._file_traits import (assert_env_set, trans_wildcard, RawSource,
+from ._file_traits import (set_mne_root, trans_wildcard, RawSource,
                            SubjectSelectorPanel)
 from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
 
@@ -892,7 +892,7 @@ class CoregPanel(HasPrivateTraits):
             return
 
         # Make sure that MNE_ROOT environment variable is set
-        if not assert_env_set(mne_root=True):
+        if not set_mne_root(True):
             err = ("MNE_ROOT environment variable could not be set. "
                    "You will be able to scale MRIs, but the preparatory mne "
                    "tools will fail. Please specify the MNE_ROOT environment "

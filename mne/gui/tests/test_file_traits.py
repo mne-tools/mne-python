@@ -35,15 +35,6 @@ def test_bem_source():
     assert_equal(bem.tris.shape, (5120, 3))
 
 
-@requires_traits
-@requires_mne_fs_in_env
-def test_assert_env_set():
-    """Test environment variable detection"""
-    from mne.gui._file_traits import assert_env_set
-
-    assert_true(assert_env_set(True, True))
-
-
 @sample.requires_sample_data
 @requires_traits
 def test_fiducials_source():
