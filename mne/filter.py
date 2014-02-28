@@ -279,7 +279,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     min_att_db = 20
 
     # normalize frequencies
-    freq = np.array(freq) / (Fs/2)
+    freq = np.array(freq) / (Fs / 2)
     gain = np.array(gain)
     filter_length = _get_filter_length(filter_length, Fs, len_x=x.shape[1])
 
@@ -1176,7 +1176,8 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
 
 
 @verbose
-def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
+def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
+             verbose=None):
     """Resample the array x
 
     Operates along the last dimension of the array.
@@ -1191,6 +1192,8 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
         Factor to downsample by.
     npad : integer
         Number of samples to use at the beginning and end for padding.
+    axis : int
+        Axis along which to resample (default is the last axis).
     window : string or tuple
         See scipy.signal.resample for description.
     n_jobs : int | str
@@ -1219,6 +1222,11 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
     """
     # make sure our arithmetic will work
     ratio = float(up) / down
+    if axis < 0:
+        axis = x.ndim + axis
+    orig_last_axis = x.ndim - 1
+    if axis != orig_last_axis:
+        x = x.swapaxes(axis, orig_last_axis)
     orig_shape = x.shape
     x_len = orig_shape[-1]
     if x_len == 0:
@@ -1265,6 +1273,8 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
 
     # Restore the original array shape (modified for resampling)
     y.shape = orig_shape[:-1] + (y.shape[1],)
+    if axis != orig_last_axis:
+        y = y.swapaxes(axis, orig_last_axis)
 
     return y
 

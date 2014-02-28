@@ -94,6 +94,11 @@ def test_resample():
     x_2_rs = resample(x_2, 1, 2, 10)
     assert_array_equal(x_2_rs.swapaxes(0, 1), x_rs)
 
+    x_3 = x.swapaxes(0, 2)
+    x_3_rs = resample(x_3, 1, 2, 10, 0)
+    assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
+
+
 
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling

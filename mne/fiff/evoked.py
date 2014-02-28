@@ -600,7 +600,7 @@ class Evoked(ProjMixin, ContainsMixin, DropChannelsMixin):
             Window to use in resampling. See scipy.signal.resample.
         """
         o_sfreq = self.info['sfreq']
-        self.data = resample(self.data, sfreq, o_sfreq, npad, window)
+        self.data = resample(self.data, sfreq, o_sfreq, npad, -1, window)
         # adjust indirectly affected variables
         self.info['sfreq'] = sfreq
         self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq
@@ -659,8 +659,8 @@ class Evoked(ProjMixin, ContainsMixin, DropChannelsMixin):
         ----------
         ch_type : {'mag', 'grad', 'eeg', 'misc', None}
             The channel type to use. Defaults to None. If more than one sensor
-            Type is present in the data the channel type has to be explicitly 
-            set. 
+            Type is present in the data the channel type has to be explicitly
+            set.
         tmin : float | None
             The minimum point in time to be considered for peak getting.
         tmax : float | None
@@ -679,7 +679,7 @@ class Evoked(ProjMixin, ContainsMixin, DropChannelsMixin):
             The channel exhibiting the maximum response.
         latency : float | int
             The time point of the maximum response, either latency in seconds
-            or index.    
+            or index.
         """
         supported = ('mag', 'grad', 'eeg', 'misc', 'None')
 
@@ -701,9 +701,9 @@ class Evoked(ProjMixin, ContainsMixin, DropChannelsMixin):
             raise RuntimeError('More than one sensor type found. `ch_type` '
                                'must not be `None`, pass a sensor type '
                                'value instead')
-        
+
         meg, eeg, misc, picks = False, False, False, None
-        
+
         if ch_type == 'mag':
             meg = ch_type
         elif ch_type == 'grad':
@@ -712,13 +712,13 @@ class Evoked(ProjMixin, ContainsMixin, DropChannelsMixin):
             eeg = True
         elif ch_type == 'misc':
             misc = True
-        
+
         if ch_type is not None:
-            picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc, 
+            picks = pick_types(self.info, meg=meg, eeg=eeg, misc=misc,
                                ref_meg=False)
-            
-        data = self.data if picks is None else self.data[picks] 
-        ch_idx, time_idx =  _get_peak(data, self.times, tmin,
+
+        data = self.data if picks is None else self.data[picks]
+        ch_idx, time_idx = _get_peak(data, self.times, tmin,
                                       tmax, mode)
 
         return (self.ch_names[ch_idx],
@@ -953,10 +953,10 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
                              'operate in neg mode.')
         maxfun = np.argmin
 
-    masked_index = np.ma.array(np.abs(data) if mode == 'abs' else data, 
+    masked_index = np.ma.array(np.abs(data) if mode == 'abs' else data,
                                mask=mask)
 
     max_loc, max_time = np.unravel_index(maxfun(masked_index), data.shape)
-    
-    return max_loc, max_time 
-    
+
+    return max_loc, max_time
+
