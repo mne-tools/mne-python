@@ -1219,54 +1219,53 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
     """
     # make sure our arithmetic will work
     ratio = float(up) / down
-    x, orig_shape = _prep_for_filtering(x, False)[:2]
-
-    x_len = x.shape[1]
-    if x_len > 0:
-        # prep for resampling now
-        orig_len = x_len + 2 * npad  # length after padding
-        new_len = int(round(ratio * orig_len))  # length after resampling
-        to_remove = np.round(ratio * npad).astype(int)
-
-        # figure out windowing function
-        if window is not None:
-            if callable(window):
-                W = window(fftfreq(orig_len))
-            elif isinstance(window, np.ndarray) and \
-                    window.shape == (orig_len,):
-                W = window
-            else:
-                W = ifftshift(get_window(window, orig_len))
-        else:
-            W = np.ones(orig_len)
-        W *= (float(new_len) / float(orig_len))
-        W = W.astype(np.complex128)
-
-        # figure out if we should use CUDA
-        n_jobs, cuda_dict, W = setup_cuda_fft_resample(n_jobs, W, new_len)
-
-        # do the resampling using an adaptation of scipy's FFT-based resample()
-        # use of the 'flat' window is recommended for minimal ringing
-        if n_jobs == 1:
-            y = np.zeros((len(x), new_len - 2 * to_remove), dtype=x.dtype)
-            for xi, x_ in enumerate(x):
-                y[xi] = fft_resample(x_, W, new_len, npad, to_remove,
-                                     cuda_dict)
-        else:
-            _check_njobs(n_jobs, can_be_cuda=True)
-            parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
-            y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
-                         for x_ in x)
-            y = np.array(y)
-
-        # Restore the original array shape (modified for resampling)
-        orig_shape = list(orig_shape)
-        orig_shape[-1] = y.shape[1]
-        y.shape = tuple(orig_shape)
-    else:
+    orig_shape = x.shape
+    x_len = orig_shape[-1]
+    if x_len == 0:
         warnings.warn('x has zero length along last axis, returning a copy of '
                       'x')
-        y = x.copy()
+        return x.copy()
+
+    # prep for resampling now
+    x_flat = x.reshape((-1, x_len))
+    orig_len = x_len + 2 * npad  # length after padding
+    new_len = int(round(ratio * orig_len))  # length after resampling
+    to_remove = np.round(ratio * npad).astype(int)
+
+    # figure out windowing function
+    if window is not None:
+        if callable(window):
+            W = window(fftfreq(orig_len))
+        elif isinstance(window, np.ndarray) and \
+                window.shape == (orig_len,):
+            W = window
+        else:
+            W = ifftshift(get_window(window, orig_len))
+    else:
+        W = np.ones(orig_len)
+    W *= (float(new_len) / float(orig_len))
+    W = W.astype(np.complex128)
+
+    # figure out if we should use CUDA
+    n_jobs, cuda_dict, W = setup_cuda_fft_resample(n_jobs, W, new_len)
+
+    # do the resampling using an adaptation of scipy's FFT-based resample()
+    # use of the 'flat' window is recommended for minimal ringing
+    if n_jobs == 1:
+        y = np.zeros((len(x_flat), new_len - 2 * to_remove), dtype=x.dtype)
+        for xi, x_ in enumerate(x_flat):
+            y[xi] = fft_resample(x_, W, new_len, npad, to_remove,
+                                 cuda_dict)
+    else:
+        _check_njobs(n_jobs, can_be_cuda=True)
+        parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
+        y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
+                     for x_ in x_flat)
+        y = np.array(y)
+
+    # Restore the original array shape (modified for resampling)
+    y.shape = orig_shape[:-1] + (y.shape[1],)
+
     return y
 
 
