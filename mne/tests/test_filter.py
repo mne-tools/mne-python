@@ -1,6 +1,7 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_almost_equal
-from nose.tools import assert_true, assert_raises
+from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
+                           assert_array_equal)
+from nose.tools import assert_equal, assert_true, assert_raises
 import os.path as op
 import warnings
 from scipy.signal import resample as sp_resample
@@ -80,6 +81,22 @@ def test_notch_filters():
             assert_array_almost_equal(out, freqs)
         new_power = np.sqrt(sum_squared(b) / b.size)
         assert_almost_equal(new_power, orig_power, tol)
+
+
+def test_resample():
+    "Test resampling"
+    x = np.random.normal(0, 1, (10, 10, 10))
+    x_rs = resample(x, 1, 2, 10)
+    assert_equal(x.shape, (10, 10, 10))
+    assert_equal(x_rs.shape, (10, 10, 5))
+
+    x_2 = x.swapaxes(0, 1)
+    x_2_rs = resample(x_2, 1, 2, 10)
+    assert_array_equal(x_2_rs.swapaxes(0, 1), x_rs)
+
+    x_3 = x.swapaxes(0, 2)
+    x_3_rs = resample(x_3, 1, 2, 10, 0)
+    assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
 
 def test_filters():
