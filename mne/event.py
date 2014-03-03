@@ -729,3 +729,36 @@ def _get_stim_channel(stim_channel):
     if ch_count == 0:
         stim_channel = ['STI 014']
     return stim_channel
+
+
+def filter_events(events, trigger):
+    """Filter events and keep selected triggers
+    
+    This function is usefull to make ``epochs.selection`` refer
+    to the filtered selection of events used.
+    This makes it easier to map epochs to behavioral data.
+    For example, assuming that all event related triggers
+    make up all trials, ``epochs.selection`` would then serve
+    as trial count. Let's say we have 10 blocks of 10 trials and
+    want to get rid of the first trials that are known to 
+    produce high variance.
+    With filtered events one could then use the following expressions
+    to filter the epochs accordingly.
+    
+    drop_idx = np.in1d(epochs.selection, range(0, 100, 10))
+    epochs.drop_epochs(drop_idx)
+
+    Parameters
+    ----------
+    events : array, shape=(n_events, 3)
+        Array as returned by mne.find_events.
+    trigger : int, listlike
+        The trigger values to keep
+    Returns
+    -------
+    filtered_evemts : array, shape=(n_filtered_events, 3)
+        Array of filtered events    
+    """
+    if np.isscalar(trigger):
+        trigger = [trigger]
+    return events[np.in1d(events[:, 2], trigger)]

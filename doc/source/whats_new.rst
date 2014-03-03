@@ -49,6 +49,7 @@ Changelog
 
    - Add  `compute_ems` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
 
+   - Add `filter_events` function by `Denis Engemann`_
 
 BUG
 ~~~

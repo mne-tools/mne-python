@@ -4,12 +4,12 @@ import os
 from nose.tools import assert_true
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_raises)
+                           assert_raises, assert_equal)
 
 from mne import (read_events, write_events, make_fixed_length_events,
                  find_events, find_stim_steps, fiff)
 from mne.utils import _TempDir
-from mne.event import define_target_events, merge_events
+from mne.event import define_target_events, merge_events, filter_events
 
 base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
 fname = op.join(base_dir, 'test-eve.fif')
@@ -241,3 +241,18 @@ def test_define_events():
     n_target_ = events_[events_[:, 2] == 42].shape[0]
 
     assert_true(n_target_ == (n_target - n_miss))
+
+
+
+def test_filter_events():
+    """Test defining response events
+    """
+    events = read_events(fname)
+    raw = fiff.Raw(raw_fname)
+    events2 = filter_events(events, [1, 2])
+    events3 = filter_events(events, 2)
+    
+    assert_equal(set(events2[:, 2]), set([1, 2]))
+    events_filtered = np.logical_or(*[events[:, 2] == k for k in [1, 2]])
+    assert_equal(len(events2), len(events[events_filtered]))
+    assert_equal(set(events3[:, 2]), set([2]))
