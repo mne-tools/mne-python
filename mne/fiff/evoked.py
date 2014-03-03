@@ -719,7 +719,7 @@ class Evoked(ProjMixin, ContainsMixin, DropChannelsMixin):
 
         data = self.data if picks is None else self.data[picks]
         ch_idx, time_idx = _get_peak(data, self.times, tmin,
-                                      tmax, mode)
+                                     tmax, mode)
 
         return (self.ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
@@ -959,4 +959,3 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     max_loc, max_time = np.unravel_index(maxfun(masked_index), data.shape)
 
     return max_loc, max_time
-

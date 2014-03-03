@@ -279,7 +279,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     min_att_db = 20
 
     # normalize frequencies
-    freq = np.array(freq) / (Fs / 2)
+    freq = np.array(freq) / (Fs / 2.)
     gain = np.array(gain)
     filter_length = _get_filter_length(filter_length, Fs, len_x=x.shape[1])
 
