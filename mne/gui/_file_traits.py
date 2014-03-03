@@ -84,7 +84,7 @@ def get_fs_home():
             if problem is None:
                 set_config('FREESURFER_HOME', fs_home)
         else:
-            raise RuntimeError("FREESURFER_HOME not set")
+            return None
 
     return fs_home
 
