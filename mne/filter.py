@@ -1220,6 +1220,14 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     current implementation is functionally equivalent to passing
     up=up/down and down=1.
     """
+    # check explicitly for backwards compatibility
+    if not isinstance(axis, int):
+        err = ("The axis parameter needs to be an integer (got %s). "
+               "The axis parameter was missing from this function for a "
+               "period of time, you might be intending to specify the "
+               "subsequent window parameter." % repr(axis))
+        raise TypeError(err)
+
     # make sure our arithmetic will work
     ratio = float(up) / down
     if axis < 0:
