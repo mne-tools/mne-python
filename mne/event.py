@@ -729,3 +729,27 @@ def _get_stim_channel(stim_channel):
     if ch_count == 0:
         stim_channel = ['STI 014']
     return stim_channel
+
+
+def filter_events(events, trigger):
+    """Filter events and keep selected triggers
+    
+    This usefull to make epochs.selection refer
+    To the filtered selection of events used.
+    Makes it easier to map epochs with behaviourl data
+    
+    
+    Parameters
+    ----------
+    events : array, shape=(n_events, 3)
+        Array as returned by mne.find_events.
+    trigger : int, listlike
+        The trigger values to keep
+    Returns
+    -------
+    filtered_evemts : array, shape=(n_filtered_events, 3)
+        Array of filtered events    
+    """
+    if np.isscalar(trigger):
+        trigger = [trigger]
+    return events[np.in1d(events[:, 2], trigger)]
