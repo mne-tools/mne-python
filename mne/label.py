@@ -1210,6 +1210,65 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
     return labels
 
 
+def grow_labels_on_parc(subject, seeds, extent, names=None, subjects_dir=None):
+    """
+    """
+    # based on mne.grow_labels()
+    subjects_dir = get_subjects_dir(subjects_dir)
+    if names is None:
+        names = [None, None]
+
+    labels = []
+    for hemi_seeds, hemi_names, hemi in zip(seeds, names, ('lh', 'rh')):
+        n_labels = len(hemi_seeds)
+        if hemi_names is None:
+            hemi_names = ["Label%i-%s" % (i, hemi) for i in range(n_labels)]
+        elif len(hemi_names) != len(hemi_seeds):
+            err = "Seed number differs from name number in %s" % hemi
+            raise ValueError(err)
+
+        # prepare source space info and parcellation
+        surf_path = os.path.join(subjects_dir, subject, 'surf',
+                                 hemi + '.white')
+        vert, tris = read_surface(surf_path)
+        graph = mesh_dist(tris, vert)  # distance graph
+        parc = np.empty(len(vert), dtype='int32')
+        parc[:] = -1
+
+        # initialize active sources
+        sources = {}  # vert -> (label, dist)
+        for label, seed in enumerate(hemi_seeds):
+            if np.any(parc[seed] >= 0):
+                raise ValueError("Overlapping seeds")
+            parc[seed] = label
+            for s in np.atleast_1d(seed):
+                sources[s] = (label, 0.)
+
+        # grow from sources
+        while sources:
+            for source in sorted(sources):
+                label, old_dist = sources.pop(source)
+
+                # add neighbors within allowable distance
+                row = graph[source, :]
+                for vert, dist in zip(row.indices, row.data):
+                    new_dist = old_dist + dist
+                    if parc[vert] < 0 and new_dist <= extent:
+                        parc[vert] = label
+                        sources[vert] = (label, new_dist)
+
+        # convert parc to labels
+        for i, name in enumerate(hemi_names):
+            vertices = np.nonzero(parc == i)[0]
+            name = hemi_names[i]
+            if not name.endswith(hemi):
+                name += '-%s' % hemi
+            label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
+            labels.append(label_)
+
+    return labels
+
+
 def _read_annot(fname):
     """Read a Freesurfer annotation from a .annot file.
 
