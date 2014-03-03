@@ -797,10 +797,7 @@ def _get_extra_data_path(home_dir=None):
                              'not be determined, please report this '
                              'error to mne-python developers')
 
-    path = op.join(home_dir, '.mne')
-    if not op.isdir(path):
-        os.mkdir(path)
-    return path
+    return op.join(home_dir, '.mne')
 
 
 def get_config_path(home_dir=None):
@@ -980,8 +977,9 @@ def set_config(key, value, home_dir=None):
     else:
         config[key] = value
 
-    # Write all values
-    directory = op.split(config_path)[0]
+    # Write all values. This may fail if the default directory is not
+    # writeable.
+    directory = op.dirname(config_path)
     if not op.isdir(directory):
         os.mkdir(directory)
     with open(config_path, 'w') as fid:
