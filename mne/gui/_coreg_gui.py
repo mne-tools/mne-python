@@ -894,10 +894,9 @@ class CoregPanel(HasPrivateTraits):
         # Make sure that MNE_ROOT environment variable is set
         if not set_mne_root(True):
             err = ("MNE_ROOT environment variable could not be set. "
-                   "You will be able to scale MRIs, but the preparatory mne "
-                   "tools will fail. Please specify the MNE_ROOT environment "
-                   "variable. In Python this can be done using:\n\n"
-                   ">>> os.environ['MNE_ROOT'] = '/Applications/mne-2.7.3'")
+                   "You will be able to scale MRIs, but the "
+                   "mne_prepare_bem_model tool will fail. Please install "
+                   "MNE.")
             warning(None, err, "MNE_ROOT Not Set")
 
     def _reset_params_fired(self):
