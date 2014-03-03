@@ -68,6 +68,12 @@ def get_fs_home():
     -------
     fs_home : None | str
         The FREESURFER_HOME path or None if the user cancels.
+
+    Notes
+    -----
+    If FREESURFER_HOME can't be found, the user is prompted with a file dialog.
+    If specified successfully, the resulting path is stored with
+    mne.set_config().
     """
     fs_home = get_config('FREESURFER_HOME')
     problem = _fs_home_problem(fs_home)
@@ -96,6 +102,12 @@ def set_fs_home():
     success : bool
         True if the environment variable could be set, False if FREESURFER_HOME
         could not be found.
+
+    Notes
+    -----
+    If FREESURFER_HOME can't be found, the user is prompted with a file dialog.
+    If specified successfully, the resulting path is stored with
+    mne.set_config().
     """
     fs_home = get_fs_home()
     if fs_home is None:
@@ -105,6 +117,7 @@ def set_fs_home():
         return True
 
 def _fs_home_problem(fs_home):
+    "Check FREESURFER_HOME path"
     test_dir = os.path.join(fs_home, 'subjects', 'fsaverage')
     if fs_home is None:
         problem = "FREESURFER_HOME is not set."
@@ -125,6 +138,12 @@ def get_mne_root():
     -------
     mne_root : None | str
         The MNE_ROOT path or None if the user cancels.
+
+    Notes
+    -----
+    If MNE_ROOT can't be found, the user is prompted with a file dialog.
+    If specified successfully, the resulting path is stored with
+    mne.set_config().
     """
     mne_root = get_config('MNE_ROOT')
     problem = _mne_root_problem(mne_root)
@@ -158,6 +177,12 @@ def set_mne_root(set_mne_bin=False):
     success : bool
         True if the environment variable could be set, False if MNE_ROOT
         could not be found.
+
+    Notes
+    -----
+    If MNE_ROOT can't be found, the user is prompted with a file dialog.
+    If specified successfully, the resulting path is stored with
+    mne.set_config().
     """
     mne_root = get_mne_root()
     if mne_root is None:
@@ -170,8 +195,8 @@ def set_mne_root(set_mne_bin=False):
                 os.environ['PATH'] += ':' + mne_bin
         return True
 
-
 def _mne_root_problem(mne_root):
+    "Check MNE_ROOT path"
     test_dir = os.path.join(mne_root, 'share', 'mne', 'mne_analyze')
     if mne_root is None:
         problem = "MNE_ROOT is not set."
