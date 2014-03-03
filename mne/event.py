@@ -734,11 +734,20 @@ def _get_stim_channel(stim_channel):
 def filter_events(events, trigger):
     """Filter events and keep selected triggers
     
-    This usefull to make epochs.selection refer
-    To the filtered selection of events used.
-    Makes it easier to map epochs with behaviourl data
+    This function is usefull to make ``epochs.selection`` refer
+    to the filtered selection of events used.
+    This makes it easier to map epochs to behavioral data.
+    For example, assuming that all event related triggers
+    make up all trials, ``epochs.selection`` would then serve
+    as trial count. Let's say we have 10 blocks of 10 trials and
+    want to get rid of the first trials that are known to 
+    produce high variance.
+    With filtered events one could then use the following expressions
+    to filter the epochs accordingly.
     
-    
+    drop_idx = np.in1d(epochs.selection, range(0, 100, 10))
+    epochs.drop_epochs(drop_idx)
+
     Parameters
     ----------
     events : array, shape=(n_events, 3)
