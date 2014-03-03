@@ -50,7 +50,8 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
         raise RuntimeError('n_interp must be even')
     fname = op.join(_get_extra_data_path(), 'tables')
     if not op.isdir(fname):
-        os.mkdir(fname)
+        # Updated due to API chang (GH 1167)
+        os.makedirs(fname)
     if ch_type == 'meg':
         fname = op.join(fname, 'legder_%s_%s.bin' % (n_coeff, n_interp))
         leg_fun = _get_legen_der
