@@ -1107,11 +1107,11 @@ def _verts_within_dist(graph, sources, max_dist):
     return verts, dist
 
 
-def _grow_labels(seeds, extents, hemis, dist, vert, subject):
+def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
     """Helper for parallelization of grow_labels
     """
     labels = []
-    for seed, extent, hemi in zip(seeds, extents, hemis):
+    for seed, extent, hemi, name in zip(seeds, extents, hemis, names):
         label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
 
         # create a label
@@ -1126,13 +1126,14 @@ def _grow_labels(seeds, extents, hemis, dist, vert, subject):
                       values=label_dist,
                       hemi=hemi,
                       comment=comment,
+                      name=str(name),
                       subject=subject)
         labels.append(label)
     return labels
 
 
 def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
-                overlap=True):
+                overlap=True, names=None):
     """Generate circular labels in source space with region growing
 
     This function generates a number of labels in source space by growing
@@ -1166,6 +1167,9 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         Produce overlapping labels. If True (default), the resulting labels
         can be overlapping. If False, each label will be grown one step at a
         time, and occupied territory will not be invaded.
+    names : None | list of str
+        Assign names to the new labels (list needs to have the same length as
+        seeds).
 
     Returns
     -------
@@ -1183,7 +1187,6 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     seeds = np.atleast_1d(map(np.atleast_1d, seeds))
     extents = np.atleast_1d(extents)
     hemis = np.atleast_1d(hemis)
-
     n_seeds = len(seeds)
 
     if len(extents) != 1 and len(extents) != n_seeds:
@@ -1203,6 +1206,20 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
 
     hemis = np.array(['lh' if h == 0 else 'rh' for h in hemis])
 
+    # names
+    if names is None:
+        names = ["Label_%i-%s" % items for items in enumerate(hemis)]
+    else:
+        if np.isscalar(names):
+            names = [names]
+        if len(names) != n_seeds:
+            raise ValueError('The names parameter has to be None or have length '
+                             'len(seeds)')
+        for i, hemi in enumerate(hemis):
+            if not names[i].endswith(hemi):
+                names[i] = '-'.join((names[i], hemi))
+    names = np.array(names)
+
     # load the surfaces and create the distance graphs
     tris, vert, dist = {}, {}, {}
     for hemi in set(hemis):
@@ -1213,15 +1230,17 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     if not overlap:
         # special procedure for non-overlapping labels
         labels = _grow_nonoverlapping_labels(subject, seeds, extents, hemis,
-                                             vert, dist)
+                                             vert, dist, names)
     else:
         # create the patches
         parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
         seeds = np.array_split(seeds, n_jobs)
         extents = np.array_split(extents, n_jobs)
         hemis = np.array_split(hemis, n_jobs)
-        labels = sum(parallel(my_grow_labels(s, e, h, dist, vert, subject)
-                              for s, e, h in zip(seeds, extents, hemis)), [])
+        names = np.array_split(names, n_jobs)
+        labels = sum(parallel(my_grow_labels(s, e, h, n, dist, vert, subject)
+                              for s, e, h, n
+                              in zip(seeds, extents, hemis, names)), [])
 
         # add a unique color to each label
         colors = _n_colors(len(labels))
@@ -1231,7 +1250,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     return labels
 
 
-def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vert, dist):
+def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vert, dist,
+                                names_):
     """Grow labels while ensuring that they don't overlap
     """
     labels = []
@@ -1239,11 +1259,10 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vert, dist):
         hemi_index = (hemis == hemi)
         seeds = seeds_[hemi_index]
         extents = extents_[hemi_index]
+        names = names_[hemi_index]
         graph = dist[hemi]  # distance graph
         n_vertices = len(vert[hemi])
         n_labels = len(seeds)
-
-        names = ["Label%i-%s" % (i, hemi) for i in range(n_labels)]
 
         # prepare parcellation
         parc = np.empty(n_vertices, dtype='int32')
@@ -1291,9 +1310,7 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vert, dist):
         # convert parc to labels
         for i in xrange(n_labels):
             vertices = np.nonzero(parc == i)[0]
-            name = names[i]
-            if not name.endswith(hemi):
-                name += '-%s' % hemi
+            name = str(names[i])
             label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
             labels.append(label_)
 

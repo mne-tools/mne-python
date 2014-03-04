@@ -422,15 +422,18 @@ def test_grow_labels():
     # these were chosen manually in mne_analyze
     should_be_in = [[49, 227], [51207, 48794]]
     hemis = [0, 1]
-    labels = grow_labels('sample', seeds, 3, hemis, subjects_dir, n_jobs=2)
+    names = ['aneurism', 'tumor']
+    labels = grow_labels('sample', seeds, 3, hemis, subjects_dir, n_jobs=2,
+                         names=names)
 
-    for label, seed, hemi, sh in zip(labels, seeds, hemis, should_be_in):
+    tgt_names = ['aneurism-lh', 'tumor-rh']
+    tgt_hemis = ['lh', 'rh']
+    for label, seed, hemi, sh, name in zip(labels, seeds, tgt_hemis,
+                                           should_be_in, tgt_names):
         assert_true(np.any(label.vertices == seed))
         assert_true(np.all(in1d(sh, label.vertices)))
-        if hemi == 0:
-            assert_equal(label.hemi, 'lh')
-        else:
-            assert_equal(label.hemi, 'rh')
+        assert_equal(label.hemi, hemi)
+        assert_equal(label.name, name)
 
     # grow labels with and without overlap
     seeds = [57532, [58887, 6304]]
@@ -438,6 +441,12 @@ def test_grow_labels():
     seeds = [57532, [58887, 6304]]
     l11, l12 = grow_labels('fsaverage', seeds, 20, [0, 0], subjects_dir,
                            overlap=False)
+
+    # test label naming
+    assert_equal(l01.name, 'Label_0-lh')
+    assert_equal(l02.name, 'Label_1-lh')
+    assert_equal(l11.name, 'Label_0-lh')
+    assert_equal(l12.name, 'Label_1-lh')
 
     # make sure set 1 does not overlap
     overlap = np.intersect1d(l11.vertices, l12.vertices, True)
