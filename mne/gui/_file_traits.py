@@ -47,7 +47,7 @@ from ..fiff import FIFF, Raw, read_fiducials
 from ..surface import read_bem_surfaces
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
-from ..utils import get_config
+from ..utils import get_config, set_config
 
 
 fid_wildcard = "*.fif"
@@ -61,72 +61,153 @@ def _expand_path(p):
     return os.path.abspath(os.path.expandvars(os.path.expanduser(p)))
 
 
-def assert_env_set(mne_root=True, fs_home=False):
-    """Make sure that environment variables are correctly set
+def get_fs_home():
+    """Get the FREESURFER_HOME directory
 
-    Parameters
-    ----------
-    mne_root : bool
-        Make sure the MNE_ROOT environment variable is set correctly, and the
-        mne bin directory is in the PATH.
-    fs_home : bool
-        Make sure the FREESURFER_HOME environment variable is set correctly.
+    Returns
+    -------
+    fs_home : None | str
+        The FREESURFER_HOME path or None if the user cancels.
+
+    Notes
+    -----
+    If FREESURFER_HOME can't be found, the user is prompted with a file dialog.
+    If specified successfully, the resulting path is stored with
+    mne.set_config().
+    """
+    fs_home = get_config('FREESURFER_HOME')
+    problem = _fs_home_problem(fs_home)
+    while problem:
+        info = ("Please select the FREESURFER_HOME directory. This is the "
+                "root directory of the freesurfer installation.")
+        msg = '\n\n'.join((problem, info))
+        information(None, msg, "Select the FREESURFER_HOME Directory")
+        msg = "Please select the FREESURFER_HOME Directory"
+        dlg = DirectoryDialog(message=msg, new_directory=False)
+        if dlg.open() == OK:
+            fs_home = dlg.path
+            problem = _fs_home_problem(fs_home)
+            if problem is None:
+                set_config('FREESURFER_HOME', fs_home)
+        else:
+            return None
+
+    return fs_home
+
+def set_fs_home():
+    """Set the FREESURFER_HOME environment variable
 
     Returns
     -------
     success : bool
-        Whether the requested environment variables are successfully set or
-        not.
+        True if the environment variable could be set, False if FREESURFER_HOME
+        could not be found.
 
     Notes
     -----
-    Environment variables are added to ``os.environ`` to make sure that bash
-    tools can find them.
+    If FREESURFER_HOME can't be found, the user is prompted with a file dialog.
+    If specified successfully, the resulting path is stored with
+    mne.set_config().
     """
-    if fs_home:
-        fs_home = os.environ.get('FREESURFER_HOME', None)
-        test_dir = os.path.join('%s', 'subjects', 'fsaverage')
-        while (fs_home is None) or not os.path.exists(test_dir % fs_home):
-            msg = ("Please select the FREESURFER_HOME directory. This is the "
-                   "root directory of the freesurfer installation. In order "
-                   "to avoid this prompt in the future, set the "
-                   "FREESURFER_HOME environment variable. "
-                   "In Python, this can be done with:\n"
-                   ">>> os.environ['FREESURFER_HOME'] = path")
-            information(None, msg, "Select FREESURFER_HOME Directory")
-            msg = "Please select the FREESURFER_HOME Directory"
-            dlg = DirectoryDialog(message=msg, new_directory=False)
-            if dlg.open() == OK:
-                fs_home = dlg.path
-            else:
-                return False
+    fs_home = get_fs_home()
+    if fs_home is None:
+        return False
+    else:
         os.environ['FREESURFER_HOME'] = fs_home
+        return True
 
-    if mne_root:
-        mne_root = get_config('MNE_ROOT')
-        test_dir = os.path.join('%s', 'share', 'mne', 'mne_analyze')
-        while (mne_root is None) or not os.path.exists(test_dir % mne_root):
-            msg = ("Please select the MNE_ROOT directory. This is the root "
-                   "directory of the MNE installation. In order to "
-                   "avoid this prompt in the future, set the MNE_ROOT "
-                   "environment variable. "
-                   "In Python, this can be done with:\n"
-                   ">>> os.environ['MNE_ROOT'] = path")
-            information(None, msg, "Select MNE_ROOT Directory")
-            msg = "Please select the MNE_ROOT Directory"
-            dlg = DirectoryDialog(message=msg, new_directory=False)
-            if dlg.open() == OK:
-                mne_root = dlg.path
-            else:
-                return False
+def _fs_home_problem(fs_home):
+    "Check FREESURFER_HOME path"
+    test_dir = os.path.join(fs_home, 'subjects', 'fsaverage')
+    if fs_home is None:
+        problem = "FREESURFER_HOME is not set."
+    elif not os.path.exists(fs_home):
+        problem = "FREESURFER_HOME (%s) does not exist." % fs_home
+    elif not os.path.exists(test_dir):
+        problem = ("FREESURFER_HOME (%s) does not contain the fsaverage "
+                   "subject." % fs_home)
+    else:
+        problem = None
+    return problem
+
+
+def get_mne_root():
+    """Get the MNE_ROOT directory
+
+    Returns
+    -------
+    mne_root : None | str
+        The MNE_ROOT path or None if the user cancels.
+
+    Notes
+    -----
+    If MNE_ROOT can't be found, the user is prompted with a file dialog.
+    If specified successfully, the resulting path is stored with
+    mne.set_config().
+    """
+    mne_root = get_config('MNE_ROOT')
+    problem = _mne_root_problem(mne_root)
+    while problem:
+        info = ("Please select the MNE_ROOT directory. This is the root "
+                "directory of the MNE installation.")
+        msg = '\n\n'.join((problem, info))
+        information(None, msg, "Select the MNE_ROOT Directory")
+        msg = "Please select the MNE_ROOT Directory"
+        dlg = DirectoryDialog(message=msg, new_directory=False)
+        if dlg.open() == OK:
+            mne_root = dlg.path
+            problem = _mne_root_problem(mne_root)
+            if problem is None:
+                set_config('MNE_ROOT', mne_root)
+        else:
+            return None
+
+    return mne_root
+
+def set_mne_root(set_mne_bin=False):
+    """Set the MNE_ROOT environment variable
+
+    Parameters
+    ----------
+    set_mne_bin : bool
+        Also add the MNE binary directory to the PATH (default: False).
+
+    Returns
+    -------
+    success : bool
+        True if the environment variable could be set, False if MNE_ROOT
+        could not be found.
+
+    Notes
+    -----
+    If MNE_ROOT can't be found, the user is prompted with a file dialog.
+    If specified successfully, the resulting path is stored with
+    mne.set_config().
+    """
+    mne_root = get_mne_root()
+    if mne_root is None:
+        return False
+    else:
         os.environ['MNE_ROOT'] = mne_root
+        if set_mne_bin:
+            mne_bin = os.path.realpath(os.path.join(mne_root, 'bin'))
+            if mne_bin not in map(_expand_path, os.environ['PATH'].split(':')):
+                os.environ['PATH'] += ':' + mne_bin
+        return True
 
-        # add mne bin directory to PATH
-        mne_bin = os.path.realpath(os.path.join(mne_root, 'bin'))
-        if mne_bin not in map(_expand_path, os.environ['PATH'].split(':')):
-            os.environ['PATH'] += ':' + mne_bin
-
-    return True
+def _mne_root_problem(mne_root):
+    "Check MNE_ROOT path"
+    test_dir = os.path.join(mne_root, 'share', 'mne', 'mne_analyze')
+    if mne_root is None:
+        problem = "MNE_ROOT is not set."
+    elif not os.path.exists(mne_root):
+        problem = "MNE_ROOT (%s) does not exist." % mne_root
+    elif not os.path.exists(test_dir):
+        problem = ("MNE_ROOT (%s) is missing files. If this is your MNE "
+                   "installation, consider reinstalling." % mne_root)
+    else:
+        problem = None
+    return problem
 
 
 class BemSource(HasTraits):
@@ -393,16 +474,23 @@ class MRISubjectSource(HasPrivateTraits):
 
     def create_fsaverage(self):
         if not self.subjects_dir:
-            err = ("No subjects diretory is selected. Please specify "
+            err = ("No subjects directory is selected. Please specify "
                    "subjects_dir first.")
             raise RuntimeError(err)
 
-        if not assert_env_set(mne_root=True, fs_home=True):
-            err = ("Not all files required for creating the fsaverage brain "
-                   "were found. Both mne and freesurfer are required.")
+        mne_root = get_mne_root()
+        if mne_root is None:
+            err = ("MNE contains files that are needed for copying the "
+                   "fsaverage brain. Please install MNE and try again.")
+            raise RuntimeError(err)
+        fs_home = get_fs_home()
+        if fs_home is None:
+            err = ("FreeSurfer contains files that are needed for copying the "
+                   "fsaverage brain. Please install FreeSurfer and try again.")
             raise RuntimeError(err)
 
-        create_default_subject(subjects_dir=self.subjects_dir)
+        create_default_subject(mne_root, fs_home,
+                               subjects_dir=self.subjects_dir)
         self.refresh = True
         self.subject = 'fsaverage'
 
