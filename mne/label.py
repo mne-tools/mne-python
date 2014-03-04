@@ -1056,28 +1056,31 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     return labels
 
 
-def _verts_within_dist(graph, source, max_dist):
+def _verts_within_dist(graph, sources, max_dist):
     """Find all vertices wihin a maximum geodesic distance from source
 
     Parameters
     ----------
     graph : scipy.sparse.csr_matrix
-        Sparse matrix with distances between adjacent vertices
-    source : int
-        Source vertex
-    max_dist: float
-        Maximum geodesic distance
+        Sparse matrix with distances between adjacent vertices.
+    sources : list of int
+        Source vertices.
+    max_dist : float
+        Maximum geodesic distance.
 
     Returns
     -------
     verts : array
-        Vertices within max_dist
+        Vertices within max_dist.
     dist : array
-        Distances from source vertex
+        Distances from source vertex.
     """
     dist_map = {}
-    dist_map[source] = 0
-    verts_added_last = [source]
+    verts_added_last = []
+    for source in sources:
+        dist_map[source] = 0
+        verts_added_last.append(source)
+
     # add neighbors until no more neighbors within max_dist can be found
     while len(verts_added_last) > 0:
         verts_added = []
@@ -1112,7 +1115,12 @@ def _grow_labels(seeds, extents, hemis, dist, vert, subject):
         label_verts, label_dist = _verts_within_dist(dist[hemi], seed, extent)
 
         # create a label
-        comment = 'Circular label: seed=%d, extent=%0.1fmm' % (seed, extent)
+        if len(seed) == 1:
+            seed_repr = str(seed)
+        else:
+            seed_repr = ','.join(map(str, seed))
+        comment = 'Circular label: seed=%s, extent=%0.1fmm' % (seed_repr,
+                                                               extent)
         label = Label(vertices=label_verts,
                       pos=vert[hemi][label_verts],
                       values=label_dist,
@@ -1141,8 +1149,9 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     ----------
     subject : string
         Name of the subject as in SUBJECTS_DIR.
-    seeds : array | int
-        Seed vertex numbers.
+    seeds : int | list
+        Seed, or list of seeds. Each seed can be either a vertex number or
+        a list of vertex numbers.
     extents : array | float
         Extents (radius in mm) of the labels.
     hemis : array | int
@@ -1171,6 +1180,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # make sure the inputs are arrays
     if np.isscalar(seeds):
         seeds = [seeds]
+    seeds = np.atleast_1d(map(np.atleast_1d, seeds))
     extents = np.atleast_1d(extents)
     hemis = np.atleast_1d(hemis)
 
@@ -1225,8 +1235,6 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vert, dist):
     """Grow labels while ensuring that they don't overlap
     """
     labels = []
-    seeds_ = np.atleast_1d(map(np.atleast_1d, seeds_))
-
     for hemi in set(hemis):
         hemi_index = (hemis == hemi)
         seeds = seeds_[hemi_index]
