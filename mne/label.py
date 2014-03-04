@@ -1250,8 +1250,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     return labels
 
 
-def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vert, dist,
-                                names_):
+def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
+                                graphs, names_):
     """Grow labels while ensuring that they don't overlap
     """
     labels = []
@@ -1260,8 +1260,8 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vert, dist,
         seeds = seeds_[hemi_index]
         extents = extents_[hemi_index]
         names = names_[hemi_index]
-        graph = dist[hemi]  # distance graph
-        n_vertices = len(vert[hemi])
+        graph = graphs[hemi]  # distance graph
+        n_vertices = len(vertices_[hemi])
         n_labels = len(seeds)
 
         # prepare parcellation
