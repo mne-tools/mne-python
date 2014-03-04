@@ -1242,26 +1242,43 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vert, dist):
         parc[:] = -1
 
         # initialize active sources
-        sources = {}  # vert -> (label, dist)
+        sources = {}  # vert -> (label, dist_from_seed)
+        edge = []  # queue of vertices to process
         for label, seed in enumerate(seeds):
             if np.any(parc[seed] >= 0):
                 raise ValueError("Overlapping seeds")
             parc[seed] = label
             for s in np.atleast_1d(seed):
                 sources[s] = (label, 0.)
+                edge.append(s)
 
         # grow from sources
-        while sources:
-            for source in sorted(sources):
-                label, old_dist = sources.pop(source)
+        while edge:
+            vert_from = edge.pop(0)
+            label, old_dist = sources[vert_from]
 
-                # add neighbors within allowable distance
-                row = graph[source, :]
-                for vert, dist in zip(row.indices, row.data):
-                    new_dist = old_dist + dist
-                    if parc[vert] < 0 and new_dist <= extents[label]:
-                        parc[vert] = label
-                        sources[vert] = (label, new_dist)
+            # add neighbors within allowable distance
+            row = graph[vert_from, :]
+            for vert_to, dist in zip(row.indices, row.data):
+                new_dist = old_dist + dist
+
+                # abort if outside of extent
+                if new_dist > extents[label]:
+                    continue
+
+                vert_to_label = parc[vert_to]
+                if vert_to_label >= 0:
+                    _, vert_to_dist = sources[vert_to]
+                    # abort if the vertex is occupied by a closer seed
+                    if new_dist > vert_to_dist:
+                        continue
+                    elif vert_to in edge:
+                        edge.remove(vert_to)
+
+                # assign label value
+                parc[vert_to] = label
+                sources[vert_to] = (label, new_dist)
+                edge.append(vert_to)
 
         # convert parc to labels
         for i in xrange(n_labels):
