@@ -1227,11 +1227,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         vert[hemi], tris[hemi] = read_surface(surf_fname)
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
-    if not overlap:
-        # special procedure for non-overlapping labels
-        labels = _grow_nonoverlapping_labels(subject, seeds, extents, hemis,
-                                             vert, dist, names)
-    else:
+    if overlap:
         # create the patches
         parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
         seeds = np.array_split(seeds, n_jobs)
@@ -1241,11 +1237,15 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         labels = sum(parallel(my_grow_labels(s, e, h, n, dist, vert, subject)
                               for s, e, h, n
                               in zip(seeds, extents, hemis, names)), [])
+    else:
+        # special procedure for non-overlapping labels
+        labels = _grow_nonoverlapping_labels(subject, seeds, extents, hemis,
+                                             vert, dist, names)
 
-        # add a unique color to each label
-        colors = _n_colors(len(labels))
-        for label, color in zip(labels, colors):
-            label.color = color
+    # add a unique color to each label
+    colors = _n_colors(len(labels))
+    for label, color in zip(labels, colors):
+        label.color = color
 
     return labels
 
