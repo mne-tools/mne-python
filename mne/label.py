@@ -1123,8 +1123,8 @@ def _grow_labels(seeds, extents, hemis, dist, vert, subject):
     return labels
 
 
-def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
-                n_jobs=1):
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
+                overlap=True):
     """Generate circular labels in source space with region growing
 
     This function generates a number of labels in source space by growing
@@ -1141,17 +1141,22 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
     ----------
     subject : string
         Name of the subject as in SUBJECTS_DIR.
-    seeds : array or int
+    seeds : array | int
         Seed vertex numbers.
-    extents : array or float
+    extents : array | float
         Extents (radius in mm) of the labels.
-    hemis : array or int
+    hemis : array | int
         Hemispheres to use for the labels (0: left, 1: right).
     subjects_dir : string
         Path to SUBJECTS_DIR if not set in the environment.
     n_jobs : int
         Number of jobs to run in parallel. Likely only useful if tens
-        or hundreds of labels are being expanded simultaneously.
+        or hundreds of labels are being expanded simultaneously. Does not
+        apply with ``overlap=False``.
+    overlap : bool
+        Produce overlapping labels. If True (default), the resulting labels
+        can be overlapping. If False, each label will be grown one step at a
+        time, and occupied territory will not be invaded.
 
     Returns
     -------
@@ -1164,7 +1169,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
     n_jobs = check_n_jobs(n_jobs)
 
     # make sure the inputs are arrays
-    seeds = np.atleast_1d(seeds)
+    if np.isscalar(seeds):
+        seeds = [seeds]
     extents = np.atleast_1d(extents)
     hemis = np.atleast_1d(hemis)
 
@@ -1185,7 +1191,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
     if len(hemis) == 1:
         hemis = np.tile(hemis, n_seeds)
 
-    hemis = ['lh' if h == 0 else 'rh' for h in hemis]
+    hemis = np.array(['lh' if h == 0 else 'rh' for h in hemis])
 
     # load the surfaces and create the distance graphs
     tris, vert, dist = {}, {}, {}
@@ -1194,50 +1200,50 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None,
         vert[hemi], tris[hemi] = read_surface(surf_fname)
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
-    # create the patches
-    parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
-    seeds = np.array_split(seeds, n_jobs)
-    extents = np.array_split(extents, n_jobs)
-    hemis = np.array_split(hemis, n_jobs)
-    labels = sum(parallel(my_grow_labels(s, e, h, dist, vert, subject)
-                          for s, e, h in zip(seeds, extents, hemis)), [])
+    if not overlap:
+        # special procedure for non-overlapping labels
+        labels = _grow_nonoverlapping_labels(subject, seeds, extents, hemis,
+                                             vert, dist)
+    else:
+        # create the patches
+        parallel, my_grow_labels, _ = parallel_func(_grow_labels, n_jobs)
+        seeds = np.array_split(seeds, n_jobs)
+        extents = np.array_split(extents, n_jobs)
+        hemis = np.array_split(hemis, n_jobs)
+        labels = sum(parallel(my_grow_labels(s, e, h, dist, vert, subject)
+                              for s, e, h in zip(seeds, extents, hemis)), [])
 
-    # add a unique color to each label
-    colors = _n_colors(len(labels))
-    for label, color in zip(labels, colors):
-        label.color = color
+        # add a unique color to each label
+        colors = _n_colors(len(labels))
+        for label, color in zip(labels, colors):
+            label.color = color
 
     return labels
 
 
-def grow_labels_on_parc(subject, seeds, extent, names=None, subjects_dir=None):
+def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vert, dist):
+    """Grow labels while ensuring that they don't overlap
     """
-    """
-    # based on mne.grow_labels()
-    subjects_dir = get_subjects_dir(subjects_dir)
-    if names is None:
-        names = [None, None]
-
     labels = []
-    for hemi_seeds, hemi_names, hemi in zip(seeds, names, ('lh', 'rh')):
-        n_labels = len(hemi_seeds)
-        if hemi_names is None:
-            hemi_names = ["Label%i-%s" % (i, hemi) for i in range(n_labels)]
-        elif len(hemi_names) != len(hemi_seeds):
-            err = "Seed number differs from name number in %s" % hemi
-            raise ValueError(err)
+    seeds_ = np.atleast_1d(map(np.atleast_1d, seeds_))
 
-        # prepare source space info and parcellation
-        surf_path = os.path.join(subjects_dir, subject, 'surf',
-                                 hemi + '.white')
-        vert, tris = read_surface(surf_path)
-        graph = mesh_dist(tris, vert)  # distance graph
-        parc = np.empty(len(vert), dtype='int32')
+    for hemi in set(hemis):
+        hemi_index = (hemis == hemi)
+        seeds = seeds_[hemi_index]
+        extents = extents_[hemi_index]
+        graph = dist[hemi]  # distance graph
+        n_vertices = len(vert[hemi])
+        n_labels = len(seeds)
+
+        names = ["Label%i-%s" % (i, hemi) for i in range(n_labels)]
+
+        # prepare parcellation
+        parc = np.empty(n_vertices, dtype='int32')
         parc[:] = -1
 
         # initialize active sources
         sources = {}  # vert -> (label, dist)
-        for label, seed in enumerate(hemi_seeds):
+        for label, seed in enumerate(seeds):
             if np.any(parc[seed] >= 0):
                 raise ValueError("Overlapping seeds")
             parc[seed] = label
@@ -1253,14 +1259,14 @@ def grow_labels_on_parc(subject, seeds, extent, names=None, subjects_dir=None):
                 row = graph[source, :]
                 for vert, dist in zip(row.indices, row.data):
                     new_dist = old_dist + dist
-                    if parc[vert] < 0 and new_dist <= extent:
+                    if parc[vert] < 0 and new_dist <= extents[label]:
                         parc[vert] = label
                         sources[vert] = (label, new_dist)
 
         # convert parc to labels
-        for i, name in enumerate(hemi_names):
+        for i in xrange(n_labels):
             vertices = np.nonzero(parc == i)[0]
-            name = hemi_names[i]
+            name = names[i]
             if not name.endswith(hemi):
                 name += '-%s' % hemi
             label_ = Label(vertices, hemi=hemi, name=name, subject=subject)
