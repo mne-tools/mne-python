@@ -432,6 +432,25 @@ def test_grow_labels():
         else:
             assert_equal(label.hemi, 'rh')
 
+    # grow labels with and without overlap
+    seeds = [57532, 58887, 6304]
+    l01, l02, l03 = grow_labels('fsaverage', seeds, 20, [0, 0, 0],
+                                subjects_dir, overlap=True)
+    seeds = [57532, [58887, 6304]]
+    l11, l12 = grow_labels('fsaverage', seeds, 20, [0, 0], subjects_dir,
+                           overlap=False)
+
+    # make sure set 1 does not overlap
+    overlap = np.intersect1d(l11.vertices, l12.vertices, True)
+    assert_array_equal(overlap, [])
+
+    # make sure both sets cover the same vertices
+    l0 = l01 + l02 + l03
+    l1 = l11 + l12
+    assert_array_equal(l1.vertices, l0.vertices)
+
+
+
 
 @sample.requires_sample_data
 def test_label_time_course():
