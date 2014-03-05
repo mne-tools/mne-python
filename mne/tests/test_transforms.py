@@ -16,8 +16,6 @@ fname_eve = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
 fname_trans = op.join(op.split(__file__)[0], '..', 'fiff', 'tests',
                       'data', 'sample-audvis-raw-trans.txt')
 
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-
 tempdir = _TempDir()
 
 
