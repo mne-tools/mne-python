@@ -12,9 +12,10 @@ from mne.transforms import (_get_mri_head_t_from_trans_file, invert_transform,
 
 data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
+fname_eve = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
 fname_trans = op.join(op.split(__file__)[0], '..', 'fiff', 'tests',
                       'data', 'sample-audvis-raw-trans.txt')
-                      
+
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 
 tempdir = _TempDir()
@@ -44,9 +45,9 @@ def test_io_trans():
     assert_true(trans0['from'] == trans1['from'])
     assert_true(trans0['to'] == trans1['to'])
     assert_array_equal(trans0['trans'], trans1['trans'])
-    
+
     # check reading non -trans.fif files
-    assert_raises(IOError, read_trans, fname_raw)
+    assert_raises(IOError, read_trans, fname_eve)
 
 
 def test_rotation():
