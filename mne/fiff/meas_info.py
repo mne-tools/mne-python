@@ -439,9 +439,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     Parameters
     ----------
     fid : file
-        Open file descriptor
+        Open file descriptor.
     info : instance of mne.fiff.meas_info.Info
-        The measurement info structure
+        The measurement info structure.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
         5 (FIFFT_DOUBLE), or 16 (mne.fiff.FIFF.FIFFT_DAU_PACK16) for
@@ -449,9 +449,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     reset_range : bool
         If True, info['chs'][k]['range'] will be set to unity.
 
-    Note
-    ----
-    Tags are written in a particular order for compatibility with maxfilter
+    Notes
+    -----
+    Tags are written in a particular order for compatibility with maxfilter.
     """
 
     # Measurement info
