@@ -1,7 +1,7 @@
 from math import pi
 import os.path as op
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 
 from mne.datasets import sample
@@ -14,6 +14,8 @@ data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
 fname_trans = op.join(op.split(__file__)[0], '..', 'fiff', 'tests',
                       'data', 'sample-audvis-raw-trans.txt')
+                      
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
 
 tempdir = _TempDir()
 
@@ -42,6 +44,9 @@ def test_io_trans():
     assert_true(trans0['from'] == trans1['from'])
     assert_true(trans0['to'] == trans1['to'])
     assert_array_equal(trans0['trans'], trans1['trans'])
+    
+    # check reading non -trans.fif files
+    assert_raises(IOError, read_trans, fname_raw)
 
 
 def test_rotation():

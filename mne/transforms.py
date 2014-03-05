@@ -253,13 +253,21 @@ def read_trans(fname):
     -------
     trans : dict
         The transformation dictionary from the fif file
+
+    Note
+    ----
+    The trans dictionary has the following structure:
+    trans = {'from': int, 'to': int, 'trans': numpy.ndarray}
     """
     fid, tree, directory = fiff_open(fname)
+    tag = None
 
-    for t in range(len(directory)):
-        if directory[t].kind is FIFF.FIFF_COORD_TRANS:
+    for t in directory:
+        if directory[t].kind == FIFF.FIFF_COORD_TRANS:
             tag = read_tag(fid, directory[t].pos)
             break
+    else:
+        raise IOError('This does not seem to be a -trans.fif file.')
 
     trans = tag.data
     fid.close()

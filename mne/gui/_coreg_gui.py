@@ -574,13 +574,10 @@ class CoregModel(HasPrivateTraits):
         """
         if not self.can_save:
             raise RuntimeError("Not enough information for saving transform")
-        trans = self.head_mri_trans
-        dig = deepcopy(self.hsp.fid_dig)
-        for i in range(len(dig)):
-            dig[i]['r'] = apply_trans(trans, dig[i]['r'])
-        info = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
-                'trans': trans, 'dig': dig}
-        write_trans(fname, info)
+        trans_matrix = self.head_mri_trans
+        trans = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
+                'trans': trans_matrix}
+        write_trans(fname, trans)
 
 
 class CoregFrameHandler(Handler):
