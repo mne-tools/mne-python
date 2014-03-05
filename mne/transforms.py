@@ -252,7 +252,7 @@ def read_trans(fname):
     Returns
     -------
     trans : dict
-        The transformation dictionary from the fif file
+        The transformation dictionary from the fif file.
 
     Notes
     -----
@@ -267,7 +267,6 @@ def read_trans(fname):
                 tag = read_tag(fid, t.pos)
                 break
         else:
-            fid.close()
             raise IOError('This does not seem to be a -trans.fif file.')
 
     trans = tag.data
