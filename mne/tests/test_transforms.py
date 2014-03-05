@@ -33,19 +33,15 @@ def test_get_mri_head_t():
 def test_io_trans():
     """Test reading and writing of trans files
     """
-    info0 = read_trans(fname)
+    trans0 = read_trans(fname)
     fname1 = op.join(tempdir, 'test-trans.fif')
-    write_trans(fname1, info0)
-    info1 = read_trans(fname1)
+    write_trans(fname1, trans0)
+    trans1 = read_trans(fname1)
 
     # check all properties
-    assert_true(info0['from'] == info1['from'])
-    assert_true(info0['to'] == info1['to'])
-    assert_array_equal(info0['trans'], info1['trans'])
-    for d0, d1 in zip(info0['dig'], info1['dig']):
-        assert_array_equal(d0['r'], d1['r'])
-        for name in ['kind', 'ident', 'coord_frame']:
-            assert_true(d0[name] == d1[name])
+    assert_true(trans0['from'] == trans1['from'])
+    assert_true(trans0['to'] == trans1['to'])
+    assert_array_equal(trans0['trans'], trans1['trans'])
 
 
 def test_rotation():

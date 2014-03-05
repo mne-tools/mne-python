@@ -251,68 +251,33 @@ def read_trans(fname):
 
     Returns
     -------
-    info : dict
-        The contents of the trans file.
+    trans : dict
+        The transformation dictionary from the fif file
     """
-    info = {}
-    fid, tree, _ = fiff_open(fname)
-    block = dir_tree_find(tree, FIFF.FIFFB_MNE)[0]
+    fid, tree, directory = fiff_open(fname)
 
-    tag = find_tag(fid, block, FIFF.FIFF_COORD_TRANS)
-    info.update(tag.data)
+    for t in range(len(directory)):
+        if directory[t].kind is FIFF.FIFF_COORD_TRANS:
+            tag = read_tag(fid, directory[t].pos)
+            break
 
-    isotrak = dir_tree_find(block, FIFF.FIFFB_ISOTRAK)
-    isotrak = isotrak[0]
-
-    tag = find_tag(fid, isotrak, FIFF.FIFF_MNE_COORD_FRAME)
-    if tag is None:
-        coord_frame = 0
-    else:
-        coord_frame = int(tag.data)
-
-    info['dig'] = dig = []
-    for k in range(isotrak['nent']):
-        kind = isotrak['directory'][k].kind
-        pos = isotrak['directory'][k].pos
-        if kind == FIFF.FIFF_DIG_POINT:
-            tag = read_tag(fid, pos)
-            tag.data['coord_frame'] = coord_frame
-            dig.append(tag.data)
-
+    trans = tag.data
     fid.close()
-    return info
+    return trans
 
 
-def write_trans(fname, info):
+def write_trans(fname, trans):
     """Write a -trans.fif file
 
     Parameters
     ----------
     fname : str
         The name of the file.
-    info : dict
+    trans : dict
         Trans file data, as returned by read_trans.
     """
     fid = start_file(fname)
-    start_block(fid, FIFF.FIFFB_MNE)
-
-    write_coord_trans(fid, info)
-
-    dig = info['dig']
-    if dig:
-        start_block(fid, FIFF.FIFFB_ISOTRAK)
-
-        coord_frames = set(d['coord_frame'] for d in dig)
-        if len(coord_frames) > 1:
-            raise ValueError("dig points in different coord_frames")
-        coord_frame = coord_frames.pop()
-        write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
-
-        for d in dig:
-            write_dig_point(fid, d)
-        end_block(fid, FIFF.FIFFB_ISOTRAK)
-
-    end_block(fid, FIFF.FIFFB_MNE)
+    write_coord_trans(fid, trans)
     end_file(fid)
 
 
