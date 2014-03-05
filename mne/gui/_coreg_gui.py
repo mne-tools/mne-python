@@ -576,7 +576,7 @@ class CoregModel(HasPrivateTraits):
             raise RuntimeError("Not enough information for saving transform")
         trans_matrix = self.head_mri_trans
         trans = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
-                'trans': trans_matrix}
+                 'trans': trans_matrix}
         write_trans(fname, trans)
 
 
