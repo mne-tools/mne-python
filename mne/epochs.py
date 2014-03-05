@@ -1856,6 +1856,12 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                        if mappings is None else mappings)
     epochs.verbose = verbose
+
+    # In case epochs didn't have a FIFF.FIFFB_MNE_EPOCHS_SELECTION tag
+    # (version < 0.8):
+    if selection is None:
+        selection = range(len(epochs))
+
     epochs.selection = selection
     epochs.drop_log = drop_log
     fid.close()
