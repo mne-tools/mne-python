@@ -39,7 +39,7 @@ def fiff_open(fname, preload=False, verbose=None):
         The tree is a complex structure filled with dictionaries,
         lists and tags.
     directory : list
-        list of nodes.
+        A list of tags.
     """
     if isinstance(fname, string_types):
         if op.splitext(fname)[1].lower() == '.gz':
