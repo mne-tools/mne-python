@@ -3,12 +3,15 @@ import os.path as op
 
 from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_equal, assert_equal, assert_allclose
+import warnings
 
 from mne.datasets import sample
 from mne import read_trans, write_trans
 from mne.utils import _TempDir
 from mne.transforms import (_get_mri_head_t_from_trans_file, invert_transform,
                             rotation, rotation3d, rotation_angles)
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
@@ -46,6 +49,12 @@ def test_io_trans():
 
     # check reading non -trans.fif files
     assert_raises(IOError, read_trans, fname_eve)
+    
+    # check warning on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        fname2 = op.join(tempdir, 'trans-test-bad-name.fif')
+        write_trans(fname2, trans0)
+    assert_true(len(w) >= 1)
 
 
 def test_rotation():
