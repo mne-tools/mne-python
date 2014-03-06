@@ -280,8 +280,7 @@ def write_trans(fname, trans):
     Parameters
     ----------
     fname : str
-        The name of the file. If it does not end in '-trans.fif' a warning will
-        be issued.
+        The name of the file, which should end in '-trans.fif'.
     trans : dict
         Trans file data, as returned by read_trans.
     """
