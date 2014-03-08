@@ -18,6 +18,7 @@ import nibabel as nib
 import StringIO
 
 import mne
+from tempita import HTMLTemplate
 
 
 ###############################################################################
@@ -82,23 +83,27 @@ def build_html_image(img, id, div_klass, img_klass, caption=None, show=True):
     html.append(u'</li>')
     return '\n'.join(html)
 
+slider_template = HTMLTemplate(u"""
+<div id="{{slider_id}}"></div>
+<script>$("#{{slider_id}}").slider({
+                       range: "min",
+                       /*orientation: "vertical",*/
+                       min: {{minvalue}},
+                       max: {{maxvalue}},
+                       stop: function(event, ui) {
+                       var list_value = $("#{{slider_id}}").slider("value");
+                       $(".{{klass}}").hide();
+                       $("#{{klass}}-"+list_value).show();}
+                       })</script>
+""")
+
 
 def build_html_slider(slices_range, slides_klass, slider_id):
     """ Build an html slider for a given slices range and a slices klass """
-    html = []
-    html.append(u'<div id="%s"></div>' % slider_id)
-    html.append('''<script>$("#%(sliderid)s").slider({
-                           range: "min",
-                           /*orientation: "vertical",*/
-                           min: %(minvalue)s,
-                           max: %(maxvalue)s,
-                           stop: function(event, ui) {
-                           var list_value = $("#%(sliderid)s").slider("value");
-                           $(".%(klass)s").hide();
-                           $("#%(klass)s-"+list_value).show();}})</script>'''
-                % {'sliderid': slider_id, 'klass': slides_klass,
-                   'minvalue': slices_range[0], 'maxvalue': slices_range[-1]})
-    return '\n'.join(html)
+    return slider_template.substitute(slider_id=slider_id,
+                                      klass=slides_klass,
+                                      minvalue=slices_range[0],
+                                      maxvalue=slices_range[-1])
 
 
 def build_tools(global_id, default_cmap="gray"):
@@ -125,6 +130,68 @@ def build_tools(global_id, default_cmap="gray"):
 
 ###############################################################################
 # HTML scan renderer
+
+header_template = HTMLTemplate(u"""
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+<script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+<link rel="stylesheet" type="text/css" media="all" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css"/>
+<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+<script type="text/javascript">
+   function getCoordinates(e, img, ashape, name){
+        var x = e.clientX - img.offsetLeft;
+        var y = e.clientY - img.offsetTop;
+        var maxx = img.width;
+        var maxy = img.height;
+        var divid = 'slicer_coord';
+        if (name=='axial'){
+        var c1 = Math.round(ashape[0]*(maxx - x)/maxx);
+        var c2 = Math.round(ashape[1]*(maxy - y)/maxy);
+        document.getElementById(
+            divid + "_x").innerHTML = ashape[0] - c1;
+        document.getElementById(divid + "_y").innerHTML = c2;
+        };
+        if (name=='sagittal'){
+        var c1 = Math.round(ashape[1]*(maxx - x)/maxx);
+        var c2 = Math.round(ashape[2]*(maxy - y)/maxy);
+        document.getElementById(
+            divid + "_y").innerHTML = ashape[1] - c1;
+        document.getElementById(divid + "_z").innerHTML = c2;
+        };
+        if (name=='coronal'){
+        var c1 = Math.round(ashape[0]*(maxx - x)/maxx);
+        var c2 = Math.round(ashape[2]*(maxy - y)/maxy);
+        document.getElementById(
+            divid + "_x").innerHTML = ashape[0] - c1;
+        document.getElementById(divid + "_z").innerHTML = c2;
+        };
+        }</script>
+<style type="text/css">
+h4 {
+    text-align: center;
+}
+</style>
+</head>
+<body>
+""")
+
+footer_template = HTMLTemplate(u"""
+</body>
+""")
+
+image_template = HTMLTemplate(u"""
+<li class="{{div_klass}}" id="{{id}}" {{if not show}}style="display: none"{{endif}}>
+{{if caption}}
+<h4>{{caption}}</h4>
+{{endif}}
+<div class="thumbnail">
+<img alt="" style="width:50%;" src="data:image/png;base64,{{img}}">
+</div>
+</li>
+""")
 
 class HTMLScanRenderer(object):
     """Objet for rendering HTML"""
@@ -176,50 +243,10 @@ class HTMLScanRenderer(object):
     def init_render(self):
         """ Initialize the renderer
         """
-        html = u''
-        html += u'<!DOCTYPE html>\n'
-        html += u'<html lang="fr">\n'
-        html += u'<head>\n'
-        html += u'<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.min.js"></script>\n'
-        html += u'<script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>\n'
-        html += u'<script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>\n'
-        html += u'<link rel="stylesheet" type="text/css" media="all" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css"/>\n'
-        html += u'<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">\n'
-        html += u"""<script type="text/javascript">
-           function getCoordinates(e, img, ashape, name){
-                var x = e.clientX - img.offsetLeft;
-                var y = e.clientY - img.offsetTop;
-                var maxx = img.width;
-                var maxy = img.height;
-                var divid = 'slicer_coord';
-                if (name=='axial'){
-                var c1 = Math.round(ashape[0]*(maxx - x)/maxx);
-                var c2 = Math.round(ashape[1]*(maxy - y)/maxy);
-                document.getElementById(
-                    divid + "_x").innerHTML = ashape[0] - c1;
-                document.getElementById(divid + "_y").innerHTML = c2;
-                };
-                if (name=='sagittal'){
-                var c1 = Math.round(ashape[1]*(maxx - x)/maxx);
-                var c2 = Math.round(ashape[2]*(maxy - y)/maxy);
-                document.getElementById(
-                    divid + "_y").innerHTML = ashape[1] - c1;
-                document.getElementById(divid + "_z").innerHTML = c2;
-                };
-                if (name=='coronal'){
-                var c1 = Math.round(ashape[0]*(maxx - x)/maxx);
-                var c2 = Math.round(ashape[2]*(maxy - y)/maxy);
-                document.getElementById(
-                    divid + "_x").innerHTML = ashape[0] - c1;
-                document.getElementById(divid + "_z").innerHTML = c2;
-                };
-                }</script>"""
-        html += u'</head>\n'
-        html += u'<body>\n'
-        return html
+        return header_template.substitute()
 
     def finish_render(self):
-        return u'</body>'
+        return footer_template.substitute()
 
     def render_array(self, array, cmap='gray', limits=None):
         global_id = self.get_id()
@@ -275,8 +302,11 @@ class HTMLScanRenderer(object):
         div_klass = 'evoked'
         img_klass = 'evoked'
         show = True
-        return build_html_image(img, global_id, div_klass, img_klass,
-                                caption, show)
+        return image_template.substitute(img=img, id=global_id,
+                                         div_klass=div_klass,
+                                         img_klass=img_klass,
+                                         caption=caption,
+                                         show=show)
 
     def render_eve(self, eve_fname, figsize=None):
         global_id = self.get_id()
@@ -291,11 +321,14 @@ class HTMLScanRenderer(object):
         div_klass = 'events'
         img_klass = 'events'
         show = True
-        return build_html_image(img, global_id, div_klass, img_klass,
-                                caption, show)
+        return image_template.substitute(img=img, id=global_id,
+                                         div_klass=div_klass,
+                                         img_klass=img_klass,
+                                         caption=caption,
+                                         show=show)
 
 
-def endswith(fname, extensions):
+def _endswith(fname, extensions):
     for ext in extensions:
         if fname.endswith(ext):
             return True
@@ -306,18 +339,19 @@ def render_folder(path):
     renderer = HTMLScanRenderer()
     html = renderer.init_render()
     folders = []
-    # for fname in glob.iglob(op.join(path, 'T1.mgz')):
-    for fname in glob.iglob(op.join(path, '*.fif')):
+    fnames = glob.glob(op.join(path, '*.fif'))
+    fnames += glob.glob(op.join(path, 'T1.mgz'))
+    for fname in fnames:
         print "Rendering : %s" % op.join('...' + path[-20:], fname)
         try:
-            if endswith(fname, ['.nii', '.nii.gz', '.mgh', '.mgz']):
+            if _endswith(fname, ['.nii', '.nii.gz', '.mgh', '.mgz']):
                 cmap = 'gray'
                 if 'aseg' in fname:
                     cmap = 'spectral'
                 html += renderer.render_image(fname, cmap=cmap)
-            elif endswith(fname, ['-ave.fif']):
+            elif _endswith(fname, ['-ave.fif']):
                 html += renderer.render_evoked(fname)
-            elif endswith(fname, ['-eve.fif']):
+            elif _endswith(fname, ['-eve.fif']):
                 html += renderer.render_eve(fname)
             elif op.isdir(fname):
                 folders.append(fname)
