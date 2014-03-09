@@ -52,6 +52,7 @@ If you just want to start using the latest development version (the most up to d
     pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
 
 .. _check_and_optimize:
+
 Check and Optimize Installation
 -------------------------------
 
@@ -96,6 +97,7 @@ If all tests pass with none skipped, then mne-python CUDA support works.
 
 
 .. _detailed_notes:
+
 Detailed Notes
 --------------
 
@@ -177,8 +179,10 @@ report them on the MNE mailing list or on github to get assistance.
 
 
 .. _inside_martinos:
+
 Inside the Martinos Center
 --------------------------
+
 For people within the MGH/MIT/HMS Martinos Center mne is available on the network.
 
 In a terminal do::
