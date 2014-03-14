@@ -630,12 +630,15 @@ class Epochs(_BaseEpochs):
                  picks=None, name='Unknown', preload=False, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=True,
-                 verbose=None):
+                 on_missing='error', verbose=None):
         if raw is None:
             return
         elif not isinstance(raw, Raw):
             raise ValueError('The first argument to `Epochs` must be `None` '
                              'or an instance of `mne.fiff.Raw`')
+        elif on_missing not in ['error', 'warning', 'ignore']:
+            raise ValueError('on_missing must be one of: error, '
+                             'warning, ignore')
 
         # prepare for calling the base constructor
 
@@ -673,8 +676,16 @@ class Epochs(_BaseEpochs):
 
         for key, val in self.event_id.items():
             if val not in events[:, 2]:
-                raise ValueError('No matching events found for %s '
-                                 '(event id %i)' % (key, val))
+                msg = ('No matching events found for %s '
+                       '(event id %i)' % (key, val))
+                if on_missing == 'error':
+                    raise ValueError(msg)
+                elif on_missing == 'warning':
+                    logger.warn(msg)
+                    warnings.warn(msg)
+                elif on_missing == 'ignore':
+                    pass
+
         # Select the desired events
         values = list(self.event_id.values())
         selected = in1d(events[:, 2], values)
