@@ -574,9 +574,9 @@ class Epochs(_BaseEpochs):
         already exists).
     on_missing : string | 'error'
         What to do if an event id is not found in the recording.
-        Valid keys are 'error' | 'warning' | 'ignore'.
-        If on_missing is 'error', it will throw an error. If 'warning' it will
-        throw a warning. If 'ignore' it will proceed silently.
+        Valid keys are 'error' | 'warning' | 'ignore'
+        If on_missing is 'warning' it will proceed but warn, if 'ignore' it
+        will proceed silently.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
