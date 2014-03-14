@@ -572,6 +572,11 @@ class Epochs(_BaseEpochs):
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
+    on_missing : string | 'error'
+        What to do if an event type is not found in the recording.
+        Valid keys are 'error' | 'warning' | 'ignore'.
+        If on_missing is 'error', it will throw an error. If 'warning' it will
+        throw a warning. If 'ignore' it will proceed silently.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
