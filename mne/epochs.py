@@ -573,7 +573,7 @@ class Epochs(_BaseEpochs):
         If True, an EEG average reference will be added (unless one
         already exists).
     on_missing : string | 'error'
-        What to do if an event type is not found in the recording.
+        What to do if an event id is not found in the recording.
         Valid keys are 'error' | 'warning' | 'ignore'.
         If on_missing is 'error', it will throw an error. If 'warning' it will
         throw a warning. If 'ignore' it will proceed silently.
