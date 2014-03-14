@@ -686,7 +686,7 @@ class Epochs(_BaseEpochs):
                 if on_missing == 'error':
                     raise ValueError(msg)
                 elif on_missing == 'warning':
-                    logger.warn(msg)
+                    # logger.warn(msg)
                     warnings.warn(msg)
                 elif on_missing == 'ignore':
                     pass
