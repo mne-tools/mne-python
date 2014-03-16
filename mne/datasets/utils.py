@@ -84,7 +84,7 @@ def _data_path(path=None, force_update=False, update_path=True,
 
     if name == 'sample':
         archive_name = "MNE-sample-data-processed.tar.gz"
-        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/" + archive_name
+        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
         folder_name = "MNE-sample-data"
         folder_path = op.join(path, folder_name)
         rm_archive = False
