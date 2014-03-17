@@ -8,7 +8,7 @@ from scipy import linalg
 
 from mne.source_estimate import SourceEstimate
 
-def ols(data, design_matrix, regressor_names):
+def ols(data, design_matrix, names):
     """
     Parameters
     ----------
@@ -19,7 +19,7 @@ def ols(data, design_matrix, regressor_names):
         The regressors to be used. Must be a 2d array with as many rows as
         the first dimension of `data`. The first column of this matrix will
         typically consist of ones (intercept column).
-    regressor_names : list-like | None
+    names : list-like | None
         Names of the regressors. The length must correspond to the
         number of columns present in regressors (including the intercept, if
         present).
@@ -86,7 +86,7 @@ def ols_epochs(epochs, design_matrix, names):
         consist of ones (intercept column).
         Note: use `epochs.selection` to align regressors with the remaining
         epochs if regressors were obtained from e.g. behavioral logs.
-    regressor_names : list-like | None
+    names : list-like | None
         Names of the regressors. The length must correspond to the
         number of columns present in regressors (including the intercept, if
         present).
