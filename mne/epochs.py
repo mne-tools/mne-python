@@ -641,9 +641,9 @@ class Epochs(_BaseEpochs):
         elif not isinstance(raw, Raw):
             raise ValueError('The first argument to `Epochs` must be `None` '
                              'or an instance of `mne.fiff.Raw`')
-        elif on_missing not in ['error', 'warning', 'ignore']:
+        if on_missing not in ['error', 'warning', 'ignore']:
             raise ValueError('on_missing must be one of: error, '
-                             'warning, ignore')
+                             'warning, ignore. Got: %s' % on_missing)
 
         # prepare for calling the base constructor
 
