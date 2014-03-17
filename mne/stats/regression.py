@@ -8,7 +8,7 @@ from scipy import linalg
 
 from mne.source_estimate import SourceEstimate
 
-def ols(data, design_matrix, regressor_names):
+def ols(data, design_matrix, names):
     """
     Parameters
     ----------
@@ -19,7 +19,7 @@ def ols(data, design_matrix, regressor_names):
         The regressors to be used. Must be a 2d array with as many rows as
         the first dimension of `data`. The first column of this matrix will
         typically consist of ones (intercept column).
-    regressor_names : list-like | None
+    names : list-like | None
         Names of the regressors. The length must correspond to the
         number of columns present in regressors (including the intercept, if
         present).
@@ -33,13 +33,13 @@ def ols(data, design_matrix, regressor_names):
             stderr : standard error of regression coefficients
             t : t statistics (beta / stderr)
             p : two-sided p-value of t statistic under the t distribution
-        
+
         The values are themselves dictionaries from regressor name to
-        numpy arrays. The shape of each numpy array is the shape of the data 
-        minus the first dimension; e.g., if the shape of the original data was 
-        (n_observations, n_channels, n_timepoints), then the shape of each of 
-        the arrays will be (n_channels, n_timepoints). 
-    """    
+        numpy arrays. The shape of each numpy array is the shape of the data
+        minus the first dimension; e.g., if the shape of the original data was
+        (n_observations, n_channels, n_timepoints), then the shape of each of
+        the arrays will be (n_channels, n_timepoints).
+    """
 
     n_trials = data.shape[0]
     if len(design_matrix.shape) != 2:
@@ -82,11 +82,11 @@ def ols_epochs(epochs, design_matrix, names):
     epochs : instance of Epochs
     design_matrix : instance of numpy.ndarray  (n_observations, n_regressors)
         The regressors to be used. Must be a 2d array with as many rows as
-        epochs in `epochs`. The first column of this matrix will typically 
+        epochs in `epochs`. The first column of this matrix will typically
         consist of ones (intercept column).
-        Note: use `epochs.selection` to align regressors with the remaining 
+        Note: use `epochs.selection` to align regressors with the remaining
         epochs if regressors were obtained from e.g. behavioral logs.
-    regressor_names : list-like | None
+    names : list-like | None
         Names of the regressors. The length must correspond to the
         number of columns present in regressors (including the intercept, if
         present).
@@ -100,10 +100,10 @@ def ols_epochs(epochs, design_matrix, names):
             stderr : standard error of regression coefficients
             t : t statistics (beta / stderr)
             p : two-sided p-value of t statistic under the t distribution
-        
+
         The values are themselves dictionaries from regressor name to
         Evoked objects. For instance, `results['t']['volume']` will be an
-        Evoked object that represents the t statistic for the regressor 
+        Evoked object that represents the t statistic for the regressor
         'volume' in each channel at each timepoint.
     """
     evoked = epochs.average()
@@ -123,7 +123,7 @@ def ols_source_estimates(source_estimates, design_matrix, names):
     source_estimates : list of SourceEstimate objects
     design_matrix : instance of numpy.ndarray  (n_observations, n_regressors)
         The regressors to be used. Must be a 2d array with the same number of
-        rows as the number of objects in `source_estimates`. The first column 
+        rows as the number of objects in `source_estimates`. The first column
         of this matrix will typically consist of ones (intercept column).
     regressor_names : list-like | None
         Names of the regressors. The length must correspond to the
@@ -139,7 +139,7 @@ def ols_source_estimates(source_estimates, design_matrix, names):
             stderr : standard error of regression coefficients
             t : t statistics (beta / stderr)
             p : two-sided p-value of t statistic under the t distribution
-        
+
         The values are themselves dictionaries from regressor name to
         SourceEstimate objects. For instance, `results['t']['volume']` will be a
         SourceEstimate object that contains the t statistic for the regressor
@@ -150,6 +150,6 @@ def ols_source_estimates(source_estimates, design_matrix, names):
     s = source_estimates[0]
     for v in ols_fit.values():
         for k in v.keys():
-            v[k] = SourceEstimate(v[k], vertices=s.vertno, tmin=s.tmin, 
+            v[k] = SourceEstimate(v[k], vertices=s.vertno, tmin=s.tmin,
                                   tstep=s.tstep, subject=s.subject)
     return ols_fit
