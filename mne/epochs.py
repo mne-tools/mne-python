@@ -688,7 +688,7 @@ class Epochs(_BaseEpochs):
                 elif on_missing == 'warning':
                     logger.warn(msg)
                     warnings.warn(msg)
-                elif on_missing == 'ignore':
+                else:  # on_missing == 'ignore':
                     pass
 
         # Select the desired events
