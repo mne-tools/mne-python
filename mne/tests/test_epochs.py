@@ -742,9 +742,10 @@ def test_access_by_name():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='warning')
-        assert_equal(len(w), 1)
+        nw = len(w)
+        assert_true(1 <= nw <= 2)
         Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='ignore')
-        assert_equal(len(w), 1)
+        assert_equal(len(w), nw)
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
     assert_raises(KeyError, epochs.__getitem__, 'bar')
 
