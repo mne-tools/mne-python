@@ -77,6 +77,14 @@ def _data_path(path=None, force_update=False, update_path=True,
         path = get_config(key, def_path)
         # use the same for all datasets
         if not os.path.exists(path):
+            if os.name=='posix':
+                if not op.exists(def_path):
+                    os.system("sudo mkdir "+def_path)
+            elif os.name=="nt":
+                if not op.exists(def_path):
+                    os.system('runas /netonly /user:Administrator "mkdir '+def_path+'"')
+            else:
+                raise RuntimeError("MNE does not support your operating system")
             path = def_path
 
     if not isinstance(path, string_types):
