@@ -722,7 +722,7 @@ def test_epoch_eq():
 
 
 def test_access_by_name():
-    """Test accessing epochs by event name
+    """Test accessing epochs by event name and on_missing for rare events
     """
     assert_raises(ValueError, Epochs, raw, events, {1: 42, 2: 42}, tmin,
                   tmax, picks=picks)
@@ -732,6 +732,20 @@ def test_access_by_name():
                   tmin, tmax, picks=picks)
     assert_raises(ValueError, Epochs, raw, events, 'foo', tmin, tmax,
                   picks=picks)
+    # Test accessing non-existent events (assumes 12345678 does not exist)
+    event_id_illegal = dict(aud_l=1, does_not_exist=12345678)
+    assert_raises(ValueError, Epochs, raw, events, event_id_illegal,
+                  tmin, tmax)
+    # Test on_missing
+    assert_raises(ValueError, Epochs, raw, events, 1, tmin, tmax,
+                  on_missing='foo')
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='warning')
+        nw = len(w)
+        assert_true(1 <= nw <= 2)
+        Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='ignore')
+        assert_equal(len(w), nw)
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
     assert_raises(KeyError, epochs.__getitem__, 'bar')
 

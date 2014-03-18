@@ -572,6 +572,11 @@ class Epochs(_BaseEpochs):
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless one
         already exists).
+    on_missing : str
+        What to do if an event id is not found in the recording.
+        Valid keys are 'error' | 'warning' | 'ignore'
+        Default is 'error'. If on_missing is 'warning' it will proceed but
+        warn, if 'ignore' it will proceed silently.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -630,12 +635,15 @@ class Epochs(_BaseEpochs):
                  picks=None, name='Unknown', preload=False, reject=None,
                  flat=None, proj=True, decim=1, reject_tmin=None,
                  reject_tmax=None, detrend=None, add_eeg_ref=True,
-                 verbose=None):
+                 on_missing='error', verbose=None):
         if raw is None:
             return
         elif not isinstance(raw, Raw):
             raise ValueError('The first argument to `Epochs` must be `None` '
                              'or an instance of `mne.fiff.Raw`')
+        if on_missing not in ['error', 'warning', 'ignore']:
+            raise ValueError('on_missing must be one of: error, '
+                             'warning, ignore. Got: %s' % on_missing)
 
         # prepare for calling the base constructor
 
@@ -673,8 +681,16 @@ class Epochs(_BaseEpochs):
 
         for key, val in self.event_id.items():
             if val not in events[:, 2]:
-                raise ValueError('No matching events found for %s '
-                                 '(event id %i)' % (key, val))
+                msg = ('No matching events found for %s '
+                       '(event id %i)' % (key, val))
+                if on_missing == 'error':
+                    raise ValueError(msg)
+                elif on_missing == 'warning':
+                    logger.warn(msg)
+                    warnings.warn(msg)
+                else:  # on_missing == 'ignore':
+                    pass
+
         # Select the desired events
         values = list(self.event_id.values())
         selected = in1d(events[:, 2], values)
