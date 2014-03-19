@@ -18,6 +18,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     deprecated)
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
+from .source_space import add_source_space_distances
 from .surface import read_surface, fast_cross_3d
 from .source_space import SourceSpaces
 from .parallel import parallel_func, check_n_jobs
@@ -153,6 +154,12 @@ class Label(object):
         Name of the subject the label is from.
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
+    src : None | SourceSpaces
+        Source space in which the label was defined (default is None). If a
+        source space is provided, the label is expanded to fill in surface
+        vertices that lie between the vertices included in the source space.
+        For the added vertices, ``pos`` is filled in with positions from the
+        source space, and ``values`` is filled in with zeros.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -181,25 +188,62 @@ class Label(object):
     """
     @verbose
     def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
-                 name=None, filename=None, subject=None, color=None,
+                 name=None, filename=None, subject=None, color=None, src=None,
                  verbose=None):
         # check parameters
         if not isinstance(hemi, string_types):
             raise ValueError('hemi must be a string, not %s' % type(hemi))
         vertices = np.asarray(vertices)
         if np.any(np.diff(vertices.astype(int)) <= 0):
-            raise ValueError('Vertices must be ordered in increasing '
-                             'order.')
+            raise ValueError('Vertices must be ordered in increasing order.')
+
+        if src is not None:
+            src_vertices = vertices
+
+            # find source space patch info
+            if hemi == 'lh':
+                hemi_src = src[0]
+            elif hemi == 'rh':
+                hemi_src = src[1]
+            if 'nearest' not in hemi_src:
+                msg = ("Computing patch info for source space, this can take "
+                       "a while. In order to avoid this in the future, run "
+                       "mne.add_source_space_distances() on the source space "
+                       "and save it.")
+                logger.warn(msg)
+                add_source_space_distances(src)
+            nearest = hemi_src['nearest']
+
+            # find new vertices
+            include = np.in1d(nearest, src_vertices, False)
+            vertices = np.nonzero(include)[0]
+
+            # update values and pos
+            if values is not None or pos is not None:
+                old_value_index = np.in1d(vertices, src_vertices)
+            if values is not None:
+                src_values = values
+                values = np.zeros(len(vertices))
+                values[old_value_index] = src_values
+            if pos is not None:
+                src_pos = pos
+                pos = hemi_src['rr'][vertices]
+                pos[old_value_index] = src_pos
+
         if color is not None:
             from matplotlib.colors import colorConverter
             color = colorConverter.to_rgba(color)
 
         if values is None:
             values = np.ones(len(vertices))
+        elif src is None:
+            values = np.asarray(values)
+
         if pos is None:
             pos = np.zeros((len(vertices), 3))
-        values = np.asarray(values)
-        pos = np.asarray(pos)
+        elif src is None:
+            pos = np.asarray(pos)
+
         if not (len(vertices) == len(values) == len(pos)):
             err = ("vertices, values and pos need to have same length (number "
                    "of vertices)")
