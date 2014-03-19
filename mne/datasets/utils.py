@@ -72,8 +72,8 @@ def _data_path(path=None, force_update=False, update_path=True,
     if path is None:
         # use an intelligent guess if it's not defined
         def_path = op.realpath(op.join(op.expanduser("~"), 'MNE'))
-        path=""
-        #path = get_config(key, def_path)
+        
+        path = get_config(key, def_path)
         # use the same for all datasets
         if not os.path.exists(path):
             if not os.path.exists(def_path):
