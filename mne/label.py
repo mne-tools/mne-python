@@ -1010,13 +1010,15 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
         The source space over which the source estimates are defined.
         If it's a string it should the subject name (e.g. fsaverage).
         Can be None if stc.subject is not None.
-    smooth : int
-        Number of smoothing steps to use.
+    smooth : int | 'patch'
+        Number of smoothing steps to use. For 'patch', fill in all surface
+        vertices based on the closest source space vertex; 'patch' requires
+        src to be a SourceSpace.
     connected : bool
         If True a list of connected labels will be returned in each
         hemisphere. The labels are ordered in decreasing order depending
         of the maximum value in the stc.
-    subjects_dir : string, or None
+    subjects_dir : str | None
         Path to SUBJECTS_DIR if it is not set in the environment.
 
     Returns
@@ -1044,6 +1046,10 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
         if connected:
             raise ValueError('The option to return only connected labels is '
                              'only available if source spaces are provided.')
+        if smooth == 'patch':
+            msg = ("stc_to_label with smooth='patch' requires src to be a "
+                   "SourceSpace")
+            raise ValueError(msg)
         subjects_dir = get_subjects_dir(subjects_dir)
         surf_path_from = op.join(subjects_dir, src, 'surf')
         rr_lh, tris_lh = read_surface(op.join(surf_path_from,
@@ -1109,18 +1115,20 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
             colors = _n_colors(len(clusters))
             for c, color in zip(clusters, colors):
                 idx_use = c
-                for k in range(smooth):
-                    e_use = e[:, idx_use]
-                    data1 = e_use * np.ones(len(idx_use))
-                    idx_use = np.where(data1)[0]
+                if smooth == 'patch':
+                    label = Label(idx_use, this_rr[idx_use], None, hemi,
+                                  'Label from stc', subject=subject,
+                                  color=color, src=src)
+                else:
+                    for k in range(smooth):
+                        e_use = e[:, idx_use]
+                        data1 = e_use * np.ones(len(idx_use))
+                        idx_use = np.where(data1)[0]
 
-                label = Label(vertices=idx_use,
-                              pos=this_rr[idx_use],
-                              values=np.ones(len(idx_use)),
-                              hemi=hemi,
-                              comment='Label from stc',
-                              subject=subject,
-                              color=color)
+                    label = Label(idx_use, this_rr[idx_use], None, hemi,
+                                  'Label from stc', subject=subject,
+                                  color=color)
+
                 this_labels.append(label)
 
             if not connected:
