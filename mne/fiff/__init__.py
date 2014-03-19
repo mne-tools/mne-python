@@ -21,3 +21,5 @@ from .proj import proj_equal, make_eeg_average_ref_proj
 from .cov import read_cov, write_cov
 from . import bti
 from . import kit
+from . import brainvision
+from . import edf
