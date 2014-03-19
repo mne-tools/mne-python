@@ -458,8 +458,8 @@ def test_vertex_to_mni():
     coords_f = np.array([[-41.28, -40.04, 18.20], [-6.05, 49.74, -18.15],
                          [-61.71, -14.55, 20.52], [21.70, -60.84, 25.02]])
     hemis = [0, 0, 0, 1]
-    for coords, subj in zip([coords_s, coords_f], ['sample', 'fsaverage']):
-        coords_2 = vertex_to_mni(vertices, hemis, subj)
+    for coords, subject in zip([coords_s, coords_f], ['sample', 'fsaverage']):
+        coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
         # less than 1mm error
         assert_allclose(coords, coords_2, atol=1.0)
 
@@ -474,8 +474,10 @@ def test_vertex_to_mni_fs_nibabel():
     for subject in ['sample', 'fsaverage']:
         vertices = np.random.randint(0, 100000, n_check)
         hemis = np.random.randint(0, 1, n_check)
-        coords = vertex_to_mni(vertices, hemis, subject, mode='nibabel')
-        coords_2 = vertex_to_mni(vertices, hemis, subject, mode='freesurfer')
+        coords = vertex_to_mni(vertices, hemis, subject, subjects_dir,
+                               'nibabel')
+        coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir,
+                                 'freesurfer')
         # less than 0.1 mm error
         assert_allclose(coords, coords_2, atol=0.1)
 
