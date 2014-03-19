@@ -20,14 +20,16 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
+src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 real_label_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                            'Aud-lh.label')
 real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                               'Aud-rh.label')
+v1_label_fname = op.join(subjects_dir, 'sample', 'label', 'lh.V1.label')
 
 # sample dataset should be updated to reflect mne conventions
-src_fname = op.join(data_path, 'MEG', 'sample',
+fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
 src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
@@ -403,7 +405,7 @@ def test_stc_to_label():
     """
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        src = read_source_spaces(src_fname)
+        src = read_source_spaces(fwd_fname)
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
