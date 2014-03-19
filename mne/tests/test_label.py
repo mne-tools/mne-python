@@ -134,6 +134,10 @@ def test_label_in_src():
     value_idx = np.digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
     assert_array_equal(label_src.values, values_in_src[value_idx])
 
+    # test exception
+    vertices = np.append(vert_in_src, [-1])
+    assert_raises(ValueError, Label, vertices, hemi='lh', src=src)
+
 
 @sample.requires_sample_data
 def test_label_io_and_time_course_estimates():
