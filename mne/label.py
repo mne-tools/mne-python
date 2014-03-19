@@ -395,6 +395,33 @@ class Label(object):
         """
         return cp.deepcopy(self)
 
+    def fill(self, src, name=None):
+        """Fill the surface between sources for a label defined in source space
+
+        Parameters
+        ----------
+        src : SourceSpaces
+            Source space in which the label was defined. If a source space is
+            provided, the label is expanded to fill in surface vertices that
+            lie between the vertices included in the source space. For the
+            added vertices, ``pos`` is filled in with positions from the
+            source space, and ``values`` is filled in from the closest source
+            space vertex.
+        name : None | str
+            Name for the new Label (default is self.name).
+
+        Returns
+        -------
+        label : Label
+            The label covering the same vertices in source space but also
+            including intermediate surface vertices.
+        """
+        if name is None:
+            name = self.name
+        label = Label(self.vertices, self.pos, self.values, self.hemi,
+                      self.comment, name, None, self.subject, self.color, src)
+        return label
+
     @verbose
     def smooth(self, subject=None, smooth=2, grade=None,
                subjects_dir=None, n_jobs=1, copy=True, verbose=None):
