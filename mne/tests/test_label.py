@@ -111,6 +111,21 @@ def test_label_addition():
 
 
 @sample.requires_sample_data
+def test_label_in_src():
+    src = read_source_spaces(src_fname)
+    label = read_label(v1_label_fname)
+    vert_in_src = np.intersect1d(label.vertices, src[0]['vertno'], True)
+    label_src = Label(vert_in_src, hemi='lh', src=src)
+
+    # check label vertices
+    vertices_status = np.in1d(src[0]['nearest'], label.vertices)
+    vertices_in = np.nonzero(vertices_status)[0]
+    vertices_out = np.nonzero(np.logical_not(vertices_status))[0]
+    assert_array_equal(label_src.vertices, vertices_in)
+    assert_array_equal(np.in1d(vertices_out, label_src.vertices), False)
+
+
+@sample.requires_sample_data
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
