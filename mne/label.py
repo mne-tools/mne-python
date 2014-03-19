@@ -159,7 +159,8 @@ class Label(object):
         source space is provided, the label is expanded to fill in surface
         vertices that lie between the vertices included in the source space.
         For the added vertices, ``pos`` is filled in with positions from the
-        source space, and ``values`` is filled in with zeros.
+        source space, and ``values`` is filled in from the closest source space
+        vertex.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -219,13 +220,13 @@ class Label(object):
             vertices = np.nonzero(include)[0]
 
             # update values and pos
-            if values is not None or pos is not None:
-                old_value_index = np.in1d(vertices, src_vertices)
             if values is not None:
                 src_values = values
-                values = np.zeros(len(vertices))
-                values[old_value_index] = src_values
+                nearest_in_label = np.digitize(nearest[vertices], src_vertices,
+                                               True)
+                values = src_values[nearest_in_label]
             if pos is not None:
+                old_value_index = np.in1d(vertices, src_vertices)
                 src_pos = pos
                 pos = hemi_src['rr'][vertices]
                 pos[old_value_index] = src_pos

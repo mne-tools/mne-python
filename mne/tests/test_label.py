@@ -114,8 +114,14 @@ def test_label_addition():
 def test_label_in_src():
     src = read_source_spaces(src_fname)
     label = read_label(v1_label_fname)
+
+    # construct label from source space vertices
     vert_in_src = np.intersect1d(label.vertices, src[0]['vertno'], True)
-    label_src = Label(vert_in_src, hemi='lh', src=src)
+    where = np.in1d(label.vertices, vert_in_src)
+    pos_in_src = label.pos[where]
+    values_in_src = label.values[where]
+    label_src = Label(vert_in_src, pos_in_src, values_in_src, hemi='lh',
+                      src=src)
 
     # check label vertices
     vertices_status = np.in1d(src[0]['nearest'], label.vertices)
@@ -123,6 +129,10 @@ def test_label_in_src():
     vertices_out = np.nonzero(np.logical_not(vertices_status))[0]
     assert_array_equal(label_src.vertices, vertices_in)
     assert_array_equal(np.in1d(vertices_out, label_src.vertices), False)
+
+    # check values
+    value_idx = np.digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
+    assert_array_equal(label_src.values, values_in_src[value_idx])
 
 
 @sample.requires_sample_data
