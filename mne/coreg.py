@@ -20,7 +20,8 @@ from scipy.linalg import norm
 
 from .fiff.meas_info import read_fiducials, write_fiducials
 from .label import read_label, Label
-from .source_space import read_source_spaces, write_source_spaces
+from .source_space import (add_source_space_distances, read_source_spaces,
+                           write_source_spaces)
 from .surface import (read_surface, write_surface, read_bem_surfaces,
                       write_bem_surface)
 from .transforms import rotation, rotation3d, scaling, translation
@@ -1064,7 +1065,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
 
 
 def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
-                       subjects_dir=None):
+                       subjects_dir=None, n_jobs=1):
     """Scale a source space for an mri created with scale_mri()
 
     Parameters
@@ -1085,6 +1086,10 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         otherwise it is read from subject_to's config file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
+    n_jobs : int
+        Number of jobs to run in parallel if recomputing distances (only
+        applies if scale is an array of length 3, and will not use more cores
+        than there are source spaces).
     """
     subjects_dir, subject_from, n_params, scale = _scale_params(subject_to,
                                                                 subject_from,
@@ -1123,16 +1128,27 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
     logger.info("scaling source space %s:  %s -> %s", spacing, subject_from,
                 subject_to)
     logger.info("Scale factor: %s", scale)
+    add_dist = False
     for ss in sss:
         ss['subject_his_id'] = subject_to
-        ss['rr'] = ss['rr'] * scale
-        if norm_scale is not None:
-            nn = ss['nn'] * norm_scale
+        ss['rr'] *= scale
+
+        # distances and patch info
+        if norm_scale is None:
+            if ss['dist'] is not None:
+                ss['dist'] *= scale
+                ss['nearest_dist'] *= scale
+                ss['dist_limit'] *= scale
+        else:
+            nn = ss['nn']
+            nn *= norm_scale
             norm = np.sqrt(np.sum(nn ** 2, 1))
             nn /= norm[:, np.newaxis]
-            ss['nn'] = nn
+            if ss['dist'] is not None:
+                add_dist = True
 
-            ss['dist'] = None
-            ss['dist_limit'] = None
-            ss['nearest_dist'] = None
+    if add_dist:
+        logger.info("Recomputing distances, this might take a while")
+        add_source_space_distances(sss, sss[0]['dist_limit'], n_jobs)
+
     write_source_spaces(dst, sss)
