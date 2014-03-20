@@ -73,12 +73,28 @@ def _data_path(path=None, force_update=False, update_path=True,
         # use an intelligent guess if it's not defined
         def_path = op.realpath(op.join(op.dirname(__file__),
                                        '..', '..', 'examples'))
-
         path = get_config(key, def_path)
         # use the same for all datasets
         if not os.path.exists(path):
+            try:
+                os.mkdir(def_path)
+            except OSError:
+                def_path = op.realpath(op.join(op.expanduser("~"), 'MNE'))
+                if not os.path.exists(def_path):
+                    try:
+                        #creating MNE and examples directory in home directory
+                        os.mkdir(def_path)
+                        def_path = op.join(def_path, "examples")
+                        os.mkdir(def_path)
+                    except OSError:
+                        raise OSError("User doesn't have write privilege \
+                                      to create a folder 'MNE' \
+                                      at %s. Consider providing a path  as \
+                                      an input to sample.data_path(),\
+                                      where user has write privilege \
+                                      and %s data could be \
+                                      stored." % (def_path, name))
             path = def_path
-
     if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
 
@@ -87,24 +103,22 @@ def _data_path(path=None, force_update=False, update_path=True,
         url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
         folder_name = "MNE-sample-data"
         folder_path = op.join(path, folder_name)
-        rm_archive = False
     elif name == 'spm':
         archive_name = 'MNE-spm-face.tar.bz2'
         url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         folder_name = "MNE-spm-face"
         folder_path = op.join(path, folder_name)
-        rm_archive = False
     else:
         raise ValueError('Sorry, the dataset "%s" is not known.' % name)
-
+    rm_archive = False
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
-
     if not op.exists(folder_path) and not download:
         return ''
 
     if not op.exists(folder_path) or force_update:
-        logger.info('Downloading or reinstalling data archive %s at location %s' %
+        logger.info('Downloading or reinstalling \
+                    data archive %s at location %s' %\
                     (archive_name, path))
 
         if op.exists(martinos_path):
