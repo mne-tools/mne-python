@@ -1086,9 +1086,10 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         otherwise it is read from subject_to's config file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
-    n_jobs : 1 | 2
+    n_jobs : int
         Number of jobs to run in parallel if recomputing distances (only
-        applies if scale is an array of length 3)
+        applies if scale is an array of length 3, and will not use more cores
+        than there are source spaces).
     """
     subjects_dir, subject_from, n_params, scale = _scale_params(subject_to,
                                                                 subject_from,
