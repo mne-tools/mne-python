@@ -48,6 +48,8 @@ Changelog
    - Add `rename_channels` function to change channel names and types in info object by `Dan Wakeman`_ and `Denis Engemann`_
 
    - Add  `compute_ems` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
+   
+   - Add option to expand Labels defined in source space to the original surface in the Label constructor by `Christian Brodbeck`_ 
 
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
@@ -78,7 +80,7 @@ BUG
 
    - Fix corner case error for step-down-in-jumps permutation test (when step-down threshold was high enough to include all clusters) by `Eric Larson`_
 
-  - Fix selection of total number of components via float when picking ICA sources by `Denis Engemann`_ and `Qunxi Dong`_
+   - Fix selection of total number of components via float when picking ICA sources by `Denis Engemann`_ and `Qunxi Dong`_
 
   - Fix writing and reading transforms after modification in measurment info by `Denis Engemann`_ and `Martin Luessi`_ and `Eric Larson`_
 
@@ -95,6 +97,8 @@ API
    - Deprecate Epochs.drop_picks in favor of a new method called drop_channels
 
    - Deprecate `labels_from_parc` and `parc_from_labels` in favor of `read_annot` and `write_annot`
+   
+   - The default of the new add_dist option of `setup_source_space` to add patch information will change from False to True in MNE-Python 0.9
 
    - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`.
 read_evokeds will return all Evoked instances in a file by default.
