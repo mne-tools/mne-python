@@ -75,26 +75,42 @@ def _data_path(path=None, force_update=False, update_path=True,
                                        '..', '..', 'examples'))
         path = get_config(key, def_path)
         # use the same for all datasets
-        if not os.path.exists(path):
+        if not op.exists(path):
             try:
                 os.mkdir(def_path)
             except OSError:
-                def_path = op.realpath(op.join(op.expanduser("~"), 'MNE'))
-                if not os.path.exists(def_path):
-                    try:
-                        #creating MNE and examples directory in home directory
-                        os.mkdir(def_path)
-                        def_path = op.join(def_path, "examples")
-                        os.mkdir(def_path)
-                    except OSError:
-                        raise OSError("User doesn't have write privilege \
-                                      to create a folder 'MNE' \
-                                      at %s. Consider providing a path  as \
-                                      an input to sample.data_path(),\
-                                      where user has write privilege \
-                                      and %s data could be \
-                                      stored." % (def_path, name))
-            path = def_path
+                while(True):
+                    def_path = raw_input("Kindly provide an absolute "
+                                         "path where 'user' has write "
+                                         "permission(ex:'/home/xyz/'):")
+                    def_path = op.join(def_path, 'MNE')
+                    if not op.exists(def_path):
+                        try:
+                            #creating MNE and examples directory
+                            #in user defined directory
+                            os.mkdir(def_path)
+                            def_path = op.join(def_path, "examples")
+                            os.mkdir(def_path)
+                            path = def_path
+                            break
+                        except OSError:
+                            print "User doesn't have write privilege\
+                                  to create a folder 'MNE'\
+                                  at %s." % (def_path)
+                    elif not op.exists(op.join(def_path, "examples")):
+                        try:
+                            #creating examples directory
+                            #at user defined directory
+                            def_path = op.join(def_path, "examples")
+                            os.mkdir(def_path)
+                            path = def_path
+                            break
+                        except OSError:
+                            print "User doesn't have write privilege \
+                                  to create a folder 'examples' \
+                                  at %s." % (def_path)
+                    else:
+                        break
     if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
 
@@ -117,9 +133,8 @@ def _data_path(path=None, force_update=False, update_path=True,
         return ''
 
     if not op.exists(folder_path) or force_update:
-        logger.info('Downloading or reinstalling \
-                    data archive %s at location %s' %\
-                    (archive_name, path))
+        logger.info('Downloading or reinstalling '
+                    'data archive %s at location %s' % (archive_name, path))
 
         if op.exists(martinos_path):
             archive_name = martinos_path
