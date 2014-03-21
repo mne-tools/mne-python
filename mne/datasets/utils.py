@@ -94,9 +94,9 @@ def _data_path(path=None, force_update=False, update_path=True,
                             path = def_path
                             break
                         except OSError:
-                            print "User doesn't have write privilege\
-                                  to create a folder 'MNE'\
-                                  at %s." % (def_path)
+                            print("User doesn't have write privilege "
+                                  "to create a folder 'MNE' "
+                                  "at %s." % (def_path))
                     elif not op.exists(op.join(def_path, "examples")):
                         try:
                             #creating examples directory
@@ -106,9 +106,9 @@ def _data_path(path=None, force_update=False, update_path=True,
                             path = def_path
                             break
                         except OSError:
-                            print "User doesn't have write privilege \
-                                  to create a folder 'examples' \
-                                  at %s." % (def_path)
+                            print("User doesn't have write privilege "
+                                  "to create a folder 'examples' "
+                                  "at %s." % (def_path))
                     else:
                         break
     if not isinstance(path, string_types):
