@@ -289,13 +289,14 @@ def read_meas_info(fid, tree, verbose=None):
                 if kind == FIFF.FIFF_COORD_TRANS:
                     tag = read_tag(fid, pos)
                     cand = tag.data
-                    if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
-                                cand['to'] == FIFF.FIFFV_COORD_HEAD:
+                    if (cand['from'] == FIFF.FIFFV_COORD_DEVICE and
+                        cand['to'] == FIFF.FIFFV_COORD_HEAD and
+                        dev_head_t is None):
                         dev_head_t = cand
-                    elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
-                                cand['to'] == FIFF.FIFFV_COORD_HEAD:
+                    elif (cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and
+                          cand['to'] == FIFF.FIFFV_COORD_HEAD and
+                          ctf_head_t is None):
                         ctf_head_t = cand
-
     #   Locate the Polhemus data
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
