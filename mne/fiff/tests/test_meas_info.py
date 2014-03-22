@@ -1,6 +1,7 @@
 import os.path as op
 
 from nose.tools import assert_true, assert_equal, assert_raises
+import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import fiff, Epochs, read_events
@@ -71,6 +72,12 @@ def test_read_write_info():
     """
     info = fiff.read_info(raw_fname)
     temp_file = op.join(tempdir, 'info.fif')
+    # check for bug `#1198`
+    info['dev_head_t']['trans'] = np.eye(4)
+    t1 =  info['dev_head_t']['trans']
     fiff.write_info(temp_file, info)
     info2 = fiff.read_info(temp_file)
+    t2 = info2['dev_head_t']['trans']
     assert_true(len(info['chs']) == len(info2['chs']))
+    assert_array_equal(t1, t2)
+
