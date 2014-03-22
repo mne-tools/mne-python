@@ -14,6 +14,7 @@ import re
 import numpy as np
 from scipy import linalg, sparse
 
+from .fixes import in1d
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     deprecated)
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
@@ -206,7 +207,7 @@ class Label(object):
                 hemi_src = src[0]
             elif hemi == 'rh':
                 hemi_src = src[1]
-            if not np.all(np.in1d(src_vertices, hemi_src['vertno'])):
+            if not np.all(in1d(src_vertices, hemi_src['vertno'])):
                 raise ValueError("Source space does not contain all vertices")
             if 'nearest' not in hemi_src:
                 msg = ("Computing patch info for source space, this can take "
@@ -218,7 +219,7 @@ class Label(object):
             nearest = hemi_src['nearest']
 
             # find new vertices
-            include = np.in1d(nearest, src_vertices, False)
+            include = in1d(nearest, src_vertices, False)
             vertices = np.nonzero(include)[0]
 
             # update values and pos
@@ -228,7 +229,7 @@ class Label(object):
                                                True)
                 values = src_values[nearest_in_label]
             if pos is not None:
-                old_value_index = np.in1d(vertices, src_vertices)
+                old_value_index = in1d(vertices, src_vertices)
                 src_pos = pos
                 pos = hemi_src['rr'][vertices]
                 pos[old_value_index] = src_pos
