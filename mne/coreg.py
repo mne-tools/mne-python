@@ -875,10 +875,8 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
     scale : array
         Scaling factor, either shape=() for uniform scaling or shape=(3,) for
         non-uniform scaling.
-    nn_scale : None | array
-        Scaling factor for surface normal. If scaling is uniform, normals are
-        unchanged and nn_scale is None. If scaling is non-uniform nn_scale is
-        an array of shape (3,).
+    uniform : bool
+        Whether scaling is uniform.
     """
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if (subject_from is None) != (scale is None):
@@ -889,6 +887,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         cfg = read_mri_cfg(subject_to, subjects_dir)
         subject_from = cfg['subject_from']
         n_params = cfg['n_params']
+        assert n_params in (1, 3)
         scale = cfg['scale']
     else:
         scale = np.asarray(scale)
@@ -900,15 +899,7 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
             raise ValueError("Invalid shape for scale parameer. Need scalar "
                              "or array of length 3. Got %s." % str(scale))
 
-    # prepare scaling parameter for normals
-    if n_params == 1:
-        nn_scale = None
-    elif n_params == 3:
-        nn_scale = 1. / scale
-    else:
-        raise RuntimeError("Invalid n_params value: %s" % repr(n_params))
-
-    return subjects_dir, subject_from, scale, nn_scale
+    return subjects_dir, subject_from, scale, n_params == 1
 
 
 def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
@@ -932,7 +923,7 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
     """
-    subjects_dir, subject_from, scale, nn_scale = \
+    subjects_dir, subject_from, scale, uniform = \
         _scale_params(subject_to, subject_from, scale, subjects_dir)
 
     src = bem_fname.format(subjects_dir=subjects_dir, subject=subject_from,
@@ -946,9 +937,9 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
     surfs = read_bem_surfaces(src)
     for surf in surfs:
         surf['rr'] *= scale
-        if nn_scale is not None:
+        if not uniform:
             assert len(surf['nn']) > 0
-            surf['nn'] *= nn_scale
+            surf['nn'] /= scale
             _normalize_vectors(surf['nn'])
     write_bem_surfaces(dst, surfs)
 
@@ -1141,16 +1132,24 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         Number of jobs to run in parallel if recomputing distances (only
         applies if scale is an array of length 3, and will not use more cores
         than there are source spaces).
+
+    Notes
+    -----
+    When scaling volume source spaces, the source (vertex) locations are
+    scaled, but the reference to the MRI volume is left unchanged. Transforms
+    are updated so that source estimates can be plotted on the original MRI
+    volume.
     """
-    subjects_dir, subject_from, scale, nn_scale = \
+    subjects_dir, subject_from, scale, uniform = \
         _scale_params(subject_to, subject_from, scale, subjects_dir)
+    # if n_params==1 scale is a scalar; if n_params==3 scale is a (3,) array
 
     # find the source space file names
     if src_name.isdigit():
         spacing = src_name  # spacing in mm
         src_pattern = src_fname
     else:
-        match = re.match(r"(oct|ico)-?(\d+)$", src_name)
+        match = re.match(r"(oct|ico|vol)-?(\d+)$", src_name)
         if match:
             spacing = '-'.join(match.groups())
             src_pattern = src_fname
@@ -1172,15 +1171,19 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
     for ss in sss:
         ss['subject_his_id'] = subject_to
         ss['rr'] *= scale
-
+        # additional tags for volume source spaces
+        if 'vox_mri_t' in ss:
+            # maintain transform to original MRI volume ss['mri_volume_name']
+            ss['vox_mri_t']['trans'][:3, :3] /= scale
+            ss['src_mri_t']['trans'][:3, :3] /= scale
         # distances and patch info
-        if nn_scale is None:  # i.e. uniform scaling
+        if uniform:
             if ss['dist'] is not None:
                 ss['dist'] *= scale
                 ss['nearest_dist'] *= scale
                 ss['dist_limit'] *= scale
         else:  # non-uniform scaling
-            ss['nn'] *= nn_scale
+            ss['nn'] /= scale
             _normalize_vectors(ss['nn'])
             if ss['dist'] is not None:
                 add_dist = True

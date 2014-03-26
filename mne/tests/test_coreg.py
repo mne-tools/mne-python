@@ -1,7 +1,7 @@
 from glob import glob
 import os
 
-from nose.tools import assert_equal, assert_raises, assert_true
+from nose.tools import assert_equal, assert_raises, assert_true, assert_is_not
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_less
 
@@ -52,8 +52,8 @@ def test_scale_mri():
     # create fsaverage
     tempdir = _TempDir()
     create_default_subject(subjects_dir=tempdir)
-    is_mri = _is_mri_subject('fsaverage', tempdir)
-    assert_true(is_mri, "Creating fsaverage failed")
+    assert_true(_is_mri_subject('fsaverage', tempdir),
+                "Creating fsaverage failed")
 
     fid_path = os.path.join(tempdir, 'fsaverage', 'bem',
                             'fsaverage-fiducials.fif')
@@ -68,40 +68,41 @@ def test_scale_mri():
         os.remove(label_path)
 
     # create source space
-    path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-0-src.fif')
+    path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-%s-src.fif')
     src = mne.setup_source_space('fsaverage', 'ico0', subjects_dir=tempdir,
                                  add_dist=False)
-    src_path = os.path.join(tempdir, 'fsaverage', 'bem',
-                            'fsaverage-ico-0-src.fif')
-    write_source_spaces(src_path, src)
+    write_source_spaces(path % 'ico-0', src)
+    mri = os.path.join(tempdir, 'fsaverage', 'mri', 'orig.mgz')
+    vsrc = mne.setup_volume_source_space('fsaverage', pos=50, mri=mri,
+                                         subjects_dir=tempdir)
+    write_source_spaces(path % 'vol-50', vsrc)
 
     # scale fsaverage
     os.environ['_MNE_FEW_SURFACES'] = 'true'
-    scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True,
-              subjects_dir=tempdir)
+    scale = np.array([1, .2, .8])
+    scale_mri('fsaverage', 'flachkopf', scale, True, subjects_dir=tempdir)
     del os.environ['_MNE_FEW_SURFACES']
-    is_mri = _is_mri_subject('flachkopf', tempdir)
-    assert_true(is_mri, "Scaling fsaverage failed")
-    src_path = os.path.join(tempdir, 'flachkopf', 'bem',
-                            'flachkopf-ico-0-src.fif')
+    assert_true(_is_mri_subject('flachkopf', tempdir),
+                "Scaling fsaverage failed")
+    spath = os.path.join(tempdir, 'flachkopf', 'bem', 'flachkopf-%s-src.fif')
 
-    assert_true(os.path.exists(src_path), "Source space was not scaled")
+    assert_true(os.path.exists(spath % 'ico-0'),
+                "Source space ico-0 was not scaled")
+    vsrc_s = mne.read_source_spaces(spath % 'vol-50')
+    pt = np.array([0.12, 0.41, -0.22])
+    assert_array_almost_equal(apply_trans(vsrc_s[0]['src_mri_t'], pt * scale),
+                              apply_trans(vsrc[0]['src_mri_t'], pt))
     scale_labels('flachkopf', subjects_dir=tempdir)
 
-    # scale source space separately
-    os.remove(src_path)
-    scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
-    assert_true(os.path.exists(src_path), "Source space was not scaled")
-
     # add distances to source space
-    src = mne.read_source_spaces(path)
     mne.add_source_space_distances(src)
-    src.save(path, overwrite=True)
+    src.save(path % 'ico-0', overwrite=True)
 
     # scale with distances
-    os.remove(src_path)
+    os.remove(spath % 'ico-0')
     scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
-    assert_true(os.path.exists(src_path), "Source space was not scaled")
+    ssrc = mne.read_source_spaces(spath % 'ico-0')
+    assert_is_not(ssrc[0]['dist'], None)
 
 
 def test_fit_matched_points():
