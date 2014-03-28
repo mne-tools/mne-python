@@ -207,16 +207,19 @@ class Label(object):
                 hemi_src = src[0]
             elif hemi == 'rh':
                 hemi_src = src[1]
+
             if not np.all(in1d(src_vertices, hemi_src['vertno'])):
                 raise ValueError("Source space does not contain all vertices")
-            if 'nearest' not in hemi_src:
+
+            nearest = hemi_src['nearest']
+            if nearest is None:
                 msg = ("Computing patch info for source space, this can take "
                        "a while. In order to avoid this in the future, run "
                        "mne.add_source_space_distances() on the source space "
                        "and save it.")
                 logger.warn(msg)
                 add_source_space_distances(src)
-            nearest = hemi_src['nearest']
+                nearest = hemi_src['nearest']
 
             # find new vertices
             include = in1d(nearest, src_vertices, False)
