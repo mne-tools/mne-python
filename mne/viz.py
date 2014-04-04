@@ -2480,6 +2480,9 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # Set y axes limit, add additonal space if requested
     plt.ylim(0, 10 + padding)
 
+    # Remove the black axes border which may obscure the labels
+    axes.spines['polar'].set_visible(False)
+
     # Draw lines between connected nodes, only draw the strongest connections
     if n_lines is not None and len(con) > n_lines:
         con_thresh = np.sort(np.abs(con).ravel())[-n_lines]
