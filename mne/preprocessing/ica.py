@@ -35,6 +35,7 @@ from ..fiff.tag import read_tag
 from ..fiff.meas_info import write_meas_info, read_meas_info
 from ..fiff.constants import Bunch, FIFF
 from ..viz import plot_ica_panel, plot_ica_topomap
+from ..fiff.channels import _contains_ch_type
 from ..fiff.write import start_file, end_file, write_id
 from ..epochs import _is_good
 from ..utils import check_sklearn_version, logger, verbose
@@ -1104,9 +1105,18 @@ class ICA(object):
 
     def _pre_whiten(self, data, info, picks):
         """Aux function"""
+        info = pick_info(deepcopy(info), picks)
         if self.noise_cov is None:  # use standardization as whitener
-            pre_whitener = np.atleast_1d(np.std(data)) ** -1
-            data *= pre_whitener
+            # Scale (z-score) the data by channel type
+            pre_whitener = np.empty([len(data), 1])
+            for ch_type in ['mag', 'grad', 'eeg']:
+                if _contains_ch_type(info, ch_type):
+                    if ch_type == 'eeg':
+                        this_picks = pick_types(info, meg=False, eeg=True)
+                    else:
+                        this_picks = pick_types(info, meg=ch_type, eeg=False)
+                    pre_whitener[this_picks] = np.std(data[this_picks])
+            data /= pre_whitener
         elif not hasattr(self, '_pre_whitener'):  # pick cov
             ncov = deepcopy(self.noise_cov)
             if data.shape[0] != ncov['data'].shape[0]:
@@ -1220,7 +1230,7 @@ class ICA(object):
 
         # restore scaling
         if self.noise_cov is None:  # revert standardization
-            data /= self._pre_whitener[:, None]
+            data *= self._pre_whitener
         else:
             data = fast_dot(linalg.pinv(self._pre_whitener), data)
 
