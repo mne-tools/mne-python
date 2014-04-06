@@ -63,6 +63,8 @@ BUG
 
   - Fix writing and reading transforms after modification in measurment info by `Denis Engemann`_ and `Martin Luessi`_ and `Eric Larson`_
 
+  - Fix pre-whitening / rescaling when estimating ICA on multiple channels without covariance by `Denis Engemann`_
+
 
 API
 ~~~
