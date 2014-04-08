@@ -2435,7 +2435,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         node_angles = np.linspace(0, 2 * np.pi, n_nodes, endpoint=False)
 
     if node_width is None:
-        # widths corresponds to the minimum angle between two nodes
+        # widths correspond to the minimum angle between two nodes
         dist_mat = node_angles[None, :] - node_angles[:, None]
         dist_mat[np.diag_indices(n_nodes)] = 1e9
         node_width = np.min(np.abs(dist_mat))
