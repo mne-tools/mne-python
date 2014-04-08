@@ -2364,8 +2364,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         Array with node positions in degrees. If None, the nodes are equally
         spaced on the circle. See mne.viz.circular_layout.
     node_width : float | None
-        Width of each node in degrees. If None, "360. / len(node_names)" is
-        used.
+        Width of each node in degrees. If None, the minimum angle between any
+        two nodes is used as the width.
     node_colors : list of tuples | list of str
         List with the color to use for each node. If fewer colors than nodes
         are provided, the colors will be repeated. Any color supported by
@@ -2435,7 +2435,10 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         node_angles = np.linspace(0, 2 * np.pi, n_nodes, endpoint=False)
 
     if node_width is None:
-        node_width = 2 * np.pi / n_nodes
+        # widths corresponds to the minimum angle between two nodes
+        dist_mat = node_angles[None, :] - node_angles[:, None]
+        dist_mat[np.diag_indices(n_nodes)] = 1e9
+        node_width = np.min(np.abs(dist_mat))
     else:
         node_width = node_width * np.pi / 180
 
