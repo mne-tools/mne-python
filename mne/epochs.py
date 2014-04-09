@@ -1913,53 +1913,8 @@ def bootstrap(epochs, random_state=None):
     return epochs_bootstrap
 
 
-@verbose
-def add_channels_epochs(epochs_list, picks_list=None, name='Unknown', 
-                        add_eeg_ref=True, verbose=None):
-    """Concatenate two Epochs objects
-    
-    Parameters
-    ----------
-    epochs_list : list of Epochs
-        Epochs object to concatenate.
-    picks_list : list
-        List of picks for the epochs objects (Indices of channels to include, 
-        or None to include all channels). Picks should be in the order in 
-        which they correspond to epochs_list.
-    name : str
-        Comment that describes the Evoked data created.
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to True if any of the input epochs have verbose=True.
-        
-    Returns
-    -------
-    epochs : Epochs
-        Concatenated epochs.
-    """
-    info = _merge_info([epochs.info for epochs in epochs_list], picks_list)
-    data = [epochs.get_data() for epochs in epochs_list]
-    for d in data:
-        if len(d) != len(data[0]):
-            raise ValueError('all epochs must be of the same length')
-    
-    if picks_list is not None:
-        data = [data_[:, sel] for data_, sel in zip(data, picks_list)]
-    data = np.concatenate(data, axis=1)
-    
-    if len(info['chs']) != data.shape[1]:
-        err = "Data shape does not match channel number in measurement info"
-        raise RuntimeError(err)
-    
-    events = epochs_list[0].events.copy()
-    all_same = np.all([events == epochs.events for epochs in epochs_list], 
-                      axis=0)
-    not_all_same = np.invert(all_same)
-    events[not_all_same] = -1
- 
+def _prepare_merge_epochs(epochs_list):
+    """docstring for _prepare_merge_epochs"""
     event_ids = set(tuple(epochs.event_id.items()) for epochs in epochs_list)
     if len(event_ids) == 1:
         event_id = dict(event_ids.pop())
@@ -1983,6 +1938,52 @@ def add_channels_epochs(epochs_list, picks_list=None, name='Unknown',
         baseline = baselines.pop()
     else:
         raise NotImplementedError("Epochs with unequal values for baseline")
+    
+    return event_id, tmin, tmax, baseline
+
+
+@verbose
+def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
+                        verbose=None):
+    """Concatenate two Epochs objects
+    
+    Parameters
+    ----------
+    epochs_list : list of Epochs
+        Epochs object to concatenate.
+    name : str
+        Comment that describes the Evoked data created.
+    add_eeg_ref : bool
+        If True, an EEG average reference will be added (unless one
+        already exists).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to True if any of the input epochs have verbose=True.
+        
+    Returns
+    -------
+    epochs : Epochs
+        Concatenated epochs.
+    """
+    info = _merge_info([epochs.info for epochs in epochs_list])
+    data = [epochs.get_data() for epochs in epochs_list]
+    for d in data:
+        if len(d) != len(data[0]):
+            raise ValueError('all epochs must be of the same length')
+    
+    data = np.concatenate(data, axis=1)
+    
+    if len(info['chs']) != data.shape[1]:
+        err = "Data shape does not match channel number in measurement info"
+        raise RuntimeError(err)
+    
+    events = epochs_list[0].events.copy()
+    all_same = np.all([events == epochs.events for epochs in epochs_list], 
+                      axis=0)
+    not_all_same = np.invert(all_same)
+    events[not_all_same] = -1
+     
+    event_id, tmin, tmax, baseline = _prepare_merge_epochs(epochs_list)
     
     proj = any(e.proj for e in epochs_list) or add_eeg_ref
     

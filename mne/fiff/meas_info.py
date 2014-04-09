@@ -619,7 +619,7 @@ def write_info(fname, info, data_type=None, reset_range=True):
 
 def _is_equal_dict(dicts):
     """Aux function"""
-    tests = zip(*[d.items() for d in dicts])    
+    tests = zip(*[d.items() for d in dicts])
     is_equal = []
     for d in tests:
         k0, v0 = d[0]
@@ -631,13 +631,13 @@ def _is_equal_dict(dicts):
 @verbose
 def _merge_dict_values(dicts, key, verbose=None):
     """Merge things together
-    
+
     Fork for {'dict', 'list', 'array', 'other'}
     and consider cases where one or all are of the same type.
     """
     values = [d[key] for d in dicts]
     msg = "don't know how to merge %s" % key
-    
+
     def _flatten(lists):
         return [item for sublist in lists for item in sublist]
 
@@ -646,7 +646,7 @@ def _merge_dict_values(dicts, key, verbose=None):
 
     def _where_isinstance(values, kind):
         """Aux function"""
-        return np.where([isinstance(v, type) for v in values])[0]    
+        return np.where([isinstance(v, type) for v in values])[0]
 
     # list
     if _check_isinstance(values, list, all):
@@ -659,7 +659,7 @@ def _merge_dict_values(dicts, key, verbose=None):
         elif len(idx) > 1:
             lists = (d[key] for d in dicts if isinstance(d[key], list))
             return  _flatten(lists)
-    # dict    
+    # dict
     elif _check_isinstance(values, dict, all):
         is_qual = _is_equal_dict(values)
         if is_qual:
@@ -698,32 +698,29 @@ def _merge_dict_values(dicts, key, verbose=None):
             raise RuntimeError(msg)
 
 
-
 @verbose
-def _merge_info(infos, picks=None, verbose=None):
+def _merge_info(infos, verbose=None):
     """Merge two measurement info dictionaries"""
-    if picks is not None:
-        infos = [pick_info(info, sel) for info, sel in zip(infos, picks)]
- 
+
     info = Info()
     info['sfreq'] = _merge_dict_values(infos, 'sfreq')
     if info['sfreq'] == None:
         err = ("Input data have differing sampling frequencies. Resample the "
                "input to a common sampling frequency.")
-        raise ValueError(err) 
-    
+        raise ValueError(err)
+
     ch_names = _merge_dict_values(infos, 'ch_names')
     duplicates = set([ch for ch in ch_names if ch_names.count(ch) > 1])
     if len(duplicates) > 0:
         err = ("The following channels are present in more than one input "
-               "measurement info objects: %s" % list(duplicates)) 
+               "measurement info objects: %s" % list(duplicates))
         raise ValueError(err)
     info['nchan'] = len(ch_names)
     info['ch_names'] = ch_names
     info['chs'] = []
     for this_info in infos:
-        info['chs'].extend(this_info['chs'])  
-    
+        info['chs'].extend(this_info['chs'])
+
     transforms = ['ctf_head_t', 'dev_head_t', 'dev_ctf_t']
     for trans_name in transforms:
         trans = filter(None, [i[trans_name] for i in infos])
@@ -733,17 +730,17 @@ def _merge_info(infos, picks=None, verbose=None):
             info[trans_name] = trans[0]
         elif all([np.all(trans[0]['trans'] == x['trans']) and
                   trans[0]['from'] == x['from'] and
-                  trans[0]['to'] == x['to']  
+                  trans[0]['to'] == x['to']
                   for x in trans[1:]]):
             info[trans_name] = trans[0]
         else:
-            err = ("Measurement infos provide mutually inconsistent %s" % 
+            err = ("Measurement infos provide mutually inconsistent %s" %
                    trans_name)
-            raise ValueError(err) 
-    other_fields = ['acq_pars', 'acq_stim', 'bads','buffer_size_sec', 
+            raise ValueError(err)
+    other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'description', 'dig', 'experimenter', 'file_id',
                     'filename', 'filenames', 'highpass', 'line_freq',
-                    'lowpass','meas_date', 'meas_id', 'orig_blocks',
+                    'lowpass', 'meas_date', 'meas_id', 'orig_blocks',
                     'orig_fid_str', 'proj_id', 'proj_name', 'projs',
                     'sfreq', 'subject_info']
 
