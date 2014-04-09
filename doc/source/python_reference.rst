@@ -355,7 +355,7 @@ Events
 
    combine_event_ids
    equalize_epoch_counts
-
+   add_channels_epochs
 
 Sensor Space Data
 =================

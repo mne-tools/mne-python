@@ -10,6 +10,7 @@ import numpy as np
 from scipy import linalg
 from ..externals.six import BytesIO
 from datetime import datetime as dt
+from StringIO import StringIO
 
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
@@ -614,3 +615,139 @@ def write_info(fname, info, data_type=None, reset_range=True):
     write_meas_info(fid, info, data_type, reset_range)
     end_block(fid, FIFF.FIFFB_MEAS)
     end_file(fid)
+
+
+def _is_equal_dict(dicts):
+    """Aux function"""
+    tests = zip(*[d.items() for d in dicts])    
+    is_equal = []
+    for d in tests:
+        k0, v0 = d[0]
+        is_equal.append(all([np.all(k == k0) and
+                        np.all(v == v0)  for k, v in d]))
+    return all(is_equal)
+
+
+@verbose
+def _merge_dict_values(dicts, key, verbose=None):
+    """Merge things together
+    
+    Fork for {'dict', 'list', 'array', 'other'}
+    and consider cases where one or all are of the same type.
+    """
+    values = [d[key] for d in dicts]
+    msg = "don't know how to merge %s" % key
+    
+    def _flatten(lists):
+        return [item for sublist in lists for item in sublist]
+
+    def _check_isinstance(values, kind, func):
+        return func([isinstance(v, kind) for v in values])
+
+    def _where_isinstance(values, kind):
+        """Aux function"""
+        return np.where([isinstance(v, type) for v in values])[0]    
+
+    # list
+    if _check_isinstance(values, list, all):
+        lists = (d[key] for d in dicts)
+        return _flatten(lists)
+    elif _check_isinstance(values, list, any):
+        idx = _where_isinstance(values, list)
+        if len(idx) == 1:
+            return values[int(idx)]
+        elif len(idx) > 1:
+            lists = (d[key] for d in dicts if isinstance(d[key], list))
+            return  _flatten(lists)
+    # dict    
+    elif _check_isinstance(values, dict, all):
+        is_qual = _is_equal_dict(values)
+        if is_qual:
+            return values[0]
+        else:
+            RuntimeError(msg)
+    elif _check_isinstance(values, dict, any):
+        idx = _where_isinstance(values, dict)
+        if len(idx) == 1:
+            return values[int(idx)]
+        elif len(idx) > 1:
+            raise RuntimeError(msg)
+    # ndarray
+    elif _check_isinstance(values, np.ndarray, all):
+        is_qual = all([np.all(values[0] == x) for x in values[1:]])
+        if is_qual:
+            return values[0]
+        else:
+            raise RuntimeError(msg)
+    elif _check_isinstance(values, np.ndarray, any):
+        idx = _where_isinstance(values, np.ndarray)
+        if len(idx) == 1:
+            return values[int(idx)]
+        elif len(idx) > 1:
+            raise RuntimeError(msg)
+    # other
+    else:
+        unique_values = set(values)
+        if len(unique_values) == 1:
+            return list(values)[0]
+        elif isinstance(list(unique_values)[0], StringIO):
+            logger.info('Found multiple StringIO instances.'
+                        'Setting to `None`')
+            return None
+        else:
+            raise RuntimeError(msg)
+
+
+
+@verbose
+def _merge_info(infos, picks=None, verbose=None):
+    """Merge two measurement info dictionaries"""
+    if picks is not None:
+        infos = [pick_info(info, sel) for info, sel in zip(infos, picks)]
+ 
+    info = Info()
+    info['sfreq'] = _merge_dict_values(infos, 'sfreq')
+    if info['sfreq'] == None:
+        err = ("Input data have differing sampling frequencies. Resample the "
+               "input to a common sampling frequency.")
+        raise ValueError(err) 
+    
+    ch_names = _merge_dict_values(infos, 'ch_names')
+    duplicates = set([ch for ch in ch_names if ch_names.count(ch) > 1])
+    if len(duplicates) > 0:
+        err = ("The following channels are present in more than one input "
+               "measurement info objects: %s" % list(duplicates)) 
+        raise ValueError(err)
+    info['nchan'] = len(ch_names)
+    info['ch_names'] = ch_names
+    info['chs'] = []
+    for this_info in infos:
+        info['chs'].extend(this_info['chs'])  
+    
+    transforms = ['ctf_head_t', 'dev_head_t', 'dev_ctf_t']
+    for trans_name in transforms:
+        trans = filter(None, [i[trans_name] for i in infos])
+        if len(trans) == 0:
+            info[trans_name] = None
+        elif len(trans) == 1:
+            info[trans_name] = trans[0]
+        elif all([np.all(trans[0]['trans'] == x['trans']) and
+                  trans[0]['from'] == x['from'] and
+                  trans[0]['to'] == x['to']  
+                  for x in trans[1:]]):
+            info[trans_name] = trans[0]
+        else:
+            err = ("Measurement infos provide mutually inconsistent %s" % 
+                   trans_name)
+            raise ValueError(err) 
+    other_fields = ['acq_pars', 'acq_stim', 'bads','buffer_size_sec', 
+                    'comps', 'description', 'dig', 'experimenter', 'file_id',
+                    'filename', 'filenames', 'highpass', 'line_freq',
+                    'lowpass','meas_date', 'meas_id', 'orig_blocks',
+                    'orig_fid_str', 'proj_id', 'proj_name', 'projs',
+                    'sfreq', 'subject_info']
+
+    for k in other_fields:
+        info[k] = _merge_dict_values(infos, k)
+
+    return info

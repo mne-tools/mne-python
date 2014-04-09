@@ -19,7 +19,7 @@ import numpy as np
 from .fiff.write import (start_file, start_block, end_file, end_block,
                          write_int, write_float_matrix, write_float,
                          write_id, write_string)
-from .fiff.meas_info import read_meas_info, write_meas_info
+from .fiff.meas_info import read_meas_info, write_meas_info, _merge_info
 from .fiff.open import fiff_open
 from .fiff.raw import _time_as_index, _index_as_time, Raw
 from .fiff.tree import dir_tree_find
@@ -1911,3 +1911,93 @@ def bootstrap(epochs, random_state=None):
     idx = rng.randint(0, n_events, n_events)
     epochs_bootstrap = epochs_bootstrap[idx]
     return epochs_bootstrap
+
+
+@verbose
+def add_channels_epochs(epochs_list, picks_list=None, name='Unknown', 
+                        add_eeg_ref=True, verbose=None):
+    """Concatenate two Epochs objects
+    
+    Parameters
+    ----------
+    epochs_list : list of Epochs
+        Epochs object to concatenate.
+    picks_list : list
+        List of picks for the epochs objects (Indices of channels to include, 
+        or None to include all channels). Picks should be in the order in 
+        which they correspond to epochs_list.
+    name : str
+        Comment that describes the Evoked data created.
+    add_eeg_ref : bool
+        If True, an EEG average reference will be added (unless one
+        already exists).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to True if any of the input epochs have verbose=True.
+        
+    Returns
+    -------
+    epochs : Epochs
+        Concatenated epochs.
+    """
+    info = _merge_info([epochs.info for epochs in epochs_list], picks_list)
+    data = [epochs.get_data() for epochs in epochs_list]
+    for d in data:
+        if len(d) != len(data[0]):
+            raise ValueError('all epochs must be of the same length')
+    
+    if picks_list is not None:
+        data = [data_[:, sel] for data_, sel in zip(data, picks_list)]
+    data = np.concatenate(data, axis=1)
+    
+    if len(info['chs']) != data.shape[1]:
+        err = "Data shape does not match channel number in measurement info"
+        raise RuntimeError(err)
+    
+    events = epochs_list[0].events.copy()
+    all_same = np.all([events == epochs.events for epochs in epochs_list], 
+                      axis=0)
+    not_all_same = np.invert(all_same)
+    events[not_all_same] = -1
+ 
+    event_ids = set(tuple(epochs.event_id.items()) for epochs in epochs_list)
+    if len(event_ids) == 1:
+        event_id = dict(event_ids.pop())
+    else:
+        raise NotImplementedError("Epochs with unequal values for event_id")
+ 
+    tmins = set(epochs.tmin for epochs in epochs_list)
+    if len(tmins) == 1:
+        tmin = tmins.pop()
+    else:
+        raise NotImplementedError("Epochs with unequal values for tmin")
+ 
+    tmaxs = set(epochs.tmax for epochs in epochs_list)
+    if len(tmaxs) == 1:
+        tmax = tmaxs.pop()
+    else:
+        raise NotImplementedError("Epochs with unequal values for tmax")
+ 
+    baselines = set(epochs.baseline for epochs in epochs_list)
+    if len(baselines) == 1:
+        baseline = baselines.pop()
+    else:
+        raise NotImplementedError("Epochs with unequal values for baseline")
+    
+    proj = any(e.proj for e in epochs_list) or add_eeg_ref
+    
+    if verbose is None:
+        verbose = any(e.verbose for e in epochs_list)
+ 
+    epochs = Epochs(None, None, None, None, None)
+    _BaseEpochs.__init__(epochs, info, event_id, tmin, tmax, 
+                         baseline, picks=None, name=name, 
+                         verbose=verbose)
+    epochs.events = events
+    epochs.preload = True
+    epochs._bad_dropped = True
+    epochs._data = data
+    epochs.proj = proj
+    epochs._projector, epochs.info = setup_proj(epochs.info, add_eeg_ref,
+                                                activate=proj)
+    return epochs

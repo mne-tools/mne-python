@@ -16,7 +16,8 @@ import warnings
 
 from mne import (fiff, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels)
-from mne.epochs import bootstrap, equalize_epoch_counts, combine_event_ids
+from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
+                        add_channels_epochs)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
                        clean_warning_registry)
 
@@ -976,3 +977,32 @@ def test_illegal_event_id():
 
     assert_raises(ValueError, Epochs, raw, events, event_id_illegal, tmin,
                   tmax, picks=picks, baseline=(None, 0), proj=False)
+
+
+def test_add_channels_epochs():
+    """Test adding channels"""
+    
+    def make_epochs(picks):
+        return Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0), 
+                      reject=None, preload=True, proj=False, picks=picks)
+    
+    picks = fiff.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
+    epochs = make_epochs(picks=picks)
+
+    picks_meg = fiff.pick_types(raw.info, meg=True, eeg=False, exclude='bads')
+    epochs_meg = make_epochs(picks=picks_meg)
+
+    picks_eeg = fiff.pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    epochs_eeg = make_epochs(picks=picks_eeg)
+
+    epochs2 = add_channels_epochs([epochs_meg, epochs_eeg], None)
+    
+    data1 = epochs.get_data()
+    data2 = epochs2.get_data()
+    data3 = np.concatenate([e.get_data() for e in
+                            [epochs_meg, epochs_eeg]], axis=1)
+    assert_array_equal(data1.shape, data2.shape)
+    assert_array_equal(data1, data3)
+    assert_array_equal(data1, data2)
+    
+    
