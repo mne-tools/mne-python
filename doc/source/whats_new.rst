@@ -51,7 +51,7 @@ Changelog
    
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
-   - Add `add_epochs_channels` function to combine foreing MEG and EEG epochs
+   - Add `add_channels_epochs` function to combine foreing MEG and EEG epochs
     by `Christian Brodbeck`_ and `Denis Engemann`_
 
 
