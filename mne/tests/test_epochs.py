@@ -1007,6 +1007,10 @@ def test_add_channels_epochs():
     assert_array_equal(data1, data3)  # XXX unrelated bug? this crashes
                                       # when proj == True
     assert_array_equal(data1, data2)
+    
+    epochs_meg2 = epochs_meg.copy()
+    epochs2.info['filename'] = epochs2.info['filename'].upper()
+    epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.events[3, 2] -= 1

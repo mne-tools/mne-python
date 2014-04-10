@@ -8,7 +8,7 @@ from copy import deepcopy
 import os.path as op
 import numpy as np
 from scipy import linalg
-from ..externals.six import BytesIO
+from ..externals.six import BytesIO, string_types
 from datetime import datetime as dt
 
 from .open import fiff_open
@@ -694,6 +694,10 @@ def _merge_dict_values(dicts, key, verbose=None):
             return list(values)[0]
         elif isinstance(list(unique_values)[0], BytesIO):
             logger.info('Found multiple StringIO instances. '
+                        'Setting value to `None`')
+            return None
+        elif isinstance(list(unique_values)[0], string_types):
+            logger.info('Found multiple filenames. '
                         'Setting value to `None`')
             return None
         else:
