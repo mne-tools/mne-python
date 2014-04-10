@@ -653,7 +653,7 @@ def _merge_dict_values(dicts, key, verbose=None):
     # list
     if _check_isinstance(values, list, all):
         lists = (d[key] for d in dicts)
-        return (_uniquify_projs(_flatten(lists)) if key == 'projs' 
+        return (_uniquify_projs(_flatten(lists)) if key == 'projs'
                 else _flatten(lists))
     elif _check_isinstance(values, list, any):
         idx = _where_isinstance(values, list)

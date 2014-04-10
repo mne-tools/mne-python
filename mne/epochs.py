@@ -1920,25 +1920,25 @@ def _prepare_merge_epochs(epochs_list):
         event_id = dict(event_ids.pop())
     else:
         raise NotImplementedError("Epochs with unequal values for event_id")
- 
+
     tmins = set(epochs.tmin for epochs in epochs_list)
     if len(tmins) == 1:
         tmin = tmins.pop()
     else:
         raise NotImplementedError("Epochs with unequal values for tmin")
- 
+
     tmaxs = set(epochs.tmax for epochs in epochs_list)
     if len(tmaxs) == 1:
         tmax = tmaxs.pop()
     else:
         raise NotImplementedError("Epochs with unequal values for tmax")
- 
+
     baselines = set(epochs.baseline for epochs in epochs_list)
     if len(baselines) == 1:
         baseline = baselines.pop()
     else:
         raise NotImplementedError("Epochs with unequal values for baseline")
-    
+
     return event_id, tmin, tmax, baseline
 
 
@@ -1946,7 +1946,7 @@ def _prepare_merge_epochs(epochs_list):
 def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
                         verbose=None):
     """Concatenate two Epochs objects
-    
+
     Parameters
     ----------
     epochs_list : list of Epochs
@@ -1959,7 +1959,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to True if any of the input epochs have verbose=True.
-        
+
     Returns
     -------
     epochs : Epochs
@@ -1967,37 +1967,35 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     """
     if not np.all([e.preload for e in epochs_list]):
         raise ValueError('All epochs must be preloaded.')
-    
-    
+
     info = _merge_info([epochs.info for epochs in epochs_list])
     data = [epochs.get_data() for epochs in epochs_list]
     for d in data:
         if len(d) != len(data[0]):
             raise ValueError('all epochs must be of the same length')
-    
+
     data = np.concatenate(data, axis=1)
-    
+
     if len(info['chs']) != data.shape[1]:
         err = "Data shape does not match channel number in measurement info"
         raise RuntimeError(err)
-    
+
     events = epochs_list[0].events.copy()
-    all_same = np.all([events == epochs.events for epochs in epochs_list], 
+    all_same = np.all([events == epochs.events for epochs in epochs_list],
                       axis=0)
     if not np.all(all_same):
         raise ValueError('Events mut be the same.')
-   
-     
+
     event_id, tmin, tmax, baseline = _prepare_merge_epochs(epochs_list)
-    
+
     proj = any(e.proj for e in epochs_list) or add_eeg_ref
-    
+
     if verbose is None:
         verbose = any(e.verbose for e in epochs_list)
- 
+
     epochs = Epochs(None, None, None, None, None)
-    _BaseEpochs.__init__(epochs, info, event_id, tmin, tmax, 
-                         baseline, picks=None, name=name, 
+    _BaseEpochs.__init__(epochs, info, event_id, tmin, tmax,
+                         baseline, picks=None, name=name,
                          verbose=verbose)
     epochs.events = events
     epochs.preload = True

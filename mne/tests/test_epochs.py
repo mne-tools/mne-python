@@ -981,11 +981,11 @@ def test_illegal_event_id():
 
 def test_add_channels_epochs():
     """Test adding channels"""
-    
+
     def make_epochs(picks):
-        return Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0), 
+        return Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
                       reject=None, preload=True, proj=False, picks=picks)
-    
+
     picks = fiff.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
     picks_meg = fiff.pick_types(raw.info, meg=True, eeg=False, exclude='bads')
     picks_eeg = fiff.pick_types(raw.info, meg=False, eeg=True, exclude='bads')
@@ -995,10 +995,10 @@ def test_add_channels_epochs():
     epochs_eeg = make_epochs(picks=picks_eeg)
 
     epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
-    
+
     assert_equal(len(epochs.info['projs']), len(epochs2.info['projs']))
     assert_equal(len(epochs.info.keys()), len(epochs2.info.keys()))
-    
+
     data1 = epochs.get_data()
     data2 = epochs2.get_data()
     data3 = np.concatenate([e.get_data() for e in
@@ -1010,59 +1010,57 @@ def test_add_channels_epochs():
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.events[3, 2] -= 1
-    assert_raises(ValueError, add_channels_epochs, 
+    assert_raises(ValueError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
-    assert_raises(ValueError, add_channels_epochs, 
+    assert_raises(ValueError, add_channels_epochs,
                   [epochs_meg, epochs_eeg[:2]])
 
     epochs_meg.info['chs'].pop(0)
-    assert_raises(RuntimeError, add_channels_epochs, 
+    assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg, epochs_eeg])
 
-    epochs_meg2 = epochs_meg.copy() 
+    epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['sfreq'] = None
-    assert_raises(RuntimeError, add_channels_epochs, 
+    assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['sfreq'] += 10
-    assert_raises(RuntimeError, add_channels_epochs, 
+    assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['ch_names'][1] = epochs_meg2.info['ch_names'][0]
-    assert_raises(ValueError, add_channels_epochs, 
+    assert_raises(ValueError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['dev_head_t']['to'] += 1
-    assert_raises(ValueError, add_channels_epochs, 
+    assert_raises(ValueError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['dev_head_t']['to'] += 1
-    assert_raises(ValueError, add_channels_epochs, 
+    assert_raises(ValueError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['meas_date'] += 10
-    assert_raises(RuntimeError, add_channels_epochs, 
+    assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['meas_date'] += 10
-    assert_raises(RuntimeError, add_channels_epochs, 
+    assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['expimenter'] = 'foo'
-    assert_raises(RuntimeError, add_channels_epochs, 
+    assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.preload = False
-    assert_raises(ValueError, add_channels_epochs, 
+    assert_raises(ValueError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
-
-                 
