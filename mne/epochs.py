@@ -1965,6 +1965,10 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     epochs : Epochs
         Concatenated epochs.
     """
+    if not np.all([e.preload for e in epochs_list]):
+        raise ValueError('All epochs must be preloaded.')
+    
+    
     info = _merge_info([epochs.info for epochs in epochs_list])
     data = [epochs.get_data() for epochs in epochs_list]
     for d in data:
@@ -1980,8 +1984,9 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     events = epochs_list[0].events.copy()
     all_same = np.all([events == epochs.events for epochs in epochs_list], 
                       axis=0)
-    not_all_same = np.invert(all_same)
-    events[not_all_same] = -1
+    if not np.all(all_same):
+        raise ValueError('Events mut be the same.')
+   
      
     event_id, tmin, tmax, baseline = _prepare_merge_epochs(epochs_list)
     

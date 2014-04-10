@@ -8,6 +8,7 @@ from copy import deepcopy
 from math import sqrt
 import numpy as np
 from scipy import linalg
+from itertools import count
 
 from .tree import dir_tree_find
 from .constants import FIFF
@@ -613,3 +614,24 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         info['projs'] = activate_proj(info['projs'], copy=False)
 
     return projector, info
+
+
+def _uniquify_projs(projs):
+    """Aux function"""
+    final_projs = []
+    for proj in projs:  # flatten
+        if not any([proj_equal(p, proj) for p in final_projs]):
+            final_projs.append(proj)
+    
+    my_count = count(len(final_projs))
+    
+    def sorter(x):
+        """sort in a nice way"""
+        digits = [s for s in x['desc'] if s.isdigit()]
+        if digits:
+            sort_idx = int(digits[-1])
+        else:
+            sort_idx = my_count.next() 
+        return (sort_idx, x['desc'])
+        
+    return sorted(final_projs, key=sorter)

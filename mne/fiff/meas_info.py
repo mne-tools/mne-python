@@ -16,13 +16,14 @@ from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
 from .constants import FIFF
 from .tag import read_tag
-from .proj import read_proj, write_proj
+from .proj import read_proj, write_proj, _uniquify_projs
 from .ctf import read_ctf_comp, write_ctf_comp
 from .channels import read_bad_channels
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian)
+from .proj import proj_equal
 from ..utils import logger, verbose
 
 
@@ -636,7 +637,8 @@ def _merge_dict_values(dicts, key, verbose=None):
     and consider cases where one or all are of the same type.
     """
     values = [d[key] for d in dicts]
-    msg = "don't know how to merge %s" % key
+    msg = ("Don't know how to merge '%s'. Make sure values are "
+           "compatible." % key)
 
     def _flatten(lists):
         return [item for sublist in lists for item in sublist]
@@ -651,7 +653,8 @@ def _merge_dict_values(dicts, key, verbose=None):
     # list
     if _check_isinstance(values, list, all):
         lists = (d[key] for d in dicts)
-        return _flatten(lists)
+        return (_uniquify_projs(_flatten(lists)) if key == 'projs' 
+                else _flatten(lists))
     elif _check_isinstance(values, list, any):
         idx = _where_isinstance(values, list)
         if len(idx) == 1:
@@ -703,12 +706,6 @@ def _merge_info(infos, verbose=None):
     """Merge two measurement info dictionaries"""
 
     info = Info()
-    info['sfreq'] = _merge_dict_values(infos, 'sfreq')
-    if info['sfreq'] == None:
-        err = ("Input data have differing sampling frequencies. Resample the "
-               "input to a common sampling frequency.")
-        raise ValueError(err)
-
     ch_names = _merge_dict_values(infos, 'ch_names')
     duplicates = set([ch for ch in ch_names if ch_names.count(ch) > 1])
     if len(duplicates) > 0:
@@ -742,7 +739,7 @@ def _merge_info(infos, verbose=None):
                     'filename', 'filenames', 'highpass', 'line_freq',
                     'lowpass', 'meas_date', 'meas_id', 'orig_blocks',
                     'orig_fid_str', 'proj_id', 'proj_name', 'projs',
-                    'sfreq', 'subject_info']
+                    'sfreq', 'subject_info', 'sfreq']
 
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
