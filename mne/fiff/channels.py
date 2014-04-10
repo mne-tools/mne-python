@@ -103,7 +103,7 @@ def _contains_ch_type(info, ch_type):
 @verbose
 def equalize_channels(candidates, verbose=None):
     """Equalize channel picks for a collection of MNE-Python objects
-    
+
     Parameters
     ----------
     candidates : list
@@ -120,7 +120,7 @@ def equalize_channels(candidates, verbose=None):
     if not all([isinstance(c, (Raw, Epochs, Evoked)) for c in candidates]):
         valid = ['Raw', 'Epochs', 'Evoked']
         raise ValueError('candidates must be ' + ' or '.join(valid))
-    
+
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
     chan_template = candidates[chan_max_idx].ch_names
     logger.info('Identiying common channels ...')
@@ -173,9 +173,45 @@ class DropChannelsMixin(object):
             self.picks = [self.picks[k] for k in idx]
 
         self.info = pick_info(self.info, idx, copy=False)
-        
+
         my_get = lambda attr: getattr(self, attr, None)
-        
+
+        if my_get('_projector') is not None:
+            self._projector = self._projector[idx][:, idx]
+
+        if isinstance(self, Raw) and my_get('_preloaded'):
+            self._data = self._data[idx, :]
+        elif isinstance(self, Epochs) and my_get('preload'):
+            self._data = self._data[:, idx, :]
+        elif isinstance(self, Evoked):
+            self.data = self.data[idx, :]
+
+
+class PickChannelsMixin(object):
+    """Mixin class for Raw, Evoked, Epochs
+    """
+
+    def pick_channels(self, ch_names):
+        """Pick some channels
+
+        Parameters
+        ----------
+        ch_names : list
+            The list of channels to select.
+        """
+        # avoid circular imports
+        from . import Raw
+        from .. import Epochs
+        from . import Evoked
+
+        idx = [self.ch_names.index(c) for c in ch_names]
+        if hasattr(self, 'picks'):
+            self.picks = [self.picks[k] for k in idx]
+
+        self.info = pick_info(self.info, idx, copy=False)
+
+        my_get = lambda attr: getattr(self, attr, None)
+
         if my_get('_projector') is not None:
             self._projector = self._projector[idx][:, idx]
 
@@ -210,8 +246,8 @@ def rename_channels(info, mapping):
 
     bads, chs = info['bads'], info['chs']
     ch_names = info['ch_names']
-    new_names, new_kinds, new_bads = list(), list(), list() 
-    
+    new_names, new_kinds, new_bads = list(), list(), list()
+
     # first check and assemble clean mappings of index and name
     for ch_name, new_name in mapping.items():
         if ch_name not in ch_names:
@@ -222,14 +258,14 @@ def rename_channels(info, mapping):
         if not isinstance(new_name, (string_types, tuple)):
             raise ValueError('Your mapping is not configured properly. '
                              'Please see the help: mne.rename_channels?')
-                              
+
         elif isinstance(new_name, tuple):  # name and type change
             new_name, new_type =  new_name  # unpack
             if new_type not in human2fiff:
                 raise ValueError('This function cannot change to this '
                                  'channel type: %s.' % new_type)
             new_kinds.append((c_ind, human2fiff[new_type]))
-        
+
         if new_name in ch_names:
             raise ValueError('The new name ({new}) already exists. Choose a '
                              'unique name'.format(new=new_name))
