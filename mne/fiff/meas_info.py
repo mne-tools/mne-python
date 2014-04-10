@@ -698,7 +698,7 @@ def _merge_dict_values(dicts, key, verbose=None):
             return None
         elif isinstance(list(unique_values)[0], string_types):
             logger.info('Found multiple filenames. '
-                        'Setting value to `None`')
+                        'Setting value to `No ne`')
             return None
         else:
             raise RuntimeError(msg)
@@ -723,7 +723,7 @@ def _merge_info(infos, verbose=None):
 
     transforms = ['ctf_head_t', 'dev_head_t', 'dev_ctf_t']
     for trans_name in transforms:
-        trans = filter(None, [i[trans_name] for i in infos])
+        trans = [i[trans_name] for i in infos if i[trans_name]]
         if len(trans) == 0:
             info[trans_name] = None
         elif len(trans) == 1:
