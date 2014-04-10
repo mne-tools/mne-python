@@ -1913,8 +1913,8 @@ def bootstrap(epochs, random_state=None):
     return epochs_bootstrap
 
 
-def _prepare_merge_epochs(epochs_list):
-    """docstring for _prepare_merge_epochs"""
+def _check_merge_epochs(epochs_list):
+    """Aux function"""
     event_ids = set(tuple(epochs.event_id.items()) for epochs in epochs_list)
     if len(event_ids) == 1:
         event_id = dict(event_ids.pop())
@@ -1945,7 +1945,7 @@ def _prepare_merge_epochs(epochs_list):
 @verbose
 def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
                         verbose=None):
-    """Concatenate two Epochs objects
+    """Concatenate channels, info and data from two Epochs objects
 
     Parameters
     ----------
@@ -1954,8 +1954,8 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     name : str
         Comment that describes the Evoked data created.
     add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists).
+        If True, an EEG average reference will be added (unless there is no 
+        EEG in the data).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to True if any of the input epochs have verbose=True.
@@ -1970,6 +1970,8 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
 
     info = _merge_info([epochs.info for epochs in epochs_list])
     data = [epochs.get_data() for epochs in epochs_list]
+    event_id, tmin, tmax, baseline = _check_merge_epochs(epochs_list)
+    
     for d in data:
         if len(d) != len(data[0]):
             raise ValueError('all epochs must be of the same length')
@@ -1981,22 +1983,26 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
         raise RuntimeError(err)
 
     events = epochs_list[0].events.copy()
-    all_same = np.all([events == epochs.events for epochs in epochs_list],
+    all_same = np.all([events == epochs.events for epochs in epochs_list[1:]],
                       axis=0)
     if not np.all(all_same):
-        raise ValueError('Events mut be the same.')
+        raise ValueError('Events must be the same.')
 
-    event_id, tmin, tmax, baseline = _prepare_merge_epochs(epochs_list)
 
     proj = any(e.proj for e in epochs_list) or add_eeg_ref
 
     if verbose is None:
         verbose = any(e.verbose for e in epochs_list)
 
-    epochs = Epochs(None, None, None, None, None)
-    _BaseEpochs.__init__(epochs, info, event_id, tmin, tmax,
-                         baseline, picks=None, name=name,
-                         verbose=verbose)
+    epochs = epochs_list[0].copy()
+    epochs.info = info
+    epochs.event_id = event_id
+    epochs.tmin = tmin
+    epochs.tmax = tmax
+    epochs.baseline = baseline
+    epochs.picks = None
+    epochs.name = name
+    epochs.verbose = verbose
     epochs.events = events
     epochs.preload = True
     epochs._bad_dropped = True

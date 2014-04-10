@@ -10,7 +10,6 @@ import numpy as np
 from scipy import linalg
 from ..externals.six import BytesIO
 from datetime import datetime as dt
-from StringIO import StringIO
 
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
@@ -693,9 +692,9 @@ def _merge_dict_values(dicts, key, verbose=None):
         unique_values = set(values)
         if len(unique_values) == 1:
             return list(values)[0]
-        elif isinstance(list(unique_values)[0], StringIO):
-            logger.info('Found multiple StringIO instances.'
-                        'Setting to `None`')
+        elif isinstance(list(unique_values)[0], BytesIO):
+            logger.info('Found multiple StringIO instances. '
+                        'Setting value to `None`')
             return None
         else:
             raise RuntimeError(msg)

@@ -1064,3 +1064,23 @@ def test_add_channels_epochs():
     epochs_meg2.preload = False
     assert_raises(ValueError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
+
+    epochs_meg2 = epochs_meg.copy()
+    epochs_meg2.tmin += 0.4
+    assert_raises(NotImplementedError, add_channels_epochs,
+                  [epochs_meg2, epochs_eeg])
+
+    epochs_meg2 = epochs_meg.copy()
+    epochs_meg2.tmin += 0.5
+    assert_raises(NotImplementedError, add_channels_epochs,
+                  [epochs_meg2, epochs_eeg])
+
+    epochs_meg2 = epochs_meg.copy()
+    epochs_meg2.baseline = None
+    assert_raises(NotImplementedError, add_channels_epochs,
+                  [epochs_meg2, epochs_eeg])
+
+    epochs_meg2 = epochs_meg.copy()
+    epochs_meg2.event_id['b'] = 2
+    assert_raises(NotImplementedError, add_channels_epochs,
+                  [epochs_meg2, epochs_eeg])
