@@ -631,7 +631,7 @@ def _uniquify_projs(projs):
         if digits:
             sort_idx = int(digits[-1])
         else:
-            sort_idx = my_count.next() 
+            sort_idx = next(my_count)
         return (sort_idx, x['desc'])
         
     return sorted(final_projs, key=sorter)

@@ -1009,6 +1009,10 @@ def test_add_channels_epochs():
     assert_array_equal(data1, data2)
     
     epochs_meg2 = epochs_meg.copy()
+    epochs_meg2.info['meas_date'] += 10
+    add_channels_epochs( [epochs_meg2, epochs_eeg])
+    
+    epochs_meg2 = epochs_meg.copy()
     epochs2.info['filename'] = epochs2.info['filename'].upper()
     epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])
 
@@ -1047,16 +1051,6 @@ def test_add_channels_epochs():
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['dev_head_t']['to'] += 1
     assert_raises(ValueError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['meas_date'] += 10
-    assert_raises(RuntimeError, add_channels_epochs,
-                  [epochs_meg2, epochs_eeg])
-
-    epochs_meg2 = epochs_meg.copy()
-    epochs_meg2.info['meas_date'] += 10
-    assert_raises(RuntimeError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()

@@ -679,6 +679,10 @@ def _merge_dict_values(dicts, key, verbose=None):
         is_qual = all([np.all(values[0] == x) for x in values[1:]])
         if is_qual:
             return values[0]
+        elif key == 'meas_date':
+            logger.info('Found multiple entries for %s. '
+                        'Setting value to `None`' % key)
+            return None
         else:
             raise RuntimeError(msg)
     elif _check_isinstance(values, np.ndarray, any):
@@ -698,7 +702,7 @@ def _merge_dict_values(dicts, key, verbose=None):
             return None
         elif isinstance(list(unique_values)[0], string_types):
             logger.info('Found multiple filenames. '
-                        'Setting value to `No ne`')
+                        'Setting value to `None`')
             return None
         else:
             raise RuntimeError(msg)
