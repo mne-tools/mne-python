@@ -907,12 +907,14 @@ class Raw(ProjMixin, ContainsMixin, DropChannelsMixin):
         fname : string
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded.
-        picks : list of int
-            Indices of channels to include.
-        tmin : float
-            Time in seconds of first sample to save.
-        tmax : float
-            Time in seconds of last sample to save.
+        picks : list of int | None
+            Indices of channels to include. If None all channels are kept.
+        tmin : float | None
+            Time in seconds of first sample to save. If None first sample
+            is used.
+        tmax : float | None
+            Time in seconds of last sample to save. If None last sample
+            is used.
         buffer_size_sec : float | None
             Size of data chunks in seconds. If None, the buffer size of
             the original file is used.
