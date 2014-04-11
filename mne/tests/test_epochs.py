@@ -955,6 +955,17 @@ def test_drop_channels_mixin():
     assert_equal(len(ch_names), epochs.get_data().shape[1])
 
 
+def test_pick_channels_mixin():
+    """Test channels-dropping functionality
+    """
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+    ch_names = epochs.ch_names[:3]
+    epochs.pick_channels(ch_names)
+    assert_equal(ch_names, epochs.ch_names)
+    assert_equal(len(ch_names), epochs.get_data().shape[1])
+
+
 def test_equalize_channels():
     """Test equalization of channels
     """

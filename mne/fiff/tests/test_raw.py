@@ -927,6 +927,16 @@ def test_drop_channels_mixin():
     assert_equal(len(ch_names), raw._data.shape[0])
 
 
+def test_pick_channels_mixin():
+    """Test channel-picking functionality
+    """
+    raw = Raw(fif_fname, preload=True)
+    ch_names = raw.ch_names[:3]
+    raw.pick_channels(ch_names)
+    assert_equal(ch_names, raw.ch_names)
+    assert_equal(len(ch_names), raw._data.shape[0])
+
+
 def test_equalize_channels():
     """Test equalization of channels
     """

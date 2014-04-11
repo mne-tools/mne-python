@@ -150,10 +150,12 @@ class ContainsMixin(object):
             has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
 
+
 class PickDropChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
 
+    #XXX : to be updated soon with BaseRaw
     def pick_channels(self, ch_names):
         """Pick some channels
 
@@ -185,6 +187,8 @@ class PickDropChannelsMixin(object):
         elif isinstance(self, Evoked):
             self.data = self.data[idx, :]
 
+
+    #XXX : to be updated soon with BaseRaw
     def drop_channels(self, ch_names):
         """Drop some channels
 

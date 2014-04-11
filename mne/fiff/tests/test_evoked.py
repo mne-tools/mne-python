@@ -216,7 +216,7 @@ def test_get_peak():
     evoked = read_evoked(fname, setno=0, proj=True)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmax=0.9)
-    assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=0.02, 
+    assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=0.02,
                   tmax=0.01)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', mode='foo')
     assert_raises(RuntimeError, evoked.get_peak, ch_type=None, mode='foo')
@@ -258,6 +258,16 @@ def test_drop_channels_mixin():
     drop_ch = evoked.ch_names[:3]
     ch_names = evoked.ch_names[3:]
     evoked.drop_channels(drop_ch)
+    assert_equal(ch_names, evoked.ch_names)
+    assert_equal(len(ch_names), len(evoked.data))
+
+
+def test_pick_channels_mixin():
+    """Test channel-picking functionality
+    """
+    evoked = read_evoked(fname, setno=0, proj=True)
+    ch_names = evoked.ch_names[:3]
+    evoked.pick_channels(ch_names)
     assert_equal(ch_names, evoked.ch_names)
     assert_equal(len(ch_names), len(evoked.data))
 
