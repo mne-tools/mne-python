@@ -5,7 +5,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from copy import deepcopy
 
 from ..externals.six import string_types
 
@@ -158,7 +157,7 @@ class PickDropChannelsMixin(object):
     """
 
     #XXX : to be updated soon with BaseRaw
-    def pick_channels(self, ch_names, copy=True):
+    def pick_channels(self, ch_names, copy=False):
         """Pick some channels
 
         Parameters
@@ -166,14 +165,15 @@ class PickDropChannelsMixin(object):
         ch_names : list
             The list of channels to select.
         copy : bool
-            If True (default), returns new instance. Else, modifies in place.
+            If True, returns new instance. Else, modifies in place. Defaults to
+            False.
         """
         # avoid circular imports
         from . import Raw
         from .. import Epochs
         from . import Evoked
 
-        inst = deepcopy(self) if copy else self
+        inst = self.copy() if copy else self
 
         idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
         if hasattr(inst, 'picks'):
@@ -197,7 +197,7 @@ class PickDropChannelsMixin(object):
 
 
     #XXX : to be updated soon with BaseRaw
-    def drop_channels(self, ch_names, copy=True):
+    def drop_channels(self, ch_names, copy=False):
         """Drop some channels
 
         Parameters
@@ -205,14 +205,15 @@ class PickDropChannelsMixin(object):
         ch_names : list
             The list of channels to remove.
         copy : bool
-            If True (default), returns new instance. Else, modifies in place.
+            If True, returns new instance. Else, modifies in place. Defaults to
+            False.
         """
         # avoid circular imports
         from . import Raw
         from .. import Epochs
         from . import Evoked
 
-        inst = deepcopy(self) if copy else self
+        inst = self.copy() if copy else self
 
         bad_idx = [inst.ch_names.index(c) for c in ch_names
                    if c in inst.ch_names]

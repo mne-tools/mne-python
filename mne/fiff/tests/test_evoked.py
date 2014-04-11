@@ -257,6 +257,13 @@ def test_drop_channels_mixin():
     evoked = read_evoked(fname, setno=0, proj=True)
     drop_ch = evoked.ch_names[:3]
     ch_names = evoked.ch_names[3:]
+
+    ch_names_orig = evoked.ch_names
+    dummy = evoked.drop_channels(drop_ch, copy=True)
+    assert_equal(ch_names, dummy.ch_names)
+    assert_equal(ch_names_orig, evoked.ch_names)
+    assert_equal(len(ch_names_orig), len(evoked.data))
+
     evoked.drop_channels(drop_ch)
     assert_equal(ch_names, evoked.ch_names)
     assert_equal(len(ch_names), len(evoked.data))
@@ -267,6 +274,13 @@ def test_pick_channels_mixin():
     """
     evoked = read_evoked(fname, setno=0, proj=True)
     ch_names = evoked.ch_names[:3]
+
+    ch_names_orig = evoked.ch_names
+    dummy = evoked.pick_channels(ch_names, copy=True)
+    assert_equal(ch_names, dummy.ch_names)
+    assert_equal(ch_names_orig, evoked.ch_names)
+    assert_equal(len(ch_names_orig), len(evoked.data))
+
     evoked.pick_channels(ch_names)
     assert_equal(ch_names, evoked.ch_names)
     assert_equal(len(ch_names), len(evoked.data))
