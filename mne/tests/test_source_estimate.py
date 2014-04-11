@@ -244,7 +244,7 @@ def test_extract_label_time_course():
 
     label_means = np.arange(n_labels)[:, None] * np.ones((n_labels, n_times))
     label_maxs = np.arange(n_labels)[:, None] * np.ones((n_labels, n_times))
-    
+
     # compute the mean with sign flip
     label_means_flipped = np.zeros_like(label_means)
     for i, label in enumerate(labels):
@@ -330,7 +330,8 @@ def test_morph_data():
                              subjects_dir=subjects_dir)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
     # make sure we can specify vertices
-    vertices_to = grade_to_vertices(subject_to, grade=3)
+    vertices_to = grade_to_vertices(subject_to, grade=3,
+                                    subjects_dir=subjects_dir)
     stc_to2 = morph_data(subject_from, subject_to, stc_from,
                          grade=vertices_to, smooth=12, buffer_size=1000,
                          subjects_dir=subjects_dir)
@@ -366,6 +367,21 @@ def test_morph_data():
     mask[6799] = False
     mask[6800] = False
     assert_array_almost_equal(stc_from.data[mask], stc_to6.data[mask], 5)
+
+    # Morph sparse data
+    # Make a sparse stc
+    stc_from.vertno[0] = stc_from.vertno[0][[100, 500]]
+    stc_from.vertno[1] = stc_from.vertno[1][[200]]
+    stc_from._data = stc_from._data[:3]
+    stc_to_sparse = stc_from.morph(subject_to, sparse=True,
+                                   subjects_dir=subjects_dir)
+    assert_array_almost_equal(np.sort(stc_from.data.sum(axis=1)),
+                              np.sort(stc_to_sparse.data.sum(axis=1)))
+    assert_equal(len(stc_from.rh_vertno), len(stc_to_sparse.rh_vertno))
+    assert_equal(len(stc_from.lh_vertno), len(stc_to_sparse.lh_vertno))
+    assert_equal(stc_to_sparse.subject, subject_to)
+    assert_equal(stc_from.tmin, stc_from.tmin)
+    assert_equal(stc_from.tstep, stc_from.tstep)
 
 
 def _my_trans(data):
