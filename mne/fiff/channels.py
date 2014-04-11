@@ -5,6 +5,8 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from copy import deepcopy
+
 from ..externals.six import string_types
 
 from .tree import dir_tree_find
@@ -156,72 +158,83 @@ class PickDropChannelsMixin(object):
     """
 
     #XXX : to be updated soon with BaseRaw
-    def pick_channels(self, ch_names):
+    def pick_channels(self, ch_names, copy=True):
         """Pick some channels
 
         Parameters
         ----------
         ch_names : list
             The list of channels to select.
+        copy : bool
+            If True (default), returns new instance. Else, modifies in place.
         """
         # avoid circular imports
         from . import Raw
         from .. import Epochs
         from . import Evoked
 
-        idx = [self.ch_names.index(c) for c in ch_names if c in self.ch_names]
-        if hasattr(self, 'picks'):
-            self.picks = [self.picks[k] for k in idx]
+        inst = deepcopy(self) if copy else self
 
-        self.info = pick_info(self.info, idx, copy=False)
+        idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
+        if hasattr(inst, 'picks'):
+            inst.picks = [inst.picks[k] for k in idx]
 
-        my_get = lambda attr: getattr(self, attr, None)
+        inst.info = pick_info(inst.info, idx, copy=False)
+
+        my_get = lambda attr: getattr(inst, attr, None)
 
         if my_get('_projector') is not None:
-            self._projector = self._projector[idx][:, idx]
+            inst._projector = inst._projector[idx][:, idx]
 
-        if isinstance(self, Raw) and my_get('_preloaded'):
-            self._data = self._data[idx, :]
-        elif isinstance(self, Epochs) and my_get('preload'):
-            self._data = self._data[:, idx, :]
-        elif isinstance(self, Evoked):
-            self.data = self.data[idx, :]
+        if isinstance(inst, Raw) and my_get('_preloaded'):
+            inst._data = inst._data[idx, :]
+        elif isinstance(inst, Epochs) and my_get('preload'):
+            inst._data = inst._data[:, idx, :]
+        elif isinstance(inst, Evoked):
+            inst.data = inst.data[idx, :]
+
+        return inst
 
 
     #XXX : to be updated soon with BaseRaw
-    def drop_channels(self, ch_names):
+    def drop_channels(self, ch_names, copy=True):
         """Drop some channels
 
         Parameters
         ----------
         ch_names : list
             The list of channels to remove.
+        copy : bool
+            If True (default), returns new instance. Else, modifies in place.
         """
         # avoid circular imports
         from . import Raw
         from .. import Epochs
         from . import Evoked
 
-        bad_idx = [self.ch_names.index(c) for c in ch_names
-                   if c in self.ch_names]
-        idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
-        if hasattr(self, 'picks'):
-            self.picks = [self.picks[k] for k in idx]
+        inst = deepcopy(self) if copy else self
 
-        self.info = pick_info(self.info, idx, copy=False)
+        bad_idx = [inst.ch_names.index(c) for c in ch_names
+                   if c in inst.ch_names]
+        idx = np.setdiff1d(np.arange(len(inst.ch_names)), bad_idx)
+        if hasattr(inst, 'picks'):
+            inst.picks = [inst.picks[k] for k in idx]
 
-        my_get = lambda attr: getattr(self, attr, None)
+        inst.info = pick_info(inst.info, idx, copy=False)
+
+        my_get = lambda attr: getattr(inst, attr, None)
 
         if my_get('_projector') is not None:
-            self._projector = self._projector[idx][:, idx]
+            inst._projector = inst._projector[idx][:, idx]
 
-        if isinstance(self, Raw) and my_get('_preloaded'):
-            self._data = self._data[idx, :]
-        elif isinstance(self, Epochs) and my_get('preload'):
-            self._data = self._data[:, idx, :]
-        elif isinstance(self, Evoked):
-            self.data = self.data[idx, :]
+        if isinstance(inst, Raw) and my_get('_preloaded'):
+            inst._data = inst._data[idx, :]
+        elif isinstance(inst, Epochs) and my_get('preload'):
+            inst._data = inst._data[:, idx, :]
+        elif isinstance(inst, Evoked):
+            inst.data = inst.data[idx, :]
 
+        return inst
 
 def rename_channels(info, mapping):
     """Rename channels and optionally change the sensor type.
