@@ -29,7 +29,7 @@ def test_connection():
     with StimServer('localhost', port=4218, n_clients=2) as stim_server:
         thread1.start()
         thread2.start()
-        stim_server.start(timeout=1.0)  # don't allow test to hang
+        stim_server.start(timeout=10.0)  # don't allow test to hang
 
         # Add the trigger to the queue for both clients
         stim_server.add_trigger(20)
