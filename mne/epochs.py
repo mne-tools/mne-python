@@ -21,7 +21,6 @@ from .fiff.write import (start_file, start_block, end_file, end_block,
                          write_id, write_string)
 from .fiff.meas_info import read_meas_info, write_meas_info, _merge_info
 from .fiff.open import fiff_open
-from .fiff.raw import _time_as_index, _index_as_time, Raw
 from .fiff.tree import dir_tree_find
 from .fiff.tag import read_tag
 from .fiff import Evoked, FIFF
@@ -30,6 +29,7 @@ from .fiff.pick import (pick_types, channel_indices_by_type, channel_type,
 from .fiff.proj import setup_proj, ProjMixin
 from .fiff.channels import ContainsMixin, PickDropChannelsMixin
 from .fiff.evoked import aspect_rev
+from .raw import _BaseRaw, _time_as_index, _index_as_time
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed)
@@ -638,7 +638,7 @@ class Epochs(_BaseEpochs):
                  on_missing='error', verbose=None):
         if raw is None:
             return
-        elif not isinstance(raw, Raw):
+        elif not isinstance(raw, _BaseRaw):
             raise ValueError('The first argument to `Epochs` must be `None` '
                              'or an instance of `mne.fiff.Raw`')
         if on_missing not in ['error', 'warning', 'ignore']:
@@ -1954,7 +1954,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     name : str
         Comment that describes the Evoked data created.
     add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless there is no 
+        If True, an EEG average reference will be added (unless there is no
         EEG in the data).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -1971,7 +1971,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     info = _merge_info([epochs.info for epochs in epochs_list])
     data = [epochs.get_data() for epochs in epochs_list]
     event_id, tmin, tmax, baseline = _check_merge_epochs(epochs_list)
-    
+
     for d in data:
         if len(d) != len(data[0]):
             raise ValueError('all epochs must be of the same length')
@@ -1987,7 +1987,6 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
                       axis=0)
     if not np.all(all_same):
         raise ValueError('Events must be the same.')
-
 
     proj = any(e.proj for e in epochs_list) or add_eeg_ref
 
