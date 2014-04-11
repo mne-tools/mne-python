@@ -35,7 +35,7 @@ def _read_header(fname):
         value_range=np.fromfile(fid, '>i2', 1)
     )
 
-    unsegmented = 1 if np.bitwise_and(version, 1) == 0 else 1
+    unsegmented = 1 if np.bitwise_and(version, 1) == 0 else 0
     precision = np.bitwise_and(version, 6)
     if precision == 0:
         RuntimeError('File precision is not defined.')
@@ -54,10 +54,12 @@ def _read_header(fname):
         info['event_codes'] = np.array(info['event_codes'])
     else:
         raise NotImplementedError('Only continous files are supported')
+
     info.update(dict(precision=precision, unsegmented=unsegmented))
     events = _read_events(fid, info)
+    data = _read_data(fid, info)
     fid.close()
-    return info, events
+    return info, events, data
 
 
 def _read_events(fid, info):
@@ -69,6 +71,7 @@ def _read_events(fid, info):
     dtype, bytesize = {2: ('>i2', 2), 4: ('>f4', 4),
                        6: ('>f8', 8)}[info['precision']]
 
+    info.update({'dtype': dtype, 'bytesize': bytesize})
     beg_dat = fid.tell()
 
     for ii in range(info['n_events']):
@@ -78,8 +81,16 @@ def _read_events(fid, info):
     return events
 
 
-def _read_data():
-    pass
+def _read_data(fid, info):
+    """Aux function"""
+    if not info['unsegmented']:
+        raise NotImplementedError('Only continous files are supported')
+
+    fid.seek(36 + info['n_events'] * 4, 0)  # skip header
+    readsize = (info['n_channels'] + info['n_events']) * info['n_samples']
+    final_shape = (info['n_samples'], info['n_channels'] + info['n_events'])
+    data = np.fromfile(fid, info['dtype'], readsize).reshape(final_shape).T
+    return data
 
 
 def read_raw_egi(fname):
