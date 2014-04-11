@@ -150,25 +150,24 @@ class ContainsMixin(object):
             has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
 
-class DropChannelsMixin(object):
+class PickDropChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
 
-    def drop_channels(self, ch_names):
-        """Drop some channels
+    def pick_channels(self, ch_names):
+        """Pick some channels
 
         Parameters
         ----------
         ch_names : list
-            The list of channels to remove.
+            The list of channels to select.
         """
         # avoid circular imports
         from . import Raw
         from .. import Epochs
         from . import Evoked
 
-        bad_idx = [self.ch_names.index(c) for c in ch_names]
-        idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
+        idx = [self.ch_names.index(c) for c in ch_names if c in self.ch_names]
         if hasattr(self, 'picks'):
             self.picks = [self.picks[k] for k in idx]
 
@@ -186,25 +185,22 @@ class DropChannelsMixin(object):
         elif isinstance(self, Evoked):
             self.data = self.data[idx, :]
 
-
-class PickChannelsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs
-    """
-
-    def pick_channels(self, ch_names):
-        """Pick some channels
+    def drop_channels(self, ch_names):
+        """Drop some channels
 
         Parameters
         ----------
         ch_names : list
-            The list of channels to select.
+            The list of channels to remove.
         """
         # avoid circular imports
         from . import Raw
         from .. import Epochs
         from . import Evoked
 
-        idx = [self.ch_names.index(c) for c in ch_names]
+        bad_idx = [self.ch_names.index(c) for c in ch_names
+                   if c in self.ch_names]
+        idx = np.setdiff1d(np.arange(len(self.ch_names)), bad_idx)
         if hasattr(self, 'picks'):
             self.picks = [self.picks[k] for k in idx]
 
