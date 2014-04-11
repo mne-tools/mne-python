@@ -951,7 +951,32 @@ def test_drop_channels_mixin():
                     baseline=(None, 0))
     drop_ch = epochs.ch_names[:3]
     ch_names = epochs.ch_names[3:]
+
+    ch_names_orig = epochs.ch_names
+    dummy = epochs.drop_channels(drop_ch, copy=True)
+    assert_equal(ch_names, dummy.ch_names)
+    assert_equal(ch_names_orig, epochs.ch_names)
+    assert_equal(len(ch_names_orig), epochs.get_data().shape[1])
+
     epochs.drop_channels(drop_ch)
+    assert_equal(ch_names, epochs.ch_names)
+    assert_equal(len(ch_names), epochs.get_data().shape[1])
+
+
+def test_pick_channels_mixin():
+    """Test channel-picking functionality
+    """
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0))
+    ch_names = epochs.ch_names[:3]
+
+    ch_names_orig = epochs.ch_names
+    dummy = epochs.pick_channels(ch_names, copy=True)
+    assert_equal(ch_names, dummy.ch_names)
+    assert_equal(ch_names_orig, epochs.ch_names)
+    assert_equal(len(ch_names_orig), epochs.get_data().shape[1])
+
+    epochs.pick_channels(ch_names)
     assert_equal(ch_names, epochs.ch_names)
     assert_equal(len(ch_names), epochs.get_data().shape[1])
 

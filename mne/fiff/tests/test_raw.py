@@ -922,7 +922,31 @@ def test_drop_channels_mixin():
     raw = Raw(fif_fname, preload=True)
     drop_ch = raw.ch_names[:3]
     ch_names = raw.ch_names[3:]
+
+    ch_names_orig = raw.ch_names
+    dummy = raw.drop_channels(drop_ch, copy=True)
+    assert_equal(ch_names, dummy.ch_names)
+    assert_equal(ch_names_orig, raw.ch_names)
+    assert_equal(len(ch_names_orig), raw._data.shape[0])
+
     raw.drop_channels(drop_ch)
+    assert_equal(ch_names, raw.ch_names)
+    assert_equal(len(ch_names), raw._data.shape[0])
+
+
+def test_pick_channels_mixin():
+    """Test channel-picking functionality
+    """
+    raw = Raw(fif_fname, preload=True)
+    ch_names = raw.ch_names[:3]
+
+    ch_names_orig = raw.ch_names
+    dummy = raw.pick_channels(ch_names, copy=True)
+    assert_equal(ch_names, dummy.ch_names)
+    assert_equal(ch_names_orig, raw.ch_names)
+    assert_equal(len(ch_names_orig), raw._data.shape[0])
+
+    raw.pick_channels(ch_names)
     assert_equal(ch_names, raw.ch_names)
     assert_equal(len(ch_names), raw._data.shape[0])
 
