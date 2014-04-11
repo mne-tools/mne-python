@@ -1,5 +1,6 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          simplified BSD-3 license
+
 import time
 import datetime
 
@@ -28,7 +29,8 @@ def _read_header(fid):
     if version > 6 & ~np.bitwise_and(version, 6):
         version = version.byteswap().astype(np.uint32)
     else:
-        ValueError('This is not a simple binary file.')
+        ValueError('Watchout. This does not seem to be a simple '
+                   'binary EGI file.')
     my_fread = lambda *x, **y: np.fromfile(*x, **y)[0]
     info = dict(
         version=version,
@@ -49,7 +51,7 @@ def _read_header(fid):
     unsegmented = 1 if np.bitwise_and(version, 1) == 0 else 0
     precision = np.bitwise_and(version, 6)
     if precision == 0:
-        RuntimeError('File precision is not defined.')
+        RuntimeError('Floating point precision is undefined.')
 
     if unsegmented:
         info.update(dict(n_categories=0,
@@ -115,7 +117,10 @@ def _combine_triggers(info, data, remapping=None):
         remapping = np.arange(data) + 1
 
     for d, event_id in zip(data, remapping):
-        new_trigger += (d + event_id)
+        idx = d.nonzero()
+        # import pdb;pdb.set_trace()
+        if np.any(idx):
+            new_trigger[idx] += event_id
 
     return new_trigger[None]
 
@@ -180,7 +185,7 @@ class _RawEDF(Raw):
         info['projs'] = []
         ch_names = ['EEG %i' % (i + 1) for i in range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
-        ch_names.append('STI0 14')  # our new_trigger
+        ch_names.append('STI 014')  # our new_trigger
         info['nchan'] = len(data)
         info['chs'] = []
         info['ch_names'] = ch_names
