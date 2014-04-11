@@ -1405,6 +1405,7 @@ class SourceEstimate(_BaseSourceEstimate):
             computing vertex locations. Note that if subject='fsaverage'
             and 'grade=5', this set of vertices will automatically be used
             (instead of computed) for speed, since this is a common morph.
+            NOTE : If sparse=True, grade has to be set to None.
         smooth : int or None
             Number of iterations for the smoothing of the surface data.
             If None, smooth is automatically defined to fill the surface
@@ -1421,7 +1422,8 @@ class SourceEstimate(_BaseSourceEstimate):
             If None, self.subject will be used.
         sparse : bool
             Morph as a sparse source estimate. If True the only
-            parameters used are subject_to and subject_from.
+            parameters used are subject_to and subject_from,
+            and grade has to be None.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -1432,6 +1434,8 @@ class SourceEstimate(_BaseSourceEstimate):
         """
         subject_from = _check_subject(self.subject, subject_from)
         if sparse:
+            if grade is not None:
+                raise RuntimeError('grade must be set to None if sparse=True.')
             return _morph_sparse(self, subject_from, subject_to, subjects_dir)
         else:
             return morph_data(subject_from, subject_to, self, grade, smooth,
