@@ -21,7 +21,7 @@ from mne.externals.six.moves import zip
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 tempdir = _TempDir()
 
-base_dir = op.join(op.dirname(__file__), 'data')
+base_dir = op.join(op.dirname(op.realpath(__file__)), 'data')
 egi_fname = op.join(base_dir, 'test_egi.raw')
 
 
