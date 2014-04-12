@@ -1,12 +1,13 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          simplified BSD-3 license
 
-import time
 import datetime
-
-import numpy as np
 import os
 import os.path as op
+import time
+
+import numpy as np
+
 from .. import Raw
 from ..meas_info import Info
 from ..constants import FIFF
@@ -118,37 +119,34 @@ def _combine_triggers(info, data, remapping=None):
 
     for d, event_id in zip(data, remapping):
         idx = d.nonzero()
-        # import pdb;pdb.set_trace()
         if np.any(idx):
             new_trigger[idx] += event_id
 
     return new_trigger[None]
 
 
-def read_raw_egi(input_fname, event_id=None):
+def read_raw_egi(input_fname, event_ids=None):
     """Read EGI simple binary as raw object
 
     Parameters
     ----------
     input_fname : str
         Path to the raw file.
-    event_id : list of int | None
+    event_ids : list of int | None
         The integer values that will be assigned to the synthetized trigger
         channel based on the event codes found. If None, equals
         np.arange(n_events) + 1.
+
     Returns
     -------
-        raw : instance of mne.fiff.Raw
+    raw : instance of mne.fiff.Raw
+        A raw object containing EGI data.
     """
-    return _RawEDF(input_fname, event_id)
+    return _RawEGI(input_fname, event_ids)
 
 
-class _RawEDF(Raw):
+class _RawEGI(Raw):
     """Raw object from EGI simple binary file
-
-    See Also
-    --------
-    mne.fiff.Raw : Documentation of attribute and methods.
     """
     def __init__(self, input_fname, event_ids=None):
         """docstring for __init__"""

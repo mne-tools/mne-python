@@ -51,9 +51,12 @@ Changelog
    
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
+<<<<<<< HEAD
    - Add `add_channels_epochs` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
 
 
+=======
+>>>>>>> address discussion
 BUG
 ~~~
 
