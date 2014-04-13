@@ -4,7 +4,7 @@ What's new
 .. _changes_0_8:
 
 Current
------------
+----------- 
 
 Changelog
 ~~~~~~~~~
@@ -51,12 +51,10 @@ Changelog
    
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
-<<<<<<< HEAD
    - Add `add_channels_epochs` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
 
+   - Add support for EGI Netstation simple binary files by `Denis Engemann`_
 
-=======
->>>>>>> address discussion
 BUG
 ~~~
 
