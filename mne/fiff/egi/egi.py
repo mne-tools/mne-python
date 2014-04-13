@@ -105,12 +105,12 @@ def _read_data(fid, info):
     return data
 
 
-def _combine_triggers(info, data, remapping=None):
+def _combine_triggers(data, remapping=None):
     """Combine binary triggers"""
     new_trigger = np.zeros(data[0].shape)
     first = np.nonzero(data[0])[0]
     for d in data[1:]:
-        if np.any(d.nonzero()[0] == first):
+        if np.intersect1d(d.nonzero()[0], first).any():
             raise RuntimeError('Events must be mutually exclusive')
 
     if remapping is None:
@@ -132,13 +132,14 @@ def read_raw_egi(input_fname, event_ids=None):
     input_fname : str
         Path to the raw file.
     event_ids : list of int | None
-        The integer values that will be assigned to the synthetized trigger
+        The integer values that will be assigned to the synthesized trigger
         channel based on the event codes found. If None, equals
         np.arange(n_events) + 1.
-        Note. The trigger channel is artifically constructed based on
-        timestamps received by the Netstation. As a consequence triggers only
-        last ofr one sample. You therefore need to use `shortest_event=1`
-        when using `mne.find_events`.
+        Note. This step will fail if events are not mutually exclusive.
+        Note. The trigger channel is artificially constructed based on
+        timestamps received by the Netstation. As a consequence, triggers
+        may last for only one sample. You therefore might want to use
+        `shortest_event=1` when using `mne.find_events`.
 
     Returns
     -------
@@ -156,19 +157,26 @@ class _RawEGI(Raw):
         with open(input_fname, 'r') as fid:
             logger.info('Reading EGI header from %s...' % input_fname)
             egi_info = _read_header(fid)
-            logger.info('Reading events ...')
+            logger.info('    Reading events ...')
             events = _read_events(fid, egi_info)
-            logger.info('Reading data ...')
+            logger.info('    Reading data ...')
             data = _read_data(fid, egi_info)
 
-        logger.info('Assembling measurement info ...')
+        logger.info('    Assembling measurement info ...')
         if event_ids is None:
             event_ids = np.arange(egi_info['n_events']) + 1
 
-        new_trigger = _combine_triggers(egi_info,
-                                        data[-egi_info['n_events']:],
-                                        remapping=event_ids)
-        self._data = data = np.concatenate([data, new_trigger])
+        try:
+            logger.info('    Synthesizing trigger channel "STI 014" ...')
+            new_trigger = _combine_triggers(data[-egi_info['n_events']:],
+                                            remapping=event_ids)
+            data = np.concatenate([data, new_trigger])
+        except RuntimeError:
+            logger.info('    Found multiple events at the same time sample. '
+                        'Could not create trigger channel.')
+            new_trigger = None
+ 
+        self._data = data
         self.info = info = Info(dict((k, None) for k in _other_fields))
         info['sfreq'] = egi_info['samp_rate']
         info['filename'] = input_fname
@@ -186,7 +194,8 @@ class _RawEGI(Raw):
         info['projs'] = []
         ch_names = ['EEG %i' % (i + 1) for i in range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
-        ch_names.append('STI 014')  # our new_trigger
+        if new_trigger is not None:
+            ch_names.append('STI 014')  # our new_trigger
         info['nchan'] = len(data)
         info['chs'] = []
         info['ch_names'] = ch_names

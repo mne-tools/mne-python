@@ -13,7 +13,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne import find_events
-from mne.fiff.egi import read_raw_egi
+from mne.fiff.egi import read_raw_egi, _combine_triggers
 from mne.fiff import pick_types, Raw
 from mne.utils import _TempDir
 from mne.externals.six.moves import zip
@@ -50,3 +50,11 @@ def test_io_egi():
     assert_equal(np.unique(events[:, 1])[0], 0)
     assert_true(np.unique(events[:, 0])[0] != 0)
     assert_true(np.unique(events[:, 2])[0] != 0)
+    triggers = np.array([[0, 1, 1, 0], [0, 0, 1, 0]])
+    
+    # test trigger functionality
+    assert_raises(RuntimeError, _combine_triggers, triggers, None)
+    triggers = np.array([[0, 1, 0, 0], [0, 0, 1, 0]])
+    events_ids = [12, 24]
+    new_trigger = _combine_triggers(triggers, events_ids)
+    assert_array_equal(np.unique(new_trigger), np.unique([0, 12, 24]))
