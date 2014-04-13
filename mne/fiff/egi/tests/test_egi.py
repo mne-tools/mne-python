@@ -26,7 +26,7 @@ egi_fname = op.join(base_dir, 'test_egi.raw')
 
 
 def test_io_egi():
-    """Test impoting EGI files"""
+    """Test importing EGI simple binary files"""
     raw = read_raw_egi(egi_fname)
 
     print(raw)

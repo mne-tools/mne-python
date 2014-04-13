@@ -64,7 +64,8 @@ def _read_header(fid):
                          category_lengths=[],
                          pre_baseline=0))
         for event in range(info['n_events']):
-            info['event_codes'].append(np.fromfile(fid, 'S1', 4).tostring())
+            event_codes = ''.join(np.fromfile(fid, 'S1', 4).astype('U1'))
+            info['event_codes'].append(event_codes)
         info['event_codes'] = np.array(info['event_codes'])
     else:
         raise NotImplementedError('Only continous files are supported')
