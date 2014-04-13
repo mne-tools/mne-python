@@ -108,7 +108,6 @@ def _read_data(fid, info):
 def _combine_triggers(info, data, remapping=None):
     """Combine binary triggers"""
     new_trigger = np.zeros(data[0].shape)
-
     first = np.nonzero(data[0])[0]
     for d in data[1:]:
         if np.any(d.nonzero()[0] == first):
@@ -136,6 +135,10 @@ def read_raw_egi(input_fname, event_ids=None):
         The integer values that will be assigned to the synthetized trigger
         channel based on the event codes found. If None, equals
         np.arange(n_events) + 1.
+        Note. The trigger channel is artifically constructed based on
+        timestamps received by the Netstation. As a consequence triggers only
+        last ofr one sample. You therefore need to use `shortest_event=1`
+        when using `mne.find_events`.
 
     Returns
     -------
