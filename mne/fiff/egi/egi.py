@@ -252,13 +252,13 @@ class _RawEGI(Raw):
         self._projector = None
         self.first_samp = 0
         self.last_samp = egi_info['n_samples'] - 1
-        self.comp = None  # no compensation for EDF
+        self.comp = None  # no compensation for egi
         self.proj = False
         self._first_samps = np.array([self.first_samp])
         self._last_samps = np.array([self.last_samp])
         self._raw_lengths = np.array([egi_info['n_samples']])
         self.rawdirs = np.array([])
-        self.cals = np.array([])
+        self.cals = np.ones(self.info['nchan'])
         # use information from egi
         self.orig_format = {'>f4': 'single', '>f4': 'double',
                             '>i2': 'int'}[egi_info['dtype']]
