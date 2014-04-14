@@ -70,6 +70,7 @@ if __name__ == "__main__":
                     'mne.fiff.bti', 'mne.fiff.bti.tests',
                     'mne.fiff.kit', 'mne.fiff.kit.tests',
                     'mne.fiff.edf', 'mne.fiff.edf.tests',
+                    'mne.fiff.egi', 'mne.fiff.egi.tests',
                     'mne.fiff.brainvision', 'mne.fiff.brainvision.tests',
                     'mne.forward', 'mne.forward.tests',
                     'mne.gui', 'mne.gui.tests',

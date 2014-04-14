@@ -128,7 +128,6 @@ Functions:
    write_surface
    write_trans
 
-.. currentmodule:: mne.fiff.bti
 
 :py:mod:`mne.fiff.bti`:
 
@@ -174,6 +173,16 @@ Functions:
   :template: function.rst
 
    read_raw_brainvision
+
+:py:mod:`mne.fiff.egi`:
+
+Functions:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+  read_raw_egi
 
 :py:mod:`mne.datasets.sample`:
 

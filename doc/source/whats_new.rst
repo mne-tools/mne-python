@@ -4,7 +4,7 @@ What's new
 .. _changes_0_8:
 
 Current
------------
+----------- 
 
 Changelog
 ~~~~~~~~~
@@ -53,6 +53,7 @@ Changelog
 
    - Add `add_channels_epochs` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
 
+   - Add support for EGI Netstation simple binary files by `Denis Engemann`_
 
 BUG
 ~~~

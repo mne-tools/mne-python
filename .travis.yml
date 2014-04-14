@@ -48,6 +48,7 @@ install:
     - ln -s ${SRC_DIR}/mne/fiff/edf/tests/data ${MNE_DIR}/fiff/edf/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/kit/tests/data ${MNE_DIR}/fiff/kit/tests/data
     - ln -s ${SRC_DIR}/mne/fiff/brainvision/tests/data ${MNE_DIR}/fiff/brainvision/tests/data
+    - ln -s ${SRC_DIR}/mne/fiff/egi/tests/data ${MNE_DIR}/fiff/egi/tests/data
     - ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg
     - ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc
     # Link coverage to src dir, coveralls should be run from there (needs git calls)
