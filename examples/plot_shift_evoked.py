@@ -20,7 +20,7 @@ data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading evoked data
-evoked = fiff.Evoked(fname, setno='Left Auditory',
+evoked = fiff.Evoked(fname, condition='Left Auditory',
                      baseline=(None, 0), proj=True)
 
 picks = fiff.pick_channels(ch_names=evoked.info['ch_names'],

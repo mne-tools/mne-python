@@ -46,7 +46,7 @@ last_keys = [None] * 10
 
 
 def _get_evoked():
-    evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
+    evoked = fiff.Evoked(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(0, 0.2)
     return evoked
 

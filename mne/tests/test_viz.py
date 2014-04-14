@@ -555,8 +555,8 @@ def test_plot_source_spectrogram():
 def test_plot_evoked_field():
     trans_fname = op.join(data_dir, 'MEG', 'sample',
                           'sample_audvis_raw-trans.fif')
-    setno = 'Left Auditory'
-    evoked = fiff.read_evoked(evoked_fname, setno=setno,
+    condition = 'Left Auditory'
+    evoked = fiff.read_evoked(evoked_fname, condition=condition,
                               baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
     for t in ['meg', None]:

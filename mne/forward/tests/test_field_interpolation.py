@@ -96,7 +96,7 @@ def test_make_field_map_eeg():
     """Test interpolation of EEG field onto head
     """
     trans = read_trans(trans_fname)
-    evoked = read_evoked(evoked_fname, setno='Left Auditory')
+    evoked = read_evoked(evoked_fname, condition='Left Auditory')
     evoked.info['bads'] = ['MEG 2443', 'EEG 053']  # add some bads
     surf = get_head_surf('sample', subjects_dir=subjects_dir)
     # we must have trans if surface is in MRI coords
@@ -120,7 +120,7 @@ def test_make_field_map_eeg():
 def test_make_field_map_meg():
     """Test interpolation of MEG field onto helmet
     """
-    evoked = read_evoked(evoked_fname, setno='Left Auditory')
+    evoked = read_evoked(evoked_fname, condition='Left Auditory')
     info = evoked.info
     surf = get_meg_helmet_surf(info)
     # let's reduce the number of channels by a bunch to speed it up

@@ -42,7 +42,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     fname : string
         Name of evoked/average FIF file to load.
         If None no data is loaded.
-    setno : int, or str
+    condition : int, or str
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
     baseline : tuple or list of length 2, or None
@@ -57,7 +57,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         Apply SSP projection vectors
     kind : str
         Either 'average' or 'standard_error'. The type of data to read.
-        Only used if 'setno' is a str.
+        Only used if 'condition' is a str.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -85,10 +85,17 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         See above.
     """
     @verbose
-    def __init__(self, fname, setno=None, baseline=None, proj=True,
-                 kind='average', verbose=None):
+    def __init__(self, fname, condition=None, baseline=None, proj=True,
+                 kind='average', verbose=None, setno='none'):
         if fname is None:
             return
+
+        # XXX should be deleted for 0.9 release
+        if condition is None and setno is not 'none':
+            condition = setno
+            msg = ("'setno' will be deprecated in 0.9. Use 'condition' "
+                    "instead.")
+            warnings.warn(msg, DeprecationWarning)
 
         self.verbose = verbose
         logger.info('Reading %s ...' % fname)
@@ -111,43 +118,28 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             fid.close()
             raise ValueError('Could not find evoked data')
 
-        # convert setno to an integer
-        if setno is None:
-            if len(evoked_node) > 1:
-                try:
-                    _, _, t = _get_entries(fid, evoked_node)
-                except:
-                    t = 'None found, must use integer'
-                else:
-                    fid.close()
-                raise ValueError('%d datasets present, setno parameter '
-                                 'must be set. Candidate setno names:\n%s'
-                                 % (len(evoked_node), t))
-            else:
-                setno = 0
-
-        # find string-based entry
-        elif isinstance(setno, string_types):
+        # find string-based entry and convert to integer
+        if isinstance(condition, string_types):
             if not kind in aspect_dict.keys():
                 fid.close()
                 raise ValueError('kind must be "average" or '
                                  '"standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node)
-            goods = np.logical_and(in1d(comments, [setno]),
+            goods = np.logical_and(in1d(comments, [condition]),
                                    in1d(aspect_kinds, [aspect_dict[kind]]))
-            found_setno = np.where(goods)[0]
-            if len(found_setno) != 1:
+            found_cond = np.where(goods)[0]
+            if len(found_cond) != 1:
                 fid.close()
-                raise ValueError('setno "%s" (%s) not found, out of found '
-                                 'datasets:\n  %s' % (setno, kind, t))
-            setno = found_setno[0]
+                raise ValueError('condition "%s" (%s) not found, out of found '
+                                 'datasets:\n  %s' % (condition, kind, t))
+            condition = found_cond[0]
 
-        if setno >= len(evoked_node) or setno < 0:
+        if condition >= len(evoked_node) or condition < 0:
             fid.close()
             raise ValueError('Data set selector out of range')
 
-        my_evoked = evoked_node[setno]
+        my_evoked = evoked_node[condition]
 
         # Identify the aspects
         aspects = dir_tree_find(my_evoked, FIFF.FIFFB_ASPECT)
@@ -755,6 +747,15 @@ def _get_entries(fid, evoked_node):
     return comments, aspect_kinds, t
 
 
+def _get_n_conditions(fname):
+    """Helper to get number of conditions in evoked file"""
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        _, meas = read_meas_info(fid, tree)
+        evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
+    return len(evoked_node)
+
+
 def merge_evoked(all_evoked):
     """Merge/concat evoked data
 
@@ -792,17 +793,17 @@ def merge_evoked(all_evoked):
     return evoked
 
 
-def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
+def read_evoked(fname, condition=None, baseline=None, kind='average',
+                proj=True, setno='none'):
     """Read an evoked dataset
 
     Parameters
     ----------
     fname : string
         The file name.
-    setno : int or str | list of int or str | None
+    condition : int or str | list of int or str | None
         The index or list of indices of the evoked dataset to read. FIF
-        file can contain multiple datasets. If None and there is only one
-        dataset in the file, this dataset is loaded.
+        file can contain multiple datasets. If None, all datasets are loaded.
     baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -821,11 +822,19 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
     evoked : instance of Evoked or list of Evoked
         The evoked datasets.
     """
-    if isinstance(setno, list):
-        return [Evoked(fname, s, baseline=baseline, kind=kind, proj=proj)
-                for s in setno]
-    else:
-        return Evoked(fname, setno, baseline=baseline, kind=kind, proj=proj)
+    # XXX should be deleted for 0.9 release
+    if condition is None and setno is not 'none':
+        condition = setno
+        msg = ("'setno' will be deprecated in 0.9. Use 'condition' instead.")
+        warnings.warn(msg, DeprecationWarning)
+
+    if condition is None:
+        condition = range(_get_n_conditions(fname))
+    elif not isinstance(condition, list):
+        condition = [condition]
+    out = [Evoked(fname, c, baseline=baseline, kind=kind, proj=proj)
+           for c in condition]
+    return out if len(out) > 1 else out[0]
 
 
 def write_evoked(fname, evoked):

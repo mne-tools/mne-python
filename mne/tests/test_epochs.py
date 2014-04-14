@@ -437,7 +437,7 @@ def test_indexing_slicing():
 def test_comparision_with_c():
     """Test of average obtained vs C code
     """
-    c_evoked = fiff.Evoked(evoked_nf_name, setno=0)
+    c_evoked = fiff.Evoked(evoked_nf_name, condition=0)
     epochs = Epochs(raw, events, event_id, tmin, tmax,
                     baseline=None, preload=True,
                     reject=None, flat=None)
@@ -1032,11 +1032,11 @@ def test_add_channels_epochs():
     assert_array_equal(data1, data3)  # XXX unrelated bug? this crashes
                                       # when proj == True
     assert_array_equal(data1, data2)
-    
+
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['meas_date'] += 10
     add_channels_epochs( [epochs_meg2, epochs_eeg])
-    
+
     epochs_meg2 = epochs_meg.copy()
     epochs2.info['filename'] = epochs2.info['filename'].upper()
     epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])

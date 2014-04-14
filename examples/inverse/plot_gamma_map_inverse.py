@@ -26,8 +26,9 @@ evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 # Read the evoked response and crop it
-setno = 'Left visual'
-evoked = mne.fiff.read_evoked(evoked_fname, setno=setno, baseline=(None, 0))
+condition = 'Left visual'
+evoked = mne.fiff.read_evoked(evoked_fname, condition=condition,
+                              baseline=(None, 0))
 evoked.crop(tmin=-50e-3, tmax=300e-3)
 
 # Read the forward solution

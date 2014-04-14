@@ -30,7 +30,7 @@ lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
-evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
+evoked = Evoked(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 
 # Compute inverse solution
@@ -58,7 +58,7 @@ vertno_max, time_idx = stc.get_peak(hemi='rh', time_as_index=True)
 
 brain.set_data_time_index(time_idx)
 
-# draw marker at maximum peaking vertex 
-brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue', 
+# draw marker at maximum peaking vertex
+brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
                scale_factor=0.6)
 brain.save_image('dSPM_map.png')
