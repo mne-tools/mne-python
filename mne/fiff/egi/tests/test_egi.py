@@ -2,21 +2,17 @@
 #          simplified BSD-3 license
 
 
-import os
 import os.path as op
-from copy import deepcopy
 import warnings
 
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose)
+from numpy.testing import assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne import find_events
 from mne.fiff.egi import read_raw_egi, _combine_triggers
 from mne.fiff import pick_types, Raw
 from mne.utils import _TempDir
-from mne.externals.six.moves import zip
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 tempdir = _TempDir()
@@ -51,7 +47,7 @@ def test_io_egi():
     assert_true(np.unique(events[:, 0])[0] != 0)
     assert_true(np.unique(events[:, 2])[0] != 0)
     triggers = np.array([[0, 1, 1, 0], [0, 0, 1, 0]])
-    
+
     # test trigger functionality
     assert_raises(RuntimeError, _combine_triggers, triggers, None)
     triggers = np.array([[0, 1, 0, 0], [0, 0, 1, 0]])

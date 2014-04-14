@@ -3,7 +3,6 @@
 
 import datetime
 import os
-import os.path as op
 import time
 
 import numpy as np
@@ -127,13 +126,13 @@ def _combine_triggers(data, remapping=None):
 
 def read_raw_egi(input_fname, event_ids=None):
     """Read EGI simple binary as raw object
-    
+
     Note. The trigger channel names are based on the
     arbitrary user dependent event codes used. However this
     function will attempt to generate a synthetic trigger channel
     named ``STI 014`` in accordance with the general Neuromag / MNE
     naming pattern.
- 
+
     Parameters
     ----------
     input_fname : str
@@ -147,7 +146,7 @@ def read_raw_egi(input_fname, event_ids=None):
         timestamps received by the Netstation. As a consequence, triggers
         may last for only one sample. You therefore might want to use
         `shortest_event=1` when using `mne.find_events`.
-    
+
     Returns
     -------
     raw : instance of mne.fiff.Raw
@@ -159,15 +158,16 @@ def read_raw_egi(input_fname, event_ids=None):
 class _RawEGI(Raw):
     """Raw object from EGI simple binary file
     """
-    def __init__(self, input_fname, event_ids=None):
+    @verbose
+    def __init__(self, input_fname, event_ids=None, verbose=None):
         """docstring for __init__"""
         with open(input_fname, 'rb') as fid:  # 'rb' important for py3k
             logger.info('Reading EGI header from %s...' % input_fname)
             egi_info = _read_header(fid)
             logger.info('    Reading events ...')
-            events = _read_events(fid, egi_info)
+            _read_events(fid, egi_info)  # jump + update info
             logger.info('    Reading data ...')
-            data = _read_data(fid, egi_info)
+            data = _read_data(fid, egi_info)  # reads events
 
         logger.info('    Assembling measurement info ...')
         if event_ids is None:
@@ -182,7 +182,7 @@ class _RawEGI(Raw):
             logger.info('    Found multiple events at the same time sample. '
                         'Could not create trigger channel.')
             new_trigger = None
- 
+
         self._data = data
         self.info = info = Info(dict((k, None) for k in _other_fields))
         info['sfreq'] = egi_info['samp_rate']
