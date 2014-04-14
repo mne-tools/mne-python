@@ -155,7 +155,7 @@ class _RawEGI(Raw):
     """
     def __init__(self, input_fname, event_ids=None):
         """docstring for __init__"""
-        with open(input_fname, 'r') as fid:
+        with open(input_fname, 'rb') as fid:  # 'rb' important for py3k
             logger.info('Reading EGI header from %s...' % input_fname)
             egi_info = _read_header(fid)
             logger.info('    Reading events ...')
