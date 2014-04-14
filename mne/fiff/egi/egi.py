@@ -167,7 +167,13 @@ class _RawEGI(Raw):
             logger.info('    Reading events ...')
             _read_events(fid, egi_info)  # jump + update info
             logger.info('    Reading data ...')
-            data = _read_data(fid, egi_info)  # reads events
+            # reads events as well
+            data = _read_data(fid, egi_info).astype(np.float64)
+            if egi_info['value_range'] and  egi_info['bits']:
+                mv = egi_info['value_range'] / 2 ** egi_info['bits']
+            else: 
+                mv = 1e-6
+            data[:egi_info['n_channels']] = data[:egi_info['n_channels']] * mv
 
         logger.info('    Assembling measurement info ...')
         if event_ids is None:
