@@ -127,7 +127,13 @@ def _combine_triggers(data, remapping=None):
 
 def read_raw_egi(input_fname, event_ids=None):
     """Read EGI simple binary as raw object
-
+    
+    Note. The trigger channel names are based on the
+    arbitrary user dependent event codes used. However this
+    function will attempt to generate a synthetic trigger channel
+    named ``STI 014`` in accordance with the general Neuromag / MNE
+    naming pattern.
+ 
     Parameters
     ----------
     input_fname : str
@@ -141,7 +147,7 @@ def read_raw_egi(input_fname, event_ids=None):
         timestamps received by the Netstation. As a consequence, triggers
         may last for only one sample. You therefore might want to use
         `shortest_event=1` when using `mne.find_events`.
-
+    
     Returns
     -------
     raw : instance of mne.fiff.Raw
