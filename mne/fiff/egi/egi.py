@@ -184,6 +184,7 @@ class _RawEGI(Raw):
             new_trigger = None
 
         self._data = data
+        self.verbose = verbose
         self.info = info = Info(dict((k, None) for k in _other_fields))
         info['sfreq'] = egi_info['samp_rate']
         info['filename'] = input_fname
