@@ -29,7 +29,7 @@ from .fiff.pick import (pick_types, channel_indices_by_type, channel_type,
 from .fiff.proj import setup_proj, ProjMixin
 from .fiff.channels import ContainsMixin, PickDropChannelsMixin
 from .fiff.evoked import aspect_rev
-from .raw import _BaseRaw, _time_as_index, _index_as_time
+from .fiff.base import _BaseRaw, _time_as_index, _index_as_time
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed)

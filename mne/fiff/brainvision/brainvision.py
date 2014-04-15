@@ -19,7 +19,7 @@ from ...transforms import als_ras_trans, apply_trans
 from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import Info
-from ...raw import _BaseRaw
+from ..base import _BaseRaw
 
 
 class RawBrainVision(_BaseRaw):

@@ -17,7 +17,7 @@ import numpy as np
 
 from ...transforms import als_ras_trans_mm, apply_trans
 from ...utils import verbose, logger
-from ...raw import _BaseRaw
+from ..base import _BaseRaw
 from ..meas_info import Info
 from ..constants import FIFF
 from ...coreg import get_ras_to_neuromag_trans

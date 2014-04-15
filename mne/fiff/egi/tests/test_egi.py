@@ -26,7 +26,7 @@ def test_io_egi():
     raw = read_raw_egi(egi_fname)
 
     _ = repr(raw)
-    _ = repr(raw.info)
+    _ = repr(raw.info)  # analysis:ignore, noqa
 
     assert_equal('eeg' in raw, True)
     out_fname = op.join(tempdir, 'test_egi_raw.fif')
@@ -45,7 +45,7 @@ def test_io_egi():
     assert_equal(len(picks), 256)
     assert_equal('STI 014' in raw.ch_names, True)
 
-    events = find_events(raw)
+    events = find_events(raw, stim_channel='STI 014')
     assert_equal(len(events), 2)  # ground truth
     assert_equal(np.unique(events[:, 1])[0], 0)
     assert_true(np.unique(events[:, 0])[0] != 0)

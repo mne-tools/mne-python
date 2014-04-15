@@ -16,25 +16,25 @@ import numpy as np
 from scipy.signal import hilbert
 from scipy import linalg
 
-from .fiff.constants import FIFF
-from .fiff.meas_info import write_meas_info
-from .fiff.pick import pick_types, channel_type
-from .fiff.proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
-                        _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
-from .fiff.channels import ContainsMixin, PickDropChannelsMixin
-from .fiff.compensator import set_current_comp
-from .fiff.write import (start_file, end_file, start_block, end_block,
-                         write_dau_pack16, write_float, write_double,
-                         write_complex64, write_complex128, write_int,
-                         write_id)
+from .constants import FIFF
+from .meas_info import write_meas_info
+from .pick import pick_types, channel_type
+from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
+                   _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
+from .channels import ContainsMixin, PickDropChannelsMixin
+from .compensator import set_current_comp
+from .write import (start_file, end_file, start_block, end_block,
+                    write_dau_pack16, write_float, write_double,
+                    write_complex64, write_complex128, write_int,
+                    write_id)
 
-from .filter import (low_pass_filter, high_pass_filter, band_pass_filter,
-                     notch_filter, band_stop_filter, resample)
-from .parallel import parallel_func
-from .utils import (_check_fname, estimate_rank, _check_pandas_installed,
-                    logger, verbose)
-from .viz import plot_raw, plot_raw_psds, _mutable_defaults
-from .externals.six import string_types
+from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
+                      notch_filter, band_stop_filter, resample)
+from ..parallel import parallel_func
+from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
+                     logger, verbose)
+from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
+from ..externals.six import string_types
 
 
 class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):

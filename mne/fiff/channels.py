@@ -101,6 +101,7 @@ def _contains_ch_type(info, ch_type):
                                     valid=' or '.join(valid_channel_types)))
     return ch_type in [channel_type(info, ii) for ii in range(info['nchan'])]
 
+
 @verbose
 def equalize_channels(candidates, verbose=None):
     """Equalize channel picks for a collection of MNE-Python objects
@@ -138,6 +139,7 @@ def equalize_channels(candidates, verbose=None):
         logger.info('Dropped the following channels:\n%s' % dropped)
     else:
         logger.info('all channels are corresponding, nothing to do.')
+
 
 class ContainsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
@@ -195,7 +197,6 @@ class PickDropChannelsMixin(object):
 
         return inst
 
-
     #XXX : to be updated soon with BaseRaw
     def drop_channels(self, ch_names, copy=False):
         """Drop some channels
@@ -237,6 +238,7 @@ class PickDropChannelsMixin(object):
 
         return inst
 
+
 def rename_channels(info, mapping):
     """Rename channels and optionally change the sensor type.
 
@@ -266,7 +268,7 @@ def rename_channels(info, mapping):
     for ch_name, new_name in mapping.items():
         if ch_name not in ch_names:
             raise ValueError("This channel name (%s) doesn't exist in info."
-                              % ch_name)
+                             % ch_name)
 
         c_ind = ch_names.index(ch_name)
         if not isinstance(new_name, (string_types, tuple)):
@@ -274,7 +276,7 @@ def rename_channels(info, mapping):
                              'Please see the help: mne.rename_channels?')
 
         elif isinstance(new_name, tuple):  # name and type change
-            new_name, new_type =  new_name  # unpack
+            new_name, new_type = new_name  # unpack
             if new_type not in human2fiff:
                 raise ValueError('This function cannot change to this '
                                  'channel type: %s.' % new_type)
@@ -290,7 +292,7 @@ def rename_channels(info, mapping):
 
     # Reset ch_names and Check that all the channel names are unique.
     for key, collection in [('ch_name', new_names), ('kind', new_kinds)]:
-         for c_ind, new_name in collection:
+        for c_ind, new_name in collection:
             chs[c_ind][key] = new_name
     for c_ind, new_name in new_bads:
         bads[c_ind] = new_name

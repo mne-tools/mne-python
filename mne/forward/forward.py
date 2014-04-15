@@ -30,7 +30,7 @@ from ..fiff.pick import (pick_channels_forward, pick_info, pick_channels,
 from ..fiff.write import (write_int, start_block, end_block,
                           write_coord_trans, write_ch_info, write_name_list,
                           write_string, start_file, end_file, write_id)
-from ..raw import _BaseRaw
+from ..fiff.base import _BaseRaw
 from ..fiff.evoked import Evoked, write_evoked
 from ..epochs import Epochs
 from ..source_space import (read_source_spaces_from_tree,

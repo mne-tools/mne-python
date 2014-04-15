@@ -12,7 +12,7 @@ from itertools import count
 import numpy as np
 
 from ...utils import logger, verbose, sum_squared
-from ...raw import _BaseRaw
+from ..base import _BaseRaw
 from .. import FIFF
 from .constants import BTI
 from .read import (read_int32, read_int16, read_str, read_float, read_double,

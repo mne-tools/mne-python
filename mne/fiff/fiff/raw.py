@@ -12,17 +12,17 @@ import os.path as op
 
 import numpy as np
 
-from .constants import FIFF
-from .open import fiff_open
-from .meas_info import read_meas_info
-from .tree import dir_tree_find
-from .tag import read_tag
-from .proj import proj_equal
-from .compensator import get_current_comp, set_current_comp, make_compensator
+from ..constants import FIFF
+from ..open import fiff_open
+from ..meas_info import read_meas_info
+from ..tree import dir_tree_find
+from ..tag import read_tag
+from ..proj import proj_equal
+from ..compensator import get_current_comp, set_current_comp, make_compensator
+from ..base import _BaseRaw
 
-from ..raw import _BaseRaw
-from ..utils import logger, verbose
-from ..externals.six import string_types
+from ...utils import logger, verbose
+from ...externals.six import string_types
 
 
 class RawFIFF(_BaseRaw):

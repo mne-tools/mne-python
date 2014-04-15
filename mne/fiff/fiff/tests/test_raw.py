@@ -15,8 +15,8 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.fiff import Raw, pick_types, pick_channels, FIFF
-from mne.raw import concatenate_raws, get_chpi_positions, set_eeg_reference
+from mne.fiff import (Raw, pick_types, pick_channels, FIFF,
+                      concatenate_raws, get_chpi_positions, set_eeg_reference)
 from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess)
@@ -24,7 +24,7 @@ from mne.externals.six.moves import zip
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-base_dir = op.join(op.dirname(__file__), 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
 fif_gz_fname = op.join(base_dir, 'test_raw.fif.gz')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
