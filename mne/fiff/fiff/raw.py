@@ -77,9 +77,8 @@ class RawFIFF(_BaseRaw):
                  verbose=None):
 
         if not isinstance(fnames, list):
-            fnames = [op.abspath(fnames)] if not op.isabs(fnames) else [fnames]
-        else:
-            fnames = [op.abspath(f) if not op.isabs(f) else f for f in fnames]
+            fnames = [fnames]
+        fnames = [op.abspath(f) for f in fnames]
 
         raws = [self._read_raw_file(fname, allow_maxshield, preload,
                                     compensation) for fname in fnames]
