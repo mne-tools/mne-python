@@ -31,7 +31,8 @@ from .source_estimate import (read_source_estimate,
                               save_stc_as_volume, extract_label_time_course)
 from .surface import (read_bem_surfaces, read_surface, write_bem_surface,
                       write_surface, decimate_surface, read_morph_map,
-                      read_bem_solution)
+                      read_bem_solution, get_head_surf,
+                      get_meg_helmet_surf)
 from .source_space import (read_source_spaces, vertex_to_mni,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space,

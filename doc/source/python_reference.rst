@@ -28,6 +28,7 @@ Classes
    :template: class.rst
 
    fiff.Raw
+   fiff.RawFIFF
    Epochs
    fiff.Evoked
    SourceEstimate
@@ -128,6 +129,7 @@ Functions:
    write_surface
    write_trans
 
+.. currentmodule:: mne.fiff.bti
 
 :py:mod:`mne.fiff.bti`:
 
@@ -173,6 +175,8 @@ Functions:
   :template: function.rst
 
    read_raw_brainvision
+
+.. currentmodule:: mne.fiff.egi
 
 :py:mod:`mne.fiff.egi`:
 

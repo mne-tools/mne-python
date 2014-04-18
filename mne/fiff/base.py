@@ -989,10 +989,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
     @property
     def ch_names(self):
+        """Channel names"""
         return self.info['ch_names']
 
     @property
     def n_times(self):
+        """Number of time points"""
         return self.last_samp - self.first_samp + 1
 
     def __len__(self):
