@@ -689,7 +689,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
-        fname = op.abspath(fname)
+        fname = op.realpath(fname)
         if not self._preloaded and fname in self.info['filenames']:
             raise ValueError('You cannot save data to the same file.'
                              ' Please use a different filename.')
