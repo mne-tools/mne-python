@@ -30,7 +30,7 @@ def test_legendre_val():
     """Test Legendre polynomial (derivative) equivalence
     """
     # check table equiv
-    xs = np.linspace(-1., 1., 4000)
+    xs = np.linspace(-1., 1., 1000)
     n_terms = 100
 
     # True, numpy
@@ -43,7 +43,7 @@ def test_legendre_val():
         vals_i = fun(xs, lut)
         # Need a "1:" here because we omit the first coefficient in our table!
         assert_allclose(vals_np[:, 1:vals_i.shape[1] + 1], vals_i,
-                        rtol=1e-2, atol=1e-3)
+                        rtol=1e-2, atol=5e-3)
 
         # Now let's look at our sums
         ctheta = np.random.rand(20, 30) * 2.0 - 1.0
@@ -80,7 +80,7 @@ def test_legendre_table():
     """Test Legendre table calculation
     """
     # double-check our table generation
-    n_do = 20
+    n_do = 10
     for ch_type in ['eeg', 'meg']:
         lut1, n_fact1 = _get_legen_table(ch_type, n_coeff=50)
         lut1 = lut1[:, :n_do - 1].copy()
