@@ -5,7 +5,7 @@
 import os
 from os import path as op
 
-import setuptools  # we are using a setuptools namespace
+import setuptools  # noqa; analysis:ignore; we are using a setuptools namespace
 from numpy.distutils.core import setup
 
 # get the version (don't import mne here, so dependencies are not needed)
@@ -67,6 +67,7 @@ if __name__ == "__main__":
                     'mne.datasets.spm_face',
                     'mne.externals',
                     'mne.fiff', 'mne.fiff.tests',
+                    'mne.fiff.fiff', 'mne.fiff.fiff.tests',
                     'mne.fiff.bti', 'mne.fiff.bti.tests',
                     'mne.fiff.kit', 'mne.fiff.kit.tests',
                     'mne.fiff.edf', 'mne.fiff.edf.tests',

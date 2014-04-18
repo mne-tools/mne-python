@@ -12,7 +12,7 @@ from itertools import count
 import numpy as np
 
 from ...utils import logger, verbose, sum_squared
-from .. import Raw
+from ..base import _BaseRaw
 from .. import FIFF
 from .constants import BTI
 from .read import (read_int32, read_int16, read_str, read_float, read_double,
@@ -929,7 +929,7 @@ def _read_data(info, start=None, stop=None):
     return data[:, info['order']].T
 
 
-class RawBTi(Raw):
+class RawBTi(_BaseRaw):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     Parameters

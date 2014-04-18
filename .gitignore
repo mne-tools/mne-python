@@ -29,6 +29,7 @@ tmp-*.w
 tmtags
 auto_examples
 MNE-sample-data*
+MNE-spm-face*
 build
 coverage
 

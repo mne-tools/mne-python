@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 
-from .. import Raw
+from ..base import _BaseRaw
 from ..meas_info import Info
 from ..constants import FIFF
 from ...utils import verbose, logger
@@ -155,7 +155,7 @@ def read_raw_egi(input_fname, event_ids=None):
     return _RawEGI(input_fname, event_ids)
 
 
-class _RawEGI(Raw):
+class _RawEGI(_BaseRaw):
     """Raw object from EGI simple binary file
     """
     @verbose
@@ -169,9 +169,9 @@ class _RawEGI(Raw):
             logger.info('    Reading data ...')
             # reads events as well
             data = _read_data(fid, egi_info).astype(np.float64)
-            if egi_info['value_range'] and  egi_info['bits']:
+            if egi_info['value_range'] and egi_info['bits']:
                 mv = egi_info['value_range'] / 2 ** egi_info['bits']
-            else: 
+            else:
                 mv = 1e-6
             data[:egi_info['n_channels']] = data[:egi_info['n_channels']] * mv
 

@@ -30,7 +30,7 @@ evoked_fnames = load_data(condition=condition, data_format='evoked',
                           data_type='simulation')
 
 raw = mne.fiff.Raw(raw_fnames[0])
-events = mne.find_events(raw, stim_channel="STI 014")
+events = mne.find_events(raw, stim_channel="STI 014", shortest_event=1)
 
 # Visualize raw file
 raw.plot()

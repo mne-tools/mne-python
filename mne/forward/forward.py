@@ -30,7 +30,7 @@ from ..fiff.pick import (pick_channels_forward, pick_info, pick_channels,
 from ..fiff.write import (write_int, start_block, end_block,
                           write_coord_trans, write_ch_info, write_name_list,
                           write_string, start_file, end_file, write_id)
-from ..fiff.raw import Raw
+from ..fiff.base import _BaseRaw
 from ..fiff.evoked import Evoked, write_evoked
 from ..epochs import Epochs
 from ..source_space import (read_source_spaces_from_tree,
@@ -202,16 +202,16 @@ def _read_one(fid, node):
         raise
 
     try:
-        one['sol_grad'] = _read_named_matrix(fid, node,
-                                        FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD)
+        fwd_type = FIFF.FIFF_MNE_FORWARD_SOLUTION_GRAD
+        one['sol_grad'] = _read_named_matrix(fid, node, fwd_type)
         one['sol_grad'] = _transpose_named_matrix(one['sol_grad'], copy=False)
         one['_orig_sol_grad'] = one['sol_grad']['data'].copy()
     except:
         one['sol_grad'] = None
 
     if one['sol']['data'].shape[0] != one['nchan'] or \
-                (one['sol']['data'].shape[1] != one['nsource'] and
-                 one['sol']['data'].shape[1] != 3 * one['nsource']):
+            (one['sol']['data'].shape[1] != one['nsource'] and
+             one['sol']['data'].shape[1] != 3 * one['nsource']):
         fid.close()
         raise ValueError('Forward solution matrix has wrong dimensions')
 
@@ -1380,7 +1380,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     if isinstance(meas, string_types):
         if not op.isfile(meas):
             raise IOError('measurement file "%s" could not be found' % meas)
-    elif isinstance(meas, Raw):
+    elif isinstance(meas, _BaseRaw):
         events = np.array([[0, 0, 1]], dtype=np.int)
         end = 1. / meas.info['sfreq']
         meas_data = Epochs(meas, events, 1, 0, end, proj=False).average()

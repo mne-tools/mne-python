@@ -17,7 +17,7 @@ import numpy as np
 
 from ...transforms import als_ras_trans_mm, apply_trans
 from ...utils import verbose, logger
-from ..raw import Raw
+from ..base import _BaseRaw
 from ..meas_info import Info
 from ..constants import FIFF
 from ...coreg import get_ras_to_neuromag_trans
@@ -25,7 +25,7 @@ from ...filter import resample
 from ...externals.six.moves import zip
 
 
-class RawEDF(Raw):
+class RawEDF(_BaseRaw):
     """Raw object from EDF+,BDF file
 
     Parameters

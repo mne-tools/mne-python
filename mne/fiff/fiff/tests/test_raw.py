@@ -24,7 +24,7 @@ from mne.externals.six.moves import zip
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-base_dir = op.join(op.dirname(__file__), 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
 fif_gz_fname = op.join(base_dir, 'test_raw.fif.gz')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
