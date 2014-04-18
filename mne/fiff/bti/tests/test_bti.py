@@ -46,7 +46,6 @@ def test_read_pdf():
         data = _read_data(info)
         shape = (info['total_chans'], info['total_slices'])
         assert_true(data.shape == shape)
-        info['fid'].close()
 
 
 def test_raw():

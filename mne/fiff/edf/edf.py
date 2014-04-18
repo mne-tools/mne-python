@@ -115,6 +115,7 @@ class RawEDF(_BaseRaw):
                         % (self.first_samp, self.last_samp,
                            float(self.first_samp) / self.info['sfreq'],
                            float(self.last_samp) / self.info['sfreq']))
+        self._filenames = []
         logger.info('Ready.')
 
     def __repr__(self):
@@ -242,7 +243,8 @@ class RawEDF(_BaseRaw):
                 else:
                     data = np.fromfile(fid, dtype='<i2',
                                        count=buffer_size * n_chan)
-                    data = data.reshape((int(sfreq), n_chan, blocks), order='F')
+                    data = data.reshape((int(sfreq), n_chan, blocks),
+                                        order='F')
                     for i in range(blocks):
                         datas.append(data[:, :, i].T)
         if 'n_samps' in self._edf_info:
@@ -324,7 +326,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
     info['filename'] = fname
     info['ctf_head_t'] = None
     info['dev_ctf_t'] = []
-    info['filenames'] = []
     info['dig'] = None
     info['dev_head_t'] = None
     info['proj_id'] = None
@@ -432,12 +433,13 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
         edf_info['data_size'] = 2  # 16-bit (2 byte) integers
 
     if hpts and os.path.lexists(hpts):
-        fid = open(hpts, 'rb').read().decode()
+        with open(hpts, 'rb') as fid:
+            ff = fid.read().decode()
         locs = {}
         temp = re.findall('eeg\s(\w+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)',
-                          fid)
+                          ff)
         temp += re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
-                           '[\d,.]+)', fid)
+                           '[\d,.]+)', ff)
         for loc in temp:
             coord = np.array(loc[1:], dtype=float)
             coord = apply_trans(als_ras_trans_mm, coord)

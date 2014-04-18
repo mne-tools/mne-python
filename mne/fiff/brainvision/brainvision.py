@@ -91,9 +91,9 @@ class RawBrainVision(_BaseRaw):
         self.comp = None  # no compensation for EEG
         self.proj = False
         self.first_samp = 0
-        f = open(self.info['file_id'])
-        f.seek(0, os.SEEK_END)
-        n_samples = f.tell()
+        with open(self.info['file_id'], 'rb') as f:
+            f.seek(0, os.SEEK_END)
+            n_samples = f.tell()
         dtype = int(self._eeg_info['dtype'][-1])
         n_chan = self.info['nchan']
         self.last_samp = (n_samples // (dtype * (n_chan - 1))) - 1
@@ -113,6 +113,7 @@ class RawBrainVision(_BaseRaw):
                         % (self.first_samp, self.last_samp,
                            float(self.first_samp) / self.info['sfreq'],
                            float(self.last_samp) / self.info['sfreq']))
+        self._filenames = []
         logger.info('Ready.')
 
     def __repr__(self):
@@ -439,7 +440,6 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
     info['filename'] = vhdr_fname
     info['ctf_head_t'] = None
     info['dev_ctf_t'] = []
-    info['filenames'] = []
     info['dig'] = None
     info['dev_head_t'] = None
     info['proj_id'] = None
@@ -461,8 +461,8 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
         settings = f.read()
 
     params, settings = settings.split('[Comment]')
-    cfg = configparser.SafeConfigParser()
-    cfg.readfp(StringIO(params))
+    cfg = configparser.ConfigParser()
+    cfg.read_file(StringIO(params))
 
     # get sampling info
     # Sampling interval is given in microsec

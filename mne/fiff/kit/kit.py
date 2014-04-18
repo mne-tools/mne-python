@@ -85,7 +85,6 @@ class RawKIT(_BaseRaw):
         # Raw attributes
         self.verbose = verbose
         self._preloaded = False
-        self.fids = list()
         self._projector = None
         self.first_samp = 0
         self.last_samp = self._sqd_params['nsamples'] - 1
@@ -109,7 +108,7 @@ class RawKIT(_BaseRaw):
         self.info['filename'] = None
         self.info['ctf_head_t'] = None
         self.info['dev_ctf_t'] = []
-        self.info['filenames'] = []
+        self._filenames = []
         self.info['dig'] = None
         self.info['dev_head_t'] = None
 

@@ -16,6 +16,21 @@ from ..utils import logger, verbose
 from ..externals import six
 
 
+def _fiff_get_fid(fname):
+    """Helper to open a FIF file with no additional parsing"""
+    if isinstance(fname, string_types):
+        if op.splitext(fname)[1].lower() == '.gz':
+            logger.debug('Using gzip')
+            fid = gzip.open(fname, "rb")  # Open in binary mode
+        else:
+            logger.debug('Using normal I/O')
+            fid = open(fname, "rb")  # Open in binary mode
+    else:
+        fid = fname
+        fid.seek(0)
+    return fid
+
+
 @verbose
 def fiff_open(fname, preload=False, verbose=None):
     """Open a FIF file.
@@ -41,17 +56,7 @@ def fiff_open(fname, preload=False, verbose=None):
     directory : list
         A list of tags.
     """
-    if isinstance(fname, string_types):
-        if op.splitext(fname)[1].lower() == '.gz':
-            logger.debug('Using gzip')
-            fid = gzip.open(fname, "rb")  # Open in binary mode
-        else:
-            logger.debug('Using normal I/O')
-            fid = open(fname, "rb")  # Open in binary mode
-    else:
-        fid = fname
-        fid.seek(0)
-
+    fid = _fiff_get_fid(fname)
     # do preloading of entire file
     if preload:
         # note that StringIO objects instantiated this way are read-only,

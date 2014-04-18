@@ -42,7 +42,7 @@ def test_subject_info():
     """Test reading subject information
     """
     raw = Raw(fif_fname)
-    raw.crop(0, 1)
+    raw.crop(0, 1, False)
     assert_true(raw.info['subject_info'] is None)
     # fake some subject data
     keys = ['id', 'his_id', 'last_name', 'first_name', 'birthday', 'sex',

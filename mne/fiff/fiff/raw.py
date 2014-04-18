@@ -13,7 +13,7 @@ import os.path as op
 import numpy as np
 
 from ..constants import FIFF
-from ..open import fiff_open
+from ..open import fiff_open, _fiff_get_fid
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag
@@ -85,6 +85,7 @@ class RawFIFF(_BaseRaw):
         _check_raw_compatibility(raws)
 
         # combine information from each raw file to construct self
+        self._filenames = [r.filename for r in raws]
         self.first_samp = raws[0].first_samp  # meta first sample
         self._first_samps = np.array([r.first_samp for r in raws])
         self._last_samps = np.array([r.last_samp for r in raws])
@@ -94,10 +95,8 @@ class RawFIFF(_BaseRaw):
         self.rawdirs = [r.rawdir for r in raws]
         self.comp = copy.deepcopy(raws[0].comp)
         self._orig_comp_grade = raws[0]._orig_comp_grade
-        self.fids = [r.fid for r in raws]
         self.info = copy.deepcopy(raws[0].info)
         self.verbose = verbose
-        self.info['filenames'] = fnames
         self.orig_format = raws[0].orig_format
         self.proj = False
         self._add_eeg_ref(add_eeg_ref)
@@ -135,123 +134,123 @@ class RawFIFF(_BaseRaw):
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         ext = os.path.splitext(fname)[1].lower()
         whole_file = preload if '.gz' in ext else False
-        fid, tree, _ = fiff_open(fname, preload=whole_file)
+        ff, tree, _ = fiff_open(fname, preload=whole_file)
+        with ff as fid:
+            #   Read the measurement info
+            info, meas = read_meas_info(fid, tree)
 
-        #   Read the measurement info
-        info, meas = read_meas_info(fid, tree)
-
-        #   Locate the data of interest
-        raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
-        if len(raw_node) == 0:
-            raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
-            if allow_maxshield:
-                raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
-                if len(raw_node) == 0:
-                    raise ValueError('No raw data in %s' % fname)
-            else:
-                if len(raw_node) == 0:
-                    raise ValueError('No raw data in %s' % fname)
-
-        if len(raw_node) == 1:
-            raw_node = raw_node[0]
-
-        #   Set up the output structure
-        info['filename'] = fname
-
-        #   Process the directory
-        directory = raw_node['directory']
-        nent = raw_node['nent']
-        nchan = int(info['nchan'])
-        first = 0
-        first_samp = 0
-        first_skip = 0
-
-        #   Get first sample tag if it is there
-        if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
-            tag = read_tag(fid, directory[first].pos)
-            first_samp = int(tag.data)
-            first += 1
-
-        #   Omit initial skip
-        if directory[first].kind == FIFF.FIFF_DATA_SKIP:
-            # This first skip can be applied only after we know the buffer size
-            tag = read_tag(fid, directory[first].pos)
-            first_skip = int(tag.data)
-            first += 1
-
-        #  Get first sample tag if it is there
-        if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
-            tag = read_tag(fid, directory[first].pos)
-            first_samp += int(tag.data)
-            first += 1
-
-        raw = _RawShell()
-        raw.first_samp = first_samp
-
-        #   Go through the remaining tags in the directory
-        rawdir = list()
-        nskip = 0
-        orig_format = None
-        for k in range(first, nent):
-            ent = directory[k]
-            if ent.kind == FIFF.FIFF_DATA_SKIP:
-                tag = read_tag(fid, ent.pos)
-                nskip = int(tag.data)
-            elif ent.kind == FIFF.FIFF_DATA_BUFFER:
-                #   Figure out the number of samples in this buffer
-                if ent.type == FIFF.FIFFT_DAU_PACK16:
-                    nsamp = ent.size // (2 * nchan)
-                elif ent.type == FIFF.FIFFT_SHORT:
-                    nsamp = ent.size // (2 * nchan)
-                elif ent.type == FIFF.FIFFT_FLOAT:
-                    nsamp = ent.size // (4 * nchan)
-                elif ent.type == FIFF.FIFFT_DOUBLE:
-                    nsamp = ent.size // (8 * nchan)
-                elif ent.type == FIFF.FIFFT_INT:
-                    nsamp = ent.size // (4 * nchan)
-                elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
-                    nsamp = ent.size // (8 * nchan)
-                elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
-                    nsamp = ent.size // (16 * nchan)
+            #   Locate the data of interest
+            raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
+            if len(raw_node) == 0:
+                raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
+                if allow_maxshield:
+                    raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
+                    if len(raw_node) == 0:
+                        raise ValueError('No raw data in %s' % fname)
                 else:
-                    fid.close()
-                    raise ValueError('Cannot handle data buffers of type %d' %
-                                     ent.type)
-                if orig_format is None:
+                    if len(raw_node) == 0:
+                        raise ValueError('No raw data in %s' % fname)
+
+            if len(raw_node) == 1:
+                raw_node = raw_node[0]
+
+            #   Set up the output structure
+            info['filename'] = fname
+
+            #   Process the directory
+            directory = raw_node['directory']
+            nent = raw_node['nent']
+            nchan = int(info['nchan'])
+            first = 0
+            first_samp = 0
+            first_skip = 0
+
+            #   Get first sample tag if it is there
+            if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
+                tag = read_tag(fid, directory[first].pos)
+                first_samp = int(tag.data)
+                first += 1
+
+            #   Omit initial skip
+            if directory[first].kind == FIFF.FIFF_DATA_SKIP:
+                # This first skip can be applied only after we know the bufsize
+                tag = read_tag(fid, directory[first].pos)
+                first_skip = int(tag.data)
+                first += 1
+
+            #  Get first sample tag if it is there
+            if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
+                tag = read_tag(fid, directory[first].pos)
+                first_samp += int(tag.data)
+                first += 1
+
+            raw = _RawShell()
+            raw.filename = fname
+            raw.first_samp = first_samp
+
+            #   Go through the remaining tags in the directory
+            rawdir = list()
+            nskip = 0
+            orig_format = None
+            for k in range(first, nent):
+                ent = directory[k]
+                if ent.kind == FIFF.FIFF_DATA_SKIP:
+                    tag = read_tag(fid, ent.pos)
+                    nskip = int(tag.data)
+                elif ent.kind == FIFF.FIFF_DATA_BUFFER:
+                    #   Figure out the number of samples in this buffer
                     if ent.type == FIFF.FIFFT_DAU_PACK16:
-                        orig_format = 'short'
+                        nsamp = ent.size // (2 * nchan)
                     elif ent.type == FIFF.FIFFT_SHORT:
-                        orig_format = 'short'
+                        nsamp = ent.size // (2 * nchan)
                     elif ent.type == FIFF.FIFFT_FLOAT:
-                        orig_format = 'single'
+                        nsamp = ent.size // (4 * nchan)
                     elif ent.type == FIFF.FIFFT_DOUBLE:
-                        orig_format = 'double'
+                        nsamp = ent.size // (8 * nchan)
                     elif ent.type == FIFF.FIFFT_INT:
-                        orig_format = 'int'
+                        nsamp = ent.size // (4 * nchan)
                     elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
-                        orig_format = 'single'
+                        nsamp = ent.size // (8 * nchan)
                     elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
-                        orig_format = 'double'
+                        nsamp = ent.size // (16 * nchan)
+                    else:
+                        raise ValueError('Cannot handle data buffers of type '
+                                         '%d' % ent.type)
+                    if orig_format is None:
+                        if ent.type == FIFF.FIFFT_DAU_PACK16:
+                            orig_format = 'short'
+                        elif ent.type == FIFF.FIFFT_SHORT:
+                            orig_format = 'short'
+                        elif ent.type == FIFF.FIFFT_FLOAT:
+                            orig_format = 'single'
+                        elif ent.type == FIFF.FIFFT_DOUBLE:
+                            orig_format = 'double'
+                        elif ent.type == FIFF.FIFFT_INT:
+                            orig_format = 'int'
+                        elif ent.type == FIFF.FIFFT_COMPLEX_FLOAT:
+                            orig_format = 'single'
+                        elif ent.type == FIFF.FIFFT_COMPLEX_DOUBLE:
+                            orig_format = 'double'
 
-                #  Do we have an initial skip pending?
-                if first_skip > 0:
-                    first_samp += nsamp * first_skip
-                    raw.first_samp = first_samp
-                    first_skip = 0
+                    #  Do we have an initial skip pending?
+                    if first_skip > 0:
+                        first_samp += nsamp * first_skip
+                        raw.first_samp = first_samp
+                        first_skip = 0
 
-                #  Do we have a skip pending?
-                if nskip > 0:
-                    rawdir.append(dict(ent=None, first=first_samp,
-                                       last=first_samp + nskip * nsamp - 1,
-                                       nsamp=nskip * nsamp))
-                    first_samp += nskip * nsamp
-                    nskip = 0
+                    #  Do we have a skip pending?
+                    if nskip > 0:
+                        rawdir.append(dict(ent=None, first=first_samp,
+                                           last=first_samp + nskip * nsamp - 1,
+                                           nsamp=nskip * nsamp))
+                        first_samp += nskip * nsamp
+                        nskip = 0
 
-                #  Add a data buffer
-                rawdir.append(dict(ent=ent, first=first_samp,
-                                   last=first_samp + nsamp - 1,
-                                   nsamp=nsamp))
-                first_samp += nsamp
+                    #  Add a data buffer
+                    rawdir.append(dict(ent=ent, first=first_samp,
+                                       last=first_samp + nsamp - 1,
+                                       nsamp=nsamp))
+                    first_samp += nsamp
 
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
@@ -288,7 +287,6 @@ class RawFIFF(_BaseRaw):
         info['buffer_size_sec'] = (np.median([r['nsamp'] for r in rawdir])
                                    / info['sfreq'])
 
-        raw.fid = fid
         raw.info = info
         raw.verbose = verbose
 
@@ -393,6 +391,7 @@ class RawFIFF(_BaseRaw):
             if stop_loc < start_loc:
                 raise ValueError('Bad array indexing, could be a bug')
             len_loc = stop_loc - start_loc + 1
+            fid = _fiff_get_fid(self._filenames[fi])
 
             for this in self.rawdirs[fi]:
 
@@ -426,7 +425,7 @@ class RawFIFF(_BaseRaw):
                     if picksamp > 0:
                         # only read data if it exists
                         if this['ent'] is not None:
-                            one = read_tag(self.fids[fi], this['ent'].pos,
+                            one = read_tag(fid, this['ent'].pos,
                                            shape=(this['nsamp'], nchan),
                                            rlims=(first_pick, last_pick)).data
                             if np.isrealobj(one):
@@ -471,7 +470,7 @@ class RawFIFF(_BaseRaw):
                                           np.float)
                     break
 
-            self.fids[fi].seek(0, 0)  # Go back to beginning of the file
+            fid.close()  # clean it up
             s_off += len_loc
             # double-check our math
             if not s_off == dest:
