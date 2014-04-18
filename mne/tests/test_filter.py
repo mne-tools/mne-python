@@ -221,7 +221,8 @@ def test_cuda():
 
     # check to make sure we actually used CUDA
     set_log_file()
-    out = open(log_file).readlines()
+    with open(log_file) as fid:
+        out = fid.readlines()
     assert_true(sum(['Using CUDA for FFT FIR filtering' in o
                      for o in out]) == 12)
 

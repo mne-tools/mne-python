@@ -197,23 +197,22 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     src : SourceSpaces
         The source spaces.
     """
-    fid, tree, _ = fiff_open(fname)
-    src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
-                                       verbose=verbose)
-    src.info['fname'] = fname
-
-    node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
-    if node:
-        node = node[0]
-        for p in range(node['nent']):
-            kind = node['directory'][p].kind
-            pos = node['directory'][p].pos
-            tag = read_tag(fid, pos)
-            if kind == FIFF.FIFF_MNE_ENV_WORKING_DIR:
-                src.info['working_dir'] = tag.data
-            elif kind == FIFF.FIFF_MNE_ENV_COMMAND_LINE:
-                src.info['command_line'] = tag.data
-
+    ff, tree, _ = fiff_open(fname)
+    with ff as fid:
+        src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
+                                           verbose=verbose)
+        src.info['fname'] = fname
+        node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
+        if node:
+            node = node[0]
+            for p in range(node['nent']):
+                kind = node['directory'][p].kind
+                pos = node['directory'][p].pos
+                tag = read_tag(fid, pos)
+                if kind == FIFF.FIFF_MNE_ENV_WORKING_DIR:
+                    src.info['working_dir'] = tag.data
+                elif kind == FIFF.FIFF_MNE_ENV_COMMAND_LINE:
+                    src.info['command_line'] = tag.data
     return src
 
 

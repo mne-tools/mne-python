@@ -1020,7 +1020,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         if bad_file is not None:
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
-            bad_names = [l for l in open(bad_file).read().splitlines() if l]
+            with open(bad_file) as fid:
+                bad_names = [l for l in fid.read().splitlines() if l]
             names_there = [ci for ci in bad_names if ci in names]
             count_diff = len(bad_names) - len(names_there)
 

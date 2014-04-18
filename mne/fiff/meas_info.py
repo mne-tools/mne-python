@@ -743,7 +743,7 @@ def _merge_info(infos, verbose=None):
             raise ValueError(err)
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'description', 'dig', 'experimenter', 'file_id',
-                    'filename', 'filenames', 'highpass', 'line_freq',
+                    'filename', 'highpass', 'line_freq',
                     'lowpass', 'meas_date', 'meas_id', 'orig_blocks',
                     'orig_fid_str', 'proj_id', 'proj_name', 'projs',
                     'sfreq', 'subject_info', 'sfreq']

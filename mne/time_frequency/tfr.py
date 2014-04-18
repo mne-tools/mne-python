@@ -78,7 +78,7 @@ def _centered(arr, newsize):
     # Return the center newsize portion of the array.
     newsize = np.asarray(newsize)
     currsize = np.array(arr.shape)
-    startind = (currsize - newsize) / 2
+    startind = (currsize - newsize) // 2
     endind = startind + newsize
     myslice = [slice(startind[k], endind[k]) for k in range(len(endind))]
     return arr[tuple(myslice)]

@@ -686,17 +686,16 @@ def write_label(filename, label, verbose=None):
 
     logger.info('Saving label to : %s' % filename)
 
-    fid = open(filename, 'wb')
-    n_vertices = len(label.vertices)
-    data = np.zeros((n_vertices, 5), dtype=np.float)
-    data[:, 0] = label.vertices
-    data[:, 1:4] = 1e3 * label.pos
-    data[:, 4] = label.values
-    fid.write(b("#%s\n" % label.comment))
-    fid.write(b("%d\n" % n_vertices))
-    for d in data:
-        fid.write(b("%d %f %f %f %f\n" % tuple(d)))
-
+    with open(filename, 'wb') as fid:
+        n_vertices = len(label.vertices)
+        data = np.zeros((n_vertices, 5), dtype=np.float)
+        data[:, 0] = label.vertices
+        data[:, 1:4] = 1e3 * label.pos
+        data[:, 4] = label.values
+        fid.write(b("#%s\n" % label.comment))
+        fid.write(b("%d\n" % n_vertices))
+        for d in data:
+            fid.write(b("%d %f %f %f %f\n" % tuple(d)))
     return label
 
 
