@@ -74,7 +74,8 @@ def test_notch_filters():
 
         if lf is None:
             set_log_file()
-            out = open(log_file).readlines()
+            with open(log_file) as fid:
+                out = fid.readlines()
             if len(out) != 2:
                 raise ValueError('Detected frequencies not logged properly')
             out = np.fromstring(out[1], sep=', ')
@@ -84,7 +85,7 @@ def test_notch_filters():
 
 
 def test_resample():
-    "Test resampling"
+    """Test resampling"""
     x = np.random.normal(0, 1, (10, 10, 10))
     x_rs = resample(x, 1, 2, 10)
     assert_equal(x.shape, (10, 10, 10))

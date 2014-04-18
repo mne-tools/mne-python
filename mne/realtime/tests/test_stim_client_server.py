@@ -61,3 +61,4 @@ def connect_client(trig_queue):
     time.sleep(2.0)
 
     trig_queue.put(stim_client.get_trigger())
+    stim_client.close()
