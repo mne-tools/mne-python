@@ -461,7 +461,10 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
 
     params, settings = settings.split('[Comment]')
     cfg = configparser.ConfigParser()
-    cfg.read_file(StringIO(params))
+    if hasattr(cfg, 'read_file'):  # newer API
+        cfg.read_file(StringIO(params))
+    else:
+        cfg.readfp(StringIO(params))
 
     # get sampling info
     # Sampling interval is given in microsec
