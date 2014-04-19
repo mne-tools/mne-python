@@ -43,7 +43,7 @@ DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
 
 RAW_INFO_FIELDS = ['dev_head_t', 'nchan', 'bads', 'projs', 'dev_ctf_t',
                    'meas_date', 'meas_id', 'dig', 'sfreq', 'highpass',
-                   'filenames', 'comps', 'chs', 'ch_names', 'file_id',
+                   'comps', 'chs', 'ch_names', 'file_id',
                    'lowpass', 'acq_pars', 'acq_stim', 'filename',
                    'ctf_head_t']
 
@@ -1022,7 +1022,6 @@ class RawBTi(_BaseRaw):
         info['lowpass'] = lp
         info['acq_pars'], info['acq_stim'] = None, None
         info['filename'] = None
-        info['filenames'] = []
         chs = []
 
         ch_names = [ch['name'] for ch in bti_info['chs']]
@@ -1159,7 +1158,7 @@ class RawBTi(_BaseRaw):
         self.rawdir = None
         self.proj = None
         self.comp = None
-        self.fids = list()
+        self._filenames = list()
         self._preloaded = True
         self._projector_hashes = [None]
         self.info = info

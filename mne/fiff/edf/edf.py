@@ -87,7 +87,7 @@ class RawEDF(_BaseRaw):
         # Raw attributes
         self.verbose = verbose
         self._preloaded = False
-        self.fids = list()
+        self._filenames = list()
         self._projector = None
         self.first_samp = 0
         self.last_samp = self._edf_info['nsamples'] - 1
@@ -115,7 +115,6 @@ class RawEDF(_BaseRaw):
                         % (self.first_samp, self.last_samp,
                            float(self.first_samp) / self.info['sfreq'],
                            float(self.last_samp) / self.info['sfreq']))
-        self._filenames = []
         logger.info('Ready.')
 
     def __repr__(self):

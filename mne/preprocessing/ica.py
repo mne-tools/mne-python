@@ -546,10 +546,10 @@ class ICA(object):
 
         # populate copied raw.
         start, stop = _check_start_stop(raw, start, stop)
-        out.fids = []
         data_, times_ = raw[picks, start:stop]
         out._data = np.r_[sources, data_]
         out._times = times_
+        out._filenames = list()
         out._preloaded = True
 
         # update first and last samples
@@ -589,7 +589,6 @@ class ICA(object):
         info['nchan'] = len(picks) + self.n_components_
         info['bads'] = [ch_names[k] for k in self.exclude]
         info['projs'] = []  # make sure projections are removed.
-        info['filenames'] = []
 
     def sources_as_epochs(self, epochs, picks=None):
         """Create epochs in ICA space from epochs object

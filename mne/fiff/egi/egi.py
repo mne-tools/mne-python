@@ -16,7 +16,7 @@ _other_fields = [
     'orig_fid_str', 'lowpass', 'buffer_size_sec', 'dev_ctf_t',
     'meas_id', 'subject_info',
     'dev_head_t', 'line_freq', 'acq_stim', 'proj_id', 'description',
-    'highpass', 'experimenter', 'file_id', 'filenames', 'proj_name',
+    'highpass', 'experimenter', 'file_id', 'proj_name',
     'dig', 'ctf_head_t', 'orig_blocks', 'acq_pars'
 ]
 
@@ -194,7 +194,6 @@ class _RawEGI(_BaseRaw):
         self.info = info = Info(dict((k, None) for k in _other_fields))
         info['sfreq'] = egi_info['samp_rate']
         info['filename'] = input_fname
-        info['filenames'] = []
         my_time = datetime.datetime(
             egi_info['year'],
             egi_info['month'],
@@ -248,7 +247,7 @@ class _RawEGI(_BaseRaw):
                        float(self.last_samp) / self.info['sfreq']))
 
         # Raw attributes
-        self.fids = list()
+        self._filenames = list()
         self._projector = None
         self.first_samp = 0
         self.last_samp = egi_info['n_samples'] - 1

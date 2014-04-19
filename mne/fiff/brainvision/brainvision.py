@@ -86,7 +86,7 @@ class RawBrainVision(_BaseRaw):
 
         # Raw attributes
         self.verbose = verbose
-        self.fids = list()
+        self._filenames = list()
         self._projector = None
         self.comp = None  # no compensation for EEG
         self.proj = False
@@ -113,7 +113,6 @@ class RawBrainVision(_BaseRaw):
                         % (self.first_samp, self.last_samp,
                            float(self.first_samp) / self.info['sfreq'],
                            float(self.last_samp) / self.info['sfreq']))
-        self._filenames = []
         logger.info('Ready.')
 
     def __repr__(self):
