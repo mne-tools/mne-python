@@ -23,7 +23,7 @@ egi_fname = op.join(base_dir, 'test_egi.raw')
 
 def test_io_egi():
     """Test importing EGI simple binary files"""
-    raw = read_raw_egi(egi_fname)
+    raw = read_raw_egi(egi_fname, include=['TRSP', 'XXX1'])
 
     _ = repr(raw)
     _ = repr(raw.info)  # analysis:ignore, noqa
@@ -58,3 +58,8 @@ def test_io_egi():
     events_ids = [12, 24]
     new_trigger = _combine_triggers(triggers, events_ids)
     assert_array_equal(np.unique(new_trigger), np.unique([0, 12, 24]))
+
+    assert_raises(ValueError, read_raw_egi, egi_fname,
+                  include=['Foo'])
+    assert_raises(ValueError, read_raw_egi, egi_fname,
+                  exclude=['Bar'])

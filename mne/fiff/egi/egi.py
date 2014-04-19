@@ -124,7 +124,8 @@ def _combine_triggers(data, remapping=None):
     return new_trigger[None]
 
 
-def read_raw_egi(input_fname, event_ids=None):
+@verbose
+def read_raw_egi(input_fname, include=None, exclude=None, verbose=None):
     """Read EGI simple binary as raw object
 
     Note. The trigger channel names are based on the
@@ -132,40 +133,50 @@ def read_raw_egi(input_fname, event_ids=None):
     function will attempt to generate a synthetic trigger channel
     named ``STI 014`` in accordance with the general Neuromag / MNE
     naming pattern.
+    The event_id assignment equals np.arange(n_events - n_excluded) + 1.
+    Note. This step will fail if events are not mutually exclusive.
+    Note. The trigger channel is artificially constructed based on
+    timestamps received by the Netstation. As a consequence, triggers
+    have only short durations.
+    The resulting `event_id` mapping is stored as attribute to
+    the resulting raw object but will be ignored when saving to a fiff.
 
     Parameters
     ----------
     input_fname : str
         Path to the raw file.
-    event_ids : list of int | None
-        The integer values that will be assigned to the synthesized trigger
-        channel based on the event codes found. If None, equals
-        np.arange(n_events) + 1.
-        Note. This step will fail if events are not mutually exclusive.
-        Note. The trigger channel is artificially constructed based on
-        timestamps received by the Netstation. As a consequence, triggers
-        may last for only one sample. You therefore might want to use
-        `shortest_event=1` when using `mne.find_events`.
+    include : None | list
+       The event channels to be ignored when creating the synthetic
+       trigger. Defaults to None.
+       Note. Overrides `exclude` parameter.
+    exclude : None | list
+       The event channels to be ignored when creating the synthetic
+       trigger. Defaults to None. If None, channels that have more than
+       one event and the ``sync`` and ``TREV`` channels will be
+       ignored.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     raw : instance of mne.fiff.Raw
         A raw object containing EGI data.
     """
-    return _RawEGI(input_fname, event_ids)
+    return _RawEGI(input_fname, include, exclude, verbose)
 
 
 class _RawEGI(_BaseRaw):
     """Raw object from EGI simple binary file
     """
     @verbose
-    def __init__(self, input_fname, event_ids=None, verbose=None):
+    def __init__(self, input_fname, include=None, exclude=None,
+                 verbose=None):
         """docstring for __init__"""
         with open(input_fname, 'rb') as fid:  # 'rb' important for py3k
             logger.info('Reading EGI header from %s...' % input_fname)
             egi_info = _read_header(fid)
             logger.info('    Reading events ...')
-            _read_events(fid, egi_info)  # jump + update info
+            _ = _read_events(fid, egi_info)  # update info + jump
             logger.info('    Reading data ...')
             # reads events as well
             data = _read_data(fid, egi_info).astype(np.float64)
@@ -176,12 +187,39 @@ class _RawEGI(_BaseRaw):
             data[:egi_info['n_channels']] = data[:egi_info['n_channels']] * mv
 
         logger.info('    Assembling measurement info ...')
-        if event_ids is None:
-            event_ids = np.arange(egi_info['n_events']) + 1
 
+        event_codes = list(egi_info['event_codes'])
+        for kk, v in [('include', include), ('exlcude', exclude)]:
+            if isinstance(v, list):
+                for k in v:
+                    if k not in event_codes:
+                        raise ValueError('Could find event named "%s"' % k)
+            elif v is not None:
+                raise ValueError('`%s` must be None or of type list' % kk)
+
+        egi_events = data[-egi_info['n_events']:]
+        if include is None:
+            exclude_list = ['sync', 'TREV'] if exclude == None else exclude
+            exclude_inds = [i for i, k in enumerate(event_codes) if k in
+                            exclude_list]
+            if exclude is None:
+                for ii, event in enumerate(egi_events):
+                    if event.sum() <= 1:
+                        exclude_inds.append(ii)
+        else:
+            exclude_inds = [i for i, k in enumerate(event_codes) if k not in
+                            include]
+        n_excluded = len(exclude_inds)
+        exclude_inds.sort()
+        include = [i for i in np.arange(egi_info['n_events']) if
+                   i not in exclude_inds]
+        event_ids = np.arange(egi_info['n_events'] - n_excluded) + 1
         try:
             logger.info('    Synthesizing trigger channel "STI 014" ...')
-            new_trigger = _combine_triggers(data[-egi_info['n_events']:],
+            logger.info('    Excluding events {%s} ...' %
+                        ", ".join([k for i, k in enumerate(event_codes)
+                                   if i in exclude_inds]))
+            new_trigger = _combine_triggers(egi_events[include],
                                             remapping=event_ids)
             data = np.concatenate([data, new_trigger])
         except RuntimeError:
@@ -189,6 +227,7 @@ class _RawEGI(_BaseRaw):
                         'Could not create trigger channel.')
             new_trigger = None
 
+        self.event_id = dict((k, v) for k, v in zip(event_codes, event_ids))
         self._data = data
         self.verbose = verbose
         self.info = info = Info(dict((k, None) for k in _other_fields))
@@ -262,7 +301,6 @@ class _RawEGI(_BaseRaw):
         # use information from egi
         self.orig_format = {'>f4': 'single', '>f4': 'double',
                             '>i2': 'int'}[egi_info['dtype']]
-
         logger.info('Ready.')
 
     def __repr__(self):
