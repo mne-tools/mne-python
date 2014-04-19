@@ -103,7 +103,7 @@ def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
 
     # pick the best threshold; first get effective heart rates
     rates = np.array([60. * len(ce) / (len(ecg) / float(sfreq))
-                      for _ in clean_events])
+                      for ce in clean_events])
 
     # now find heart rates that seem reasonable (infant thru adult athlete)
     idx = np.where(np.logical_and(rates <= 160., rates >= 40.))[0]
