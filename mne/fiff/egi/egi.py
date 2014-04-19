@@ -134,12 +134,12 @@ def read_raw_egi(input_fname, include=None, exclude=None, verbose=None):
     named ``STI 014`` in accordance with the general Neuromag / MNE
     naming pattern.
     The event_id assignment equals np.arange(n_events - n_excluded) + 1.
-    Note. This step will fail if events are not mutually exclusive.
+    The resulting `event_id` mapping is stored as attribute to
+    the resulting raw object but will be ignored when saving to a fiff.
     Note. The trigger channel is artificially constructed based on
     timestamps received by the Netstation. As a consequence, triggers
     have only short durations.
-    The resulting `event_id` mapping is stored as attribute to
-    the resulting raw object but will be ignored when saving to a fiff.
+    This step will fail if events are not mutually exclusive.
 
     Parameters
     ----------
