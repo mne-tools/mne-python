@@ -189,7 +189,7 @@ class _RawEGI(_BaseRaw):
         logger.info('    Assembling measurement info ...')
 
         event_codes = list(egi_info['event_codes'])
-        for kk, v in [('include', include), ('exlcude', exclude)]:
+        for kk, v in [('include', include), ('exclude', exclude)]:
             if isinstance(v, list):
                 for k in v:
                     if k not in event_codes:
@@ -206,20 +206,19 @@ class _RawEGI(_BaseRaw):
                 for ii, event in enumerate(egi_events):
                     if event.sum() <= 1:
                         exclude_inds.append(ii)
+            exclude_inds.sort()
+            include = [i for i in np.arange(egi_info['n_events']) if
+                       i not in exclude_inds]
         else:
-            exclude_inds = [i for i, k in enumerate(event_codes) if k not in
-                            include]
-        n_excluded = len(exclude_inds)
-        exclude_inds.sort()
-        include = [i for i in np.arange(egi_info['n_events']) if
-                   i not in exclude_inds]
-        event_ids = np.arange(egi_info['n_events'] - n_excluded) + 1
+            include_ = [i for i, k in enumerate(event_codes) if k in include]
+
+        event_ids = np.arange(len(include_)) + 1
         try:
             logger.info('    Synthesizing trigger channel "STI 014" ...')
             logger.info('    Excluding events {%s} ...' %
                         ", ".join([k for i, k in enumerate(event_codes)
-                                   if i in exclude_inds]))
-            new_trigger = _combine_triggers(egi_events[include],
+                                   if i not in include_]))
+            new_trigger = _combine_triggers(egi_events[include_],
                                             remapping=event_ids)
             data = np.concatenate([data, new_trigger])
         except RuntimeError:
@@ -227,7 +226,8 @@ class _RawEGI(_BaseRaw):
                         'Could not create trigger channel.')
             new_trigger = None
 
-        self.event_id = dict((k, v) for k, v in zip(event_codes, event_ids))
+        self.event_id = dict(zip([e for e in event_codes if e in include], 
+                                  event_ids))
         self._data = data
         self.verbose = verbose
         self.info = info = Info(dict((k, None) for k in _other_fields))
