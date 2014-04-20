@@ -6,7 +6,6 @@
 from ..externals.six import string_types
 import numpy as np
 import os.path as op
-import gzip
 from io import BytesIO
 
 from .tag import read_tag_info, read_tag, read_big, Tag
@@ -14,6 +13,7 @@ from .tree import make_dir_tree
 from .constants import FIFF
 from ..utils import logger, verbose
 from ..externals import six
+from ..fixes import gzip_open
 
 
 def _fiff_get_fid(fname):
@@ -21,7 +21,7 @@ def _fiff_get_fid(fname):
     if isinstance(fname, string_types):
         if op.splitext(fname)[1].lower() == '.gz':
             logger.debug('Using gzip')
-            fid = gzip.open(fname, "rb")  # Open in binary mode
+            fid = gzip_open(fname, "rb")  # Open in binary mode
         else:
             logger.debug('Using normal I/O')
             fid = open(fname, "rb")  # Open in binary mode
