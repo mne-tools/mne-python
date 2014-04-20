@@ -36,13 +36,14 @@ from gzip import GzipFile
 
 class gzip_open(GzipFile):  # python2.6 doesn't have context managing
     def __init__(self, *args, **kwargs):
-        super(gzip_open, self).__init__(*args, **kwargs)
+        return super(gzip_open, self).__init__(*args, **kwargs)
 
     def __enter__(self):
         if hasattr(GzipFile, '__enter__'):
             return super(gzip_open, self).__enter__()
         else:
             return self
+
     def __exit__(self, exc_type, exc_value, traceback):
         if hasattr(GzipFile, '__exit__'):
             return super(gzip_open, self).__exit__(exc_type, exc_value, 
