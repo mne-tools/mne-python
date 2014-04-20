@@ -624,7 +624,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         raw._last_samps = np.atleast_1d(raw._last_samps[keepers])
         raw._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
         raw._raw_lengths = raw._last_samps - raw._first_samps + 1
-        raw.fids = [f for fi, f in enumerate(raw.fids) if fi in keepers]
         raw.rawdirs = [r for ri, r in enumerate(raw.rawdirs)
                        if ri in keepers]
         raw.first_samp = raw._first_samps[0]
@@ -690,7 +689,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         then save raw files for this reason.
         """
         fname = op.realpath(fname)
-        if not self._preloaded and fname in self.info['filenames']:
+        if not self._preloaded and fname in self._filenames:
             raise ValueError('You cannot save data to the same file.'
                              ' Please use a different filename.')
 
@@ -1021,7 +1020,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         if bad_file is not None:
             # Check to make sure bad channels are there
             names = frozenset(self.info['ch_names'])
-            bad_names = [l for l in open(bad_file).read().splitlines() if l]
+            with open(bad_file) as fid:
+                bad_names = [l for l in fid.read().splitlines() if l]
             names_there = [ci for ci in bad_names if ci in names]
             count_diff = len(bad_names) - len(names_there)
 
@@ -1029,11 +1029,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                 if not force:
                     raise ValueError('Bad channels from:\n%s\n not found '
                                      'in:\n%s' % (bad_file,
-                                                  self.info['filenames'][0]))
+                                                  self._filenames[0]))
                 else:
                     warnings.warn('%d bad channels from:\n%s\nnot found '
                                   'in:\n%s' % (count_diff, bad_file,
-                                               self.info['filenames'][0]))
+                                               self._filenames[0]))
             self.info['bads'] = names_there
         else:
             self.info['bads'] = []
@@ -1113,9 +1113,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._raw_lengths = np.r_[self._raw_lengths, r._raw_lengths]
             self.rawdirs += r.rawdirs
-            self.info['filenames'] += r.info['filenames']
-        # reconstruct fids in case some were preloaded and others weren't
-        self._initialize_fids()
+            self._filenames += r._filenames
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
 
         # this has to be done after first and last sample are set appropriately
@@ -1123,31 +1121,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             self._times = np.arange(self.n_times) / self.info['sfreq']
 
     def close(self):
-        """Close the files on disk."""
-        [f.close() for f in self.fids]
-        self.fids = []
+        """Clean up the object.
+
+        Does nothing for now.
+        """
+        pass
 
     def copy(self):
         """ Return copy of Raw instance
         """
-        old_fids = self.fids
-        try:
-            self.fids = list()
-            new = deepcopy(self)
-            new._initialize_fids()
-        finally:
-            self.fids = old_fids
-        return new
-
-    def _initialize_fids(self):
-        """Initialize self.fids based on self.info['filenames']
-        """
-        if self._preloaded:
-            self.fids = []
-        else:
-            self.fids = [open(fname, "rb") for fname in self.info['filenames']]
-            for fid in self.fids:
-                fid.seek(0, 0)
+        return deepcopy(self)
 
     def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
                       scalings=None, use_time_index=True, copy=True):

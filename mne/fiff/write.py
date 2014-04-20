@@ -8,13 +8,13 @@ import time
 import numpy as np
 from scipy import linalg
 import os.path as op
-import gzip
 import re
 import uuid
 
 from .constants import FIFF
 from ..utils import logger
 from ..externals.jdcal import jcal2jd
+from ..fixes import gzip_open
 
 
 def _write(fid, data, kind, data_size, FIFFT_TYPE, dtype):
@@ -226,7 +226,7 @@ def start_file(fname):
             logger.debug('Writing using gzip')
             # defaults to compression level 9, which is barely smaller but much
             # slower. 2 offers a good compromise.
-            fid = gzip.open(fname, "wb", compresslevel=2)
+            fid = gzip_open(fname, "wb", compresslevel=2)
         else:
             logger.debug('Writing using normal I/O')
             fid = open(fname, "wb")

@@ -42,7 +42,7 @@ def test_subject_info():
     """Test reading subject information
     """
     raw = Raw(fif_fname)
-    raw.crop(0, 1)
+    raw.crop(0, 1, False)
     assert_true(raw.info['subject_info'] is None)
     # fake some subject data
     keys = ['id', 'his_id', 'last_name', 'first_name', 'birthday', 'sex',
@@ -512,10 +512,10 @@ def test_preload_modify():
         nsamp = raw.last_samp - raw.first_samp + 1
         picks = pick_types(raw.info, meg='grad', exclude='bads')
 
-        data = np.random.randn(len(picks), nsamp / 2)
+        data = np.random.randn(len(picks), nsamp // 2)
 
         try:
-            raw[picks, :nsamp / 2] = data
+            raw[picks, :nsamp // 2] = data
         except RuntimeError as err:
             if not preload:
                 continue

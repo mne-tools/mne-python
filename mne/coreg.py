@@ -768,7 +768,8 @@ def read_elp(fname):
         Point coordinates.
     """
     pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    elp_points = pattern.findall(open(fname).read())
+    with open(fname) as fid:
+        elp_points = pattern.findall(fid.read())
     elp_points = np.array(elp_points, dtype=float)
     if elp_points.shape[1] != 3:
         err = ("File %r does not contain 3 columns as required; got shape "

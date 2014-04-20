@@ -43,7 +43,7 @@ DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
 
 RAW_INFO_FIELDS = ['dev_head_t', 'nchan', 'bads', 'projs', 'dev_ctf_t',
                    'meas_date', 'meas_id', 'dig', 'sfreq', 'highpass',
-                   'filenames', 'comps', 'chs', 'ch_names', 'file_id',
+                   'comps', 'chs', 'ch_names', 'file_id',
                    'lowpass', 'acq_pars', 'acq_stim', 'filename',
                    'ctf_head_t']
 
@@ -218,343 +218,342 @@ def _read_config(fname):
         The config blocks found.
 
     """
-    fid = open(fname, 'rb')
-
-    cfg = dict()
-
-    cfg['hdr'] = {'version': read_int16(fid),
-                  'site_name': read_str(fid, 32),
-                  'dap_hostname': read_str(fid, 16),
-                  'sys_type': read_int16(fid),
-                  'sys_options': read_int32(fid),
-                  'supply_freq': read_int16(fid),
-                  'total_chans': read_int16(fid),
-                  'system_fixed_gain': read_float(fid),
-                  'volts_per_bit': read_float(fid),
-                  'total_sensors': read_int16(fid),
-                  'total_user_blocks': read_int16(fid),
-                  'next_der_chan_no': read_int16(fid)}
-
-    fid.seek(2, 1)
-
-    cfg['checksum'] = read_uint32(fid)
-    cfg['reserved'] = read_char(fid, 32)
-    cfg['transforms'] = [read_transform(fid) for t in
-                         range(cfg['hdr']['total_sensors'])]
-
-    cfg['user_blocks'] = dict()
-    for block in range(cfg['hdr']['total_user_blocks']):
-        ub = dict()
-
-        ub['hdr'] = {'nbytes': read_int32(fid),
-                     'kind': read_str(fid, 20),
-                     'checksum': read_int32(fid),
-                     'username': read_str(fid, 32),
-                     'timestamp': read_int32(fid),
-                     'user_space_size': read_int32(fid),
-                     'reserved': read_char(fid, 32)}
-
-        _correct_offset(fid)
-        kind = ub['hdr'].pop('kind')
-        if not kind:  # make sure reading goes right. Should never be empty
-            raise RuntimeError('Could not read user block. Probably you'
-                               ' acquired data using a BTi version currently'
-                               'not supported. Please contact the mne-python'
-                               ' developers.')
-        dta, cfg['user_blocks'][kind] = dict(), ub
-        if kind in [v for k, v in BTI.items() if k[:5] == 'UB_B_']:
-            if kind == BTI.UB_B_MAG_INFO:
-                dta['version'] = read_int32(fid)
-                fid.seek(20, 1)
-                dta['headers'] = list()
-                for hdr in range(6):
-                    d = {'name': read_str(fid, 16),
-                         'transform': read_transform(fid),
-                         'units_per_bit': read_float(fid)}
-                    dta['headers'] += [d]
-                    fid.seek(20, 1)
-
-            elif kind == BTI.UB_B_COH_POINTS:
-                dta['n_points'] = read_int32(fid)
-                dta['status'] = read_int32(fid)
-                dta['points'] = []
-                for pnt in range(16):
-                    d = {'pos': read_double_matrix(fid, 1, 3),
-                         'direction': read_double_matrix(fid, 1, 3),
-                         'error': read_double(fid)}
-                    dta['points'] += [d]
-
-            elif kind == BTI.UB_B_CCP_XFM_BLOCK:
-                dta['method'] = read_int32(fid)
-                # handle difference btw/ linux (0) and solaris (4)
-                size = 0 if ub['hdr']['user_space_size'] == 132 else 4
-                fid.seek(size, 1)
-                dta['transform'] = read_transform(fid)
-
-            elif kind == BTI.UB_B_EEG_LOCS:
-                dta['electrodes'] = []
-                while True:
-                    d = {'label': read_str(fid, 16),
-                         'location': read_double_matrix(fid, 1, 3)}
-                    if not d['label']:
-                        break
-                    dta['electrodes'] += [d]
-
-            elif kind in [BTI.UB_B_WHC_CHAN_MAP_VER,
-                          BTI.UB_B_WHS_SUBSYS_VER]:
-                dta['version'] = read_int16(fid)
-                dta['struct_size'] = read_int16(fid)
-                dta['entries'] = read_int16(fid)
-
-                fid.seek(8, 1)
-
-            elif kind == BTI.UB_B_WHC_CHAN_MAP:
-                num_channels = None
-                for name, data in cfg['user_blocks'].items():
-                    if name == BTI.UB_B_WHC_CHAN_MAP_VER:
-                        num_channels = data['entries']
-                        break
-
-                if num_channels is None:
-                    raise ValueError('Cannot find block %s to determine number'
-                                     'of channels' % BTI.UB_B_WHC_CHAN_MAP_VER)
-
-                dta['channels'] = list()
-                for i in range(num_channels):
-                    d = {'subsys_type': read_int16(fid),
-                         'subsys_num': read_int16(fid),
-                         'card_num': read_int16(fid),
-                         'chan_num': read_int16(fid),
-                         'recdspnum': read_int16(fid)}
-                    dta['channels'] += [d]
-                    fid.seek(8, 1)
-
-            elif kind == BTI.UB_B_WHS_SUBSYS:
-                num_subsys = None
-                for name, data in cfg['user_blocks'].items():
-                    if name == BTI.UB_B_WHS_SUBSYS_VER:
-                        num_subsys = data['entries']
-                        break
-
-                if num_subsys is None:
-                    raise ValueError('Cannot find block %s to determine'
-                                     ' number of subsystems'
-                                     % BTI.UB_B_WHS_SUBSYS_VER)
-
-                dta['subsys'] = list()
-                for sub_key in range(num_subsys):
-                    d = {'subsys_type': read_int16(fid),
-                         'subsys_num': read_int16(fid),
-                         'cards_per_sys': read_int16(fid),
-                         'channels_per_card': read_int16(fid),
-                         'card_version': read_int16(fid)}
-
-                    fid.seek(2, 1)
-
-                    d.update({'offsetdacgain': read_float(fid),
-                              'squid_type': read_int32(fid),
-                              'timesliceoffset': read_int16(fid),
-                              'padding': read_int16(fid),
-                              'volts_per_bit': read_float(fid)})
-
-                    dta['subsys'] += [d]
-
-            elif kind == BTI.UB_B_CH_LABELS:
-                dta['version'] = read_int32(fid)
-                dta['entries'] = read_int32(fid)
-                fid.seek(16, 1)
-
-                dta['labels'] = list()
-                for label in range(dta['entries']):
-                    dta['labels'] += [read_str(fid, 16)]
-
-            elif kind == BTI.UB_B_CALIBRATION:
-                dta['sensor_no'] = read_int16(fid)
-                fid.seek(2, 1)
-                dta['timestamp'] = read_int32(fid)
-                dta['logdir'] = read_str(fid, 256)
-
-            elif kind == BTI.UB_B_SYS_CONFIG_TIME:
-                # handle difference btw/ linux (256) and solaris (512)
-                size = 256 if ub['hdr']['user_space_size'] == 260 else 512
-                dta['sysconfig_name'] = read_str(fid, size)
-                dta['timestamp'] = read_int32(fid)
-
-            elif kind == BTI.UB_B_DELTA_ENABLED:
-                dta['delta_enabled'] = read_int16(fid)
-
-            elif kind in [BTI.UB_B_E_TABLE_USED, BTI.UB_B_E_TABLE]:
-                dta['hdr'] = {'version': read_int32(fid),
-                              'entry_size': read_int32(fid),
-                              'n_entries': read_int32(fid),
-                              'filtername': read_str(fid, 16),
-                              'n_e_values': read_int32(fid),
-                              'reserved': read_str(fid, 28)}
-
-                if dta['hdr']['version'] == 2:
-                    size = 16
-                    dta['ch_names'] = [read_str(fid, size) for ch in
-                                       range(dta['hdr']['n_entries'])]
-                    dta['e_ch_names'] = [read_str(fid, size) for ch in
-                                         range(dta['hdr']['n_e_values'])]
-
-                    rows = dta['hdr']['n_entries']
-                    cols = dta['hdr']['n_e_values']
-                    dta['etable'] = read_float_matrix(fid, rows, cols)
-                else:  # handle MAGNES2500 naming scheme
-                    dta['ch_names'] = ['WH2500'] * dta['hdr']['n_e_values']
-                    dta['hdr']['n_e_values'] = 6
-                    dta['e_ch_names'] = BTI_WH2500_REF_MAG
-                    rows = dta['hdr']['n_entries']
-                    cols = dta['hdr']['n_e_values']
-                    dta['etable'] = read_float_matrix(fid, rows, cols)
-
-                    _correct_offset(fid)
-
-            elif any([kind == BTI.UB_B_WEIGHTS_USED,
-                      kind[:4] == BTI.UB_B_WEIGHT_TABLE]):
-                dta['hdr'] = {'version': read_int32(fid),
-                              'entry_size': read_int32(fid),
-                              'n_entries': read_int32(fid),
-                              'name': read_str(fid, 32),
-                              'description': read_str(fid, 80),
-                              'n_anlg': read_int32(fid),
-                              'n_dsp': read_int32(fid),
-                              'reserved': read_str(fid, 72)}
-
-                if dta['hdr']['version'] == 2:
-                    dta['ch_names'] = [read_str(fid, 16) for ch in
-                                       range(dta['hdr']['n_entries'])]
-                    dta['anlg_ch_names'] = [read_str(fid, 16) for ch in
-                                            range(dta['hdr']['n_anlg'])]
-
-                    dta['dsp_ch_names'] = [read_str(fid, 16) for ch in
-                                           range(dta['hdr']['n_dsp'])]
-
-                    rows = dta['hdr']['n_entries']
-                    cols = dta['hdr']['n_dsp']
-                    dta['dsp_wts'] = read_float_matrix(fid, rows, cols)
-                    cols = dta['hdr']['n_anlg']
-                    dta['anlg_wts'] = read_int16_matrix(fid, rows, cols)
-
-                else:  # handle MAGNES2500 naming scheme
-                    dta['ch_names'] = ['WH2500'] * dta['hdr']['n_entries']
-                    dta['anlg_ch_names'] = BTI_WH2500_REF_MAG[:3]
-                    dta['hdr']['n_anlg'] = len(dta['anlg_ch_names'])
-                    dta['dsp_ch_names'] = BTI_WH2500_REF_GRAD
-                    dta['hdr.n_dsp'] = len(dta['dsp_ch_names'])
-                    dta['anlg_wts'] = np.zeros((dta['hdr']['n_entries'],
-                                                dta['hdr']['n_anlg']),
-                                               dtype='i2')
-                    dta['dsp_wts'] = np.zeros((dta['hdr']['n_entries'],
-                                               dta['hdr']['n_dsp']),
-                                              dtype='f4')
-                    for n in range(dta['hdr']['n_entries']):
-                        dta['anlg_wts'][d] = read_int16_matrix(fid, 1,
-                                                    dta['hdr']['n_anlg'])
-                        read_int16(fid)
-                        dta['dsp_wts'][d] = read_float_matrix(fid, 1,
-                                                    dta['hdr']['n_dsp'])
-
-                    _correct_offset(fid)
-
-            elif kind == BTI.UB_B_TRIG_MASK:
-                dta['version'] = read_int32(fid)
-                dta['entries'] = read_int32(fid)
-                fid.seek(16, 1)
-
-                dta['masks'] = []
-                for entry in range(dta['entries']):
-                    d = {'name': read_str(fid, 20),
-                         'nbits': read_uint16(fid),
-                         'shift': read_uint16(fid),
-                         'mask': read_uint32(fid)}
-                    dta['masks'] += [d]
-                    fid.seek(8, 1)
-
-        else:
-            dta['unknown'] = {'hdr': read_char(fid,
-                              ub['hdr']['user_space_size'])}
-
-        ub.update(dta)  # finally update the userblock data
-        _correct_offset(fid)  # after reading.
-
-    cfg['chs'] = list()
-
-    # prepare reading channels
-    dev_header = lambda x: {'size': read_int32(x),
-                            'checksum': read_int32(x),
-                            'reserved': read_str(x, 32)}
-
-    for channel in range(cfg['hdr']['total_chans']):
-        ch = {'name': read_str(fid, 16),
-              'chan_no': read_int16(fid),
-              'ch_type': read_uint16(fid),
-              'sensor_no': read_int16(fid),
-              'data': dict()}
+    with open(fname, 'rb') as fid:
+        cfg = dict()
+        cfg['hdr'] = {'version': read_int16(fid),
+                      'site_name': read_str(fid, 32),
+                      'dap_hostname': read_str(fid, 16),
+                      'sys_type': read_int16(fid),
+                      'sys_options': read_int32(fid),
+                      'supply_freq': read_int16(fid),
+                      'total_chans': read_int16(fid),
+                      'system_fixed_gain': read_float(fid),
+                      'volts_per_bit': read_float(fid),
+                      'total_sensors': read_int16(fid),
+                      'total_user_blocks': read_int16(fid),
+                      'next_der_chan_no': read_int16(fid)}
 
         fid.seek(2, 1)
-        ch.update({'gain': read_float(fid),
-                   'units_per_bit': read_float(fid),
-                   'yaxis_label': read_str(fid, 16),
-                   'aar_val': read_double(fid),
-                   'checksum': read_int32(fid),
-                   'reserved': read_str(fid, 32)})
 
-        cfg['chs'] += [ch]
-        _correct_offset(fid)  # before and after
-        dta = dict()
-        if ch['ch_type'] in [BTI.CHTYPE_MEG, BTI.CHTYPE_REFERENCE]:
-            dev = {'device_info': dev_header(fid),
-                   'inductance': read_float(fid),
-                   'padding': read_str(fid, 4),
-                   'transform': read_transform(fid),
-                   'xform_flag': read_int16(fid),
-                   'total_loops': read_int16(fid)}
+        cfg['checksum'] = read_uint32(fid)
+        cfg['reserved'] = read_char(fid, 32)
+        cfg['transforms'] = [read_transform(fid) for t in
+                             range(cfg['hdr']['total_sensors'])]
 
-            fid.seek(4, 1)
-            dev['reserved'] = read_str(fid, 32)
-            dta.update({'dev': dev, 'loops': []})
-            for loop in range(dev['total_loops']):
-                d = {'position': read_double_matrix(fid, 1, 3),
-                     'orientation': read_double_matrix(fid, 1, 3),
-                     'radius': read_double(fid),
-                     'wire_radius': read_double(fid),
-                     'turns': read_int16(fid)}
-                fid.seek(2, 1)
-                d['checksum'] = read_int32(fid)
-                d['reserved'] = read_str(fid, 32)
-                dta['loops'] += [d]
+        cfg['user_blocks'] = dict()
+        for block in range(cfg['hdr']['total_user_blocks']):
+            ub = dict()
 
-        elif ch['ch_type'] == BTI.CHTYPE_EEG:
-            dta = {'device_info': dev_header(fid),
-                   'impedance': read_float(fid),
-                   'padding': read_str(fid, 4),
-                   'transform': read_transform(fid),
-                   'reserved': read_char(fid, 32)}
+            ub['hdr'] = {'nbytes': read_int32(fid),
+                         'kind': read_str(fid, 20),
+                         'checksum': read_int32(fid),
+                         'username': read_str(fid, 32),
+                         'timestamp': read_int32(fid),
+                         'user_space_size': read_int32(fid),
+                         'reserved': read_char(fid, 32)}
 
-        elif ch['ch_type'] == BTI.CHTYPE_EXTERNAL:
-            dta = {'device_info': dev_header(fid),
-                   'user_space_size': read_int32(fid),
-                   'reserved': read_str(fid, 32)}
+            _correct_offset(fid)
+            kind = ub['hdr'].pop('kind')
+            if not kind:  # make sure reading goes right. Should never be empty
+                raise RuntimeError('Could not read user block. Probably you '
+                                   'acquired data using a BTi version '
+                                   'currently not supported. Please contact '
+                                   'the mne-python developers.')
+            dta, cfg['user_blocks'][kind] = dict(), ub
+            if kind in [v for k, v in BTI.items() if k[:5] == 'UB_B_']:
+                if kind == BTI.UB_B_MAG_INFO:
+                    dta['version'] = read_int32(fid)
+                    fid.seek(20, 1)
+                    dta['headers'] = list()
+                    for hdr in range(6):
+                        d = {'name': read_str(fid, 16),
+                             'transform': read_transform(fid),
+                             'units_per_bit': read_float(fid)}
+                        dta['headers'] += [d]
+                        fid.seek(20, 1)
 
-        elif ch['ch_type'] == BTI.CHTYPE_TRIGGER:
-            dta = {'device_info': dev_header(fid),
-                   'user_space_size': read_int32(fid)}
+                elif kind == BTI.UB_B_COH_POINTS:
+                    dta['n_points'] = read_int32(fid)
+                    dta['status'] = read_int32(fid)
+                    dta['points'] = []
+                    for pnt in range(16):
+                        d = {'pos': read_double_matrix(fid, 1, 3),
+                             'direction': read_double_matrix(fid, 1, 3),
+                             'error': read_double(fid)}
+                        dta['points'] += [d]
+
+                elif kind == BTI.UB_B_CCP_XFM_BLOCK:
+                    dta['method'] = read_int32(fid)
+                    # handle difference btw/ linux (0) and solaris (4)
+                    size = 0 if ub['hdr']['user_space_size'] == 132 else 4
+                    fid.seek(size, 1)
+                    dta['transform'] = read_transform(fid)
+
+                elif kind == BTI.UB_B_EEG_LOCS:
+                    dta['electrodes'] = []
+                    while True:
+                        d = {'label': read_str(fid, 16),
+                             'location': read_double_matrix(fid, 1, 3)}
+                        if not d['label']:
+                            break
+                        dta['electrodes'] += [d]
+
+                elif kind in [BTI.UB_B_WHC_CHAN_MAP_VER,
+                              BTI.UB_B_WHS_SUBSYS_VER]:
+                    dta['version'] = read_int16(fid)
+                    dta['struct_size'] = read_int16(fid)
+                    dta['entries'] = read_int16(fid)
+
+                    fid.seek(8, 1)
+
+                elif kind == BTI.UB_B_WHC_CHAN_MAP:
+                    num_channels = None
+                    for name, data in cfg['user_blocks'].items():
+                        if name == BTI.UB_B_WHC_CHAN_MAP_VER:
+                            num_channels = data['entries']
+                            break
+
+                    if num_channels is None:
+                        raise ValueError('Cannot find block %s to determine '
+                                         'number of channels'
+                                         % BTI.UB_B_WHC_CHAN_MAP_VER)
+
+                    dta['channels'] = list()
+                    for i in range(num_channels):
+                        d = {'subsys_type': read_int16(fid),
+                             'subsys_num': read_int16(fid),
+                             'card_num': read_int16(fid),
+                             'chan_num': read_int16(fid),
+                             'recdspnum': read_int16(fid)}
+                        dta['channels'] += [d]
+                        fid.seek(8, 1)
+
+                elif kind == BTI.UB_B_WHS_SUBSYS:
+                    num_subsys = None
+                    for name, data in cfg['user_blocks'].items():
+                        if name == BTI.UB_B_WHS_SUBSYS_VER:
+                            num_subsys = data['entries']
+                            break
+
+                    if num_subsys is None:
+                        raise ValueError('Cannot find block %s to determine'
+                                         ' number of subsystems'
+                                         % BTI.UB_B_WHS_SUBSYS_VER)
+
+                    dta['subsys'] = list()
+                    for sub_key in range(num_subsys):
+                        d = {'subsys_type': read_int16(fid),
+                             'subsys_num': read_int16(fid),
+                             'cards_per_sys': read_int16(fid),
+                             'channels_per_card': read_int16(fid),
+                             'card_version': read_int16(fid)}
+
+                        fid.seek(2, 1)
+
+                        d.update({'offsetdacgain': read_float(fid),
+                                  'squid_type': read_int32(fid),
+                                  'timesliceoffset': read_int16(fid),
+                                  'padding': read_int16(fid),
+                                  'volts_per_bit': read_float(fid)})
+
+                        dta['subsys'] += [d]
+
+                elif kind == BTI.UB_B_CH_LABELS:
+                    dta['version'] = read_int32(fid)
+                    dta['entries'] = read_int32(fid)
+                    fid.seek(16, 1)
+
+                    dta['labels'] = list()
+                    for label in range(dta['entries']):
+                        dta['labels'] += [read_str(fid, 16)]
+
+                elif kind == BTI.UB_B_CALIBRATION:
+                    dta['sensor_no'] = read_int16(fid)
+                    fid.seek(2, 1)
+                    dta['timestamp'] = read_int32(fid)
+                    dta['logdir'] = read_str(fid, 256)
+
+                elif kind == BTI.UB_B_SYS_CONFIG_TIME:
+                    # handle difference btw/ linux (256) and solaris (512)
+                    size = 256 if ub['hdr']['user_space_size'] == 260 else 512
+                    dta['sysconfig_name'] = read_str(fid, size)
+                    dta['timestamp'] = read_int32(fid)
+
+                elif kind == BTI.UB_B_DELTA_ENABLED:
+                    dta['delta_enabled'] = read_int16(fid)
+
+                elif kind in [BTI.UB_B_E_TABLE_USED, BTI.UB_B_E_TABLE]:
+                    dta['hdr'] = {'version': read_int32(fid),
+                                  'entry_size': read_int32(fid),
+                                  'n_entries': read_int32(fid),
+                                  'filtername': read_str(fid, 16),
+                                  'n_e_values': read_int32(fid),
+                                  'reserved': read_str(fid, 28)}
+
+                    if dta['hdr']['version'] == 2:
+                        size = 16
+                        dta['ch_names'] = [read_str(fid, size) for ch in
+                                           range(dta['hdr']['n_entries'])]
+                        dta['e_ch_names'] = [read_str(fid, size) for ch in
+                                             range(dta['hdr']['n_e_values'])]
+
+                        rows = dta['hdr']['n_entries']
+                        cols = dta['hdr']['n_e_values']
+                        dta['etable'] = read_float_matrix(fid, rows, cols)
+                    else:  # handle MAGNES2500 naming scheme
+                        dta['ch_names'] = ['WH2500'] * dta['hdr']['n_e_values']
+                        dta['hdr']['n_e_values'] = 6
+                        dta['e_ch_names'] = BTI_WH2500_REF_MAG
+                        rows = dta['hdr']['n_entries']
+                        cols = dta['hdr']['n_e_values']
+                        dta['etable'] = read_float_matrix(fid, rows, cols)
+
+                        _correct_offset(fid)
+
+                elif any([kind == BTI.UB_B_WEIGHTS_USED,
+                          kind[:4] == BTI.UB_B_WEIGHT_TABLE]):
+                    dta['hdr'] = {'version': read_int32(fid),
+                                  'entry_size': read_int32(fid),
+                                  'n_entries': read_int32(fid),
+                                  'name': read_str(fid, 32),
+                                  'description': read_str(fid, 80),
+                                  'n_anlg': read_int32(fid),
+                                  'n_dsp': read_int32(fid),
+                                  'reserved': read_str(fid, 72)}
+
+                    if dta['hdr']['version'] == 2:
+                        dta['ch_names'] = [read_str(fid, 16) for ch in
+                                           range(dta['hdr']['n_entries'])]
+                        dta['anlg_ch_names'] = [read_str(fid, 16) for ch in
+                                                range(dta['hdr']['n_anlg'])]
+
+                        dta['dsp_ch_names'] = [read_str(fid, 16) for ch in
+                                               range(dta['hdr']['n_dsp'])]
+
+                        rows = dta['hdr']['n_entries']
+                        cols = dta['hdr']['n_dsp']
+                        dta['dsp_wts'] = read_float_matrix(fid, rows, cols)
+                        cols = dta['hdr']['n_anlg']
+                        dta['anlg_wts'] = read_int16_matrix(fid, rows, cols)
+
+                    else:  # handle MAGNES2500 naming scheme
+                        dta['ch_names'] = ['WH2500'] * dta['hdr']['n_entries']
+                        dta['anlg_ch_names'] = BTI_WH2500_REF_MAG[:3]
+                        dta['hdr']['n_anlg'] = len(dta['anlg_ch_names'])
+                        dta['dsp_ch_names'] = BTI_WH2500_REF_GRAD
+                        dta['hdr.n_dsp'] = len(dta['dsp_ch_names'])
+                        dta['anlg_wts'] = np.zeros((dta['hdr']['n_entries'],
+                                                    dta['hdr']['n_anlg']),
+                                                   dtype='i2')
+                        dta['dsp_wts'] = np.zeros((dta['hdr']['n_entries'],
+                                                   dta['hdr']['n_dsp']),
+                                                  dtype='f4')
+                        for n in range(dta['hdr']['n_entries']):
+                            dta['anlg_wts'][d] = read_int16_matrix(fid, 1,
+                                                       dta['hdr']['n_anlg'])
+                            read_int16(fid)
+                            dta['dsp_wts'][d] = read_float_matrix(fid, 1,
+                                                        dta['hdr']['n_dsp'])
+
+                        _correct_offset(fid)
+
+                elif kind == BTI.UB_B_TRIG_MASK:
+                    dta['version'] = read_int32(fid)
+                    dta['entries'] = read_int32(fid)
+                    fid.seek(16, 1)
+
+                    dta['masks'] = []
+                    for entry in range(dta['entries']):
+                        d = {'name': read_str(fid, 20),
+                             'nbits': read_uint16(fid),
+                             'shift': read_uint16(fid),
+                             'mask': read_uint32(fid)}
+                        dta['masks'] += [d]
+                        fid.seek(8, 1)
+
+            else:
+                dta['unknown'] = {'hdr': read_char(fid,
+                                  ub['hdr']['user_space_size'])}
+
+            ub.update(dta)  # finally update the userblock data
+            _correct_offset(fid)  # after reading.
+
+        cfg['chs'] = list()
+
+        # prepare reading channels
+        dev_header = lambda x: {'size': read_int32(x),
+                                'checksum': read_int32(x),
+                                'reserved': read_str(x, 32)}
+
+        for channel in range(cfg['hdr']['total_chans']):
+            ch = {'name': read_str(fid, 16),
+                  'chan_no': read_int16(fid),
+                  'ch_type': read_uint16(fid),
+                  'sensor_no': read_int16(fid),
+                  'data': dict()}
+
             fid.seek(2, 1)
-            dta['reserved'] = read_str(fid, 32)
+            ch.update({'gain': read_float(fid),
+                       'units_per_bit': read_float(fid),
+                       'yaxis_label': read_str(fid, 16),
+                       'aar_val': read_double(fid),
+                       'checksum': read_int32(fid),
+                       'reserved': read_str(fid, 32)})
 
-        elif ch['ch_type'] in [BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
-            dta = {'device_info': dev_header(fid),
-                   'user_space_size': read_int32(fid),
-                   'reserved': read_str(fid, 32)}
+            cfg['chs'] += [ch]
+            _correct_offset(fid)  # before and after
+            dta = dict()
+            if ch['ch_type'] in [BTI.CHTYPE_MEG, BTI.CHTYPE_REFERENCE]:
+                dev = {'device_info': dev_header(fid),
+                       'inductance': read_float(fid),
+                       'padding': read_str(fid, 4),
+                       'transform': read_transform(fid),
+                       'xform_flag': read_int16(fid),
+                       'total_loops': read_int16(fid)}
 
-        elif ch['ch_type'] == BTI.CHTYPE_SHORTED:
-            dta = {'device_info': dev_header(fid),
-                   'reserved': read_str(fid, 32)}
+                fid.seek(4, 1)
+                dev['reserved'] = read_str(fid, 32)
+                dta.update({'dev': dev, 'loops': []})
+                for loop in range(dev['total_loops']):
+                    d = {'position': read_double_matrix(fid, 1, 3),
+                         'orientation': read_double_matrix(fid, 1, 3),
+                         'radius': read_double(fid),
+                         'wire_radius': read_double(fid),
+                         'turns': read_int16(fid)}
+                    fid.seek(2, 1)
+                    d['checksum'] = read_int32(fid)
+                    d['reserved'] = read_str(fid, 32)
+                    dta['loops'] += [d]
 
-        ch.update(dta)  # add data collected
-        _correct_offset(fid)  # after each reading
+            elif ch['ch_type'] == BTI.CHTYPE_EEG:
+                dta = {'device_info': dev_header(fid),
+                       'impedance': read_float(fid),
+                       'padding': read_str(fid, 4),
+                       'transform': read_transform(fid),
+                       'reserved': read_char(fid, 32)}
+
+            elif ch['ch_type'] == BTI.CHTYPE_EXTERNAL:
+                dta = {'device_info': dev_header(fid),
+                       'user_space_size': read_int32(fid),
+                       'reserved': read_str(fid, 32)}
+
+            elif ch['ch_type'] == BTI.CHTYPE_TRIGGER:
+                dta = {'device_info': dev_header(fid),
+                       'user_space_size': read_int32(fid)}
+                fid.seek(2, 1)
+                dta['reserved'] = read_str(fid, 32)
+
+            elif ch['ch_type'] in [BTI.CHTYPE_UTILITY, BTI.CHTYPE_DERIVED]:
+                dta = {'device_info': dev_header(fid),
+                       'user_space_size': read_int32(fid),
+                       'reserved': read_str(fid, 32)}
+
+            elif ch['ch_type'] == BTI.CHTYPE_SHORTED:
+                dta = {'device_info': dev_header(fid),
+                       'reserved': read_str(fid, 32)}
+
+            ch.update(dta)  # add data collected
+            _correct_offset(fid)  # after each reading
 
     return cfg
 
@@ -758,73 +757,72 @@ def _read_ch_config(fid):
 def _read_bti_header(pdf_fname, config_fname):
     """ Read bti PDF header
     """
-    fid = open(pdf_fname, 'rb')
+    with open(pdf_fname, 'rb') as fid:
+        fid.seek(-8, 2)
+        start = fid.tell()
+        header_position = read_int64(fid)
+        check_value = header_position & BTI.FILE_MASK
 
-    fid.seek(-8, 2)
-    start = fid.tell()
-    header_position = read_int64(fid)
-    check_value = header_position & BTI.FILE_MASK
+        if ((start + BTI.FILE_CURPOS - check_value) <= BTI.FILE_MASK):
+            header_position = check_value
 
-    if ((start + BTI.FILE_CURPOS - check_value) <= BTI.FILE_MASK):
-        header_position = check_value
+        # Check header position for alignment issues
+        if ((header_position % 8) != 0):
+            header_position += (8 - (header_position % 8))
 
-    # Check header position for alignment issues
-    if ((header_position % 8) != 0):
-        header_position += (8 - (header_position % 8))
+        fid.seek(header_position, 0)
 
-    fid.seek(header_position, 0)
+        # actual header starts here
+        info = {'version': read_int16(fid),
+                'file_type': read_str(fid, 5),
+                'hdr_size': start - header_position,  # add to info for convenience
+                'start': start}
 
-    # actual header starts here
-    info = {'version': read_int16(fid),
-            'file_type': read_str(fid, 5),
-            'hdr_size': start - header_position,  # add to info for convenience
-            'start': start}
+        fid.seek(1, 1)
 
-    fid.seek(1, 1)
+        info.update({'data_format': read_int16(fid),
+                    'acq_mode': read_int16(fid),
+                    'total_epochs': read_int32(fid),
+                    'input_epochs': read_int32(fid),
+                    'total_events': read_int32(fid),
+                    'total_fixed_events': read_int32(fid),
+                    'sample_period': read_float(fid),
+                    'xaxis_label': read_str(fid, 16),
+                    'total_processes': read_int32(fid),
+                    'total_chans': read_int16(fid)})
 
-    info.update({'data_format': read_int16(fid),
-                'acq_mode': read_int16(fid),
-                'total_epochs': read_int32(fid),
-                'input_epochs': read_int32(fid),
-                'total_events': read_int32(fid),
-                'total_fixed_events': read_int32(fid),
-                'sample_period': read_float(fid),
-                'xaxis_label': read_str(fid, 16),
-                'total_processes': read_int32(fid),
-                'total_chans': read_int16(fid)})
+        fid.seek(2, 1)
+        info.update({'checksum': read_int32(fid),
+                    'total_ed_classes': read_int32(fid),
+                    'total_associated_files': read_int16(fid),
+                    'last_file_index': read_int16(fid),
+                    'timestamp': read_int32(fid)})
 
-    fid.seek(2, 1)
-    info.update({'checksum': read_int32(fid),
-                'total_ed_classes': read_int32(fid),
-                'total_associated_files': read_int16(fid),
-                'last_file_index': read_int16(fid),
-                'timestamp': read_int32(fid)})
+        fid.seek(20, 1)
+        _correct_offset(fid)
 
-    fid.seek(20, 1)
-    _correct_offset(fid)
+        # actual header ends here, so dar seems ok.
 
-    # actual header ends here, so dar seems ok.
+        info['epochs'] = [_read_epoch(fid) for epoch in
+                          range(info['total_epochs'])]
 
-    info['epochs'] = [_read_epoch(fid) for epoch in
-                      range(info['total_epochs'])]
+        info['chs'] = [_read_channel(fid) for ch in
+                       range(info['total_chans'])]
 
-    info['chs'] = [_read_channel(fid) for ch in
-                   range(info['total_chans'])]
+        info['events'] = [_read_event(fid) for event in
+                          range(info['total_events'])]
 
-    info['events'] = [_read_event(fid) for event in
-                      range(info['total_events'])]
+        info['processes'] = [_read_process(fid) for process in
+                             range(info['total_processes'])]
 
-    info['processes'] = [_read_process(fid) for process in
-                         range(info['total_processes'])]
+        info['assocfiles'] = [_read_assoc_file(fid) for af in
+                              range(info['total_associated_files'])]
 
-    info['assocfiles'] = [_read_assoc_file(fid) for af in
-                          range(info['total_associated_files'])]
+        info['edclasses'] = [_read_pfid_ed(fid) for ed_class in
+                             range(info['total_ed_classes'])]
 
-    info['edclasses'] = [_read_pfid_ed(fid) for ed_class in
-                         range(info['total_ed_classes'])]
-
-    info['extra_data'] = fid.read(start - fid.tell())
-    info['fid'] = fid
+        info['extra_data'] = fid.read(start - fid.tell())
+        info['pdf_fname'] = pdf_fname
 
     info['total_slices'] = sum(e['pts_in_epoch'] for e in
                                info['epochs'])
@@ -916,12 +914,12 @@ def _read_data(info, start=None, stop=None):
         raise RuntimeError('Invalid data range supplied:'
                            ' %d, %d' % (start, stop))
 
-    info['fid'].seek(info['bytes_per_slice'] * start, 0)
-
-    cnt = (stop - start) * info['total_chans']
-    shape = [stop - start, info['total_chans']]
-    data = np.fromfile(info['fid'], dtype=info['dtype'],
-                       count=cnt).astype('f4').reshape(shape)
+    with open(info['pdf_fname'], 'rb') as fid:
+        fid.seek(info['bytes_per_slice'] * start, 0)
+        cnt = (stop - start) * info['total_chans']
+        shape = [stop - start, info['total_chans']]
+        data = np.fromfile(fid, dtype=info['dtype'],
+                           count=cnt).astype('f4').reshape(shape)
 
     for ch in info['chs']:
         data[:, ch['index']] *= ch['cal']
@@ -1024,7 +1022,6 @@ class RawBTi(_BaseRaw):
         info['lowpass'] = lp
         info['acq_pars'], info['acq_stim'] = None, None
         info['filename'] = None
-        info['filenames'] = []
         chs = []
 
         ch_names = [ch['name'] for ch in bti_info['chs']]
@@ -1161,7 +1158,7 @@ class RawBTi(_BaseRaw):
         self.rawdir = None
         self.proj = None
         self.comp = None
-        self.fids = list()
+        self._filenames = list()
         self._preloaded = True
         self._projector_hashes = [None]
         self.info = info

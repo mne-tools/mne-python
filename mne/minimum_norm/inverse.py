@@ -647,8 +647,8 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
 
     trans = inv['reginv'][:, None] * reduce(np.dot,
                                             [inv['eigen_fields']['data'],
-                                            inv['whitener'],
-                                            inv['proj']])
+                                             inv['whitener'],
+                                             inv['proj']])
     #
     #   Transformation into current distributions by weighting the eigenleads
     #   with the weights computed above
@@ -755,7 +755,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori == None)
+                   and pick_ori is None)
 
     if is_free_ori:
         logger.info('combining the current components...')
@@ -855,7 +855,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori == None)
+                   and pick_ori is None)
 
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
@@ -865,7 +865,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
         # Allocate space for inverse solution
         n_times = data.shape[1]
-        sol = np.empty((K.shape[0] / 3, n_times),
+        sol = np.empty((K.shape[0] // 3, n_times),
                        dtype=(K[0, 0] * data[0, 0]).dtype)
 
         for pos in range(0, n_times, buffer_size):
@@ -918,7 +918,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     tmin = epochs.times[0]
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori == None)
+                   and pick_ori is None)
 
     if not is_free_ori and noise_norm is not None:
         # premultiply kernel with noise normalization

@@ -6,7 +6,7 @@
 # License: BSD (3-clause)
 
 from .constants import FIFF
-from .open import fiff_open, show_fiff
+from .open import fiff_open, show_fiff, _fiff_get_fid
 from .evoked import Evoked, read_evoked, write_evoked
 from .meas_info import read_fiducials, write_fiducials, read_info, write_info
 from .pick import (pick_types, pick_channels, pick_types_evoked,

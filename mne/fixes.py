@@ -28,6 +28,27 @@ from distutils.version import LooseVersion
 from functools import partial
 from .externals import six
 from .externals.six.moves import copyreg
+from gzip import GzipFile
+
+
+###############################################################################
+# Misc
+
+class gzip_open(GzipFile):  # python2.6 doesn't have context managing
+    def __init__(self, *args, **kwargs):
+        return GzipFile.__init__(self, *args, **kwargs)
+
+    def __enter__(self):
+        if hasattr(GzipFile, '__enter__'):
+            return GzipFile.__enter__(self)
+        else:
+            return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if hasattr(GzipFile, '__exit__'):
+            return GzipFile.__exit__(self, exc_type, exc_value, traceback)
+        else:
+            return self.close()
 
 
 class _Counter(collections.defaultdict):

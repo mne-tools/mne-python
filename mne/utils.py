@@ -1366,9 +1366,10 @@ def _clean_names(names, remove_whitespace=False, before_dash=True):
 
 
 def clean_warning_registry():
-    """Safe way to reset warniings """
+    """Safe way to reset warnings """
     warnings.resetwarnings()
     reg = "__warningregistry__"
-    for mod in sys.modules.values():
-        if hasattr(mod, reg):
+    bad_names = ['MovedModule']  # this is in six.py, and causes bad things
+    for mod in list(sys.modules.values()):
+        if mod.__class__.__name__ not in bad_names and hasattr(mod, reg):
             getattr(mod, reg).clear()

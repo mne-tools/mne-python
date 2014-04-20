@@ -456,7 +456,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     info = pick_info(info, picks)
     source_rr = np.concatenate([s['rr'][s['vertno']] for s in src])
     # deal with free orientations:
-    nsource = fwd['sol']['data'].shape[1] / 3
+    nsource = fwd['sol']['data'].shape[1] // 3
     source_nn = np.tile(np.eye(3), (nsource, 1))
 
     # Don't transform the source spaces back into MRI coordinates (which is

@@ -96,7 +96,7 @@ def _block_diag(A, n):
     if sparse.issparse(A):  # then make block sparse
         raise NotImplemented('sparse reversal not implemented yet')
     ma, na = A.shape
-    bdn = na / int(n)  # number of submatrices
+    bdn = na // int(n)  # number of submatrices
 
     if na % n > 0:
         raise ValueError('Width of matrix must be a multiple of n')
@@ -135,7 +135,7 @@ def _inv_block_diag(A, n):
         The block diagonal matrix.
     """
     ma, na = A.shape
-    bdn = na / int(n)  # number of submatrices
+    bdn = na // int(n)  # number of submatrices
 
     if na % n > 0:
         raise ValueError('Width of matrix must be a multiple of n')

@@ -144,8 +144,8 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     acc = np.empty(acc_shape, dtype=np.complex128)
 
     freqs = list()
-    idx_fi = [Ellipsis] * cohy.ndim
-    idx_fj = [Ellipsis] * cohy.ndim
+    idx_fi = [slice(None)] * cohy.ndim
+    idx_fj = [slice(None)] * cohy.ndim
     for band_idx, band in enumerate(bands):
         freq_idx = np.where((freqs_ > band[0]) & (freqs_ < band[1]))[0]
         freqs.append(freqs_[freq_idx])
