@@ -681,6 +681,8 @@ Time-Frequency
    stft
    istft
    stftfreq
+   stockwell
+   stockwell_power
 
 
 Connectivity Estimation
