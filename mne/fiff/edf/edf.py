@@ -239,7 +239,6 @@ class RawEDF(_BaseRaw):
                             # but zero-pad instead
                             chan_data = np.hstack([chan_data,
                                                    [0]*(max_samp-samp)*blocks])
-                            print('***', chan_data[0])
                         elif samp != max_samp:
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
