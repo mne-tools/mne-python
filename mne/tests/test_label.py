@@ -27,6 +27,8 @@ real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                               'Aud-rh.label')
 src_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
+src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
+                        'fsaverage-ico-5-src.fif')
 
 test_path = op.join(op.split(__file__)[0], '..', 'fiff', 'tests', 'data')
 label_fname = op.join(test_path, 'test-lh.label')
@@ -320,6 +322,7 @@ def test_write_annot():
 
 @sample.requires_sample_data
 def test_split_label():
+    """Test splitting labels"""
     aparc = read_annot('fsaverage', 'aparc', 'lh', regexp='lingual',
                        subjects_dir=subjects_dir)
     lingual = aparc[0]
@@ -363,6 +366,7 @@ def test_stc_to_label():
     """Test stc_to_label
     """
     src = read_source_spaces(src_fname)
+    src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = stc_to_label(stc, src='sample', smooth=3)
@@ -381,6 +385,7 @@ def test_stc_to_label():
     assert_true(len(w) == 1)
     assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=3,
                   connected=True)
+    assert_raises(RuntimeError, stc_to_label, stc, src=src_bad, connected=True)
     assert_true(len(labels_lh) == 1)
     assert_true(len(labels_rh) == 1)
 

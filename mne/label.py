@@ -19,6 +19,7 @@ from .utils import (get_subjects_dir, _check_subject, logger, verbose,
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .surface import read_surface, fast_cross_3d
+from .source_space import SourceSpaces
 from .parallel import parallel_func, check_n_jobs
 from .stats.cluster_level import _find_clusters
 from .externals.six import b, string_types
@@ -931,7 +932,7 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     ----------
     stc : SourceEstimate
         The source estimates.
-    src : list of dict | string | None
+    src : SourceSpaces | str | None
         The source space over which the source estimates are defined.
         If it's a string it should the subject name (e.g. fsaverage).
         Can be None if stc.subject is not None.
@@ -966,6 +967,9 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
         raise ValueError('SourceEstimate should be surface source estimates')
 
     if isinstance(src, string_types):
+        if connected:
+            raise ValueError('The option to return only connected labels is '
+                             'only available if source spaces are provided.')
         subjects_dir = get_subjects_dir(subjects_dir)
         surf_path_from = op.join(subjects_dir, src, 'surf')
         rr_lh, tris_lh = read_surface(op.join(surf_path_from,
@@ -974,11 +978,9 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
                                       'rh.white'))
         rr = [rr_lh, rr_rh]
         tris = [tris_lh, tris_rh]
-        if connected:
-            raise ValueError('The option to return only connected labels'
-                             ' is only available if a source space is passed'
-                             ' as parameter.')
     else:
+        if not isinstance(src, SourceSpaces):
+            raise TypeError('src must be a string or a set of source spaces')
         if len(src) != 2:
             raise ValueError('source space should contain the 2 hemispheres')
         rr = [1e3 * src[0]['rr'], 1e3 * src[1]['rr']]
@@ -989,22 +991,22 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     cnt = 0
     cnt_full = 0
     for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
-                                    zip(['lh', 'rh'], stc.vertno, tris, rr)):
-
+            zip(['lh', 'rh'], stc.vertno, tris, rr)):
         this_data = stc.data[cnt:cnt + len(this_vertno)]
-
         e = mesh_edges(this_tris)
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
 
-        if connected:
-            if not isinstance(src, string_types):  # XXX : ugly
-                inuse = np.where(src[hemi_idx]['inuse'])[0]
-                tmp = np.zeros((len(inuse), this_data.shape[1]))
-                this_vertno_idx = np.searchsorted(inuse, this_vertno)
-                tmp[this_vertno_idx] = this_data
-                this_data = tmp
+        if connected:  # we know src *must* be a SourceSpaces now
+            vertno = np.where(src[hemi_idx]['inuse'])[0]
+            if not len(np.setdiff1d(this_vertno, vertno)) == 0:
+                raise RuntimeError('stc contains vertices not present '
+                                   'in source space, did you morph?')
+            tmp = np.zeros((len(vertno), this_data.shape[1]))
+            this_vertno_idx = np.searchsorted(vertno, this_vertno)
+            tmp[this_vertno_idx] = this_data
+            this_data = tmp
             offset = cnt_full + len(this_data)
             this_src_conn = src_conn[cnt_full:offset, cnt_full:offset].tocoo()
             this_data_abs_max = np.abs(this_data).max(axis=1)
@@ -1015,7 +1017,7 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
             clusters_max = np.argsort([np.max(this_data_abs_max[c])
                                        for c in clusters])[::-1]
             clusters = [clusters[k] for k in clusters_max]
-            clusters = [inuse[c] for c in clusters]
+            clusters = [vertno[c] for c in clusters]
         else:
             clusters = [this_vertno[np.any(this_data, axis=1)]]
 
