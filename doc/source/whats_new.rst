@@ -269,6 +269,7 @@ The committer list for this release is the following (preceded by number of comm
 
 .. _changes_0_7:
 
+
 Version 0.7
 -----------
 
