@@ -569,7 +569,7 @@ def sine_tapers(n_tapers, n_times):
 
     s = math.sqrt(2. / (n_times + 1))
     dtype = np.float64
-    out_x = np.arange(n_times, dtype=dtype)[None] + 1
-    out_x = out_x * (np.arange(n_tapers, dtype=dtype)[:, None] + 1)
+    out_x = np.arange(1, n_times + 1, 1, dtype=dtype)[None]
+    out_x = out_x * (np.arange(1,  n_tapers + 1, 1, dtype=dtype)[:, None])
 
     return s * np.sin(np.pi * out_x / (n_times + 1))

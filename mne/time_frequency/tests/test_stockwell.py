@@ -4,7 +4,7 @@
 
 import numpy as np
 import os.path as op
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_true, assert_equals
 
 from mne import fiff, read_events, Epochs
@@ -98,7 +98,7 @@ def test_stockwell_api():
     assert_array_equal(st_power1, st_power4)
 
     # taper == 0 just returns the power
-    st_power_args.update({'n_jobs': 1, 'n_tapers': 0})
+    st_power_args.update({'n_jobs': 1, 'n_tapers': None})
     st_power5 = fun(data, **st_power_args)
 
-    assert_array_equal(st_power5, np.abs(st1) ** 2)
+    assert_array_almost_equal(st_power5, np.abs(st1) ** 2)
