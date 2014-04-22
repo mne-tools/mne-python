@@ -70,7 +70,7 @@ def _st_mt(tapers, x_in, n_fft, freqs, K2):
 def _st_mt_parallel(tapers, x_in, n_fft, freqs, K2):
     """Aux function"""
     out = np.zeros((len(x_in), n_fft // 2 + 1, n_fft),
-                   dtype=np.complex64)
+                   dtype=np.float64)
     for ii, x in enumerate(x_in):
         out[ii] = _st_mt(tapers, x, n_fft, freqs, K2)
     return out
