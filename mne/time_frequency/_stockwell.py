@@ -29,7 +29,8 @@ def _st(x_in, n_fft, freqs):
     # Compute all frequency domain Gaussians as one matrix
     invfk = 1. / freqs[1:f_half + 1]
     W = 2 * np.pi * (freqs * invfk.T).T  # broadcast
-    G = np.exp(-np.power(W, 2, W) / 2)  # Gaussian in freq domain
+    W *= W
+    G = np.exp(-W / 2)  # Gaussian in freq domain
 
     #  Exclude the first row, corresponding to zero frequency
     #  and compute Stockwell Transform
