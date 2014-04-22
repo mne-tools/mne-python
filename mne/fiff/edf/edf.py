@@ -234,7 +234,13 @@ class RawEDF(_BaseRaw):
                     for i, samp in enumerate(n_samps):
                         chan_data = data[i::n_chan]
                         chan_data = np.hstack(chan_data)
-                        if samp != max_samp:
+                        if i == self._edf_info['stim_channel']:
+                            # don't resample the stim channel,
+                            # but zero-pad instead
+                            chan_data = np.hstack([chan_data,
+                                                   [0]*(max_samp-samp)*blocks])
+                            print('***', chan_data[0])
+                        elif samp != max_samp:
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
                                                  down=1, npad=0)
@@ -257,11 +263,6 @@ class RawEDF(_BaseRaw):
                 data[stim_channel] = 0
                 evts = _read_annot(annot, annotmap, sfreq, self.last_samp)
                 data[stim_channel, :evts.size] = evts[start:stop]
-            else:
-                stim = np.array(data[stim_channel], int)
-                mask = 255 * np.ones(stim.shape, int)
-                stim = np.bitwise_and(stim, mask)
-                data[stim_channel] = stim
         datastart = start - blockstart
         datastop = stop - blockstart
         data = data[sel, datastart:datastop]
