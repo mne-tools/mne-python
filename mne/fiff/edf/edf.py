@@ -271,6 +271,53 @@ class RawEDF(_BaseRaw):
 
         return data, times
 
+    def _parse_stim_channel(self):
+        """Parse time-stamped annotation lists (TALs) in stim_channel
+        and return list of events.
+        """
+        stim_channel = self._edf_info['stim_channel']
+
+        if stim_channel is None:
+            raise RuntimeError('No stimulus channel specified.')
+
+        tal_delimiter = ''.join([chr(20), chr(0)])
+        duration_marker = chr(21)
+        annotation_marker = chr(20)
+
+        # convert stim_channel to an ascii string
+        short, _ = self[stim_channel, :]
+        tals = bytearray()
+        for s in short.flat:
+            i = int(s)
+            tals.extend([i % 256, i // 256])
+        tals = tals.decode('ascii')
+
+        events = []
+        for tal in tals.split(tal_delimiter):
+            # unused bytes are filled with 0. remove them
+            tal = tal.strip(chr(0))
+            if not tal:
+                continue
+
+            tal = tal.split(duration_marker)
+            if len(tal) == 1:
+                # the duration field is optional
+                duration = 0.0
+                onset, annotations = tal[0].split(annotation_marker,
+                                                  maxsplit=1)
+                onset = float(onset)
+            else:
+                onset = float(tal[0])
+                duration, annotations = tal[1].split(annotation_marker,
+                                                     maxsplit=1)
+                duration = float(duration)
+
+            # one tal can contain multiple events
+            for annotation in annotations.split(annotation_marker):
+                events.append([onset, duration, annotation])
+
+        return events
+
 
 def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
     """Extracts all the information from the EDF+,BDF file.
