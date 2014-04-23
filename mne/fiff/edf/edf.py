@@ -238,7 +238,7 @@ class RawEDF(_BaseRaw):
                             # don't resample the stim channel,
                             # but zero-pad instead
                             chan_data = np.hstack([chan_data,
-                                                   [0]*(max_samp-samp)*blocks])
+                                                   [0]*int(max_samp-samp)*blocks])
                         elif samp != max_samp:
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
@@ -303,13 +303,11 @@ class RawEDF(_BaseRaw):
             if len(tal) == 1:
                 # the duration field is optional
                 duration = 0.0
-                onset, annotations = tal[0].split(annotation_marker,
-                                                  maxsplit=1)
+                onset, annotations = tal[0].split(annotation_marker, 1)
                 onset = float(onset)
             else:
                 onset = float(tal[0])
-                duration, annotations = tal[1].split(annotation_marker,
-                                                     maxsplit=1)
+                duration, annotations = tal[1].split(annotation_marker, 1)
                 duration = float(duration)
 
             # one tal can contain multiple events
