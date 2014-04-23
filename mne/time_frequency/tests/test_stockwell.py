@@ -72,12 +72,6 @@ def test_stockwell_api():
     assert_equals(st2.shape, st3.shape[1:])
     assert_equals(data.shape[1], st3.shape[0])
 
-    # test joblib
-    st_args.update({'n_jobs': 2})
-    st4 = fun(data, **st_args)
-
-    assert_array_equal(st1, st4)
-
     st_power_args = dict(n_fft=n_fft, sfreq=epochs.info['sfreq'], n_jobs=1)
 
     fun = stockwell_power
@@ -92,13 +86,9 @@ def test_stockwell_api():
     st_power3 = fun(data[0, :, :], **st_power_args)
     assert_equals(st_power2.shape, st_power3.shape[1:])
     assert_equals(data.shape[1], st_power3.shape[0])
-    # test joblib
-    st_power_args.update({'n_jobs': 2})
-    st_power4 = fun(data, **st_power_args)
-    assert_array_equal(st_power1, st_power4)
 
     # taper == 0 just returns the power
-    st_power_args.update({'n_jobs': 1, 'n_tapers': None})
+    st_power_args.update({'n_tapers': None})
     st_power5 = fun(data, **st_power_args)
 
     assert_array_almost_equal(st_power5, np.abs(st1) ** 2)
