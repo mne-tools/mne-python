@@ -21,6 +21,7 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 hpts_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
+edf_events_path = op.join(data_dir, 'S001R06.edf')  # TODO: use a smaller data set
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 
@@ -112,3 +113,13 @@ def test_append():
     raw1 = raw.copy()
     raw0.append(raw1)
     assert_true(2 * len(raw) == len(raw0))
+
+
+def test_parse_annotation():
+    """Test parsing the stim channel
+    """
+    # Test.edf does not contain a TLA channel
+    raw = read_raw_edf(edf_events_path, hpts=hpts_path, preload=True)
+    events = raw._parse_stim_channel()
+    assert_true(len(events) == 155)
+    # TODO: meaningful tests
