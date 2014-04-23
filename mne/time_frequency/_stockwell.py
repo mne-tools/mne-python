@@ -2,6 +2,7 @@
 #
 # License : BSD 3-clause
 
+import math
 import numpy as np
 from scipy import fftpack
 from scipy.linalg import toeplitz
@@ -11,9 +12,9 @@ from ..utils import logger, verbose
 from ..parallel import parallel_func, check_n_jobs
 
 
-def _is_power_of_two(num):
+def _is_power_of_two(x):
     """Aux function"""
-    out = num > 0 and ((num & (num - 1)))
+    out = x > 0 and ((x & (x - 1)))
     return True if not out else False
 
 
@@ -22,24 +23,21 @@ def _st(x_in, n_fft, freqs):
 
     f_half = n_fft // 2
 
-    #  Compute Toeplitz matrix with the shifted fft(h)
     Hft = fftpack.fft(x_in, n_fft)[None]
+    #  Compute Toeplitz matrix with the shifted fft(h)
     HW = toeplitz(Hft.conj().T[:f_half + 1], Hft)
     freqs = freqs[np.newaxis].T
     # Compute all frequency domain Gaussians as one matrix
     invfk = 1. / freqs[1:f_half + 1]
     W = 2 * np.pi * (freqs * invfk.T).T  # broadcast
-    W *= W
+    W *= W  # faster
     G = np.exp(-W / 2)  # Gaussian in freq domain
 
     #  Exclude the first row, corresponding to zero frequency
-    #  and compute Stockwell Transform
-
+    #  and compute S Transform
     ST = np.zeros((f_half + 1, n_fft), dtype=np.complex64)
     ST[1:] = fftpack.ifft(HW[1:f_half + 1, :] * G, axis=1)  # Compute voice
-
-    # Add the zero freq row
-    ST[0] = np.mean(x_in) * np.ones((1, n_fft))
+    ST[0] = np.mean(x_in) * np.ones((1, n_fft))  # Add the zero freq row
 
     return ST
 
@@ -55,8 +53,8 @@ def _st_parallel(x_in, n_fft, freqs):
 
 def _st_mt(tapers, x_in, n_fft, freqs, K2):
     """Aux function"""
-    n, st = 0., 0.
 
+    n, st = 0., 0.
     for k, taper in enumerate(tapers):
         X = _st(taper * x_in, n_fft, freqs)
         mu = 1. - k * k / K2
@@ -81,19 +79,20 @@ def _check_input_st(x_in, n_fft, verbose):
     """Aux function"""
     # flatten to 2 D and memorize original shape
     x_outer_shape = x_in.shape[:-1]  # non time dimension
-    if x_in.ndim > 1:
-        x_in = x_in.reshape(x_in.size / x_in.shape[-1], x_in.shape[-1])
+    x_in = x_in.reshape(x_in.size / x_in.shape[-1], x_in.shape[-1])
+
     zero_pad = False
     if x_in.shape[-1] < n_fft:
         msg = ('The input signal is shorter ({}) than "n_fft" ({}). '
                'Applying zero padding.').format(x_in.shape[-1], n_fft)
+        logger.warn(msg)
         if not _is_power_of_two(n_fft):
             n_fft *= 2
-        pad_zeros = n_fft - x_in.shape[-1]
-        add_shape = tuple(list(x_in.shape[:-1]) + [pad_zeros])
-        x_in = np.concatenate([x_in, np.zeros(add_shape)], -1)
-        logger.warn(msg)
-        zero_pad = True
+        pad_zeros = (n_fft - x_in.shape[-1]) / 2.
+        left, right = int(math.floor(pad_zeros)), int(math.ceil(pad_zeros))
+        pad_width = ([(0, 0)] * (x_in.ndim - 1)) + [(left, right)]
+        x_in = np.pad(x_in, pad_width, mode='constant', constant_values=0)
+        zero_pad = left, right
 
     return n_fft, x_in, x_outer_shape, zero_pad
 
@@ -151,22 +150,17 @@ def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=512, n_jobs=1,
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
 
     n_jobs = check_n_jobs(n_jobs)
+    if n_jobs > 1 and x_in.shape[0] == 1:
+        n_jobs = 1
 
-    if n_jobs == 1 and x_in.ndim == 1:
-        st = _st(x_in, n_fft_, freqs)[freq_mask]
-    elif n_jobs == 1 and x_in.ndim == 2:
-        st = np.array([_st(x, n_fft_, freqs) for x in x_in])
-        st = _restore_shape(st[:, freq_mask], x_outer_shape)
-    elif n_jobs > 1 and x_in.ndim == 2:
-        parallel, my_st, n_jobs = parallel_func(_st_parallel, n_jobs)
-        out = parallel(my_st(x, n_fft_, freqs) for x in
-                       np.array_split(x_in, n_jobs))
-        st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
-    else:
-        raise RuntimeError('Something terrible happened')
+    parallel, my_st, n_jobs = parallel_func(_st_parallel, n_jobs)
+    out = parallel(my_st(x, n_fft_, freqs) for x in
+                   np.array_split(x_in, n_jobs))
+    st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
 
-    if zero_pad is True:
-        st = st.T[:data.shape[-1]].T
+    if zero_pad is not False:
+        left, right = zero_pad
+        st = st.T[left:-right].T
 
     return st
 
@@ -229,20 +223,15 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
 
     n_jobs = check_n_jobs(n_jobs)
+    if n_jobs > 1 and x_in.shape[0] == 1:
+        n_jobs = 1
 
-    if n_jobs == 1 and x_in.ndim == 1:
-        st = _st_mt(tapers, x_in, n_fft_, freqs, K2)[freq_mask]
-    elif n_jobs == 1 and x_in.ndim == 2:
-        st = np.array([_st_mt(tapers, x, n_fft_, freqs, K2) for x in x_in])
-        st = _restore_shape(st[:, freq_mask], x_outer_shape)
-    elif n_jobs > 1 and x_in.ndim == 2:
-        parallel, my_st_mt, n_jobs = parallel_func(_st_mt_parallel, n_jobs)
-        out = parallel(my_st_mt(tapers, x, n_fft_, freqs, K2)
-                       for x in np.array_split(x_in, n_jobs))
-        st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
-    else:
-        raise RuntimeError('Something terrible happened')
-    if zero_pad:
-        st = st.T[:data.shape[-1]].T
+    parallel, my_st_mt, n_jobs = parallel_func(_st_mt_parallel, n_jobs)
+    out = parallel(my_st_mt(tapers, x, n_fft_, freqs, K2)
+                   for x in np.array_split(x_in, n_jobs))
+    st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
+    if zero_pad is not False:
+        left, right = zero_pad
+        st = st.T[left:-right].T
 
     return st
