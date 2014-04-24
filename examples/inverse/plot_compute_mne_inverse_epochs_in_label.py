@@ -64,10 +64,10 @@ evoked = epochs.average()
 # Use the same inverse operator as with evoked data (i.e., set nave)
 # If you use a different nave, dSPM just scales by a factor sqrt(nave)
 stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method, label,
-                            pick_ori="normal", nave = evoked.nave)
+                            pick_ori="normal", nave=evoked.nave)
 
 stc_evoked = apply_inverse(evoked, inverse_operator, lambda2, method,
-                           pick_ori = "normal")
+                           pick_ori="normal")
 
 stc_evoked_label = stc_evoked.in_label(label)
 
@@ -82,13 +82,13 @@ label_mean_flip = np.mean(flip[:, np.newaxis] * mean_stc.data, axis=0)
 
 # Get inverse solution by inverting evoked data
 stc_evoked = apply_inverse(evoked, inverse_operator, lambda2, method,
-                           pick_ori = "normal")
+                           pick_ori="normal")
 
 # apply_inverse() does whole brain, so sub-select label of interest
 stc_evoked_label = stc_evoked.in_label(label)
 
 # Average over label (not caring to align polarities here)
-label_mean_evoked = np.mean(stc_evoked_label.data, axis = 0)
+label_mean_evoked = np.mean(stc_evoked_label.data, axis=0)
 
 ###############################################################################
 # View activation time-series to illustrate the benefit of aligning/flipping
@@ -108,28 +108,22 @@ plt.show()
 
 # Single trial
 plt.figure()
-legendList = ()
 for k, stc_trial in enumerate(stcs):
-    # Splitting so that legend works 
-    if k==0:
-        plt.plot(1e3*stcs[k].times, np.mean(stc_trial.data, axis = 0).T,'k--',
-                 label = 'Single Trials')
-    else:
-        plt.plot(1e3*stcs[k].times, np.mean(stc_trial.data, axis = 0).T,'k--',
-                 label = '_nolegend_')
-    plt.hold(True)
+    plt.plot(1e3*stcs[k].times, np.mean(stc_trial.data, axis=0).T,'k--',
+                 label='Single Trials' if k == 0 else '_nolegend_')
     
  
 # Single trial inverse then average.. making linewidth large to not be masked
-plt.plot(1e3 * stcs[0].times, label_mean,'r', linewidth = 5, 
-         label = 'dSPM first, then average')
-plt.hold(True)
+plt.plot(1e3 * stcs[0].times, label_mean,'r', linewidth=5, 
+         label='dSPM first, then average')
  
 # Evoked and then inverse
-plt.plot(1e3 * stcs[0].times, label_mean_evoked, 'b', linewidth = 3,
-         label = 'Average first, then dSPM')
+plt.plot(1e3 * stcs[0].times, label_mean_evoked, 'b', linewidth=3,
+         label='Average first, then dSPM')
 
 plt.xlabel('time (ms)')
 plt.ylabel('dSPM value')
 plt.legend()
 plt.show()
+
+
