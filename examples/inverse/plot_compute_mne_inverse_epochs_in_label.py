@@ -71,6 +71,7 @@ stc_evoked = apply_inverse(evoked, inverse_operator, lambda2, method,
 
 stc_evoked_label = stc_evoked.in_label(label)
 
+# Mean across trials but not across vertices in label
 mean_stc = sum(stcs) / len(stcs)
 
 # compute sign flip to avoid signal cancelation when averaging signed values
@@ -83,7 +84,10 @@ label_mean_flip = np.mean(flip[:, np.newaxis] * mean_stc.data, axis=0)
 stc_evoked = apply_inverse(evoked, inverse_operator, lambda2, method,
                            pick_ori = "normal")
 
+# apply_inverse() does whole brain, so sub-select label of interest
 stc_evoked_label = stc_evoked.in_label(label)
+
+# Average over label (not caring to align polarities here)
 label_mean_evoked = np.mean(stc_evoked_label.data, axis = 0)
 
 ###############################################################################
@@ -104,16 +108,28 @@ plt.show()
 
 # Single trial
 plt.figure()
+legendList = ()
 for k, stc_trial in enumerate(stcs):
-    plt.plot(1e3*stcs[k].times, np.mean(stcs[k].data, axis = 0).T,'k--')
+    # Splitting so that legend works
+    if k==0:
+        plt.plot(1e3*stcs[k].times, np.mean(stc_trial.data, axis = 0).T,'k--',
+                 label = 'Single Trials')
+    else:
+        plt.plot(1e3*stcs[k].times, np.mean(stc_trial.data, axis = 0).T,'k--',
+                 label = '_nolegend_')
     plt.hold(True)
 
+
 # Single trial inverse then average.. making linewidth large to not be masked
-plt.plot(1e3 * stcs[0].times, label_mean,'r',linewidth = 5)
+plt.plot(1e3 * stcs[0].times, label_mean,'r', linewidth = 5,
+         label = 'dSPM first, then average')
 plt.hold(True)
 
 # Evoked and then inverse
-plt.plot(1e3 * stcs[0].times, label_mean_evoked,'b',linewidth = 3)
+plt.plot(1e3 * stcs[0].times, label_mean_evoked, 'b', linewidth = 3,
+         label = 'Average first, then average')
+
 plt.xlabel('time (ms)')
 plt.ylabel('dSPM value')
+plt.legend()
 plt.show()
