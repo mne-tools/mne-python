@@ -125,5 +125,3 @@ plt.xlabel('time (ms)')
 plt.ylabel('dSPM value')
 plt.legend()
 plt.show()
-
-
