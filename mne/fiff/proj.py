@@ -99,12 +99,12 @@ class ProjMixin(object):
         if self.info['projs'] is None:
             logger.info('No projector specified for this dataset.'
                         'Please consider the method self.add_proj.')
-            return
+            return self
 
         if all([p['active'] for p in self.info['projs']]):
             logger.info('Projections have already been applied. Doing '
                          'nothing.')
-            return
+            return self
 
         _projector, info = setup_proj(deepcopy(self.info), activate=True,
                                       verbose=self.verbose)
