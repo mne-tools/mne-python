@@ -127,7 +127,7 @@ plt.hold(True)
 
 # Evoked and then inverse
 plt.plot(1e3 * stcs[0].times, label_mean_evoked, 'b', linewidth = 3,
-         label = 'Average first, then average')
+         label = 'Average first, then dSPM')
 
 plt.xlabel('time (ms)')
 plt.ylabel('dSPM value')
