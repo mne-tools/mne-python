@@ -54,7 +54,7 @@ def test_io_evoked():
 
     # test deprecation warning for 'setno'
     # XXX should be deleted for 0.9 release
-    for setno in ['Left Auditory', 0, None]:
+    for setno in ['Left Auditory', 0]:
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')
             read_evoked(fname, setno=setno)
