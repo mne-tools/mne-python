@@ -86,12 +86,12 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     """
     @verbose
     def __init__(self, fname, condition=None, baseline=None, proj=True,
-                 kind='average', verbose=None, setno='none'):
+                 kind='average', verbose=None, setno=None):
         if fname is None:
             return
 
         # XXX should be deleted for 0.9 release
-        if condition is None and setno is not 'none':
+        if condition is None and setno is not None:
             condition = setno
             msg = ("'setno' will be deprecated in 0.9. Use 'condition' "
                     "instead.")
@@ -794,7 +794,7 @@ def merge_evoked(all_evoked):
 
 
 def read_evoked(fname, condition=None, baseline=None, kind='average',
-                proj=True, setno='none'):
+                proj=True, setno=None):
     """Read an evoked dataset
 
     Parameters
@@ -823,7 +823,7 @@ def read_evoked(fname, condition=None, baseline=None, kind='average',
         The evoked datasets.
     """
     # XXX should be deleted for 0.9 release
-    if condition is None and setno is not 'none':
+    if condition is None and setno is not None:
         condition = setno
         msg = ("'setno' will be deprecated in 0.9. Use 'condition' instead.")
         warnings.warn(msg, DeprecationWarning)
