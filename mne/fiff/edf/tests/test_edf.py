@@ -15,6 +15,7 @@ from scipy import io
 from mne.utils import _TempDir
 from mne.fiff import Raw, pick_types
 from mne.fiff.edf import read_raw_edf
+import mne.fiff.edf.edf as edfmodule
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -118,6 +119,22 @@ def test_append():
 def test_parse_annotation():
     """Test parsing the tal channel
     """
-    # Test.edf does not contain a TAL channel
+
+    # test the parser
+    annot = ('+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
+             '+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             '+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             '+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
+             '+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00').encode('ascii')
+    tal_channel = [annot[i] + annot[i+1]*256 for i in range(0, len(annot)-1, 2)]
+    events = edfmodule._parse_tal_channel(tal_channel)
+    assert_equal(events, [[180.0, 0, 'Lights off'],
+                          [180.0, 0, 'Close door'],
+                          [180.0, 0, 'Lights off'],
+                          [180.0, 0, 'Close door'],
+                          [3.14, 4.2, 'nothing'],
+                          [1800.2, 25.5, 'Apnea']])
+
+    # test an actual file
     raw = read_raw_edf(edf_events_path, tal_channel=-1, hpts=hpts_path, preload=True)
     # TODO: meaningful tests

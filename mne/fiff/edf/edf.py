@@ -303,7 +303,7 @@ def _parse_tal_channel(tal_channel_data):
 
     # convert tal_channel to an ascii string
     tals = bytearray()
-    for s in tal_channel_data.flat:
+    for s in tal_channel_data:
         i = int(s)
         tals.extend([i % 256, i // 256])
 
@@ -314,7 +314,6 @@ def _parse_tal_channel(tal_channel_data):
         onset = float(ev[0])
         duration = float(ev[2]) if ev[2] else 0
         for annotation in ev[3].split('\x14')[1:]:
-            print(onset, duration, annotation)
             events.append([onset, duration, annotation])
 
     # TODO: skip events with empty annotation?
