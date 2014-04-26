@@ -116,10 +116,8 @@ def test_append():
 
 
 def test_parse_annotation():
-    """Test parsing the stim channel
+    """Test parsing the tal channel
     """
-    # Test.edf does not contain a TLA channel
-    raw = read_raw_edf(edf_events_path, hpts=hpts_path, preload=True)
-    events = raw._parse_stim_channel()
-    assert_true(len(events) == 155)
+    # Test.edf does not contain a TAL channel
+    raw = read_raw_edf(edf_events_path, tal_channel=-1, hpts=hpts_path, preload=True)
     # TODO: meaningful tests
