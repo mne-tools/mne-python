@@ -1,10 +1,11 @@
 # Authors : Denis A. Engemann <denis.engemann@gmail.com>
+#           Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License : BSD 3-clause
 
 import numpy as np
 import os.path as op
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_equals
 
 from mne import fiff, read_events, Epochs
@@ -31,19 +32,31 @@ tempdir = _TempDir()
 
 def test_stockwell_core():
     """Test stockwell transform"""
-
     # taken from
     # http://vcs.ynic.york.ac.uk/docs/naf/intro/concepts/timefreq.html
     sfreq = 1e3  # make things easy to understand
     t = np.arange(sfreq)   # make an array for time
     t /= sfreq        # scale it so it goes to 1, i.e. 1 sec of time
-    pulse10Hz = np.cos(2 * np.pi * 10 * t)
-    pulse10Hz[0:175] = 0        # Zero before our desired pulse
-    pulse10Hz[275:] = 0         # and zero after our desired pulse
-    stpulse10Hz = stockwell(pulse10Hz, sfreq=sfreq, n_fft=int(sfreq))
+    pulse_freq = 10.
+    pulse = np.cos(2. * np.pi * pulse_freq * t)
+    pulse[0:175] = 0.        # Zero before our desired pulse
+    pulse[275:] = 0.         # and zero after our desired pulse
 
-    assert_equals(stpulse10Hz.max(1).argmax(0), 10)  # max freq
-    assert_true(175 < stpulse10Hz.max(0).argmax(0) < 275)  # max time
+    # test with ndim
+    st_pulse = stockwell(pulse, sfreq=sfreq)
+    st_pulse_2d = stockwell(pulse[None, :], sfreq=sfreq)
+    st_pulse_3d = stockwell(pulse[None, None, :], sfreq=sfreq)
+
+    assert_array_almost_equal(st_pulse, st_pulse_2d[0])
+    assert_array_almost_equal(st_pulse, st_pulse_3d[0, 0])
+
+    for n_fft in [None, len(pulse)]:
+        st_pulse = stockwell(pulse, sfreq=sfreq, n_fft=n_fft)
+        st_pulse = stockwell(pulse, sfreq=sfreq)  # with next power of 2
+
+        assert_equals(st_pulse.shape[-1], len(pulse))
+        assert_equals(st_pulse.max(axis=1).argmax(axis=0), pulse_freq)  # max freq
+        assert_true(175 < st_pulse.max(0).argmax(0) < 275)  # max time
 
 
 def test_stockwell_api():

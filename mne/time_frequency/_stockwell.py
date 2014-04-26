@@ -1,4 +1,5 @@
 # Authors : Denis A. Engemann <denis.engemann@gmail.com>
+#           Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License : BSD 3-clause
 
@@ -79,20 +80,27 @@ def _check_input_st(x_in, n_fft, verbose):
     """Aux function"""
     # flatten to 2 D and memorize original shape
     x_outer_shape = x_in.shape[:-1]  # non time dimension
-    x_in = x_in.reshape(x_in.size // x_in.shape[-1], x_in.shape[-1])
+    n_times = x_in.shape[-1]
+    x_in = x_in.reshape(x_in.size // n_times, n_times)
 
-    zero_pad = False
-    if x_in.shape[-1] < n_fft:
+    if n_fft is None:
+        # Compute next power of 2
+        n_fft = 2 ** int(math.ceil(math.log(n_times, 2)))
+    elif n_fft < n_times:
+        raise ValueError("n_fft cannot be smaller than signal size. "
+                         "Got %s < %s." % (n_fft, n_times))
+
+    zero_pad = None
+    if n_times < n_fft:
         msg = ('The input signal is shorter ({}) than "n_fft" ({}). '
                'Applying zero padding.').format(x_in.shape[-1], n_fft)
         logger.warn(msg)
         if not _is_power_of_two(n_fft):
-            n_fft *= 2
-        pad_zeros = (n_fft - x_in.shape[-1]) / 2.
-        left, right = int(math.floor(pad_zeros)), int(math.ceil(pad_zeros))
-        pad_width = ([(0, 0)] * (x_in.ndim - 1)) + [(left, right)]
+            raise ValueError("n_fft larger than signal size should be "
+                             "a power of 2. Got %s." % n_fft)
+        zero_pad = n_fft - n_times
+        pad_width = ([(0, 0)] * (x_in.ndim - 1)) + [(0, zero_pad)]
         x_in = np.pad(x_in, pad_width, mode='constant', constant_values=0)
-        zero_pad = left, right
 
     return n_fft, x_in, x_outer_shape, zero_pad
 
@@ -104,7 +112,7 @@ def _restore_shape(x_out, x_outer_shape):
 
 
 @verbose
-def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=512, n_jobs=1,
+def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=None, n_jobs=1,
               verbose=None):
     """Computes Stockwell a.k.a. S transform
 
@@ -121,13 +129,10 @@ def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=512, n_jobs=1,
         The minimum frequency to include. If None defaults to 0.
     fmax : None, float
         The maximum frequency to include. If None defaults to np.inf
-    n_fft : int
-        The length of the windows used for FFT. The smaller
-        it is the smoother are the PSDs, i.e., the worse
-        the spectral resolution. Defaults to 512. Note.
-        If the signal is shorter than `n_fft`, the length
-        of the signal will be used instead. This will lead
-        to longer computation times.
+    n_fft : int | None
+        The length of the windows used for FFT. If None,
+        it defaults to the next power of 2 larger than
+        the signal length.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -156,19 +161,19 @@ def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=512, n_jobs=1,
     parallel, my_st, n_jobs = parallel_func(_st, n_jobs)
     out = parallel(my_st(x, n_fft_, freqs) for x in
                    np.array_split(x_in, n_jobs))
+
     st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
 
-    if zero_pad is not False:
-        left, right = zero_pad
-        st = st.T[left:-right].T
+    if zero_pad is not None:
+        st = st[..., :-zero_pad]
 
     return st
 
 
 @verbose
 def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
-                    n_fft=512, n_jobs=1, verbose=None):
-    """Computes multiataper power using Stockwell a.k.a. S transform
+                    n_fft=None, n_jobs=1, verbose=None):
+    """Computes multitaper power using Stockwell a.k.a. S transform
 
     Based on MATLAB code by Kalyan S. Das and Python code by the NIH
 
@@ -186,13 +191,10 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
         The minimum frequency to include. If None defaults to 0.
     fmax : None, float
         The maximum frequency to include. If None defaults to np.inf
-    n_fft : int
-        The length of the windows used for FFT. The smaller
-        it is the smoother are the PSDs, i.e., the worse
-        the spectral resolution. Defaults to 512. Note.
-        If the signal is shorter than `n_fft`, the length
-        of the signal will be used instead. This will lead
-        to longer computation times.
+    n_fft : int | None
+        The length of the windows used for FFT. If None,
+        it defaults to the next power of 2 larger than
+        the signal length.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
     verbose : bool, str, int, or None
@@ -210,7 +212,6 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
         operators: Partial differential equations and time-frequency
         analysis 52 (2007): 279-309.
     """
-
     n_fft_, x_in, x_outer_shape, zero_pad = _check_input_st(data, n_fft,
                                                             verbose)
     n_times = x_in.shape[-1]
@@ -233,8 +234,7 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
     out = parallel(my_st_mt(tapers, x, n_fft_, freqs, K2)
                    for x in np.array_split(x_in, n_jobs))
     st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
-    if zero_pad is not False:
-        left, right = zero_pad
-        st = st.T[left:-right].T
+    if zero_pad is not None:
+        st = st[..., :-zero_pad]
 
     return st
