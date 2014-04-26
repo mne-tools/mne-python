@@ -262,6 +262,11 @@ class RawEDF(_BaseRaw):
                 data[stim_channel] = 0
                 evts = _read_annot(annot, annotmap, sfreq, self.last_samp)
                 data[stim_channel, :evts.size] = evts[start:stop]
+            else:
+                stim = np.array(data[stim_channel], int)
+                mask = 255 * np.ones(stim.shape, int)
+                stim = np.bitwise_and(stim, mask)
+                data[stim_channel] = stim
         datastart = start - blockstart
         datastop = stop - blockstart
         data = data[sel, datastart:datastop]
