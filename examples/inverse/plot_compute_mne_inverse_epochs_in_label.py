@@ -32,7 +32,7 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Using the same inverse operator when inspecting single trials Vs. evoked
-snr = 3.0 # Standard assumption for average data but using it for single trial
+snr = 3.0  # Standard assumption for average data but using it for single trial
 lambda2 = 1.0 / snr ** 2
 
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
@@ -92,10 +92,13 @@ label_mean_evoked = np.mean(stc_evoked_label.data, axis=0)
 
 ###############################################################################
 # View activation time-series to illustrate the benefit of aligning/flipping
+
+times = 1e3 * stcs[0].times  # times in ms
+
 plt.figure()
-h0 = plt.plot(1e3 * stcs[0].times, mean_stc.data.T, 'k')
-h1, = plt.plot(1e3 * stcs[0].times, label_mean, 'r', linewidth=3)
-h2, = plt.plot(1e3 * stcs[0].times, label_mean_flip, 'g', linewidth=3)
+h0 = plt.plot(times, mean_stc.data.T, 'k')
+h1, = plt.plot(times, label_mean, 'r', linewidth=3)
+h2, = plt.plot(times, label_mean_flip, 'g', linewidth=3)
 plt.legend((h0[0], h1, h2), ('all dipoles in label', 'mean',
                              'mean with sign flip'))
 plt.xlabel('time (ms)')
@@ -109,16 +112,16 @@ plt.show()
 # Single trial
 plt.figure()
 for k, stc_trial in enumerate(stcs):
-    plt.plot(1e3*stcs[k].times, np.mean(stc_trial.data, axis=0).T,'k--',
-                 label='Single Trials' if k == 0 else '_nolegend_')
-
+    plt.plot(times, np.mean(stc_trial.data, axis=0).T, 'k--',
+             label='Single Trials' if k == 0 else '_nolegend_',
+             alpha=0.5)
 
 # Single trial inverse then average.. making linewidth large to not be masked
-plt.plot(1e3 * stcs[0].times, label_mean,'r', linewidth=5,
+plt.plot(times, label_mean, 'b', linewidth=6,
          label='dSPM first, then average')
 
 # Evoked and then inverse
-plt.plot(1e3 * stcs[0].times, label_mean_evoked, 'b', linewidth=3,
+plt.plot(times, label_mean_evoked, 'r', linewidth=2,
          label='Average first, then dSPM')
 
 plt.xlabel('time (ms)')
