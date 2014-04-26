@@ -12,47 +12,47 @@ from ..utils import logger, verbose
 from ..parallel import parallel_func, check_n_jobs
 
 
-def _is_power_of_two(x):
-    """Aux function"""
-    out = x > 0 and ((x & (x - 1)))
-    return True if not out else False
+def _is_power_of_two(n):
+    """Returns True if n is a power of two"""
+    return not (n > 0 and ((n & (n - 1))))
 
 
 def _st(x_in, n_fft, freqs):
-    """Aux function"""
+    """Compute Stockwell on one or multiple signals"""
+    ndim = x_in.ndim
 
+    if ndim == 1:
+        x_in = x_in[np.newaxis, :]
+
+    n_signals = len(x_in)
     f_half = n_fft // 2
 
-    Hft = fftpack.fft(x_in, n_fft)[None]
-    #  Compute Toeplitz matrix with the shifted fft(h)
-    HW = toeplitz(Hft.conj().T[:f_half + 1], Hft)
-    freqs = freqs[np.newaxis].T
     # Compute all frequency domain Gaussians as one matrix
-    invfk = 1. / freqs[1:f_half + 1]
-    W = 2 * np.pi * (freqs * invfk.T).T  # broadcast
-    W *= W  # faster
-    G = np.exp(-W / 2)  # Gaussian in freq domain
+    W = 2. * np.pi * (freqs[np.newaxis, :] / freqs[1:f_half + 1, np.newaxis])
+
+    W *= W  # faster than W = np.pow(W, 2)
+    G = np.exp(-W / 2.)  # Gaussian in freq domain
 
     #  Exclude the first row, corresponding to zero frequency
     #  and compute S Transform
-    ST = np.zeros((f_half + 1, n_fft), dtype=np.complex64)
-    ST[1:] = fftpack.ifft(HW[1:f_half + 1, :] * G, axis=1)  # Compute voice
-    ST[0] = np.mean(x_in) * np.ones((1, n_fft))  # Add the zero freq row
+    ST = np.empty((n_signals, f_half + 1, n_fft), dtype=np.complex64)
+
+    for k in range(n_signals):
+        Hft = fftpack.fft(x_in[k], n_fft)
+        #  Compute Toeplitz matrix with the shifted fft(h)
+        HW = toeplitz(Hft[:f_half + 1].conj(), Hft)
+
+        ST[k, 1:] = fftpack.ifft(HW[1:f_half + 1, :] * G, axis=1)  # voice
+        ST[k, 0] = np.mean(x_in[k])  # Add zero freq row
+
+    if ndim == 1:
+        ST = ST[0]
 
     return ST
 
 
-def _st_parallel(x_in, n_fft, freqs):
-    """Aux function"""
-    out = np.zeros((len(x_in), n_fft // 2 + 1, n_fft),
-                   dtype=np.complex64)
-    for ii, x in enumerate(x_in):
-        out[ii] = _st(x, n_fft, freqs)
-    return out
-
-
 def _st_mt(tapers, x_in, n_fft, freqs, K2):
-    """Aux function"""
+    """Compute stockwell power with multitaper"""
 
     n, st = 0., 0.
     for k, taper in enumerate(tapers):
@@ -79,7 +79,7 @@ def _check_input_st(x_in, n_fft, verbose):
     """Aux function"""
     # flatten to 2 D and memorize original shape
     x_outer_shape = x_in.shape[:-1]  # non time dimension
-    x_in = x_in.reshape(x_in.size / x_in.shape[-1], x_in.shape[-1])
+    x_in = x_in.reshape(x_in.size // x_in.shape[-1], x_in.shape[-1])
 
     zero_pad = False
     if x_in.shape[-1] < n_fft:
@@ -153,7 +153,7 @@ def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=512, n_jobs=1,
     if n_jobs > 1 and x_in.shape[0] == 1:
         n_jobs = 1
 
-    parallel, my_st, n_jobs = parallel_func(_st_parallel, n_jobs)
+    parallel, my_st, n_jobs = parallel_func(_st, n_jobs)
     out = parallel(my_st(x, n_fft_, freqs) for x in
                    np.array_split(x_in, n_jobs))
     st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
@@ -215,8 +215,11 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
                                                             verbose)
     n_times = x_in.shape[-1]
 
-    tapers = (sine_tapers(n_tapers, n_times) if n_tapers is not None
-              else np.ones(n_times)[None])
+    if n_tapers is None:
+        tapers = np.ones((1, n_times))
+    else:
+        tapers = sine_tapers(n_tapers, n_times)
+
     n_tapers_ = len(tapers)
     K2 = float(n_tapers_ * n_tapers_)
     freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
