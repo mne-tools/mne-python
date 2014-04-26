@@ -295,6 +295,7 @@ class RawEDF(_BaseRaw):
 
         return data, times
 
+
 def _parse_tal_channel(tal_channel_data):
     """Parse time-stamped annotation lists (TALs) in stim_channel
     and return list of events.
