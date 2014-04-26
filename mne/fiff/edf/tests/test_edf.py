@@ -126,7 +126,11 @@ def test_parse_annotation():
              '+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
              '+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
              '+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00').encode('ascii')
-    tal_channel = [annot[i] + annot[i+1]*256 for i in range(0, len(annot)-1, 2)]
+    if type(annot) == str:
+        # in python 2 bytes is str
+        tal_channel = [ord(annot[i]) + ord(annot[i+1])*256 for i in range(0, len(annot)-1, 2)]
+    elif type(annot) == bytes:
+        tal_channel = [annot[i] + annot[i+1]*256 for i in range(0, len(annot)-1, 2)]
     events = edfmodule._parse_tal_channel(tal_channel)
     assert_equal(events, [[180.0, 0, 'Lights off'],
                           [180.0, 0, 'Close door'],
