@@ -301,38 +301,23 @@ def _parse_tal_channel(tal_channel_data):
     and return list of events.
     """
 
-    tal_delimiter = ''.join([chr(20), chr(0)])
-    duration_marker = chr(21)
-    annotation_marker = chr(20)
-
     # convert tal_channel to an ascii string
     tals = bytearray()
     for s in tal_channel_data.flat:
         i = int(s)
         tals.extend([i % 256, i // 256])
-    tals = tals.decode('ascii')
 
+    regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
+    tal_list = re.findall(regex_tal, tals.decode('ascii'))
     events = []
-    for tal in tals.split(tal_delimiter):
-        # unused bytes are filled with 0. remove them
-        tal = tal.strip(chr(0))
-        if not tal:
-            continue
-
-        tal = tal.split(duration_marker)
-        if len(tal) == 1:
-            # the duration field is optional
-            duration = 0.0
-            onset, annotations = tal[0].split(annotation_marker, 1)
-            onset = float(onset)
-        else:
-            onset = float(tal[0])
-            duration, annotations = tal[1].split(annotation_marker, 1)
-            duration = float(duration)
-
-        # one tal can contain multiple events
-        for annotation in annotations.split(annotation_marker):
+    for ev in tal_list:
+        onset = float(ev[0])
+        duration = float(ev[2]) if ev[2] else 0
+        for annotation in ev[3].split('\x14')[1:]:
+            print(onset, duration, annotation)
             events.append([onset, duration, annotation])
+
+    # TODO: skip events with empty annotation?
 
     return events
 
