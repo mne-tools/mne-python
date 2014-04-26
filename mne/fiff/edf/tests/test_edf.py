@@ -136,5 +136,5 @@ def test_parse_annotation():
                           [1800.2, 25.5, 'Apnea']])
 
     # test an actual file
-    raw = read_raw_edf(edf_events_path, tal_channel=-1, hpts=hpts_path, preload=True)
+    #raw = read_raw_edf(edf_events_path, tal_channel=-1, hpts=hpts_path, preload=True)
     # TODO: meaningful tests
