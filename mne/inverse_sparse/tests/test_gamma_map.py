@@ -24,7 +24,7 @@ def test_gamma_map():
     """Test Gamma MAP inverse"""
     forward = read_forward_solution(fname_fwd, force_fixed=False,
                                     surf_ori=True)
-    evoked = fiff.Evoked(fname_evoked, setno=0, baseline=(None, 0))
+    evoked = fiff.Evoked(fname_evoked, condition=0, baseline=(None, 0))
     evoked.crop(tmin=0, tmax=0.3)
 
     cov = read_cov(fname_cov)

@@ -42,7 +42,7 @@ aparc_label_name = 'bankssts-lh'
 tmin, tmax = 0.080, 0.120
 
 # Load data
-evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
+evoked = Evoked(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']  # get the source space
 

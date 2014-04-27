@@ -54,8 +54,8 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 cov = mne.read_cov(cov_fname)
 
 # Handling average file
-setno = 'Left visual'
-evoked = fiff.read_evoked(ave_fname, setno=setno, baseline=(None, 0))
+condition = 'Left visual'
+evoked = fiff.read_evoked(ave_fname, condition=condition, baseline=(None, 0))
 evoked = fiff.pick.pick_channels_evoked(evoked)
 # We make the window slightly larger than what you'll eventually be interested
 # in ([-0.05, 0.3]) to avoid edge effects.
@@ -108,8 +108,8 @@ residual.plot(picks=picks, ylim=ylim, proj=True,
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-                             opacity=0.1, fig_name="TF-MxNE (cond %s)" % setno,
-                             modes=['sphere'], scale_factors=[1.])
+                             opacity=0.1, modes=['sphere'], scale_factors=[1.],
+                             fig_name="TF-MxNE (cond %s)" % condition)
 
 time_label = 'TF-MxNE time=%0.2f ms'
 brain = stc.plot('sample', 'inflated', 'rh', fmin=10e-9, fmid=15e-9,

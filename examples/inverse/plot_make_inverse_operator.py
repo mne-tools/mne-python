@@ -32,7 +32,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
 # Load data
-evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
+evoked = Evoked(fname_evoked, condition=0, baseline=(None, 0))
 forward_meeg = mne.read_forward_solution(fname_fwd_meeg, surf_ori=True)
 noise_cov = mne.read_cov(fname_cov)
 

@@ -5,6 +5,7 @@
 
 import os.path as op
 from copy import deepcopy
+import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
@@ -28,7 +29,7 @@ def test_io_evoked():
     ave = read_evoked(fname, 0)
 
     write_evoked(op.join(tempdir, 'evoked.fif'), ave)
-    ave2 = read_evoked(op.join(tempdir, 'evoked.fif'))
+    ave2 = read_evoked(op.join(tempdir, 'evoked.fif'), 0)
 
     # This not being assert_array_equal due to windows rounding
     assert_true(np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-3))
@@ -44,11 +45,38 @@ def test_io_evoked():
     assert_true(np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-8))
 
     # test str access
-    setno = 'Left Auditory'
-    assert_raises(ValueError, read_evoked, fname, setno, kind='stderr')
-    assert_raises(ValueError, read_evoked, fname, setno, kind='standard_error')
-    ave3 = read_evoked(fname, setno)
+    condition = 'Left Auditory'
+    assert_raises(ValueError, read_evoked, fname, condition, kind='stderr')
+    assert_raises(ValueError, read_evoked, fname, condition,
+                  kind='standard_error')
+    ave3 = read_evoked(fname, condition)
     assert_array_almost_equal(ave.data, ave3.data, 19)
+
+    # test deprecation warning for 'setno'
+    # XXX should be deleted for 0.9 release
+    for setno in ['Left Auditory', 0]:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            read_evoked(fname, setno=setno)
+            assert_equal(len(w), 1)
+            assert_true(w[0].category == DeprecationWarning)
+
+    # ... for n_evokeds > 1
+    types = ['Left Auditory', 'Right Auditory', 'Left visual', 'Right visual']
+    aves1 = read_evoked(fname)
+    aves2 = read_evoked(fname, [0, 1, 2, 3])
+    aves3 = read_evoked(fname, types)
+    write_evoked(op.join(tempdir, 'evoked.fif'), aves1)
+    aves4 = read_evoked(op.join(tempdir, 'evoked.fif'))
+    for aves in [aves2, aves3, aves4]:
+        for [av1, av2] in zip(aves1, aves):
+            assert_array_almost_equal(av1.data, av2.data)
+            assert_array_almost_equal(av1.times, av2.times)
+            assert_equal(av1.nave, av2.nave)
+            assert_equal(av1.kind, av2.kind)
+            assert_equal(av1._aspect_kind, av2._aspect_kind)
+            assert_equal(av1.last, av2.last)
+            assert_equal(av1.first, av2.first)
 
 
 def test_shift_time_evoked():
@@ -134,27 +162,6 @@ def test_evoked_detrend():
                             rtol=1e-8, atol=1e-16))
 
 
-def test_io_multi_evoked():
-    """Test IO for multiple evoked datasets
-    """
-    aves = read_evoked(fname, [0, 1, 2, 3])
-    write_evoked(op.join(tempdir, 'evoked.fif'), aves)
-    aves2 = read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1, 2, 3])
-    types = ['Left Auditory', 'Right Auditory', 'Left visual', 'Right visual']
-    aves3 = read_evoked(op.join(tempdir, 'evoked.fif'), types)
-    for aves_new in [aves2, aves3]:
-        for [ave, ave_new] in zip(aves, aves_new):
-            assert_array_almost_equal(ave.data, ave_new.data)
-            assert_array_almost_equal(ave.times, ave_new.times)
-            assert_equal(ave.nave, ave_new.nave)
-            assert_equal(ave.kind, ave_new.kind)
-            assert_equal(ave._aspect_kind, ave_new._aspect_kind)
-            assert_equal(ave.last, ave_new.last)
-            assert_equal(ave.first, ave_new.first)
-    # this should throw an error since there are mulitple datasets
-    assert_raises(ValueError, read_evoked, fname)
-
-
 @requires_nitime
 def test_evoked_to_nitime():
     """ Test to_nitime """
@@ -171,7 +178,7 @@ def test_evoked_to_nitime():
 @requires_pandas
 def test_as_data_frame():
     """Test evoked Pandas exporter"""
-    ave = read_evoked(fname, [0])[0]
+    ave = read_evoked(fname, [0])
     assert_raises(ValueError, ave.as_data_frame, picks=np.arange(400))
     df = ave.as_data_frame()
     assert_true((df.columns == ave.ch_names).all())
@@ -185,7 +192,7 @@ def test_evoked_proj():
     """Test SSP proj operations
     """
     for proj in [True, False]:
-        ave = read_evoked(fname, setno=0, proj=proj)
+        ave = read_evoked(fname, condition=0, proj=proj)
         assert_true(all(p['active'] == proj for p in ave.info['projs']))
 
         # test adding / deleting proj
@@ -203,7 +210,7 @@ def test_evoked_proj():
             ave.add_proj(projs, remove_existing=True)
             assert_true(len(ave.info['projs']) == n_proj)
 
-    ave = read_evoked(fname, setno=0, proj=False)
+    ave = read_evoked(fname, condition=0, proj=False)
     data = ave.data.copy()
     ave.apply_proj()
     assert_allclose(np.dot(ave._projector, data), ave.data)
@@ -213,7 +220,7 @@ def test_get_peak():
     """Test peak getter
     """
 
-    evoked = read_evoked(fname, setno=0, proj=True)
+    evoked = read_evoked(fname, condition=0, proj=True)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmax=0.9)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=0.02,
@@ -254,7 +261,7 @@ def test_get_peak():
 def test_drop_channels_mixin():
     """Test channels-dropping functionality
     """
-    evoked = read_evoked(fname, setno=0, proj=True)
+    evoked = read_evoked(fname, condition=0, proj=True)
     drop_ch = evoked.ch_names[:3]
     ch_names = evoked.ch_names[3:]
 
@@ -272,7 +279,7 @@ def test_drop_channels_mixin():
 def test_pick_channels_mixin():
     """Test channel-picking functionality
     """
-    evoked = read_evoked(fname, setno=0, proj=True)
+    evoked = read_evoked(fname, condition=0, proj=True)
     ch_names = evoked.ch_names[:3]
 
     ch_names_orig = evoked.ch_names
@@ -289,7 +296,7 @@ def test_pick_channels_mixin():
 def test_equalize_channels():
     """Test equalization of channels
     """
-    evoked1 = read_evoked(fname, setno=0, proj=True)
+    evoked1 = read_evoked(fname, condition=0, proj=True)
     evoked2 = evoked1.copy()
     ch_names = evoked1.ch_names[2:]
     evoked1.drop_channels(evoked1.ch_names[:1])

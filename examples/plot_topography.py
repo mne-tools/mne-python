@@ -21,7 +21,7 @@ data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading
-evoked = fiff.read_evoked(fname, setno=0, baseline=(None, 0))
+evoked = fiff.read_evoked(fname, condition=0, baseline=(None, 0))
 
 ###############################################################################
 # Show topography

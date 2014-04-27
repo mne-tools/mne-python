@@ -39,7 +39,7 @@ fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
 
 cov = mne.read_cov(cov_fname)
 
-evoked_template = mne.fiff.read_evoked(ave_fname, setno=0, baseline=None)
+evoked_template = mne.fiff.read_evoked(ave_fname, condition=0, baseline=None)
 evoked_template = pick_types_evoked(evoked_template, meg=True, eeg=True,
                                     exclude=raw.info['bads'])
 

@@ -183,7 +183,7 @@ def test_regularize_cov():
     noise_cov = read_cov(cov_fname)
     # Regularize noise cov
     reg_noise_cov = regularize(noise_cov, raw.info,
-                               mag=0.1, grad=0.1, eeg=0.1, proj=True, 
+                               mag=0.1, grad=0.1, eeg=0.1, proj=True,
                                exclude='bads')
     assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
     assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
@@ -192,7 +192,7 @@ def test_regularize_cov():
 
 def test_evoked_whiten():
     """Test whitening of evoked data"""
-    evoked = Evoked(ave_fname, setno=0, baseline=(None, 0), proj=True)
+    evoked = Evoked(ave_fname, condition=0, baseline=(None, 0), proj=True)
     cov = read_cov(cov_fname)
 
     ###########################################################################

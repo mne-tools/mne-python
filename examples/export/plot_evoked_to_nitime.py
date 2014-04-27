@@ -22,7 +22,7 @@ data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading
-evoked = fiff.Evoked(fname, setno=0, baseline=(None, 0), proj=True)
+evoked = fiff.Evoked(fname, condition=0, baseline=(None, 0), proj=True)
 
 # Pick channels to view
 picks = fiff.pick_types(evoked.info, meg='grad', eeg=False, exclude='bads')
