@@ -79,7 +79,8 @@ class RawEDF(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, n_eeg=None, stim_channel=-1, annot=None,
-                 annotmap=None, tal_channel=None, hpts=None, preload=False, verbose=None):
+                 annotmap=None, tal_channel=None, hpts=None, preload=False,
+                 verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self.info, self._edf_info = _get_edf_info(input_fname, n_eeg,
@@ -246,13 +247,13 @@ class RawEDF(_BaseRaw):
                         if i == tal_channel:
                             # don't resample tal_channel,
                             # pad with zeros instead.
-                            chan_data = np.hstack([chan_data,
-                                                   [0]*int(max_samp-samp)*blocks])
+                            n_missing = int(max_samp - samp) * blocks
+                            chan_data = np.hstack([chan_data, [0] * n_missing])
                         elif i == stim_channel:
                             # don't resample stim_channel,
                             # TODO: zero-padding is not correct either.
-                            chan_data = np.hstack([chan_data,
-                                                   [0]*int(max_samp-samp)*blocks])
+                            n_missing = int(max_samp - samp) * blocks
+                            chan_data = np.hstack([chan_data, [0] * n_missing])
                         elif samp != max_samp:
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,

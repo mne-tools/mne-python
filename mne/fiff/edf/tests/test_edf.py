@@ -12,6 +12,7 @@ from nose.tools import assert_equal, assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from scipy import io
 
+from mne.externals.six import iterbytes
 from mne.utils import _TempDir
 from mne.fiff import Raw, pick_types
 from mne.fiff.edf import read_raw_edf
@@ -22,7 +23,7 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 hpts_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
-edf_events_path = op.join(data_dir, 'S001R06.edf')  # TODO: use a smaller data set
+edf_events_path = op.join(data_dir, 'S001R06.edf')  # TODO: smaller data set
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 
@@ -121,16 +122,14 @@ def test_parse_annotation():
     """
 
     # test the parser
-    annot = ('+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
-             '+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
-             '+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
-             '+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
-             '+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00').encode('ascii')
-    if type(annot) == str:
-        # in python 2 bytes is str
-        tal_channel = [ord(annot[i]) + ord(annot[i+1])*256 for i in range(0, len(annot)-1, 2)]
-    elif type(annot) == bytes:
-        tal_channel = [annot[i] + annot[i+1]*256 for i in range(0, len(annot)-1, 2)]
+    annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
+             b'+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
+             b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
+             b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00')
+    annot = [a for a in iterbytes(annot)]
+    annot[1::2] = [a * 256 for a in annot[1::2]]
+    tal_channel = map(sum, zip(annot[0::2], annot[1::2]))
     events = edfmodule._parse_tal_channel(tal_channel)
     assert_equal(events, [[180.0, 0, 'Lights off'],
                           [180.0, 0, 'Close door'],
@@ -140,5 +139,8 @@ def test_parse_annotation():
                           [1800.2, 25.5, 'Apnea']])
 
     # test an actual file
-    #raw = read_raw_edf(edf_events_path, tal_channel=-1, hpts=hpts_path, preload=True)
+    # raw = read_raw_edf(edf_events_path, tal_channel=-1,
+    #                    hpts=hpts_path, preload=True)
     # TODO: meaningful tests
+
+test_parse_annotation()
