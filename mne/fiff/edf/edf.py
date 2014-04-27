@@ -279,9 +279,21 @@ class RawEDF(_BaseRaw):
                 data[stim_channel, :evts.size] = evts[start:stop]
             elif tal_channel is not None:
                 evts = _parse_tal_channel(data[tal_channel])
-                # TODO: put events from the annotation channel into
-                #       stim_channel, but what is the correct format?
+
+                unique_annotations = sorted(set([e[2] for e in evts]))
+                mapping = {a: n+1 for n, a in enumerate(unique_annotations)}
+
                 data[stim_channel] = 0
+                for t_start, t_duration, annotation in evts:
+                    evid = mapping[annotation]
+                    n_start = int(t_start * sfreq)
+                    n_stop = int(t_duration * sfreq) + n_start
+                    # make sure events without duration get one sample
+                    n_stop = n_stop if n_stop > n_start else n_start+1
+                    if any(data[stim_channel][n_start:n_stop]):
+                        raise NotImplementedError('EDF+ with overlapping '
+                                                  'events not supported.')
+                    data[stim_channel][n_start:n_stop] = evid
             else:
                 stim = np.array(data[stim_channel], int)
                 mask = 255 * np.ones(stim.shape, int)
@@ -300,6 +312,20 @@ class RawEDF(_BaseRaw):
 def _parse_tal_channel(tal_channel_data):
     """Parse time-stamped annotation lists (TALs) in stim_channel
     and return list of events.
+
+    Parameters
+    ----------
+    tal_channel_data : ndarray, shape = [n_samples]
+        channel data in EDF+ TAL format
+
+    Returns
+    -------
+    events : list
+        List of events. Each event contains [start, duration, annotation].
+
+    References
+    ----------
+    http://www.edfplus.info/specs/edfplus.html#tal
     """
 
     # convert tal_channel to an ascii string
@@ -315,14 +341,14 @@ def _parse_tal_channel(tal_channel_data):
         onset = float(ev[0])
         duration = float(ev[2]) if ev[2] else 0
         for annotation in ev[3].split('\x14')[1:]:
-            events.append([onset, duration, annotation])
-
-    # TODO: skip events with empty annotation?
+            if annotation:
+                events.append([onset, duration, annotation])
 
     return events
 
 
-def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel, hpts, preload):
+def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
+                  hpts, preload):
     """Extracts all the information from the EDF+,BDF file.
 
     Parameters
