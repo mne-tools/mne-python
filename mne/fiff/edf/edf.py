@@ -280,8 +280,8 @@ class RawEDF(_BaseRaw):
             elif tal_channel is not None:
                 evts = _parse_tal_channel(data[tal_channel])
 
-                unique_annotations = sorted(set([e[2] for e in evts]))
-                mapping = {a: n+1 for n, a in enumerate(unique_annotations)}
+                unique_annots = sorted(set([e[2] for e in evts]))
+                mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
 
                 data[stim_channel] = 0
                 for t_start, t_duration, annotation in evts:
