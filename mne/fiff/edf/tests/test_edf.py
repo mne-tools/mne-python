@@ -126,7 +126,8 @@ def test_parse_annotation():
              b'+180\x14Lights off\x14\x00\x00\x00\x00\x00\x00\x00\x00'
              b'+180\x14Close door\x14\x00\x00\x00\x00\x00\x00\x00\x00'
              b'+3.14\x1504.20\x14nothing\x14\x00\x00\x00\x00'
-             b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00')
+             b'+1800.2\x1525.5\x14Apnea\x14\x00\x00\x00\x00\x00\x00\x00'
+             b'+123\x14\x14\x00\x00\x00\x00\x00\x00\x00')
     annot = [a for a in iterbytes(annot)]
     annot[1::2] = [a * 256 for a in annot[1::2]]
     tal_channel = map(sum, zip(annot[0::2], annot[1::2]))
@@ -142,5 +143,3 @@ def test_parse_annotation():
     # raw = read_raw_edf(edf_events_path, tal_channel=-1,
     #                    hpts=hpts_path, preload=True)
     # TODO: meaningful tests
-
-test_parse_annotation()
