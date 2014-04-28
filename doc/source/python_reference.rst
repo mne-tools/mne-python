@@ -188,6 +188,26 @@ Functions:
 
   read_raw_egi
 
+.. currentmodule:: mne.fiff.user
+
+:py:mod:`mne.fiff.user`:
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   RawUser
+
+Functions:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+  create_info
+
 :py:mod:`mne.datasets.sample`:
 
 .. automodule:: mne.datasets.sample

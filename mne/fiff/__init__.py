@@ -23,6 +23,7 @@ from . import edf
 from . import egi
 from . import kit
 from . import fiff
+from . import user
 
 # for backward compatibility
 from .fiff import RawFIFF
