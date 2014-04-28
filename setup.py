@@ -73,6 +73,7 @@ if __name__ == "__main__":
                     'mne.fiff.edf', 'mne.fiff.edf.tests',
                     'mne.fiff.egi', 'mne.fiff.egi.tests',
                     'mne.fiff.brainvision', 'mne.fiff.brainvision.tests',
+                    'mne.fiff.user', 'mne.fiff.user.tests',
                     'mne.forward', 'mne.forward.tests',
                     'mne.gui', 'mne.gui.tests',
                     'mne.layouts', 'mne.layouts.tests',
