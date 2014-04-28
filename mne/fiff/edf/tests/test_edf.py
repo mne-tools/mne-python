@@ -1,7 +1,8 @@
 """Data Equivalence Tests"""
 from __future__ import print_function
 
-# Author: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon@nyu.edu>
+#          Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: BSD (3-clause)
 
@@ -23,7 +24,7 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 hpts_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
-edf_events_path = op.join(data_dir, 'S001R06.edf')  # TODO: smaller data set
+edf_events_path = op.join(data_dir, 'S001R06.edf')  # TODO: need data set
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 
