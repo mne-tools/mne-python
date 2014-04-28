@@ -57,6 +57,8 @@ Changelog
 
    - Add support for treating arbitrary data (numpy ndarray) as a Raw instance by `Eric Larson`_
 
+   - Support for parsing the EDF+ annotation channel by `Martin Billinger`_
+
 BUG
 ~~~
 
@@ -677,3 +679,6 @@ of commits):
 .. _Dan Wakeman: https://github.com/dgwakeman
 
 .. _Qunxi Dong: https://github.com/dongqunxi
+
+.. _Martin Billinger: https://github.com/kazemakase
+
