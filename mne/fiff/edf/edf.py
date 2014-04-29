@@ -15,6 +15,7 @@ import warnings
 from math import ceil, floor
 
 import numpy as np
+from scipy.interpolate import interp1d
 
 from ...transforms import als_ras_trans_mm, apply_trans
 from ...utils import verbose, logger
@@ -250,11 +251,19 @@ class RawEDF(_BaseRaw):
                             # pad with zeros instead.
                             n_missing = int(max_samp - samp) * blocks
                             chan_data = np.hstack([chan_data, [0] * n_missing])
-                        elif i == stim_channel:
-                            # don't resample stim_channel,
-                            # TODO: zero-padding is not correct either.
-                            n_missing = int(max_samp - samp) * blocks
-                            chan_data = np.hstack([chan_data, [0] * n_missing])
+                        elif i == stim_channel and samp < max_samp:
+                            if annot and annotmap or tal_channel is not None:
+                                # don't bother with resampling the stim channel
+                                # because it gets overwritten later on.
+                                chan_data = np.zeros(max_samp)
+                            else:
+                                warnings.warn('Interpolating stim channel. '
+                                              'Events may jitter.')
+                                oldrange = np.linspace(0, 1, samp+1, True)
+                                newrange = np.linspace(0, 1, max_samp, False)
+                                chan_data = interp1d(oldrange,
+                                                     np.append(chan_data, 0),
+                                                     kind='zero')(newrange)
                         elif samp != max_samp:
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
