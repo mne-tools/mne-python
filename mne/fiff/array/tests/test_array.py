@@ -1,7 +1,6 @@
 from __future__ import print_function
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#         Denis Engemann <d.engemann@fz-juelich.de>
+# Author: Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -13,7 +12,7 @@ from nose.tools import assert_equal, assert_raises, assert_true
 
 from mne import find_events, Epochs
 from mne.fiff import Raw, pick_types
-from mne.fiff.user import RawUser, create_info
+from mne.fiff.array import RawArray, create_info
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests might throw warnings
@@ -24,14 +23,16 @@ fif_fname = op.join(base_dir, 'test_raw.fif')
 tempdir = _TempDir()
 
 
-def test_user_data():
-    """Test creating raw from user data
+def test_array():
+    """Test creating raw from array
     """
     # creating
     raw = Raw(fif_fname).crop(2, 5, copy=False)
     data, times = raw[:, :]
     sfreq = raw.info['sfreq']
-    ch_names = [ch for ch in raw.info['ch_names']]  # change them, why not
+    ch_names = [(ch[4:] if 'STI' not in ch else ch)
+                for ch in raw.info['ch_names']]  # change them, why not
+    #del raw
     types = list()
     for ci in range(102):
         types.extend(('grad', 'grad', 'mag'))
@@ -44,7 +45,7 @@ def test_user_data():
     assert_raises(KeyError, create_info, ch_names, sfreq, types)
     types[-1] = 'eog'
     info = create_info(ch_names, sfreq, types)
-    raw2 = RawUser(data, info)
+    raw2 = RawArray(data, info)
     data2, times2 = raw2[:, :]
     assert_allclose(data, data2)
     assert_allclose(times, times2)
@@ -96,3 +97,7 @@ def test_user_data():
     epochs.plot()
     evoked = epochs.average()
     evoked.plot()
+
+
+if __name__ == '__main__':
+    test_array()

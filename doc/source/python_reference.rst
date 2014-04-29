@@ -188,9 +188,9 @@ Functions:
 
   read_raw_egi
 
-.. currentmodule:: mne.fiff.user
+.. currentmodule:: mne.fiff.array
 
-:py:mod:`mne.fiff.user`:
+:py:mod:`mne.fiff.array`:
 
 Classes:
 
@@ -198,7 +198,7 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   RawUser
+   RawArray
 
 Functions:
 

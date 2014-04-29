@@ -84,6 +84,8 @@ def pick_channels(ch_names, include, exclude=[]):
     sel : array of int
         Indices of good channels.
     """
+    if len(np.unique(ch_names)) != len(ch_names):
+        raise RuntimeError('ch_names is not a unique list, picking is unsafe')
     sel = []
     for k, name in enumerate(ch_names):
         if (len(include) == 0 or name in include) and name not in exclude:

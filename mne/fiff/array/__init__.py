@@ -2,4 +2,4 @@
 
 # Author: Eric Larson <larson.eric.d@gmail.com>
 
-from .user import RawUser, create_info
+from .array import RawArray, create_info

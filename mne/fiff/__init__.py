@@ -16,14 +16,14 @@ from .pick import (pick_types, pick_channels, pick_types_evoked,
 
 from .proj import proj_equal, make_eeg_average_ref_proj
 from .cov import read_cov, write_cov
+from . import array
 from . import base
 from . import brainvision
 from . import bti
 from . import edf
 from . import egi
-from . import kit
 from . import fiff
-from . import user
+from . import kit
 
 # for backward compatibility
 from .fiff import RawFIFF

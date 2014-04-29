@@ -9,8 +9,8 @@ from ...externals.six import string_types
 
 _kind_dict = dict(
     eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
-    mag=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFF_UNIT_T_M),
-    grad=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_PLANAR_T1, FIFF.FIFF_UNIT_T),
+    mag=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFF_UNIT_T),
+    grad=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_PLANAR_T1, FIFF.FIFF_UNIT_T_M),
     misc=(FIFF.FIFFV_MISC_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_NONE),
     stim=(FIFF.FIFFV_STIM_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     eog=(FIFF.FIFFV_EOG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
@@ -59,7 +59,7 @@ def create_info(ch_names, sfreq, ch_types=None):
     info['ch_names'] = ch_names
     info['nchan'] = nchan
     info['chs'] = list()
-    loc = np.concatenate((np.eye(3).ravel(), np.zeros(3)))
+    loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
             raise TypeError('each entry in ch_names must be a string')
@@ -70,7 +70,7 @@ def create_info(ch_names, sfreq, ch_types=None):
                            % (list(_kind_dict.keys()), kind))
         kind = _kind_dict[kind]
         chan_info = dict(loc=loc, eeg_loc=None, unit_mul=0, range=1., cal=1.,
-                         coil_trans=np.eye(4), kind=kind[0], coil_type=kind[1],
+                         coil_trans=None, kind=kind[0], coil_type=kind[1],
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
@@ -80,22 +80,25 @@ def create_info(ch_names, sfreq, ch_types=None):
     return info
 
 
-class RawUser(_BaseRaw):
-    """Raw object from user data
+class RawArray(_BaseRaw):
+    """Raw object from numpy array
 
     Parameters
     ----------
-    data : array
-        2D array (n_channels x n_time).
+    data : array, shape (n_channels, n_times)
+        The channels' time series.
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
     """
     @verbose
     def __init__(self, data, info, verbose=None):
-        data = np.asanyarray(data)
+        dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
+        data = np.asanyarray(data, dtype=dtype)
         if data.ndim != 2:
             raise ValueError('data must be a 2D array')
+        logger.info('Creating RawArray with %s data, n_channels=%s, n_times=%s'
+                    % (dtype.__name__, data.shape[0], data.shape[1]))
         if len(data) != len(info['ch_names']):
             raise ValueError('len(data) does not match len(info["ch_names"])')
         assert len(info['ch_names']) == info['nchan']

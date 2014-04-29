@@ -2768,13 +2768,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
-    pick_args = dict(meg=False, exclude=[])
+    pick_kwargs = dict(meg=False, exclude=[])
     for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
               'misc', 'chpi', 'syst', 'ias', 'exci']:
-        pick_args[t] = True
-        inds += [pick_types(raw.info, **pick_args)]
+        pick_kwargs[t] = True
+        inds += [pick_types(raw.info, **pick_kwargs)]
         types += [t] * len(inds[-1])
-        pick_args[t] = False
+        pick_kwargs[t] = False
     inds = np.concatenate(inds).astype(int)
     if not len(inds) == len(info['ch_names']):
         raise RuntimeError('Some channels not classified, please report '
