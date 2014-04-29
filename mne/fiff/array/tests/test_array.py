@@ -97,7 +97,3 @@ def test_array():
     epochs.plot()
     evoked = epochs.average()
     evoked.plot()
-
-
-if __name__ == '__main__':
-    test_array()
