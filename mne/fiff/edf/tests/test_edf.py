@@ -155,7 +155,8 @@ def test_parse_annotation():
     events = np.array(events)
     events[:, :2] *= 512   # convert time to samples
     events = np.array(events, dtype=int)
-    events[events[:, 1] == 0, 1] = 1
+    events[:, 1] -= 1
+    events[events[:, 1] <= 0, 1] = 1
     events[:, 1] += events[:, 0]
 
     onsets = events[:, [0, 2]]

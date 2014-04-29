@@ -297,7 +297,7 @@ class RawEDF(_BaseRaw):
                 for t_start, t_duration, annotation in evts:
                     evid = mapping[annotation]
                     n_start = int(t_start * sfreq)
-                    n_stop = int(t_duration * sfreq) + n_start
+                    n_stop = int(t_duration * sfreq) + n_start - 1
                     # make sure events without duration get one sample
                     n_stop = n_stop if n_stop > n_start else n_start+1
                     if any(data[stim_channel][n_start:n_stop]):
