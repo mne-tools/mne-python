@@ -5,6 +5,7 @@
 
 import os.path as op
 from copy import deepcopy
+import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
@@ -12,7 +13,8 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 from nose.tools import assert_true, assert_raises
 
 from mne import equalize_channels
-from mne.fiff import read_evoked, write_evoked, pick_types
+from mne.fiff import (read_evoked, write_evoked, read_evokeds, write_evokeds,
+                      pick_types)
 from mne.fiff.evoked import _get_peak
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 
@@ -49,6 +51,34 @@ def test_io_evoked():
     assert_raises(ValueError, read_evoked, fname, setno, kind='standard_error')
     ave3 = read_evoked(fname, setno)
     assert_array_almost_equal(ave.data, ave3.data, 19)
+
+    # test deprecation warning for read_evoked and write_evoked
+    # XXX should be deleted for 0.9 release
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        ave = read_evoked(fname, setno=0)
+        assert_true(w[0].category == DeprecationWarning)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        write_evoked(op.join(tempdir, 'evoked.fif'), ave)
+        assert_true(w[0].category == DeprecationWarning)
+
+    # test read_evokeds and write_evokeds
+    types = ['Left Auditory', 'Right Auditory', 'Left visual', 'Right visual']
+    aves1 = read_evokeds(fname)
+    aves2 = read_evokeds(fname, [0, 1, 2, 3])
+    aves3 = read_evokeds(fname, types)
+    write_evokeds(op.join(tempdir, 'evoked.fif'), aves1)
+    aves4 = read_evokeds(op.join(tempdir, 'evoked.fif'))
+    for aves in [aves2, aves3, aves4]:
+        for [av1, av2] in zip(aves1, aves):
+            assert_array_almost_equal(av1.data, av2.data)
+            assert_array_almost_equal(av1.times, av2.times)
+            assert_equal(av1.nave, av2.nave)
+            assert_equal(av1.kind, av2.kind)
+            assert_equal(av1._aspect_kind, av2._aspect_kind)
+            assert_equal(av1.last, av2.last)
+            assert_equal(av1.first, av2.first)
 
 
 def test_shift_time_evoked():
@@ -132,27 +162,6 @@ def test_evoked_detrend():
     picks = pick_types(ave.info, meg=True, eeg=True, exclude='bads')
     assert_true(np.allclose(ave.data[picks], ave_normal.data[picks],
                             rtol=1e-8, atol=1e-16))
-
-
-def test_io_multi_evoked():
-    """Test IO for multiple evoked datasets
-    """
-    aves = read_evoked(fname, [0, 1, 2, 3])
-    write_evoked(op.join(tempdir, 'evoked.fif'), aves)
-    aves2 = read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1, 2, 3])
-    types = ['Left Auditory', 'Right Auditory', 'Left visual', 'Right visual']
-    aves3 = read_evoked(op.join(tempdir, 'evoked.fif'), types)
-    for aves_new in [aves2, aves3]:
-        for [ave, ave_new] in zip(aves, aves_new):
-            assert_array_almost_equal(ave.data, ave_new.data)
-            assert_array_almost_equal(ave.times, ave_new.times)
-            assert_equal(ave.nave, ave_new.nave)
-            assert_equal(ave.kind, ave_new.kind)
-            assert_equal(ave._aspect_kind, ave_new._aspect_kind)
-            assert_equal(ave.last, ave_new.last)
-            assert_equal(ave.first, ave_new.first)
-    # this should throw an error since there are mulitple datasets
-    assert_raises(ValueError, read_evoked, fname)
 
 
 @requires_nitime

@@ -124,7 +124,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             found_setno = np.where(goods)[0]
             if len(found_setno) != 1:
                 fid.close()
-                raise ValueError('condition "%s" (%s) not found, out of found '
+                raise ValueError('setno "%s" (%s) not found, out of found '
                                  'datasets:\n  %s' % (setno, kind, t))
             setno = found_setno[0]
 
@@ -740,7 +740,7 @@ def _get_entries(fid, evoked_node):
     return comments, aspect_kinds, t
 
 
-def _get_evoked_info(fname):
+def _get_evoked_node(fname):
     """Helper to get info in evoked file"""
     f, tree, _ = fiff_open(fname)
     with f as fid:
@@ -816,7 +816,7 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
     evoked : instance of Evoked or list of Evoked
         The evoked datasets.
     """
-    evoked_node = _get_evoked_info(fname)
+    evoked_node = _get_evoked_node(fname)
     if setno is None and len(evoked_node) > 1:
         fid, _, _ = fiff_open(fname)
         try:
@@ -866,7 +866,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         The evoked datasets.
     """
     if condition is None:
-        evoked_node = _get_evoked_info(fname)
+        evoked_node = _get_evoked_node(fname)
         condition = range(len(evoked_node))
     elif not isinstance(condition, list):
         condition = [condition]
