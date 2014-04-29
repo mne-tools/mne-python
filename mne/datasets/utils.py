@@ -74,7 +74,7 @@ def _data_path(path=None, force_update=False, update_path=True,
         def_path = op.realpath(op.join(op.dirname(__file__),
                                        '..', '..', 'examples'))
         path = get_config(key, def_path)
-        #use the same for all datasets
+        # use the same for all datasets
         if not op.exists(path):
             try:
                 os.mkdir(def_path)
@@ -91,6 +91,7 @@ def _data_path(path=None, force_update=False, update_path=True,
                                   "to data_path() where user has write "
                                   "permission, for ex:data_path"
                                   "('/home/xyz/me2/')" % (def_path))
+
     if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
     if name == 'sample':
