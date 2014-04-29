@@ -558,9 +558,9 @@ class CoregModel(HasPrivateTraits):
 
     def reset(self):
         """Reset all the parameters affecting the coregistration"""
-        self.reset_traits(('n_scaling_params', 'scale_x', 'scale_y', 'scale_z',
-                           'rot_x', 'rot_y', 'rot_z', 'trans_x', 'trans_y',
-                           'trans_z'))
+        self.reset_traits(('grow_hair', 'n_scaling_params', 'scale_x',
+                           'scale_y', 'scale_z', 'rot_x', 'rot_y', 'rot_z',
+                           'trans_x', 'trans_y', 'trans_z'))
 
     def set_trans(self, head_mri_trans):
         """Set rotation and translation parameters from a transformation matrix
