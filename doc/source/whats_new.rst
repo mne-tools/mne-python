@@ -55,6 +55,8 @@ Changelog
 
    - Add support for EGI Netstation simple binary files by `Denis Engemann`_
 
+   - Add support for treating arbitrary data (numpy ndarray) as a Raw instance by `Eric Larson`_
+
 BUG
 ~~~
 
