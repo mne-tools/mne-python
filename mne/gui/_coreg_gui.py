@@ -506,7 +506,7 @@ class CoregModel(HasPrivateTraits):
                                            subject=subject_to, name='*-bem')
                 err = ("No bem file found; looking for files matching "
                        "%s" % pattern)
-                error(err)
+                error(None, err)
 
             bem_name = m.group(1)
 
