@@ -20,7 +20,7 @@ from .channels import ContainsMixin, PickDropChannelsMixin
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
-from ..utils import _check_pandas_installed, logger, verbose
+from ..utils import _check_pandas_installed, logger, verbose, deprecated
 from .write import (start_file, start_block, end_file, end_block,
                     write_int, write_string, write_float_matrix,
                     write_id)
@@ -111,23 +111,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             fid.close()
             raise ValueError('Could not find evoked data')
 
-        # convert setno to an integer
-        if setno is None:
-            if len(evoked_node) > 1:
-                try:
-                    _, _, t = _get_entries(fid, evoked_node)
-                except:
-                    t = 'None found, must use integer'
-                else:
-                    fid.close()
-                raise ValueError('%d datasets present, setno parameter '
-                                 'must be set. Candidate setno names:\n%s'
-                                 % (len(evoked_node), t))
-            else:
-                setno = 0
-
         # find string-based entry
-        elif isinstance(setno, string_types):
+        if isinstance(setno, string_types):
             if not kind in aspect_dict.keys():
                 fid.close()
                 raise ValueError('kind must be "average" or '
@@ -139,7 +124,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             found_setno = np.where(goods)[0]
             if len(found_setno) != 1:
                 fid.close()
-                raise ValueError('setno "%s" (%s) not found, out of found '
+                raise ValueError('condition "%s" (%s) not found, out of found '
                                  'datasets:\n  %s' % (setno, kind, t))
             setno = found_setno[0]
 
@@ -485,8 +470,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         fig : instance of mlab.Figure
             The mayavi figure.
         """
-        return plot_evoked_field(self, surf_maps, time=time, time_label=time_label,
-                                 n_jobs=n_jobs)
+        return plot_evoked_field(self, surf_maps, time=time,
+                                 time_label=time_label, n_jobs=n_jobs)
 
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime
@@ -755,6 +740,15 @@ def _get_entries(fid, evoked_node):
     return comments, aspect_kinds, t
 
 
+def _get_evoked_info(fname):
+    """Helper to get info in evoked file"""
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        _, meas = read_meas_info(fid, tree)
+        evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
+    return evoked_node
+
+
 def merge_evoked(all_evoked):
     """Merge/concat evoked data
 
@@ -792,6 +786,7 @@ def merge_evoked(all_evoked):
     return evoked
 
 
+@deprecated("'read_evoked' will be removed in v0.9. Use 'read_evokeds.'")
 def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
     """Read an evoked dataset
 
@@ -821,13 +816,66 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
     evoked : instance of Evoked or list of Evoked
         The evoked datasets.
     """
-    if isinstance(setno, list):
+    evoked_node = _get_evoked_info(fname)
+    if setno is None and len(evoked_node) > 1:
+        fid, _, _ = fiff_open(fname)
+        try:
+            _, _, t = _get_entries(fid, evoked_node)
+        except:
+            t = 'None found, must use integer'
+        else:
+            fid.close()
+        raise ValueError('%d datasets present, setno parameter must be set.'
+                         'Candidate setno names:\n%s' % (len(evoked_node), t))
+    elif isinstance(setno, list):
         return [Evoked(fname, s, baseline=baseline, kind=kind, proj=proj)
                 for s in setno]
     else:
+        if setno is None:
+            setno = 0
         return Evoked(fname, setno, baseline=baseline, kind=kind, proj=proj)
 
 
+def read_evokeds(fname, condition=None, baseline=None, kind='average',
+                 proj=True):
+    """Read evoked dataset(s)
+
+    Parameters
+    ----------
+    fname : string
+        The file name.
+    condition : int or str | list of int or str | None
+        The index or list of indices of the evoked dataset to read. FIF
+        file can contain multiple datasets. If None, all datasets are loaded.
+    baseline : None (default) or tuple of length 2
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used.
+    kind : str
+        Either 'average' or 'standard_error', the type of data to read.
+    proj : bool
+        If False, available projectors won't be applied to the data.
+
+    Returns
+    -------
+    evoked : instance of Evoked or list of Evoked
+        The evoked datasets.
+    """
+    if condition is None:
+        evoked_node = _get_evoked_info(fname)
+        condition = range(len(evoked_node))
+    elif not isinstance(condition, list):
+        condition = [condition]
+
+    return [Evoked(fname, c, baseline=baseline, kind=kind, proj=proj)
+           for c in condition]
+
+
+@deprecated("'write_evoked' will be removed in v0.9. Use 'write_evokeds.'")
 def write_evoked(fname, evoked):
     """Write an evoked dataset to a file
 
@@ -835,11 +883,70 @@ def write_evoked(fname, evoked):
     ----------
     fname : string
         The file name.
-
     evoked : instance of Evoked, or list of Evoked
         The evoked dataset to save, or a list of evoked datasets to save
         in one file. Note that the measurement info from the first evoked
         instance is used, so be sure that information matches.
+    """
+
+    if not isinstance(evoked, list):
+        evoked = [evoked]
+
+    # Create the file and save the essentials
+    fid = start_file(fname)
+
+    start_block(fid, FIFF.FIFFB_MEAS)
+    write_id(fid, FIFF.FIFF_BLOCK_ID)
+    if evoked[0].info['meas_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, evoked[0].info['meas_id'])
+
+    # Write measurement info
+    write_meas_info(fid, evoked[0].info)
+
+    # One or more evoked data sets
+    start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+    for e in evoked:
+        start_block(fid, FIFF.FIFFB_EVOKED)
+
+        # Comment is optional
+        if e.comment is not None and len(e.comment) > 0:
+            write_string(fid, FIFF.FIFF_COMMENT, e.comment)
+
+        # First and last sample
+        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
+        write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
+
+        # The epoch itself
+        start_block(fid, FIFF.FIFFB_ASPECT)
+
+        write_int(fid, FIFF.FIFF_ASPECT_KIND, e._aspect_kind)
+        write_int(fid, FIFF.FIFF_NAVE, e.nave)
+
+        decal = np.zeros((e.info['nchan'], 1))
+        for k in range(e.info['nchan']):
+            decal[k] = 1.0 / (e.info['chs'][k]['cal']
+                              * e.info['chs'][k].get('scale', 1.0))
+
+        write_float_matrix(fid, FIFF.FIFF_EPOCH, decal * e.data)
+        end_block(fid, FIFF.FIFFB_ASPECT)
+        end_block(fid, FIFF.FIFFB_EVOKED)
+
+    end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+    end_block(fid, FIFF.FIFFB_MEAS)
+    end_file(fid)
+
+
+def write_evokeds(fname, evoked):
+    """Write an evoked dataset to a file
+
+    Parameters
+    ----------
+    fname : string
+        The file name.
+    evoked : Evoked instance, or list of Evoked instances
+        The evoked dataset, or list of evoked datasets, to save in one file.
+        Note that the measurement info from the first evoked instance is used,
+        so be sure that information matches.
     """
 
     if not isinstance(evoked, list):
