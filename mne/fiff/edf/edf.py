@@ -289,6 +289,7 @@ class RawEDF(_BaseRaw):
                 data[stim_channel, :evts.size] = evts[start:stop]
             elif tal_channel is not None:
                 evts = _parse_tal_channel(data[tal_channel])
+                self._edf_info['events'] = evts
 
                 unique_annots = sorted(set([e[2] for e in evts]))
                 mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
@@ -429,6 +430,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
     edf_info = dict()
     edf_info['annot'] = annot
     edf_info['annotmap'] = annotmap
+    edf_info['events'] = []
 
     with open(fname, 'rb') as fid:
         assert(fid.tell() == 0)
