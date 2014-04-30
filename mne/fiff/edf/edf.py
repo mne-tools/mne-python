@@ -2,7 +2,8 @@
 
 """
 
-# Author: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon@nyu.edu>
+#          Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: BSD (3-clause)
 
@@ -14,6 +15,7 @@ import warnings
 from math import ceil, floor
 
 import numpy as np
+from scipy.interpolate import interp1d
 
 from ...transforms import als_ras_trans_mm, apply_trans
 from ...utils import verbose, logger
@@ -51,6 +53,13 @@ class RawEDF(_BaseRaw):
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
 
+    tal_channel : int | None
+        The channel index (starting at 0).
+        Index of the channel containing EDF+ annotations.
+        -1 corresponds to the last channel.
+        If None, the annotation channel is not used.
+        Note: this is overruled by the annotation file if specified.
+
     hpts : str | None
         Path to the hpts file containing electrode positions.
         If None, sensor locations are (0,0,0).
@@ -72,12 +81,14 @@ class RawEDF(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, n_eeg=None, stim_channel=-1, annot=None,
-                 annotmap=None, hpts=None, preload=False, verbose=None):
+                 annotmap=None, tal_channel=None, hpts=None, preload=False,
+                 verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self.info, self._edf_info = _get_edf_info(input_fname, n_eeg,
                                                   stim_channel, annot,
-                                                  annotmap, hpts, preload)
+                                                  annotmap, tal_channel,
+                                                  hpts, preload)
         logger.info('Creating Raw.info structure...')
 
         if bool(annot) != bool(annotmap):
@@ -175,6 +186,7 @@ class RawEDF(_BaseRaw):
         data_size = self._edf_info['data_size']
         data_offset = self._edf_info['data_offset']
         stim_channel = self._edf_info['stim_channel']
+        tal_channel = self._edf_info['tal_channel']
         annot = self._edf_info['annot']
         annotmap = self._edf_info['annotmap']
 
@@ -234,7 +246,25 @@ class RawEDF(_BaseRaw):
                     for i, samp in enumerate(n_samps):
                         chan_data = data[i::n_chan]
                         chan_data = np.hstack(chan_data)
-                        if samp != max_samp:
+                        if i == tal_channel:
+                            # don't resample tal_channel,
+                            # pad with zeros instead.
+                            n_missing = int(max_samp - samp) * blocks
+                            chan_data = np.hstack([chan_data, [0] * n_missing])
+                        elif i == stim_channel and samp < max_samp:
+                            if annot and annotmap or tal_channel is not None:
+                                # don't bother with resampling the stim channel
+                                # because it gets overwritten later on.
+                                chan_data = np.zeros(max_samp)
+                            else:
+                                warnings.warn('Interpolating stim channel. '
+                                              'Events may jitter.')
+                                oldrange = np.linspace(0, 1, samp + 1, True)
+                                newrange = np.linspace(0, 1, max_samp, False)
+                                chan_data = interp1d(oldrange,
+                                                     np.append(chan_data, 0),
+                                                     kind='zero')(newrange)
+                        elif samp != max_samp:
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
                                                  down=1, npad=0)
@@ -257,6 +287,24 @@ class RawEDF(_BaseRaw):
                 data[stim_channel] = 0
                 evts = _read_annot(annot, annotmap, sfreq, self.last_samp)
                 data[stim_channel, :evts.size] = evts[start:stop]
+            elif tal_channel is not None:
+                evts = _parse_tal_channel(data[tal_channel])
+                self._edf_info['events'] = evts
+
+                unique_annots = sorted(set([e[2] for e in evts]))
+                mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
+
+                data[stim_channel] = 0
+                for t_start, t_duration, annotation in evts:
+                    evid = mapping[annotation]
+                    n_start = int(t_start * sfreq)
+                    n_stop = int(t_duration * sfreq) + n_start - 1
+                    # make sure events without duration get one sample
+                    n_stop = n_stop if n_stop > n_start else n_start+1
+                    if any(data[stim_channel][n_start:n_stop]):
+                        raise NotImplementedError('EDF+ with overlapping '
+                                                  'events not supported.')
+                    data[stim_channel][n_start:n_stop] = evid
             else:
                 stim = np.array(data[stim_channel], int)
                 mask = 255 * np.ones(stim.shape, int)
@@ -272,7 +320,46 @@ class RawEDF(_BaseRaw):
         return data, times
 
 
-def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
+def _parse_tal_channel(tal_channel_data):
+    """Parse time-stamped annotation lists (TALs) in stim_channel
+    and return list of events.
+
+    Parameters
+    ----------
+    tal_channel_data : ndarray, shape = [n_samples]
+        channel data in EDF+ TAL format
+
+    Returns
+    -------
+    events : list
+        List of events. Each event contains [start, duration, annotation].
+
+    References
+    ----------
+    http://www.edfplus.info/specs/edfplus.html#tal
+    """
+
+    # convert tal_channel to an ascii string
+    tals = bytearray()
+    for s in tal_channel_data:
+        i = int(s)
+        tals.extend([i % 256, i // 256])
+
+    regex_tal = '([+-]\d+\.?\d*)(\x15(\d+\.?\d*))?(\x14.*?)\x14\x00'
+    tal_list = re.findall(regex_tal, tals.decode('ascii'))
+    events = []
+    for ev in tal_list:
+        onset = float(ev[0])
+        duration = float(ev[2]) if ev[2] else 0
+        for annotation in ev[3].split('\x14')[1:]:
+            if annotation:
+                events.append([onset, duration, annotation])
+
+    return events
+
+
+def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
+                  hpts, preload):
     """Extracts all the information from the EDF+,BDF file.
 
     Parameters
@@ -297,6 +384,13 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
+
+    tal_channel : int | None
+        The channel index (starting at 0).
+        Index of the channel containing EDF+ annotations.
+        -1 corresponds to the last channel.
+        If None, the annotation channel is not used.
+        Note: this is overruled by the annotation file if specified.
 
     hpts : str | None
         Path to the hpts file containing electrode positions.
@@ -336,6 +430,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
     edf_info = dict()
     edf_info['annot'] = annot
     edf_info['annotmap'] = annotmap
+    edf_info['events'] = []
 
     with open(fname, 'rb') as fid:
         assert(fid.tell() == 0)
@@ -523,6 +618,17 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, hpts, preload):
     else:
         edf_info['stim_channel'] = stim_channel - 1
 
+    # TODO: automatic detection of the tal_channel?
+    if tal_channel == -1:
+        edf_info['tal_channel'] = info['nchan'] - 1
+    else:
+        edf_info['tal_channel'] = tal_channel
+
+    if tal_channel and not preload:
+        raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
+                                   ' parsed completely on loading.'
+                                   'Must set preload=True'))
+
     return info, edf_info
 
 
@@ -570,7 +676,8 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 
 
 def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, annot=None,
-                 annotmap=None, hpts=None, preload=False, verbose=None):
+                 annotmap=None, tal_channel=None, hpts=None,
+                 preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
 
     Parameters
@@ -596,6 +703,13 @@ def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, annot=None,
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
 
+    tal_channel : int | None
+        The channel index (starting at 0).
+        Index of the channel containing EDF+ annotations.
+        -1 corresponds to the last channel.
+        If None, the annotation channel is not used.
+        Note: this is overruled by the annotation file if specified.
+
     hpts : str | None
         Path to the hpts file containing electrode positions.
         If None, sensor locations are (0,0,0).
@@ -609,4 +723,5 @@ def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, annot=None,
     """
     return RawEDF(input_fname=input_fname, n_eeg=n_eeg,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  hpts=hpts, preload=preload, verbose=verbose)
+                  tal_channel=tal_channel, hpts=hpts, preload=preload,
+                  verbose=verbose)
