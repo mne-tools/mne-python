@@ -11,6 +11,7 @@ import inspect
 
 from nose.tools import assert_equal, assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_raises
 from scipy import io
 import numpy as np
 
@@ -142,6 +143,11 @@ def test_parse_annotation():
                           [3.14, 4.2, 'nothing'],
                           [1800.2, 25.5, 'Apnea']])
 
+
+def test_edf_annotations():
+    """Test if events are detected correctly in a typical MNE workflow.
+    """
+
     # test an actual file
     raw = read_raw_edf(edf_path, tal_channel=-1,
                        hpts=hpts_path, preload=True)
@@ -167,3 +173,21 @@ def test_parse_annotation():
     events[1::2, [0, 1]] = offsets
 
     assert_array_equal(edf_events, events)
+
+
+def test_write_annotations():
+    """Test writing raw files when annotations were parsed.
+    """
+    raw1 = read_raw_edf(edf_path, tal_channel=-1, preload=True)
+    raw1_file = op.join(tempdir, 'raw1.fif')
+    raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
+    raw11 = Raw(raw1_file, preload=True)
+    data1, times1 = raw1[:, :]
+    data11, times11 = raw11[:, :]
+
+    assert_array_almost_equal(data1, data11)
+    assert_array_almost_equal(times1, times11)
+    assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
+
+    assert_raises(RuntimeError, read_raw_edf,
+                  edf_path, tal_channel=-1, preload=False)
