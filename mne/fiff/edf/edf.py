@@ -622,6 +622,11 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
     else:
         edf_info['tal_channel'] = tal_channel
 
+    if tal_channel and not preload:
+        raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
+                                   ' parsed completely on loading.'
+                                   'Must set preload=True'))
+
     return info, edf_info
 
 
