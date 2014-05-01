@@ -61,7 +61,8 @@ def test_edf_data():
     """
     raw_py = read_raw_edf(edf_path, stim_channel=139, preload=True)
 
-    picks = pick_types(raw_py.info, meg=False, eeg=True, exclude=['EDF Annotations'])
+    picks = pick_types(raw_py.info, meg=False, eeg=True,
+                       exclude=['EDF Annotations'])
     data_py, _ = raw_py[picks]
 
     print(raw_py)  # to test repr
@@ -159,7 +160,7 @@ def test_edf_annotations():
               [2.0000, 0.0000, 3],
               [2.5000, 2.5000, 2]]
     events = np.array(events)
-    events[:, :2] *= 512   # convert time to samples
+    events[:, :2] *= 512  # convert time to samples
     events = np.array(events, dtype=int)
     events[:, 1] -= 1
     events[events[:, 1] <= 0, 1] = 1
