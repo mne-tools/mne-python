@@ -4,7 +4,7 @@ What's new
 .. _changes_0_8:
 
 Current
------------ 
+-----------
 
 Changelog
 ~~~~~~~~~
@@ -38,17 +38,17 @@ Changelog
    - Add callback to connectivity circle plot to isolate connections to clicked nodes `Roan LaPlante`_
 
    - Add ability to add patch information to source spaces by `Eric Larson`_
-   
+
    - Add `split_label` function to divide labels into multiple parts by `Christian Brodbeck`_
 
    - Add `color` attribute to `Label` objects by `Christian Brodbeck`_
 
-   - Add 'max' mode for extract_label_time_course by `Mads Jensen`_ 
-   
+   - Add 'max' mode for extract_label_time_course by `Mads Jensen`_
+
    - Add `rename_channels` function to change channel names and types in info object by `Dan Wakeman`_ and `Denis Engemann`_
 
    - Add  `compute_ems` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
-   
+
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
    - Add `add_channels_epochs` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
@@ -81,8 +81,14 @@ API
    - Epochs object now has a selection attribute to track provenance of selected Epochs. The length of the drop_log attribute is now the same as the length of the original events passed to Epochs. In earlier versions it had the length of the events filtered by event_id. Epochs has also now a plot_drop_log method.
 
    - Deprecate Epochs.drop_picks in favor of a new method called drop_channels
-   
+
    - Deprecate `labels_from_parc` and `parc_from_labels` in favor of `read_annot` and `write_annot`
+
+   - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`.
+read_evokeds will return all Evoked instances in a file by default.
+
+   - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This
+affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
 
 .. _changes_0_7:
 

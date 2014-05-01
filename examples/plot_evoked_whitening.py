@@ -16,7 +16,9 @@ and less than 2 standard deviations.
 
 print(__doc__)
 
-import mne
+from mne import read_cov, whiten_evoked
+from mne.cov import regularize
+from mne.fiff import read_evokeds, pick_types
 from mne.datasets import sample
 
 data_path = sample.data_path()
@@ -25,23 +27,21 @@ fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 # Reading
-evoked = mne.fiff.Evoked(fname, setno=0, baseline=(None, 0), proj=True)
-noise_cov = mne.read_cov(cov_fname)
+evoked = read_evokeds(fname, condition=0, baseline=(None, 0), proj=True)
+noise_cov = read_cov(cov_fname)
 
 ###############################################################################
 # Show result
 
   # Pick channels to view
-picks = mne.fiff.pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
+picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
 evoked.plot(picks=picks)
 
-noise_cov = mne.cov.regularize(noise_cov, evoked.info,
-                               grad=0.1, mag=0.1, eeg=0.1)
+noise_cov = regularize(noise_cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1)
 
-evoked_white = mne.whiten_evoked(evoked, noise_cov, picks, diag=True)
+evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
 
 # plot the whitened evoked data to see if baseline signals match the
 # assumption of Gaussian whiten noise from which we expect values around
 # and less than 2 standard deviations.
-import matplotlib.pyplot as plt
 evoked_white.plot(picks=picks, unit=False, hline=[-2, 2])

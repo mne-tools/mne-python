@@ -14,13 +14,15 @@ Load evoked data and plot topomaps for selected time points.
 print(__doc__)
 
 import numpy as np
-import mne
+from mne.datasets import sample
+from mne.fiff import read_evokeds
 
-path = mne.datasets.sample.data_path()
+path = sample.data_path()
 fname = path + '/MEG/sample/sample_audvis-ave.fif'
 
 # load evoked and subtract baseline
-evoked = mne.fiff.read_evoked(fname, 'Left Auditory', baseline=(None, 0))
+condition = 'Left Auditory'
+evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
 
 # plot magnetometer data as topomap at 1 time point : 100ms
 evoked.plot_topomap(0.1, ch_type='mag', size=3, colorbar=False)

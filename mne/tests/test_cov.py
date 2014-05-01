@@ -15,7 +15,8 @@ from mne.cov import regularize, whiten_evoked
 from mne import (read_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
                  compute_covariance)
-from mne.fiff import Raw, pick_channels_cov, pick_channels, Evoked, pick_types
+from mne.fiff import (Raw, pick_channels_cov, pick_channels, read_evokeds,
+                      pick_types)
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -183,7 +184,7 @@ def test_regularize_cov():
     noise_cov = read_cov(cov_fname)
     # Regularize noise cov
     reg_noise_cov = regularize(noise_cov, raw.info,
-                               mag=0.1, grad=0.1, eeg=0.1, proj=True, 
+                               mag=0.1, grad=0.1, eeg=0.1, proj=True,
                                exclude='bads')
     assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
     assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
@@ -192,7 +193,7 @@ def test_regularize_cov():
 
 def test_evoked_whiten():
     """Test whitening of evoked data"""
-    evoked = Evoked(ave_fname, setno=0, baseline=(None, 0), proj=True)
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0), proj=True)
     cov = read_cov(cov_fname)
 
     ###########################################################################

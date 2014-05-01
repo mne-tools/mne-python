@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose
 
 from mne import Epochs
 from mne.fiff.compensator import make_compensator, get_current_comp
-from mne.fiff import Raw, pick_types, read_evoked
+from mne.fiff import Raw, pick_types, read_evokeds
 from mne.utils import _TempDir, requires_mne, run_subprocess
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -56,7 +56,7 @@ def test_compensation_mne():
         cmd = ['mne_compensate_data', '--in', fname,
                '--out', tmp_fname, '--grad', str(comp)]
         run_subprocess(cmd)
-        return read_evoked(tmp_fname)
+        return read_evokeds(tmp_fname)[0]
 
     # save evoked response with default compensation
     fname_default = op.join(tempdir, 'ctf_default-ave.fif')

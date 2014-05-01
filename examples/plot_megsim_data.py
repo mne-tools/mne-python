@@ -16,7 +16,8 @@ Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
 print(__doc__)
 
-import mne
+from mne import find_events, Epochs
+from mne.fiff import Raw, pick_types, read_evokeds
 from mne.datasets.megsim import load_data
 
 condition = 'visual'  # or 'auditory' or 'somatosensory'
@@ -29,23 +30,22 @@ raw_fnames = load_data(condition=condition, data_format='raw',
 evoked_fnames = load_data(condition=condition, data_format='evoked',
                           data_type='simulation')
 
-raw = mne.fiff.Raw(raw_fnames[0])
-events = mne.find_events(raw, stim_channel="STI 014", shortest_event=1)
+raw = Raw(raw_fnames[0])
+events = find_events(raw, stim_channel="STI 014", shortest_event=1)
 
 # Visualize raw file
 raw.plot()
 
 # Make an evoked file from the experimental data
-picks = mne.fiff.pick_types(raw.info, meg=True, eog=True, exclude='bads')
+picks = pick_types(raw.info, meg=True, eog=True, exclude='bads')
 
 # Read epochs
 event_id, tmin, tmax = 9, -0.2, 0.5
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0),
-                    reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+epochs = Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
+                picks=picks, reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
 evoked.plot()
 
 # Compare to the simulated data
-evoked_sim = mne.fiff.Evoked(evoked_fnames[0])
+evoked_sim = read_evokeds(evoked_fnames[0])
 evoked_sim.plot()

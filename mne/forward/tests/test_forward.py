@@ -8,7 +8,7 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 
 from mne.datasets import sample
-from mne.fiff import Raw, Evoked, pick_types_forward
+from mne.fiff import Raw, read_evokeds, pick_types_forward
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution)
@@ -140,7 +140,7 @@ def test_apply_forward():
 
     # Evoked
     with warnings.catch_warnings(record=True) as w:
-        evoked = Evoked(fname_evoked, setno=0)
+        evoked = read_evokeds(fname_evoked, condition=0)
         evoked = apply_forward(fwd, stc, evoked, start=start, stop=stop)
         assert_equal(len(w), 2)
         data = evoked.data

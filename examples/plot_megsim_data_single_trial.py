@@ -16,7 +16,7 @@ Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
 print(__doc__)
 
-import mne
+from mne.fiff import read_evokeds
 from mne.datasets.megsim import load_data
 
 condition = 'visual'  # or 'auditory' or 'somatosensory'
@@ -28,7 +28,7 @@ epochs_fnames = load_data(condition=condition, data_format='single-trial',
 # Take only 10 trials from the same simulation setup.
 epochs_fnames = [f for f in epochs_fnames if 'sim6_trial_' in f][:10]
 
-evokeds = [mne.fiff.read_evoked(f) for f in epochs_fnames]
+evokeds = [read_evokeds(f)[0] for f in epochs_fnames]
 mean_evoked = sum(evokeds[1:], evokeds[0])
 
 # Visualize the average

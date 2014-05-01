@@ -12,7 +12,8 @@ from mne.label import read_label, label_sign_flip
 from mne.event import read_events
 from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
-from mne import fiff, read_cov, read_forward_solution
+from mne import read_cov, read_forward_solution
+from mne.fiff import read_evokeds, Raw, pick_types
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
@@ -46,7 +47,7 @@ last_keys = [None] * 10
 
 
 def _get_evoked():
-    evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
+    evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(0, 0.2)
     return evoked
 
@@ -320,7 +321,7 @@ def test_apply_mne_inverse_raw():
     """
     start = 3
     stop = 10
-    raw = fiff.Raw(fname_raw)
+    raw = Raw(fname_raw)
     label_lh = read_label(fname_label % 'Aud-lh')
     _, times = raw[0, start:stop]
     inverse_operator = read_inverse_operator(fname_inv)
@@ -349,7 +350,7 @@ def test_apply_mne_inverse_raw():
 def test_apply_mne_inverse_fixed_raw():
     """Test MNE with fixed-orientation inverse operator on Raw
     """
-    raw = fiff.Raw(fname_raw)
+    raw = Raw(fname_raw)
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
@@ -384,11 +385,10 @@ def test_apply_mne_inverse_epochs():
     label_lh = read_label(fname_label % 'Aud-lh')
     label_rh = read_label(fname_label % 'Aud-rh')
     event_id, tmin, tmax = 1, -0.2, 0.5
-    raw = fiff.Raw(fname_raw)
+    raw = Raw(fname_raw)
 
-    picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                            ecg=True, eog=True, include=['STI 014'],
-                            exclude='bads')
+    picks = pick_types(raw.info, meg=True, eeg=False, stim=True, ecg=True,
+                       eog=True, include=['STI 014'], exclude='bads')
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
     flat = dict(grad=1e-15, mag=1e-15)
 
