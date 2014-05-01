@@ -83,7 +83,8 @@ API
    - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`.
 read_evokeds will return all Evoked instances in a file by default.
 
-   - Deprecate `setno` in favor of `condition`
+   - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This
+affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
 
 .. _changes_0_7:
 

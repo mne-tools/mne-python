@@ -821,9 +821,8 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
     evoked : instance of Evoked or list of Evoked
         The evoked datasets.
     """
-    condition = setno
     evoked_node = _get_evoked_node(fname)
-    if condition is None and len(evoked_node) > 1:
+    if setno is None and len(evoked_node) > 1:
         fid, _, _ = fiff_open(fname)
         try:
             _, _, t = _get_entries(fid, evoked_node)
@@ -833,13 +832,13 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
             fid.close()
         raise ValueError('%d datasets present, setno parameter must be set.'
                          'Candidate setno names:\n%s' % (len(evoked_node), t))
-    elif isinstance(condition, list):
-        return [Evoked(fname, c, baseline=baseline, kind=kind, proj=proj)
-                for c in condition]
+    elif isinstance(setno, list):
+        return [Evoked(fname, s, baseline=baseline, kind=kind, proj=proj)
+                for s in setno]
     else:
-        if condition is None:
-            condition = 0
-        return Evoked(fname, condition, baseline=baseline, kind=kind, proj=proj)
+        if setno is None:
+            setno = 0
+        return Evoked(fname, setno, baseline=baseline, kind=kind, proj=proj)
 
 
 def read_evokeds(fname, condition=None, baseline=None, kind='average',
