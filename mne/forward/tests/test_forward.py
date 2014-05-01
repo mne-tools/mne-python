@@ -140,7 +140,7 @@ def test_apply_forward():
 
     # Evoked
     with warnings.catch_warnings(record=True) as w:
-        evoked = Evoked(fname_evoked, setno=0)
+        evoked = Evoked(fname_evoked, condition=0)
         evoked = apply_forward(fwd, stc, evoked, start=start, stop=stop)
         assert_equal(len(w), 2)
         data = evoked.data

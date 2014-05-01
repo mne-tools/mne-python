@@ -54,7 +54,7 @@ combine_event_ids(epochs, ['VisL', 'VisR'], {'Visual': 34}, copy=False)
 evokeds = [epochs[cond].average() for cond in ['Auditory', 'Visual']]
 
 # save evoked data to disk
-fiff.write_evoked('sample_auditory_and_visual_eeg-ave.fif', evokeds)
+fiff.write_evokeds('sample_auditory_and_visual_eeg-ave.fif', evokeds)
 
 ###############################################################################
 # View evoked response

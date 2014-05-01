@@ -61,16 +61,16 @@ def test_logging():
     set_log_file(test_name)
     set_log_level('WARNING')
     # should NOT print
-    evoked = Evoked(fname_evoked, setno=1)
+    evoked = Evoked(fname_evoked, condition=1)
     assert_true(open(test_name).readlines() == [])
     # should NOT print
-    evoked = Evoked(fname_evoked, setno=1, verbose=False)
+    evoked = Evoked(fname_evoked, condition=1, verbose=False)
     assert_true(open(test_name).readlines() == [])
     # should NOT print
-    evoked = Evoked(fname_evoked, setno=1, verbose='WARNING')
+    evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
     assert_true(open(test_name).readlines() == [])
     # SHOULD print
-    evoked = Evoked(fname_evoked, setno=1, verbose=True)
+    evoked = Evoked(fname_evoked, condition=1, verbose=True)
     new_log_file = open(test_name, 'r')
     new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
@@ -82,13 +82,13 @@ def test_logging():
     set_log_file(test_name)
     set_log_level('INFO')
     # should NOT print
-    evoked = Evoked(fname_evoked, setno=1, verbose='WARNING')
+    evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
     assert_true(open(test_name).readlines() == [])
     # should NOT print
-    evoked = Evoked(fname_evoked, setno=1, verbose=False)
+    evoked = Evoked(fname_evoked, condition=1, verbose=False)
     assert_true(open(test_name).readlines() == [])
     # SHOULD print
-    evoked = Evoked(fname_evoked, setno=1)
+    evoked = Evoked(fname_evoked, condition=1)
     new_log_file = open(test_name, 'r')
     old_log_file = open(fname_log, 'r')
     new_lines = clean_lines(new_log_file.readlines())
@@ -100,7 +100,7 @@ def test_logging():
         assert len(w) == 0
         set_log_file(test_name)
         assert len(w) == 1
-    evoked = Evoked(fname_evoked, setno=1)
+    evoked = Evoked(fname_evoked, condition=1)
     new_log_file = open(test_name, 'r')
     new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines_2)
@@ -108,7 +108,7 @@ def test_logging():
     # make sure overwriting works
     set_log_file(test_name, overwrite=True)
     # this line needs to be called to actually do some logging
-    evoked = Evoked(fname_evoked, setno=1)
+    evoked = Evoked(fname_evoked, condition=1)
     del evoked
     new_log_file = open(test_name, 'r')
     new_lines = clean_lines(new_log_file.readlines())

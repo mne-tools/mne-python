@@ -12,7 +12,8 @@ from mne.datasets import sample
 from mne import read_label, read_forward_solution
 from mne.time_frequency import morlet
 from mne.simulation import generate_sparse_stc, generate_evoked
-import mne
+from mne import read_cov
+from mne.fiff import Raw, read_evokeds
 from mne.fiff.pick import pick_types_evoked, pick_types_forward
 
 
@@ -31,15 +32,15 @@ cov_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
 def test_simulate_evoked():
     """ Test simulation of evoked data """
 
-    raw = mne.fiff.Raw(raw_fname)
+    raw = Raw(raw_fname)
     fwd = read_forward_solution(fwd_fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
-    cov = mne.read_cov(cov_fname)
+    cov = read_cov(cov_fname)
     label_names = ['Aud-lh', 'Aud-rh']
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
 
-    evoked_template = mne.fiff.read_evoked(ave_fname, setno=0, baseline=None)
+    evoked_template = read_evokeds(ave_fname, condition=0, baseline=None)
     evoked_template = pick_types_evoked(evoked_template, meg=True, eeg=True,
                                         exclude=raw.info['bads'])
 

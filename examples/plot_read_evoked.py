@@ -19,8 +19,8 @@ data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading
-evoked = fiff.Evoked(fname, setno='Left Auditory',
-                     baseline=(None, 0), proj=True)
+evoked = fiff.Evoked(fname, condition='Left Auditory', baseline=(None, 0), 
+		      proj=True)
 
 ###############################################################################
 # Show result:

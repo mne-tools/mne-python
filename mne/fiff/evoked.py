@@ -42,7 +42,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     fname : string
         Name of evoked/average FIF file to load.
         If None no data is loaded.
-    setno : int, or str
+    condition : int, or str
         Dataset ID number (int) or comment/name (str). Optional if there is
         only one data set in file.
     baseline : tuple or list of length 2, or None
@@ -57,7 +57,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         Apply SSP projection vectors
     kind : str
         Either 'average' or 'standard_error'. The type of data to read.
-        Only used if 'setno' is a str.
+        Only used if 'condition' is a str.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -85,10 +85,17 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         See above.
     """
     @verbose
-    def __init__(self, fname, setno=None, baseline=None, proj=True,
-                 kind='average', verbose=None):
+    def __init__(self, fname, condition=None, baseline=None, proj=True,
+                 kind='average', verbose=None, setno=None):
+
         if fname is None:
             return
+
+        if condition is None and setno is not None:
+            condition = setno
+            msg = ("'setno' will be deprecated in 0.9. Use 'condition' "
+                    "instead.")
+            warnings.warn(msg, DeprecationWarning)
 
         self.verbose = verbose
         logger.info('Reading %s ...' % fname)
@@ -112,27 +119,27 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             raise ValueError('Could not find evoked data')
 
         # find string-based entry
-        if isinstance(setno, string_types):
+        if isinstance(condition, string_types):
             if not kind in aspect_dict.keys():
                 fid.close()
                 raise ValueError('kind must be "average" or '
                                  '"standard_error"')
 
             comments, aspect_kinds, t = _get_entries(fid, evoked_node)
-            goods = np.logical_and(in1d(comments, [setno]),
+            goods = np.logical_and(in1d(comments, [condition]),
                                    in1d(aspect_kinds, [aspect_dict[kind]]))
-            found_setno = np.where(goods)[0]
-            if len(found_setno) != 1:
+            found_cond = np.where(goods)[0]
+            if len(found_cond) != 1:
                 fid.close()
-                raise ValueError('setno "%s" (%s) not found, out of found '
-                                 'datasets:\n  %s' % (setno, kind, t))
-            setno = found_setno[0]
+                raise ValueError('condition "%s" (%s) not found, out of found '
+                                 'datasets:\n  %s' % (condition, kind, t))
+            condition = found_cond[0]
 
-        if setno >= len(evoked_node) or setno < 0:
+        if condition >= len(evoked_node) or condition < 0:
             fid.close()
             raise ValueError('Data set selector out of range')
 
-        my_evoked = evoked_node[setno]
+        my_evoked = evoked_node[condition]
 
         # Identify the aspects
         aspects = dir_tree_find(my_evoked, FIFF.FIFFB_ASPECT)
@@ -280,7 +287,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         fname : string
             Name of the file where to save the data.
         """
-        write_evoked(fname, self)
+        write_evokeds(fname, self)
 
     def __repr__(self):
         s = "comment : '%s'" % self.comment
@@ -795,17 +802,15 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
     fname : string
         The file name.
     setno : int or str | list of int or str | None
-        The index or list of indices of the evoked dataset to read. FIF
-        file can contain multiple datasets. If None and there is only one
-        dataset in the file, this dataset is loaded.
+        The index or list of indices of the evoked dataset to read. FIF files
+        can contain multiple datasets. If None and there is only one dataset in
+        the file, this dataset is loaded.
     baseline : None (default) or tuple of length 2
-        The time interval to apply baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal ot (None, None) all the time
-        interval is used.
+        The time interval to apply baseline correction. If None do not apply it.
+        If baseline is (a, b) the interval is between "a (s)" and "b (s)". If a
+        is None the beginning of the data is used and if b is None then b is set
+        to the end of the interval. If baseline is equal ot (None, None) all the
+        time interval is used.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
     proj : bool
@@ -816,8 +821,9 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
     evoked : instance of Evoked or list of Evoked
         The evoked datasets.
     """
+    condition = setno
     evoked_node = _get_evoked_node(fname)
-    if setno is None and len(evoked_node) > 1:
+    if condition is None and len(evoked_node) > 1:
         fid, _, _ = fiff_open(fname)
         try:
             _, _, t = _get_entries(fid, evoked_node)
@@ -827,13 +833,13 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
             fid.close()
         raise ValueError('%d datasets present, setno parameter must be set.'
                          'Candidate setno names:\n%s' % (len(evoked_node), t))
-    elif isinstance(setno, list):
-        return [Evoked(fname, s, baseline=baseline, kind=kind, proj=proj)
-                for s in setno]
+    elif isinstance(condition, list):
+        return [Evoked(fname, c, baseline=baseline, kind=kind, proj=proj)
+                for c in condition]
     else:
-        if setno is None:
-            setno = 0
-        return Evoked(fname, setno, baseline=baseline, kind=kind, proj=proj)
+        if condition is None:
+            condition = 0
+        return Evoked(fname, condition, baseline=baseline, kind=kind, proj=proj)
 
 
 def read_evokeds(fname, condition=None, baseline=None, kind='average',
@@ -845,16 +851,15 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     fname : string
         The file name.
     condition : int or str | list of int or str | None
-        The index or list of indices of the evoked dataset to read. FIF
-        file can contain multiple datasets. If None, all datasets are loaded.
+        The index or list of indices of the evoked dataset to read. FIF files
+        can contain multiple datasets. If None, all datasets are returned as a
+        list.
     baseline : None (default) or tuple of length 2
-        The time interval to apply baseline correction.
-        If None do not apply it. If baseline is (a, b)
-        the interval is between "a (s)" and "b (s)".
-        If a is None the beginning of the data is used
-        and if b is None then b is set to the end of the interval.
-        If baseline is equal ot (None, None) all the time
-        interval is used.
+        The time interval to apply baseline correction. If None do not apply it.
+        If baseline is (a, b) the interval is between "a (s)" and "b (s)". If a
+        is None the beginning of the data is used and if b is None then b is set
+        to the end of the interval. If baseline is equal ot (None, None) all the
+        time interval is used.
     kind : str
         Either 'average' or 'standard_error', the type of data to read.
     proj : bool
@@ -862,17 +867,22 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
 
     Returns
     -------
-    evoked : instance of Evoked or list of Evoked
-        The evoked datasets.
+    evoked : Evoked (if condition is int or str) or list of Evoked (if
+        condition is None or list)
+        The evoked dataset(s).
     """
+    return_list = True
     if condition is None:
         evoked_node = _get_evoked_node(fname)
         condition = range(len(evoked_node))
     elif not isinstance(condition, list):
         condition = [condition]
+        return_list = False
 
-    return [Evoked(fname, c, baseline=baseline, kind=kind, proj=proj)
+    out = [Evoked(fname, c, baseline=baseline, kind=kind, proj=proj)
            for c in condition]
+
+    return out if return_list else out[0]
 
 
 @deprecated("'write_evoked' will be removed in v0.9. Use 'write_evokeds.'")
@@ -884,9 +894,9 @@ def write_evoked(fname, evoked):
     fname : string
         The file name.
     evoked : instance of Evoked, or list of Evoked
-        The evoked dataset to save, or a list of evoked datasets to save
-        in one file. Note that the measurement info from the first evoked
-        instance is used, so be sure that information matches.
+        The evoked dataset to save, or a list of evoked datasets to save in one
+        file. Note that the measurement info from the first evoked instance is
+        used, so be sure that information matches.
     """
 
     if not isinstance(evoked, list):
@@ -953,47 +963,47 @@ def write_evokeds(fname, evoked):
         evoked = [evoked]
 
     # Create the file and save the essentials
-    fid = start_file(fname)
+    with start_file(fname) as fid:
 
-    start_block(fid, FIFF.FIFFB_MEAS)
-    write_id(fid, FIFF.FIFF_BLOCK_ID)
-    if evoked[0].info['meas_id'] is not None:
-        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, evoked[0].info['meas_id'])
+        start_block(fid, FIFF.FIFFB_MEAS)
+        write_id(fid, FIFF.FIFF_BLOCK_ID)
+        if evoked[0].info['meas_id'] is not None:
+            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, evoked[0].info['meas_id'])
 
-    # Write measurement info
-    write_meas_info(fid, evoked[0].info)
+        # Write measurement info
+        write_meas_info(fid, evoked[0].info)
 
-    # One or more evoked data sets
-    start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-    for e in evoked:
-        start_block(fid, FIFF.FIFFB_EVOKED)
+        # One or more evoked data sets
+        start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+        for e in evoked:
+            start_block(fid, FIFF.FIFFB_EVOKED)
 
-        # Comment is optional
-        if e.comment is not None and len(e.comment) > 0:
-            write_string(fid, FIFF.FIFF_COMMENT, e.comment)
+            # Comment is optional
+            if e.comment is not None and len(e.comment) > 0:
+                write_string(fid, FIFF.FIFF_COMMENT, e.comment)
 
-        # First and last sample
-        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
-        write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
+            # First and last sample
+            write_int(fid, FIFF.FIFF_FIRST_SAMPLE, e.first)
+            write_int(fid, FIFF.FIFF_LAST_SAMPLE, e.last)
 
-        # The epoch itself
-        start_block(fid, FIFF.FIFFB_ASPECT)
+            # The epoch itself
+            start_block(fid, FIFF.FIFFB_ASPECT)
 
-        write_int(fid, FIFF.FIFF_ASPECT_KIND, e._aspect_kind)
-        write_int(fid, FIFF.FIFF_NAVE, e.nave)
+            write_int(fid, FIFF.FIFF_ASPECT_KIND, e._aspect_kind)
+            write_int(fid, FIFF.FIFF_NAVE, e.nave)
 
-        decal = np.zeros((e.info['nchan'], 1))
-        for k in range(e.info['nchan']):
-            decal[k] = 1.0 / (e.info['chs'][k]['cal']
-                              * e.info['chs'][k].get('scale', 1.0))
+            decal = np.zeros((e.info['nchan'], 1))
+            for k in range(e.info['nchan']):
+                decal[k] = 1.0 / (e.info['chs'][k]['cal']
+                                  * e.info['chs'][k].get('scale', 1.0))
 
-        write_float_matrix(fid, FIFF.FIFF_EPOCH, decal * e.data)
-        end_block(fid, FIFF.FIFFB_ASPECT)
-        end_block(fid, FIFF.FIFFB_EVOKED)
+            write_float_matrix(fid, FIFF.FIFF_EPOCH, decal * e.data)
+            end_block(fid, FIFF.FIFFB_ASPECT)
+            end_block(fid, FIFF.FIFFB_EVOKED)
 
-    end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-    end_block(fid, FIFF.FIFFB_MEAS)
-    end_file(fid)
+        end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+        end_block(fid, FIFF.FIFFB_MEAS)
+        end_file(fid)
 
 
 def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):

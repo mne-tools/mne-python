@@ -4,7 +4,6 @@ from numpy.polynomial import legendre
 from numpy.testing.utils import assert_allclose, assert_array_equal
 from nose.tools import assert_raises, assert_true
 
-from mne import read_trans
 from mne.forward import _make_surface_mapping, make_field_map
 from mne.surface import get_meg_helmet_surf, get_head_surf
 from mne.datasets import sample
@@ -12,7 +11,7 @@ from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_table,
                                     _get_legen_lut_fast,
                                     _get_legen_lut_accurate)
-from mne.fiff import read_info, read_evoked, pick_types_evoked
+from mne.fiff import read_evokeds, pick_types_evoked
 from mne.fixes import partial
 from mne.externals.six.moves import zip
 
@@ -95,8 +94,7 @@ def test_legendre_table():
 def test_make_field_map_eeg():
     """Test interpolation of EEG field onto head
     """
-    trans = read_trans(trans_fname)
-    evoked = read_evoked(evoked_fname, setno='Left Auditory')
+    evoked = read_evokeds(evoked_fname, condition='Left Auditory')
     evoked.info['bads'] = ['MEG 2443', 'EEG 053']  # add some bads
     surf = get_head_surf('sample', subjects_dir=subjects_dir)
     # we must have trans if surface is in MRI coords
@@ -120,7 +118,7 @@ def test_make_field_map_eeg():
 def test_make_field_map_meg():
     """Test interpolation of MEG field onto helmet
     """
-    evoked = read_evoked(evoked_fname, setno='Left Auditory')
+    evoked = read_evokeds(evoked_fname, condition='Left Auditory')
     info = evoked.info
     surf = get_meg_helmet_surf(info)
     # let's reduce the number of channels by a bunch to speed it up

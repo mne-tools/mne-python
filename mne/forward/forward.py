@@ -31,7 +31,7 @@ from ..fiff.write import (write_int, start_block, end_block,
                           write_coord_trans, write_ch_info, write_name_list,
                           write_string, start_file, end_file, write_id)
 from ..fiff.base import _BaseRaw
-from ..fiff.evoked import Evoked, write_evoked
+from ..fiff.evoked import Evoked, write_evokeds
 from ..epochs import Epochs
 from ..source_space import (read_source_spaces_from_tree,
                             find_source_space_hemi,
@@ -1393,7 +1393,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
 
     if meas_data is not None:
         meas = op.join(temp_dir, 'evoked.fif')
-        write_evoked(meas, meas_data)
+        write_evokeds(meas, meas_data)
 
     # deal with trans/mri
     if mri is not None and trans is not None:

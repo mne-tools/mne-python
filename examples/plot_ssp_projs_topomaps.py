@@ -14,18 +14,20 @@ The projections used are the ones correcting for ECG artifacts.
 print(__doc__)
 
 import matplotlib.pyplot as plt
-import mne
+from mne import read_proj, find_layout
+from mne.fiff import read_evokeds
 from mne.datasets import sample
+from mne import viz
 data_path = sample.data_path()
 
 ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
-evoked = mne.fiff.read_evoked(ave_fname, setno='Left Auditory')
-projs = mne.read_proj(ecg_fname)
+evoked = read_evokeds(ave_fname, condition='Left Auditory')
+projs = read_proj(ecg_fname)
 
-layouts = [mne.find_layout(evoked.info, k) for k in 'meg', 'eeg']
+layouts = [find_layout(evoked.info, k) for k in 'meg', 'eeg']
 
 plt.figure(figsize=(12, 6))
-mne.viz.plot_projs_topomap(projs, layout=layouts)
-mne.viz.tight_layout(w_pad=0.5)
+viz.plot_projs_topomap(projs, layout=layouts)
+viz.tight_layout(w_pad=0.5)

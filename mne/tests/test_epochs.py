@@ -21,7 +21,7 @@ from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
                        clean_warning_registry)
 
-from mne.fiff import read_evoked
+from mne.fiff import read_evokeds
 from mne.fiff.channels import ContainsMixin
 from mne.fiff.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
@@ -266,7 +266,7 @@ def test_evoked_io_from_epochs():
     assert_true(len(w) == 1)
     evoked = epochs.average()
     evoked.save(op.join(tempdir, 'evoked.fif'))
-    evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'))
+    evoked2 = read_evokeds(op.join(tempdir, 'evoked.fif'))[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
                     atol=1 / evoked.info['sfreq'])
@@ -277,7 +277,7 @@ def test_evoked_io_from_epochs():
                         picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
     evoked.save(op.join(tempdir, 'evoked.fif'))
-    evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'))
+    evoked2 = read_evokeds(op.join(tempdir, 'evoked.fif'))[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
@@ -297,11 +297,11 @@ def test_evoked_standard_error():
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = [epochs.average(), epochs.standard_error()]
-    fiff.write_evoked(op.join(tempdir, 'evoked.fif'), evoked)
-    evoked2 = read_evoked(op.join(tempdir, 'evoked.fif'), [0, 1])
-    evoked3 = [read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown'),
-               read_evoked(op.join(tempdir, 'evoked.fif'), 'Unknown',
-                           kind='standard_error')]
+    fiff.write_evokeds(op.join(tempdir, 'evoked.fif'), evoked)
+    evoked2 = read_evokeds(op.join(tempdir, 'evoked.fif'), [0, 1])
+    evoked3 = [read_evokeds(op.join(tempdir, 'evoked.fif'), 'Unknown'),
+               read_evokeds(op.join(tempdir, 'evoked.fif'), 'Unknown',
+                            kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
         assert_true(evoked_new[0]._aspect_kind ==
                     fiff.FIFF.FIFFV_ASPECT_AVERAGE)
@@ -437,7 +437,7 @@ def test_indexing_slicing():
 def test_comparision_with_c():
     """Test of average obtained vs C code
     """
-    c_evoked = fiff.Evoked(evoked_nf_name, setno=0)
+    c_evoked = fiff.Evoked(evoked_nf_name, condition=0)
     epochs = Epochs(raw, events, event_id, tmin, tmax,
                     baseline=None, preload=True,
                     reject=None, flat=None)
@@ -1032,11 +1032,11 @@ def test_add_channels_epochs():
     assert_array_equal(data1, data3)  # XXX unrelated bug? this crashes
                                       # when proj == True
     assert_array_equal(data1, data2)
-    
+
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['meas_date'] += 10
     add_channels_epochs( [epochs_meg2, epochs_eeg])
-    
+
     epochs_meg2 = epochs_meg.copy()
     epochs2.info['filename'] = epochs2.info['filename'].upper()
     epochs2 = add_channels_epochs([epochs_meg, epochs_eeg])

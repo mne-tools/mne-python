@@ -29,7 +29,7 @@ tempdir = _TempDir()
 def test_io_evoked():
     """Test IO for evoked data (fif + gz) with integer and str args
     """
-    ave = read_evokeds(fname, 0)[0]
+    ave = read_evokeds(fname, 0)
 
     write_evokeds(op.join(tempdir, 'evoked.fif'), ave)
     ave2 = read_evokeds(op.join(tempdir, 'evoked.fif'))[0]
@@ -44,15 +44,15 @@ def test_io_evoked():
     assert_equal(ave.first, ave2.first)
 
     # test compressed i/o
-    ave2 = read_evokeds(fname_gz, 0)[0]
+    ave2 = read_evokeds(fname_gz, 0)
     assert_true(np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-8))
 
     # test str access
-    setno = 'Left Auditory'
-    assert_raises(ValueError, read_evokeds, fname, setno, kind='stderr')
-    assert_raises(ValueError, read_evokeds, fname, setno,
+    condition = 'Left Auditory'
+    assert_raises(ValueError, read_evokeds, fname, condition, kind='stderr')
+    assert_raises(ValueError, read_evokeds, fname, condition,
                   kind='standard_error')
-    ave3 = read_evokeds(fname, setno)[0]
+    ave3 = read_evokeds(fname, condition)
     assert_array_almost_equal(ave.data, ave3.data, 19)
 
     # test deprecation warning for read_evoked and write_evoked
@@ -82,28 +82,29 @@ def test_io_evoked():
             assert_equal(av1._aspect_kind, av2._aspect_kind)
             assert_equal(av1.last, av2.last)
             assert_equal(av1.first, av2.first)
+            assert_equal(av1.comment, av2.comment)
 
 
 def test_shift_time_evoked():
     """ Test for shifting of time scale
     """
     # Shift backward
-    ave = read_evokeds(fname, 0)[0]
+    ave = read_evokeds(fname, 0)
     ave.shift_time(-0.1, relative=True)
     write_evokeds(op.join(tempdir, 'evoked.fif'), ave)
 
     # Shift forward twice the amount
-    ave_bshift = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)[0]
+    ave_bshift = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
     ave_bshift.shift_time(0.2, relative=True)
     write_evokeds(op.join(tempdir, 'evoked.fif'), ave_bshift)
 
     # Shift backward again
-    ave_fshift = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)[0]
+    ave_fshift = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
     ave_fshift.shift_time(-0.1, relative=True)
     write_evokeds(op.join(tempdir, 'evoked.fif'), ave_fshift)
 
-    ave_normal = read_evokeds(fname, 0)[0]
-    ave_relative = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)[0]
+    ave_normal = read_evokeds(fname, 0)
+    ave_relative = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
 
     assert_true(np.allclose(ave_normal.data, ave_relative.data,
                             atol=1e-16, rtol=1e-3))
@@ -113,11 +114,11 @@ def test_shift_time_evoked():
     assert_equal(ave_normal.first, ave_relative.first)
 
     # Absolute time shift
-    ave = read_evokeds(fname, 0)[0]
+    ave = read_evokeds(fname, 0)
     ave.shift_time(-0.3, relative=False)
     write_evokeds(op.join(tempdir, 'evoked.fif'), ave)
 
-    ave_absolute = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)[0]
+    ave_absolute = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
 
     assert_true(np.allclose(ave_normal.data, ave_absolute.data,
                             atol=1e-16, rtol=1e-3))
@@ -128,17 +129,17 @@ def test_evoked_resample():
     """Test for resampling of evoked data
     """
     # upsample, write it out, read it in
-    ave = read_evokeds(fname, 0)[0]
+    ave = read_evokeds(fname, 0)
     sfreq_normal = ave.info['sfreq']
     ave.resample(2 * sfreq_normal)
     write_evokeds(op.join(tempdir, 'evoked.fif'), ave)
-    ave_up = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)[0]
+    ave_up = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
 
     # compare it to the original
-    ave_normal = read_evokeds(fname, 0)[0]
+    ave_normal = read_evokeds(fname, 0)
 
     # and compare the original to the downsampled upsampled version
-    ave_new = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)[0]
+    ave_new = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
     ave_new.resample(sfreq_normal)
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
@@ -158,8 +159,8 @@ def test_evoked_resample():
 def test_evoked_detrend():
     """Test for detrending evoked data
     """
-    ave = read_evokeds(fname, 0)[0]
-    ave_normal = read_evokeds(fname, 0)[0]
+    ave = read_evokeds(fname, 0)
+    ave_normal = read_evokeds(fname, 0)
     ave.detrend(0)
     ave_normal.data -= np.mean(ave_normal.data, axis=1)[:, np.newaxis]
     picks = pick_types(ave.info, meg=True, eeg=True, exclude='bads')
@@ -170,20 +171,20 @@ def test_evoked_detrend():
 @requires_nitime
 def test_evoked_to_nitime():
     """ Test to_nitime """
-    aves = read_evokeds(fname, [0, 1, 2, 3])[0]
-    evoked_ts = aves[0].to_nitime()
-    assert_equal(evoked_ts.data, aves[0].data)
+    ave = read_evokeds(fname, 0)
+    evoked_ts = ave.to_nitime()
+    assert_equal(evoked_ts.data, ave.data)
 
     picks2 = [1, 2]
-    aves = read_evokeds(fname, [0, 1, 2, 3])[0]
-    evoked_ts = aves[0].to_nitime(picks=picks2)
-    assert_equal(evoked_ts.data, aves[0].data[picks2])
+    ave = read_evokeds(fname, 0)
+    evoked_ts = ave.to_nitime(picks=picks2)
+    assert_equal(evoked_ts.data, ave.data[picks2])
 
 
 @requires_pandas
 def test_as_data_frame():
     """Test evoked Pandas exporter"""
-    ave = read_evokeds(fname, 0)[0]
+    ave = read_evokeds(fname, 0)
     assert_raises(ValueError, ave.as_data_frame, picks=np.arange(400))
     df = ave.as_data_frame()
     assert_true((df.columns == ave.ch_names).all())
@@ -197,7 +198,7 @@ def test_evoked_proj():
     """Test SSP proj operations
     """
     for proj in [True, False]:
-        ave = read_evokeds(fname, condition=0, proj=proj)[0]
+        ave = read_evokeds(fname, condition=0, proj=proj)
         assert_true(all(p['active'] == proj for p in ave.info['projs']))
 
         # test adding / deleting proj
@@ -215,7 +216,7 @@ def test_evoked_proj():
             ave.add_proj(projs, remove_existing=True)
             assert_true(len(ave.info['projs']) == n_proj)
 
-    ave = read_evokeds(fname, condition=0, proj=False)[0]
+    ave = read_evokeds(fname, condition=0, proj=False)
     data = ave.data.copy()
     ave.apply_proj()
     assert_allclose(np.dot(ave._projector, data), ave.data)
@@ -225,7 +226,7 @@ def test_get_peak():
     """Test peak getter
     """
 
-    evoked = read_evokeds(fname, condition=0, proj=True)[0]
+    evoked = read_evokeds(fname, condition=0, proj=True)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=1)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmax=0.9)
     assert_raises(ValueError, evoked.get_peak, ch_type='mag', tmin=0.02,
@@ -266,7 +267,7 @@ def test_get_peak():
 def test_drop_channels_mixin():
     """Test channels-dropping functionality
     """
-    evoked = read_evokeds(fname, condition=0, proj=True)[0]
+    evoked = read_evokeds(fname, condition=0, proj=True)
     drop_ch = evoked.ch_names[:3]
     ch_names = evoked.ch_names[3:]
 
@@ -284,7 +285,7 @@ def test_drop_channels_mixin():
 def test_pick_channels_mixin():
     """Test channel-picking functionality
     """
-    evoked = read_evokeds(fname, condition=0, proj=True)[0]
+    evoked = read_evokeds(fname, condition=0, proj=True)
     ch_names = evoked.ch_names[:3]
 
     ch_names_orig = evoked.ch_names
@@ -301,7 +302,7 @@ def test_pick_channels_mixin():
 def test_equalize_channels():
     """Test equalization of channels
     """
-    evoked1 = read_evokeds(fname, condition=0, proj=True)[0]
+    evoked1 = read_evokeds(fname, condition=0, proj=True)
     evoked2 = evoked1.copy()
     ch_names = evoked1.ch_names[2:]
     evoked1.drop_channels(evoked1.ch_names[:1])

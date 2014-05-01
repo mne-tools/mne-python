@@ -452,7 +452,7 @@ def test_plot_topomap():
     # evoked
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
-        evoked = fiff.read_evoked(evoked_fname, 'Left Auditory',
+        evoked = fiff.read_evokeds(evoked_fname, 'Left Auditory',
                                   baseline=(None, 0))
         evoked.plot_topomap(0.1, 'mag', layout=layout)
         plot_evoked_topomap(evoked, None, ch_type='mag')
@@ -555,9 +555,8 @@ def test_plot_source_spectrogram():
 def test_plot_evoked_field():
     trans_fname = op.join(data_dir, 'MEG', 'sample',
                           'sample_audvis_raw-trans.fif')
-    setno = 'Left Auditory'
-    evoked = fiff.read_evoked(evoked_fname, setno=setno,
-                              baseline=(-0.2, 0.0))
+    evoked = fiff.read_evokeds(evoked_fname, condition='Left Auditory',
+                               baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
     for t in ['meg', None]:
         maps = make_field_map(evoked, trans_fname=trans_fname,

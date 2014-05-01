@@ -25,7 +25,7 @@ fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 # Reading
-evoked = mne.fiff.Evoked(fname, setno=0, baseline=(None, 0), proj=True)
+evoked = mne.fiff.Evoked(fname, condition=0, baseline=(None, 0), proj=True)
 noise_cov = mne.read_cov(cov_fname)
 
 ###############################################################################
