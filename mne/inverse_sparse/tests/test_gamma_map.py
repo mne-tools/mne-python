@@ -7,9 +7,10 @@ import numpy as np
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
 
-import mne
 from mne.datasets import sample
-from mne import fiff, read_cov, read_forward_solution
+from mne import read_cov, read_forward_solution
+from mne.cov import regularize
+from mne.fiff import read_evokeds
 from mne.inverse_sparse import gamma_map
 
 data_path = sample.data_path(download=False)
@@ -24,11 +25,11 @@ def test_gamma_map():
     """Test Gamma MAP inverse"""
     forward = read_forward_solution(fname_fwd, force_fixed=False,
                                     surf_ori=True)
-    evoked = fiff.Evoked(fname_evoked, condition=0, baseline=(None, 0))
+    evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
     evoked.crop(tmin=0, tmax=0.3)
 
     cov = read_cov(fname_cov)
-    cov = mne.cov.regularize(cov, evoked.info)
+    cov = regularize(cov, evoked.info)
 
     alpha = 0.2
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,

@@ -437,7 +437,7 @@ def test_indexing_slicing():
 def test_comparision_with_c():
     """Test of average obtained vs C code
     """
-    c_evoked = fiff.Evoked(evoked_nf_name, condition=0)
+    c_evoked = read_evokeds(evoked_nf_name, condition=0)
     epochs = Epochs(raw, events, event_id, tmin, tmax,
                     baseline=None, preload=True,
                     reject=None, flat=None)

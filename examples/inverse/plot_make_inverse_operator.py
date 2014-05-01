@@ -18,7 +18,7 @@ print(__doc__)
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
-from mne.fiff import Evoked
+from mne.fiff import read_evokeds
 from mne.minimum_norm import (make_inverse_operator, apply_inverse,
                               write_inverse_operator)
 
@@ -32,7 +32,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
 # Load data
-evoked = Evoked(fname_evoked, condition=0, baseline=(None, 0))
+evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 forward_meeg = mne.read_forward_solution(fname_fwd_meeg, surf_ori=True)
 noise_cov = mne.read_cov(fname_cov)
 

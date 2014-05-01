@@ -11,8 +11,8 @@ Shifting time-scale in evoked data
 print(__doc__)
 
 import matplotlib.pyplot as plt
-import mne
-from mne import fiff
+from mne.viz import tight_layout
+from mne.fiff import read_evokeds, pick_channels
 from mne.datasets import sample
 
 data_path = sample.data_path()
@@ -20,11 +20,11 @@ data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading evoked data
-evoked = fiff.Evoked(fname, condition='Left Auditory', baseline=(None, 0), 
-		      proj=True)
+condition = 'Left Auditory'
+evoked = read_evokeds(fname, condition=condition, baseline=(None, 0), proj=True)
 
-picks = fiff.pick_channels(ch_names=evoked.info['ch_names'],
-			   include="MEG 2332", exclude="bad")
+ch_names = evoked.info['ch_names']
+picks = pick_channels(ch_names=ch_names, include="MEG 2332", exclude="bad")
 
 # Create subplots
 f, (ax1, ax2, ax3) = plt.subplots(3)
@@ -41,6 +41,6 @@ evoked.plot(exclude=[], picks=picks, axes=ax2,
 evoked.shift_time(0.5, relative=False)
 
 evoked.plot(exclude=[], picks=picks, axes=ax3,
-			titles=dict(grad='Absolute shift: 500 ms'))
+            titles=dict(grad='Absolute shift: 500 ms'))
 
-mne.viz.tight_layout()
+tight_layout()
