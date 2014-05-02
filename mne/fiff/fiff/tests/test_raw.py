@@ -931,6 +931,7 @@ def test_drop_channels_mixin():
 
     raw.drop_channels(drop_ch)
     assert_equal(ch_names, raw.ch_names)
+    assert_equal(len(ch_names), len(raw.cals))
     assert_equal(len(ch_names), raw._data.shape[0])
 
 
@@ -948,6 +949,7 @@ def test_pick_channels_mixin():
 
     raw.pick_channels(ch_names)
     assert_equal(ch_names, raw.ch_names)
+    assert_equal(len(ch_names), len(raw.cals))
     assert_equal(len(ch_names), raw._data.shape[0])
 
 
