@@ -172,6 +172,7 @@ class PickDropChannelsMixin(object):
         """
         # avoid circular imports
         from . import Raw
+        from .fiff.raw import _BaseRaw
         from .. import Epochs
         from . import Evoked
 
@@ -188,7 +189,8 @@ class PickDropChannelsMixin(object):
         if my_get('_projector') is not None:
             inst._projector = inst._projector[idx][:, idx]
 
-        if isinstance(inst, Raw) and my_get('_preloaded'):
+        raws = (Raw, _BaseRaw)
+        if isinstance(inst, raws) and my_get('_preloaded'):
             inst._data = inst._data[idx, :]
             inst.cals = inst.cals[idx]
         elif isinstance(inst, Epochs) and my_get('preload'):
@@ -212,6 +214,7 @@ class PickDropChannelsMixin(object):
         """
         # avoid circular imports
         from . import Raw
+        from .fiff.raw import _BaseRaw
         from .. import Epochs
         from . import Evoked
 
@@ -230,7 +233,8 @@ class PickDropChannelsMixin(object):
         if my_get('_projector') is not None:
             inst._projector = inst._projector[idx][:, idx]
 
-        if isinstance(inst, Raw) and my_get('_preloaded'):
+        raws = (Raw, _BaseRaw)
+        if isinstance(inst, raws) and my_get('_preloaded'):
             inst._data = inst._data[idx, :]
             inst.cals = inst.cals[idx]
         elif isinstance(inst, Epochs) and my_get('preload'):
