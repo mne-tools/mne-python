@@ -4,6 +4,7 @@
 import datetime
 import os
 import time
+import warnings
 
 import numpy as np
 
@@ -189,28 +190,39 @@ class _RawEGI(_BaseRaw):
         logger.info('    Assembling measurement info ...')
 
         event_codes = list(egi_info['event_codes'])
-        for kk, v in [('include', include), ('exclude', exclude)]:
+        egi_events = data[-egi_info['n_events']:]
+
+        if include is None:
+            exclude_list = ['sync', 'TREV'] if exclude is None else exclude
+            exclude_inds = [i for i, k in enumerate(event_codes) if k in
+                            exclude_list]
+            more_excludes = []
+            if exclude is None:
+                for ii, event in enumerate(egi_events):
+                    if event.sum() <= 1 and event_codes[ii]:
+                        more_excludes.append(ii)
+            if len(exclude_inds) + len(more_excludes) == len(event_codes):
+                warnings.warn('Did not find any event code with more '
+                              ' than one event.', RuntimeWarning)
+            else:
+                exclude_inds.extend(more_excludes)
+
+            exclude_inds.sort()
+            include_ = [i for i in np.arange(egi_info['n_events']) if
+                        i not in exclude_inds]
+            include_names = [k for i, k in enumerate(event_codes)
+                             if i in include_]
+        else:
+            include_ = [i for i, k in enumerate(event_codes) if k in include]
+            include_names = include
+
+        for kk, v in [('include', include_names), ('exclude', exclude)]:
             if isinstance(v, list):
                 for k in v:
                     if k not in event_codes:
                         raise ValueError('Could find event named "%s"' % k)
             elif v is not None:
                 raise ValueError('`%s` must be None or of type list' % kk)
-
-        egi_events = data[-egi_info['n_events']:]
-        if include is None:
-            exclude_list = ['sync', 'TREV'] if exclude == None else exclude
-            exclude_inds = [i for i, k in enumerate(event_codes) if k in
-                            exclude_list]
-            if exclude is None:
-                for ii, event in enumerate(egi_events):
-                    if event.sum() <= 1:
-                        exclude_inds.append(ii)
-            exclude_inds.sort()
-            include = [i for i in np.arange(egi_info['n_events']) if
-                       i not in exclude_inds]
-        else:
-            include_ = [i for i, k in enumerate(event_codes) if k in include]
 
         event_ids = np.arange(len(include_)) + 1
         try:
@@ -226,8 +238,8 @@ class _RawEGI(_BaseRaw):
                         'Could not create trigger channel.')
             new_trigger = None
 
-        self.event_id = dict(zip([e for e in event_codes if e in include], 
-                                  event_ids))
+        self.event_id = dict(zip([e for e in event_codes if e in
+                                  include_names], event_ids))
         self._data = data
         self.verbose = verbose
         self.info = info = Info(dict((k, None) for k in _other_fields))
