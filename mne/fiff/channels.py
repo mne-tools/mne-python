@@ -190,6 +190,7 @@ class PickDropChannelsMixin(object):
 
         if isinstance(inst, Raw) and my_get('_preloaded'):
             inst._data = inst._data[idx, :]
+            inst.cals = inst.cals[idx]
         elif isinstance(inst, Epochs) and my_get('preload'):
             inst._data = inst._data[:, idx, :]
         elif isinstance(inst, Evoked):
@@ -231,6 +232,7 @@ class PickDropChannelsMixin(object):
 
         if isinstance(inst, Raw) and my_get('_preloaded'):
             inst._data = inst._data[idx, :]
+            inst.cals = inst.cals[idx]
         elif isinstance(inst, Epochs) and my_get('preload'):
             inst._data = inst._data[:, idx, :]
         elif isinstance(inst, Evoked):
