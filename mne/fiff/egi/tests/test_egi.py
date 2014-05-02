@@ -30,7 +30,7 @@ def test_io_egi():
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more  than one event.'
-        assert_equal(msg, w[0].message[0])
+        assert_equal(msg, '%s' % w[0].message)
 
     include = ['TRSP', 'XXX1']
     raw = read_raw_egi(egi_fname, include=include)
