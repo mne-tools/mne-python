@@ -6,7 +6,7 @@ from ...externals.six import string_types
 import os
 
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 from nose.tools import (assert_equal, assert_almost_equal, assert_false,
                         assert_raises, assert_true)
 
@@ -162,3 +162,10 @@ def test_coreg_model_with_fsaverage():
     assert_equal(model.hsp.n_omitted, 1)
     model.hsp.file = kit_raw_path
     assert_equal(model.hsp.n_omitted, 0)
+
+    # test grow_hair
+    head_shape = model.processed_mri_points.copy()
+    model.grow_hair = 10.
+    assert_false(np.array_equal(model.processed_mri_points, head_shape))
+    model.grow_hair = 0.
+    assert_array_equal(model.processed_mri_points, head_shape)
