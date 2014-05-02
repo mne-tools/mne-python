@@ -152,7 +152,8 @@ def test_edf_annotations():
     # test an actual file
     raw = read_raw_edf(edf_path, tal_channel=-1,
                        hpts=hpts_path, preload=True)
-    edf_events = find_events(raw, output='step', shortest_event=0)
+    edf_events = find_events(raw, output='step', shortest_event=0,
+                             stim_channel='STI 014')
 
     # onset, duration, id
     events = [[0.1344, 0.2560, 2],
