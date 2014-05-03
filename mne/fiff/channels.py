@@ -186,9 +186,10 @@ class PickDropChannelsMixin(object):
         if my_get('_projector') is not None:
             inst._projector = inst._projector[idx][:, idx]
 
-        inst.cals = inst.cals[idx]
-        if isinstance(inst, _BaseRaw) and my_get('_preloaded'):
-            inst._data = inst._data[idx, :]
+        if isinstance(inst, _BaseRaw):
+            inst.cals = inst.cals[idx]
+            if my_get('_preloaded'):
+                inst._data = inst._data[idx, :]
         elif isinstance(inst, Epochs) and my_get('preload'):
             inst._data = inst._data[:, idx, :]
         elif isinstance(inst, Evoked):
@@ -227,9 +228,10 @@ class PickDropChannelsMixin(object):
         if my_get('_projector') is not None:
             inst._projector = inst._projector[idx][:, idx]
 
-        inst.cals = inst.cals[idx]
-        if isinstance(inst, _BaseRaw) and my_get('_preloaded'):
-            inst._data = inst._data[idx, :]
+        if isinstance(inst, _BaseRaw):
+            inst.cals = inst.cals[idx]
+            if my_get('_preloaded'):
+                inst._data = inst._data[idx, :]
         elif isinstance(inst, Epochs) and my_get('preload'):
             inst._data = inst._data[:, idx, :]
         elif isinstance(inst, Evoked):
