@@ -203,7 +203,7 @@ class _RawEGI(_BaseRaw):
                         more_excludes.append(ii)
             if len(exclude_inds) + len(more_excludes) == len(event_codes):
                 warnings.warn('Did not find any event code with more '
-                              ' than one event.', RuntimeWarning)
+                              'than one event.', RuntimeWarning)
             else:
                 exclude_inds.extend(more_excludes)
 

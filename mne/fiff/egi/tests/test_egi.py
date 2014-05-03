@@ -14,7 +14,6 @@ from mne.fiff.egi import read_raw_egi, _combine_triggers
 from mne.fiff import pick_types, Raw
 from mne.utils import _TempDir
 
-# clean_warning_registry()
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 tempdir = _TempDir()
 
