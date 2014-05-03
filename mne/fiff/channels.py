@@ -176,8 +176,12 @@ class PickDropChannelsMixin(object):
         inst = self.copy() if copy else self
 
         idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
+
         if hasattr(inst, 'picks'):
             inst.picks = [inst.picks[k] for k in idx]
+
+        if hasattr(inst, 'cals'):
+            inst.cals = inst.cals[idx]
 
         inst.info = pick_info(inst.info, idx, copy=False)
 
@@ -186,10 +190,8 @@ class PickDropChannelsMixin(object):
         if my_get('_projector') is not None:
             inst._projector = inst._projector[idx][:, idx]
 
-        if isinstance(inst, _BaseRaw):
-            inst.cals = inst.cals[idx]
-            if my_get('_preloaded'):
-                inst._data = inst._data[idx, :]
+        if isinstance(inst, _BaseRaw) and my_get('_preloaded'):
+            inst._data = inst._data[idx, :]
         elif isinstance(inst, Epochs) and my_get('preload'):
             inst._data = inst._data[:, idx, :]
         elif isinstance(inst, Evoked):
@@ -217,9 +219,14 @@ class PickDropChannelsMixin(object):
 
         bad_idx = [inst.ch_names.index(c) for c in ch_names
                    if c in inst.ch_names]
+
         idx = np.setdiff1d(np.arange(len(inst.ch_names)), bad_idx)
+
         if hasattr(inst, 'picks'):
             inst.picks = [inst.picks[k] for k in idx]
+
+        if hasattr(inst, 'cals'):
+            inst.cals = inst.cals[idx]
 
         inst.info = pick_info(inst.info, idx, copy=False)
 
@@ -228,10 +235,8 @@ class PickDropChannelsMixin(object):
         if my_get('_projector') is not None:
             inst._projector = inst._projector[idx][:, idx]
 
-        if isinstance(inst, _BaseRaw):
-            inst.cals = inst.cals[idx]
-            if my_get('_preloaded'):
-                inst._data = inst._data[idx, :]
+        if isinstance(inst, _BaseRaw) and my_get('_preloaded'):
+            inst._data = inst._data[idx, :]
         elif isinstance(inst, Epochs) and my_get('preload'):
             inst._data = inst._data[:, idx, :]
         elif isinstance(inst, Evoked):
