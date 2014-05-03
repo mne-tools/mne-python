@@ -82,3 +82,12 @@ plt.show()
 # The ``plot_time_frequency.py`` example investigates one of the channels
 # around index 140.
 # Finally, also note the power line artifacts across all channels.
+
+# Now let's take a look at the spatial distributions of the lower frequencies
+
+evoked = epochs.average()
+evoked.data = average_psds[:, freq_mask]
+evoked.times = freqs
+evoked.plot_topomap(ch_type='grad', times=range(5, 12, 2),
+                    scale=1, scale_time=1, time_format='%0.1f Hz',
+                    unit='dB', format='-%0.1f')

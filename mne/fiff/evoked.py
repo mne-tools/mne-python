@@ -390,9 +390,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                            hline=hline, units=units, scalings=scalings,
                            titles=titles, axes=axes)
 
-    def plot_topomap(self, times=None, ch_type='mag', layout=None, vmax=None,
-                     cmap='RdBu_r', sensors='k,', colorbar=True, scale=None,
-                     unit=None, res=256, size=1, format="%3.1f", proj=False,
+    def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
+                     vmax=None, cmap=None, sensors='k,', colorbar=True,
+                     scale=None, scale_time=None, unit=None, res=256, size=1,
+                     format="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None):
         """Plot topographic maps of specific time points
 
@@ -411,11 +412,15 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             layout file is inferred from the data; if no appropriate layout
             file was found, the layout is automatically generated from the
             sensor locations.
+        vmin : scalar
+            The value specfying the lower bound of the color range.
+            If None, the minimum value in the data is used.
         vmax : scalar
-            The value specfying the range of the color scale (-vmax to +vmax).
-            If None, the largest absolute value in the data is used.
+            The value specfying the upper bound of the color range.
+            If None, the maximum value in the data is used.
         cmap : matplotlib colormap
-            Colormap.
+            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+            'Reds'.
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses).
@@ -424,6 +429,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         scale : float | None
             Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
             for grad and 1e15 for mag.
+        scale_time : float | None
+            Scale the time labels. Defaults to 1e3 (ms).
         units : str | None
             The units of the channel types used for colorbar lables. If
             scale == None the unit is automatically determined.
@@ -434,6 +441,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             multiple topomaps at a time).
         format : str
             String format for colorbar values.
+        time_format : str
+            String format for topomap values. Defaults to "%01d ms"
         proj : bool | 'interactive'
             If true SSP projections are applied before display. If
             'interactive', a check box for reversible selection of SSP
@@ -449,11 +458,13 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             Title. If None (default), no title is displayed.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
-                                   layout=layout,
+                                   layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
-                                   colorbar=colorbar, scale=scale, unit=unit,
+                                   colorbar=colorbar, scale=scale,
+                                   scale_time=scale_time,
+                                   unit=unit,
                                    res=res, proj=proj, size=size,
-                                   format=format,
+                                   format=format, time_format=time_format,
                                    show_names=show_names, title=title)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -1040,9 +1051,9 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
                           'me `{mode}`'.format(modes='` or `'.join(modes),
                                                mode=mode))
 
-    if tmin == None:
+    if tmin is None:
         tmin = times[0]
-    if tmax == None:
+    if tmax is None:
         tmax = times[-1]
 
     if tmin < times.min():
