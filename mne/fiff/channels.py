@@ -157,8 +157,6 @@ class ContainsMixin(object):
 class PickDropChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-
-    #XXX : to be updated soon with BaseRaw
     def pick_channels(self, ch_names, copy=False):
         """Pick some channels
 
@@ -198,7 +196,6 @@ class PickDropChannelsMixin(object):
 
         return inst
 
-    #XXX : to be updated soon with BaseRaw
     def drop_channels(self, ch_names, copy=False):
         """Drop some channels
 
