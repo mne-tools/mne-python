@@ -168,34 +168,10 @@ class PickDropChannelsMixin(object):
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
         """
-        # avoid circular imports
-        from .fiff.raw import _BaseRaw
-        from .. import Epochs
-        from . import Evoked
-
         inst = self.copy() if copy else self
 
         idx = [inst.ch_names.index(c) for c in ch_names if c in inst.ch_names]
-
-        if hasattr(inst, 'picks'):
-            inst.picks = [inst.picks[k] for k in idx]
-
-        if hasattr(inst, 'cals'):
-            inst.cals = inst.cals[idx]
-
-        inst.info = pick_info(inst.info, idx, copy=False)
-
-        my_get = lambda attr: getattr(inst, attr, None)
-
-        if my_get('_projector') is not None:
-            inst._projector = inst._projector[idx][:, idx]
-
-        if isinstance(inst, _BaseRaw) and my_get('_preloaded'):
-            inst._data = inst._data[idx, :]
-        elif isinstance(inst, Epochs) and my_get('preload'):
-            inst._data = inst._data[:, idx, :]
-        elif isinstance(inst, Evoked):
-            inst.data = inst.data[idx, :]
+        inst._pick_drop_channels(idx)
 
         return inst
 
@@ -210,39 +186,43 @@ class PickDropChannelsMixin(object):
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
         """
+        inst = self.copy() if copy else self
+
+        bad_idx = [inst.ch_names.index(c) for c in ch_names
+                   if c in inst.ch_names]
+        idx = np.setdiff1d(np.arange(len(inst.ch_names)), bad_idx)
+        inst._pick_drop_channels(idx)
+
+        return inst
+
+    def _pick_drop_channels(self, idx):
+
         # avoid circular imports
         from .fiff.raw import _BaseRaw
         from .. import Epochs
         from . import Evoked
 
-        inst = self.copy() if copy else self
+        if hasattr(self, 'picks'):
+            self.picks = [self.picks[k] for k in idx]
 
-        bad_idx = [inst.ch_names.index(c) for c in ch_names
-                   if c in inst.ch_names]
+        if hasattr(self, 'cals'):
+            self.cals = self.cals[idx]
 
-        idx = np.setdiff1d(np.arange(len(inst.ch_names)), bad_idx)
+        self.info = pick_info(self.info, idx, copy=False)
 
-        if hasattr(inst, 'picks'):
-            inst.picks = [inst.picks[k] for k in idx]
-
-        if hasattr(inst, 'cals'):
-            inst.cals = inst.cals[idx]
-
-        inst.info = pick_info(inst.info, idx, copy=False)
-
-        my_get = lambda attr: getattr(inst, attr, None)
+        my_get = lambda attr: getattr(self, attr, None)
 
         if my_get('_projector') is not None:
-            inst._projector = inst._projector[idx][:, idx]
+            self._projector = self._projector[idx][:, idx]
 
-        if isinstance(inst, _BaseRaw) and my_get('_preloaded'):
-            inst._data = inst._data[idx, :]
-        elif isinstance(inst, Epochs) and my_get('preload'):
-            inst._data = inst._data[:, idx, :]
-        elif isinstance(inst, Evoked):
-            inst.data = inst.data[idx, :]
+        if isinstance(self, _BaseRaw) and my_get('_preloaded'):
+            self._data = self._data[idx, :]
+        elif isinstance(self, Epochs) and my_get('preload'):
+            self._data = self._data[:, idx, :]
+        elif isinstance(self, Evoked):
+            self.data = self.data[idx, :]
 
-        return inst
+        return self
 
 
 def rename_channels(info, mapping):
