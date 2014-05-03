@@ -14,6 +14,7 @@ from mne.fiff.egi import read_raw_egi, _combine_triggers
 from mne.fiff import pick_types, Raw
 from mne.utils import _TempDir
 
+# clean_warning_registry()
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 tempdir = _TempDir()
 
@@ -30,7 +31,7 @@ def test_io_egi():
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
-        assert_equal(msg, '%s' % w[0].message)
+        assert_true(msg in '%s' % w[0].message)
 
     include = ['TRSP', 'XXX1']
     raw = read_raw_egi(egi_fname, include=include)
