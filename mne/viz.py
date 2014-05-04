@@ -835,11 +835,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         be specified for Neuromag data). If possible, the correct layout file
         is inferred from the data; if no appropriate layout file was found, the
         layout is automatically generated from the sensor locations.
-    vmin : scalar, callable
+    vmin : float | callable
         The value specfying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
         If callable, the output equals vmin(data).
-    vmax : scalar, callable
+    vmax : float | callable
         The value specfying the upper bound of the color range.
         If None, the maximum absolute value is used. If vmin is None,
         but vmax is not, defaults to np.min(data).
@@ -1122,11 +1122,11 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         The data values to plot.
     pos : array, shape = (n_points, 2)
         For each data point, the x and y coordinates.
-    vmin : scalar, callable
+    vmin : float | callable
         The value specfying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
         If callable, the output equals vmin(data).
-    vmax : scalar, callable
+    vmax : float | callable
         The value specfying the upper bound of the color range.
         If None, the maximum absolute value is used. If vmin is None,
         but vmax is not, defaults to np.min(data).

@@ -412,11 +412,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             layout file is inferred from the data; if no appropriate layout
             file was found, the layout is automatically generated from the
             sensor locations.
-        vmin : scalar, callable
+        vmin : float | callable
             The value specfying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
             If callable, the output equals vmin(data).
-        vmax : scalar, callable
+        vmax : float | callable
             The value specfying the upper bound of the color range.
             If None, the maximum absolute value is used. If vmin is None,
             but vmax is not, defaults to np.min(data).

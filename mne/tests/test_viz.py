@@ -462,6 +462,8 @@ def test_plot_topomap():
         plot_evoked_topomap(evoked, times, ch_type='planar1')
         plot_evoked_topomap(evoked, times, ch_type='planar2')
         plot_evoked_topomap(evoked, times, ch_type='grad', show_names=True)
+        plot_evoked_topomap(evoked, times, vmin=np.vmin)
+        plot_evoked_topomap(evoked, times, vmin=np.vmin, vmax=np.vmax)
 
         p = plot_evoked_topomap(evoked, times, ch_type='grad',
                                 show_names=lambda x: x.replace('MEG', ''))
