@@ -90,6 +90,5 @@ evoked.data = average_psds[:, freq_mask]
 evoked.times = freqs
 evoked.plot_topomap(ch_type='grad', times=range(5, 12, 2),
                     scale=1, scale_time=1, time_format='%0.1f Hz',
-                    cmap='Reds_r',
-                    vmin=np.min, vmax=np.max,
-                    unit='dB', format='%0.1f')
+                    cmap='Reds_r', vmin=np.min, vmax=np.max,
+                    unit='dB', format='-%0.1f')
