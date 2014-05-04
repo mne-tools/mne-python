@@ -391,8 +391,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                            titles=titles, axes=axes)
 
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
-                     vmax=None, cmap=None, sensors='k,', colorbar=True,
-                     scale=None, scale_time=None, unit=None, res=256, size=1,
+                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                     scale=None, scale_time=1e3, unit=None, res=256, size=1,
                      format="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None):
         """Plot topographic maps of specific time points
@@ -412,15 +412,17 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             layout file is inferred from the data; if no appropriate layout
             file was found, the layout is automatically generated from the
             sensor locations.
-        vmin : scalar
+        vmin : scalar, callable
             The value specfying the lower bound of the color range.
-            If None, the minimum value in the data is used.
-        vmax : scalar
+            If None, and vmax is None, -vmax is used. Else np.min(data).
+            If callable, the output equals vmin(data).
+        vmax : scalar, callable
             The value specfying the upper bound of the color range.
-            If None, the maximum value in the data is used.
+            If None, the maximum absolute value is used. If vmin is None,
+            but vmax is not, defaults to np.min(data).
+            If callable, the output equals vmax(data).
         cmap : matplotlib colormap
-            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-            'Reds'.
+            Colormap. Defaults to 'RdBu_r'
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses).

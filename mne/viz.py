@@ -813,8 +813,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
 
 
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
-                        vmax=None, vmin=None, cmap=None, sensors='k,',
-                        colorbar=True, scale=None, scale_time=None, unit=None,
+                        vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
+                        colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=256, size=1, format='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None):
@@ -835,12 +835,15 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         be specified for Neuromag data). If possible, the correct layout file
         is inferred from the data; if no appropriate layout file was found, the
         layout is automatically generated from the sensor locations.
-    vmin : scalar
+    vmin : scalar, callable
         The value specfying the lower bound of the color range.
-        If None, the minimum value in the data is used.
-    vmax : scalar
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data).
+    vmax : scalar, callable
         The value specfying the upper bound of the color range.
-        If None, the maximum value in the data is used.
+        If None, the maximum absolute value is used. If vmin is None,
+        but vmax is not, defaults to np.min(data).
+        If callable, the output equals vmax(data).
     cmap : matplotlib colormap
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
@@ -886,11 +889,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     else:
         key = ch_type
 
-    if cmap is None and ch_type not in ['mag', 'eeg']:
-        cmap = 'Reds'
-    elif cmap is None and ch_type in ['mag', 'eeg']:
-        cmap = 'RdBu_r'
-
     if scale is None:
         scale = DEFAULTS['scalings'][key]
         unit = DEFAULTS['units'][key]
@@ -934,11 +932,20 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         from .layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
-    vmax = vmax or data.max()
-    vmin = vmin or data.min()
+    if vmax is None and vmin is None:
+        vmax = np.abs(data).max()
+        vmin = -vmax
+    else:
+        if callable(vmin):
+            vmin = vmin(data)
+        elif vmin is None:
+            vmin = np.min(data)
+        if callable(vmax):
+            vmax = vmax(data)
+        elif vmin is None:
+            vmax = np.max(data)
 
     images = []
-    scale_time = scale_time or 1e3
     for i, t in enumerate(times):
         plt.subplot(1, nax, i + 1)
         tp = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax, cmap=cmap,
@@ -1115,9 +1122,15 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         The data values to plot.
     pos : array, shape = (n_points, 2)
         For each data point, the x and y coordinates.
-    vmax : scalar
-        The value specfying the range of the color scale (-vmax to +vmax). If
-        None, the largest absolute value in the data is used.
+    vmin : scalar, callable
+        The value specfying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data).
+    vmax : scalar, callable
+        The value specfying the upper bound of the color range.
+        If None, the maximum absolute value is used. If vmin is None,
+        but vmax is not, defaults to np.min(data).
+        If callable, the output equals vmax(data).
     cmap : matplotlib colormap
         Colormap.
     sensors : bool | str
@@ -1151,8 +1164,18 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     axes = plt.gca()
     axes.set_frame_on(False)
 
-    vmax = vmax or data.max()
-    vmin = vmin or data.min()
+    if vmax is None and vmin is None:
+        vmax = np.abs(data).max()
+        vmin = -vmax
+    else:
+        if callable(vmin):
+            vmin = vmin(data)
+        elif vmin is None:
+            vmin = np.min(data)
+        if callable(vmax):
+            vmax = vmax(data)
+        elif vmin is None:
+            vmax = np.max(data)
 
     plt.xticks(())
     plt.yticks(())
