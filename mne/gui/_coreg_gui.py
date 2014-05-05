@@ -105,6 +105,9 @@ class CoregModel(HasPrivateTraits):
     hsp = Instance(RawSource, ())
 
     # parameters
+    grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
+                      "head outwards to compensate for hair on the digitizer "
+                      "head shape")
     n_scale_params = Enum(0, 1, 3, desc="Scale the MRI to better fit the "
                           "subject's head shape (a new MRI subject will be "
                           "created with a name specified upon saving)")
@@ -150,7 +153,8 @@ class CoregModel(HasPrivateTraits):
                            "based on the raw file name.")
 
     # transformed geometry
-    transformed_mri_points = Property(depends_on=['mri.points',
+    processed_mri_points = Property(depends_on=['mri.points', 'grow_hair'])
+    transformed_mri_points = Property(depends_on=['processed_mri_points',
                                                   'mri_scale_trans'])
     transformed_hsp_points = Property(depends_on=['hsp.points',
                                                   'head_mri_trans'])
@@ -248,8 +252,28 @@ class CoregModel(HasPrivateTraits):
         return trans
 
     @cached_property
+    def _get_processed_mri_points(self):
+        if self.grow_hair:
+            if len(self.mri.norms):
+                if self.n_scale_params == 0:
+                    scaled_hair_dist = self.grow_hair / 1000
+                else:
+                    scaled_hair_dist = self.grow_hair / self.scale / 1000
+
+                points = self.mri.points.copy()
+                hair = points[:, 2] > points[:, 1]
+                points[hair] += self.mri.norms[hair] * scaled_hair_dist
+                return points
+            else:
+                msg = "Norms missing form bem, can't grow hair"
+                error(None, msg)
+                self.grow_hair = 0
+        return self.mri.points
+
+    @cached_property
     def _get_transformed_mri_points(self):
-        return apply_trans(self.mri_scale_trans, self.mri.points)
+        points = apply_trans(self.mri_scale_trans, self.processed_mri_points)
+        return points
 
     @cached_property
     def _get_transformed_mri_lpa(self):
@@ -412,7 +436,7 @@ class CoregModel(HasPrivateTraits):
         "Find rotation to fit head shapes"
         src_pts = self.hsp.points - self.hsp.nasion
 
-        tgt_pts = self.mri.points - self.mri.nasion
+        tgt_pts = self.processed_mri_points - self.mri.nasion
         tgt_pts *= self.scale
         tgt_pts -= [self.trans_x, self.trans_y, self.trans_z]
 
@@ -459,7 +483,7 @@ class CoregModel(HasPrivateTraits):
         "Find MRI scaling and rotation to match head shape points"
         src_pts = self.hsp.points - self.hsp.nasion
 
-        tgt_pts = self.mri.points - self.mri.nasion
+        tgt_pts = self.processed_mri_points - self.mri.nasion
 
         if self.n_scale_params == 1:
             x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x)
@@ -506,7 +530,7 @@ class CoregModel(HasPrivateTraits):
                                            subject=subject_to, name='*-bem')
                 err = ("No bem file found; looking for files matching "
                        "%s" % pattern)
-                error(err)
+                error(None, err)
 
             bem_name = m.group(1)
 
@@ -534,9 +558,9 @@ class CoregModel(HasPrivateTraits):
 
     def reset(self):
         """Reset all the parameters affecting the coregistration"""
-        self.reset_traits(('n_scaling_params', 'scale_x', 'scale_y', 'scale_z',
-                           'rot_x', 'rot_y', 'rot_z', 'trans_x', 'trans_y',
-                           'trans_z'))
+        self.reset_traits(('grow_hair', 'n_scaling_params', 'scale_x',
+                           'scale_y', 'scale_z', 'rot_x', 'rot_y', 'rot_z',
+                           'trans_x', 'trans_y', 'trans_z'))
 
     def set_trans(self, head_mri_trans):
         """Set rotation and translation parameters from a transformation matrix
@@ -599,6 +623,7 @@ class CoregPanel(HasPrivateTraits):
 
     # parameters
     reset_params = Button(label='Reset')
+    grow_hair = DelegatesTo('model')
     n_scale_params = DelegatesTo('model')
     scale_step = Float(1.01)
     scale_x = DelegatesTo('model')
@@ -660,7 +685,8 @@ class CoregPanel(HasPrivateTraits):
     queue_len_str = Property(Str, depends_on=['queue_len'])
     error = Str('')
 
-    view = View(VGroup(Item('n_scale_params', label='MRI Scaling',
+    view = View(VGroup(Item('grow_hair', show_label=True),
+                       Item('n_scale_params', label='MRI Scaling',
                             style='custom', show_label=True,
                             editor=EnumEditor(values={0: '1:No Scaling',
                                                       1: '2:1 Param',
@@ -1270,11 +1296,13 @@ class CoregFrame(HasTraits):
 
         # MRI scalp
         color = defaults['mri_color']
-        self.mri_obj = SurfaceObject(points=self.model.mri.points, color=color,
-                                     tri=self.model.mri.tris, scene=self.scene)
+        self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
+                                     color=color, tri=self.model.mri.tris,
+                                     scene=self.scene)
         # on_trait_change was unreliable, so link it another way:
         self.model.mri.on_trait_change(self._on_mri_src_change, 'tris')
-        self.model.sync_trait('scale', self.mri_obj, 'trans', mutual=False)
+        self.model.sync_trait('transformed_mri_points', self.mri_obj, 'points',
+                              mutual=False)
         self.fid_panel.hsp_obj = self.mri_obj
 
         # MRI Fiducials
