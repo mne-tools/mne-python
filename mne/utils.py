@@ -1377,7 +1377,7 @@ def clean_warning_registry():
 
 def _check_type_picks(picks):
     """helper to guarantee type integrity of picks"""
-    err_msg = 'picks must be integers'
+    err_msg = 'picks must be None, a list or an array of integers'
     if picks is None:
         pass
     elif isinstance(picks, list):
