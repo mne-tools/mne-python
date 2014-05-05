@@ -813,9 +813,11 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
 
 
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
-                        vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        scale=None, unit=None, res=256, size=1, format='%3.1f',
-                        proj=False, show=True, show_names=False, title=None):
+                        vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
+                        colorbar=True, scale=None, scale_time=1e3, unit=None,
+                        res=256, size=1, format='%3.1f',
+                        time_format='%01d ms', proj=False, show=True,
+                        show_names=False, title=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -833,11 +835,18 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         be specified for Neuromag data). If possible, the correct layout file
         is inferred from the data; if no appropriate layout file was found, the
         layout is automatically generated from the sensor locations.
-    vmax : scalar
-        The value specfying the range of the color scale (-vmax to +vmax). If
-        None, the largest absolute value in the data is used.
+    vmin : float | callable
+        The value specfying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data).
+    vmax : float | callable
+        The value specfying the upper bound of the color range.
+        If None, the maximum absolute value is used. If vmin is None,
+        but vmax is not, defaults to np.min(data).
+        If callable, the output equals vmax(data).
     cmap : matplotlib colormap
-        Colormap.
+        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+        'Reds'.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses).
@@ -846,6 +855,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     scale : float | None
         Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
         for grad and 1e15 for mag.
+    scale_time : float | None
+        Scale the time labels. Defaults to 1e3 (ms).
     units : str | None
         The units of the channel types used for colorbar lables. If
         scale == None the unit is automatically determined.
@@ -855,6 +866,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Side length per topomap in inches.
     format : str
         String format for colorbar values.
+    time_format : str
+        String format for topomap values. Defaults to "%01d ms"
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
@@ -918,19 +931,32 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if merge_grads:
         from .layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)
-    vmax = vmax or np.max(np.abs(data))
+
+    if vmax is None and vmin is None:
+        vmax = np.abs(data).max()
+        vmin = -vmax
+    else:
+        if callable(vmin):
+            vmin = vmin(data)
+        elif vmin is None:
+            vmin = np.min(data)
+        if callable(vmax):
+            vmax = vmax(data)
+        elif vmin is None:
+            vmax = np.max(data)
+
     images = []
     for i, t in enumerate(times):
         plt.subplot(1, nax, i + 1)
-        tp = plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap,
+        tp = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax, cmap=cmap,
                           sensors=sensors, res=res, names=names,
                           show_names=show_names)
         images.append(tp)
-        plt.title('%i ms' % (t * 1000))
+        plt.title(time_format % (t * scale_time))
 
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
-        plt.colorbar(cax=cax, ticks=[-vmax, 0, vmax], format=format)
+        plt.colorbar(cax=cax, ticks=[vmin, 0, vmax], format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         cpos.x0 = 1 - (.7 + .1 / size) / nax
@@ -1086,8 +1112,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     return fig
 
 
-def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
-                 axis=None, names=None, show_names=False):
+def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,', 
+                 res=100, axis=None, names=None, show_names=False):
     """Plot a topographic map as image
 
     Parameters
@@ -1096,9 +1122,15 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
         The data values to plot.
     pos : array, shape = (n_points, 2)
         For each data point, the x and y coordinates.
-    vmax : scalar
-        The value specfying the range of the color scale (-vmax to +vmax). If
-        None, the largest absolute value in the data is used.
+    vmin : float | callable
+        The value specfying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data).
+    vmax : float | callable
+        The value specfying the upper bound of the color range.
+        If None, the maximum absolute value is used. If vmin is None,
+        but vmax is not, defaults to np.min(data).
+        If callable, the output equals vmax(data).
     cmap : matplotlib colormap
         Colormap.
     sensors : bool | str
@@ -1132,7 +1164,18 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
     axes = plt.gca()
     axes.set_frame_on(False)
 
-    vmax = vmax or np.abs(data).max()
+    if vmax is None and vmin is None:
+        vmax = np.abs(data).max()
+        vmin = -vmax
+    else:
+        if callable(vmin):
+            vmin = vmin(data)
+        elif vmin is None:
+            vmin = np.min(data)
+        if callable(vmax):
+            vmax = vmax(data)
+        elif vmin is None:
+            vmax = np.max(data)
 
     plt.xticks(())
     plt.yticks(())
@@ -1168,7 +1211,7 @@ def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
     im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
                 xi.min():xi.max():complex(0, xi.shape[1])]
     im = np.ma.masked_array(im, im == np.nan)
-    im = ax.imshow(im, cmap=cmap, vmin=-vmax, vmax=vmax, origin='lower',
+    im = ax.imshow(im, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax))
     return im
 
