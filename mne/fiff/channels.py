@@ -222,8 +222,6 @@ class PickDropChannelsMixin(object):
         elif isinstance(self, Evoked):
             self.data = self.data[idx, :]
 
-        return self
-
 
 def rename_channels(info, mapping):
     """Rename channels and optionally change the sensor type.
