@@ -89,7 +89,7 @@ plt.show()
 
 evoked = epochs.average()  # create evoked
 evoked.data = average_psds[:, freq_mask]  # insert our psd data
-evoked.times = freqs  # raplace times with frequencies.
+evoked.times = freqs  # replace times with frequencies.
 evoked.plot_topomap(ch_type='grad', times=range(5, 12, 2),
                     scale=1, scale_time=1, time_format='%0.1f Hz',
                     cmap='Reds', vmin=np.min, vmax=np.max,
