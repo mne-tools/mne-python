@@ -6,8 +6,9 @@
 # License: BSD (3-clause)
 
 import sys
+import os
 import os.path as op
-import glob
+import fnmatch
 import numpy as np
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -194,7 +195,7 @@ image_template = HTMLTemplate(u"""
 """)
 
 class HTMLScanRenderer(object):
-    """Objet for rendering HTML"""
+    """Object for rendering HTML"""
 
     def __init__(self, dpi=1):
         """ Initialize the HTMLScanRenderer.
@@ -335,12 +336,23 @@ def _endswith(fname, extensions):
     return False
 
 
+def recursive_search(path, pattern):
+    filtered_files = list()
+    for dirpath, dirnames, files in os.walk(path):
+        for f in fnmatch.filter(files, pattern):
+            filtered_files.append(op.join(dirpath, f))
+
+    return filtered_files
+
+
 def render_folder(path):
     renderer = HTMLScanRenderer()
     html = renderer.init_render()
     folders = []
-    fnames = glob.glob(op.join(path, '*.fif'))
-    fnames += glob.glob(op.join(path, 'T1.mgz'))
+
+    fnames = recursive_search(path, '*.fif')
+    fnames += recursive_search(path, 'T1.mgz')
+
     for fname in fnames:
         print "Rendering : %s" % op.join('...' + path[-20:], fname)
         try:
