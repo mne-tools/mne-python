@@ -12,6 +12,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
 from ..time_frequency import multitaper_psd
 from ..fiff import pick_types
 from ..externals import six
+from ..utils import _check_type_picks
 
 
 class Scaler(TransformerMixin):
@@ -317,7 +318,7 @@ class FilterEstimator(TransformerMixin):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
-        self.picks = picks
+        self.picks = _check_type_picks(picks)
         self.filter_length = filter_length
         self.l_trans_bandwidth = l_trans_bandwidth
         self.h_trans_bandwidth = h_trans_bandwidth

@@ -202,27 +202,25 @@ class PickDropChannelsMixin(object):
         from .. import Epochs
         from . import Evoked
 
-        if hasattr(self, 'picks'):
-            self.picks = [self.picks[k] for k in idx]
+        inst_has = lambda attr: getattr(self, attr, None) is not None
 
-        if hasattr(self, 'cals'):
+        if inst_has('picks'):
+            self.picks = self.picks[idx]
+
+        if inst_has('cals'):
             self.cals = self.cals[idx]
 
         self.info = pick_info(self.info, idx, copy=False)
 
-        my_get = lambda attr: getattr(self, attr, None)
-
-        if my_get('_projector') is not None:
+        if inst_has('_projector'):
             self._projector = self._projector[idx][:, idx]
 
-        if isinstance(self, _BaseRaw) and my_get('_preloaded'):
+        if isinstance(self, _BaseRaw) and inst_has('_data'):
             self._data = self._data[idx, :]
-        elif isinstance(self, Epochs) and my_get('preload'):
+        elif isinstance(self, Epochs) and inst_has('_data'):
             self._data = self._data[:, idx, :]
         elif isinstance(self, Evoked):
             self.data = self.data[idx, :]
-
-        return self
 
 
 def rename_channels(info, mapping):

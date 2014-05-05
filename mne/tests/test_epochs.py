@@ -947,7 +947,8 @@ def test_contains():
 def test_drop_channels_mixin():
     """Test channels-dropping functionality
     """
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+    # here without picks to get additional coverage
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=None,
                     baseline=(None, 0))
     drop_ch = epochs.ch_names[:3]
     ch_names = epochs.ch_names[3:]
@@ -1035,7 +1036,7 @@ def test_add_channels_epochs():
 
     epochs_meg2 = epochs_meg.copy()
     epochs_meg2.info['meas_date'] += 10
-    add_channels_epochs( [epochs_meg2, epochs_eeg])
+    add_channels_epochs([epochs_meg2, epochs_eeg])
 
     epochs_meg2 = epochs_meg.copy()
     epochs2.info['filename'] = epochs2.info['filename'].upper()
