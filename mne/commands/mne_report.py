@@ -13,9 +13,9 @@ import fnmatch
 import StringIO
 import numpy as np
 
+import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
-from matplotlib import pyplot as plt
 
 import nibabel as nib
 
@@ -195,13 +195,14 @@ image_template = HTMLTemplate(u"""
 </li>
 """)
 
+
 class HTMLScanRenderer(object):
     """Object for rendering HTML"""
 
     def __init__(self, dpi=1):
         """ Initialize the HTMLScanRenderer.
-        cmap is the name of the pylab color map.
-        dpi is the name of the pylab color map.
+        cmap is the name of the pyplot color map.
+        dpi is the name of the pyplot color map.
         """
         self.dpi = dpi
         self.initial_id = 0
@@ -293,10 +294,10 @@ class HTMLScanRenderer(object):
         return html
 
     def render_evoked(self, evoked_fname, figsize=None):
-        global_id = self.get_id()
         evokeds = mne.fiff.read_evokeds(evoked_fname, baseline=(None, 0))
         html = []
         for ev in evokeds:
+            global_id = self.get_id()
             fig = ev.plot(show=False)
             output = StringIO.StringIO()
             # fig.savefig(output, dpi=self.dpi, format='png')
@@ -326,6 +327,24 @@ class HTMLScanRenderer(object):
         caption = 'Events : ' + eve_fname
         div_klass = 'events'
         img_klass = 'events'
+        show = True
+        return image_template.substitute(img=img, id=global_id,
+                                         div_klass=div_klass,
+                                         img_klass=img_klass,
+                                         caption=caption,
+                                         show=show)
+
+    def render_cov(self, cov_fname):
+        global_id = self.get_id()
+        cov = mne.Covariance(cov_fname)
+        plt.matshow(cov.data)
+        output = StringIO.StringIO()
+        fig = plt.gcf()
+        fig.savefig(output, format='png')
+        img = output.getvalue().encode('base64')
+        caption = 'Covariance : ' + cov_fname
+        div_klass = 'covariance'
+        img_klass = 'covariance'
         show = True
         return image_template.substitute(img=img, id=global_id,
                                          div_klass=div_klass,
@@ -370,6 +389,8 @@ def render_folder(path):
                 html += renderer.render_evoked(fname)
             elif _endswith(fname, ['-eve.fif']):
                 html += renderer.render_eve(fname)
+            elif _endswith(fname, ['-cov.fif']):
+                html += renderer.render_cov(fname)
             elif op.isdir(fname):
                 folders.append(fname)
                 print folders
