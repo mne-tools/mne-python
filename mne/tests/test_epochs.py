@@ -947,7 +947,8 @@ def test_contains():
 def test_drop_channels_mixin():
     """Test channels-dropping functionality
     """
-    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+    # here without picks to get additional coverage
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=None,
                     baseline=(None, 0))
     drop_ch = epochs.ch_names[:3]
     ch_names = epochs.ch_names[3:]

@@ -1376,7 +1376,7 @@ def clean_warning_registry():
 
 
 def _check_type_picks(picks):
-    """helper to warrent type integrity of picks"""
+    """helper to guarantee type integrity of picks"""
     err_msg = 'picks must be integers'
     if picks is None:
         pass
