@@ -1373,3 +1373,19 @@ def clean_warning_registry():
     for mod in list(sys.modules.values()):
         if mod.__class__.__name__ not in bad_names and hasattr(mod, reg):
             getattr(mod, reg).clear()
+
+
+def _check_type_picks(picks):
+    """helper to warrent type integrity of picks"""
+    err_msg = 'picks must be integers'
+    if picks is None:
+        pass
+    elif isinstance(picks, list):
+        if not all([isinstance(i, int) for i in picks]):
+            raise ValueError(err_msg)
+        picks = np.array(picks)
+    elif isinstance(picks, np.ndarray):
+        pass
+    else:
+        raise ValueError(err_msg)
+    return picks
