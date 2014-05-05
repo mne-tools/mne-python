@@ -2,6 +2,7 @@
 """
 
 # Authors: Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
 
@@ -9,14 +10,14 @@ import sys
 import os
 import os.path as op
 import fnmatch
+import StringIO
 import numpy as np
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
-import pylab
+from matplotlib import pyplot as plt
 
 import nibabel as nib
-import StringIO
 
 import mne
 from tempita import HTMLTemplate
@@ -33,7 +34,7 @@ def _build_image(data, dpi=1, cmap='gray'):
         data = data[:, :, 0]
     fig = Figure(figsize=figsize, dpi=dpi, frameon=False)
     canvas = FigureCanvas(fig)
-    cmap = getattr(pylab.cm, cmap, pylab.cm.gray)
+    cmap = getattr(plt.cm, cmap, plt.cm.gray)
     fig.figimage(data, cmap=cmap)
     output = StringIO.StringIO()
     fig.savefig(output, dpi=dpi, format='png')
@@ -293,21 +294,25 @@ class HTMLScanRenderer(object):
 
     def render_evoked(self, evoked_fname, figsize=None):
         global_id = self.get_id()
-        evoked = mne.fiff.read_evoked(evoked_fname, setno=0, baseline=(None, 0))
-        fig = evoked.plot(show=False)
-        output = StringIO.StringIO()
-        # fig.savefig(output, dpi=self.dpi, format='png')
-        fig.savefig(output, format='png')
-        img = output.getvalue().encode('base64')
-        caption = 'Evoked : ' + evoked_fname
-        div_klass = 'evoked'
-        img_klass = 'evoked'
-        show = True
-        return image_template.substitute(img=img, id=global_id,
-                                         div_klass=div_klass,
-                                         img_klass=img_klass,
-                                         caption=caption,
-                                         show=show)
+        evokeds = mne.fiff.read_evokeds(evoked_fname, baseline=(None, 0))
+        html = []
+        for ev in evokeds:
+            fig = ev.plot(show=False)
+            output = StringIO.StringIO()
+            # fig.savefig(output, dpi=self.dpi, format='png')
+            fig.savefig(output, format='png')
+            img = output.getvalue().encode('base64')
+            caption = 'Evoked : ' + evoked_fname + ' (' + ev.comment + ')'
+            div_klass = 'evoked'
+            img_klass = 'evoked'
+            show = True
+            html.append(image_template.substitute(img=img, id=global_id,
+                                                  div_klass=div_klass,
+                                                  img_klass=img_klass,
+                                                  caption=caption,
+                                                  show=show))
+
+        return '\n'.join(html)
 
     def render_eve(self, eve_fname, figsize=None):
         global_id = self.get_id()
