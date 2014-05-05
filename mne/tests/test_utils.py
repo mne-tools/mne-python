@@ -1,4 +1,4 @@
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises
 import os.path as op
 import numpy as np
@@ -9,7 +9,8 @@ from ..externals.six.moves import urllib
 from ..utils import (set_log_level, set_log_file, _TempDir,
                      get_config, set_config, deprecated, _fetch_file,
                      sum_squared, requires_mem_gb, estimate_rank,
-                     _url_to_local_path, sizeof_fmt)
+                     _url_to_local_path, sizeof_fmt,
+                     _check_type_picks)
 from ..fiff import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -257,3 +258,18 @@ def test_url_to_local_path():
     """
     assert_equal(_url_to_local_path('http://google.com/home/why.html', '.'),
                  op.join('.', 'home', 'why.html'))
+
+
+def test_check_type_picks():
+    """Test checking type integrity checks of picks
+    """
+    picks = np.arange(12)
+    assert_array_equal(picks, _check_type_picks(picks))
+    picks = list(range(12))
+    assert_array_equal(np.array(picks), _check_type_picks(picks))
+    picks = None
+    assert_array_equal(None, _check_type_picks(picks))
+    picks = ['a', 'b']
+    assert_raises(ValueError, _check_type_picks, picks)
+    picks = 'b'
+    assert_raises(ValueError, _check_type_picks, picks)

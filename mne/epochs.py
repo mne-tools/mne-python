@@ -40,7 +40,7 @@ from .viz import _mutable_defaults, plot_epochs
 from .utils import logger, verbose
 from .externals import six
 from .externals.six.moves import zip
-from .utils import deprecated
+from .utils import deprecated, _check_type_picks
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
@@ -119,7 +119,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             self.info['chs'] = [self.info['chs'][k] for k in picks]
             self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
             self.info['nchan'] = len(picks)
-        self.picks = picks
+        self.picks = _check_type_picks(picks)
 
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
@@ -729,9 +729,8 @@ class Epochs(_BaseEpochs):
 
         Allows to discard some channels.
         """
-        self.picks = list(self.picks)
         idx = [k for k, p in enumerate(self.picks) if p not in bad_picks]
-        self.picks = [self.picks[k] for k in idx]
+        self.picks = self.picks[idx]
 
         self.info = pick_info(self.info, idx, copy=False)
 
