@@ -219,7 +219,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         Rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
-    picks : array of int
+    picks : array-like of int
         Indices of channels to include (if None, all channels
         except bad channels are used).
     verbose : bool, str, int, or None
@@ -674,7 +674,7 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
         The noise covariance.
     info : dict
         The measurement info.
-    picks : array of int | None
+    picks : array-like of int | None
         The channels indices to include. If None the data
         channels in info, except bad channels, are used.
     verbose : bool, str, int, or None
@@ -721,7 +721,7 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False):
         The evoked data
     noise_cov : instance of Covariance
         The noise covariance
-    picks : array of ints
+    picks : array-like of int
         The channel indices to whiten
     diag : bool
         If True, whiten using only the diagonal of the covariance

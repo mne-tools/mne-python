@@ -351,7 +351,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        picks : None | array-like of int
+        picks : array-like of int | None
             The indices of channels to plot. If None show all.
         exclude : list of str | 'bads'
             Channels names to exclude from being shown. If 'bads', the
@@ -498,7 +498,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        picks : array-like | None
+        picks : array-like of int | None
             Indices of channels to apply. If None, all channels will be
             exported.
 
@@ -526,7 +526,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        picks : None | array of int
+        picks : array-like of int | None
             If None all channels are kept, otherwise the channels indices in
             picks are kept.
         scale_time : float
@@ -623,7 +623,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         order : int
             Either 0 or 1, the order of the detrending. 0 is a constant
             (DC) detrend, 1 is a linear detrend.
-        picks : None | array of int
+        picks : array-like of int | None
             If None only MEG and EEG channels are detrended.
         """
         if picks is None:

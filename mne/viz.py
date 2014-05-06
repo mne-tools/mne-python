@@ -1227,7 +1227,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     ----------
     evoked : instance of Evoked
         The evoked data
-    picks : None | array-like of int
+    picks : array-like of int | None
         The indices of channels to plot. If None show all.
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
@@ -2098,7 +2098,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
     ----------
     epochs : instance of Epochs
         The epochs
-    picks : int | array of int | None
+    picks : int | array-like of int | None
         The indices of the channels to consider. If None, all good
         data channels are plotted.
     sigma : float
@@ -3265,7 +3265,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
         Apply projection.
     n_fft : int
         Number of points to use in Welch FFT calculations.
-    picks : list | None
+    picks : array-like of int | None
         List of channels to use. Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
         each standard channel type (`mag`, `grad`, and `eeg`).
@@ -3525,7 +3525,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     epoch_idx : array-like | int | None
         The epochs to visualize. If None, the first 20 epochs are shown.
         Defaults to None.
-    picks : array-like | None
+    picks : array-like of int | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
     scalings : dict | None

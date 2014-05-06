@@ -89,7 +89,7 @@ def ar_raw(raw, order, picks, tmin=None, tmax=None):
         The raw data
     order : int
         The AR model order
-    picks : array of int
+    picks : array-like of int
         The channels indices to include
     tmin : float
         The beginning of time interval in seconds.
@@ -133,7 +133,7 @@ def iir_filter_raw(raw, order, picks, tmin=None, tmax=None):
         an instance of Raw
     order : int
         order of the FIR filter
-    picks : array of int
+    picks : array-like of int
         indices of selected channels
     tmin : float
         The beginning of time interval in seconds.

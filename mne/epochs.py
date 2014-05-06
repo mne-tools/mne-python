@@ -339,7 +339,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        picks : None | array of int
+        picks : array-like of int | None
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
 
@@ -356,7 +356,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        picks : None | array of int
+        picks : array-like of int | None
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
 
@@ -454,7 +454,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         epoch_idx : array-like | int | None
             The epochs to visualize. If None, the frist 20 epochs are shoen.
             Defaults to None.
-        picks : array-like | None
+        picks : array-like of int | None
             Channels to be included. If None only good data channels are used.
             Defaults to None
         scalings : dict | None
@@ -517,7 +517,7 @@ class Epochs(_BaseEpochs):
         interval is used.
         The baseline (a, b) includes both endpoints, i.e. all
         timepoints t such that a <= t <= b.
-    picks : None (default) or array of int
+    picks : array-like of int | None (default)
         Indices of channels to include (if None, all channels
         are used).
     preload : boolean
@@ -1338,7 +1338,7 @@ class Epochs(_BaseEpochs):
 
         Parameters
         ----------
-        picks : None | array of int
+        picks : array-like of int | None
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
         index : tuple of str | None
@@ -1425,7 +1425,7 @@ class Epochs(_BaseEpochs):
 
         Parameters
         ----------
-        picks : array-like | None
+        picks : array-like of int | None
             Indices for exporting subsets of the epochs channels. If None
             all good channels will be used.
         epochs_idx : slice | array-like | None

@@ -284,7 +284,7 @@ class FilterEstimator(TransformerMixin):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices of channels to filter. If None only the data (MEG/EEG)
         channels will be filtered.
     filter_length : str (Default: '10s') | int | None

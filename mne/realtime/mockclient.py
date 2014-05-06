@@ -46,7 +46,7 @@ class MockRtClient(object):
         ----------
         epochs : instance of RtEpochs
             The epochs object.
-        picks : array of int
+        picks : array-like of int
             Indices of channels.
         tmin : float
             Time instant to start receiving buffers.

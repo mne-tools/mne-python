@@ -49,7 +49,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label.
-    picks : array of int | None
+    picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
     pick_ori : None | 'normal' | 'max-power'
@@ -395,7 +395,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
         Index of first time sample (index not time is seconds).
     stop : int
         Index of first time sample not to include (index not time is seconds).
-    picks : array of int
+    picks : array-like of int
         Channel indices in raw to use for beamforming (if None all channels
         are used except bad channels).
     pick_ori : None | 'normal' | 'max-power'
@@ -465,7 +465,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
         The regularization for the whitened data covariance.
     label : Label | None
         Restricts the solution to a given label.
-    picks : array of int | None
+    picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
     pick_ori : None | 'normal'

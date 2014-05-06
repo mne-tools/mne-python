@@ -173,7 +173,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
             return an numpy.ndarray with the same size as the input.
-        picks : list of int
+        picks : array-like of int
             Indices of channels to apply the function to.
         dtype : numpy.dtype
             Data type to use for raw data after applying the function. If None
@@ -239,7 +239,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        picks : list of int
+        picks : array-like of int
             Indices of channels to apply the function to.
         envelope : bool (default: False)
             Compute the envelope signal of each channel.
@@ -300,7 +300,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         h_freq : float | None
             High cut-off frequency in Hz. If None the data are only
             high-passed.
-        picks : list of int | None
+        picks : array-like of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
         filter_length : str (Default: '10s') | int | None
@@ -419,7 +419,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             np.arange(60, 241, 60) in the US or np.arange(50, 251, 50) in
             Europe. None can only be used with the mode 'spectrum_fit',
             where an F test is used to find sinusoidal components.
-        picks : list of int | None
+        picks : array-like of int | None
             Indices of channels to filter. If None only the data (MEG/EEG)
             channels will be filtered.
         filter_length : str (Default: '10s') | int | None
@@ -644,7 +644,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         fname : string
             File name of the new dataset. This has to be a new filename
             unless data have been preloaded.
-        picks : list of int | None
+        picks : array-like of int | None
             Indices of channels to include. If None all channels are kept.
         tmin : float | None
             Time in seconds of first sample to save. If None first sample
@@ -867,7 +867,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             Apply projection.
         n_fft : int
             Number of points to use in Welch FFT calculations.
-        picks : list | None
+        picks : array-like of int | None
             List of channels to use. Cannot be None if `ax` is supplied. If
             both `picks` and `ax` are None, separate subplots will be created
             for each standard channel type (`mag`, `grad`, and `eeg`).
@@ -1143,7 +1143,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        picks : None | array of int
+        picks : array-like of int | None
             If None only MEG and EEG channels are kept
             otherwise the channels indices in picks are kept.
         start : int | None
@@ -1214,7 +1214,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        picks : array-like | None
+        picks : array-like of int | None
             Indices of channels to apply. If None, all channels will be
             exported.
         start : int | None

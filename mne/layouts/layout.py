@@ -240,7 +240,7 @@ def make_grid_layout(info, picks=None):
     info : dict
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
-    picks : array-like | None
+    picks : array-like of int | None
         The indices of the channels to be included. If None, al misc channels
         will be included.
 
@@ -490,7 +490,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
 
     Returns
     -------
-    picks : list of int
+    picks : array of int
         Picks for the grad channels, ordered in pairs.
     coords : array, shape = (n_grad_channels, 3)
         Coordinates for a topomap plot (optional, only returned if

@@ -245,7 +245,7 @@ class ICA(object):
         ----------
         raw : instance of mne.fiff.Raw
             Raw measurements to be decomposed.
-        picks : array-like
+        picks : array-like of int
             Channels to be included. This selection remains throughout the
             initialized ICA session. If None only good data channels are used.
         start : int | float | None
@@ -353,7 +353,7 @@ class ICA(object):
         ----------
         epochs : instance of Epochs
             The epochs. The ICA is estimated on the concatenated epochs.
-        picks : array-like
+        picks : array-like of int
             Channels to be included relative to the channels already picked on
             epochs-initialization. This selection remains throughout the
             initialized ICA session.
@@ -514,7 +514,7 @@ class ICA(object):
         ----------
         raw : instance of Raw
             Raw object to export sources from.
-        picks : array-like
+        picks : array-like of int
             Channels to be included in addition to the sources. If None,
             artifact and stimulus channels will be included.
         start : int | float | None
@@ -597,7 +597,7 @@ class ICA(object):
         ----------
         epochs : instance of Epochs
             Epochs object to draw sources from.
-        picks : array-like
+        picks : array-like of int
             Channels to be included in addition to the sources. If None,
             artifact channels will be included.
 
@@ -1690,7 +1690,7 @@ def run_ica(raw, n_components, max_pca_components=100,
         {'alpha' : 1.0}
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    picks : array-like
+    picks : array-like of int
         Channels to be included. This selection remains throughout the
         initialized ICA session. If None only good data channels are used.
     start : int | float | None

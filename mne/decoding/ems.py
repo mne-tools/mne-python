@@ -35,7 +35,7 @@ def compute_ems(epochs, conditions=None, picks=None, verbose=None, n_jobs=1):
         If a list of strings, strings must match the
         epochs.event_id's key as well as the number of conditions supported
         by the objective_function. If None keys in epochs.event_id are used.
-    picks : array-like | None
+    picks : array-like of int | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
     n_jobs : int

@@ -62,7 +62,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     zero_phase : bool
         If True: the filter is applied in forward and backward direction,
         resulting in a zero-phase filter.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -258,7 +258,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -570,7 +570,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -670,7 +670,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -776,7 +776,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -859,7 +859,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -962,7 +962,7 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda

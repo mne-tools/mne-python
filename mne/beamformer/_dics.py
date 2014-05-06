@@ -49,7 +49,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         The regularization for the cross-spectral density.
     label : Label | None
         Restricts the solution to a given label.
-    picks : array of int | None
+    picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
     pick_ori : None | 'normal'

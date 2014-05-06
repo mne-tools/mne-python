@@ -313,6 +313,7 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     exclude : list of string, (optional) | 'bads'
         Channels to exclude (if empty, do not exclude any).
          Defaults to 'bads'.
+
     Returns
     -------
     res : instance of Evoked
