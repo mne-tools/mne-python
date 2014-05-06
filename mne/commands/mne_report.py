@@ -143,6 +143,7 @@ header_template = HTMLTemplate(u"""
 <script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
 <link rel="stylesheet" type="text/css" media="all" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css"/>
 <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css">
 <script type="text/javascript">
    function getCoordinates(e, img, ashape, name){
         var x = e.clientX - img.offsetLeft;
@@ -179,6 +180,13 @@ h4 {
 </style>
 </head>
 <body>
+<br/>
+&nbsp;<button type="button" class="btn btn-lg btn-default" onclick="$('.raw').toggle()">Raw</button>
+&nbsp;<button type="button" class="btn btn-lg btn-primary" onclick="$('.evoked').toggle()">Ave</button>
+&nbsp;<button type="button" class="btn btn-lg btn-success" onclick="$('.covariance').toggle()">Cov</button>
+&nbsp;<button type="button" class="btn btn-lg btn-info" onclick="$('.events').toggle()">Eve</button>
+&nbsp;<button type="button" class="btn btn-lg btn-warning" onclick="$('.slices-images').toggle()">Slices</button>
+&nbsp;<button type="button" class="btn btn-lg btn-danger">Bad</button>
 """)
 
 footer_template = HTMLTemplate(u"""
@@ -288,8 +296,8 @@ class HTMLScanRenderer(object):
                   'axial': range(shape[1] // 3, shape[1] // 2),
                   'coronal': range(shape[2] // 3, shape[2] // 2)}
         name = op.basename(image)
-        html = u'<h2>%s</h2>\n' % name
-        html += u'<ul id="slices-images">\n'
+        html = u'<ul class="slices-images">\n'
+        html += u'<h2>%s</h2>\n' % name
         html += self.render_array(data, cmap=cmap, limits=limits)
         html += u'</ul>\n'
         return html
@@ -311,7 +319,7 @@ class HTMLScanRenderer(object):
 
         html += re.sub('\\n', '\\n<br/>', repr_info)
 
-        html += u'</li><hr>'
+        html += u'<hr></li>'
 
         return html
 
@@ -407,13 +415,13 @@ def render_folder(path):
                 if 'aseg' in fname:
                     cmap = 'spectral'
                 html += renderer.render_image(fname, cmap=cmap)
-            elif _endswith(fname, ['raw.fif']):
+            elif _endswith(fname, ['raw.fif', 'sss.fif']):
                 html += renderer.render_raw(fname)
-            elif _endswith(fname, ['ave.fif']):
+            elif _endswith(fname, ['-ave.fif']):
                 html += renderer.render_evoked(fname)
-            elif _endswith(fname, ['eve.fif']):
+            elif _endswith(fname, ['-eve.fif']):
                 html += renderer.render_eve(fname)
-            elif _endswith(fname, ['cov.fif']):
+            elif _endswith(fname, ['-cov.fif']):
                 html += renderer.render_cov(fname)
             elif op.isdir(fname):
                 folders.append(fname)
