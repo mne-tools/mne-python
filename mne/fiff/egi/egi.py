@@ -256,7 +256,7 @@ class _RawEGI(_BaseRaw):
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = np.array([my_timestamp], dtype=np.float32)
         info['projs'] = []
-        ch_names = ['EEG %i' % (i + 1) for i in range(egi_info['n_channels'])]
+        ch_names = ['EEG %03d' % (i + 1) for i in range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
         if new_trigger is not None:
             ch_names.append('STI 014')  # our new_trigger
