@@ -10,6 +10,7 @@ import sys
 import os
 import os.path as op
 import fnmatch
+import re
 import StringIO
 import numpy as np
 
@@ -293,6 +294,27 @@ class HTMLScanRenderer(object):
         html += u'</ul>\n'
         return html
 
+    def render_raw(self, raw_fname):
+        global_id = self.get_id()
+        raw = mne.fiff.Raw(raw_fname)
+
+        html = u'<li class="raw" id="%d">' % global_id
+        html += u'<h4>Raw : %s</h4>\n<hr>' % raw_fname
+
+        repr_raw = re.sub('<', '', repr(raw))
+        repr_raw = re.sub('>', '', repr_raw)
+
+        html += '%s<br/>' % repr_raw
+
+        repr_info = re.sub('<', '', repr(raw.info))
+        repr_info = re.sub('>', '', repr_info)
+
+        html += re.sub('\\n', '\\n<br/>', repr_info)
+
+        html += u'</li><hr>'
+
+        return html
+
     def render_evoked(self, evoked_fname, figsize=None):
         evokeds = mne.fiff.read_evokeds(evoked_fname, baseline=(None, 0))
         html = []
@@ -385,11 +407,13 @@ def render_folder(path):
                 if 'aseg' in fname:
                     cmap = 'spectral'
                 html += renderer.render_image(fname, cmap=cmap)
-            elif _endswith(fname, ['-ave.fif']):
+            elif _endswith(fname, ['raw.fif']):
+                html += renderer.render_raw(fname)
+            elif _endswith(fname, ['ave.fif']):
                 html += renderer.render_evoked(fname)
-            elif _endswith(fname, ['-eve.fif']):
+            elif _endswith(fname, ['eve.fif']):
                 html += renderer.render_eve(fname)
-            elif _endswith(fname, ['-cov.fif']):
+            elif _endswith(fname, ['cov.fif']):
                 html += renderer.render_cov(fname)
             elif op.isdir(fname):
                 folders.append(fname)
