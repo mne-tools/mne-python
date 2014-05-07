@@ -386,7 +386,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                 else slice(len(colors)))
         color = cycle(colors[stop])
         if len(evoked) > len(colors):
-            warnings.warn('More evoked objects then colors available.'
+            warnings.warn('More evoked objects than colors available.'
                           'You should pass a list of unique colors.')
     else:
         color = cycle([color])
