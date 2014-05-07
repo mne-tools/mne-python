@@ -2025,7 +2025,8 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
         from .layouts.layout import _merge_grad_data
     for ii, data_, ax in zip(source_idx, data, axes):
         data_ = _merge_grad_data(data_) if merge_grads else data_
-        plot_topomap(data_.flatten(), pos, vmax=vmax, res=res, axis=ax)
+        plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
+                     res=res, axis=ax)
         ax.set_title('IC #%03d' % ii, fontsize=12)
         ax.set_yticks([])
         ax.set_xticks([])
