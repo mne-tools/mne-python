@@ -3890,8 +3890,8 @@ def plot_events(events, sfreq, first_samp=0, color=None, show=True):
     min_event = np.min(events[:, 2])
     max_event = np.max(events[:, 2])
     for idx, ev in enumerate(unique_events):
-        ev_idx = (events[:, 2] == ev)
-        plt.plot((events[ev_idx, 0] - first_samp) / sfreq, events[ev_idx, 2],
+        ev_mask = (events[:, 2] == ev)
+        plt.plot((events[ev_mask, 0] - first_samp) / sfreq, events[ev_mask, 2],
                  '.', color=color[idx % len(color)])
     plt.ylim([min_event - 1, max_event + 1])
     plt.xlabel('Time (s)')
