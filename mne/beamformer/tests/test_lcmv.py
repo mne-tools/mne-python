@@ -35,7 +35,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
-    raw = mne.fiff.Raw(fname_raw, preload=True)
+    raw = mne.io.Raw(fname_raw, preload=True)
     forward = mne.read_forward_solution(fname_fwd)
     if all_forward:
         forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
@@ -55,7 +55,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     if epochs:
         # Set up pick list: MEG - bad channels
         left_temporal_channels = mne.read_selection('Left-temporal')
-        picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False,
+        picks = mne.io.pick_types(raw.info, meg=True, eeg=False,
                                     stim=True, eog=True, ref_meg=False,
                                     exclude='bads',
                                     selection=left_temporal_channels)
@@ -198,7 +198,7 @@ def test_lcmv_raw():
 
     # use only the left-temporal MEG channels for LCMV
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads',
+    picks = mne.io.pick_types(raw.info, meg=True, exclude='bads',
                                 selection=left_temporal_channels)
 
     data_cov = mne.compute_raw_data_covariance(raw, tmin=tmin, tmax=tmax)
@@ -266,7 +266,7 @@ def test_tf_lcmv():
                         'sample_audvis_filt-0-40_raw.fif')
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
-    raw = mne.fiff.Raw(fname_raw, preload=True)
+    raw = mne.io.Raw(fname_raw, preload=True)
     forward = mne.read_forward_solution(fname_fwd)
 
     event_id, tmin, tmax = 1, -0.2, 0.2
@@ -276,7 +276,7 @@ def test_tf_lcmv():
 
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False,
+    picks = mne.io.pick_types(raw.info, meg=True, eeg=False,
                                 stim=True, eog=True, exclude='bads',
                                 selection=left_temporal_channels)
 

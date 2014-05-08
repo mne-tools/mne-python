@@ -3,12 +3,12 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from mne import fiff
+from mne import io
 from mne import Epochs
 from mne import read_events
 from mne.time_frequency import compute_raw_psd, compute_epochs_psd
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 
@@ -16,12 +16,12 @@ event_fname = op.join(base_dir, 'test-eve.fif')
 def test_psd():
     """Test PSD estimation
     """
-    raw = fiff.Raw(raw_fname)
+    raw = io.Raw(raw_fname)
 
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
-    picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False,
+    picks = io.pick_types(raw.info, meg='mag', eeg=False, stim=False,
                             exclude=exclude)
 
     picks = picks[:2]
@@ -45,12 +45,12 @@ def test_psd():
 def test_psd_epochs():
     """Test PSD estimation on epochs
     """
-    raw = fiff.Raw(raw_fname)
+    raw = io.Raw(raw_fname)
 
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
-    picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False,
+    picks = io.pick_types(raw.info, meg='mag', eeg=False, stim=False,
                             exclude=exclude)
 
     picks = picks[:2]
@@ -62,7 +62,7 @@ def test_psd_epochs():
     raw.info['bads'] += ['MEG 2443']  # bads
 
     # picks MEG gradiometers
-    picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+    picks = io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=False, include=include, exclude='bads')
 
     events = read_events(event_fname)
@@ -71,7 +71,7 @@ def test_psd_epochs():
                     reject=dict(grad=4000e-13, eog=150e-6), proj=False,
                     preload=True)
 
-    picks = fiff.pick_types(epochs.info, meg='grad', eeg=False, eog=True,
+    picks = io.pick_types(epochs.info, meg='grad', eeg=False, eog=True,
                             stim=False, include=include, exclude='bads')
     psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300, n_fft=n_fft,
                                      picks=picks)

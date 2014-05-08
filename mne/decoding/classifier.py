@@ -10,7 +10,7 @@ from .mixin import TransformerMixin
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency import multitaper_psd
-from ..fiff import pick_types
+from ..io import pick_types
 from ..externals import six
 from ..utils import _check_type_picks
 

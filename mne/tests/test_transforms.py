@@ -16,7 +16,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
 fname_eve = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
-fname_trans = op.join(op.split(__file__)[0], '..', 'fiff', 'tests',
+fname_trans = op.join(op.split(__file__)[0], '..', 'io', 'tests',
                       'data', 'sample-audvis-raw-trans.txt')
 
 tempdir = _TempDir()

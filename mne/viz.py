@@ -36,9 +36,9 @@ from .fixes import tril_indices, Counter
 from .baseline import rescale
 from .utils import (get_subjects_dir, get_config, set_config, _check_subject,
                     logger, verbose)
-from .fiff import show_fiff, FIFF
-from .fiff.pick import channel_type, pick_types
-from .fiff.proj import make_projector, setup_proj
+from .io import show_fiff, FIFF
+from .io.pick import channel_type, pick_types
+from .io.proj import make_projector, setup_proj
 from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
@@ -140,7 +140,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info
+    info : instance of mne.io.meas_info.Info
         The measurement info.
     layout : instance of mne.layout.Layout | None
         The layout to use. If None, layout will be guessed
@@ -813,11 +813,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
 
 
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
-                        vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
-                        colorbar=True, scale=None, scale_time=1e3, unit=None,
-                        res=256, size=1, format='%3.1f',
-                        time_format='%01d ms', proj=False, show=True,
-                        show_names=False, title=None):
+                        vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                        scale=None, unit=None, res=256, size=1, format='%3.1f',
+                        proj=False, show=True, show_names=False, title=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -835,18 +833,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         be specified for Neuromag data). If possible, the correct layout file
         is inferred from the data; if no appropriate layout file was found, the
         layout is automatically generated from the sensor locations.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+    vmax : scalar
+        The value specfying the range of the color scale (-vmax to +vmax). If
+        None, the largest absolute value in the data is used.
     cmap : matplotlib colormap
-        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-        'Reds'.
+        Colormap.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
         format string (e.g., 'r+' for red plusses).
@@ -855,8 +846,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     scale : float | None
         Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
         for grad and 1e15 for mag.
-    scale_time : float | None
-        Scale the time labels. Defaults to 1e3 (ms).
     units : str | None
         The units of the channel types used for colorbar lables. If
         scale == None the unit is automatically determined.
@@ -866,8 +855,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Side length per topomap in inches.
     format : str
         String format for colorbar values.
-    time_format : str
-        String format for topomap values. Defaults to "%01d ms"
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
@@ -931,32 +918,19 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if merge_grads:
         from .layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)
-
-    if vmax is None and vmin is None:
-        vmax = np.abs(data).max()
-        vmin = -vmax
-    else:
-        if callable(vmin):
-            vmin = vmin(data)
-        elif vmin is None:
-            vmin = np.min(data)
-        if callable(vmax):
-            vmax = vmax(data)
-        elif vmin is None:
-            vmax = np.max(data)
-
+    vmax = vmax or np.max(np.abs(data))
     images = []
     for i, t in enumerate(times):
         plt.subplot(1, nax, i + 1)
-        tp = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax, cmap=cmap,
+        tp = plot_topomap(data[:, i], pos, vmax=vmax, cmap=cmap,
                           sensors=sensors, res=res, names=names,
                           show_names=show_names)
         images.append(tp)
-        plt.title(time_format % (t * scale_time))
+        plt.title('%i ms' % (t * 1000))
 
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
-        plt.colorbar(cax=cax, ticks=[vmin, 0, vmax], format=format)
+        plt.colorbar(cax=cax, ticks=[-vmax, 0, vmax], format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         cpos.x0 = 1 - (.7 + .1 / size) / nax
@@ -1112,8 +1086,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     return fig
 
 
-def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,', 
-                 res=100, axis=None, names=None, show_names=False):
+def plot_topomap(data, pos, vmax=None, cmap='RdBu_r', sensors='k,', res=100,
+                 axis=None, names=None, show_names=False):
     """Plot a topographic map as image
 
     Parameters
@@ -1122,15 +1096,9 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         The data values to plot.
     pos : array, shape = (n_points, 2)
         For each data point, the x and y coordinates.
-    vmin : float | callable
-        The value specfying the lower bound of the color range.
-        If None, and vmax is None, -vmax is used. Else np.min(data).
-        If callable, the output equals vmin(data).
-    vmax : float | callable
-        The value specfying the upper bound of the color range.
-        If None, the maximum absolute value is used. If vmin is None,
-        but vmax is not, defaults to np.min(data).
-        If callable, the output equals vmax(data).
+    vmax : scalar
+        The value specfying the range of the color scale (-vmax to +vmax). If
+        None, the largest absolute value in the data is used.
     cmap : matplotlib colormap
         Colormap.
     sensors : bool | str
@@ -1164,18 +1132,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     axes = plt.gca()
     axes.set_frame_on(False)
 
-    if vmax is None and vmin is None:
-        vmax = np.abs(data).max()
-        vmin = -vmax
-    else:
-        if callable(vmin):
-            vmin = vmin(data)
-        elif vmin is None:
-            vmin = np.min(data)
-        if callable(vmax):
-            vmax = vmax(data)
-        elif vmin is None:
-            vmax = np.max(data)
+    vmax = vmax or np.abs(data).max()
 
     plt.xticks(())
     plt.yticks(())
@@ -1211,7 +1168,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
                 xi.min():xi.max():complex(0, xi.shape[1])]
     im = np.ma.masked_array(im, im == np.nan)
-    im = ax.imshow(im, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
+    im = ax.imshow(im, cmap=cmap, vmin=-vmax, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax))
     return im
 
@@ -1227,7 +1184,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     ----------
     evoked : instance of Evoked
         The evoked data
-    picks : array-like of int | None
+    picks : None | array-like of int
         The indices of channels to plot. If None show all.
     exclude : list of str | 'bads'
         Channels names to exclude from being shown. If 'bads', the
@@ -1454,27 +1411,27 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     Parameters
     ----------
     src : dict
-        The source space
+        The source space.
     stcs : instance of SourceEstimate or list of instances of SourceEstimate
-        The source estimates (up to 3)
+        The source estimates (up to 3).
     colors : list
         List of colors
     linewidth : int
-        Line width in 2D plot
+        Line width in 2D plot.
     fontsize : int
-        Font size
+        Font size.
     bgcolor : tuple of length 3
-        Background color in 3D
+        Background color in 3D.
     opacity : float in [0, 1]
-        Opacity of brain mesh
+        Opacity of brain mesh.
     brain_color : tuple of length 3
-        Brain color
+        Brain color.
     show : bool
-        Show figures if True
+        Show figures if True.
     fig_name :
-        Mayavi figure name
+        Mayavi figure name.
     fig_number :
-        Pylab figure number
+        Matplotlib figure number.
     labels : ndarray or list of ndarrays
         Labels to show sources in clusters. Sources with the same
         label and the waveforms within each cluster are presented in
@@ -1483,7 +1440,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     kwargs : kwargs
-        Keyword arguments to pass to mlab.triangular_mesh
+        Keyword arguments to pass to mlab.triangular_mesh.
     """
     if not isinstance(stcs, list):
         stcs = [stcs]
@@ -2025,8 +1982,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
         from .layouts.layout import _merge_grad_data
     for ii, data_, ax in zip(source_idx, data, axes):
         data_ = _merge_grad_data(data_) if merge_grads else data_
-        plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
-                     res=res, axis=ax)
+        plot_topomap(data_.flatten(), pos, vmax=vmax, res=res, axis=ax)
         ax.set_title('IC #%03d' % ii, fontsize=12)
         ax.set_yticks([])
         ax.set_xticks([])
@@ -2099,7 +2055,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
     ----------
     epochs : instance of Epochs
         The epochs
-    picks : int | array-like of int | None
+    picks : int | array of int | None
         The indices of the channels to consider. If None, all good
         data channels are plotted.
     sigma : float
@@ -2791,17 +2747,20 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # allow for raw objects without filename, e.g., ICA
     if title is None:
-        title = raw._filenames
-        if len(title) == 0:  # empty list or absent key
+        title = raw.info.get('filenames', None)  # should return a list
+        if not title:  # empty list or absent key
             title = '<unknown>'
-        elif len(title) == 1:
-            title = title[0]
-        else:  # if len(title) > 1:
-            title = '%s ... (+ %d more) ' % (title[0], len(title) - 1)
-            if len(title) > 60:
-                title = '...' + title[-60:]
+        else:
+            if len(title) > 1:
+                title = '<unknown>'
+            else:
+                title = title[0]
     elif not isinstance(title, string_types):
         raise TypeError('title must be None or a string')
+    if len(title) > 60:
+        title = '...' + title[-60:]
+    if len(raw.info['filenames']) > 1:
+        title += ' ... (+ %d more) ' % (len(raw.info['filenames']) - 1)
     if events is not None:
         events = events[:, 0].astype(float) - raw.first_samp
         events /= info['sfreq']
@@ -2812,13 +2771,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
-    pick_kwargs = dict(meg=False, exclude=[])
+    pick_args = dict(meg=False, exclude=[])
     for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
               'misc', 'chpi', 'syst', 'ias', 'exci']:
-        pick_kwargs[t] = True
-        inds += [pick_types(raw.info, **pick_kwargs)]
+        pick_args[t] = True
+        inds += [pick_types(raw.info, **pick_args)]
         types += [t] * len(inds[-1])
-        pick_kwargs[t] = False
+        pick_args[t] = False
     inds = np.concatenate(inds).astype(int)
     if not len(inds) == len(info['ch_names']):
         raise RuntimeError('Some channels not classified, please report '
@@ -3252,7 +3211,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
 
     Parameters
     ----------
-    raw : instance of fiff.Raw
+    raw : instance of io.Raw
         The raw instance to use.
     tmin : float
         Start time for calculations.
@@ -3266,7 +3225,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
         Apply projection.
     n_fft : int
         Number of points to use in Welch FFT calculations.
-    picks : array-like of int | None
+    picks : list | None
         List of channels to use. Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
         each standard channel type (`mag`, `grad`, and `eeg`).
@@ -3526,7 +3485,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     epoch_idx : array-like | int | None
         The epochs to visualize. If None, the first 20 epochs are shown.
         Defaults to None.
-    picks : array-like of int | None
+    picks : array-like | None
         Channels to be included. If None only good data channels are used.
         Defaults to None
     scalings : dict | None
@@ -3746,7 +3705,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     Parameters
     ----------
-    evoked : instance of mne.fiff.Evoked
+    evoked : instance of mne.io.Evoked
         The evoked object.
     surf_maps : list
         The surface mapping information obtained with make_field_map.

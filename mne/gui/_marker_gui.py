@@ -48,7 +48,7 @@ except:
 
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
-from ..fiff.kit import read_mrk, write_mrk
+from ..io.kit import read_mrk, write_mrk
 from ._viewer import HeadViewController, headview_borders, PointObject
 
 

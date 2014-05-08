@@ -15,7 +15,7 @@ from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
 from .filter import resample
-from .fiff.evoked import _get_peak
+from .io.evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)
@@ -1384,8 +1384,8 @@ class SourceEstimate(_BaseSourceEstimate):
         return brain
 
     @verbose
-    def morph(self, subject_to, grade=5, smooth=None,
-              subjects_dir=None, buffer_size=64, n_jobs=1, subject_from=None,
+    def morph(self, subject_to, grade=5, smooth=None, subjects_dir=None,
+              buffer_size=64, n_jobs=1, subject_from=None, sparse=False,
               verbose=None):
         """Morph a source estimate from one subject to another
 
@@ -1419,6 +1419,9 @@ class SourceEstimate(_BaseSourceEstimate):
         subject_from : string
             Name of the original subject as named in the SUBJECTS_DIR.
             If None, self.subject will be used.
+        sparse : bool
+            Morph as a sparse source estimate. If True the only
+            parameters used are subject_to and subject_from.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -1428,8 +1431,11 @@ class SourceEstimate(_BaseSourceEstimate):
             Source estimate for the destination subject.
         """
         subject_from = _check_subject(self.subject, subject_from)
-        return morph_data(subject_from, subject_to, self, grade, smooth,
-                          subjects_dir, buffer_size, n_jobs, verbose)
+        if sparse:
+            return _morph_sparse(self, subject_from, subject_to, subjects_dir)
+        else:
+            return morph_data(subject_from, subject_to, self, grade, smooth,
+                              subjects_dir, buffer_size, n_jobs, verbose)
 
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
                           subject_from=None):
@@ -1485,10 +1491,10 @@ class SourceEstimate(_BaseSourceEstimate):
             The vertex exhibiting the maximum response, either ID or index.
         latency : float | int
             The time point of the maximum response, either latency in seconds
-            or index.    
+            or index.
         """
         data = {'lh': self.lh_data, 'rh': self.rh_data, None: self.data}[hemi]
-        vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno, 
+        vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno,
                   None: np.concatenate(self.vertno)}[hemi]
 
         vert_idx, time_idx = _get_peak(data, self.times, tmin, tmax, mode)
@@ -1860,6 +1866,55 @@ def _get_subject_sphere_tris(subject, subjects_dir):
                             xh + '.sphere.reg') for xh in ['lh', 'rh']]
     tris = [read_surface(s)[1] for s in spheres]
     return tris
+
+
+def _sparse_argmax_nnz_row(csr_mat):
+    """Return index of the maximum non-zero index in each row
+    """
+    n_rows = csr_mat.shape[0]
+    idx = np.empty(n_rows, dtype=np.int)
+    for k in range(n_rows):
+        row = csr_mat[k].tocoo()
+        idx[k] = row.col[np.argmax(row.data)]
+    return idx
+
+
+def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
+    """Morph sparse source estimates to an other subject
+
+    Parameters
+    ----------
+    stc : SourceEstimate
+        The sparse STC.
+    subject_from : str
+        The subject on which stc is defined.
+    subject_to : str
+        The target subject.
+    subjects_dir : str
+        Path to SUBJECTS_DIR if it is not set in the environment.
+
+    Returns
+    -------
+    stc_morph : SourceEstimate
+        The morphed source estimates.
+    """
+    maps = read_morph_map(subject_to, subject_from, subjects_dir)
+    stc_morph = stc.copy()
+    stc_morph.subject = subject_to
+
+    cnt = 0
+    for k, hemi in enumerate(['lh', 'rh']):
+        map_hemi = maps[k]
+        vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertno[k]])
+        order = np.argsort(vertno_k)
+        n_active_hemi = len(vertno_k)
+        data_hemi = stc_morph._data[cnt:cnt + n_active_hemi]
+        stc_morph._data[cnt:cnt + n_active_hemi] = data_hemi[order]
+        stc_morph.vertno[k] = vertno_k[order]
+        cnt += n_active_hemi
+
+    return stc_morph
+
 
 
 @verbose

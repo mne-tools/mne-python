@@ -3,12 +3,12 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from mne import fiff
+from mne import io
 from mne.time_frequency import yule_walker, ar_raw
 from mne.utils import requires_statsmodels, requires_patsy
 
 
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
 @requires_patsy
@@ -27,10 +27,10 @@ def test_yule_walker():
 def test_ar_raw():
     """Test fitting AR model on raw data
     """
-    raw = fiff.Raw(raw_fname)
+    raw = io.Raw(raw_fname)
 
     # picks MEG gradiometers
-    picks = fiff.pick_types(raw.info, meg='grad', exclude='bads')
+    picks = io.pick_types(raw.info, meg='grad', exclude='bads')
 
     picks = picks[:2]
 

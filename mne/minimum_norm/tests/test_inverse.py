@@ -13,7 +13,7 @@ from mne.event import read_events
 from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import read_cov, read_forward_solution
-from mne.fiff import read_evokeds, Raw, pick_types
+from mne.io import read_evokeds, Raw, pick_types
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,

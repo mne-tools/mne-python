@@ -17,25 +17,25 @@ from nose.tools import assert_true, assert_raises
 from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout,
                          find_layout)
 
-from mne.fiff import Raw, pick_types, pick_info
-from mne.fiff.kit import read_raw_kit
+from mne.io import Raw, pick_types, pick_info
+from mne.io.kit import read_raw_kit
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')
 
-fif_fname = op.join(op.dirname(__file__), '..', '..', 'fiff',
+fif_fname = op.join(op.dirname(__file__), '..', '..', 'io',
                    'tests', 'data', 'test_raw.fif')
 
-lout_path = op.join(op.dirname(__file__), '..', '..', 'fiff',
+lout_path = op.join(op.dirname(__file__), '..', '..', 'io',
                     'tests', 'data')
 
-bti_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'bti',
+bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
                   'tests', 'data')
 
-fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                         'data', 'test_ctf_comp_raw.fif')
 
-fname_kit_157 = op.join(op.dirname(__file__), '..', '..', 'fiff', 'kit',
+fname_kit_157 = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
 test_info = {'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],

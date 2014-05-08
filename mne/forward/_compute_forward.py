@@ -10,12 +10,12 @@ from copy import deepcopy
 
 from ..surface import (fast_cross_3d, _find_nearest_tri_pt, _get_tri_supp_geom,
                        _triangle_coords)
-from ..fiff.constants import FIFF
+from ..io.constants import FIFF
 from ..transforms import apply_trans
 from ..utils import logger
 from ..parallel import parallel_func
-from ..fiff.compensator import get_current_comp, make_compensator
-from ..fiff.pick import pick_types
+from ..io.compensator import get_current_comp, make_compensator
+from ..io.pick import pick_types
 
 
 ##############################################################################

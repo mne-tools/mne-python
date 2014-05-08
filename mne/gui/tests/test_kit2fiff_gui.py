@@ -8,8 +8,8 @@ import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import assert_true, assert_false, assert_equal
 
-from mne.fiff.kit.tests import data_dir as kit_data_dir
-from mne.fiff import Raw
+from mne.io.kit.tests import data_dir as kit_data_dir
+from mne.io import Raw
 from mne.utils import _TempDir, requires_traits
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')

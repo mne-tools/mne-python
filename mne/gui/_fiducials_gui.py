@@ -45,7 +45,7 @@ except:
     NoButtons = trait_wraith
 
 from ..coreg import fid_fname, fid_fname_general, head_bem_fname
-from ..fiff import FIFF, write_fiducials
+from ..io import FIFF, write_fiducials
 from ..utils import get_subjects_dir, logger
 from ._file_traits import (BemSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
@@ -80,7 +80,6 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     subject = DelegatesTo('subject_source')
     subject_has_bem = DelegatesTo('subject_source')
     points = DelegatesTo('bem')
-    norms = DelegatesTo('bem')
     tris = DelegatesTo('bem')
     lpa = Array(float, (1, 3))
     nasion = Array(float, (1, 3))

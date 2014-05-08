@@ -3,13 +3,13 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from mne import fiff, Epochs, read_events
+from mne import io, Epochs, read_events
 from mne.time_frequency import induced_power, single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet
 
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
-event_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+event_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                       'data', 'test-eve.fif')
 
 
@@ -31,14 +31,14 @@ def test_time_frequency():
     tmax = 0.5
 
     # Setup for reading the raw data
-    raw = fiff.Raw(raw_fname)
+    raw = io.Raw(raw_fname)
     events = read_events(event_fname)
 
     include = []
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
-    picks = fiff.pick_types(raw.info, meg='grad', eeg=False,
+    picks = io.pick_types(raw.info, meg='grad', eeg=False,
                             stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]

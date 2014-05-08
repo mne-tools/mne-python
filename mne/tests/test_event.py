@@ -11,7 +11,7 @@ from mne import (read_events, write_events, make_fixed_length_events,
 from mne.utils import _TempDir
 from mne.event import define_target_events, merge_events
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-eve.fif')
 fname_gz = op.join(base_dir, 'test-eve.fif.gz')
 fname_1 = op.join(base_dir, 'test-eve-1.fif')
@@ -99,7 +99,7 @@ def test_find_events():
     """Test find events in raw file
     """
     events = read_events(fname)
-    raw = fiff.Raw(raw_fname, preload=True)
+    raw = io.Raw(raw_fname, preload=True)
     # let's test the defaulting behavior while we're at it
     extra_ends = ['', '_1']
     orig_envs = [os.getenv('MNE_STIM_CHANNEL%s' % s) for s in extra_ends]
@@ -114,7 +114,7 @@ def test_find_events():
     raw.info['sfreq'] = 1000
 
     stim_channel = 'STI 014'
-    stim_channel_idx = fiff.pick_channels(raw.info['ch_names'],
+    stim_channel_idx = io.pick_channels(raw.info['ch_names'],
                                       include=stim_channel)
 
     # test empty events channel
@@ -224,7 +224,7 @@ def test_find_events():
 def test_make_fixed_length_events():
     """Test making events of a fixed length
     """
-    raw = fiff.Raw(raw_fname)
+    raw = io.Raw(raw_fname)
     events = make_fixed_length_events(raw, id=1)
     assert_true(events.shape[1], 3)
 
@@ -233,7 +233,7 @@ def test_define_events():
     """Test defining response events
     """
     events = read_events(fname)
-    raw = fiff.Raw(raw_fname)
+    raw = io.Raw(raw_fname)
     events_, _ = define_target_events(events, 5, 32, raw.info['sfreq'],
                                       .2, 0.7, 42, 99)
     n_target = events[events[:, 2] == 5].shape[0]

@@ -10,13 +10,13 @@ import copy
 
 import numpy as np
 
-from ..fiff import pick_channels, pick_types
+from ..io import pick_channels, pick_types
 from ..utils import logger, verbose
 from ..baseline import rescale
 from ..epochs import _BaseEpochs
 from ..event import _find_events
 from ..filter import detrend
-from ..fiff.proj import setup_proj
+from ..io.proj import setup_proj
 
 
 class RtEpochs(_BaseEpochs):

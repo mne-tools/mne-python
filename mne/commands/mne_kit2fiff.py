@@ -12,7 +12,7 @@ import os
 import sys
 
 import mne
-from mne.fiff.kit import read_raw_kit
+from mne.io.kit import read_raw_kit
 
 if __name__ == '__main__':
 

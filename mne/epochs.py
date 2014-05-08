@@ -16,20 +16,20 @@ import json
 
 import numpy as np
 
-from .fiff.write import (start_file, start_block, end_file, end_block,
+from .io.write import (start_file, start_block, end_file, end_block,
                          write_int, write_float_matrix, write_float,
                          write_id, write_string)
-from .fiff.meas_info import read_meas_info, write_meas_info, _merge_info
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
-from .fiff.tag import read_tag
-from .fiff import Evoked, FIFF
-from .fiff.pick import (pick_types, channel_indices_by_type, channel_type,
+from .io.meas_info import read_meas_info, write_meas_info, _merge_info
+from .io.open import fiff_open
+from .io.tree import dir_tree_find
+from .io.tag import read_tag
+from .io import Evoked, FIFF
+from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                         pick_channels, pick_info)
-from .fiff.proj import setup_proj, ProjMixin
-from .fiff.channels import ContainsMixin, PickDropChannelsMixin
-from .fiff.evoked import aspect_rev
-from .fiff.base import _BaseRaw, _time_as_index, _index_as_time
+from .io.proj import setup_proj, ProjMixin
+from .io.channels import ContainsMixin, PickDropChannelsMixin
+from .io.evoked import aspect_rev
+from .io.base import _BaseRaw, _time_as_index, _index_as_time
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed)
@@ -255,7 +255,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        evoked : instance of mne.fiff.Evoked | None
+        evoked : instance of mne.io.Evoked | None
             The evoked response to subtract. If None, the evoked response
             is computed from Epochs itself.
 
@@ -640,7 +640,7 @@ class Epochs(_BaseEpochs):
             return
         elif not isinstance(raw, _BaseRaw):
             raise ValueError('The first argument to `Epochs` must be `None` '
-                             'or an instance of `mne.fiff.Raw`')
+                             'or an instance of `mne.io.Raw`')
         if on_missing not in ['error', 'warning', 'ignore']:
             raise ValueError('on_missing must be one of: error, '
                              'warning, ignore. Got: %s' % on_missing)

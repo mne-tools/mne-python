@@ -13,18 +13,18 @@ from mne import read_label, read_forward_solution
 from mne.time_frequency import morlet
 from mne.simulation import generate_sparse_stc, generate_evoked
 from mne import read_cov
-from mne.fiff import Raw, read_evokeds
-from mne.fiff.pick import pick_types_evoked, pick_types_forward
+from mne.io import Raw, read_evokeds
+from mne.io.pick import pick_types_evoked, pick_types_forward
 
 
 data_path = sample.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-eeg-oct-6-fwd.fif')
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test_raw.fif')
-ave_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+ave_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test-ave.fif')
-cov_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test-cov.fif')
 
 

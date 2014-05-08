@@ -14,10 +14,10 @@ import threading
 import numpy as np
 
 from ..utils import logger, verbose
-from ..fiff.constants import FIFF
-from ..fiff.meas_info import read_meas_info
-from ..fiff.tag import Tag, read_tag
-from ..fiff.tree import make_dir_tree
+from ..io.constants import FIFF
+from ..io.meas_info import read_meas_info
+from ..io.tag import Tag, read_tag
+from ..io.tree import make_dir_tree
 
 # Constants for fiff realtime fiff messages
 MNE_RT_GET_CLIENT_ID = 1

@@ -6,11 +6,11 @@ from os import path as op
 
 import mne
 
-from mne.fiff import Raw
+from mne.io import Raw
 from mne.utils import sum_squared
 from mne.time_frequency import compute_epochs_csd, induced_power
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 
@@ -21,7 +21,7 @@ def _get_data():
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
     # Set picks
-    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
+    picks = mne.io.pick_types(raw.info, meg=True, eeg=False, eog=False,
                                 stim=False, exclude='bads')
 
     # Read several epochs

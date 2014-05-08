@@ -43,7 +43,7 @@ except:
     Item = trait_wraith
     VGroup = trait_wraith
 
-from ..fiff import FIFF, Raw, read_fiducials
+from ..io import FIFF, Raw, read_fiducials
 from ..surface import read_bem_surfaces
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
@@ -232,7 +232,6 @@ class BemSource(HasTraits):
     """
     file = File(exists=True, filter=['*.fif'])
     points = Array(shape=(None, 3), value=np.empty((0, 3)))
-    norms = Array
     tris = Array(shape=(None, 3), value=np.empty((0, 3)))
 
     @on_trait_change('file')
@@ -240,11 +239,9 @@ class BemSource(HasTraits):
         if os.path.exists(self.file):
             bem = read_bem_surfaces(self.file)[0]
             self.points = bem['rr']
-            self.norms = bem['nn']
             self.tris = bem['tris']
         else:
             self.points = np.empty((0, 3))
-            self.norms = np.empty((0, 3))
             self.tris = np.empty((0, 3))
 
 

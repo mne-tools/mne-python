@@ -5,7 +5,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
 from mne.datasets import sample
-from mne import fiff, find_events, Epochs
+from mne import io, find_events, Epochs
 from mne.label import read_label
 from mne.minimum_norm.inverse import (read_inverse_operator,
                                       apply_inverse_epochs)
@@ -32,14 +32,14 @@ def test_tfr_with_inverse_operator():
     tmin, tmax, event_id = -0.2, 0.5, 1
 
     # Setup for reading the raw data
-    raw = fiff.Raw(fname_data)
+    raw = io.Raw(fname_data)
     events = find_events(raw, stim_channel='STI 014')
     inverse_operator = read_inverse_operator(fname_inv)
 
     raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
-    picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
+    picks = io.pick_types(raw.info, meg=True, eeg=False, eog=True,
                             stim=False, exclude='bads')
 
     # Load condition 1
@@ -85,7 +85,7 @@ def test_tfr_with_inverse_operator():
 @sample.requires_sample_data
 def test_source_psd():
     """Test source PSD computation in label"""
-    raw = fiff.Raw(fname_data)
+    raw = io.Raw(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
     tmin, tmax = 0, 20  # seconds
@@ -106,7 +106,7 @@ def test_source_psd():
 def test_source_psd_epochs():
     """Test multi-taper source PSD computation in label from epochs"""
 
-    raw = fiff.Raw(fname_data)
+    raw = io.Raw(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
 
@@ -115,7 +115,7 @@ def test_source_psd_epochs():
     bandwidth = 8.
     fmin, fmax = 0, 100
 
-    picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
+    picks = io.pick_types(raw.info, meg=True, eeg=False, stim=True,
                             ecg=True, eog=True, include=['STI 014'],
                             exclude='bads')
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)

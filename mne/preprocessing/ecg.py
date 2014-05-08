@@ -1,7 +1,7 @@
 from ..externals.six import string_types
 import numpy as np
 
-from ..fiff import pick_types, pick_channels
+from ..io import pick_types, pick_channels
 from ..utils import logger, verbose, sum_squared
 from ..filter import band_pass_filter
 

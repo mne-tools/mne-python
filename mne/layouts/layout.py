@@ -11,7 +11,7 @@ import os.path as op
 import numpy as np
 from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
-from ..fiff import FIFF, pick_types
+from ..io import FIFF, pick_types
 from ..utils import _clean_names
 from ..externals.six.moves import map
 
@@ -294,14 +294,14 @@ def find_layout(info=None, ch_type=None, chs=None):
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info | None
+    info : instance of mne.io.meas_info.Info | None
         The measurement info.
     ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
         Defaults to None. Note, this argument will only be considered for
         VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
-    chs : instance of mne.fiff.meas_info.Info | None
+    chs : instance of mne.io.meas_info.Info | None
         The measurement info. Defaults to None. This keyword is deprecated and
         will be removed in MNE-Python 0.9. Use `info` instead.
 

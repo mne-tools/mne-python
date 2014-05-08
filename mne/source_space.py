@@ -10,11 +10,11 @@ import os.path as op
 from scipy import sparse, linalg
 from copy import deepcopy
 
-from .fiff.constants import FIFF
-from .fiff.tree import dir_tree_find
-from .fiff.tag import find_tag, read_tag
-from .fiff.open import fiff_open
-from .fiff.write import (start_block, end_block, write_int,
+from .io.constants import FIFF
+from .io.tree import dir_tree_find
+from .io.tag import find_tag, read_tag
+from .io.open import fiff_open
+from .io.write import (start_block, end_block, write_int,
                          write_float_sparse_rcs, write_string,
                          write_float_matrix, write_int_matrix,
                          write_coord_trans, start_file, end_file, write_id)

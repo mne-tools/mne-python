@@ -18,19 +18,19 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from scipy import stats
 from itertools import product
 
-from mne import fiff, Epochs, read_events
+from mne import io, Epochs, read_events
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import score_funcs, _check_n_pca_components
-from mne.fiff.meas_info import Info
+from mne.io.meas_info import Info
 from mne.utils import set_log_file, check_sklearn_version, _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 tempdir = _TempDir()
 
-data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 evoked_nf_name = op.join(data_dir, 'test-nf-ave.fif')
@@ -65,9 +65,9 @@ def requires_sklearn(function):
 def test_ica_full_data_recovery():
     """Test recovery of full data when no source is rejected"""
     # Most basic recovery
-    raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     events = read_events(event_name)
-    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
@@ -106,13 +106,13 @@ def test_ica_full_data_recovery():
 def test_ica_core():
     """Test ICA on raw and epochs
     """
-    raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
-    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     # XXX. The None cases helped revealing bugs but are time consuming.
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
-    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
@@ -188,17 +188,17 @@ def test_ica_additional():
     """Test additional ICA functionality
     """
     stop2 = 500
-    raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
-    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
-    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     # for testing eog functionality
-    picks2 = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks2 = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
                              eog=True, exclude='bads')
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                         baseline=(None, 0), preload=True)
@@ -385,7 +385,7 @@ def test_ica_additional():
     test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
     ica.n_components = np.int32(ica.n_components)
     ica_raw.save(test_ica_fname, overwrite=True)
-    ica_raw2 = fiff.Raw(test_ica_fname, preload=True)
+    ica_raw2 = io.Raw(test_ica_fname, preload=True)
     assert_allclose(ica_raw._data, ica_raw2._data, rtol=1e-5, atol=1e-4)
     ica_raw2.close()
     os.remove(test_ica_fname)
@@ -412,7 +412,7 @@ def test_ica_additional():
 @requires_sklearn
 def test_run_ica():
     """Test run_ica function"""
-    raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     params = []
     params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
@@ -425,8 +425,8 @@ def test_run_ica():
 @requires_sklearn
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
-    raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
-    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4)
     raw._data[2, 1000:1005] = 5e-12
@@ -441,8 +441,8 @@ def test_ica_reject_buffer():
 @requires_sklearn
 def test_ica_twice():
     """Test running ICA twice"""
-    raw = fiff.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
-    picks = fiff.pick_types(raw.info, meg='grad', exclude='bads')
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    picks = io.pick_types(raw.info, meg='grad', exclude='bads')
     n_components = 0.9
     max_pca_components = None
     n_pca_components = 1.1

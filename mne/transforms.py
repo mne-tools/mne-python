@@ -9,11 +9,11 @@ from numpy import sin, cos
 from scipy import linalg
 from copy import deepcopy
 
-from .fiff import FIFF
-from .fiff.open import fiff_open
-from .fiff.tag import read_tag, find_tag
-from .fiff.tree import dir_tree_find
-from .fiff.write import (start_file, end_file, start_block, end_block,
+from .io import FIFF
+from .io.open import fiff_open
+from .io.tag import read_tag, find_tag
+from .io.tree import dir_tree_find
+from .io.write import (start_file, end_file, start_block, end_block,
                          write_coord_trans, write_dig_point, write_int)
 from .utils import logger
 from .externals.six import string_types

@@ -10,7 +10,7 @@ import os
 from os import path as op
 import numpy as np
 
-from ..fiff import read_info, pick_types, pick_info, FIFF, _has_kit_refs
+from ..io import read_info, pick_types, pick_info, FIFF, _has_kit_refs
 from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (invert_transform, transform_surface_to,
@@ -169,7 +169,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info | str
+    info : instance of mne.io.meas_info.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).

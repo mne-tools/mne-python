@@ -7,15 +7,15 @@ from mne.realtime import MockRtClient, RtEpochs
 from nose.tools import assert_true
 from numpy.testing import assert_array_equal
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 
-raw = mne.fiff.Raw(raw_fname, preload=True, verbose=False)
+raw = mne.io.Raw(raw_fname, preload=True, verbose=False)
 
 events = read_events(event_name)
 
-picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = mne.io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=True, exclude=raw.info['bads'])
 
 

@@ -11,15 +11,15 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from . import fiff
+from . import io
 from .utils import logger, verbose
-from .fiff.write import start_file, end_file
-from .fiff.proj import (make_projector, proj_equal, activate_proj,
+from .io.write import start_file, end_file
+from .io.proj import (make_projector, proj_equal, activate_proj,
                         _has_eeg_average_ref_proj)
-from .fiff import fiff_open
-from .fiff.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
+from .io import fiff_open
+from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
                         pick_channels)
-from .fiff.constants import FIFF
+from .io.constants import FIFF
 from .epochs import _is_good
 from .externals.six.moves import zip
 
@@ -58,7 +58,7 @@ class Covariance(dict):
 
         # Reading
         fid, tree, _ = fiff_open(fname)
-        self.update(fiff.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
+        self.update(io.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
         fid.close()
 
     @property
@@ -78,7 +78,7 @@ class Covariance(dict):
         fid = start_file(fname)
 
         try:
-            fiff.write_cov(fid, self)
+            io.write_cov(fid, self)
         except Exception as inst:
             os.remove(fname)
             raise inst

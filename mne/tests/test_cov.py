@@ -15,13 +15,13 @@ from mne.cov import regularize, whiten_evoked
 from mne import (read_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
                  compute_covariance)
-from mne.fiff import (Raw, pick_channels_cov, pick_channels, read_evokeds,
+from mne.io import (Raw, pick_channels_cov, pick_channels, read_evokeds,
                       pick_types)
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 cov_gz_fname = op.join(base_dir, 'test-cov.fif.gz')
 cov_km_fname = op.join(base_dir, 'test-km-cov.fif')

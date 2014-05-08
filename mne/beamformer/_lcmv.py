@@ -11,9 +11,9 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from ..fiff.constants import FIFF
-from ..fiff.proj import make_projector
-from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
+from ..io.constants import FIFF
+from ..io.proj import make_projector
+from ..io.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener, compute_covariance
@@ -379,7 +379,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 
     Parameters
     ----------
-    raw : mne.fiff.Raw
+    raw : mne.io.Raw
         Raw data to invert.
     forward : dict
         Forward operator.

@@ -12,7 +12,7 @@ from nose.tools import (assert_equal, assert_almost_equal, assert_false,
 
 import mne
 from mne.datasets import sample
-from mne.fiff.kit.tests import data_dir as kit_data_dir
+from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
 
 

@@ -9,16 +9,16 @@ import copy as cp
 
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw, pick_types
+from mne.io import Raw, pick_types
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
-from mne.fiff.proj import make_projector, activate_proj
+from mne.io.proj import make_projector, activate_proj
 from mne.proj import read_proj, write_proj, make_eeg_average_ref_proj
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 proj_fname = op.join(base_dir, 'test_proj.fif')
