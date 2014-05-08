@@ -129,7 +129,7 @@ Functions:
    write_surface
    write_trans
 
-.. currentmodule:: mne.io.bti
+.. currentmodule:: mne.io
 
 :py:mod:`mne.io.bti`:
 
@@ -140,6 +140,10 @@ Functions:
   :template: function.rst
 
   read_raw_bti
+  read_raw_edf
+  read_raw_kit
+  read_raw_brainvision
+  read_raw_egi
 
 .. currentmodule:: mne.io.kit
 
@@ -149,44 +153,11 @@ Functions:
   :toctree: generated/
   :template: function.rst
 
-   read_raw_kit
    read_elp
    read_hsp
    read_mrk
    write_hsp
    write_mrk
-
-.. currentmodule:: mne.io.edf
-
-:py:mod:`mne.io.edf`:
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-   read_raw_edf
-
-.. currentmodule:: mne.io.brainvision
-
-:py:mod:`mne.io.brainvision`:
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-   read_raw_brainvision
-
-.. currentmodule:: mne.io.egi
-
-:py:mod:`mne.io.egi`:
-
-Functions:
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-  read_raw_egi
 
 .. currentmodule:: mne.io.array
 
