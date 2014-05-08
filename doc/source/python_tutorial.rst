@@ -105,7 +105,7 @@ Access raw data
 
 Read data from file:
 
-    >>> raw = mne.fiff.Raw(raw_fname) # doctest:+ELLIPSIS
+    >>> raw = mne.io.Raw(raw_fname) # doctest:+ELLIPSIS
     Opening raw data ...
     Ready.
     >>> print(raw)
@@ -138,7 +138,7 @@ Read and plot a segment of raw data
 
 Save a segment of 150s of raw data (MEG only):
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
+    >>> picks = mne.io.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
     >>> raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks, overwrite=True) # doctest: +ELLIPSIS
     Reading ...
 
@@ -182,12 +182,12 @@ The variable raw.info['bads'] is just a python list.
 
 Pick the good channels, excluding raw.info['bads']:
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude='bads')
+    >>> picks = mne.io.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude='bads')
 
 Alternatively one can restrict to magnetometers or gradiometers with:
 
-    >>> mag_picks = mne.fiff.pick_types(raw.info, meg='mag', eog=True, exclude='bads')
-    >>> grad_picks = mne.fiff.pick_types(raw.info, meg='grad', eog=True, exclude='bads')
+    >>> mag_picks = mne.io.pick_types(raw.info, meg='mag', eog=True, exclude='bads')
+    >>> grad_picks = mne.io.pick_types(raw.info, meg='grad', eog=True, exclude='bads')
 
 Define the baseline period:
 
@@ -255,7 +255,7 @@ Compute evoked responses for auditory responses by averaging and plot it:
 It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-    >>> evoked1 = mne.fiff.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
+    >>> evoked1 = mne.io.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
     Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
@@ -271,7 +271,7 @@ It is also possible to read evoked data stored in a fif file:
 
 Or another one stored in the same file:
 
-    >>> evoked2 = mne.fiff.read_evokeds(evoked_fname, condition='Right Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
+    >>> evoked2 = mne.io.read_evokeds(evoked_fname, condition='Right Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
     Reading ...
 
 Compute a contrast:
