@@ -2747,7 +2747,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # allow for raw objects without filename, e.g., ICA
     if title is None:
-        title = raw.info.get('filenames', None)  # should return a list
+        title = raw._filenames  # should be None or a list
         if not title:  # empty list or absent key
             title = '<unknown>'
         else:
@@ -2759,8 +2759,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         raise TypeError('title must be None or a string')
     if len(title) > 60:
         title = '...' + title[-60:]
-    if len(raw.info['filenames']) > 1:
-        title += ' ... (+ %d more) ' % (len(raw.info['filenames']) - 1)
+    if raw._filenames and len(raw._filenames) > 1:
+        title += ' ... (+ %d more) ' % (len(raw._filenames) - 1)
     if events is not None:
         events = events[:, 0].astype(float) - raw.first_samp
         events /= info['sfreq']
