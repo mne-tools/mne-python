@@ -930,9 +930,10 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
         meth_1 = 'os.environ["%s"] = VALUE' % key
         meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
         raise KeyError('Key "%s" not found in environment or in the '
-                       'mne-python config file:\n%s\nTry either:\n'
-                       '    %s\nfor a temporary solution, or:\n'
-                       '    %s\nfor a permanent one. You can also '
+                       'mne-python config file: %s '
+                       'Try either:'
+                       ' %s for a temporary solution, or:'
+                       ' %s for a permanent one. You can also '
                        'set the environment variable before '
                        'running python.'
                        % (key, config_path, meth_1, meth_2))
