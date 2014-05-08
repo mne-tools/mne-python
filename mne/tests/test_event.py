@@ -7,7 +7,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_raises)
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, find_stim_steps, fiff)
+                 find_events, find_stim_steps, io)
 from mne.utils import _TempDir
 from mne.event import define_target_events, merge_events
 
