@@ -19,6 +19,7 @@ from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
+from mne.constants import FIFF
 from mne.utils import check_sklearn_version
 
 
@@ -499,7 +500,7 @@ def test_plot_topomap():
         plot_projs_topomap(projs)
         plt.close('all')
         for ch in evoked.info['chs']:
-            if ch['coil_type'] == io.FIFF.FIFFV_COIL_EEG:
+            if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
                 if ch['eeg_loc'] is not None:
                     ch['eeg_loc'].fill(0)
                 ch['loc'].fill(0)

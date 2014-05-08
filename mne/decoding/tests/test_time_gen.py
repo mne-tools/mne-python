@@ -7,7 +7,7 @@ import os.path as op
 
 from nose.tools import assert_true
 
-from mne import io, Epochs, read_events
+from mne import io, Epochs, read_events, pick_types
 from mne.utils import _TempDir, requires_sklearn
 from mne.decoding import time_generalization
 

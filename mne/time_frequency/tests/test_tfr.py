@@ -3,7 +3,7 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from mne import io, Epochs, read_events
+from mne import io, Epochs, read_events, pick_types
 from mne.time_frequency import induced_power, single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet
 

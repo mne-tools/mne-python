@@ -14,7 +14,7 @@ print(__doc__)
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import (read_proj, read_forward_solution, read_cov, read_label
+from mne import (read_proj, read_forward_solution, read_cov, read_label,
                  pick_types_evoked, pick_types_forward, pick_types)
 from mne.io import read_evokeds, Raw
 from mne.datasets import sample
