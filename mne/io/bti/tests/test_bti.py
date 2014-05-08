@@ -12,7 +12,8 @@ from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.io import Raw as Raw
 from mne.io.bti.bti import (_read_config, _setup_head_shape,
-                              read_raw_bti, _read_data, _read_bti_header)
+                            _read_data, _read_bti_header)
+from mne.io import read_raw_bti
 from mne.utils import _TempDir
 from functools import reduce
 

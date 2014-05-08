@@ -26,6 +26,12 @@ from . import egi
 from . import fiff
 from . import kit
 
+from .brainvision import read_raw_brainvision
+from .bti import read_raw_bti
+from .edf import read_raw_edf
+from .egi import read_raw_egi
+from .kit import read_raw_kit
+
 # for backward compatibility
 from .fiff import RawFIFF
 from .fiff import RawFIFF as Raw

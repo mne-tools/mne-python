@@ -10,7 +10,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne import find_events
-from mne.io.egi import read_raw_egi, _combine_triggers
+from mne.io import read_raw_egi
+from mne.io.egi import _combine_triggers
 from mne.io import pick_types, Raw
 from mne.utils import _TempDir
 

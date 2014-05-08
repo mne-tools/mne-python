@@ -12,7 +12,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 import scipy.io
 from mne.utils import _TempDir
 from mne.io import Raw, pick_types
-from mne.io.kit import read_raw_kit
+from mne.io import read_raw_kit
 from mne.io.kit.coreg import read_sns
 
 FILE = inspect.getfile(inspect.currentframe())

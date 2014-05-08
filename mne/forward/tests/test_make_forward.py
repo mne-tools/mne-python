@@ -9,8 +9,8 @@ from numpy.testing import (assert_equal, assert_allclose)
 
 from mne.datasets import sample
 from mne.io import Raw
-from mne.io.kit import read_raw_kit
-from mne.io.bti import read_raw_bti
+from mne.io import read_raw_kit
+from mne.io import read_raw_bti
 from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
                  convert_forward_solution)

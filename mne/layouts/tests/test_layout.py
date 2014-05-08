@@ -18,7 +18,7 @@ from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout,
                          find_layout)
 
 from mne.io import Raw, pick_types, pick_info
-from mne.io.kit import read_raw_kit
+from mne.io import read_raw_kit
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')
