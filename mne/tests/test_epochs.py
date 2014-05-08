@@ -14,7 +14,7 @@ import numpy as np
 import copy as cp
 import warnings
 
-from mne import (fiff, Epochs, read_events, pick_events, read_epochs,
+from mne import (io, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels)
 from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
                         add_channels_epochs)
@@ -22,7 +22,6 @@ from mne.utils import (_TempDir, requires_pandas, requires_nitime,
                        clean_warning_registry)
 
 from mne.io import read_evokeds
-from mne.io.channels import ContainsMixin
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.externals.six.moves import zip
