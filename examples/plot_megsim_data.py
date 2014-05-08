@@ -47,5 +47,5 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 evoked.plot()
 
 # Compare to the simulated data
-evoked_sim = read_evokeds(evoked_fnames[0])
+evoked_sim = read_evokeds(evoked_fnames[0], condition=0)
 evoked_sim.plot()
