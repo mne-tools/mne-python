@@ -1868,14 +1868,14 @@ def _get_subject_sphere_tris(subject, subjects_dir):
     return tris
 
 
-def _sparse_argmin_nnz_row(csr_mat):
-    """Return index of the minimum non-zero index in each row
+def _sparse_argmax_nnz_row(csr_mat):
+    """Return index of the maximum non-zero index in each row
     """
     n_rows = csr_mat.shape[0]
     idx = np.empty(n_rows, dtype=np.int)
     for k in range(n_rows):
         row = csr_mat[k].tocoo()
-        idx[k] = row.col[np.argmin(row.data)]
+        idx[k] = row.col[np.argmax(row.data)]
     return idx
 
 
@@ -1885,9 +1885,9 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
     Parameters
     ----------
     stc : SourceEstimate
-        The sparse STC
+        The sparse STC.
     subject_from : str
-        The subject on which stc is defined
+        The subject on which stc is defined.
     subject_to : str
         The target subject.
     subjects_dir : str
@@ -1905,7 +1905,7 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
     cnt = 0
     for k, hemi in enumerate(['lh', 'rh']):
         map_hemi = maps[k]
-        vertno_k = _sparse_argmin_nnz_row(map_hemi[stc.vertno[k]])
+        vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertno[k]])
         order = np.argsort(vertno_k)
         n_active_hemi = len(vertno_k)
         data_hemi = stc_morph._data[cnt:cnt + n_active_hemi]
