@@ -162,10 +162,3 @@ def test_coreg_model_with_fsaverage():
     assert_equal(model.hsp.n_omitted, 1)
     model.hsp.file = kit_raw_path
     assert_equal(model.hsp.n_omitted, 0)
-
-    # test grow_hair
-    head_shape = model.processed_mri_points.copy()
-    model.grow_hair = 10.
-    assert_false(np.array_equal(model.processed_mri_points, head_shape))
-    model.grow_hair = 0.
-    assert_array_equal(model.processed_mri_points, head_shape)
