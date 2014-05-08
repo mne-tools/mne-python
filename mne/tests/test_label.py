@@ -30,7 +30,7 @@ src_fname = op.join(data_path, 'MEG', 'sample',
 src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
 
-test_path = op.join(op.split(__file__)[0], '..', 'fiff', 'tests', 'data')
+test_path = op.join(op.split(__file__)[0], '..', 'io', 'tests', 'data')
 label_fname = op.join(test_path, 'test-lh.label')
 label_rh_fname = op.join(test_path, 'test-rh.label')
 tempdir = _TempDir()

@@ -43,7 +43,8 @@ except:
     Item = trait_wraith
     VGroup = trait_wraith
 
-from ..fiff import FIFF, Raw, read_fiducials
+from ..constants import FIFF
+from ..io import Raw, read_fiducials
 from ..surface import read_bem_surfaces
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)

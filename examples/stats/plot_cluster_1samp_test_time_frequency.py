@@ -25,7 +25,7 @@ print(__doc__)
 import numpy as np
 
 import mne
-from mne import fiff
+from mne import io
 from mne.time_frequency import single_trial_power
 from mne.stats import permutation_cluster_1samp_test
 from mne.datasets import sample
@@ -39,14 +39,14 @@ tmin = -0.3
 tmax = 0.6
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 include = []
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                         stim=False, include=include, exclude='bads')
 
 # Load condition 1

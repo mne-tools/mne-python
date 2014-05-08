@@ -14,12 +14,12 @@ from scipy.spatial.distance import cdist
 from scipy import sparse
 from fnmatch import fnmatch
 
-from .fiff.channels import _get_meg_system
-from .fiff.constants import FIFF
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
-from .fiff.tag import find_tag
-from .fiff.write import (write_int, write_float, write_float_matrix,
+from .io.channels import _get_meg_system
+from .constants import FIFF
+from .io.open import fiff_open
+from .io.tree import dir_tree_find
+from .io.tag import find_tag
+from .io.write import (write_int, write_float, write_float_matrix,
                          write_int_matrix, start_file, end_block,
                          start_block, end_file, write_string,
                          write_float_sparse_rcs)
@@ -343,7 +343,7 @@ def get_meg_helmet_surf(info, trans=None):
 
     Parameters
     ----------
-    info : instance of fiff.meas_info.Info
+    info : instance of io.meas_info.Info
         Measurement info.
     trans : dict
         The head<->MRI transformation, usually obtained using
@@ -1035,7 +1035,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     left_map, right_map : sparse matrix
         The morph maps for the 2 hemispheres.
     """
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # First check for morph-map dir existence
     mmap_dir = op.join(subjects_dir, 'morph-maps')

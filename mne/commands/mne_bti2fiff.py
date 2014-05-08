@@ -26,7 +26,7 @@ appear in the channel names of the raw object.
 
 import sys
 
-from mne.fiff.bti import read_raw_bti
+from mne.io import read_raw_bti
 
 
 if __name__ == '__main__':

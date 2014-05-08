@@ -17,7 +17,7 @@ evoked data and then saved to disk.
 print(__doc__)
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 from mne.epochs import combine_event_ids
 data_path = sample.data_path()
@@ -31,7 +31,7 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
@@ -39,7 +39,7 @@ include = []  # or stim channels ['STI 014']
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 # pick EEG channels
-picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=True,
                         include=include, exclude='bads')
 # Read epochs
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax, picks=picks,
@@ -54,7 +54,7 @@ combine_event_ids(epochs, ['VisL', 'VisR'], {'Visual': 34}, copy=False)
 evokeds = [epochs[cond].average() for cond in ['Auditory', 'Visual']]
 
 # save evoked data to disk
-fiff.write_evokeds('sample_auditory_and_visual_eeg-ave.fif', evokeds)
+io.write_evokeds('sample_auditory_and_visual_eeg-ave.fif', evokeds)
 
 ###############################################################################
 # View evoked response

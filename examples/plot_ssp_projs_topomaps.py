@@ -15,7 +15,7 @@ print(__doc__)
 
 import matplotlib.pyplot as plt
 from mne import read_proj, find_layout
-from mne.fiff import read_evokeds
+from mne.io import read_evokeds
 from mne.datasets import sample
 from mne import viz
 data_path = sample.data_path()

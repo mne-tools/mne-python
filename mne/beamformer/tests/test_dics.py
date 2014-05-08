@@ -34,7 +34,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)[:10]
-    raw = mne.fiff.Raw(fname_raw, preload=False)
+    raw = mne.io.Raw(fname_raw, preload=False)
     forward = mne.read_forward_solution(fname_fwd)
     if read_all_forward:
         forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
@@ -53,7 +53,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
 
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False,
+    picks = mne.pick_types(raw.info, meg=True, eeg=False,
                                 stim=True, eog=True, exclude='bads',
                                 selection=left_temporal_channels)
 

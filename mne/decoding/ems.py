@@ -8,7 +8,7 @@ import numpy as np
 from ..utils import logger, verbose
 from ..fixes import Counter
 from ..parallel import parallel_func
-from ..fiff import pick_types, pick_info
+from .. import pick_types, pick_info
 
 
 @verbose
