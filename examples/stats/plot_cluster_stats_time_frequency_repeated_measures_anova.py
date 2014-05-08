@@ -29,7 +29,7 @@ print(__doc__)
 import numpy as np
 
 import mne
-from mne import fiff
+from mne import io
 from mne.time_frequency import single_trial_power
 from mne.stats import f_threshold_twoway_rm, f_twoway_rm, fdr_correction
 from mne.datasets import sample
@@ -44,14 +44,14 @@ tmin = -0.2
 tmax = 0.5
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
 raw.info['bads'] += ['MEG 2443']  # bads
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                         stim=False, include=include, exclude='bads')
 
 ch_name = raw.info['ch_names'][picks[0]]

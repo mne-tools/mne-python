@@ -25,13 +25,13 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 proj_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
 
-raw = mne.fiff.Raw(raw_fname)
+raw = mne.io.Raw(raw_fname)
 proj = mne.read_proj(proj_fname)
 raw.info['projs'] += proj
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
 
 # Set up pick list: Gradiometers - bad channels
-picks = mne.fiff.pick_types(raw.info, meg='grad', exclude='bads')
+picks = mne.io.pick_types(raw.info, meg='grad', exclude='bads')
 
 order = 5  # define model order
 picks = picks[:5]

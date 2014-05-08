@@ -22,8 +22,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne import fiff
-from mne.fiff import Raw
+from mne import io
+from mne.io import Raw
 from mne.datasets import spm_face
 from mne.decoding import time_generalization
 
@@ -37,7 +37,7 @@ raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
 raw = Raw(raw_fname % 1, preload=True)  # Take first run
 raw.append(Raw(raw_fname % 2, preload=True))  # Take second run too
 
-picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
+picks = mne.io.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
@@ -45,7 +45,7 @@ event_id = {"faces": 1, "scrambled": 2}
 tmin, tmax = -0.1, 0.5
 
 # Set up pick list
-picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
+picks = io.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
                         ref_meg=False, exclude='bads')
 
 # Read epochs

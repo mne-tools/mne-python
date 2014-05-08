@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw, pick_types
+from mne.io import Raw, pick_types
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.minimum_norm import apply_inverse
 

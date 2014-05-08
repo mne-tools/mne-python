@@ -19,7 +19,7 @@ print(__doc__)
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, apply_inverse
-from mne.fiff import read_evokeds
+from mne.io import read_evokeds
 
 data_path = sample.data_path()
 label = 'Aud-lh'

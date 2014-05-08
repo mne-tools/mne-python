@@ -19,7 +19,7 @@ print(__doc__)
 import matplotlib.pyplot as plt
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 data_path = sample.data_path()
 
@@ -30,12 +30,12 @@ event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
+picks = io.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
                         exclude='bads')
 
 # Read epochs

@@ -11,7 +11,7 @@ Export evoked data to Nitime
 
 print(__doc__)
 
-from mne.fiff import read_evokeds, pick_types
+from mne.io import read_evokeds, pick_types
 from mne.datasets import sample
 from nitime.viz import plot_tseries
 import matplotlib.pyplot as plt

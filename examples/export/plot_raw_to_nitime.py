@@ -17,7 +17,7 @@ print(__doc__)
 import numpy as np
 import mne
 
-from mne.fiff import Raw
+from mne.io import Raw
 from mne.datasets import sample
 
 data_path = sample.data_path()
@@ -28,7 +28,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = Raw(raw_fname)
 
 # set picks
-picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
+picks = mne.io.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
 # pick times relative to the onset of the MEG measurement.

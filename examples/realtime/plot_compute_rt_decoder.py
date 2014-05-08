@@ -25,7 +25,7 @@ import matplotlib.pyplot as plt
 # Fiff file to simulate the realtime client
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.fiff.Raw(raw_fname, preload=True)
+raw = mne.io.Raw(raw_fname, preload=True)
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -34,7 +34,7 @@ tr_percent = 60  # Training percentage
 min_trials = 10  # minimum trials after which decoding should start
 
 # select gradiometers
-picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = mne.io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=True, exclude=raw.info['bads'])
 
 # create the mock-client object

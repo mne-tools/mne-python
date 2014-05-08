@@ -21,7 +21,7 @@ import mne
 
 from mne.viz import iter_topography
 from mne.fixes import partial
-from mne import fiff
+from mne import io
 from mne.time_frequency import compute_raw_psd
 
 import matplotlib.pyplot as plt
@@ -30,10 +30,10 @@ from mne.datasets import sample
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
-raw = fiff.Raw(raw_fname, preload=True)
+raw = io.Raw(raw_fname, preload=True)
 raw.filter(1, 20)
 
-picks = fiff.pick_types(raw.info, meg=True, exclude=[])
+picks = io.pick_types(raw.info, meg=True, exclude=[])
 tmin, tmax = 0, 120  # use the first 120s of data
 fmin, fmax = 2, 20  # look at frequencies between 2 and 20Hz
 n_fft = 2048  # the FFT size (NFFT). Ideally a power of 2

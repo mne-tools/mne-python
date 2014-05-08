@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_psd
 ###############################################################################
@@ -28,7 +28,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 tmin, tmax, event_id = -1., 1., 1
@@ -36,7 +36,7 @@ include = []
 raw.info['bads'] += ['MEG 2443']  # bads
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                         stim=False, include=include, exclude='bads')
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=True,

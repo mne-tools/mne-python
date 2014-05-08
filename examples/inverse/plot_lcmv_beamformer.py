@@ -19,7 +19,7 @@ import numpy as np
 
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw, pick_types
+from mne.io import Raw, pick_types
 from mne.beamformer import lcmv
 
 data_path = sample.data_path()

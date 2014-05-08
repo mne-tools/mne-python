@@ -12,7 +12,7 @@ print(__doc__)
 
 import matplotlib.pyplot as plt
 from mne.viz import tight_layout
-from mne.fiff import read_evokeds, pick_channels
+from mne.io import read_evokeds, pick_channels
 from mne.datasets import sample
 
 data_path = sample.data_path()

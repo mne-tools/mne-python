@@ -17,7 +17,7 @@ print(__doc__)
 import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import fiff, read_proj, read_selection
+from mne import io, read_proj, read_selection
 from mne.datasets import sample
 
 ###############################################################################
@@ -27,7 +27,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 proj_fname = data_path + '/MEG/sample/sample_audvis_eog_proj.fif'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname, preload=True)
+raw = io.Raw(raw_fname, preload=True)
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # Add SSP projection vectors to reduce EOG and ECG artifacts
@@ -47,7 +47,7 @@ raw.plot_psds(area_mode='range', tmax=10.0)
 # Now let's focus on a smaller subset:
 # Pick MEG magnetometers in the Left-temporal region
 selection = read_selection('Left-temporal')
-picks = fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False,
+picks = io.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                         stim=False, exclude='bads', selection=selection)
 
 # Let's just look at the first few channels for demonstration purposes

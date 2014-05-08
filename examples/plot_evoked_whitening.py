@@ -18,7 +18,7 @@ print(__doc__)
 
 from mne import read_cov, whiten_evoked
 from mne.cov import regularize
-from mne.fiff import read_evokeds, pick_types
+from mne.io import read_evokeds, pick_types
 from mne.datasets import sample
 
 data_path = sample.data_path()

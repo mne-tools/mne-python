@@ -18,7 +18,7 @@ dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 print(__doc__)
 
 import mne
-from mne.fiff import Raw
+from mne.io import Raw
 from mne.event import make_fixed_length_events
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
@@ -43,7 +43,7 @@ raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 # to speed up the example. For a solution based on all MEG channels use
 # meg=True, selection=None and add mag=4e-12 to the reject dictionary.
 left_temporal_channels = mne.read_selection('Left-temporal')
-picks = mne.fiff.pick_types(raw.info, meg='mag', eeg=False, eog=False,
+picks = mne.io.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                             stim=False, exclude='bads',
                             selection=left_temporal_channels)
 reject = dict(mag=4e-12)

@@ -15,7 +15,7 @@ print(__doc__)
 import numpy as np
 import matplotlib.pyplot as plt
 import mne
-from mne import fiff
+from mne import io
 from mne.time_frequency import induced_power
 from mne.viz import plot_topo_power, plot_topo_phase_lock
 from mne.datasets import sample
@@ -27,14 +27,14 @@ event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                         stim=False, include=include, exclude='bads')
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,

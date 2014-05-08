@@ -20,7 +20,7 @@ print(__doc__)
 import mne
 import os
 import numpy as np
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 
@@ -44,13 +44,13 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_r=2, vis_r=4)  # load contra-lateral conditions
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname, preload=True)
+raw = io.Raw(raw_fname, preload=True)
 raw.filter(2, None, method='iir')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 # Set up pick list: MEG - bad channels (modify to your needs)
 raw.info['bads'] += ['MEG 2443']  # mark bads
-picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
+picks = io.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
                         exclude='bads')
 
 # Read epochs

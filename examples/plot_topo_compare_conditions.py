@@ -21,7 +21,7 @@ print(__doc__)
 import matplotlib.pyplot as plt
 import mne
 
-from mne.fiff import Raw, pick_types
+from mne.io import Raw, pick_types
 from mne.viz import plot_topo
 from mne.datasets import sample
 data_path = sample.data_path()

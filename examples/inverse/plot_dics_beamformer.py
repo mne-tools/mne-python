@@ -23,7 +23,7 @@ import mne
 import matplotlib.pyplot as plt
 import numpy as np
 
-from mne.fiff import Raw
+from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
 from mne.beamformer import dics
@@ -42,7 +42,7 @@ raw = Raw(raw_fname)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
 # Set picks
-picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
+picks = mne.io.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
 # Read epochs

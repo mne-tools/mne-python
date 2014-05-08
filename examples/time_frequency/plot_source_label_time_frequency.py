@@ -20,7 +20,7 @@ print(__doc__)
 import numpy as np
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, source_induced_power
 
@@ -35,7 +35,7 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 tmin, tmax, event_id = -0.2, 0.5, 2
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 inverse_operator = read_inverse_operator(fname_inv)
 
@@ -43,7 +43,7 @@ include = []
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # Picks MEG channels
-picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
+picks = io.pick_types(raw.info, meg=True, eeg=False, eog=True,
                         stim=False, include=include, exclude='bads')
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
