@@ -3880,8 +3880,8 @@ def plot_events(events, sfreq, first_samp=0, color=None, show=True):
     """
     unique_events = np.unique(events[:, 2])
     if color is None:
-        color = COLORS
-        if len(unique_events) > len(color):
+        colors = cycle(COLORS)
+        if len(unique_events) > len(COLORS):
             warnings.warn('More events than colors available.'
                           'You should pass a list of unique colors.')
 
@@ -3891,8 +3891,9 @@ def plot_events(events, sfreq, first_samp=0, color=None, show=True):
     max_event = np.max(events[:, 2])
     for idx, ev in enumerate(unique_events):
         ev_mask = (events[:, 2] == ev)
+        color = next(colors)
         plt.plot((events[ev_mask, 0] - first_samp) / sfreq, events[ev_mask, 2],
-                 '.', color=color[idx % len(color)])
+                 '.', color=color)
     plt.ylim([min_event - 1, max_event + 1])
     plt.xlabel('Time (s)')
     plt.ylabel('Events id')
