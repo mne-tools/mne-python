@@ -6,7 +6,7 @@ from nose.tools import assert_true, assert_equal
 import warnings
 
 from mne import io, read_events, Epochs, SourceEstimate, read_cov, read_proj
-from mne import make_field_map
+from mne import make_field_map, pick_types
 from mne.layouts import read_layout
 from mne.pick import pick_channels_evoked
 from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,

@@ -12,6 +12,7 @@ import numpy as np
 
 from .. import pick_types, pick_info
 from ..pick import _has_kit_refs
+from ..io import read_info
 from ..constants import FIFF
 from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards

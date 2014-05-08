@@ -3,7 +3,7 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from mne import io
+from mne import io, pick_types
 from mne import Epochs
 from mne import read_events
 from mne.time_frequency import compute_raw_psd, compute_epochs_psd

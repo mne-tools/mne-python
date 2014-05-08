@@ -9,7 +9,7 @@ from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from mne import io, Epochs, read_events
+from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP
 from mne.utils import _TempDir, requires_sklearn
 

@@ -10,8 +10,8 @@ import warnings
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_equal, assert_raises, assert_true
 
-from mne import find_events, Epochs
-from mne.io import Raw, pick_types
+from mne import find_events, Epochs, pick_types
+from mne.io import Raw
 from mne.io.array import RawArray, create_info
 from mne.utils import _TempDir
 

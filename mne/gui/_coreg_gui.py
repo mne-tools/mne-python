@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from copy import deepcopy
 import os
 from ..externals.six.moves import queue
 import re

@@ -16,7 +16,7 @@ import mne
 from mne.utils import _TempDir
 from mne import pick_types
 from mne.constants import FIFF
-from mne.io import Raw, pick_types
+from mne.io import Raw
 from mne.io import read_raw_brainvision
 
 FILE = inspect.getfile(inspect.currentframe())

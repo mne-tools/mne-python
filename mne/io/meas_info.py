@@ -22,7 +22,6 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian)
-from .proj import proj_equal
 from ..utils import logger, verbose
 
 
@@ -87,7 +86,7 @@ def read_fiducials(fname):
         List of digitizer points (each point in a dict).
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.io.FIFF.FIFFV_COORD_...)
+        mne.constants.FIFF.FIFFV_COORD_...)
     """
     fid, tree, _ = fiff_open(fname)
     with fid:
@@ -129,7 +128,7 @@ def write_fiducials(fname, pts, coord_frame=0):
         the keys 'kind', 'ident' and 'r'.
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.io.FIFF.FIFFV_COORD_...)
+        mne.constants.FIFF.FIFFV_COORD_...)
     """
     pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
     bad_frames = pts_frames - set((coord_frame,))

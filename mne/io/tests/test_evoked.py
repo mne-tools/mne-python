@@ -12,9 +12,8 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises
 
-from mne import equalize_channels
-from mne.io import (read_evoked, write_evoked, read_evokeds, write_evokeds,
-                      pick_types)
+from mne import equalize_channels, pick_types
+from mne.io import read_evoked, write_evoked, read_evokeds, write_evokeds
 from mne.io.evoked import _get_peak
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 

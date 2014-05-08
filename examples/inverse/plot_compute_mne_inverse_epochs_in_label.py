@@ -18,7 +18,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
-from mne.io import Raw, pick_types
+from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.minimum_norm import apply_inverse
 
@@ -50,7 +50,7 @@ include = []
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 # pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                    include=include, exclude='bads')
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,

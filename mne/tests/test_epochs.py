@@ -15,7 +15,7 @@ import copy as cp
 import warnings
 
 from mne import (io, Epochs, read_events, pick_events, read_epochs,
-                 equalize_channels)
+                 equalize_channels, pick_types, pick_channels)
 from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
                         add_channels_epochs)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
@@ -24,6 +24,7 @@ from mne.utils import (_TempDir, requires_pandas, requires_nitime,
 from mne.io import read_evokeds
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
+from mne.constants import FIFF
 from mne.externals.six.moves import zip
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -303,10 +304,10 @@ def test_evoked_standard_error():
                             kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
         assert_true(evoked_new[0]._aspect_kind ==
-                    io.FIFF.FIFFV_ASPECT_AVERAGE)
+                    FIFF.FIFFV_ASPECT_AVERAGE)
         assert_true(evoked_new[0].kind == 'average')
         assert_true(evoked_new[1]._aspect_kind ==
-                    io.FIFF.FIFFV_ASPECT_STD_ERR)
+                    FIFF.FIFFV_ASPECT_STD_ERR)
         assert_true(evoked_new[1].kind == 'standard_error')
         for ave, ave2 in zip(evoked, evoked_new):
             assert_array_almost_equal(ave.data, ave2.data)

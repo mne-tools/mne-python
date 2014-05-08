@@ -5,7 +5,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
 from mne.datasets import sample
-from mne import io, find_events, Epochs
+from mne import io, find_events, Epochs, pick_types
 from mne.label import read_label
 from mne.minimum_norm.inverse import (read_inverse_operator,
                                       apply_inverse_epochs)

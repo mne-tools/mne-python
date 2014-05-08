@@ -56,7 +56,7 @@ cov = mne.read_cov(cov_fname)
 # Handling average file
 condition = 'Left visual'
 evoked = io.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
-evoked = io.pick.pick_channels_evoked(evoked)
+evoked = mne.pick_channels_evoked(evoked)
 # We make the window slightly larger than what you'll eventually be interested
 # in ([-0.05, 0.3]) to avoid edge effects.
 evoked.crop(tmin=-0.1, tmax=0.4)

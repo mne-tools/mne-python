@@ -3,7 +3,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from mne import io
+from mne import io, pick_types
 from mne.time_frequency import yule_walker, ar_raw
 from mne.utils import requires_statsmodels, requires_patsy
 

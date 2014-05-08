@@ -9,7 +9,7 @@ import numpy as np
 from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_equal
 
-from mne import io, read_events, Epochs
+from mne import io, read_events, Epochs, pick_types
 from mne.decoding.classifier import Scaler, FilterEstimator
 from mne.decoding.classifier import PSDEstimator, ConcatenateChannels
 

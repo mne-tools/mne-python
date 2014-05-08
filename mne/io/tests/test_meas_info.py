@@ -5,7 +5,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events
-from mne.io import read_fiducials, write_fiducials, FIFF
+from mne.io import read_fiducials, write_fiducials
+from mne.constants import FIFF
 from mne.io.meas_info import Info
 from mne.utils import _TempDir
 

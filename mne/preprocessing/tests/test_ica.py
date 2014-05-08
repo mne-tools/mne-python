@@ -18,7 +18,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from scipy import stats
 from itertools import product
 
-from mne import io, Epochs, read_events
+from mne import io, Epochs, read_events, pick_types
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
