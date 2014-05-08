@@ -40,7 +40,7 @@ raw.del_proj(-1)
 [raw.add_proj(p) for p in mne.read_proj(ecg_fname) if 'axial' in p['desc']]
 
 # pick magnetometer channels
-picks = io.pick_types(raw.info, meg='mag', stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg='mag', stim=False, eog=True,
                         include=[], exclude='bads')
 
 # We will make of the proj `delayed` option to

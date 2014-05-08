@@ -2,7 +2,7 @@
 #
 # License: BSD (3-clause)
 
-from .. constants import Bunch
+from ...constants import Bunch
 
 BTI = Bunch()
 

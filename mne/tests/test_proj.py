@@ -9,7 +9,8 @@ import copy as cp
 
 import mne
 from mne.datasets import sample
-from mne.io import Raw, pick_types
+from mne import pick_types
+from mne.io import Raw
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.io.proj import make_projector, activate_proj
 from mne.proj import read_proj, write_proj, make_eeg_average_ref_proj

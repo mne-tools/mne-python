@@ -8,7 +8,7 @@ from warnings import warn
 import numpy as np
 from scipy import linalg, signal, fftpack
 
-from ..io.constants import FIFF
+from ..constants import FIFF
 from ..source_estimate import _make_stc
 from ..time_frequency.tfr import cwt, morlet
 from ..time_frequency.multitaper import (dpss_windows, _psd_from_mt,

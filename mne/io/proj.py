@@ -11,9 +11,9 @@ from scipy import linalg
 from itertools import count
 
 from .tree import dir_tree_find
-from .constants import FIFF
 from .tag import find_tag
-from .pick import pick_types
+from ..constants import FIFF
+from ..pick import pick_types
 from ..utils import logger, verbose
 
 

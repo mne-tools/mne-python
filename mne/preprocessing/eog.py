@@ -1,7 +1,7 @@
 import numpy as np
 
 from .peak_finder import peak_finder
-from ..io import pick_types, pick_channels
+from .. import pick_types, pick_channels
 from ..utils import logger, verbose
 from ..filter import band_pass_filter
 

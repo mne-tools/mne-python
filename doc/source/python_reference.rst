@@ -372,14 +372,14 @@ Sensor Space Data
 
    io.concatenate_raws
    io.get_chpi_positions
-   io.pick_channels
-   io.pick_channels_cov
-   io.pick_channels_forward
-   io.pick_channels_regexp
-   io.pick_types
-   io.pick_types_evoked
-   io.pick_types_forward
 
+   pick_channels
+   pick_channels_cov
+   pick_channels_forward
+   pick_channels_regexp
+   pick_types
+   pick_types_evoked
+   pick_types_forward
    read_epochs
    read_reject_parameters
    read_selection

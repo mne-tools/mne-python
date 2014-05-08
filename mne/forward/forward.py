@@ -18,14 +18,14 @@ import os
 from os import path as op
 import tempfile
 
-from ..io.constants import FIFF
+from ..constants import FIFF
 from ..io.open import fiff_open
 from ..io.tree import dir_tree_find
 from ..io.channels import read_bad_channels
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                            write_named_matrix)
-from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
+from ..pick import (pick_channels_forward, pick_info, pick_channels,
                          pick_types)
 from ..io.write import (write_int, start_block, end_block,
                           write_coord_trans, write_ch_info, write_name_list,

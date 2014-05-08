@@ -38,7 +38,7 @@ def test_time_frequency():
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
-    picks = io.pick_types(raw.info, meg='grad', eeg=False,
+    picks = pick_types(raw.info, meg='grad', eeg=False,
                             stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]

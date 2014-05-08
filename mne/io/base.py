@@ -16,9 +16,9 @@ import numpy as np
 from scipy.signal import hilbert
 from scipy import linalg
 
-from .constants import FIFF
+from ..constants import FIFF
+from ..pick import pick_types, channel_type
 from .meas_info import write_meas_info
-from .pick import pick_types, channel_type
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
 from .channels import ContainsMixin, PickDropChannelsMixin
@@ -516,7 +516,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             supersampled (without applying any filtering). This reduces
             resampling artifacts in stim channels, but may lead to missing
             triggers. If None, stim channels are automatically chosen using
-            mne.io.pick_types(raw.info, meg=False, stim=True, exclude=[]).
+            mne.pick_types(raw.info, meg=False, stim=True, exclude=[]).
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
             is installed properly and CUDA is initialized.

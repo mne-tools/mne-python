@@ -40,7 +40,7 @@ include = []  # or stim channel ['STI 014']
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # pick MEG Gradiometers
-picks = io.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                         include=include, exclude='bads')
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))

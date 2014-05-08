@@ -33,7 +33,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = Raw(raw_fname, preload=True)
 raw.apply_proj()
 
-picks = mne.io.pick_types(raw.info, meg=True, eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
                             ecg=True, stim=False, exclude='bads')
 
 tmin, tmax, event_id = -0.2, 0.5, 1
@@ -108,7 +108,7 @@ epochs_ica = ica.pick_sources_epochs(epochs)
 
 
 # First show unprocessed, then cleaned epochs
-mags = mne.io.pick_types(epochs.info, meg='mag', exclude=[])
+mags = mne.pick_types(epochs.info, meg='mag', exclude=[])
 fig, axes = plt.subplots(2, 2, sharex=True, sharey=True)
 times = epochs.times * 1e3
 scale = 1e15
@@ -131,7 +131,7 @@ for e, (ax1, ax2), title in zip([epochs, epochs_ica], axes.T, titles):
 ica_epochs = ica.sources_as_epochs(epochs)
 
 # don't exclude bad sources by passing an empty list.
-ica_picks = mne.io.pick_types(ica_epochs.info, misc=True, exclude=[])
+ica_picks = mne.pick_types(ica_epochs.info, misc=True, exclude=[])
 ica_evoked = ica_epochs.average(ica_picks)
 ica_evoked.plot(titles=dict(misc='ICA sources'))
 

@@ -9,7 +9,7 @@ from numpy import sin, cos
 from scipy import linalg
 from copy import deepcopy
 
-from .io import FIFF
+from .constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag, find_tag
 from .io.tree import dir_tree_find

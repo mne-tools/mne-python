@@ -10,7 +10,7 @@ import numpy as np
 
 from ..base import _BaseRaw
 from ..meas_info import Info
-from ..constants import FIFF
+from ...constants import FIFF
 from ...utils import verbose, logger
 
 _other_fields = [

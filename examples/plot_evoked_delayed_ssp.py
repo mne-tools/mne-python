@@ -36,7 +36,7 @@ raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # pick magnetometer channels
-picks = io.pick_types(raw.info, meg='mag', stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg='mag', stim=False, eog=True,
                         include=[], exclude='bads')
 
 # If we suspend SSP projection at the epochs stage we might reject

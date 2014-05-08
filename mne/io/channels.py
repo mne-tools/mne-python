@@ -8,11 +8,11 @@ import numpy as np
 
 from ..externals.six import string_types
 
+from ..constants import FIFF
+from ..utils import verbose, logger
+from ..pick import channel_type, pick_info
 from .tree import dir_tree_find
 from .tag import find_tag
-from .constants import FIFF
-from .pick import channel_type, pick_info
-from ..utils import verbose, logger
 
 
 def read_bad_channels(fid, node):

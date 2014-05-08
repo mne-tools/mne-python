@@ -37,7 +37,7 @@ raw = Raw(raw_fname)
 raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 
 # Set picks
-picks = mne.io.pick_types(raw.info, meg=True, eeg=False, eog=False,
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
 # Read epochs

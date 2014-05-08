@@ -34,7 +34,7 @@ tr_percent = 60  # Training percentage
 min_trials = 10  # minimum trials after which decoding should start
 
 # select gradiometers
-picks = mne.io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=True, exclude=raw.info['bads'])
 
 # create the mock-client object

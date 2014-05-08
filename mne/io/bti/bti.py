@@ -12,8 +12,8 @@ from itertools import count
 import numpy as np
 
 from ...utils import logger, verbose, sum_squared
+from ...constants import FIFF
 from ..base import _BaseRaw
-from .. import FIFF
 from .constants import BTI
 from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_transform, read_char, read_int64, read_uint16,

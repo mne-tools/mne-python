@@ -11,7 +11,7 @@ from scipy import linalg
 from ..externals.six import b, text_type
 from ..externals.jdcal import jd2jcal
 
-from .constants import FIFF
+from ..constants import FIFF
 
 
 class Tag(object):

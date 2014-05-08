@@ -112,7 +112,7 @@ events = mne.read_events(event_fname)[:10]
 
 # Add a bad channel
 raw.info['bads'] += ['MEG 2443']
-picks = mne.io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=False, exclude='bads')
 
 tmin, tmax = -0.2, 0.5

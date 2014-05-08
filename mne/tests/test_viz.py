@@ -8,7 +8,7 @@ import warnings
 from mne import io, read_events, Epochs, SourceEstimate, read_cov, read_proj
 from mne import make_field_map
 from mne.layouts import read_layout
-from mne.io.pick import pick_channels_evoked
+from mne.pick import pick_channels_evoked
 from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_topo_phase_lock, plot_topo_image_epochs,
                      plot_evoked_topomap, plot_projs_topomap,
@@ -93,7 +93,7 @@ def _get_events():
 
 
 def _get_picks(raw):
-    return io.pick_types(raw.info, meg=True, eeg=False, stim=False,
+    return pick_types(raw.info, meg=True, eeg=False, stim=False,
                            ecg=False, eog=False, exclude='bads')
 
 
@@ -280,7 +280,7 @@ def test_plot_ica_panel():
     """Test plotting of ICA panel
     """
     raw = _get_raw()
-    ica_picks = io.pick_types(raw.info, meg=True, eeg=False, stim=False,
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                                 ecg=False, eog=False, exclude='bads')
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -436,7 +436,7 @@ def test_plot_raw_psds():
     # normal mode
     raw.plot_psds(tmax=2.0)
     # specific mode
-    picks = io.pick_types(raw.info, meg='mag', eeg=False)[:4]
+    picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psds(picks=picks, area_mode='range')
     ax = plt.axes()
     # if ax is supplied, picks must be, too:
@@ -521,7 +521,7 @@ def test_plot_ica_topomap():
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica_picks = io.pick_types(raw.info, meg=True, eeg=False, stim=False,
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                                 ecg=False, eog=False, exclude='bads')
     ica.decompose_raw(raw, picks=ica_picks)
     warnings.simplefilter('always', UserWarning)

@@ -17,6 +17,7 @@ print(__doc__)
 import numpy as np
 import matplotlib.pyplot as plt
 
+import mne
 from mne import io, read_proj, read_selection
 from mne.datasets import sample
 
@@ -47,7 +48,7 @@ raw.plot_psds(area_mode='range', tmax=10.0)
 # Now let's focus on a smaller subset:
 # Pick MEG magnetometers in the Left-temporal region
 selection = read_selection('Left-temporal')
-picks = io.pick_types(raw.info, meg='mag', eeg=False, eog=False,
+picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                         stim=False, exclude='bads', selection=selection)
 
 # Let's just look at the first few channels for demonstration purposes

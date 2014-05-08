@@ -7,7 +7,10 @@ __version__ = '0.8.git'
 from .utils import (set_log_level, set_log_file, verbose, set_config,
                     get_config, get_config_path, set_cache_dir,
                     set_memmap_min_size)
-
+from .pick import (pick_types, pick_channels, pick_types_evoked,
+                   pick_channels_regexp, pick_channels_forward,
+                   pick_types_forward, pick_channels_cov,
+                   pick_channels_evoked, pick_info)
 from .cov import (read_cov, write_cov, Covariance,
                   compute_covariance, compute_raw_data_covariance,
                   whiten_evoked)
@@ -61,7 +64,7 @@ from . import cuda
 from . import datasets
 from . import epochs
 from . import externals
-from . import fiff
+from . import fiff  # XXX : to be deprecated in 0.9
 from . import io
 from . import filter
 from . import gui

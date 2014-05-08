@@ -41,7 +41,7 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
                                mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
 # Restrict forward solution as necessary for MEG
-forward_meg = mne.io.pick_types_forward(forward_meeg, meg=True, eeg=False)
+forward_meg = mne.pick_types_forward(forward_meeg, meg=True, eeg=False)
 # Alternatively, you can just load a forward solution that is restricted
 forward_eeg = mne.read_forward_solution(fname_fwd_eeg, surf_ori=True)
 

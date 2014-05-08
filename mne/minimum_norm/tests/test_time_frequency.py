@@ -39,7 +39,7 @@ def test_tfr_with_inverse_operator():
     raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
-    picks = io.pick_types(raw.info, meg=True, eeg=False, eog=True,
+    picks = pick_types(raw.info, meg=True, eeg=False, eog=True,
                             stim=False, exclude='bads')
 
     # Load condition 1
@@ -115,7 +115,7 @@ def test_source_psd_epochs():
     bandwidth = 8.
     fmin, fmax = 0, 100
 
-    picks = io.pick_types(raw.info, meg=True, eeg=False, stim=True,
+    picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
                             ecg=True, eog=True, include=['STI 014'],
                             exclude='bads')
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)

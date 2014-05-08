@@ -9,11 +9,11 @@ from copy import deepcopy
 import numpy as np
 import warnings
 
-from .constants import FIFF
+from ..constants import FIFF
 from .open import fiff_open
 from .tag import read_tag
 from .tree import dir_tree_find
-from .pick import channel_type, pick_types
+from ..pick import channel_type, pick_types
 from .meas_info import read_meas_info, write_meas_info
 from .proj import ProjMixin
 from .channels import ContainsMixin, PickDropChannelsMixin

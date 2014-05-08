@@ -7,7 +7,7 @@ from scipy import linalg
 
 from . import io, Epochs
 from .utils import logger, verbose
-from .io.pick import pick_types, pick_types_forward
+from .pick import pick_types, pick_types_forward
 from .io.proj import Projection, _has_eeg_average_ref_proj
 from .event import make_fixed_length_events
 from .parallel import parallel_func

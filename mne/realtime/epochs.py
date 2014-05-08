@@ -10,7 +10,7 @@ import copy
 
 import numpy as np
 
-from ..io import pick_channels, pick_types
+from .. import pick_channels, pick_types
 from ..utils import logger, verbose
 from ..baseline import rescale
 from ..epochs import _BaseEpochs

@@ -9,7 +9,7 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-from ..io.constants import FIFF
+from ..constants import FIFF
 from ..io.open import fiff_open
 from ..io.tag import find_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
@@ -21,7 +21,7 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                           write_coord_trans, write_string)
 
 from ..io.cov import read_cov, write_cov
-from ..io.pick import channel_type, pick_info
+from ..pick import channel_type, pick_info
 from ..cov import prepare_noise_cov
 from ..forward import (compute_depth_prior, read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,

@@ -3,7 +3,13 @@
 #
 # License: BSD (3-clause)
 
+import struct
+import numpy as np
+
+from ..constants import FIFF
+from .tag import Tag
 from .tag import read_tag
+from .write import write_id, start_block, end_block, _write
 from ..utils import logger, verbose
 
 
@@ -102,13 +108,6 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
 
 ###############################################################################
 # Writing
-
-import numpy as np
-import struct
-from .constants import FIFF
-from .tag import Tag
-from .write import write_id, start_block, end_block, _write
-
 
 def copy_tree(fidin, in_id, nodes, fidout):
     """Copies directory subtrees from fidin to fidout"""

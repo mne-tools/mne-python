@@ -15,7 +15,7 @@ raw = mne.io.Raw(raw_fname, preload=True, verbose=False)
 
 events = read_events(event_name)
 
-picks = mne.io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=True, exclude=raw.info['bads'])
 
 

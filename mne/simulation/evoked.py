@@ -8,7 +8,7 @@ import copy
 import numpy as np
 from scipy import signal
 
-from ..io.pick import pick_channels_cov
+from ..pick import pick_channels_cov
 from ..utils import check_random_state
 from ..forward import apply_forward
 

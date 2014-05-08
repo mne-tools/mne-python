@@ -31,7 +31,7 @@ ecg_events, _, _ = mne.preprocessing.find_ecg_events(raw, event_id,
                                                      ch_name='MEG 1531')
 
 # Read epochs
-picks = io.pick_types(raw.info, meg=False, eeg=False, stim=False, eog=False,
+picks = mne.pick_types(raw.info, meg=False, eeg=False, stim=False, eog=False,
                         include=['MEG 1531'], exclude='bads')
 tmin, tmax = -0.1, 0.1
 epochs = mne.Epochs(raw, ecg_events, event_id, tmin, tmax, picks=picks,

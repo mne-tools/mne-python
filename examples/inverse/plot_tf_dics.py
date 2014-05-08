@@ -43,7 +43,7 @@ raw.info['bads'] = ['MEG 2443']  # 1 bad MEG channel
 # to speed up the example. For a solution based on all MEG channels use
 # meg=True, selection=None and add mag=4e-12 to the reject dictionary.
 left_temporal_channels = mne.read_selection('Left-temporal')
-picks = mne.io.pick_types(raw.info, meg='mag', eeg=False, eog=False,
+picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                             stim=False, exclude='bads',
                             selection=left_temporal_channels)
 reject = dict(mag=4e-12)

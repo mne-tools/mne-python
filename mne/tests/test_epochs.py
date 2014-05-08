@@ -37,7 +37,7 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
 raw = io.Raw(raw_fname, add_eeg_ref=False)
 events = read_events(event_name)
-picks = io.pick_types(raw.info, meg=True, eeg=True, stim=True,
+picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                         ecg=True, eog=True, include=['STI 014'],
                         exclude='bads')
 
@@ -121,7 +121,7 @@ def test_read_write_epochs():
                           baseline=(None, 0))
     assert_array_equal(data, epochs_no_id.get_data())
 
-    eog_picks = io.pick_types(raw.info, meg=False, eeg=False, stim=False,
+    eog_picks = pick_types(raw.info, meg=False, eeg=False, stim=False,
                                 eog=True, exclude='bads')
     eog_ch_names = [raw.ch_names[k] for k in eog_picks]
     epochs.drop_channels(eog_ch_names)
@@ -203,7 +203,7 @@ def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
     """
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
-    this_picks = io.pick_types(raw.info, meg=True, eeg=False, stim=True,
+    this_picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
                                  eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True)
@@ -225,7 +225,7 @@ def test_epochs_proj():
     assert_array_almost_equal(data, data_no_proj, decimal=8)
 
     # make sure we can exclude avg ref
-    this_picks = io.pick_types(raw.info, meg=True, eeg=True, stim=True,
+    this_picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                                  eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True, add_eeg_ref=True)
@@ -441,7 +441,7 @@ def test_comparision_with_c():
                     baseline=None, preload=True,
                     reject=None, flat=None)
     evoked = epochs.average()
-    sel = io.pick_channels(c_evoked.ch_names, evoked.ch_names)
+    sel = pick_channels(c_evoked.ch_names, evoked.ch_names)
     evoked_data = evoked.data
     c_evoked_data = c_evoked.data[sel]
 
@@ -519,7 +519,7 @@ def test_detrend():
                       baseline=None, detrend=1)
     epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                       baseline=None, detrend=None)
-    data_picks = io.pick_types(epochs_1.info, meg=True, eeg=True,
+    data_picks = pick_types(epochs_1.info, meg=True, eeg=True,
                                  exclude='bads')
     evoked_1 = epochs_1.average()
     evoked_2 = epochs_2.average()
@@ -931,7 +931,7 @@ def test_contains():
              ((False, True), ('grad', 'mag'))]
 
     for (meg, eeg), others in tests:
-        picks_contains = io.pick_types(raw.info, meg=meg, eeg=eeg)
+        picks_contains = pick_types(raw.info, meg=meg, eeg=eeg)
         epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax,
                         picks=picks_contains, reject=None,
                         preload=False)
@@ -1011,9 +1011,9 @@ def test_add_channels_epochs():
         return Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
                       reject=None, preload=True, proj=False, picks=picks)
 
-    picks = io.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
-    picks_meg = io.pick_types(raw.info, meg=True, eeg=False, exclude='bads')
-    picks_eeg = io.pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude='bads')
+    picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
 
     epochs = make_epochs(picks=picks)
     epochs_meg = make_epochs(picks=picks_meg)

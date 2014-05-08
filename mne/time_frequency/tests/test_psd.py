@@ -21,7 +21,7 @@ def test_psd():
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
-    picks = io.pick_types(raw.info, meg='mag', eeg=False, stim=False,
+    picks = pick_types(raw.info, meg='mag', eeg=False, stim=False,
                             exclude=exclude)
 
     picks = picks[:2]
@@ -50,7 +50,7 @@ def test_psd_epochs():
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
 
     # picks MEG gradiometers
-    picks = io.pick_types(raw.info, meg='mag', eeg=False, stim=False,
+    picks = pick_types(raw.info, meg='mag', eeg=False, stim=False,
                             exclude=exclude)
 
     picks = picks[:2]
@@ -62,7 +62,7 @@ def test_psd_epochs():
     raw.info['bads'] += ['MEG 2443']  # bads
 
     # picks MEG gradiometers
-    picks = io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+    picks = pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=False, include=include, exclude='bads')
 
     events = read_events(event_fname)
@@ -71,7 +71,7 @@ def test_psd_epochs():
                     reject=dict(grad=4000e-13, eog=150e-6), proj=False,
                     preload=True)
 
-    picks = io.pick_types(epochs.info, meg='grad', eeg=False, eog=True,
+    picks = pick_types(epochs.info, meg='grad', eeg=False, eog=True,
                             stim=False, include=include, exclude='bads')
     psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300, n_fft=n_fft,
                                      picks=picks)

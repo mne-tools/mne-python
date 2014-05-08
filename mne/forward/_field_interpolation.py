@@ -4,8 +4,8 @@ from copy import deepcopy
 import os
 import glob
 
-from ..io import FIFF
-from ..io.pick import pick_types, pick_info
+from ..constants import FIFF
+from ..pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector

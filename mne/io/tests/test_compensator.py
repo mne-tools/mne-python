@@ -8,8 +8,9 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 from mne import Epochs
+from mne import pick_types
 from mne.io.compensator import make_compensator, get_current_comp
-from mne.io import Raw, pick_types, read_evokeds
+from mne.io import Raw, read_evokeds
 from mne.utils import _TempDir, requires_mne, run_subprocess
 
 base_dir = op.join(op.dirname(__file__), 'data')

@@ -11,9 +11,9 @@ from scipy import linalg
 from ..externals.six import BytesIO, string_types
 from datetime import datetime as dt
 
+from ..constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
-from .constants import FIFF
 from .tag import read_tag
 from .proj import read_proj, write_proj, _uniquify_projs
 from .ctf import read_ctf_comp, write_ctf_comp

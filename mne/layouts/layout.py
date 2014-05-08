@@ -11,7 +11,8 @@ import os.path as op
 import numpy as np
 from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
-from ..io import FIFF, pick_types
+from .. import pick_types
+from ..constants import FIFF
 from ..utils import _clean_names
 from ..externals.six.moves import map
 

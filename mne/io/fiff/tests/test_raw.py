@@ -15,8 +15,10 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne.io import (Raw, pick_types, pick_channels, concatenate_raws, FIFF,
-                      get_chpi_positions, set_eeg_reference)
+from mne import pick_types, pick_channels
+from mne.constants import FIFF
+from mne.io import (Raw, concatenate_raws,
+                    get_chpi_positions, set_eeg_reference)
 from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess)

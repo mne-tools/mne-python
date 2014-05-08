@@ -7,10 +7,10 @@ import numpy as np
 
 from .mixin import TransformerMixin
 
+from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency import multitaper_psd
-from ..io import pick_types
 from ..externals import six
 from ..utils import _check_type_picks
 

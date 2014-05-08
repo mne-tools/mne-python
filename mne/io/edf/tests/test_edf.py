@@ -17,6 +17,7 @@ import numpy as np
 
 from mne.externals.six import iterbytes
 from mne.utils import _TempDir
+from mne import pick_types
 from mne.io import Raw, pick_types
 from mne.io import read_raw_edf
 import mne.io.edf.edf as edfmodule

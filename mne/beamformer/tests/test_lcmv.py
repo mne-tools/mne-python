@@ -55,7 +55,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     if epochs:
         # Set up pick list: MEG - bad channels
         left_temporal_channels = mne.read_selection('Left-temporal')
-        picks = mne.io.pick_types(raw.info, meg=True, eeg=False,
+        picks = mne.pick_types(raw.info, meg=True, eeg=False,
                                     stim=True, eog=True, ref_meg=False,
                                     exclude='bads',
                                     selection=left_temporal_channels)
@@ -198,7 +198,7 @@ def test_lcmv_raw():
 
     # use only the left-temporal MEG channels for LCMV
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.io.pick_types(raw.info, meg=True, exclude='bads',
+    picks = mne.pick_types(raw.info, meg=True, exclude='bads',
                                 selection=left_temporal_channels)
 
     data_cov = mne.compute_raw_data_covariance(raw, tmin=tmin, tmax=tmax)
@@ -276,7 +276,7 @@ def test_tf_lcmv():
 
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.io.pick_types(raw.info, meg=True, eeg=False,
+    picks = mne.pick_types(raw.info, meg=True, eeg=False,
                                 stim=True, eog=True, exclude='bads',
                                 selection=left_temporal_channels)
 

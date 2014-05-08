@@ -59,7 +59,7 @@ raw = mne.io.Raw(raw_fname, preload=True)
 with StimServer('localhost', port=4218) as stim_server:
 
     # The channels to be used while decoding
-    picks = mne.io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+    picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                                 stim=True, exclude=raw.info['bads'])
 
     rt_client = MockRtClient(raw)

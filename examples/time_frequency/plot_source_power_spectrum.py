@@ -31,7 +31,7 @@ inverse_operator = read_inverse_operator(fname_inv)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
 
 # picks MEG gradiometers
-picks = io.pick_types(raw.info, meg=True, eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
                         stim=False, exclude='bads')
 
 tmin, tmax = 0, 120  # use the first 120s of data

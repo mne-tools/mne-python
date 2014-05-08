@@ -67,7 +67,7 @@ def test_ica_full_data_recovery():
     # Most basic recovery
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     events = read_events(event_name)
-    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
@@ -107,12 +107,12 @@ def test_ica_core():
     """Test ICA on raw and epochs
     """
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
-    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     # XXX. The None cases helped revealing bugs but are time consuming.
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
-    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
@@ -189,16 +189,16 @@ def test_ica_additional():
     """
     stop2 = 500
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
-    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
-    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     # for testing eog functionality
-    picks2 = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
                              eog=True, exclude='bads')
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                         baseline=(None, 0), preload=True)
@@ -426,7 +426,7 @@ def test_run_ica():
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
-    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4)
     raw._data[2, 1000:1005] = 5e-12
@@ -442,7 +442,7 @@ def test_ica_reject_buffer():
 def test_ica_twice():
     """Test running ICA twice"""
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
-    picks = io.pick_types(raw.info, meg='grad', exclude='bads')
+    picks = pick_types(raw.info, meg='grad', exclude='bads')
     n_components = 0.9
     max_pca_components = None
     n_pca_components = 1.1

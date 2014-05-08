@@ -36,7 +36,7 @@ events = mne.read_events(event_fname)
 raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG gradiometers
-picks = io.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                         exclude='bads')
 
 # Create epochs for the visual condition

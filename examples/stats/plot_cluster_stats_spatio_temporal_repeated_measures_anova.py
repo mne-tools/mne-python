@@ -52,7 +52,7 @@ events = mne.read_events(event_fname)
 ###############################################################################
 # Read epochs for all channels, removing a bad one
 raw.info['bads'] += ['MEG 2443']
-picks = io.pick_types(raw.info, meg=True, eog=True, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 # we'll load all four conditions that make up the 'two ways' of our ANOVA
 
 event_id = dict(l_aud=1, r_aud=2, l_vis=3, r_vis=4)

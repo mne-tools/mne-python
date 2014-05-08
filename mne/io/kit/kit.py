@@ -16,13 +16,13 @@ import time
 import numpy as np
 from scipy import linalg
 
-from ...io import pick_types
+from mne import pick_types
 from ...coreg import (read_elp, fit_matched_points, _decimate_points,
                       get_ras_to_neuromag_trans)
 from ...utils import verbose, logger
+from ...constants import FIFF
 from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..base import _BaseRaw
-from ..constants import FIFF
 from ..meas_info import Info
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD

@@ -97,11 +97,11 @@ evoked.crop(tmin=-0.05, tmax=0.3)
 residual.crop(tmin=-0.05, tmax=0.3)
 
 ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-picks = io.pick_types(evoked.info, meg='grad', exclude='bads')
+picks = mne.pick_types(evoked.info, meg='grad', exclude='bads')
 evoked.plot(picks=picks, ylim=ylim, proj=True,
             titles=dict(grad='Evoked Response (grad)'))
 
-picks = io.pick_types(residual.info, meg='grad', exclude='bads')
+picks = mne.pick_types(residual.info, meg='grad', exclude='bads')
 residual.plot(picks=picks, ylim=ylim, proj=True,
               titles=dict(grad='Residual (grad)'))
 

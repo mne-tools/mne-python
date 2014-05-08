@@ -39,7 +39,7 @@ include = []  # or stim channels ['STI 014']
 raw.info['bads'] += ['EEG 053']  # bads
 
 # pick MEG channels
-picks = io.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
                         include=include, exclude='bads')
 
 ###############################################################################

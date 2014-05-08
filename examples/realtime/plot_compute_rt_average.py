@@ -29,7 +29,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.Raw(raw_fname, preload=True)
 
 # select gradiometers
-picks = mne.io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=True, exclude=raw.info['bads'])
 
 # select the left-auditory condition

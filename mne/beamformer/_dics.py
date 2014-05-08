@@ -12,7 +12,7 @@ import numpy as np
 from scipy import linalg
 
 from ..utils import logger, verbose
-from ..io.pick import pick_types
+from ..pick import pick_types
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz
 from ..source_estimate import SourceEstimate

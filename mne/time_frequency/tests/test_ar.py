@@ -30,7 +30,7 @@ def test_ar_raw():
     raw = io.Raw(raw_fname)
 
     # picks MEG gradiometers
-    picks = io.pick_types(raw.info, meg='grad', exclude='bads')
+    picks = pick_types(raw.info, meg='grad', exclude='bads')
 
     picks = picks[:2]
 

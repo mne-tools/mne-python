@@ -1,5 +1,5 @@
 from numpy.testing import assert_array_equal
-from mne.io.pick import pick_channels_regexp
+from mne.pick import pick_channels_regexp
 
 
 def test_pick_channels_regexp():

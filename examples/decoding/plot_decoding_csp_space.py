@@ -40,7 +40,7 @@ raw.filter(2, None, method='iir')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 raw.info['bads'] = ['MEG 2443']  # set bad channels
-picks = io.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
                         exclude='bads')
 
 # Read epochs

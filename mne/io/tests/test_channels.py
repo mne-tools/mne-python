@@ -10,7 +10,7 @@ from nose.tools import assert_raises, assert_true
 
 from mne import io
 from mne.io.channels import rename_channels
-from mne.io.constants import FIFF
+from mne.constants import FIFF
 
 base_dir = op.join(op.dirname(__file__), 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')

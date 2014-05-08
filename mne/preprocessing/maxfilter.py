@@ -13,7 +13,7 @@ import numpy as np
 from scipy import optimize, linalg
 
 from ..io import Raw
-from ..io.constants import FIFF
+from ..constants import FIFF
 from ..utils import logger, verbose
 from ..externals.six.moves import map
 from ..externals.six.moves import zip

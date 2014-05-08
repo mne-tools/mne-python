@@ -37,7 +37,7 @@ raw = Raw(raw_fname, preload=True)
 
 raw.filter(1, 45, n_jobs=2)
 
-picks = mne.io.pick_types(raw.info, meg=True, eeg=False, eog=False,
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                             stim=False, exclude='bads')
 
 ###############################################################################

@@ -12,7 +12,8 @@ from nose.tools import assert_true, assert_raises, assert_equal
 from mne import find_events
 from mne.io import read_raw_egi
 from mne.io.egi import _combine_triggers
-from mne.io import pick_types, Raw
+from mne import pick_types
+from mne.io import Raw
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings

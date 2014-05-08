@@ -114,7 +114,7 @@ def test_find_events():
     raw.info['sfreq'] = 1000
 
     stim_channel = 'STI 014'
-    stim_channel_idx = io.pick_channels(raw.info['ch_names'],
+    stim_channel_idx = pick_channels(raw.info['ch_names'],
                                       include=stim_channel)
 
     # test empty events channel

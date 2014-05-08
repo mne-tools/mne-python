@@ -27,7 +27,7 @@ def test_time_generalization():
     """
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
-    picks = io.pick_types(raw.info, meg='mag', stim=False, ecg=False,
+    picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
                             eog=False, exclude='bads')
     picks = picks[1:13:3]
     decim = 30

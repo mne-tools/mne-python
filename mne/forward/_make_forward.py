@@ -10,7 +10,9 @@ import os
 from os import path as op
 import numpy as np
 
-from ..io import read_info, pick_types, pick_info, FIFF, _has_kit_refs
+from .. import pick_types, pick_info
+from ..pick import _has_kit_refs
+from ..constants import FIFF
 from .forward import write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (invert_transform, transform_surface_to,

@@ -10,7 +10,7 @@ from io import BytesIO
 
 from .tag import read_tag_info, read_tag, read_big, Tag
 from .tree import make_dir_tree
-from .constants import FIFF
+from ..constants import FIFF
 from ..utils import logger, verbose
 from ..externals import six
 from ..fixes import gzip_open

@@ -10,7 +10,8 @@ import numpy as np
 
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..utils import logger, verbose
-from ..io import pick_types, make_eeg_average_ref_proj
+from .. import pick_types
+from ..io import make_eeg_average_ref_proj
 from .ecg import find_ecg_events
 from .eog import find_eog_events
 

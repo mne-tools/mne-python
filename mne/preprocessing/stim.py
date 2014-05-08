@@ -5,7 +5,7 @@
 import numpy as np
 from scipy import signal, interpolate
 
-from ..io import pick_types
+from .. import pick_types
 
 
 def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,

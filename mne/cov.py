@@ -17,9 +17,9 @@ from .io.write import start_file, end_file
 from .io.proj import (make_projector, proj_equal, activate_proj,
                         _has_eeg_average_ref_proj)
 from .io import fiff_open
-from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
-                        pick_channels)
-from .io.constants import FIFF
+from .pick import (pick_types, channel_indices_by_type, pick_channels_cov,
+                   pick_channels)
+from .constants import FIFF
 from .epochs import _is_good
 from .externals.six.moves import zip
 

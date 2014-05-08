@@ -12,7 +12,7 @@ import os.path as op
 
 import numpy as np
 
-from ..constants import FIFF
+from ...constants import FIFF
 from ..open import fiff_open, _fiff_get_fid
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find

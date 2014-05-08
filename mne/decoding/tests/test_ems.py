@@ -33,7 +33,7 @@ def test_ems():
     # create unequal number of events
     events = read_events(event_name)
     events[-2, 2] = 3
-    picks = io.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,

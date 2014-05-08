@@ -36,7 +36,7 @@ include = []
 raw.info['bads'] += ['MEG 2443']  # bads
 
 # picks MEG gradiometers
-picks = io.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                         stim=False, include=include, exclude='bads')
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=True,
