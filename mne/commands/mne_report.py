@@ -174,9 +174,66 @@ header_template = HTMLTemplate(u"""
         };
         }</script>
 <style type="text/css">
+
+body {
+    line-height: 1.5em;
+    font-family: arial, sans-serif;
+}
+
+h1 {
+    font-size: 30px;
+    text-align: center;
+}
+
 h4 {
     text-align: center;
 }
+
+a {
+    color: #990000;
+    text-decoration: none;
+}
+a:hover {
+    color: #c40000;
+    opacity: 0.7;
+    -moz-opacity: 0.7;
+    filter:alpha(opacity=70);
+}
+
+#wrapper {
+    text-align: left;
+    margin: 5em auto;
+    width: 700px;
+}
+
+#toc {
+    list-style: none;
+    margin-bottom: 20px;
+}
+
+#toc li {
+    overflow: hidden;
+    padding-bottom: 2px;
+}
+
+#toc a,
+#toc span {
+    display: inline-block;
+    background: #fff;
+    position: relative;
+    bottom: -4px;
+}
+
+#toc a {
+    float: right;
+    padding: 0 0 3px 2px;
+}
+
+#toc span {
+    float: left;
+    padding: 0 2px 3px 0;
+}
+
 </style>
 </head>
 <body>
@@ -259,6 +316,34 @@ class HTMLScanRenderer(object):
 
     def finish_render(self):
         return footer_template.substitute()
+
+    def render_toc(self, fnames):
+
+        html = u'<div id="wrapper">'
+        html += u'<h1> Table of Contents </h1>\n'
+        html += u'<ul id="toc">'
+
+        global_id = 1
+        for fname in fnames:
+            if _endswith(fname, ['.nii', '.nii.gz', '.mgh', '.mgz', 'raw.fif',
+                                 'sss.fif', '-eve.fif', '-cov.fif']):
+                html += (u'\n\t<li><span title="%s"> %s </span> <a href="#%d">'
+                         'report </a> </li>'
+                         % (fname, os.path.basename(fname), global_id))
+                global_id += 1
+            elif _endswith(fname, ['-ave.fif']):
+                evokeds = mne.fiff.read_evokeds(fname, baseline=(None, 0))
+                html += u'<ul>'
+                for ev in evokeds:
+                    html += (u'\n\t<li><span title="%s"> %s </span>'
+                             ' <a href="#%d"> report </a> </li>'
+                             % (fname, ev.comment, global_id))
+                    global_id += 1
+                html += u'</ul>'
+
+        html += u'\n</ul></div>'
+
+        return html
 
     def render_array(self, array, cmap='gray', limits=None):
         global_id = self.get_id()
@@ -406,6 +491,9 @@ def render_folder(path):
 
     fnames = recursive_search(path, '*.fif')
     fnames += recursive_search(path, 'T1.mgz')
+
+    print "Rendering Table of Contents"
+    html += renderer.render_toc(fnames)
 
     for fname in fnames:
         print "Rendering : %s" % op.join('...' + path[-20:], fname)
