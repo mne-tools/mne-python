@@ -189,15 +189,9 @@ h4 {
     text-align: center;
 }
 
-a {
-    color: #990000;
-    text-decoration: none;
-}
 a:hover {
-    color: #c40000;
-    opacity: 0.7;
-    -moz-opacity: 0.7;
-    filter:alpha(opacity=70);
+    text-decoration:underline;
+    background-color: #eee;
 }
 
 #wrapper {
@@ -216,7 +210,6 @@ a:hover {
     padding-bottom: 2px;
 }
 
-#toc a,
 #toc span {
     display: inline-block;
     background: #fff;
@@ -238,12 +231,16 @@ a:hover {
 </head>
 <body>
 <br/>
-&nbsp;<button type="button" class="btn btn-lg btn-default" onclick="$('.raw').toggle()">Raw</button>
-&nbsp;<button type="button" class="btn btn-lg btn-primary" onclick="$('.evoked').toggle()">Ave</button>
-&nbsp;<button type="button" class="btn btn-lg btn-success" onclick="$('.covariance').toggle()">Cov</button>
-&nbsp;<button type="button" class="btn btn-lg btn-info" onclick="$('.events').toggle()">Eve</button>
-&nbsp;<button type="button" class="btn btn-lg btn-warning" onclick="$('.slices-images').toggle()">Slices</button>
-&nbsp;<button type="button" class="btn btn-lg btn-danger">Bad</button>
+&nbsp;<button type="button" class="btn btn-lg btn-default"
+onclick="$('.raw').toggle()">Raw</button>
+&nbsp;<button type="button" class="btn btn-lg btn-primary"
+onclick="$('.evoked').toggle()">Ave</button>
+&nbsp;<button type="button" class="btn btn-lg btn-success"
+onclick="$('.covariance').toggle()">Cov</button>
+&nbsp;<button type="button" class="btn btn-lg btn-info"
+onclick="$('.events').toggle()">Eve</button>
+&nbsp;<button type="button" class="btn btn-lg btn-warning"
+onclick="$('.slices-images').toggle()">Slices</button>
 """)
 
 footer_template = HTMLTemplate(u"""
@@ -325,21 +322,51 @@ class HTMLScanRenderer(object):
 
         global_id = 1
         for fname in fnames:
+
+            # identify bad file naming patterns and highlight them
+            if not _endswith(fname, ['-eve.fif', '-ave.fif', '-cov.fif',
+                                     '-sol.fif', '-fwd.fif', '-inv.fif',
+                                     '-src.fif']):
+                color = 'red'
+            else:
+                color = ''
+
+            # assign class names to allow toggling with buttons
+            if _endswith(fname, ['-eve.fif']):
+                class_name = 'events'
+            elif _endswith(fname, ['-ave.fif']):
+                class_name = 'evoked'
+            elif _endswith(fname, ['-cov.fif']):
+                class_name = 'covariance'
+            elif _endswith(fname, ['raw.fif', 'sss.fif']):
+                class_name = 'raw'
+            elif _endswith(fname, ['.nii', '.nii.gz', '.mgh', '.mgz']):
+                class_name = 'slices-images'
+
             if _endswith(fname, ['.nii', '.nii.gz', '.mgh', '.mgz', 'raw.fif',
                                  'sss.fif', '-eve.fif', '-cov.fif']):
-                html += (u'\n\t<li><span title="%s"> %s </span> <a href="#%d">'
-                         'report </a> </li>'
-                         % (fname, os.path.basename(fname), global_id))
+                html += (u'\n\t<li class="%s"><span title="%s" '
+                         'style="color:%s"> %s </span> <a href="#%d">'
+                         'report </a> </li>' % (class_name, fname,
+                                                color, os.path.basename(fname),
+                                                global_id))
                 global_id += 1
+
+            # loop through conditions for evoked
             elif _endswith(fname, ['-ave.fif']):
                 evokeds = mne.fiff.read_evokeds(fname, baseline=(None, 0))
-                html += u'<ul>'
+
+                html += (u'\n\t<li class="evoked"><span title="%s" '
+                         'style="color:%s"> %s </span>'
+                         % (fname, color, os.path.basename(fname)))
+
+                html += u'<li class="evoked"><ul>'
                 for ev in evokeds:
-                    html += (u'\n\t<li><span title="%s"> %s </span>'
-                             ' <a href="#%d"> report </a> </li>'
+                    html += (u'\n\t<li class="evoked"><span title="%s"> %s'
+                             '</span> <a href="#%d"> report </a> </li>'
                              % (fname, ev.comment, global_id))
                     global_id += 1
-                html += u'</ul>'
+                html += u'</ul></li>'
 
         html += u'\n</ul></div>'
 
