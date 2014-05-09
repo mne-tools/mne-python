@@ -36,9 +36,10 @@ from .fixes import tril_indices, Counter
 from .baseline import rescale
 from .utils import (get_subjects_dir, get_config, set_config, _check_subject,
                     logger, verbose)
-from .fiff import show_fiff, FIFF
-from .fiff.pick import channel_type, pick_types
-from .fiff.proj import make_projector, setup_proj
+from .io import show_fiff
+from .constants import FIFF
+from .pick import channel_type, pick_types
+from .io.proj import make_projector, setup_proj
 from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
@@ -140,7 +141,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info
+    info : instance of mne.io.meas_info.Info
         The measurement info.
     layout : instance of mne.layout.Layout | None
         The layout to use. If None, layout will be guessed
@@ -3252,7 +3253,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
 
     Parameters
     ----------
-    raw : instance of fiff.Raw
+    raw : instance of io.Raw
         The raw instance to use.
     tmin : float
         Start time for calculations.
@@ -3746,7 +3747,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     Parameters
     ----------
-    evoked : instance of mne.fiff.Evoked
+    evoked : instance of mne.io.Evoked
         The evoked object.
     surf_maps : list
         The surface mapping information obtained with make_field_map.

@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from copy import deepcopy
 import os
 from ..externals.six.moves import queue
 import re
@@ -63,7 +62,7 @@ except:
 
 
 from ..coreg import bem_fname, trans_fname
-from ..fiff import FIFF
+from ..constants import FIFF
 from ..forward import prepare_bem_model
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles)

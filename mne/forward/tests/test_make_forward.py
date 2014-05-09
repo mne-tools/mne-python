@@ -8,9 +8,9 @@ from nose.tools import assert_raises
 from numpy.testing import (assert_equal, assert_allclose)
 
 from mne.datasets import sample
-from mne.fiff import Raw
-from mne.fiff.kit import read_raw_kit
-from mne.fiff.bti import read_raw_bti
+from mne.io import Raw
+from mne.io import read_raw_kit
+from mne.io import read_raw_bti
 from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
                  convert_forward_solution)
@@ -22,10 +22,10 @@ fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis-meg-eeg-oct-6-fwd.fif')
 
-fname_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
+fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
-fname_evoked = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                        'data', 'test-ave.fif')
 fname_mri = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
@@ -80,7 +80,7 @@ def test_make_forward_solution_kit():
     """
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
                         'sample-5120-bem-sol.fif')
-    kit_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'kit',
+    kit_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                       'tests', 'data')
     sqd_path = op.join(kit_dir, 'test.sqd')
     mrk_path = op.join(kit_dir, 'test_mrk.sqd')
@@ -89,14 +89,14 @@ def test_make_forward_solution_kit():
     mri_path = op.join(kit_dir, 'trans-sample.fif')
     fname_kit_raw = op.join(kit_dir, 'test_bin.fif')
 
-    bti_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'bti',
+    bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
                       'tests', 'data')
     bti_pdf = op.join(bti_dir, 'test_pdf_linux')
     bti_config = op.join(bti_dir, 'test_config_linux')
     bti_hs = op.join(bti_dir, 'test_hs_linux')
     fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
 
-    fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+    fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                             'data', 'test_ctf_comp_raw.fif')
 
     # first set up a testing source space

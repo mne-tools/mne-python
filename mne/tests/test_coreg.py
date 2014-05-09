@@ -11,7 +11,7 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
                        create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space,
                        read_elp)
-from mne.fiff.kit.tests import data_dir as kit_data_dir
+from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
 from functools import reduce
 

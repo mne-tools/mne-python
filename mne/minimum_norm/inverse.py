@@ -9,19 +9,19 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-from ..fiff.constants import FIFF
-from ..fiff.open import fiff_open
-from ..fiff.tag import find_tag
-from ..fiff.matrix import (_read_named_matrix, _transpose_named_matrix,
+from ..constants import FIFF
+from ..io.open import fiff_open
+from ..io.tag import find_tag
+from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                            write_named_matrix)
-from ..fiff.proj import read_proj, make_projector, write_proj
-from ..fiff.tree import dir_tree_find
-from ..fiff.write import (write_int, write_float_matrix, start_file,
+from ..io.proj import read_proj, make_projector, write_proj
+from ..io.tree import dir_tree_find
+from ..io.write import (write_int, write_float_matrix, start_file,
                           start_block, end_block, end_file, write_float,
                           write_coord_trans, write_string)
 
-from ..fiff.cov import read_cov, write_cov
-from ..fiff.pick import channel_type, pick_info
+from ..io.cov import read_cov, write_cov
+from ..pick import channel_type, pick_info
 from ..cov import prepare_noise_cov
 from ..forward import (compute_depth_prior, read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,

@@ -11,12 +11,13 @@ from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_table,
                                     _get_legen_lut_fast,
                                     _get_legen_lut_accurate)
-from mne.fiff import read_evokeds, pick_types_evoked
+from mne.io import read_evokeds
+from mne import pick_types_evoked
 from mne.fixes import partial
 from mne.externals.six.moves import zip
 
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
 data_path = sample.data_path(download=False)

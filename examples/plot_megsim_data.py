@@ -16,8 +16,8 @@ Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
 print(__doc__)
 
-from mne import find_events, Epochs
-from mne.fiff import Raw, pick_types, read_evokeds
+from mne import find_events, Epochs, pick_types
+from mne.io import Raw, read_evokeds
 from mne.datasets.megsim import load_data
 
 condition = 'visual'  # or 'auditory' or 'somatosensory'
@@ -47,5 +47,5 @@ evoked = epochs.average()  # average epochs and get an Evoked dataset.
 evoked.plot()
 
 # Compare to the simulated data
-evoked_sim = read_evokeds(evoked_fnames[0])
+evoked_sim = read_evokeds(evoked_fnames[0], condition=0)
 evoked_sim.plot()

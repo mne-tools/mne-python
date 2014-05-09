@@ -11,7 +11,8 @@ Export evoked data to Nitime
 
 print(__doc__)
 
-from mne.fiff import read_evokeds, pick_types
+import mne
+from mne.io import read_evokeds
 from mne.datasets import sample
 from nitime.viz import plot_tseries
 import matplotlib.pyplot as plt
@@ -25,7 +26,7 @@ fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 evoked = read_evokeds(fname, condition=0, baseline=(None, 0), proj=True)
 
 # Pick channels to view
-picks = pick_types(evoked.info, meg='grad', eeg=False, exclude='bads')
+picks = mne.pick_types(evoked.info, meg='grad', eeg=False, exclude='bads')
 
 evoked_ts = evoked.to_nitime(picks=picks)
 

@@ -12,7 +12,7 @@ from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf,
                          get_meg_helmet_surf)
 from mne.utils import _TempDir, requires_tvtk
-from mne.fiff import read_info
+from mne.io import read_info
 from mne.transforms import _get_mri_head_t_from_trans_file
 
 data_path = sample.data_path(download=False)
@@ -25,7 +25,7 @@ tempdir = _TempDir()
 def test_helmet():
     """Test loading helmet surfaces
     """
-    base_dir = op.join(op.dirname(__file__), '..', 'fiff')
+    base_dir = op.join(op.dirname(__file__), '..', 'io')
     fname_raw = op.join(base_dir, 'tests', 'data', 'test_raw.fif')
     fname_kit_raw = op.join(base_dir, 'kit', 'tests', 'data', 'test_bin.fif')
     fname_bti_raw = op.join(base_dir, 'bti', 'tests', 'data',

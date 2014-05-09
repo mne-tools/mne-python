@@ -63,7 +63,7 @@ if __name__ == '__main__':
         parser.print_help()
         sys.exit(1)
 
-    raw = mne.fiff.Raw(raw_in, preload=preload)
+    raw = mne.io.Raw(raw_in, preload=preload)
     if len(proj_in) > 0:
         projs = mne.read_proj(proj_in)
         raw.info['projs'] = projs

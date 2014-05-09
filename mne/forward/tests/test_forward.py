@@ -8,11 +8,11 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 
 from mne.datasets import sample
-from mne.fiff import Raw, read_evokeds, pick_types_forward
+from mne.io import Raw, read_evokeds
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution)
-from mne import SourceEstimate
+from mne import SourceEstimate, pick_types_forward
 from mne.label import read_label
 from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.forward import restrict_forward_to_stc, restrict_forward_to_label
@@ -22,10 +22,10 @@ fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis-meg-eeg-oct-6-fwd.fif')
 
-fname_raw = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data',
+fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
-fname_evoked = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                        'data', 'test-ave.fif')
 fname_mri = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')

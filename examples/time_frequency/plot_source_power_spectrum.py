@@ -13,7 +13,7 @@ Returns an STC file containing the PSD (in dB) of each of the sources.
 print(__doc__)
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, compute_source_psd
 
@@ -25,13 +25,13 @@ fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_label = data_path + '/MEG/sample/labels/Aud-lh.label'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname, verbose=False)
+raw = io.Raw(raw_fname, verbose=False)
 events = mne.find_events(raw, stim_channel='STI 014')
 inverse_operator = read_inverse_operator(fname_inv)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
                         stim=False, exclude='bads')
 
 tmin, tmax = 0, 120  # use the first 120s of data

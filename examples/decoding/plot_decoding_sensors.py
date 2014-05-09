@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 
 data_path = sample.data_path()
@@ -31,13 +31,13 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname, preload=True)
+raw = io.Raw(raw_fname, preload=True)
 raw.filter(2, None, method='iir')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
                         exclude='bads')
 
 # Read epochs
@@ -52,7 +52,7 @@ mne.epochs.equalize_epoch_counts(epochs_list)
 # Decoding in sensor space using a linear SVM
 n_times = len(epochs.times)
 # Take only the data channels (here the gradiometers)
-data_picks = fiff.pick_types(epochs.info, meg=True, exclude='bads')
+data_picks = mne.pick_types(epochs.info, meg=True, exclude='bads')
 # Make arrays X and y such that :
 # X is 3d with X.shape[0] is the total number of epochs to classify
 # y is filled with integers coding for the class to predict

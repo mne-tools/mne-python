@@ -11,11 +11,11 @@ from ..utils import (set_log_level, set_log_file, _TempDir,
                      sum_squared, requires_mem_gb, estimate_rank,
                      _url_to_local_path, sizeof_fmt,
                      _check_type_picks)
-from ..fiff import Evoked, show_fiff
+from ..io import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_log = op.join(base_dir, 'test-ave.log')
@@ -141,7 +141,9 @@ def test_config():
     # Check if get_config with no input returns all config
     key = 'MNE_PYTHON_TESTING_KEY'
     config = {key: value}
-    set_config(key, value, home_dir=tempdir)
+    with warnings.catch_warnings(record=True):  # non-standard key
+        warnings.simplefilter('always')
+        set_config(key, value, home_dir=tempdir)
     assert_equal(get_config(home_dir=tempdir), config)
 
 
@@ -273,3 +275,4 @@ def test_check_type_picks():
     assert_raises(ValueError, _check_type_picks, picks)
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
+

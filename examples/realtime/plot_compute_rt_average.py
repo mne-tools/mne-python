@@ -26,10 +26,10 @@ from mne.realtime import RtEpochs, MockRtClient
 # Fiff file to simulate the realtime client
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.fiff.Raw(raw_fname, preload=True)
+raw = mne.io.Raw(raw_fname, preload=True)
 
 # select gradiometers
-picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
                             stim=True, exclude=raw.info['bads'])
 
 # select the left-auditory condition

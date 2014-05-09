@@ -16,7 +16,7 @@ http://dx.doi.org/10.1088/0031-9155/57/7/1937
 print(__doc__)
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 from mne.inverse_sparse import mixed_norm
 from mne.minimum_norm import make_inverse_operator, apply_inverse
@@ -31,7 +31,7 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 cov = mne.read_cov(cov_fname)
 # Handling average file
 condition = 'Left Auditory'
-evoked = fiff.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
+evoked = io.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked.crop(tmin=0, tmax=0.3)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True)

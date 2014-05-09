@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose
 from nose.tools import assert_equal, assert_false, assert_raises, assert_true
 
 from mne.datasets import sample
-from mne.fiff.tests import data_dir as fiff_data_dir
+from mne.io.tests import data_dir as fiff_data_dir
 from mne.utils import _TempDir, requires_mne_fs_in_env, requires_traits
 
 data_path = sample.data_path(download=False)
