@@ -40,6 +40,16 @@ def _deprecate_mne(obj, name):
     return deprecated('Use mne.%s as mne.fiff.%s is deprecated and will be '
                       'removed in v0.9.' % (name, name))(obj)
 
+
+# our decorator overwrites the class, so we need to wrap :(
+class Evoked(Evoked):
+    pass
+
+
+class Raw(Raw):
+    pass
+
+
 Evoked = _deprecate_io(Evoked, 'Evoked')
 Raw = _deprecate_io(Raw, 'Raw')
 read_evoked = _deprecate_io(read_evoked, 'read_evoked')
