@@ -141,7 +141,9 @@ def test_config():
     # Check if get_config with no input returns all config
     key = 'MNE_PYTHON_TESTING_KEY'
     config = {key: value}
-    set_config(key, value, home_dir=tempdir)
+    with warnings.catch_warnings(record=True):  # non-standard key
+        warnings.simplefilter('always')
+        set_config(key, value, home_dir=tempdir)
     assert_equal(get_config(home_dir=tempdir), config)
 
 
