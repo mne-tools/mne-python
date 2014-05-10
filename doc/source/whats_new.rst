@@ -90,6 +90,8 @@ read_evokeds will return all Evoked instances in a file by default.
    - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This
 affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
 
+   - Deprecate accessing IO functions from `mne.fiff`, use `mne.io` instead.
+
 .. _changes_0_7:
 
 Version 0.7
