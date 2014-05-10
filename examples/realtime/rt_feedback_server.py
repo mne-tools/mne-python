@@ -60,7 +60,7 @@ with StimServer('localhost', port=4218) as stim_server:
 
     # The channels to be used while decoding
     picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                                stim=True, exclude=raw.info['bads'])
+                           stim=True, exclude=raw.info['bads'])
 
     rt_client = MockRtClient(raw)
 

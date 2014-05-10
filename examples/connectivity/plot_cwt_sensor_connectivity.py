@@ -41,7 +41,7 @@ raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG gradiometers
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
-                        exclude='bads')
+                       exclude='bads')
 
 # Create epochs for left-visual condition
 event_id, tmin, tmax = 3, -0.2, 0.5

@@ -29,7 +29,7 @@ raw = Raw(raw_fname)
 
 # set picks
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                            stim=False, exclude='bads')
+                       stim=False, exclude='bads')
 
 # pick times relative to the onset of the MEG measurement.
 start, stop = raw.time_as_index([100, 115], use_first_samp=False)

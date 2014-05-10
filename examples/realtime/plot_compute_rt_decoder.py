@@ -35,7 +35,7 @@ min_trials = 10  # minimum trials after which decoding should start
 
 # select gradiometers
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                            stim=True, exclude=raw.info['bads'])
+                       stim=True, exclude=raw.info['bads'])
 
 # create the mock-client object
 rt_client = MockRtClient(raw)

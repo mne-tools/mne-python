@@ -47,7 +47,7 @@ reject = dict(grad=4000e-13, mag=4e-12)
 
 # pick MEG channels
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   include=include, exclude='bads')
+                       include=include, exclude='bads')
 
 # Create epochs including different events
 epochs = mne.Epochs(raw, events, dict(audio_l=1, visual_r=3), tmin, tmax,

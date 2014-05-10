@@ -37,7 +37,7 @@ events = mne.read_events(event_fname)
 
 # pick magnetometer channels
 picks = mne.pick_types(raw.info, meg='mag', stim=False, eog=True,
-                        include=[], exclude='bads')
+                       include=[], exclude='bads')
 
 # If we suspend SSP projection at the epochs stage we might reject
 # more epochs than necessary. To deal with this we set proj to `delayed`

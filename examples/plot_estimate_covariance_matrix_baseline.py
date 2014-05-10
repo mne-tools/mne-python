@@ -39,7 +39,7 @@ raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 # pick EEG channels
 picks = mne.pick_types(raw.info, meg=True, eeg=True, stim=False, eog=True,
-                                            include=include, exclude='bads')
+                       include=include, exclude='bads')
 # Read epochs, with proj off by default so we can plot either way later
 reject = dict(grad=4000e-13, mag=4e-12, eeg=80e-6, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,

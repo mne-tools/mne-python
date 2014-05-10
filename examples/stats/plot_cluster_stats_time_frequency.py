@@ -49,7 +49,7 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                        stim=False, include=include, exclude='bads')
+                       stim=False, include=include, exclude='bads')
 
 ch_name = raw.info['ch_names'][picks[0]]
 

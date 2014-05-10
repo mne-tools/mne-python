@@ -44,7 +44,7 @@ events = mne.read_events(event_fname)
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
-                        exclude='bads')
+                       exclude='bads')
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,

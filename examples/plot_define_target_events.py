@@ -40,7 +40,7 @@ raw.info['bads'] += ['EEG 053']  # bads
 
 # pick MEG channels
 picks = mne.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
-                        include=include, exclude='bads')
+                       include=include, exclude='bads')
 
 ###############################################################################
 # Find stimulus event followed by quick button presses

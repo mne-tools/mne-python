@@ -29,7 +29,7 @@ include = ['STI 014']
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bad channels + 2 more
 
 picks = mne.pick_types(raw.info, meg=want_meg, eeg=want_eeg, stim=want_stim,
-                        include=include, exclude='bads')
+                       include=include, exclude='bads')
 
 some_picks = picks[:5]  # take 5 first
 start, stop = raw.time_as_index([0, 15])  # read the first 15s of data

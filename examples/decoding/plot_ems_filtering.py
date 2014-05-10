@@ -50,7 +50,7 @@ events = mne.read_events(event_fname)
 include = []  # or stim channels ['STI 014']
 ch_type = 'grad'
 picks = mne.pick_types(raw.info, meg=ch_type, eeg=False, stim=False, eog=True,
-                        include=include, exclude='bads')
+                       include=include, exclude='bads')
 
 reject = dict(grad=4000e-13, eog=150e-6)
 

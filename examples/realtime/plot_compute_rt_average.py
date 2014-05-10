@@ -30,7 +30,7 @@ raw = mne.io.Raw(raw_fname, preload=True)
 
 # select gradiometers
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                            stim=True, exclude=raw.info['bads'])
+                       stim=True, exclude=raw.info['bads'])
 
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5

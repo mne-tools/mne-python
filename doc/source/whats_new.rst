@@ -92,6 +92,8 @@ affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
 
    - Deprecate accessing IO functions from `mne.fiff`, use `mne.io` instead.
 
+   - Pick functions (e.g., `pick_types`) are now in the mne namespace.
+
 .. _changes_0_7:
 
 Version 0.7
@@ -689,4 +691,3 @@ of commits):
 .. _Qunxi Dong: https://github.com/dongqunxi
 
 .. _Martin Billinger: https://github.com/kazemakase
-

@@ -41,7 +41,7 @@ raw.del_proj(-1)
 
 # pick magnetometer channels
 picks = mne.pick_types(raw.info, meg='mag', stim=False, eog=True,
-                        include=[], exclude='bads')
+                       include=[], exclude='bads')
 
 # We will make of the proj `delayed` option to
 # interactively select projections at the evoked stage.

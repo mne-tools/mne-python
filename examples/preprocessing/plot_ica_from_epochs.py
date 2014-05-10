@@ -34,7 +34,7 @@ raw = Raw(raw_fname, preload=True)
 raw.apply_proj()
 
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                            ecg=True, stim=False, exclude='bads')
+                       ecg=True, stim=False, exclude='bads')
 
 tmin, tmax, event_id = -0.2, 0.5, 1
 baseline = (None, 0)

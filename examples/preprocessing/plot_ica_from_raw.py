@@ -38,7 +38,7 @@ raw = Raw(raw_fname, preload=True)
 raw.filter(1, 45, n_jobs=2)
 
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                            stim=False, exclude='bads')
+                       stim=False, exclude='bads')
 
 ###############################################################################
 # Setup ICA seed decompose data, then access and plot sources.

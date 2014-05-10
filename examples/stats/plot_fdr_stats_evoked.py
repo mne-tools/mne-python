@@ -39,7 +39,7 @@ include = [channel]
 ###############################################################################
 # Read epochs for the channel of interest
 picks = mne.pick_types(raw.info, meg=False, eog=True, include=include,
-                        exclude='bads')
+                       exclude='bads')
 event_id = 1
 reject = dict(grad=4000e-13, eog=150e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,

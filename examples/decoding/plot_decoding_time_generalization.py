@@ -44,7 +44,7 @@ tmin, tmax = -0.1, 0.5
 
 # Set up pick list
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
-                        ref_meg=False, exclude='bads')
+                       ref_meg=False, exclude='bads')
 
 # Read epochs
 decim = 4  # decimate to make the example faster to run

@@ -28,7 +28,7 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 # Read the evoked response and crop it
 condition = 'Left visual'
 evoked = mne.io.read_evokeds(evoked_fname, condition=condition,
-                               baseline=(None, 0))
+                             baseline=(None, 0))
 evoked.crop(tmin=-50e-3, tmax=300e-3)
 
 # Read the forward solution

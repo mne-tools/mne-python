@@ -24,7 +24,7 @@ raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 # pick EEG channels
 picks = mne.pick_types(raw.info, meg=True, eeg=True, stim=False, eog=True,
-                        include=include, exclude='bads')
+                       include=include, exclude='bads')
 # setup rejection
 reject = dict(eeg=80e-6, eog=150e-6)
 
