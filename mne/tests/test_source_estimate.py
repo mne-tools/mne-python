@@ -373,7 +373,11 @@ def test_morph_data():
     stc_from.vertno[0] = stc_from.vertno[0][[100, 500]]
     stc_from.vertno[1] = stc_from.vertno[1][[200]]
     stc_from._data = stc_from._data[:3]
-    stc_to_sparse = stc_from.morph(subject_to, sparse=True,
+
+    assert_raises(RuntimeError, stc_from.morph, subject_to, sparse=True,
+                  grade=5, subjects_dir=subjects_dir)
+
+    stc_to_sparse = stc_from.morph(subject_to, grade=None, sparse=True,
                                    subjects_dir=subjects_dir)
     assert_array_almost_equal(np.sort(stc_from.data.sum(axis=1)),
                               np.sort(stc_to_sparse.data.sum(axis=1)))

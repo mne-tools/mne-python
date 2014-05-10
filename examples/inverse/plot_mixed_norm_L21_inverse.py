@@ -68,7 +68,7 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
 
 # and on the fsaverage brain after morphing
 stc_fsaverage = stc.morph(subject_from='sample', subject_to='fsaverage',
-                          sparse=True, subjects_dir=subjects_dir)
+                          grade=None, sparse=True, subjects_dir=subjects_dir)
 src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 
