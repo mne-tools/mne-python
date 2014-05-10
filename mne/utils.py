@@ -1209,8 +1209,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     initial_size = 0
     try:
         # Checking file size and displaying it alongside the download url
-        u = urllib.request.urlopen(url)
-        file_size = int(u.headers['Content-Length'].strip())
+        with urllib.request.urlopen(url) as u:
+            file_size = int(u.headers['Content-Length'].strip())
         print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
@@ -1231,13 +1231,16 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
                     print('Resuming download failed. Attempting to restart '
                           'downloading the entire file.')
                     _fetch_file(url, resume=False)
-                _chunk_read(data, local_file, initial_size=local_file_size)
+                else:
+                    _chunk_read(data, local_file, initial_size=local_file_size)
+                    data.close()
             else:
                 _chunk_read_ftp_resume(url, temp_file_name, local_file)
         else:
             local_file = open(temp_file_name, "wb")
             data = urllib.request.urlopen(url)
             _chunk_read(data, local_file, initial_size=initial_size)
+            data.close()
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()

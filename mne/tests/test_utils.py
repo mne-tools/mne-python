@@ -49,12 +49,10 @@ def test_estimate_rank():
 def test_logging():
     """Test logging (to file)
     """
-    old_log_file = open(fname_log, 'r')
-    old_lines = clean_lines(old_log_file.readlines())
-    old_log_file.close()
-    old_log_file_2 = open(fname_log_2, 'r')
-    old_lines_2 = clean_lines(old_log_file_2.readlines())
-    old_log_file_2.close()
+    with open(fname_log, 'r') as old_log_file:
+        old_lines = clean_lines(old_log_file.readlines())
+    with open(fname_log_2, 'r') as old_log_file_2:
+        old_lines_2 = clean_lines(old_log_file_2.readlines())
 
     if op.isfile(test_name):
         os.remove(test_name)
@@ -63,19 +61,21 @@ def test_logging():
     set_log_level('WARNING')
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1)
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose=False)
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # SHOULD print
     evoked = Evoked(fname_evoked, condition=1, verbose=True)
-    new_log_file = open(test_name, 'r')
-    new_lines = clean_lines(new_log_file.readlines())
+    with open(test_name, 'r') as new_log_file:
+        new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
-    new_log_file.close()
     set_log_file(None)  # Need to do this to close the old file
     os.remove(test_name)
 
@@ -84,16 +84,18 @@ def test_logging():
     set_log_level('INFO')
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose=False)
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # SHOULD print
     evoked = Evoked(fname_evoked, condition=1)
-    new_log_file = open(test_name, 'r')
-    old_log_file = open(fname_log, 'r')
-    new_lines = clean_lines(new_log_file.readlines())
-    assert_equal(new_lines, old_lines)
+    with open(test_name, 'r') as new_log_file:
+        new_lines = clean_lines(new_log_file.readlines())
+    with open(fname_log, 'r') as old_log_file:
+        assert_equal(new_lines, old_lines)
     # check to make sure appending works (and as default, raises a warning)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -102,8 +104,8 @@ def test_logging():
         set_log_file(test_name)
         assert len(w) == 1
     evoked = Evoked(fname_evoked, condition=1)
-    new_log_file = open(test_name, 'r')
-    new_lines = clean_lines(new_log_file.readlines())
+    with open(test_name, 'r') as new_log_file:
+        new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines_2)
 
     # make sure overwriting works
@@ -111,8 +113,8 @@ def test_logging():
     # this line needs to be called to actually do some logging
     evoked = Evoked(fname_evoked, condition=1)
     del evoked
-    new_log_file = open(test_name, 'r')
-    new_lines = clean_lines(new_log_file.readlines())
+    with open(test_name, 'r') as new_log_file:
+        new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
 
 
