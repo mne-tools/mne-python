@@ -55,6 +55,8 @@ install:
     - ln -s ${MNE_DIR}/../.coverage ${SRC_DIR}/.coverage
 
 script:
+    # Suppress the parallel outputs for logging cleanliness
+    - export MNE_LOGGING_LEVEL=warning
     - cd ${MNE_DIR}/../
     - nosetests --with-timer --timer-top-n 30;
 
