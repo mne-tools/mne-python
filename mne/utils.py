@@ -1209,8 +1209,11 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     initial_size = 0
     try:
         # Checking file size and displaying it alongside the download url
-        with urllib.request.urlopen(url) as u:
+        u = urllib.request.urlopen(url)
+        try:
             file_size = int(u.headers['Content-Length'].strip())
+        finally:
+            u.close()
         print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
@@ -1239,8 +1242,10 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         else:
             local_file = open(temp_file_name, "wb")
             data = urllib.request.urlopen(url)
-            _chunk_read(data, local_file, initial_size=initial_size)
-            data.close()
+            try:
+                _chunk_read(data, local_file, initial_size=initial_size)
+            finally:
+                data.close()
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
