@@ -43,12 +43,12 @@ install:
     - SRC_DIR=$(pwd)
     - cd ~
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
-    - ln -s ${SRC_DIR}/mne/fiff/tests/data ${MNE_DIR}/fiff/tests/data
-    - ln -s ${SRC_DIR}/mne/fiff/bti/tests/data ${MNE_DIR}/fiff/bti/tests/data
-    - ln -s ${SRC_DIR}/mne/fiff/edf/tests/data ${MNE_DIR}/fiff/edf/tests/data
-    - ln -s ${SRC_DIR}/mne/fiff/kit/tests/data ${MNE_DIR}/fiff/kit/tests/data
-    - ln -s ${SRC_DIR}/mne/fiff/brainvision/tests/data ${MNE_DIR}/fiff/brainvision/tests/data
-    - ln -s ${SRC_DIR}/mne/fiff/egi/tests/data ${MNE_DIR}/fiff/egi/tests/data
+    - ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data
+    - ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data
+    - ln -s ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data
+    - ln -s ${SRC_DIR}/mne/io/kit/tests/data ${MNE_DIR}/io/kit/tests/data
+    - ln -s ${SRC_DIR}/mne/io/brainvision/tests/data ${MNE_DIR}/io/brainvision/tests/data
+    - ln -s ${SRC_DIR}/mne/io/egi/tests/data ${MNE_DIR}/io/egi/tests/data
     - ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg
     - ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc
     # Link coverage to src dir, coveralls should be run from there (needs git calls)
