@@ -1035,7 +1035,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     left_map, right_map : sparse matrix
         The morph maps for the 2 hemispheres.
     """
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # First check for morph-map dir existence
     mmap_dir = op.join(subjects_dir, 'morph-maps')

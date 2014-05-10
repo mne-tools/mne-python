@@ -26,6 +26,7 @@ data_path = sample.data_path()
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
+subjects_dir = data_path + '/subjects'
 
 # Read noise covariance matrix
 cov = mne.read_cov(cov_fname)
@@ -64,3 +65,12 @@ residual.plot(ylim=ylim, proj=True)
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
                              opacity=0.1, fig_name="MxNE (cond %s)" % condition)
+
+# and on the fsaverage brain after morphing
+stc_fsaverage = stc.morph(subject_from='sample', subject_to='fsaverage',
+                          grade=None, sparse=True, subjects_dir=subjects_dir)
+src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
+
+plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
+                             opacity=0.1)
