@@ -3867,12 +3867,12 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         attribute. It is needed for recordings on a Neuromag
         system as the events are defined relative to the system
         start and not to the beginning of the recording.
-    color : list of color objects | color object | None
-        Everything matplotlib accepts to specify colors. If not list-like,
-        the color specified will be repeated. If None, colors are
-        automatically drawn.
-    event_id : event name (e.g. 'auditory_l') used to plot a legend.
-        If None, no legend is drawn.
+    color : dictionary of event_id value and its associated color. If None,
+        colors are automatically drawn from a default list (cycled through if
+        number of events longer than list of default colors).
+    event_id : dictionary of event label (e.g. 'aud_l') and its associated
+        event_id value. Label used to plot a legend. If None, no legend is
+        drawn.
     show : bool
         Call pyplot.show() at the end.
 
@@ -3884,13 +3884,28 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     if event_id is None:
         unique_events = np.unique(events[:, 2])
     else:
-        unique_events = [ev for ev in event_id.itervalues()]
+        #sort list representation of event_id dictionary
+        import operator
+        sorted_x = sorted(event_id.iteritems(), key=operator.itemgetter(1))
+        unique_events = list()
+        unique_events_label = list()  # used for legend
+        for i in range(len(sorted_x)):
+            c = sorted_x[i][1]
+            d = sorted_x[i][0]
+            unique_events.append(c)
+            unique_events_label.append(d)
 
     if color is None:
         colors = cycle(COLORS)
         if len(unique_events) > len(COLORS):
             warnings.warn('More events than colors available.'
                           'You should pass a list of unique colors.')
+    else:  # take color from dictionary according to event_id
+        colors = list()
+        ev_id = [index for index in unique_events]
+        for i in range(len(ev_id)):
+            c = color[ev_id[i]]
+            colors.append(c)
 
     import matplotlib.pyplot as plt
     fig = plt.figure()
@@ -3907,7 +3922,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     plt.ylabel('Events id')
     plt.grid('on')
     if event_id is not None:
-        fig.legend(handles, event_id.keys())
+        fig.legend(handles, unique_events_label)
     if show:
         plt.show()
     return fig
