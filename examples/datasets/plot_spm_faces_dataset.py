@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import spm_face
 from mne.preprocessing import ICA
-from mne import fiff
+from mne import io
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
 
@@ -35,9 +35,9 @@ subjects_dir = data_path + '/subjects'
 
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
 
-raw = fiff.Raw(raw_fname % 1, preload=True) # Take first run
+raw = io.Raw(raw_fname % 1, preload=True) # Take first run
 
-picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')
 
 events = mne.find_events(raw, stim_channel='UPPT001')

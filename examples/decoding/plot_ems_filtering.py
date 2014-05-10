@@ -30,7 +30,7 @@ temporal evolution of the spatial filters.
 print(__doc__)
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 from mne.decoding import compute_ems
 data_path = sample.data_path()
@@ -43,14 +43,14 @@ tmin = -0.2
 tmax = 0.5
 
 # Read data and create epochs
-raw = fiff.Raw(raw_fname, preload=True)
+raw = io.Raw(raw_fname, preload=True)
 raw.filter(1, 45)
 events = mne.read_events(event_fname)
 
 include = []  # or stim channels ['STI 014']
 ch_type = 'grad'
-picks = fiff.pick_types(raw.info, meg=ch_type, eeg=False, stim=False, eog=True,
-                        include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg=ch_type, eeg=False, stim=False, eog=True,
+                       include=include, exclude='bads')
 
 reject = dict(grad=4000e-13, eog=150e-6)
 

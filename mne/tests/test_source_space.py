@@ -22,7 +22,7 @@ from mne.externals.six.moves import zip
 # WARNING: test_source_space is imported by forward, so download=False
 # is critical here, otherwise on first import of MNE users will have to
 # download the whole sample dataset!
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname_small = op.join(base_dir, 'small-src.fif.gz')

@@ -11,11 +11,11 @@ from ..utils import (set_log_level, set_log_file, _TempDir,
                      sum_squared, requires_mem_gb, estimate_rank,
                      _url_to_local_path, sizeof_fmt,
                      _check_type_picks)
-from ..fiff import Evoked, show_fiff
+from ..io import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_log = op.join(base_dir, 'test-ave.log')
@@ -49,12 +49,10 @@ def test_estimate_rank():
 def test_logging():
     """Test logging (to file)
     """
-    old_log_file = open(fname_log, 'r')
-    old_lines = clean_lines(old_log_file.readlines())
-    old_log_file.close()
-    old_log_file_2 = open(fname_log_2, 'r')
-    old_lines_2 = clean_lines(old_log_file_2.readlines())
-    old_log_file_2.close()
+    with open(fname_log, 'r') as old_log_file:
+        old_lines = clean_lines(old_log_file.readlines())
+    with open(fname_log_2, 'r') as old_log_file_2:
+        old_lines_2 = clean_lines(old_log_file_2.readlines())
 
     if op.isfile(test_name):
         os.remove(test_name)
@@ -63,19 +61,21 @@ def test_logging():
     set_log_level('WARNING')
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1)
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose=False)
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # SHOULD print
     evoked = Evoked(fname_evoked, condition=1, verbose=True)
-    new_log_file = open(test_name, 'r')
-    new_lines = clean_lines(new_log_file.readlines())
+    with open(test_name, 'r') as new_log_file:
+        new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
-    new_log_file.close()
     set_log_file(None)  # Need to do this to close the old file
     os.remove(test_name)
 
@@ -84,16 +84,18 @@ def test_logging():
     set_log_level('INFO')
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose='WARNING')
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # should NOT print
     evoked = Evoked(fname_evoked, condition=1, verbose=False)
-    assert_true(open(test_name).readlines() == [])
+    with open(test_name) as fid:
+        assert_true(fid.readlines() == [])
     # SHOULD print
     evoked = Evoked(fname_evoked, condition=1)
-    new_log_file = open(test_name, 'r')
-    old_log_file = open(fname_log, 'r')
-    new_lines = clean_lines(new_log_file.readlines())
-    assert_equal(new_lines, old_lines)
+    with open(test_name, 'r') as new_log_file:
+        new_lines = clean_lines(new_log_file.readlines())
+    with open(fname_log, 'r') as old_log_file:
+        assert_equal(new_lines, old_lines)
     # check to make sure appending works (and as default, raises a warning)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -102,8 +104,8 @@ def test_logging():
         set_log_file(test_name)
         assert len(w) == 1
     evoked = Evoked(fname_evoked, condition=1)
-    new_log_file = open(test_name, 'r')
-    new_lines = clean_lines(new_log_file.readlines())
+    with open(test_name, 'r') as new_log_file:
+        new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines_2)
 
     # make sure overwriting works
@@ -111,8 +113,8 @@ def test_logging():
     # this line needs to be called to actually do some logging
     evoked = Evoked(fname_evoked, condition=1)
     del evoked
-    new_log_file = open(test_name, 'r')
-    new_lines = clean_lines(new_log_file.readlines())
+    with open(test_name, 'r') as new_log_file:
+        new_lines = clean_lines(new_log_file.readlines())
     assert_equal(new_lines, old_lines)
 
 
@@ -141,7 +143,9 @@ def test_config():
     # Check if get_config with no input returns all config
     key = 'MNE_PYTHON_TESTING_KEY'
     config = {key: value}
-    set_config(key, value, home_dir=tempdir)
+    with warnings.catch_warnings(record=True):  # non-standard key
+        warnings.simplefilter('always')
+        set_config(key, value, home_dir=tempdir)
     assert_equal(get_config(home_dir=tempdir), config)
 
 
@@ -273,3 +277,4 @@ def test_check_type_picks():
     assert_raises(ValueError, _check_type_picks, picks)
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
+

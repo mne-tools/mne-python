@@ -13,13 +13,13 @@ raw file.
 
 print(__doc__)
 
-from mne import fiff
+import mne
 from mne.datasets import sample
 data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 
-raw = fiff.Raw(fname)
+raw = mne.io.Raw(fname)
 
 # Set up pick list: MEG + STI 014 - bad channels
 want_meg = True
@@ -28,8 +28,8 @@ want_stim = False
 include = ['STI 014']
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bad channels + 2 more
 
-picks = fiff.pick_types(raw.info, meg=want_meg, eeg=want_eeg, stim=want_stim,
-                        include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg=want_meg, eeg=want_eeg, stim=want_stim,
+                       include=include, exclude='bads')
 
 some_picks = picks[:5]  # take 5 first
 start, stop = raw.time_as_index([0, 15])  # read the first 15s of data

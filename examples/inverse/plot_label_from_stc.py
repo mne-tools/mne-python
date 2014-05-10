@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.minimum_norm import read_inverse_operator, apply_inverse
-from mne.fiff import read_evokeds
+from mne.io import read_evokeds
 from mne.datasets import sample
 
 data_path = sample.data_path()

@@ -18,7 +18,7 @@ print(__doc__)
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
-from mne.fiff import read_evokeds
+from mne.io import read_evokeds
 from mne.minimum_norm import (make_inverse_operator, apply_inverse,
                               write_inverse_operator)
 
@@ -41,7 +41,7 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
                                mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
 # Restrict forward solution as necessary for MEG
-forward_meg = mne.fiff.pick_types_forward(forward_meeg, meg=True, eeg=False)
+forward_meg = mne.pick_types_forward(forward_meeg, meg=True, eeg=False)
 # Alternatively, you can just load a forward solution that is restricted
 forward_eeg = mne.read_forward_solution(fname_fwd_eeg, surf_ori=True)
 

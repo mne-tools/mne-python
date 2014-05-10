@@ -10,7 +10,7 @@ Reading and writing an evoked file
 
 print(__doc__)
 
-from mne.fiff import read_evokeds
+from mne.io import read_evokeds
 from mne.datasets import sample
 from mne.viz import plot_evoked
 

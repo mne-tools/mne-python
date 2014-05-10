@@ -51,8 +51,8 @@ except:
     CheckListEditor = trait_wraith
     SceneEditor = trait_wraith
 
-from ..fiff.kit.coreg import read_hsp
-from ..fiff.kit.kit import RawKIT, KIT
+from ..io.kit.coreg import read_hsp
+from ..io.kit.kit import RawKIT, KIT
 from ..transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..coreg import (read_elp, _decimate_points, fit_matched_points,
                      get_ras_to_neuromag_trans)

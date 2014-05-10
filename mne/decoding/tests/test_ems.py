@@ -3,19 +3,16 @@
 # License: BSD (3-clause)
 
 import os.path as op
-from itertools import combinations
 
 from nose.tools import assert_equal, assert_raises
-import numpy as np
-from numpy.testing import assert_array_almost_equal
 
-from mne import fiff, Epochs, read_events
+from mne import io, Epochs, read_events, pick_types
 from mne.utils import _TempDir, requires_sklearn
 from mne.decoding import compute_ems
 
 tempdir = _TempDir()
 
-data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 curdir = op.join(op.dirname(__file__))
 
 raw_fname = op.join(data_dir, 'test_raw.fif')
@@ -28,12 +25,12 @@ event_id = dict(aud_l=1, vis_l=3)
 @requires_sklearn
 def test_ems():
     """Test event-matched spatial filters"""
-    raw = fiff.Raw(raw_fname, preload=False)
+    raw = io.Raw(raw_fname, preload=False)
 
     # create unequal number of events
     events = read_events(event_name)
     events[-2, 2] = 3
-    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                             eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,

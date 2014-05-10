@@ -27,10 +27,10 @@ Classes
    :toctree: generated/
    :template: class.rst
 
-   fiff.Raw
-   fiff.RawFIFF
+   io.Raw
+   io.RawFIFF
    Epochs
-   fiff.Evoked
+   io.Evoked
    SourceEstimate
    Covariance
    Label
@@ -87,8 +87,8 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   fiff.Evoked
-   fiff.Raw
+   io.Evoked
+   io.Raw
 
 Functions:
 
@@ -129,9 +129,9 @@ Functions:
    write_surface
    write_trans
 
-.. currentmodule:: mne.fiff.bti
+.. currentmodule:: mne.io
 
-:py:mod:`mne.fiff.bti`:
+:py:mod:`mne.io.bti`:
 
 Functions:
 
@@ -140,57 +140,28 @@ Functions:
   :template: function.rst
 
   read_raw_bti
+  read_raw_edf
+  read_raw_kit
+  read_raw_brainvision
+  read_raw_egi
 
-.. currentmodule:: mne.fiff.kit
+.. currentmodule:: mne.io.kit
 
-:py:mod:`mne.fiff.kit`:
+:py:mod:`mne.io.kit`:
 
 .. autosummary::
   :toctree: generated/
   :template: function.rst
 
-   read_raw_kit
    read_elp
    read_hsp
    read_mrk
    write_hsp
    write_mrk
 
-.. currentmodule:: mne.fiff.edf
+.. currentmodule:: mne.io.array
 
-:py:mod:`mne.fiff.edf`:
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-   read_raw_edf
-
-.. currentmodule:: mne.fiff.brainvision
-
-:py:mod:`mne.fiff.brainvision`:
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-   read_raw_brainvision
-
-.. currentmodule:: mne.fiff.egi
-
-:py:mod:`mne.fiff.egi`:
-
-Functions:
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-  read_raw_egi
-
-.. currentmodule:: mne.fiff.array
-
-:py:mod:`mne.fiff.array`:
+:py:mod:`mne.io.array`:
 
 Classes:
 
@@ -289,7 +260,7 @@ Visualization
    plot_topomap
    compare_fiff
 
-.. currentmodule:: mne.fiff
+.. currentmodule:: mne.io
 
 .. autosummary::
    :toctree: generated/
@@ -399,16 +370,16 @@ Sensor Space Data
    :toctree: generated/
    :template: function.rst
 
-   fiff.concatenate_raws
-   fiff.get_chpi_positions
-   fiff.pick_channels
-   fiff.pick_channels_cov
-   fiff.pick_channels_forward
-   fiff.pick_channels_regexp
-   fiff.pick_types
-   fiff.pick_types_evoked
-   fiff.pick_types_forward
+   io.concatenate_raws
+   io.get_chpi_positions
 
+   pick_channels
+   pick_channels_cov
+   pick_channels_forward
+   pick_channels_regexp
+   pick_types
+   pick_types_evoked
+   pick_types_forward
    read_epochs
    read_reject_parameters
    read_selection

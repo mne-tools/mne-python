@@ -10,7 +10,7 @@ from numpy.testing import assert_array_almost_equal
 from mne.datasets import sample
 from mne import read_cov, read_forward_solution
 from mne.cov import regularize
-from mne.fiff import read_evokeds
+from mne.io import read_evokeds
 from mne.inverse_sparse import gamma_map
 
 data_path = sample.data_path(download=False)
