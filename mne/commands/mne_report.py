@@ -13,6 +13,8 @@ import fnmatch
 import re
 import StringIO
 import numpy as np
+import webbrowser
+import time
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -172,7 +174,17 @@ header_template = HTMLTemplate(u"""
             divid + "_x").innerHTML = ashape[0] - c1;
         document.getElementById(divid + "_z").innerHTML = c2;
         };
-        }</script>
+        }
+
+        function togglebutton(class_name){
+            $(class_name).toggle();
+
+            if ($(class_name + '-btn').hasClass('active'))
+                $(class_name + '-btn').removeClass('active');
+            else
+                $(class_name + '-btn').addClass('active');
+        }
+        </script>
 <style type="text/css">
 
 body {
@@ -187,11 +199,6 @@ h1 {
 
 h4 {
     text-align: center;
-}
-
-a:hover {
-    text-decoration:underline;
-    background-color: #eee;
 }
 
 #wrapper {
@@ -222,29 +229,71 @@ a:hover {
     padding: 0 0 3px 2px;
 }
 
+#toc a:hover {
+    text-decoration:underline;
+    background-color: #eee;
+}
+
 #toc span {
     float: left;
     padding: 0 2px 3px 0;
 }
 
+div.footer {
+    background-color: #C0C0C0;
+    color: #000000;
+    padding: 3px 8px 3px 0;
+    clear: both;
+    font-size: 0.8em;
+    text-align: right;
+}
+
 </style>
 </head>
 <body>
-<br/>
-&nbsp;<button type="button" class="btn btn-lg btn-default"
-onclick="$('.raw').toggle()">Raw</button>
-&nbsp;<button type="button" class="btn btn-lg btn-primary"
-onclick="$('.evoked').toggle()">Ave</button>
-&nbsp;<button type="button" class="btn btn-lg btn-success"
-onclick="$('.covariance').toggle()">Cov</button>
-&nbsp;<button type="button" class="btn btn-lg btn-info"
-onclick="$('.events').toggle()">Eve</button>
-&nbsp;<button type="button" class="btn btn-lg btn-warning"
-onclick="$('.slices-images').toggle()">Slices</button>
+
+<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+
+<div class="container">
+
+<h3 class="navbar-text" style="color:white">MNE-Report for {{path}}</h3>
+
+<ul class="nav nav-pills navbar-right" style="margin-top: 7px;">
+
+    <li>
+        <a href="#">Table of Contents</a>
+    </li>
+
+    <li class="active raw-btn">
+        <a href="#" onclick="togglebutton('.raw')">Raw</a>
+    </li>
+    <li class="active evoked-btn">
+        <a href="#"  onclick="togglebutton('.evoked')">Ave</a>
+    </li>
+    <li class="active covariance-btn">
+        <a href="#" onclick="togglebutton('.covariance')">Cov</a>
+    </li>
+    <li class="active events-btn">
+        <a href="#" onclick="togglebutton('.events')">Eve</a>
+    </li>
+    <li class="active slices-images-btn">
+        <a href="#" onclick="togglebutton('.slices-images')">Slices</a>
+    </li>
+</ul>
+
+</div>
+
+</nav>
 """)
 
 footer_template = HTMLTemplate(u"""
 </body>
+<div class="footer">
+        &copy; Copyright 2012-2013, MNE Developers.
+      Created on {{date}}.
+      Powered by <a href="http://martinos.org/mne">MNE.
+</div>
+</html>
 """)
 
 image_template = HTMLTemplate(u"""
@@ -306,13 +355,13 @@ class HTMLScanRenderer(object):
 
     ###########################################################################
     # global rendering functions
-    def init_render(self):
+    def init_render(self, path):
         """ Initialize the renderer
         """
-        return header_template.substitute()
+        return header_template.substitute(path=path)
 
     def finish_render(self):
-        return footer_template.substitute()
+        return footer_template.substitute(date=time.strftime("%B %d, %Y"))
 
     def render_toc(self, fnames):
 
@@ -354,7 +403,8 @@ class HTMLScanRenderer(object):
 
             # loop through conditions for evoked
             elif _endswith(fname, ['-ave.fif']):
-                evokeds = mne.fiff.read_evokeds(fname, baseline=(None, 0))
+                evokeds = mne.io.read_evokeds(fname, baseline=(None, 0),
+                                              verbose=False)
 
                 html += (u'\n\t<li class="evoked"><span title="%s" '
                          'style="color:%s"> %s </span>'
@@ -416,7 +466,7 @@ class HTMLScanRenderer(object):
 
     def render_raw(self, raw_fname):
         global_id = self.get_id()
-        raw = mne.fiff.Raw(raw_fname)
+        raw = mne.io.Raw(raw_fname)
 
         html = u'<li class="raw" id="%d">' % global_id
         html += u'<h4>Raw : %s</h4>\n<hr>' % raw_fname
@@ -436,7 +486,9 @@ class HTMLScanRenderer(object):
         return html
 
     def render_evoked(self, evoked_fname, figsize=None):
-        evokeds = mne.fiff.read_evokeds(evoked_fname, baseline=(None, 0))
+        evokeds = mne.io.read_evokeds(evoked_fname, baseline=(None, 0),
+                                      verbose=False)
+
         html = []
         for ev in evokeds:
             global_id = self.get_id()
@@ -513,13 +565,13 @@ def recursive_search(path, pattern):
 
 def render_folder(path):
     renderer = HTMLScanRenderer()
-    html = renderer.init_render()
+    html = renderer.init_render(path)
     folders = []
 
     fnames = recursive_search(path, '*.fif')
     fnames += recursive_search(path, 'T1.mgz')
 
-    print "Rendering Table of Contents"
+    print "Rendering : Table of Contents"
     html += renderer.render_toc(fnames)
 
     for fname in fnames:
@@ -548,6 +600,9 @@ def render_folder(path):
     fobj = open(report_fname, 'w')
     fobj.write(html)
     fobj.close()
+
+    webbrowser.open_new_tab(report_fname)
+
     return report_fname
 
 
