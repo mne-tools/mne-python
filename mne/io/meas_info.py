@@ -486,7 +486,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         The measurement info structure.
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
-        5 (FIFFT_DOUBLE), or 16 (mne.io.FIFF.FIFFT_DAU_PACK16) for
+        5 (FIFFT_DOUBLE), or 16 (FIFFT_DAU_PACK16) for
         raw data.
     reset_range : bool
         If True, info['chs'][k]['range'] will be set to unity.
@@ -604,7 +604,7 @@ def write_info(fname, info, data_type=None, reset_range=True):
         The measurement info structure
     data_type : int
         The data_type in case it is necessary. Should be 4 (FIFFT_FLOAT),
-        5 (FIFFT_DOUBLE), or 16 (mne.io.FIFF.FIFFT_DAU_PACK16) for
+        5 (FIFFT_DOUBLE), or 16 (FIFFT_DAU_PACK16) for
         raw data.
     reset_range : bool
         If True, info['chs'][k]['range'] will be set to unity.
