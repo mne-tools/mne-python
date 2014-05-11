@@ -3867,10 +3867,12 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         attribute. It is needed for recordings on a Neuromag
         system as the events are defined relative to the system
         start and not to the beginning of the recording.
-    color : dictionary of event_id value and its associated color. If None,
+    color : dict
+        Dictionary of event_id value and its associated color. If None,
         colors are automatically drawn from a default list (cycled through if
         number of events longer than list of default colors).
-    event_id : dictionary of event label (e.g. 'aud_l') and its associated
+    event_id : dict
+        Dictionary of event label (e.g. 'aud_l') and its associated
         event_id value. Label used to plot a legend. If None, no legend is
         drawn.
     show : bool
@@ -3885,15 +3887,11 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         unique_events = np.unique(events[:, 2])
     else:
         #sort list representation of event_id dictionary
-        import operator
-        sorted_x = sorted(event_id.iteritems(), key=operator.itemgetter(1))
+        sorted_x = sorted(event_id.items(), key=lambda x: x[1])
         unique_events = list()
-        unique_events_label = list()  # used for legend
         for i in range(len(sorted_x)):
             c = sorted_x[i][1]
-            d = sorted_x[i][0]
             unique_events.append(c)
-            unique_events_label.append(d)
 
     if color is None:
         colors = cycle(COLORS)
@@ -3901,28 +3899,24 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
             warnings.warn('More events than colors available.'
                           'You should pass a list of unique colors.')
     else:  # take color from dictionary according to event_id
-        colors = list()
-        ev_id = [index for index in unique_events]
-        for i in range(len(ev_id)):
-            c = color[ev_id[i]]
-            colors.append(c)
+        # first reverse event dict
+        id_to_event = dict((v, k) for k, v in event_id.items())
+        colors = [color[i] for i in id_to_event]
 
     import matplotlib.pyplot as plt
     fig = plt.figure()
     min_event = np.min(events[:, 2])
     max_event = np.max(events[:, 2])
-    handles = list()
     for idx, (ev, color) in enumerate(zip(unique_events, colors)):
         ev_mask = (events[:, 2] == ev)
-        handle, = plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                           events[ev_mask, 2], '.', color=color)
-        handles.append(handle)
+        plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
+                 events[ev_mask, 2], '.', color=color, label=sorted_x[idx][0])
     plt.ylim([min_event - 1, max_event + 1])
     plt.xlabel('Time (s)')
     plt.ylabel('Events id')
     plt.grid('on')
     if event_id is not None:
-        fig.legend(handles, unique_events_label)
+        plt.legend()
     if show:
         plt.show()
     return fig
