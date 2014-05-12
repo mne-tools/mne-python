@@ -3867,11 +3867,11 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         attribute. It is needed for recordings on a Neuromag
         system as the events are defined relative to the system
         start and not to the beginning of the recording.
-    color : dict
+    color : dict | None
         Dictionary of event_id value and its associated color. If None,
         colors are automatically drawn from a default list (cycled through if
         number of events longer than list of default colors).
-    event_id : dict
+    event_id : dict | None
         Dictionary of event label (e.g. 'aud_l') and its associated
         event_id value. Label used to plot a legend. If None, no legend is
         drawn.
@@ -3890,6 +3890,14 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         # sorted by value
         labels, unique_events = zip(*sorted(event_id.items(),
                                     key=lambda x: x[1]))
+        # check that event_id values match color keys if provided
+        if color is not None:
+            color_keys, _ = zip(*sorted(color.items(), key=lambda x: x[0]))
+            if unique_events != color_keys:
+                warnings.warn('event_id values do not match color keys.')
+        # check that event_id values match existing events
+        if list(unique_events) != np.unique(events[:, 2]).tolist():
+            warnings.warn('event_id values do not match existing events.')
 
     if color is None:
         colors = cycle(COLORS)
