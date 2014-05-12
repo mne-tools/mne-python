@@ -3886,22 +3886,19 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     if event_id is None:
         unique_events = np.unique(events[:, 2])
     else:
-        #sort list representation of event_id dictionary
-        sorted_x = sorted(event_id.items(), key=lambda x: x[1])
-        unique_events = list()
-        for i in range(len(sorted_x)):
-            c = sorted_x[i][1]
-            unique_events.append(c)
+        # get labels and unique event ids from event_id dict,
+        # sorted by value
+        labels, unique_events = zip(*sorted(event_id.items(),
+                                    key=lambda x: x[1]))
 
     if color is None:
         colors = cycle(COLORS)
         if len(unique_events) > len(COLORS):
             warnings.warn('More events than colors available.'
                           'You should pass a list of unique colors.')
-    else:  # take color from dictionary according to event_id
-        # first reverse event dict
-        id_to_event = dict((v, k) for k, v in event_id.items())
-        colors = [color[i] for i in id_to_event]
+    else:
+        # get color from color dictionary (sorted by key)
+        _, colors = zip(*sorted(color.items(), key=lambda x: x[0]))
 
     import matplotlib.pyplot as plt
     fig = plt.figure()
@@ -3909,8 +3906,12 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     max_event = np.max(events[:, 2])
     for idx, (ev, color) in enumerate(zip(unique_events, colors)):
         ev_mask = (events[:, 2] == ev)
-        plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                 events[ev_mask, 2], '.', color=color, label=sorted_x[idx][0])
+        if event_id is None:
+            plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
+                     events[ev_mask, 2], '.', color=color)
+        else:
+            plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
+                     events[ev_mask, 2], '.', color=color, label=labels[idx])
     plt.ylim([min_event - 1, max_event + 1])
     plt.xlabel('Time (s)')
     plt.ylabel('Events id')
