@@ -7,13 +7,12 @@ from __future__ import print_function
 import os.path as op
 import warnings
 
-import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_allclose,
                            assert_array_equal)
 from nose.tools import assert_equal, assert_raises, assert_true
-from mne import find_events, Epochs, pick_types, read_epochs
+from mne import find_events, Epochs, pick_types
 from mne.io import Raw
-from mne.io.array import create_info, RawArray, EpochsArray
+from mne.io.array import create_info, RawArray
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests might throw warnings
@@ -98,41 +97,3 @@ def test_array_raw():
     epochs.plot()
     evoked = epochs.average()
     evoked.plot()
-
-
-def test_array_epochs():
-    """Test creating epochs from array
-    """
-
-    # creating
-    rng = np.random.RandomState(42)
-    data = rng.random_sample((10, 20, 50))
-    sfreq = 1e3
-    ch_names = ['EEG {:03d}'.format(i + 1) for i in range(20)]
-    types = ['eeg'] * 20
-    info = create_info(ch_names, sfreq, types)
-    events = np.c_[np.arange(1, 600, 60),
-                   np.zeros(10),
-                   [1, 2] * 5]
-    event_id = {'a': 1, 'b': 2}
-    epochs = EpochsArray(data, info, events=events, event_id=event_id,
-                         tmin=-.2)
-
-    # saving
-    temp_fname = op.join(tempdir, 'epo.fif')
-    epochs.save(temp_fname)
-    epochs2 = read_epochs(temp_fname)
-    data2 = epochs2.get_data()
-    assert_allclose(data, data2)
-    assert_allclose(epochs.times, epochs2.times)
-    assert_equal(epochs.event_id, epochs2.event_id)
-    assert_array_equal(epochs.events, epochs2.events)
-
-    # plotting
-    import matplotlib
-    matplotlib.use('Agg')  # for testing don't use X server
-    epochs[0].plot()
-
-    # indexing
-    assert_array_equal(np.unique(epochs['a'].events[:, 2]), np.array([1]))
-    assert_equal(len(epochs[:2]), 2)

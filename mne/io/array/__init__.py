@@ -2,4 +2,4 @@
 
 # Author: Eric Larson <larson.eric.d@gmail.com>
 
-from .array import create_info, RawArray, EpochsArray
+from .array import create_info, RawArray
