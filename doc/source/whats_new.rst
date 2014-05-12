@@ -59,6 +59,8 @@ Changelog
 
    - Support for parsing the EDF+ annotation channel by `Martin Billinger`_
 
+   - Add EpochsArray constructor for creating epochs from numpy arrays by `Denis Engemann`_ and `Federico Raimondo`_
+
 BUG
 ~~~
 
@@ -691,3 +693,5 @@ of commits):
 .. _Qunxi Dong: https://github.com/dongqunxi
 
 .. _Martin Billinger: https://github.com/kazemakase
+
+.. _Federico Raimondo: https://github.com/fraimondo
