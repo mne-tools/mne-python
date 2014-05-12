@@ -49,7 +49,6 @@ from .externals import six
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
 
-
 DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                            emg='k', ref_meg='steelblue', misc='k', stim='k',
                            resp='k', chpi='k', exci='k', ias='k', syst='k'),
@@ -3894,8 +3893,8 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     if color is None:
         colors = cycle(COLORS)
         if len(unique_events) > len(COLORS):
-            warnings.warn('More events than colors available.'
-                          'You should pass a list of unique colors.')
+            raise ValueError('More events than colors available.'
+                             'You should pass a list of unique colors.')
     else:
         # get color from color dictionary (sorted by key)
         _, colors = zip(*sorted(color.items(), key=lambda x: x[0]))
@@ -3905,13 +3904,10 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     min_event = np.min(events[:, 2])
     max_event = np.max(events[:, 2])
     for idx, (ev, color) in enumerate(zip(unique_events, colors)):
-        ev_mask = (events[:, 2] == ev)
-        if event_id is None:
-            plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                     events[ev_mask, 2], '.', color=color)
-        else:
-            plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                     events[ev_mask, 2], '.', color=color, label=labels[idx])
+        ev_mask = events[:, 2] == ev
+        plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
+                 events[ev_mask, 2], '.', color=color, label=labels[idx] if
+                 event_id is not None else 'None')
     plt.ylim([min_event - 1, max_event + 1])
     plt.xlabel('Time (s)')
     plt.ylabel('Events id')
