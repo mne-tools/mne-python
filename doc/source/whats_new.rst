@@ -9,6 +9,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
+
    - Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
 
    - Add `get_peak` method for evoked and stc objects by  `Denis Engemann`_
@@ -697,3 +699,5 @@ of commits):
 .. _Martin Billinger: https://github.com/kazemakase
 
 .. _Federico Raimondo: https://github.com/fraimondo
+
+.. _Cathy Nangini: https://github.com/KatiRG

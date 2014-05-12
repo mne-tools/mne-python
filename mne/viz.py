@@ -6,6 +6,7 @@ from __future__ import print_function
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Cathy Nangini <cnangini@gmail.com>
 #
 # License: Simplified BSD
 from .externals.six import string_types
@@ -3893,8 +3894,8 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     if color is None:
         colors = cycle(COLORS)
         if len(unique_events) > len(COLORS):
-            raise ValueError('More events than colors available.'
-                             'You should pass a list of unique colors.')
+            warnings.warn('More events than colors available.'
+                          'You should pass a list of unique colors.')
     else:
         # get color from color dictionary (sorted by key)
         _, colors = zip(*sorted(color.items(), key=lambda x: x[0]))
