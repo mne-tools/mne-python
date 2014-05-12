@@ -854,8 +854,9 @@ def read_evoked(fname, setno=None, baseline=None, kind='average', proj=True):
         return Evoked(fname, setno, baseline=baseline, kind=kind, proj=proj)
 
 
+@verbose
 def read_evokeds(fname, condition=None, baseline=None, kind='average',
-                 proj=True):
+                 proj=True, verbose=None):
     """Read evoked dataset(s)
 
     Parameters
@@ -876,6 +877,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         Either 'average' or 'standard_error', the type of data to read.
     proj : bool
         If False, available projectors won't be applied to the data.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
