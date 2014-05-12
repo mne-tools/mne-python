@@ -3,7 +3,8 @@ import numpy as np
 from ...constants import FIFF
 from ..meas_info import Info
 from ..base import _BaseRaw
-from ...utils import verbose, logger
+from ...epochs import Epochs
+from ...utils import verbose, logger, _check_type_picks
 from ...externals.six import string_types
 
 
@@ -124,3 +125,68 @@ class RawArray(_BaseRaw):
                     float(self.first_samp) / info['sfreq'],
                     float(self.last_samp) / info['sfreq']))
         logger.info('Ready.')
+
+
+class EpochsArray(Epochs):
+    """Epochs object from numpy array
+
+    Parameters
+    ----------
+    data : array, shape (n_epochs, n_channels, n_times)
+        The channels' time series for each epoch.
+    info : instance of Info
+        Info dictionary. Consider using ``create_info`` to populate
+        this structure.
+    events : array, of shape [n_events, 3]
+        The events typically returned by the read_events function.
+        If some events don't match the events of interest as specified
+        by event_id, they will be marked as 'IGNORED' in the drop log.
+    tmin : float
+        Start time before event.
+    event_id : int | list of int | dict | None
+        The id of the event to consider. If dict,
+        the keys can later be used to acces associated events. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with
+        the id as string. If a list, all events with the IDs specified
+        in the list are used. If None, all events will be used with
+        and a dict is created with string integer names corresponding
+        to the event id integers.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+    """
+
+    @verbose
+    def __init__(self, data, info, events, event_id=None, tmin=0,
+                 verbose=None):
+        self.info = info
+        self._data = data
+        if event_id is None:  # convert to int to make typing-checks happy
+            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+        self.event_id = event_id
+        self.events = events
+
+        for key, val in self.event_id.items():
+            if val not in events[:, 2]:
+                msg = ('No matching events found for %s '
+                       '(event id %i)' % (key, val))
+                raise ValueError(msg)
+
+        self.proj = None
+        self.baseline = None
+        self.preload = True
+        self.reject = None
+        self.decim = 0
+        self.raw = None
+        self.drop_log = [[] for _ in range(len(events))]
+        self._bad_dropped = True
+
+        self.selection = np.arange(len(events))
+        self.picks = None
+        self.times = (np.arange(data.shape[-1], dtype=np.float) /
+                                info['sfreq'] + tmin)
+        self.tmin = self.times[0]
+        self.tmax = self.times[-1]
+        self.verbose = verbose
+        self.name = 'Unknown'
+        self._projector = None

@@ -39,8 +39,8 @@ event_id_2 = 2
 raw = io.Raw(raw_fname, add_eeg_ref=False)
 events = read_events(event_name)
 picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
-                        ecg=True, eog=True, include=['STI 014'],
-                        exclude='bads')
+                   ecg=True, eog=True, include=['STI 014'],
+                   exclude='bads')
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
