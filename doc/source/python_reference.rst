@@ -170,7 +170,6 @@ Classes:
    :template: class.rst
 
    RawArray
-   EpochsArray
 
 Functions:
 
