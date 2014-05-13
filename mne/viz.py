@@ -3910,8 +3910,10 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
 
     import matplotlib.pyplot as plt
     fig = plt.figure()
-    min_event = np.min(events[:, 2])
-    max_event = np.max(events[:, 2])
+    min_event = np.min(events[:, 2]) if event_id is None else np.min(
+        unique_events)
+    max_event = np.max(events[:, 2]) if event_id is None else np.max(
+        unique_events)
     for idx, (ev, color) in enumerate(zip(unique_events, colors)):
         ev_mask = events[:, 2] == ev
         plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
