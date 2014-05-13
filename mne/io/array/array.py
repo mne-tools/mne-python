@@ -11,8 +11,7 @@ import numpy as np
 from ...constants import FIFF
 from ..meas_info import Info
 from ..base import _BaseRaw
-from ...epochs import Epochs
-from ...utils import verbose, logger, _check_type_picks
+from ...utils import verbose, logger
 from ...externals.six import string_types
 
 
