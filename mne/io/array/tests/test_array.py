@@ -7,12 +7,12 @@ from __future__ import print_function
 import os.path as op
 import warnings
 
-from numpy.testing import assert_array_almost_equal, assert_allclose
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_array_equal)
 from nose.tools import assert_equal, assert_raises, assert_true
-
 from mne import find_events, Epochs, pick_types
 from mne.io import Raw
-from mne.io.array import RawArray, create_info
+from mne.io.array import create_info, RawArray
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests might throw warnings
@@ -23,7 +23,7 @@ fif_fname = op.join(base_dir, 'test_raw.fif')
 tempdir = _TempDir()
 
 
-def test_array():
+def test_array_raw():
     """Test creating raw from array
     """
     # creating

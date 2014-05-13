@@ -355,6 +355,12 @@ Events
 
 .. autosummary::
    :toctree: generated/
+   :template: class.rst
+
+   EpochsArray
+
+.. autosummary::
+   :toctree: generated/
    :template: function.rst
 
    combine_event_ids

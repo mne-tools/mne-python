@@ -17,11 +17,12 @@ import warnings
 from mne import (io, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels)
 from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
-                        add_channels_epochs)
+                        add_channels_epochs, EpochsArray)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
                        clean_warning_registry)
 
 from mne.io import read_evokeds
+from mne.io.array import create_info
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.constants import FIFF
@@ -39,8 +40,8 @@ event_id_2 = 2
 raw = io.Raw(raw_fname, add_eeg_ref=False)
 events = read_events(event_name)
 picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
-                        ecg=True, eog=True, include=['STI 014'],
-                        exclude='bads')
+                   ecg=True, eog=True, include=['STI 014'],
+                   exclude='bads')
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
@@ -1108,3 +1109,42 @@ def test_add_channels_epochs():
     epochs_meg2.event_id['b'] = 2
     assert_raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
+
+
+def test_array_epochs():
+    """Test creating epochs from array
+    """
+
+    # creating
+    rng = np.random.RandomState(42)
+    data = rng.random_sample((10, 20, 50))
+    sfreq = 1e3
+    ch_names = ['EEG %03d' % (i + 1) for i in range(20)]
+    types = ['eeg'] * 20
+    info = create_info(ch_names, sfreq, types)
+    events = np.c_[np.arange(1, 600, 60),
+                   np.zeros(10),
+                   [1, 2] * 5]
+    event_id = {'a': 1, 'b': 2}
+    epochs = EpochsArray(data, info, events=events, event_id=event_id,
+                         tmin=-.2)
+
+    # saving
+    temp_fname = op.join(tempdir, 'epo.fif')
+    epochs.save(temp_fname)
+    epochs2 = read_epochs(temp_fname)
+    data2 = epochs2.get_data()
+    assert_allclose(data, data2)
+    assert_allclose(epochs.times, epochs2.times)
+    assert_equal(epochs.event_id, epochs2.event_id)
+    assert_array_equal(epochs.events, epochs2.events)
+
+    # plotting
+    import matplotlib
+    matplotlib.use('Agg')  # for testing don't use X server
+    epochs[0].plot()
+
+    # indexing
+    assert_array_equal(np.unique(epochs['a'].events[:, 2]), np.array([1]))
+    assert_equal(len(epochs[:2]), 2)
+
