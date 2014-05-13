@@ -1559,7 +1559,7 @@ class EpochsArray(Epochs):
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
-    events : array, of shape [n_events, 3]
+    events : array, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified
         by event_id, they will be marked as 'IGNORED' in the drop log.
@@ -1598,7 +1598,8 @@ class EpochsArray(Epochs):
         self.baseline = None
         self.preload = True
         self.reject = None
-        self.decim = 0
+        self.decim = 1
+        self._decim_idx = slice(0, data.shape[-1], self.decim)
         self.raw = None
         self.drop_log = [[] for _ in range(len(events))]
         self._bad_dropped = True
