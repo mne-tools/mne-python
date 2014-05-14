@@ -37,6 +37,8 @@ picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
 
+plt.ion()  # make plot interactive
+
 # 'with' statement is required for a clean exit
 with FieldTripClient(raw=raw, host='localhost', port=1972,
                      tmax=150) as rt_client:
