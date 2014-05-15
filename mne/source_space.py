@@ -1102,12 +1102,14 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             logger.info('Loaded inner skull from %s (%d nodes)'
                         % (bem, surf['np']))
         elif surface is not None:
-            if isinstance(surf, string_types):
+            if isinstance(surface, string_types):
                 surf = _read_surface_geom(surface)
             else:
                 surf = surface
             logger.info('Loaded bounding surface from %s (%d nodes)'
                         % (surface, surf['np']))
+            surf = deepcopy(surf)
+            surf['rr'] *= 1e-3  # must be converted to meters
         else:  # Load an icosahedron and use that as the surface
             logger.info('Setting up the sphere...')
             surf = _get_ico_surface(3)
