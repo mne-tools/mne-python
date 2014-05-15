@@ -6,9 +6,13 @@ Compute real-time evoked responses with FieldTrip client
 This example demonstrates how to connect the MNE real-time
 system to the Fieldtrip buffer using FieldTripClient class.
 
+First run the FieldTrip buffer in
+fieldtrip/realtime/src/acquisition/neuromag/bin/ to start the FieldTrip
+buffer server. Then run this example to acquire the data on the client side.
+
 Since the Fieldtrip buffer does not contain all the
 measurement information required by the MNE real-time processing
-pipeline, a raw object must be provided to instantiate MneFtClient.
+pipeline, a raw object must be provided to instantiate FieldTripClient.
 Together with RtEpochs, this can be used to compute evoked
 responses using moving averages.
 """
@@ -28,11 +32,11 @@ import matplotlib.pyplot as plt
 # file containing measurement information
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.fiff.Raw(raw_fname, preload=False)
+raw = mne.io.Raw(raw_fname, preload=False)
 
 # select gradiometers
-picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                            stim=True, exclude=raw.info['bads'])
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=True, exclude=raw.info['bads'])
 
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5

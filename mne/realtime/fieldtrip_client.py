@@ -157,10 +157,10 @@ class FieldTripClient(object):
             Generator for iteration over raw buffers.
         """
 
-        iter_times = zip(list(range(self.tmin_samp, self.tmax_samp,
-                              self.buffer_size)),
-                         list(range(self.buffer_size, self.tmax_samp,
-                              self.buffer_size)))
+        iter_times = zip(range(self.tmin_samp, self.tmax_samp,
+                               self.buffer_size),
+                         range(self.buffer_size, self.tmax_samp,
+                               self.buffer_size))
 
         for ii, (start, stop) in enumerate(iter_times):
 
