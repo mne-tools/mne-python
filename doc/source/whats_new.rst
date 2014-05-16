@@ -9,8 +9,6 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
-
    - Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
 
    - Add `get_peak` method for evoked and stc objects by  `Denis Engemann`_
@@ -64,6 +62,9 @@ Changelog
    - Add EpochsArray constructor for creating epochs from numpy arrays by `Denis Engemann`_ and `Federico Raimondo`_
 
    - Add connector to FieldTrip realtime client by `Mainak Jas`_
+
+   - Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
+
 
 BUG
 ~~~
