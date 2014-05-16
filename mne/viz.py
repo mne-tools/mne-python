@@ -3900,19 +3900,18 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
             event_id = None
 
         else:
+            # check if event_id missing events and/or contains extra events
+            if len(np.unique(events[:, 2])) > len(list(find_ev)):
+                warnings.warn('event_id dict missing some existing events.')
             if len(unique_events) > len(list(find_ev)):
-                warnings.warn('More event_id than existing events.'
+                warnings.warn('event_id dict contains non-existent events.'
                               ' Extra events not plotted.')
-
                 #find indices of existing events in the event_ids
                 idx_common = np.nonzero(np.in1d(np.asarray(unique_events),
                                         np.unique(events[:, 2])))
                 #keep labels and event_ids of existing events only
                 labels = labels[0:len(idx_common[0][:])]
                 unique_events = unique_events[0:len(idx_common[0][:])]
-
-            elif len(unique_events) < len(list(find_ev)):
-                warnings.warn('Fewer event_id values than existing events.')
 
     colors = cycle(COLORS)  # assign default colors
     if color is None:
