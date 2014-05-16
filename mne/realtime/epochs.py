@@ -377,9 +377,8 @@ class RtEpochs(_BaseEpochs):
             epoch = epoch[:, self._decim_idx]
 
         # Decide if this is a good epoch
-        # is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')
+        is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')
 
-        is_good = True
         if is_good:
             self._epoch_queue.append(epoch)
             self.events.append((event_samp, 0, event_id))

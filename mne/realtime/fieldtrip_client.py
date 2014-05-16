@@ -5,6 +5,7 @@
 import re
 import copy
 import threading
+import warnings
 import numpy as np
 
 from ..constants import FIFF
@@ -29,8 +30,9 @@ class FieldTripClient(object):
 
     Parameters
     ----------
-    info : 
-
+    info : dict | None
+        The measurement info read in from a file. If None, it is guessed from the
+        Fieldtrip Header object.
     host : str
         Hostname (or IP address) of the host where Fieldtrip buffer is running.
     port : int
@@ -69,7 +71,7 @@ class FieldTripClient(object):
         if self.ft_header is None:
             raise RuntimeError('Failed to retrieve Fieldtrip header!')
 
-        self.info = self._update_measurement_info(self.info)
+        self.info = self._guess_measurement_info()
         self.ch_names = self.ft_header.labels
 
         # find start and end samples
@@ -85,13 +87,20 @@ class FieldTripClient(object):
     def __exit__(self, type, value, traceback):
         self.ft_client.disconnect()
 
-    def _update_measurement_info(self, info):
+    def _guess_measurement_info(self):
+        """
+        Creates a minimal Info dictionary required for epoching, averaging
+        et al.
+        """
 
-        # create info dictionary
         if self.info is None:
-            info = Info()
 
-            # modify info attributes according to the fieldtrip header
+            warnings.warn('Info dictionary not provided. Trying to guess it '
+                          'from FieldTrip Header object')
+
+            info = Info()  # create info dictionary
+
+            # modify info attributes according to the FieldTrip Header object
             info['nchan'] = self.ft_header.nChannels
             info['sfreq'] = self.ft_header.fSample
             info['ch_names'] = self.ft_header.labels
@@ -126,12 +135,9 @@ class FieldTripClient(object):
                 elif ch.startswith('MISC'):
                     this_info['kind'] = FIFF.FIFFV_MISC_CH
 
+                # Fieldtrip already does calibration
                 this_info['range'] = 1.0
-
-                if ch.startswith('STI'):
-                    this_info['cal'] = 1.0
-                else:
-                    this_info['cal'] = 0.002  # randomly assigned for now
+                this_info['cal'] = 1.0
 
                 this_info['ch_name'] = ch
                 this_info['coil_trans'] = None
@@ -158,6 +164,7 @@ class FieldTripClient(object):
                 info['chs'].append(this_info)
 
         else:
+
             info = copy.deepcopy(self.info)
 
         return info
