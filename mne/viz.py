@@ -3900,7 +3900,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
             event_id = None
 
         else:
-            if len(unique_events) > len(np.unique(events[:, 2])):
+            if len(unique_events) > len(list(find_ev)):
                 warnings.warn('More event_id than existing events.'
                               ' Extra events not plotted.')
 
@@ -3911,7 +3911,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
                 labels = labels[0:len(idx_common[0][:])]
                 unique_events = unique_events[0:len(idx_common[0][:])]
 
-            elif len(unique_events) < len(np.unique(events[:, 2])):
+            elif len(unique_events) < len(list(find_ev)):
                 warnings.warn('Fewer event_id values than existing events.')
 
     colors = cycle(COLORS)  # assign default colors
