@@ -9,8 +9,6 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
-
    - Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
 
    - Add `get_peak` method for evoked and stc objects by  `Denis Engemann`_
@@ -60,6 +58,8 @@ Changelog
    - Add support for treating arbitrary data (numpy ndarray) as a Raw instance by `Eric Larson`_
 
    - Support for parsing the EDF+ annotation channel by `Martin Billinger`_
+
+   - Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
 
 BUG
 ~~~
