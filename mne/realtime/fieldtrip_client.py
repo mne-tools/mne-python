@@ -2,10 +2,13 @@
 #
 # License: BSD (3-clause)
 
+import re
 import copy
 import threading
 import numpy as np
 
+from ..constants import FIFF
+from ..io.meas_info import Info
 from ..externals.FieldTrip import Client as FtClient
 
 
@@ -26,8 +29,8 @@ class FieldTripClient(object):
 
     Parameters
     ----------
-    raw : Raw object
-        An instance of Raw.
+    info : 
+
     host : str
         Hostname (or IP address) of the host where Fieldtrip buffer is running.
     port : int
@@ -41,12 +44,11 @@ class FieldTripClient(object):
     verbose : bool, str, int, or None
         Log verbosity see mne.verbose.
     """
-    def __init__(self, raw, host='localhost', port=1972, tmin=0,
+    def __init__(self, info=None, host='localhost', port=1972, tmin=0,
                  tmax=np.inf, buffer_size=1000, verbose=None):
-        self.raw = raw
         self.verbose = verbose
-        self.info = copy.deepcopy(self.raw.info)
 
+        self.info = info
         self.tmin = tmin
         self.tmax = tmax
         self.buffer_size = buffer_size
@@ -67,14 +69,11 @@ class FieldTripClient(object):
         if self.ft_header is None:
             raise RuntimeError('Failed to retrieve Fieldtrip header!')
 
-        # modify info attributes according to the fieldtrip header
-        self.raw.info['nchan'] = self.ft_header.nChannels
-        self.raw.info['sfreq'] = self.ft_header.fSample
-        self.raw.info['ch_names'] = self.ft_header.labels
+        self.info = self._update_measurement_info(self.info)
         self.ch_names = self.ft_header.labels
 
         # find start and end samples
-        sfreq = self.raw.info['sfreq']
+        sfreq = self.info['sfreq']
         self.tmin_samp = int(round(sfreq * self.tmin))
         if self.tmax != np.inf:
             self.tmax_samp = int(round(sfreq * self.tmax))
@@ -85,6 +84,83 @@ class FieldTripClient(object):
 
     def __exit__(self, type, value, traceback):
         self.ft_client.disconnect()
+
+    def _update_measurement_info(self, info):
+
+        # create info dictionary
+        if self.info is None:
+            info = Info()
+
+            # modify info attributes according to the fieldtrip header
+            info['nchan'] = self.ft_header.nChannels
+            info['sfreq'] = self.ft_header.fSample
+            info['ch_names'] = self.ft_header.labels
+
+            info['comps'] = list()
+            info['projs'] = list()
+            info['bads'] = list()
+
+            # channel dictionary list
+            info['chs'] = []
+
+            for idx, ch in enumerate(info['ch_names']):
+                this_info = dict()
+
+                this_info['scanno'] = idx
+
+                # extract numerical part of channel name
+                this_info['logno'] = int(re.findall('[^\W\d_]+|\d+', ch)[-1])
+
+                if ch.startswith('EEG'):
+                    this_info['kind'] = FIFF.FIFFV_EEG_CH
+                elif ch.startswith('MEG'):
+                    this_info['kind'] = FIFF.FIFFV_MEG_CH
+                elif ch.startswith('MCG'):
+                    this_info['kind'] = FIFF.FIFFV_MCG_CH
+                elif ch.startswith('EOG'):
+                    this_info['kind'] = FIFF.FIFFV_EOG_CH
+                elif ch.startswith('STI'):
+                    this_info['kind'] = FIFF.FIFFV_EOG_CH
+                elif ch.startswith('ECG'):
+                    this_info['kind'] = FIFF.FIFFV_ECG_CH
+                elif ch.startswith('MISC'):
+                    this_info['kind'] = FIFF.FIFFV_MISC_CH
+
+                this_info['range'] = 1.0
+
+                if ch.startswith('STI'):
+                    this_info['cal'] = 1.0
+                else:
+                    this_info['cal'] = 0.002  # randomly assigned for now
+
+                this_info['ch_name'] = ch
+                this_info['coil_trans'] = None
+                this_info['loc'] = None
+                this_info['eeg_loc'] = None
+
+                if ch.startswith('EEG'):
+                    this_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+                elif ch.startswith('MEG'):
+                    this_info['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+                else:
+                    this_info['coord_frame'] = FIFF.FIFFV_COORD_UNKNOWN
+
+                if ch.startswith('MEG') and ch.endswith('1'):
+                    this_info['unit'] = FIFF.FIFF_UNIT_T
+                elif ch.startswith('MEG') and (ch.endswith('2')
+                                               or ch.endswith('3')):
+                    this_info['unit'] = FIFF.FIFF_UNIT_T_M
+                else:
+                    this_info['unit'] = FIFF.FIFF_UNIT_V
+
+                this_info['unit_mul'] = 0
+
+                info['chs'].append(this_info)
+
+        else:
+            info = copy.deepcopy(self.info)
+
+        return info
 
     def get_measurement_info(self):
         """Returns the measurement info.

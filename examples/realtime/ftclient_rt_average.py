@@ -24,19 +24,9 @@ print(__doc__)
 # License: BSD (3-clause)
 
 import mne
-from mne.datasets import sample
 from mne.realtime import FieldTripClient, RtEpochs
 
 import matplotlib.pyplot as plt
-
-# file containing measurement information
-data_path = sample.data_path()
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.io.Raw(raw_fname, preload=False)
-
-# select gradiometers
-picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                       stim=True, exclude=raw.info['bads'])
 
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
@@ -44,13 +34,18 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 plt.ion()  # make plot interactive
 
 # 'with' statement is required for a clean exit
-with FieldTripClient(raw=raw, host='localhost', port=1972,
+with FieldTripClient(host='localhost', port=1972,
                      tmax=150) as rt_client:
+
+    raw_info = rt_client.get_measurement_info()
+
+    # select gradiometers
+    picks = mne.pick_types(raw_info, meg='grad', eeg=False, eog=True,
+                           stim=True)
 
     # create the real-time epochs object
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
-                         decim=1, reject=dict(grad=4000e-13, eog=150e-6),
-                         isi_max=10.0)
+                         decim=1, isi_max=10.0, proj=None)
 
     # start the acquisition
     rt_epochs.start()
