@@ -40,6 +40,9 @@ import matplotlib.pyplot as plt
 
 # select the left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
+
+# user must provide list of bad channels because
+# FieldTrip header object does not provide that
 bads = ['MEG 2443', 'EEG 053']
 
 plt.ion()  # make plot interactive
@@ -57,7 +60,7 @@ with FieldTripClient(host='localhost', port=1972,
 
     # create the real-time epochs object
     rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
-                         reject=dict(grad=4000, eog=150),
+                         reject=dict(grad=4000e-13, eog=150e-6),
                          decim=1, isi_max=10.0, proj=None)
 
     # start the acquisition

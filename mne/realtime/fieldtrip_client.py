@@ -17,7 +17,7 @@ def _buffer_recv_worker(ft_client):
     """Worker thread that constantly receives buffers."""
 
     try:
-        for raw_buffer in ft_client.raw_buffers():
+        for raw_buffer in ft_client.iter_raw_buffers():
             ft_client._push_raw_buffer(raw_buffer)
     except RuntimeError as err:
         # something is wrong, the server stopped (or something)
@@ -31,8 +31,8 @@ class FieldTripClient(object):
     Parameters
     ----------
     info : dict | None
-        The measurement info read in from a file. If None, it is guessed from the
-        Fieldtrip Header object.
+        The measurement info read in from a file. If None, it is guessed from
+        the Fieldtrip Header object.
     host : str
         Hostname (or IP address) of the host where Fieldtrip buffer is running.
     port : int
@@ -129,7 +129,7 @@ class FieldTripClient(object):
                 elif ch.startswith('EOG'):
                     this_info['kind'] = FIFF.FIFFV_EOG_CH
                 elif ch.startswith('STI'):
-                    this_info['kind'] = FIFF.FIFFV_EOG_CH
+                    this_info['kind'] = FIFF.FIFFV_STIM_CH
                 elif ch.startswith('ECG'):
                     this_info['kind'] = FIFF.FIFFV_ECG_CH
                 elif ch.startswith('MISC'):
@@ -219,7 +219,7 @@ class FieldTripClient(object):
             self._recv_thread.daemon = True
             self._recv_thread.start()
 
-    def stop_receive_thread(self, nchan, stop_measurement=False):
+    def stop_receive_thread(self, stop_measurement=False):
         """Stop the receive thread
 
         Parameters
@@ -231,7 +231,7 @@ class FieldTripClient(object):
             self._recv_thread.stop()
             self._recv_thread = None
 
-    def raw_buffers(self):
+    def iter_raw_buffers(self):
         """Return an iterator over raw buffers
 
         Returns
@@ -247,7 +247,7 @@ class FieldTripClient(object):
 
         for ii, (start, stop) in enumerate(iter_times):
 
-            # wait for currect number of samples to be available
+            # wait for correct number of samples to be available
             self.ft_client.wait(stop, np.iinfo(np.uint32).max,
                                 np.iinfo(np.uint32).max)
 
