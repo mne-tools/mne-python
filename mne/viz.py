@@ -3892,8 +3892,8 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
                                     key=lambda x: x[1]))
 
         # check that event_id values match existing events
-        find_ev = set(unique_events).intersection(set(np.unique(events[:, 2])))
-        if not find_ev:
+        venn_ev = set(unique_events).intersection(set(np.unique(events[:, 2])))
+        if not venn_ev:
             warnings.warn('These event_ids do not exist.'
                           ' Existing events will be used.')
             unique_events = np.unique(events[:, 2])
@@ -3901,65 +3901,61 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
 
         else:
             # check if event_id missing events and/or contains extra events
-            if len(np.unique(events[:, 2])) > len(list(find_ev)):
+            if len(np.unique(events[:, 2])) > len(list(venn_ev)):
                 warnings.warn('event_id dict missing some existing events.')
-            if len(unique_events) > len(list(find_ev)):
+            if len(unique_events) > len(list(venn_ev)):
                 warnings.warn('event_id dict contains non-existent events.'
                               ' Extra events not plotted.')
                 #find indices of existing events in the event_ids
                 idx_common = np.nonzero(np.in1d(np.asarray(unique_events),
                                         np.unique(events[:, 2])))
                 #keep labels and event_ids of existing events only
-                labels = labels[0:len(idx_common[0][:])]
-                unique_events = unique_events[0:len(idx_common[0][:])]
+                tmp_labels = list()
+                tmp_unique_events = list()
+                for i, j in enumerate(venn_ev):
+                    tmp_labels.append(labels[idx_common[0][i]])
+                    tmp_unique_events.append(unique_events[idx_common[0][i]])
+                labels = tuple(tmp_labels)
+                unique_events = tuple(tmp_unique_events)
 
-    colors = cycle(COLORS)  # assign default colors
+    # assign default colors
+    colors = cycle(COLORS)
+    color_list = list()
+    for idx in range(len(unique_events)):
+        color_list.append(next(colors))
+    colors = tuple(color_list)
     if color is None:
         if len(unique_events) > len(COLORS):
             warnings.warn('More events than colors available.'
                           'You should pass a list of unique colors.')
     else:
-        # get color from color dictionary (sorted by key)
+        # get color key and value from input dictionary (sorted by key)
         color_keys, color_val = zip(*sorted(color.items(), key=lambda x: x[0]))
-        find_intersect = set(unique_events).intersection(set(color_keys))
-        lvenn = len(find_intersect)
-        if not find_intersect:
+        venn_dict = set(unique_events).intersection(set(color_keys))
+        if not venn_dict:
             warnings.warn('event_id values do not have any corresponding'
                           ' colors. Default colors will be assigned.')
-            color_list = list()
-            for idx in range(len(unique_events)):
-                color_list.append(next(colors))
-            colors = tuple(color_list)
         else:
-            if len(color_keys) == lvenn and len(unique_events) == lvenn:
+            if len(venn_dict) == len(color_keys) == len(unique_events):
                 # unique_events and color_keys are 1:1 and onto
                 # take all colors from user's color dictionary
                 _, colors = zip(*sorted(color.items(), key=lambda x: x[0]))
             else:  # unique_events and color_keys are 1:1 but not onto
-                color_list = list()
-                for idx in range(len(unique_events)):
-                    color_list.append(next(colors))
-                for i, j in enumerate(sorted(list(find_intersect))):
-                    if len(unique_events) > lvenn:
-                        warnings.warn('More event_id values than matching'
-                                      ' color keys. Default colors will be'
-                                      ' assigned to unmatched events.')
-                        if sorted(list(find_intersect)) == list(color_keys):
-                            a = zip(*np.where(np.asarray(unique_events) == j))
-                            int_a = int(''.join(map(str, a[0])))
-                            color_list[int_a] = color_val[i]
-                        elif len(color_keys) > lvenn:
-                            a = zip(*np.where(np.asarray(unique_events) == j))
-                            int_a = int(''.join(map(str, a[0])))
-                            color_list[int_a] = color_val[j - 1]
-                        else:
-                            color_list[j - 1] = color_val[i]
-                    else:
-                        warnings.warn('More colors than event_ids.')
-                        a = zip(*np.where(np.asarray(color_keys) == j))
-                        int_a = int(''.join(map(str, a[0])))
-                        color_list[i] = color_val[int_a]
+                # find indices where color_list should be replaced
+                idx_ev = np.nonzero(np.in1d(np.asarray(unique_events),
+                                    color_keys))
+                idx_color = np.nonzero(np.in1d(np.asarray(color_keys),
+                                       unique_events))
+                for i, j in enumerate(venn_dict):
+                    color_list[idx_ev[0][i]] = color_val[idx_color[0][i]]
                 colors = tuple(color_list)
+                #display some warnings
+                if len(unique_events) > len(venn_dict):
+                    warnings.warn('More event_id values than matching'
+                                  ' color keys. Default colors will be'
+                                  ' assigned to unmatched events.')
+                if len(color_keys) > len(venn_dict):
+                    warnings.warn('More colors than matching event_ids.')
     import matplotlib.pyplot as plt
     fig = plt.figure()
     min_event = np.min(events[:, 2]) if event_id is None else np.min(
