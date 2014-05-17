@@ -929,7 +929,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                               use_first_samp)
 
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
-                      return_singular=False):
+                      return_singular=False, picks=None):
         """Estimate rank of the raw data
 
         This function is meant to provide a reasonable estimate of the rank.
@@ -951,6 +951,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         return_singular : bool
             If True, also return the singular values that were used
             to determine the rank.
+        picks : numpy.ndarray of int, shape (n channels selected)
+            The channels to be considered for rank estimation.
+            If None (default) meg and eeg channels are indcluded.
 
         Returns
         -------
@@ -977,14 +980,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         else:
             stop = min(self.n_times - 1, self.time_as_index(tstop)[0])
         tslice = slice(start, stop + 1)
-        picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
+                               exclude='bads')
+
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
         # this should already be a copy, so we can overwrite it
         data = self[picks, tslice][0]
-        return estimate_rank(data, tol, return_singular, copy=False)
+        return estimate_rank(data, tol, return_singular, copy=False,)
 
     @property
     def ch_names(self):

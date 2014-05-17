@@ -98,10 +98,13 @@ def test_rank_estimation():
     """Test raw rank estimation
     """
     raw = Raw(fif_fname)
-    n_meg = len(pick_types(raw.info, meg=True, eeg=False, exclude='bads'))
-    n_eeg = len(pick_types(raw.info, meg=False, eeg=True, exclude='bads'))
+    picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
+    n_meg = len(picks_meg)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    n_eeg = len(picks_eeg)
     raw = Raw(fif_fname, preload=True)
     assert_array_equal(raw.estimate_rank(), n_meg + n_eeg)
+    assert_array_equal(raw.estimate_rank(picks=picks_eeg), n_eeg)
     raw = Raw(fif_fname, preload=False)
     raw.apply_proj()
     n_proj = len(raw.info['projs'])
