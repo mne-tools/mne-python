@@ -3910,14 +3910,8 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
                 idx_common = np.nonzero(np.in1d(np.asarray(unique_events),
                                         np.unique(events[:, 2])))
                 #keep labels and event_ids of existing events only
-                tmp_labels = list()
-                tmp_unique_events = list()
-                for i, j in enumerate(venn_ev):
-                    tmp_labels.append(labels[idx_common[0][i]])
-                    tmp_unique_events.append(unique_events[idx_common[0][i]])
-                labels = tuple(tmp_labels)
-                unique_events = tuple(tmp_unique_events)
-
+                unique_events = tuple(np.array(unique_events)[idx_common])
+                labels = tuple(np.array(labels)[idx_common])
     # assign default colors
     colors = cycle(COLORS)
     color_list = list()
@@ -3942,10 +3936,12 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
                 _, colors = zip(*sorted(color.items(), key=lambda x: x[0]))
             else:  # unique_events and color_keys are 1:1 but not onto
                 # find indices where color_list should be replaced
+
                 idx_ev = np.nonzero(np.in1d(np.asarray(unique_events),
                                     color_keys))
                 idx_color = np.nonzero(np.in1d(np.asarray(color_keys),
                                        unique_events))
+
                 for i, j in enumerate(venn_dict):
                     color_list[idx_ev[0][i]] = color_val[idx_color[0][i]]
                 colors = tuple(color_list)
