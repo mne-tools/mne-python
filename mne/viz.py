@@ -3935,15 +3935,17 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
                 # take all colors from user's color dictionary
                 _, colors = zip(*sorted(color.items(), key=lambda x: x[0]))
             else:  # unique_events and color_keys are 1:1 but not onto
-                # find indices where color_list should be replaced
-
+                # indices in unique_events where color_keys match unique_events
                 idx_ev = np.nonzero(np.in1d(np.asarray(unique_events),
                                     color_keys))
+                # indices in color_keys to replace in color_list
                 idx_color = np.nonzero(np.in1d(np.asarray(color_keys),
                                        unique_events))
 
+                # replace color_list at idx_ev with color_val at idx_color
                 for i, j in enumerate(venn_dict):
                     color_list[idx_ev[0][i]] = color_val[idx_color[0][i]]
+
                 colors = tuple(color_list)
                 #display some warnings
                 if len(unique_events) > len(venn_dict):
