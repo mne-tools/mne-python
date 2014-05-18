@@ -573,9 +573,15 @@ def test_plot_events():
     raw = _get_raw()
     events = _get_events()
     plot_events(events, raw.info['sfreq'], raw.first_samp)
-    plot_events(events, raw.info['sfreq'], raw.first_samp,
-                event_id=event_labels)
-    plot_events(events, raw.info['sfreq'], raw.first_samp,
-                color=color)
-    plot_events(events, raw.info['sfreq'], raw.first_samp,
-                event_id=event_labels, color=color)
+    warnings.simplefilter('always', UserWarning)
+    with warnings.catch_warnings(record=True):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=event_labels)
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    color=color)
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=event_labels, color=color)
+        assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
+                      raw.first_samp, event_id={'aud_l': 1}, color=color)
+        assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
+                      raw.first_samp, event_id={'aud_l': 111}, color=color)

@@ -3883,94 +3883,65 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     fig : matplotlib.figure.Figure
         The figure object containing the plot.
     """
-    if event_id is None:
-        unique_events = np.unique(events[:, 2])
-    else:
+    unique_events = np.unique(events[:, 2])
+
+    if event_id is not None:
         # get labels and unique event ids from event_id dict,
         # sorted by value
-        labels, unique_events = zip(*sorted(event_id.items(),
-                                    key=lambda x: x[1]))
+        event_id_rev = dict((v,k) for k, v in event_id.items())
+        conditions, unique_events_id = zip(*sorted(event_id.items(),
+                                               key=lambda x: x[1]))
 
-        # check that event_id values match existing events
-        venn_ev = set(unique_events).intersection(set(np.unique(events[:, 2])))
-        if not venn_ev:
-            warnings.warn('These event_ids do not exist. Existing events will'
-                          ' be plotted with default colors.')
-            unique_events = np.unique(events[:, 2])
-            event_id = None
-            color = None
+        for this_event in unique_events_id:
+            if this_event not in unique_events:
+                raise ValueError('%s from event_id is not present in events.'
+                                 % this_event)
 
-        else:
-            # check if event_id missing events and/or contains extra events
-            if tuple(np.unique(events[:, 2])) != unique_events:
-                warnings.warn('event_id dict missing some existing events.')
-            if len(unique_events) > len(list(venn_ev)):
-                warnings.warn('event_id dict contains non-existent events.'
-                              ' Extra events not plotted.')
-                #find indices of existing events in the event_id dict
-                idx_common = np.nonzero(np.in1d(np.asarray(unique_events),
-                                        np.unique(events[:, 2])))
-                #keep labels and event_ids of existing events only
-                unique_events = tuple(np.array(unique_events)[idx_common])
-                labels = tuple(np.array(labels)[idx_common])
-    # Assign default colors for events in unique_events. Needed if
-    # color = None or user's color dict missing events in user's event_id dict
-    colors = cycle(COLORS)
-    color_list = list()
-    for idx in range(len(unique_events)):
-        color_list.append(next(colors))
-    colors = tuple(color_list)
+        for this_event in unique_events:
+            if this_event not in unique_events_id:
+                warnings.warn('event %s missing from event_id will be ignored.'
+                              % this_event)
+    else:
+        unique_events_id = unique_events
+
     if color is None:
         if len(unique_events) > len(COLORS):
-            warnings.warn('More events than colors available.'
+            warnings.warn('More events than colors available. '
                           'You should pass a list of unique colors.')
+        colors = cycle(COLORS)
+        color = dict()
+        for this_event in unique_events_id:
+            color[this_event] = six.advance_iterator(colors)
     else:
-        # get color key and value from input color dict (sorted by key)
-        color_keys, color_val = zip(*sorted(color.items(), key=lambda x: x[0]))
-        venn_dict = set(unique_events).intersection(set(color_keys))
-        if not venn_dict:
-            warnings.warn('event_id values do not have any corresponding'
-                          ' colors. Default colors will be plotted.')
-        else:
-            if len(venn_dict) == len(color_keys) == len(unique_events):
-                # unique_events and color_keys are 1:1 and onto
-                # take all colors from user's color dictionary
-                _, colors = zip(*sorted(color.items(), key=lambda x: x[0]))
-            else:  # unique_events and color_keys are 1:1 but not onto
-                # indices in unique_events where color_keys match unique_events
-                idx_ev = np.nonzero(np.in1d(np.asarray(unique_events),
-                                    color_keys))
-                # indices in color_keys to replace in default color_list
-                idx_color = np.nonzero(np.in1d(np.asarray(color_keys),
-                                       unique_events))
+        for this_event in color:
+            if this_event not in unique_events_id:
+                raise ValueError('%s from color is not present in events '
+                                 'or event_id.' % this_event)
 
-                # replace color_list at idx_ev with color_val at idx_color
-                for i, j in enumerate(venn_dict):
-                    color_list[idx_ev[0][i]] = color_val[idx_color[0][i]]
+        for this_event in unique_events_id:
+            if this_event not in color:
+                warnings.warn('Color is not available for event %d. Default '
+                              'colors will be used.' % this_event)
 
-                colors = tuple(color_list)
-                #display some warnings
-                if len(unique_events) > len(venn_dict):
-                    warnings.warn('More event_id values than matching'
-                                  ' color keys. Default colors will be'
-                                  ' plotted for unmatched events.')
-                if len(color_keys) > len(venn_dict):
-                    warnings.warn('More colors than matching event_ids.')
     import matplotlib.pyplot as plt
     fig = plt.figure()
-    min_event = np.min(events[:, 2]) if event_id is None else np.min(
-        unique_events)
-    max_event = np.max(events[:, 2]) if event_id is None else np.max(
-        unique_events)
-    for idx, (ev, color) in enumerate(zip(unique_events, colors)):
+    min_event = np.min(unique_events_id)
+    max_event = np.max(unique_events_id)
+
+    for idx, ev in enumerate(unique_events_id):
         ev_mask = events[:, 2] == ev
+        kwargs = {}
+        if event_id is not None:
+            kwargs['label'] = event_id_rev[ev]
+        if ev in color:
+            kwargs['color'] = color[ev]
         plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                 events[ev_mask, 2], '.', color=color, label=labels[idx] if
-                 event_id is not None else 'None')
+                 events[ev_mask, 2], '.', **kwargs)
     plt.ylim([min_event - 1, max_event + 1])
     plt.xlabel('Time (s)')
     plt.ylabel('Events id')
     plt.grid('on')
+
     if event_id is not None:
         plt.legend()
     if show:
