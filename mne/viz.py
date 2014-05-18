@@ -3894,25 +3894,27 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         # check that event_id values match existing events
         venn_ev = set(unique_events).intersection(set(np.unique(events[:, 2])))
         if not venn_ev:
-            warnings.warn('These event_ids do not exist.'
-                          ' Existing events will be used.')
+            warnings.warn('These event_ids do not exist. Existing events will'
+                          ' be plotted with default colors.')
             unique_events = np.unique(events[:, 2])
             event_id = None
+            color = None
 
         else:
             # check if event_id missing events and/or contains extra events
-            if len(np.unique(events[:, 2])) > len(list(venn_ev)):
+            if tuple(np.unique(events[:, 2])) != unique_events:
                 warnings.warn('event_id dict missing some existing events.')
             if len(unique_events) > len(list(venn_ev)):
                 warnings.warn('event_id dict contains non-existent events.'
                               ' Extra events not plotted.')
-                #find indices of existing events in the event_ids
+                #find indices of existing events in the event_id dict
                 idx_common = np.nonzero(np.in1d(np.asarray(unique_events),
                                         np.unique(events[:, 2])))
                 #keep labels and event_ids of existing events only
                 unique_events = tuple(np.array(unique_events)[idx_common])
                 labels = tuple(np.array(labels)[idx_common])
-    # assign default colors
+    # Assign default colors for events in unique_events. Needed if
+    # color = None or user's color dict missing events in user's event_id dict
     colors = cycle(COLORS)
     color_list = list()
     for idx in range(len(unique_events)):
@@ -3923,12 +3925,12 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
             warnings.warn('More events than colors available.'
                           'You should pass a list of unique colors.')
     else:
-        # get color key and value from input dictionary (sorted by key)
+        # get color key and value from input color dict (sorted by key)
         color_keys, color_val = zip(*sorted(color.items(), key=lambda x: x[0]))
         venn_dict = set(unique_events).intersection(set(color_keys))
         if not venn_dict:
             warnings.warn('event_id values do not have any corresponding'
-                          ' colors. Default colors will be assigned.')
+                          ' colors. Default colors will be plotted.')
         else:
             if len(venn_dict) == len(color_keys) == len(unique_events):
                 # unique_events and color_keys are 1:1 and onto
@@ -3938,7 +3940,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
                 # indices in unique_events where color_keys match unique_events
                 idx_ev = np.nonzero(np.in1d(np.asarray(unique_events),
                                     color_keys))
-                # indices in color_keys to replace in color_list
+                # indices in color_keys to replace in default color_list
                 idx_color = np.nonzero(np.in1d(np.asarray(color_keys),
                                        unique_events))
 
@@ -3951,7 +3953,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
                 if len(unique_events) > len(venn_dict):
                     warnings.warn('More event_id values than matching'
                                   ' color keys. Default colors will be'
-                                  ' assigned to unmatched events.')
+                                  ' plotted for unmatched events.')
                 if len(color_keys) > len(venn_dict):
                     warnings.warn('More colors than matching event_ids.')
     import matplotlib.pyplot as plt
