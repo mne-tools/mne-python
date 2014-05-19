@@ -10,11 +10,11 @@ import os.path as op
 from scipy import sparse, linalg
 from copy import deepcopy
 
-from .fiff.constants import FIFF
-from .fiff.tree import dir_tree_find
-from .fiff.tag import find_tag, read_tag
-from .fiff.open import fiff_open
-from .fiff.write import (start_block, end_block, write_int,
+from .constants import FIFF
+from .io.tree import dir_tree_find
+from .io.tag import find_tag, read_tag
+from .io.open import fiff_open
+from .io.write import (start_block, end_block, write_int,
                          write_float_sparse_rcs, write_string,
                          write_float_matrix, write_int_matrix,
                          write_coord_trans, start_file, end_file, write_id)
@@ -1102,12 +1102,14 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             logger.info('Loaded inner skull from %s (%d nodes)'
                         % (bem, surf['np']))
         elif surface is not None:
-            if isinstance(surf, string_types):
+            if isinstance(surface, string_types):
                 surf = _read_surface_geom(surface)
             else:
                 surf = surface
             logger.info('Loaded bounding surface from %s (%d nodes)'
                         % (surface, surf['np']))
+            surf = deepcopy(surf)
+            surf['rr'] *= 1e-3  # must be converted to meters
         else:  # Load an icosahedron and use that as the surface
             logger.info('Setting up the sphere...')
             surf = _get_ico_surface(3)

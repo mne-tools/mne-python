@@ -16,7 +16,7 @@ from __future__ import print_function
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 
-from ..externals.six import string_types
+from mne.externals.six import string_types
 import os
 import sys
 import mne
@@ -155,10 +155,10 @@ if __name__ == '__main__':
     else:
         eog_proj_fname = prefix + '_eog_proj.fif'
 
-    raw = mne.fiff.Raw(raw_in, preload=preload)
+    raw = mne.io.Raw(raw_in, preload=preload)
 
     if raw_event_fname is not None:
-        raw_event = mne.fiff.Raw(raw_event_fname)
+        raw_event = mne.io.Raw(raw_event_fname)
     else:
         raw_event = raw
 

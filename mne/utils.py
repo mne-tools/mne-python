@@ -930,9 +930,10 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
         meth_1 = 'os.environ["%s"] = VALUE' % key
         meth_2 = 'mne.utils.set_config("%s", VALUE)' % key
         raise KeyError('Key "%s" not found in environment or in the '
-                       'mne-python config file:\n%s\nTry either:\n'
-                       '    %s\nfor a temporary solution, or:\n'
-                       '    %s\nfor a permanent one. You can also '
+                       'mne-python config file: %s '
+                       'Try either:'
+                       ' %s for a temporary solution, or:'
+                       ' %s for a permanent one. You can also '
                        'set the environment variable before '
                        'running python.'
                        % (key, config_path, meth_1, meth_2))
@@ -1210,7 +1211,10 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     try:
         # Checking file size and displaying it alongside the download url
         u = urllib.request.urlopen(url)
-        file_size = int(u.headers['Content-Length'].strip())
+        try:
+            file_size = int(u.headers['Content-Length'].strip())
+        finally:
+            u.close()
         print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
@@ -1231,13 +1235,18 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
                     print('Resuming download failed. Attempting to restart '
                           'downloading the entire file.')
                     _fetch_file(url, resume=False)
-                _chunk_read(data, local_file, initial_size=local_file_size)
+                else:
+                    _chunk_read(data, local_file, initial_size=local_file_size)
+                    data.close()
             else:
                 _chunk_read_ftp_resume(url, temp_file_name, local_file)
         else:
             local_file = open(temp_file_name, "wb")
             data = urllib.request.urlopen(url)
-            _chunk_read(data, local_file, initial_size=initial_size)
+            try:
+                _chunk_read(data, local_file, initial_size=initial_size)
+            finally:
+                data.close()
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()

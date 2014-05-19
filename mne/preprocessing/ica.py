@@ -24,19 +24,19 @@ from .eog import _find_eog_events
 
 from ..cov import compute_whitener
 from .. import Covariance
-from ..fiff.pick import (pick_types, pick_channels, pick_info,
+from ..pick import (pick_types, pick_channels, pick_info,
                          channel_indices_by_type)
-from ..fiff.write import (write_double_matrix, write_string,
+from ..io.write import (write_double_matrix, write_string,
                           write_name_list, write_int, start_block,
                           end_block)
-from ..fiff.tree import dir_tree_find
-from ..fiff.open import fiff_open
-from ..fiff.tag import read_tag
-from ..fiff.meas_info import write_meas_info, read_meas_info
-from ..fiff.constants import Bunch, FIFF
+from ..io.tree import dir_tree_find
+from ..io.open import fiff_open
+from ..io.tag import read_tag
+from ..io.meas_info import write_meas_info, read_meas_info
+from ..constants import Bunch, FIFF
 from ..viz import plot_ica_panel, plot_ica_topomap
-from ..fiff.channels import _contains_ch_type
-from ..fiff.write import start_file, end_file, write_id
+from ..io.channels import _contains_ch_type
+from ..io.write import start_file, end_file, write_id
 from ..epochs import _is_good
 from ..utils import check_sklearn_version, logger, verbose
 
@@ -172,7 +172,7 @@ class ICA(object):
         .exclude attribute. When saving the ICA also the indices are restored.
         Hence, artifact components once identified don't have to be added
         again. To dump this 'artifact memory' say: ica.exclude = []
-    info : None | instance of mne.fiff.meas_info.Info
+    info : None | instance of mne.io.meas_info.Info
         The measurement info copied from the object fitted.
     `n_samples_` : int
         the number of samples used on fit.
@@ -243,7 +243,7 @@ class ICA(object):
 
         Parameters
         ----------
-        raw : instance of mne.fiff.Raw
+        raw : instance of mne.io.Raw
             Raw measurements to be decomposed.
         picks : array-like of int
             Channels to be included. This selection remains throughout the
@@ -394,7 +394,8 @@ class ICA(object):
         data = epochs.get_data()[:, picks]
         if decim is not None:
             data = data[:, :, ::decim].copy()
-        self.n_samples_ = np.prod(data.shape[1:])
+
+        self.n_samples_ = np.prod(data[:, 0, :].shape)
 
         data, self._pre_whitener = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
@@ -630,7 +631,7 @@ class ICA(object):
 
         Parameters
         ----------
-        raw : instance of mne.fiff.Raw
+        raw : instance of mne.io.Raw
             Raw object to plot the sources from.
         order : ndarray | None.
             Index of length `n_components_`. If None, plot will show the

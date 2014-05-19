@@ -36,9 +36,10 @@ from .fixes import tril_indices, Counter
 from .baseline import rescale
 from .utils import (get_subjects_dir, get_config, set_config, _check_subject,
                     logger, verbose)
-from .fiff import show_fiff, FIFF
-from .fiff.pick import channel_type, pick_types
-from .fiff.proj import make_projector, setup_proj
+from .io import show_fiff
+from .constants import FIFF
+from .pick import channel_type, pick_types
+from .io.proj import make_projector, setup_proj
 from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
@@ -140,7 +141,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info
+    info : instance of mne.io.meas_info.Info
         The measurement info.
     layout : instance of mne.layout.Layout | None
         The layout to use. If None, layout will be guessed
@@ -1454,27 +1455,27 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     Parameters
     ----------
     src : dict
-        The source space
+        The source space.
     stcs : instance of SourceEstimate or list of instances of SourceEstimate
-        The source estimates (up to 3)
+        The source estimates (up to 3).
     colors : list
         List of colors
     linewidth : int
-        Line width in 2D plot
+        Line width in 2D plot.
     fontsize : int
-        Font size
+        Font size.
     bgcolor : tuple of length 3
-        Background color in 3D
+        Background color in 3D.
     opacity : float in [0, 1]
-        Opacity of brain mesh
+        Opacity of brain mesh.
     brain_color : tuple of length 3
-        Brain color
+        Brain color.
     show : bool
-        Show figures if True
+        Show figures if True.
     fig_name :
-        Mayavi figure name
+        Mayavi figure name.
     fig_number :
-        Pylab figure number
+        Matplotlib figure number.
     labels : ndarray or list of ndarrays
         Labels to show sources in clusters. Sources with the same
         label and the waveforms within each cluster are presented in
@@ -1483,7 +1484,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     kwargs : kwargs
-        Keyword arguments to pass to mlab.triangular_mesh
+        Keyword arguments to pass to mlab.triangular_mesh.
     """
     if not isinstance(stcs, list):
         stcs = [stcs]
@@ -2025,7 +2026,8 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
         from .layouts.layout import _merge_grad_data
     for ii, data_, ax in zip(source_idx, data, axes):
         data_ = _merge_grad_data(data_) if merge_grads else data_
-        plot_topomap(data_.flatten(), pos, vmax=vmax, res=res, axis=ax)
+        plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
+                     res=res, axis=ax)
         ax.set_title('IC #%03d' % ii, fontsize=12)
         ax.set_yticks([])
         ax.set_xticks([])
@@ -3251,7 +3253,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
 
     Parameters
     ----------
-    raw : instance of fiff.Raw
+    raw : instance of io.Raw
         The raw instance to use.
     tmin : float
         Start time for calculations.
@@ -3745,7 +3747,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     Parameters
     ----------
-    evoked : instance of mne.fiff.Evoked
+    evoked : instance of mne.io.Evoked
         The evoked object.
     surf_maps : list
         The surface mapping information obtained with make_field_map.

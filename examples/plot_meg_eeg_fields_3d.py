@@ -16,7 +16,7 @@ This process can be computationally intensive.
 
 print(__doc__)
 
-from mne.fiff import read_evokeds
+from mne.io import read_evokeds
 from mne.datasets import sample
 from mne import make_field_map
 

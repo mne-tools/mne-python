@@ -22,7 +22,7 @@ from numpy.random import randn
 from scipy import stats as stats
 
 import mne
-from mne import (fiff, spatial_tris_connectivity, compute_morph_matrix,
+from mne import (io, spatial_tris_connectivity, compute_morph_matrix,
                  grade_to_tris)
 from mne.epochs import equalize_epoch_counts
 from mne.stats import (spatio_temporal_cluster_1samp_test,
@@ -42,13 +42,13 @@ tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 
 #   Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 ###############################################################################
 # Read epochs for all channels, removing a bad one
 raw.info['bads'] += ['MEG 2443']
-picks = fiff.pick_types(raw.info, meg=True, eog=True, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 event_id = 1  # L auditory
 reject = dict(grad=1000e-13, mag=4000e-15, eog=150e-6)
 epochs1 = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,

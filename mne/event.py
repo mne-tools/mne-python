@@ -10,13 +10,13 @@ from .externals.six import string_types
 import numpy as np
 from os.path import splitext
 
-from .fiff.constants import FIFF
-from .fiff.tree import dir_tree_find
-from .fiff.tag import read_tag
-from .fiff.open import fiff_open
-from .fiff.write import write_int, start_block, start_file, end_block, end_file
-from .fiff.pick import pick_channels
 from .utils import get_config, logger, verbose
+from .constants import FIFF
+from .io.tree import dir_tree_find
+from .io.tag import read_tag
+from .io.open import fiff_open
+from .io.write import write_int, start_block, start_file, end_block, end_file
+from .pick import pick_channels
 
 
 def pick_events(events, include=None, exclude=None):

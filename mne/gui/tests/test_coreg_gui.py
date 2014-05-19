@@ -6,13 +6,13 @@ from ...externals.six import string_types
 import os
 
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 from nose.tools import (assert_equal, assert_almost_equal, assert_false,
                         assert_raises, assert_true)
 
 import mne
 from mne.datasets import sample
-from mne.fiff.kit.tests import data_dir as kit_data_dir
+from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
 
 

@@ -5,13 +5,13 @@ from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_almost_equal
 import numpy as np
 
-from ...fiff import Raw
-from ...fiff.proj import make_projector, activate_proj
+from ...io import Raw
+from ...io.proj import make_projector, activate_proj
 from ..ssp import compute_proj_ecg, compute_proj_eog
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
 dur_use = 5.0
 eog_times = np.array([0.5, 2.3, 3.6, 14.5])

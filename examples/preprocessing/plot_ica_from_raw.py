@@ -22,7 +22,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne.fiff import Raw
+from mne.io import Raw
 from mne.preprocessing.ica import ICA
 from mne.datasets import sample
 from mne.filter import band_pass_filter
@@ -37,8 +37,8 @@ raw = Raw(raw_fname, preload=True)
 
 raw.filter(1, 45, n_jobs=2)
 
-picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                            stim=False, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
+                       stim=False, exclude='bads')
 
 ###############################################################################
 # Setup ICA seed decompose data, then access and plot sources.

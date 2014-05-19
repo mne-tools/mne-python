@@ -27,7 +27,7 @@ import numpy as np
 from numpy.random import randn
 
 import mne
-from mne import (fiff, spatial_tris_connectivity, compute_morph_matrix,
+from mne import (io, spatial_tris_connectivity, compute_morph_matrix,
                  grade_to_tris)
 from mne.stats import (spatio_temporal_cluster_test, f_threshold_twoway_rm,
                        f_twoway_rm, summarize_clusters_stc)
@@ -46,13 +46,13 @@ tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 
 #   Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 ###############################################################################
 # Read epochs for all channels, removing a bad one
 raw.info['bads'] += ['MEG 2443']
-picks = fiff.pick_types(raw.info, meg=True, eog=True, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 # we'll load all four conditions that make up the 'two ways' of our ANOVA
 
 event_id = dict(l_aud=1, r_aud=2, l_vis=3, r_vis=4)

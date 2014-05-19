@@ -5,10 +5,10 @@ from numpy.testing import assert_raises
 from nose.tools import assert_true, assert_equal
 import warnings
 
-from mne import fiff, read_events, Epochs, SourceEstimate, read_cov, read_proj
-from mne import make_field_map
+from mne import io, read_events, Epochs, SourceEstimate, read_cov, read_proj
+from mne import make_field_map, pick_types
 from mne.layouts import read_layout
-from mne.fiff.pick import pick_channels_evoked
+from mne.pick import pick_channels_evoked
 from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_topo_phase_lock, plot_topo_image_epochs,
                      plot_evoked_topomap, plot_projs_topomap,
@@ -19,6 +19,7 @@ from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
+from mne.constants import FIFF
 from mne.utils import check_sklearn_version
 
 
@@ -59,7 +60,7 @@ data_dir = sample.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -85,7 +86,7 @@ def _fake_click(fig, ax, point, xform='ax'):
 
 
 def _get_raw():
-    return fiff.Raw(raw_fname, preload=False)
+    return io.Raw(raw_fname, preload=False)
 
 
 def _get_events():
@@ -93,7 +94,7 @@ def _get_events():
 
 
 def _get_picks(raw):
-    return fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
+    return pick_types(raw.info, meg=True, eeg=False, stim=False,
                            ecg=False, eog=False, exclude='bads')
 
 
@@ -280,7 +281,7 @@ def test_plot_ica_panel():
     """Test plotting of ICA panel
     """
     raw = _get_raw()
-    ica_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                                 ecg=False, eog=False, exclude='bads')
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -436,7 +437,7 @@ def test_plot_raw_psds():
     # normal mode
     raw.plot_psds(tmax=2.0)
     # specific mode
-    picks = fiff.pick_types(raw.info, meg='mag', eeg=False)[:4]
+    picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
     raw.plot_psds(picks=picks, area_mode='range')
     ax = plt.axes()
     # if ax is supplied, picks must be, too:
@@ -452,14 +453,13 @@ def test_plot_topomap():
     # evoked
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
-        evoked = fiff.read_evokeds(evoked_fname, 'Left Auditory',
+        evoked = io.read_evokeds(evoked_fname, 'Left Auditory',
                                   baseline=(None, 0))
         evoked.plot_topomap(0.1, 'mag', layout=layout)
         plot_evoked_topomap(evoked, None, ch_type='mag')
         times = [0.1, 0.2]
-        plot_evoked_topomap(evoked, times, ch_type='eeg', vmin=np.min)
-        plot_evoked_topomap(evoked, times, ch_type='grad', vmin=np.min,
-                            vmax=np.max)
+        plot_evoked_topomap(evoked, times, ch_type='eeg')
+        plot_evoked_topomap(evoked, times, ch_type='grad')
         plot_evoked_topomap(evoked, times, ch_type='planar1')
         plot_evoked_topomap(evoked, times, ch_type='planar2')
         plot_evoked_topomap(evoked, times, ch_type='grad', show_names=True)
@@ -500,7 +500,7 @@ def test_plot_topomap():
         plot_projs_topomap(projs)
         plt.close('all')
         for ch in evoked.info['chs']:
-            if ch['coil_type'] == fiff.FIFF.FIFFV_COIL_EEG:
+            if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
                 if ch['eeg_loc'] is not None:
                     ch['eeg_loc'].fill(0)
                 ch['loc'].fill(0)
@@ -522,7 +522,7 @@ def test_plot_ica_topomap():
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False,
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                                 ecg=False, eog=False, exclude='bads')
     ica.decompose_raw(raw, picks=ica_picks)
     warnings.simplefilter('always', UserWarning)
@@ -556,7 +556,7 @@ def test_plot_source_spectrogram():
 def test_plot_evoked_field():
     trans_fname = op.join(data_dir, 'MEG', 'sample',
                           'sample_audvis_raw-trans.fif')
-    evoked = fiff.read_evokeds(evoked_fname, condition='Left Auditory',
+    evoked = io.read_evokeds(evoked_fname, condition='Left Auditory',
                                baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
     for t in ['meg', None]:

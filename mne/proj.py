@@ -5,17 +5,17 @@
 import numpy as np
 from scipy import linalg
 
-from . import fiff, Epochs
+from . import io, Epochs
 from .utils import logger, verbose
-from .fiff.pick import pick_types, pick_types_forward
-from .fiff.proj import Projection, _has_eeg_average_ref_proj
+from .pick import pick_types, pick_types_forward
+from .io.proj import Projection, _has_eeg_average_ref_proj
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
 from .source_estimate import SourceEstimate
-from .fiff.proj import make_projector, make_eeg_average_ref_proj
+from .io.proj import make_projector, make_eeg_average_ref_proj
 
 
 def read_proj(fname):
@@ -31,9 +31,9 @@ def read_proj(fname):
     projs : list
         The list of projection vectors.
     """
-    ff, tree, _ = fiff.fiff_open(fname)
+    ff, tree, _ = io.fiff_open(fname)
     with ff as fid:
-        projs = fiff.proj.read_proj(fid, tree)
+        projs = io.proj.read_proj(fid, tree)
     return projs
 
 
@@ -48,9 +48,9 @@ def write_proj(fname, projs):
     projs : list
         The list of projection vectors.
     """
-    fid = fiff.write.start_file(fname)
-    fiff.proj.write_proj(fid, projs)
-    fiff.write.end_file(fid)
+    fid = io.write.start_file(fname)
+    io.proj.write_proj(fid, projs)
+    io.write.end_file(fid)
 
 
 @verbose

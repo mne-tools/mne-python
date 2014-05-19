@@ -18,7 +18,7 @@ from scipy.optimize import leastsq
 from scipy.spatial.distance import cdist
 from scipy.linalg import norm
 
-from .fiff.meas_info import read_fiducials, write_fiducials
+from .io.meas_info import read_fiducials, write_fiducials
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)

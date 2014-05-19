@@ -59,6 +59,10 @@ Changelog
 
    - Support for parsing the EDF+ annotation channel by `Martin Billinger`_
 
+   - Add EpochsArray constructor for creating epochs from numpy arrays by `Denis Engemann`_ and `Federico Raimondo`_
+
+   - Add connector to FieldTrip realtime client by `Mainak Jas`_
+
 BUG
 ~~~
 
@@ -89,6 +93,10 @@ read_evokeds will return all Evoked instances in a file by default.
 
    - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This
 affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
+
+   - Deprecate `mne.fiff` module, use `mne.io` instead e.g. `mne.io.Raw` instead of `mne.fiff.Raw`.
+
+   - Pick functions (e.g., `pick_types`) are now in the mne namespace (e.g. use `mne.pick_types`).
 
 .. _changes_0_7:
 
@@ -688,3 +696,4 @@ of commits):
 
 .. _Martin Billinger: https://github.com/kazemakase
 
+.. _Federico Raimondo: https://github.com/fraimondo

@@ -1,6 +1,6 @@
 """IIR and FIR filtering functions"""
 
-from .externals.six import string_types
+from .externals.six import string_types, integer_types
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifftshift, fftfreq
@@ -1364,7 +1364,7 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
                           % (filter_length, filter_length / float(sfreq)))
 
     if filter_length is not None:
-        if not isinstance(filter_length, int):
+        if not isinstance(filter_length, integer_types):
             raise ValueError('filter_length must be str, int, or None')
     return filter_length
 

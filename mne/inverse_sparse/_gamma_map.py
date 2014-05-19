@@ -7,7 +7,7 @@ import numpy as np
 from scipy import linalg
 
 from ..forward import is_fixed_orient, _to_fixed_ori
-from ..fiff.pick import pick_channels_evoked
+from ..pick import pick_channels_evoked
 from ..minimum_norm.inverse import _prepare_forward
 from ..utils import logger, verbose
 from .mxne_inverse import _make_sparse_stc, _prepare_gain

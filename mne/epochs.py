@@ -16,20 +16,21 @@ import json
 
 import numpy as np
 
-from .fiff.write import (start_file, start_block, end_file, end_block,
+from .io.write import (start_file, start_block, end_file, end_block,
                          write_int, write_float_matrix, write_float,
                          write_id, write_string)
-from .fiff.meas_info import read_meas_info, write_meas_info, _merge_info
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
-from .fiff.tag import read_tag
-from .fiff import Evoked, FIFF
-from .fiff.pick import (pick_types, channel_indices_by_type, channel_type,
+from .io.meas_info import read_meas_info, write_meas_info, _merge_info
+from .io.open import fiff_open
+from .io.tree import dir_tree_find
+from .io.tag import read_tag
+from .io import Evoked
+from .constants import FIFF
+from .pick import (pick_types, channel_indices_by_type, channel_type,
                         pick_channels, pick_info)
-from .fiff.proj import setup_proj, ProjMixin
-from .fiff.channels import ContainsMixin, PickDropChannelsMixin
-from .fiff.evoked import aspect_rev
-from .fiff.base import _BaseRaw, _time_as_index, _index_as_time
+from .io.proj import setup_proj, ProjMixin
+from .io.channels import ContainsMixin, PickDropChannelsMixin
+from .io.evoked import aspect_rev
+from .io.base import _BaseRaw, _time_as_index, _index_as_time
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed)
@@ -255,7 +256,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        evoked : instance of mne.fiff.Evoked | None
+        evoked : instance of mne.io.Evoked | None
             The evoked response to subtract. If None, the evoked response
             is computed from Epochs itself.
 
@@ -640,7 +641,7 @@ class Epochs(_BaseEpochs):
             return
         elif not isinstance(raw, _BaseRaw):
             raise ValueError('The first argument to `Epochs` must be `None` '
-                             'or an instance of `mne.fiff.Raw`')
+                             'or an instance of `mne.io.Raw`')
         if on_missing not in ['error', 'warning', 'ignore']:
             raise ValueError('on_missing must be one of: error, '
                              'warning, ignore. Got: %s' % on_missing)
@@ -1546,6 +1547,72 @@ class Epochs(_BaseEpochs):
         epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices
+
+
+class EpochsArray(Epochs):
+    """Epochs object from numpy array
+
+    Parameters
+    ----------
+    data : array, shape (n_epochs, n_channels, n_times)
+        The channels' time series for each epoch.
+    info : instance of Info
+        Info dictionary. Consider using ``create_info`` to populate
+        this structure.
+    events : array, shape (n_events, 3)
+        The events typically returned by the read_events function.
+        If some events don't match the events of interest as specified
+        by event_id, they will be marked as 'IGNORED' in the drop log.
+    tmin : float
+        Start time before event.
+    event_id : int | list of int | dict | None
+        The id of the event to consider. If dict,
+        the keys can later be used to acces associated events. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with
+        the id as string. If a list, all events with the IDs specified
+        in the list are used. If None, all events will be used with
+        and a dict is created with string integer names corresponding
+        to the event id integers.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+    """
+
+    @verbose
+    def __init__(self, data, info, events, event_id=None, tmin=0,
+                 verbose=None):
+        self.info = info
+        self._data = data
+        if event_id is None:  # convert to int to make typing-checks happy
+            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+        self.event_id = event_id
+        self.events = events
+
+        for key, val in self.event_id.items():
+            if val not in events[:, 2]:
+                msg = ('No matching events found for %s '
+                       '(event id %i)' % (key, val))
+                raise ValueError(msg)
+
+        self.proj = None
+        self.baseline = None
+        self.preload = True
+        self.reject = None
+        self.decim = 1
+        self._decim_idx = slice(0, data.shape[-1], self.decim)
+        self.raw = None
+        self.drop_log = [[] for _ in range(len(events))]
+        self._bad_dropped = True
+
+        self.selection = np.arange(len(events))
+        self.picks = None
+        self.times = (np.arange(data.shape[-1], dtype=np.float) /
+                                info['sfreq'] + tmin)
+        self.tmin = self.times[0]
+        self.tmax = self.times[-1]
+        self.verbose = verbose
+        self.name = 'Unknown'
+        self._projector = None
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):

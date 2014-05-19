@@ -18,20 +18,20 @@ import os
 from os import path as op
 import tempfile
 
-from ..fiff.constants import FIFF
-from ..fiff.open import fiff_open
-from ..fiff.tree import dir_tree_find
-from ..fiff.channels import read_bad_channels
-from ..fiff.tag import find_tag, read_tag
-from ..fiff.matrix import (_read_named_matrix, _transpose_named_matrix,
+from ..constants import FIFF
+from ..io.open import fiff_open
+from ..io.tree import dir_tree_find
+from ..io.channels import read_bad_channels
+from ..io.tag import find_tag, read_tag
+from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                            write_named_matrix)
-from ..fiff.pick import (pick_channels_forward, pick_info, pick_channels,
+from ..pick import (pick_channels_forward, pick_info, pick_channels,
                          pick_types)
-from ..fiff.write import (write_int, start_block, end_block,
+from ..io.write import (write_int, start_block, end_block,
                           write_coord_trans, write_ch_info, write_name_list,
                           write_string, start_file, end_file, write_id)
-from ..fiff.base import _BaseRaw
-from ..fiff.evoked import Evoked, write_evokeds
+from ..io.base import _BaseRaw
+from ..io.evoked import Evoked, write_evokeds
 from ..epochs import Epochs
 from ..source_space import (read_source_spaces_from_tree,
                             find_source_space_hemi,
@@ -238,7 +238,7 @@ def read_forward_meas_info(tree, fid):
 
     Returns
     -------
-    info : instance of mne.fiff.meas_info.Info
+    info : instance of mne.io.meas_info.Info
         The measurement info.
     """
     info = dict()
@@ -813,7 +813,7 @@ def write_forward_meas_info(fid, info):
     ----------
     fid : file id
         The file id
-    info : instance of mne.fiff.meas_info.Info
+    info : instance of mne.io.meas_info.Info
         The measurement info.
     """
     #

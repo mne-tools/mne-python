@@ -51,7 +51,7 @@ from sklearn.metrics import confusion_matrix
 # Load fiff file to simulate data
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.fiff.Raw(raw_fname, preload=True)
+raw = mne.io.Raw(raw_fname, preload=True)
 
 # Instantiating stimulation server
 
@@ -59,8 +59,8 @@ raw = mne.fiff.Raw(raw_fname, preload=True)
 with StimServer('localhost', port=4218) as stim_server:
 
     # The channels to be used while decoding
-    picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                                stim=True, exclude=raw.info['bads'])
+    picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                           stim=True, exclude=raw.info['bads'])
 
     rt_client = MockRtClient(raw)
 

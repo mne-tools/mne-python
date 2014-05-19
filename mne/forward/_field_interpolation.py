@@ -4,11 +4,11 @@ from copy import deepcopy
 import os
 import glob
 
-from ..fiff import FIFF
-from ..fiff.pick import pick_types, pick_info
+from ..constants import FIFF
+from ..pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
 
-from ..fiff.proj import _has_eeg_average_ref_proj, make_projector
+from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import transform_surface_to, read_trans
 from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
@@ -95,7 +95,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
     Parameters
     ----------
-    info : instance of fiff.meas_info.Info
+    info : instance of io.meas_info.Info
         Measurement info.
     surf : dict
         The surface to map the data to. The required fields are `'rr'`,

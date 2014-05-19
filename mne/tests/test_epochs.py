@@ -14,33 +14,34 @@ import numpy as np
 import copy as cp
 import warnings
 
-from mne import (fiff, Epochs, read_events, pick_events, read_epochs,
-                 equalize_channels)
+from mne import (io, Epochs, read_events, pick_events, read_epochs,
+                 equalize_channels, pick_types, pick_channels)
 from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
-                        add_channels_epochs)
+                        add_channels_epochs, EpochsArray)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
                        clean_warning_registry)
 
-from mne.fiff import read_evokeds
-from mne.fiff.channels import ContainsMixin
-from mne.fiff.proj import _has_eeg_average_ref_proj
+from mne.io import read_evokeds
+from mne.io.array import create_info
+from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
+from mne.constants import FIFF
 from mne.externals.six.moves import zip
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
-raw = fiff.Raw(raw_fname, add_eeg_ref=False)
+raw = io.Raw(raw_fname, add_eeg_ref=False)
 events = read_events(event_name)
-picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
-                        ecg=True, eog=True, include=['STI 014'],
-                        exclude='bads')
+picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
+                   ecg=True, eog=True, include=['STI 014'],
+                   exclude='bads')
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
@@ -122,7 +123,7 @@ def test_read_write_epochs():
                           baseline=(None, 0))
     assert_array_equal(data, epochs_no_id.get_data())
 
-    eog_picks = fiff.pick_types(raw.info, meg=False, eeg=False, stim=False,
+    eog_picks = pick_types(raw.info, meg=False, eeg=False, stim=False,
                                 eog=True, exclude='bads')
     eog_ch_names = [raw.ch_names[k] for k in eog_picks]
     epochs.drop_channels(eog_ch_names)
@@ -204,7 +205,7 @@ def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
     """
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
-    this_picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
+    this_picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
                                  eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True)
@@ -213,7 +214,7 @@ def test_epochs_proj():
     assert_true(all(p['active'] is True for p in evoked.info['projs']))
     data = epochs.get_data()
 
-    raw_proj = fiff.Raw(raw_fname, proj=True)
+    raw_proj = io.Raw(raw_fname, proj=True)
     epochs_no_proj = Epochs(raw_proj, events[:4], event_id, tmin, tmax,
                             picks=this_picks, baseline=(None, 0), proj=False)
 
@@ -226,7 +227,7 @@ def test_epochs_proj():
     assert_array_almost_equal(data, data_no_proj, decimal=8)
 
     # make sure we can exclude avg ref
-    this_picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
+    this_picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
                                  eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True, add_eeg_ref=True)
@@ -297,17 +298,17 @@ def test_evoked_standard_error():
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = [epochs.average(), epochs.standard_error()]
-    fiff.write_evokeds(op.join(tempdir, 'evoked.fif'), evoked)
+    io.write_evokeds(op.join(tempdir, 'evoked.fif'), evoked)
     evoked2 = read_evokeds(op.join(tempdir, 'evoked.fif'), [0, 1])
     evoked3 = [read_evokeds(op.join(tempdir, 'evoked.fif'), 'Unknown'),
                read_evokeds(op.join(tempdir, 'evoked.fif'), 'Unknown',
                             kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
         assert_true(evoked_new[0]._aspect_kind ==
-                    fiff.FIFF.FIFFV_ASPECT_AVERAGE)
+                    FIFF.FIFFV_ASPECT_AVERAGE)
         assert_true(evoked_new[0].kind == 'average')
         assert_true(evoked_new[1]._aspect_kind ==
-                    fiff.FIFF.FIFFV_ASPECT_STD_ERR)
+                    FIFF.FIFFV_ASPECT_STD_ERR)
         assert_true(evoked_new[1].kind == 'standard_error')
         for ave, ave2 in zip(evoked, evoked_new):
             assert_array_almost_equal(ave.data, ave2.data)
@@ -442,7 +443,7 @@ def test_comparision_with_c():
                     baseline=None, preload=True,
                     reject=None, flat=None)
     evoked = epochs.average()
-    sel = fiff.pick_channels(c_evoked.ch_names, evoked.ch_names)
+    sel = pick_channels(c_evoked.ch_names, evoked.ch_names)
     evoked_data = evoked.data
     c_evoked_data = c_evoked.data[sel]
 
@@ -520,7 +521,7 @@ def test_detrend():
                       baseline=None, detrend=1)
     epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                       baseline=None, detrend=None)
-    data_picks = fiff.pick_types(epochs_1.info, meg=True, eeg=True,
+    data_picks = pick_types(epochs_1.info, meg=True, eeg=True,
                                  exclude='bads')
     evoked_1 = epochs_1.average()
     evoked_2 = epochs_2.average()
@@ -932,7 +933,7 @@ def test_contains():
              ((False, True), ('grad', 'mag'))]
 
     for (meg, eeg), others in tests:
-        picks_contains = fiff.pick_types(raw.info, meg=meg, eeg=eeg)
+        picks_contains = pick_types(raw.info, meg=meg, eeg=eeg)
         epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax,
                         picks=picks_contains, reject=None,
                         preload=False)
@@ -1012,9 +1013,9 @@ def test_add_channels_epochs():
         return Epochs(raw, events, event_id, tmin, tmax, baseline=(None, 0),
                       reject=None, preload=True, proj=False, picks=picks)
 
-    picks = fiff.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
-    picks_meg = fiff.pick_types(raw.info, meg=True, eeg=False, exclude='bads')
-    picks_eeg = fiff.pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude='bads')
+    picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
 
     epochs = make_epochs(picks=picks)
     epochs_meg = make_epochs(picks=picks_meg)
@@ -1108,3 +1109,42 @@ def test_add_channels_epochs():
     epochs_meg2.event_id['b'] = 2
     assert_raises(NotImplementedError, add_channels_epochs,
                   [epochs_meg2, epochs_eeg])
+
+
+def test_array_epochs():
+    """Test creating epochs from array
+    """
+
+    # creating
+    rng = np.random.RandomState(42)
+    data = rng.random_sample((10, 20, 50))
+    sfreq = 1e3
+    ch_names = ['EEG %03d' % (i + 1) for i in range(20)]
+    types = ['eeg'] * 20
+    info = create_info(ch_names, sfreq, types)
+    events = np.c_[np.arange(1, 600, 60),
+                   np.zeros(10),
+                   [1, 2] * 5]
+    event_id = {'a': 1, 'b': 2}
+    epochs = EpochsArray(data, info, events=events, event_id=event_id,
+                         tmin=-.2)
+
+    # saving
+    temp_fname = op.join(tempdir, 'epo.fif')
+    epochs.save(temp_fname)
+    epochs2 = read_epochs(temp_fname)
+    data2 = epochs2.get_data()
+    assert_allclose(data, data2)
+    assert_allclose(epochs.times, epochs2.times)
+    assert_equal(epochs.event_id, epochs2.event_id)
+    assert_array_equal(epochs.events, epochs2.events)
+
+    # plotting
+    import matplotlib
+    matplotlib.use('Agg')  # for testing don't use X server
+    epochs[0].plot()
+
+    # indexing
+    assert_array_equal(np.unique(epochs['a'].events[:, 2]), np.array([1]))
+    assert_equal(len(epochs[:2]), 2)
+
