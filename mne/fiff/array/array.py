@@ -45,7 +45,7 @@ def create_info(ch_names, sfreq, ch_types=None):
         raise ValueError('sfreq must be positive')
     nchan = len(ch_names)
     if ch_types is None:
-        ch_types = [_kind_dict['misc']] * nchan
+        ch_types = ['misc'] * nchan
     if len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length')
     info = Info()
