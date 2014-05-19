@@ -166,6 +166,9 @@ def test_ica_core():
                   random_state=0)
 
         ica.decompose_epochs(epochs, picks=picks)
+        data = epochs.get_data()[:, 0, :]
+        n_samples = np.prod(data.shape)
+        assert_equal(ica.n_samples_, n_samples)
         print(ica)  # to test repr
         # test pick block after epochs fit
         assert_raises(ValueError, ica.pick_sources_raw, raw)
