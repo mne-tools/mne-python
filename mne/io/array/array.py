@@ -71,7 +71,7 @@ def create_info(ch_names, sfreq, ch_types=None):
         if not isinstance(name, string_types):
             raise TypeError('each entry in ch_names must be a string')
         if not isinstance(kind, string_types):
-            raise TypeError('each entry in ch_names must be a string')
+            raise TypeError('each entry in ch_types must be a string')
         if kind not in _kind_dict:
             raise KeyError('kind must be one of %s, not %s'
                            % (list(_kind_dict.keys()), kind))
