@@ -394,7 +394,8 @@ class ICA(object):
         data = epochs.get_data()[:, picks]
         if decim is not None:
             data = data[:, :, ::decim].copy()
-        self.n_samples_ = np.prod(data.shape[1:])
+
+        self.n_samples_ = np.prod(data[:, 0, :].shape)
 
         data, self._pre_whitener = \
             self._pre_whiten(np.hstack(data), epochs.info, picks)
