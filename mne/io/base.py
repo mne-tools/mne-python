@@ -951,7 +951,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         return_singular : bool
             If True, also return the singular values that were used
             to determine the rank.
-        picks : numpy.ndarray of int, shape (n channels selected)
+        picks : array_like of int, shape (n_selected_channels,)
             The channels to be considered for rank estimation.
             If None (default) meg and eeg channels are indcluded.
 
@@ -989,7 +989,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             return 1.0, 1.0
         # this should already be a copy, so we can overwrite it
         data = self[picks, tslice][0]
-        return estimate_rank(data, tol, return_singular, copy=False,)
+        return estimate_rank(data, tol, return_singular, copy=False)
 
     @property
     def ch_names(self):
