@@ -3890,7 +3890,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         # sorted by value
         event_id_rev = dict((v,k) for k, v in event_id.items())
         conditions, unique_events_id = zip(*sorted(event_id.items(),
-                                               key=lambda x: x[1]))
+                                                   key=lambda x: x[1]))
 
         for this_event in unique_events_id:
             if this_event not in unique_events:
@@ -3910,8 +3910,8 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
                           'You should pass a list of unique colors.')
         colors = cycle(COLORS)
         color = dict()
-        for this_event in unique_events_id:
-            color[this_event] = six.advance_iterator(colors)
+        for this_event, this_color in zip(unique_events_id, colors):
+            color[this_event] = this_color
     else:
         for this_event in color:
             if this_event not in unique_events_id:
