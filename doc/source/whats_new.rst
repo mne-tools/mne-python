@@ -61,6 +61,8 @@ Changelog
 
    - Add EpochsArray constructor for creating epochs from numpy arrays by `Denis Engemann`_ and `Federico Raimondo`_
 
+   - Add connector to FieldTrip realtime client by `Mainak Jas`_
+
 BUG
 ~~~
 
