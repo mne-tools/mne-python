@@ -13,6 +13,7 @@ from nose.tools import assert_equal, assert_raises, assert_true
 from mne import find_events, Epochs, pick_types
 from mne.io import Raw
 from mne.io.array import create_info, RawArray
+from mne.io.array.array import _kind_dict
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests might throw warnings
@@ -44,6 +45,10 @@ def test_array_raw():
     types.append('foo')
     assert_raises(KeyError, create_info, ch_names, sfreq, types)
     types[-1] = 'eog'
+    # default type
+    info = create_info(ch_names, sfreq)
+    assert_equal(info['chs'][0]['kind'], _kind_dict['misc'][0])
+    # use real types
     info = create_info(ch_names, sfreq, types)
     raw2 = RawArray(data, info)
     data2, times2 = raw2[:, :]
