@@ -20,10 +20,9 @@ import tempfile
 import shutil
 from shutil import rmtree
 import atexit
-from math import log
+from math import log, ceil
 import json
 import ftplib
-import inspect
 
 import numpy as np
 import scipy
@@ -33,7 +32,6 @@ from scipy import linalg
 from .externals.six.moves import urllib
 from .externals.six import string_types
 from .externals.decorator import decorator
-
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -190,6 +188,41 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         return rank, s
     else:
         return rank
+
+
+def _reject_data_segments(data, reject, flat, decim, info, tstep):
+    """Reject data segments using peak-to-peak amplitude
+    """
+    from .epochs import _is_good
+    from .io.pick import channel_indices_by_type
+
+    data_clean = np.empty_like(data)
+    idx_by_type = channel_indices_by_type(info)
+    step = int(ceil(tstep * info['sfreq']))
+    if decim is not None:
+        step = int(ceil(step / float(decim)))
+    this_start = 0
+    this_stop = 0
+    drop_inds = []
+    for first in range(0, data.shape[1], step):
+        last = first + step
+        data_buffer = data[:, first:last]
+        if data_buffer.shape[1] < (last - first):
+            break  # end of the time segment
+        if _is_good(data_buffer, info['ch_names'], idx_by_type, reject,
+                    flat, ignore_chs=info['bads']):
+            this_stop = this_start + data_buffer.shape[1]
+            data_clean[:, this_start:this_stop] = data_buffer
+            this_start += data_buffer.shape[1]
+        else:
+            logger.info("Artifact detected in [%d, %d]" % (first, last))
+            drop_inds.append((first, last))
+    data = data_clean[:, :this_stop]
+    if not data.any():
+        raise RuntimeError('No clean segment found. Please '
+                           'consider updating your rejection '
+                           'thresholds.')
+    return data, drop_inds
 
 
 def run_subprocess(command, *args, **kwargs):

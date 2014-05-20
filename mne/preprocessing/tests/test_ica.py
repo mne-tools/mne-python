@@ -71,16 +71,19 @@ def test_ica_full_data_recovery():
                        eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
+    evoked = epochs.average()
     n_channels = 5
     data = raw._data[:n_channels].copy()
     data_epochs = epochs.get_data()
+    data_evoked = evoked.data
     for n_components, n_pca_components, ok in [(2, n_channels, True),
                                                (2, n_channels // 2, False)]:
         ica = ICA(n_components=n_components,
                   max_pca_components=n_pca_components,
                   n_pca_components=n_pca_components)
-        ica.decompose_raw(raw, picks=list(range(n_channels)))
-        raw2 = ica.pick_sources_raw(raw, exclude=[])
+        with warnings.catch_warnings(record=True):
+            ica.fit(raw, picks=list(range(n_channels)))
+        raw2 = ica.apply(raw, exclude=[], copy=True)
         if ok:
             assert_allclose(data[:n_channels], raw2._data[:n_channels],
                             rtol=1e-10, atol=1e-15)
@@ -91,8 +94,9 @@ def test_ica_full_data_recovery():
         ica = ICA(n_components=n_components,
                   max_pca_components=n_pca_components,
                   n_pca_components=n_pca_components)
-        ica.decompose_epochs(epochs, picks=list(range(n_channels)))
-        epochs2 = ica.pick_sources_epochs(epochs, exclude=[])
+        with warnings.catch_warnings(record=True):
+            ica.fit(epochs, picks=list(range(n_channels)))
+        epochs2 = ica.apply(epochs, exclude=[], copy=True)
         data2 = epochs2.get_data()[:, :n_channels]
         if ok:
             assert_allclose(data_epochs[:, :n_channels], data2,
@@ -101,11 +105,19 @@ def test_ica_full_data_recovery():
             diff = np.abs(data_epochs[:, :n_channels] - data2)
             assert_true(np.max(diff) > 1e-14)
 
+        evoked2 = ica.apply(evoked, exclude=[], copy=True)
+        data2 = evoked2.data[:n_channels]
+        if ok:
+            assert_allclose(data_evoked[:n_channels], data2,
+                            rtol=1e-10, atol=1e-15)
+        else:
+            diff = np.abs(evoked.data[:n_channels] - data2)
+            assert_true(np.max(diff) > 1e-14)
+
 
 @requires_sklearn
 def test_ica_core():
-    """Test ICA on raw and epochs
-    """
+    """Test ICA on raw and epochs"""
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
@@ -138,58 +150,72 @@ def test_ica_core():
         print(ica)  # to test repr
 
         # test fit checker
-        assert_raises(RuntimeError, ica.get_sources_raw, raw)
-        assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
+        assert_raises(RuntimeError, ica.get_sources, raw)
+        assert_raises(RuntimeError, ica.get_sources, epochs)
 
         # test decomposition
-        ica.decompose_raw(raw, picks=pcks, start=start, stop=stop)
-        print(ica)  # to test repr
-        # test re-init exception
-        assert_raises(RuntimeError, ica.decompose_raw, raw, picks=picks)
+        with warnings.catch_warnings(record=True):
+            ica.fit(raw, picks=pcks, start=start, stop=stop)
+            _ = repr(ica)  # to test repr
 
-        sources = ica.get_sources_raw(raw)
+        # test re-fit
+        unmixing1 = ica.unmixing_matrix_
+        with warnings.catch_warnings(record=True):
+            ica.fit(raw, picks=pcks, start=start, stop=stop)
+        assert_array_almost_equal(unmixing1, ica.unmixing_matrix_)
+
+        sources = ica.get_sources(raw)[:, :][0]
         assert_true(sources.shape[0] == ica.n_components_)
 
         # test preload filter
         raw3 = raw.copy()
         raw3._preloaded = False
-        assert_raises(ValueError, ica.pick_sources_raw, raw3,
+        assert_raises(ValueError, ica.apply, raw3,
                       include=[1, 2])
 
         #######################################################################
         # test epochs decomposition
-
-        # test re-init exception
-        assert_raises(RuntimeError, ica.decompose_epochs, epochs, picks=picks)
         ica = ICA(noise_cov=n_cov, n_components=n_comp,
                   max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0)
-
-        ica.decompose_epochs(epochs, picks=picks)
+        with warnings.catch_warnings(record=True):
+            ica.fit(epochs, picks=picks)
         data = epochs.get_data()[:, 0, :]
         n_samples = np.prod(data.shape)
         assert_equal(ica.n_samples_, n_samples)
         print(ica)  # to test repr
-        # test pick block after epochs fit
-        assert_raises(ValueError, ica.pick_sources_raw, raw)
 
-        sources = ica.get_sources_epochs(epochs)
+        sources = ica.get_sources(epochs).get_data()
         assert_true(sources.shape[1] == ica.n_components_)
 
-        assert_raises(ValueError, ica.find_sources_epochs, epochs,
+        assert_raises(ValueError, ica.score_sources, epochs,
                       target=np.arange(1))
 
         # test preload filter
         epochs3 = epochs.copy()
         epochs3.preload = False
-        assert_raises(ValueError, ica.pick_sources_epochs, epochs3,
+        assert_raises(ValueError, ica.apply, epochs3,
                       include=[1, 2])
+
+    # test for bug with whitener updating
+    _pre_whitener = ica._pre_whitener.copy()
+    epochs._data[:, 0, 10:15] *= 1e12
+    ica.apply(epochs, copy=True)
+    assert_array_equal(_pre_whitener, ica._pre_whitener)
+
+    # test expl. var threshold leading to empty sel
+    ica.n_components = 0.1
+    assert_raises(RuntimeError, ica.fit, epochs)
+
+    offender = 1, 2, 3,
+    assert_raises(ValueError, ica.get_sources, offender)
+    assert_raises(ValueError, ica.fit, offender)
+    assert_raises(ValueError, ica.apply, offender)
 
 
 @requires_sklearn
 def test_ica_additional():
-    """Test additional ICA functionality
-    """
+    """Test additional ICA functionality"""
     stop2 = 500
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -210,14 +236,16 @@ def test_ica_additional():
     ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
               n_pca_components=4)
     assert_true(ica.info is None)
-    ica.decompose_raw(raw, picks[:5])
+    with warnings.catch_warnings(record=True):
+        ica.fit(raw, picks[:5])
     assert_true(isinstance(ica.info, Info))
     assert_true(ica.n_components_ < 5)
 
     ica = ICA(n_components=3, max_pca_components=4,
               n_pca_components=4)
     assert_raises(RuntimeError, ica.save, '')
-    ica.decompose_raw(raw, picks=None, start=start, stop=stop2)
+    with warnings.catch_warnings(record=True):
+        ica.fit(raw, picks=None, start=start, stop=stop2)
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
@@ -234,25 +262,27 @@ def test_ica_additional():
     for _ in range(3):
         raw_.append(raw_)
     n_samples = raw_._data.shape[1]
-    ica.decompose_raw(raw, picks=None, decim=3)
+    with warnings.catch_warnings(record=True):
+        ica.fit(raw, picks=None, decim=3)
     assert_true(raw_._data.shape[1], n_samples)
 
     # test expl var
     ica = ICA(n_components=1.0, max_pca_components=4,
               n_pca_components=4)
-    ica.decompose_raw(raw, picks=None, decim=3)
+    with warnings.catch_warnings(record=True):
+        ica.fit(raw, picks=None, decim=3)
     assert_true(ica.n_components_ == 4)
 
     # epochs extraction from raw fit
-    assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
+    assert_raises(RuntimeError, ica.get_sources, epochs)
     # test reading and writing
     test_ica_fname = op.join(op.dirname(tempdir), 'test-ica.fif')
     for cov in (None, test_cov):
         ica = ICA(noise_cov=cov, n_components=2, max_pca_components=4,
                   n_pca_components=4)
         with warnings.catch_warnings(record=True):  # ICA does not converge
-            ica.decompose_raw(raw, picks=picks, start=start, stop=stop2)
-        sources = ica.get_sources_epochs(epochs)
+            ica.fit(raw, picks=picks, start=start, stop=stop2)
+        sources = ica.get_sources(epochs).get_data()
         assert_true(ica.mixing_matrix_.shape == (2, 2))
         assert_true(ica.unmixing_matrix_.shape == (2, 2))
         assert_true(ica.pca_components_.shape == (4, len(picks)))
@@ -263,23 +293,16 @@ def test_ica_additional():
             ica.save(test_ica_fname)
             ica_read = read_ica(test_ica_fname)
             assert_true(ica.exclude == ica_read.exclude)
-            # test pick merge -- add components
-            ica.pick_sources_raw(raw, exclude=[1])
-            assert_true(ica.exclude == [0, 1])
-            #                 -- only as arg
+
             ica.exclude = []
-            ica.pick_sources_raw(raw, exclude=[0, 1])
-            assert_true(ica.exclude == [0, 1])
-            #                 -- remove duplicates
-            ica.exclude += [1]
-            ica.pick_sources_raw(raw, exclude=[0, 1])
+            ica.apply(raw, exclude=[1])
+            assert_true(ica.exclude == [])
+
+            ica.exclude = [0, 1]
+            ica.apply(raw, exclude=[1])
             assert_true(ica.exclude == [0, 1])
 
-            # test basic include
-            ica.exclude = []
-            ica.pick_sources_raw(raw, include=[1])
-
-            ica_raw = ica.sources_as_raw(raw)
+            ica_raw = ica.get_sources(raw)
             assert_true(ica.exclude == [ica_raw.ch_names.index(e) for e in
                                         ica_raw.info['bads']])
 
@@ -320,13 +343,12 @@ def test_ica_additional():
         assert_true(ica.ch_names == ica_read.ch_names)
         assert_true(isinstance(ica_read.info, Info))
 
-        assert_raises(RuntimeError, ica_read.decompose_raw, raw)
-        sources = ica.get_sources_raw(raw)
-        sources2 = ica_read.get_sources_raw(raw)
+        sources = ica.get_sources(raw)[:, :][0]
+        sources2 = ica_read.get_sources(raw)[:, :][0]
         assert_array_almost_equal(sources, sources2)
 
-        _raw1 = ica.pick_sources_raw(raw, exclude=[1])
-        _raw2 = ica_read.pick_sources_raw(raw, exclude=[1])
+        _raw1 = ica.apply(raw, exclude=[1])
+        _raw2 = ica_read.apply(raw, exclude=[1])
         assert_array_almost_equal(_raw1[:, :][0], _raw2[:, :][0])
 
     os.remove(test_ica_fname)
@@ -334,14 +356,14 @@ def test_ica_additional():
     for name, func in score_funcs.items():
         if name in score_funcs_unsuited:
             continue
-        scores = ica.find_sources_raw(raw, target='EOG 061', score_func=func,
-                                      start=0, stop=10)
+        scores = ica.score_sources(raw, target='EOG 061', score_func=func,
+                                   start=0, stop=10)
         assert_true(ica.n_components_ == len(scores))
 
     # check univariate stats
-    scores = ica.find_sources_raw(raw, score_func=stats.skew)
+    scores = ica.score_sources(raw, score_func=stats.skew)
     # check exception handling
-    assert_raises(ValueError, ica.find_sources_raw, raw,
+    assert_raises(ValueError, ica.score_sources, raw,
                   target=np.arange(1))
 
     params = []
@@ -352,25 +374,33 @@ def test_ica_additional():
                              eog_ch=ch_name, skew_criterion=idx,
                              var_criterion=idx, kurt_criterion=idx)
     ## score funcs epochs ##
+    idx, scoress = ica.find_bads_ecg(raw)
+    assert_equal(len(scores), ica.n_components_)
+    idx, scoress = ica.find_bads_eog(raw)
+    assert_equal(len(scores), ica.n_components_)
+    raw.info['chs'][raw.ch_names.index('EOG 061') - 1]['kind'] = 202
+    idx, scores = ica.find_bads_eog(raw)
+    assert_true(isinstance(scores, list))
+    assert_equal(len(scores[0]), ica.n_components_)
 
     # check score funcs
     for name, func in score_funcs.items():
         if name in score_funcs_unsuited:
             continue
-        scores = ica.find_sources_epochs(epochs_eog, target='EOG 061',
-                                         score_func=func)
+        scores = ica.score_sources(epochs_eog, target='EOG 061',
+                                   score_func=func)
         assert_true(ica.n_components_ == len(scores))
 
     # check univariate stats
-    scores = ica.find_sources_epochs(epochs, score_func=stats.skew)
+    scores = ica.score_sources(epochs, score_func=stats.skew)
 
     # check exception handling
-    assert_raises(ValueError, ica.find_sources_epochs, epochs,
+    assert_raises(ValueError, ica.score_sources, epochs,
                   target=np.arange(1))
 
     # ecg functionality
-    ecg_scores = ica.find_sources_raw(raw, target='MEG 1531',
-                                      score_func='pearsonr')
+    ecg_scores = ica.score_sources(raw, target='MEG 1531',
+                                   score_func='pearsonr')
 
     with warnings.catch_warnings(record=True):  # filter attenuation warning
         ecg_events = ica_find_ecg_events(raw,
@@ -379,8 +409,8 @@ def test_ica_additional():
     assert_true(ecg_events.ndim == 2)
 
     # eog functionality
-    eog_scores = ica.find_sources_raw(raw, target='EOG 061',
-                                      score_func='pearsonr')
+    eog_scores = ica.score_sources(raw, target='EOG 061',
+                                   score_func='pearsonr')
     with warnings.catch_warnings(record=True):  # filter attenuation warning
         eog_events = ica_find_eog_events(raw,
                                          sources[np.abs(eog_scores).argmax()])
@@ -388,7 +418,7 @@ def test_ica_additional():
     assert_true(eog_events.ndim == 2)
 
     # Test ica fiff export
-    ica_raw = ica.sources_as_raw(raw, start=0, stop=100)
+    ica_raw = ica.get_sources(raw, start=0, stop=100)
     assert_true(ica_raw.last_samp - ica_raw.first_samp == 100)
     assert_true(len(ica_raw._filenames) == 0)  # API consistency
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
@@ -402,10 +432,8 @@ def test_ica_additional():
     os.remove(test_ica_fname)
 
     # Test ica epochs export
-    ica_epochs = ica.sources_as_epochs(epochs)
+    ica_epochs = ica.get_sources(epochs)
     assert_true(ica_epochs.events.shape == epochs.events.shape)
-    sources_epochs = ica.get_sources_epochs(epochs)
-    assert_array_equal(ica_epochs.get_data(), sources_epochs)
     ica_chans = [ch for ch in ica_epochs.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
     assert_true(ica.n_components_ == ica_epochs.get_data().shape[1])
@@ -428,9 +456,11 @@ def test_run_ica():
     params += [(None, -1, slice(2), [0, 1])]  # varicance, kurtosis idx
     params += [(None, 'MEG 1531')]  # ECG / EOG channel params
     for idx, ch_name in product(*params):
-        run_ica(raw, n_components=2, start=0, stop=6, start_find=0,
-                stop_find=5, ecg_ch=ch_name, eog_ch=ch_name,
-                skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
+        warnings.simplefilter('always')
+        with warnings.catch_warnings(record=True):
+            run_ica(raw, n_components=2, start=0, stop=6, start_find=0,
+                    stop_find=5, ecg_ch=ch_name, eog_ch=ch_name,
+                    skew_criterion=idx, var_criterion=idx, kurt_criterion=idx)
 
 
 @requires_sklearn
@@ -443,8 +473,9 @@ def test_ica_reject_buffer():
     raw._data[2, 1000:1005] = 5e-12
     drop_log = op.join(op.dirname(tempdir), 'ica_drop.log')
     set_log_file(drop_log, overwrite=True)
-    ica.decompose_raw(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
-                      tstep=0.01, verbose=True)
+    with warnings.catch_warnings(record=True):
+        ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
+            tstep=0.01, verbose=True)
     assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in open(drop_log) if 'detected' in l]
     assert_equal(len(log), 1)
@@ -459,12 +490,14 @@ def test_ica_twice():
     max_pca_components = None
     n_pca_components = 1.1
     with warnings.catch_warnings(record=True):
-        ica1 = ICA(n_components=n_components, max_pca_components=max_pca_components,
+        ica1 = ICA(n_components=n_components,
+                   max_pca_components=max_pca_components,
                    n_pca_components=n_pca_components, random_state=0)
 
-        ica1.decompose_raw(raw, picks=picks, decim=3)
-        raw_new = ica1.pick_sources_raw(raw, n_pca_components=n_pca_components)
-        ica2 = ICA(n_components=n_components, max_pca_components=max_pca_components,
+        ica1.fit(raw, picks=picks, decim=3)
+        raw_new = ica1.apply(raw, n_pca_components=n_pca_components)
+        ica2 = ICA(n_components=n_components,
+                   max_pca_components=max_pca_components,
                    n_pca_components=1.0, random_state=0)
-        ica2.decompose_raw(raw_new, picks=picks, decim=3)
+        ica2.fit(raw_new, picks=picks, decim=3)
         assert_equal(ica1.n_components_, ica2.n_components_)

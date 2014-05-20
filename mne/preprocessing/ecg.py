@@ -4,6 +4,9 @@ import numpy as np
 from .. import pick_types, pick_channels
 from ..utils import logger, verbose, sum_squared
 from ..filter import band_pass_filter
+from ..epochs import Epochs, _BaseEpochs
+from ..io.base import _BaseRaw
+from ..evoked import Evoked
 
 
 def qrs_detector(sfreq, ecg, thresh_value=0.6, levels=2.5, n_thresh=3,
@@ -152,37 +155,24 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     -------
     ecg_events : array
         Events.
-    ch_ECG : string
+    ch_ecg : string
         Name of channel used.
     average_pulse : float
         Estimated average pulse.
     """
-    info = raw.info
+    try:
+        idx_ecg = _get_ecg_channel_index(ch_name, raw)
+        assert len(idx_ecg) == 1
+        logger.info('Using channel %s to identify heart beats'
+                    % raw.ch_names[idx_ecg[0]])
 
-    # Geting ECG Channel
-    if ch_name is None:
-        ch_ECG = pick_types(info, meg=False, eeg=False, stim=False,
-                            eog=False, ecg=True, emg=False, ref_meg=False,
-                            exclude='bads')
-    else:
-        ch_ECG = pick_channels(raw.ch_names, include=[ch_name])
-        if len(ch_ECG) == 0:
-            raise ValueError('%s not in channel list (%s)' %
-                             (ch_name, raw.ch_names))
-
-    if len(ch_ECG) == 0 and ch_name is None:
-        raise Exception('No ECG channel found. Please specify ch_name '
-                        'parameter e.g. MEG 1531')
-
-    assert len(ch_ECG) == 1
-
-    logger.info('Using channel %s to identify heart beats'
-                % raw.ch_names[ch_ECG[0]])
-
-    ecg, times = raw[ch_ECG, :]
+        ecg, times = raw[idx_ecg, :]
+    except RuntimeError:
+        ecg, times = _make_ecg(raw, None, None, verbose)
+        idx_ecg = None
 
     # detecting QRS and generating event file
-    ecg_events = qrs_detector(info['sfreq'], ecg.ravel(), tstart=tstart,
+    ecg_events = qrs_detector(raw.info['sfreq'], ecg.ravel(), tstart=tstart,
                               thresh_value=qrs_threshold, l_freq=l_freq,
                               h_freq=h_freq, filter_length=filter_length)
 
@@ -193,4 +183,115 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
 
     ecg_events = np.c_[ecg_events + raw.first_samp, np.zeros(n_events),
                        event_id * np.ones(n_events)]
-    return ecg_events, ch_ECG, average_pulse
+    return ecg_events, idx_ecg, average_pulse
+
+
+def _get_ecg_channel_index(ch_name, inst):
+     # Geting ECG Channel
+    if ch_name is None:
+        ecg_idx = pick_types(inst.info, meg=False, eeg=False, stim=False,
+                             eog=False, ecg=True, emg=False, ref_meg=False,
+                             exclude='bads')
+    else:
+        ecg_idx = pick_channels(inst.ch_names, include=[ch_name])
+        if len(ecg_idx) == 0:
+            raise ValueError('%s not in channel list (%s)' %
+                             (ch_name, inst.ch_names))
+
+    if len(ecg_idx) == 0 and ch_name is None:
+        raise RuntimeError('No ECG channel found. Please specify ch_name '
+                           'parameter e.g. MEG 1531')
+
+    return ecg_idx
+
+
+@verbose
+def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
+                      tmin=-0.5, tmax=0.5, l_freq=8, h_freq=16, reject=None,
+                      flat=None, verbose=None, baseline=None):
+    """Conveniently generate epochs around ECG artifact events
+
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data
+    ch_name : str
+        The name of the channel to use for ECG peak detection.
+        The argument is mandatory if the dataset contains no ECG
+        channels.
+    event_id : int
+        The index to assign to found events
+    picks : array-like of int | None (default)
+        Indices of channels to include (if None, all channels are used).
+    tmin : float
+        Start time before event.
+    tmax : float
+        End time after event.
+    l_freq : float
+        Low pass frequency.
+    h_freq : float
+        High pass frequency.
+    reject : dict | None
+        Rejection parameters based on peak to peak amplitude.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+        If reject is None then no rejection is done. You should
+        use such parameters to reject big measurement artifacts
+        and not ECG for example
+    flat : dict | None
+        Rejection parameters based on flatness of signal
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        If flat is None then no rejection is done.
+    baseline : tuple or list of length 2, or None
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used. If None, no correction is applied.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    eog_epochs : instance of mne.Epochs
+        Data epoched around EOG events.
+    """
+
+    events, _, _ = find_ecg_events(raw, ch_name=ch_name, event_id=event_id,
+                                   l_freq=l_freq, h_freq=h_freq,
+                                   verbose=verbose)
+    if picks is not None:
+        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=False)
+
+    # create epochs around ECG events and baseline (important)
+    ecg_epochs = Epochs(raw, events=events, event_id=event_id,
+                        tmin=tmin, tmax=tmax, proj=False,
+                        picks=picks, reject=reject, baseline=baseline,
+                        verbose=verbose, preload=True)
+    return ecg_epochs
+
+
+@verbose
+def _make_ecg(inst, start, stop, verbose=None):
+    """Create ECG signal from cross channel average
+    """
+    if not any([c in inst for c in ['mag', 'grad']]):
+        raise ValueError('Unable to generate artifical ECG channel')
+    for ch in ['mag', 'grad']:
+        if ch in inst:
+            break
+    logger.info('Reconstructing ECG signal from {0}'
+                .format({'mag': 'Magnetometers',
+                         'grad': 'Gradiometers'}[ch]))
+    picks = pick_types(inst.info, meg=True, eeg=False, ref_meg=False)
+    if isinstance(inst, _BaseRaw):
+        ecg, times = inst[picks, start:stop]
+    elif isinstance(inst, _BaseEpochs):
+        ecg = np.hstack(inst.crop(start, stop, copy=True).get_data())
+        times = inst.times
+    elif isinstance(inst, Evoked):
+        ecg = inst.data
+        times = inst.times
+    return ecg.mean(0), times

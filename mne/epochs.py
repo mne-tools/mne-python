@@ -282,7 +282,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        evoked : instance of mne.io.Evoked | None
+        evoked : instance of mne.Evoked | None
             The evoked response to subtract. If None, the evoked response
             is computed from Epochs itself.
 
