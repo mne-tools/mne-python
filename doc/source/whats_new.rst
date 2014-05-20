@@ -65,6 +65,7 @@ Changelog
 
    - Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
 
+   - Add `mne.viz.plot_ica_scores` function and `ICA.plot_scores` method to visualize component metrics by `Denis Engemann`_
 
 BUG
 ~~~

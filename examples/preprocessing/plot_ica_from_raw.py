@@ -114,6 +114,9 @@ ica.plot_topomap(ecg_order[:15], colorbar=False)
 
 ecg_inds = np.abs(ecg_scores).argsort()[-3:]  # take the first 3 components
 
+# visualize scores
+ica.plot_scores(ecg_scores, exclude=ecg_inds, title='correlation with ECG')
+
 ica.exclude.extend(ecg_inds)
 
 
