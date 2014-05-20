@@ -2049,6 +2049,51 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
     return fig
 
 
+def plot_ica_scores(ica, scores, exclude=None, axhline=None,
+                    title='ICA component scores', figsize=(12, 6)):
+    """Plot scores and detected components
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA object.
+    scores : array_like of float, shape (n ica components)
+        Scores based on arbitrary metric to characterize ICA components.
+    exclude : array_like of int
+        The components marked for exclusion. If None (default), ICA.exclude
+        will be used.
+    axhline : float
+        Draw horizontal line to e.g. visualize rejection threshold.
+    title : str
+        The figure title.
+    figsize : tuple of int
+        The figure size. Defaults to (12, 6)
+    """
+    import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(12, 6) if figsize is None else figsize)
+    plt.title(title)
+    my_range = np.arange(ica.n_components_)
+    if len(my_range) != len(scores):
+        raise ValueError('The length ofr `scores` must equal the '
+                         'number of ICA components.')
+    if exclude is None:
+        exclude = np.array(ica.exclude)
+    plt.bar(my_range, scores, color='w')
+    for excl in exclude:
+        plt.bar(my_range[excl], scores[excl], color='r')
+    if axhline is not None:
+        if np.isscalar(axhline):
+            axhline = [axhline]
+        ax = plt.gca()
+        for axl in axhline:
+            ax.axhline(axl, color='r', linestyle='--')
+    plt.ylabel('score')
+    plt.xlabel('ICA components')
+    plt.show()
+    tight_layout(fig=fig)
+    return fig
+
+
 def _prepare_topo_plot(obj, ch_type, layout):
     """"Aux Function"""
     info = copy.deepcopy(obj.info)
