@@ -654,9 +654,9 @@ def read_surface(fname, verbose=None):
             if magic == QUAD_MAGIC:
                 coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float) / 100.
             else:
-                coords = np.fromfile(fobj, ">f4", nvert * 3).astype(np.float) * 100.
+                coords = np.fromfile(fobj, ">f4", nvert * 3).astype(np.float)
 
-            coords = coords.reshape(-1, 3) / 100.0
+            coords = coords.reshape(-1, 3)
             quads = _fread3_many(fobj, nquad * 4)
             quads = quads.reshape(nquad, 4)
             #
