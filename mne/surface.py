@@ -642,12 +642,20 @@ def read_surface(fname, verbose=None):
         Triangulation (each line contains indexes for three points which
         together form a face).
     """
+    TRIANGLE_MAGIC = 16777214
+    QUAD_MAGIC = 16777215
+    NEW_QUAD_MAGIC = 16777213
     with open(fname, "rb", buffering=0) as fobj:  # buffering=0 for np bug
         magic = _fread3(fobj)
-        if (magic == 16777215) or (magic == 16777213):  # Quad file or new quad
+        if (magic == QUAD_MAGIC) or (magic == NEW_QUAD_MAGIC):  # Quad file or new quad
+            create_stamp = ''
             nvert = _fread3(fobj)
             nquad = _fread3(fobj)
-            coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float)
+            if magic == QUAD_MAGIC:
+                coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float) / 100.
+            else:
+                coords = np.fromfile(fobj, ">f4", nvert * 3).astype(np.float) * 100.
+
             coords = coords.reshape(-1, 3) / 100.0
             quads = _fread3_many(fobj, nquad * 4)
             quads = quads.reshape(nquad, 4)
@@ -668,7 +676,7 @@ def read_surface(fname, verbose=None):
                     faces[nface] = quad[0], quad[2], quad[3]
                     nface += 1
 
-        elif magic == 16777214:  # Triangle file
+        elif magic == TRIANGLE_MAGIC:  # Triangle file
             create_stamp = fobj.readline()
             _ = fobj.readline()  # analysis:ignore
             vnum = np.fromfile(fobj, ">i4", 1)[0]
