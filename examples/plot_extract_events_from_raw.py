@@ -32,4 +32,10 @@ for ind, before, after in events[:5]:
           % (ind, before, after))
 
 # Plot the events to get an idea of the paradigm
-mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
+# Specify colors and an event_id dictionary for the legend.
+event_id = {'aud_l': 1, 'aud_r': 2, 'vis_l': 3, 'vis_r': 4, 'smiley': 5,
+            'button': 32}
+color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c', 5: 'black', 32: 'blue'}
+
+mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp, color=color,
+                    event_id=event_id)

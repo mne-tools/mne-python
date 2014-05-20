@@ -63,6 +63,9 @@ Changelog
 
    - Add connector to FieldTrip realtime client by `Mainak Jas`_
 
+   - Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
+
+
 BUG
 ~~~
 
@@ -697,3 +700,5 @@ of commits):
 .. _Martin Billinger: https://github.com/kazemakase
 
 .. _Federico Raimondo: https://github.com/fraimondo
+
+.. _Cathy Nangini: https://github.com/KatiRG

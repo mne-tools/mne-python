@@ -568,6 +568,20 @@ def test_plot_evoked_field():
 
 
 def test_plot_events():
+    event_labels = {'aud_l': 1, 'aud_r': 2, 'vis_l': 3, 'vis_r': 4}
+    color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c'}
     raw = _get_raw()
     events = _get_events()
     plot_events(events, raw.info['sfreq'], raw.first_samp)
+    warnings.simplefilter('always', UserWarning)
+    with warnings.catch_warnings(record=True):
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=event_labels)
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    color=color)
+        plot_events(events, raw.info['sfreq'], raw.first_samp,
+                    event_id=event_labels, color=color)
+        assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
+                      raw.first_samp, event_id={'aud_l': 1}, color=color)
+        assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
+                      raw.first_samp, event_id={'aud_l': 111}, color=color)

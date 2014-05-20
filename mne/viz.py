@@ -6,6 +6,7 @@ from __future__ import print_function
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Cathy Nangini <cnangini@gmail.com>
 #
 # License: Simplified BSD
 from .externals.six import string_types
@@ -48,7 +49,6 @@ from .externals import six
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
-
 
 DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                            emg='k', ref_meg='steelblue', misc='k', stim='k',
@@ -386,7 +386,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                 else slice(len(colors)))
         color = cycle(colors[stop])
         if len(evoked) > len(colors):
-            warnings.warn('More evoked objects then colors available.'
+            warnings.warn('More evoked objects than colors available.'
                           'You should pass a list of unique colors.')
     else:
         color = cycle([color])
@@ -3852,7 +3852,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     return fig
 
 
-def plot_events(events, sfreq, first_samp=0, show=True):
+def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
+                show=True):
     """Plot events to get a visual display of the paradigm
 
     Parameters
@@ -3866,6 +3867,14 @@ def plot_events(events, sfreq, first_samp=0, show=True):
         attribute. It is needed for recordings on a Neuromag
         system as the events are defined relative to the system
         start and not to the beginning of the recording.
+    color : dict | None
+        Dictionary of event_id value and its associated color. If None,
+        colors are automatically drawn from a default list (cycled through if
+        number of events longer than list of default colors).
+    event_id : dict | None
+        Dictionary of event label (e.g. 'aud_l') and its associated
+        event_id value. Label used to plot a legend. If None, no legend is
+        drawn.
     show : bool
         Call pyplot.show() at the end.
 
@@ -3874,15 +3883,67 @@ def plot_events(events, sfreq, first_samp=0, show=True):
     fig : matplotlib.figure.Figure
         The figure object containing the plot.
     """
+    unique_events = np.unique(events[:, 2])
+
+    if event_id is not None:
+        # get labels and unique event ids from event_id dict,
+        # sorted by value
+        event_id_rev = dict((v,k) for k, v in event_id.items())
+        conditions, unique_events_id = zip(*sorted(event_id.items(),
+                                                   key=lambda x: x[1]))
+
+        for this_event in unique_events_id:
+            if this_event not in unique_events:
+                raise ValueError('%s from event_id is not present in events.'
+                                 % this_event)
+
+        for this_event in unique_events:
+            if this_event not in unique_events_id:
+                warnings.warn('event %s missing from event_id will be ignored.'
+                              % this_event)
+    else:
+        unique_events_id = unique_events
+
+    if color is None:
+        if len(unique_events) > len(COLORS):
+            warnings.warn('More events than colors available. '
+                          'You should pass a list of unique colors.')
+        colors = cycle(COLORS)
+        color = dict()
+        for this_event, this_color in zip(unique_events_id, colors):
+            color[this_event] = this_color
+    else:
+        for this_event in color:
+            if this_event not in unique_events_id:
+                raise ValueError('%s from color is not present in events '
+                                 'or event_id.' % this_event)
+
+        for this_event in unique_events_id:
+            if this_event not in color:
+                warnings.warn('Color is not available for event %d. Default '
+                              'colors will be used.' % this_event)
+
     import matplotlib.pyplot as plt
     fig = plt.figure()
-    min_event = np.min(events[:, 2])
-    max_event = np.max(events[:, 2])
-    plt.plot((events[:, 0] - first_samp) / sfreq, events[:, 2], '.')
+    min_event = np.min(unique_events_id)
+    max_event = np.max(unique_events_id)
+
+    for idx, ev in enumerate(unique_events_id):
+        ev_mask = events[:, 2] == ev
+        kwargs = {}
+        if event_id is not None:
+            kwargs['label'] = event_id_rev[ev]
+        if ev in color:
+            kwargs['color'] = color[ev]
+        plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
+                 events[ev_mask, 2], '.', **kwargs)
     plt.ylim([min_event - 1, max_event + 1])
     plt.xlabel('Time (s)')
     plt.ylabel('Events id')
     plt.grid('on')
+
+    if event_id is not None:
+        plt.legend()
     if show:
         plt.show()
     return fig
