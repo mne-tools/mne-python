@@ -295,6 +295,21 @@ def test_plot_ica_panel():
     plt.close('all')
 
 
+@requires_sklearn
+def test_plot_ica_scores():
+    """Test plotting of ICA scores
+    """
+    raw = _get_raw()
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+                           ecg=False, eog=False, exclude='bads')
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica.decompose_raw(raw, picks=ica_picks)
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
+    assert_raises(ValueError, ica.plot_scores, [0.2])
+    plt.close('all')
+
+
 def test_plot_image_epochs():
     """Test plotting of epochs image
     """

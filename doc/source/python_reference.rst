@@ -255,6 +255,8 @@ Visualization
    plot_evoked_topomap
    plot_evoked_field
    plot_ica_panel
+   plot_ica_topomap
+   plot_ica_scores
    plot_image_epochs
    plot_raw
    plot_raw_psds

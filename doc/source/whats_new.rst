@@ -79,7 +79,6 @@ Changelog
 
    - Add BCI demo with CSP on motor imagery by `Martin Billinger`_
 
-
 BUG
 ~~~
 

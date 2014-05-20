@@ -22,7 +22,6 @@ from scipy import linalg
 from .ecg import qrs_detector
 from .eog import _find_eog_events
 
-from ..channels import _contains_ch_type
 from ..cov import compute_whitener
 from .. import Covariance
 from ..io.pick import (pick_types, pick_channels, pick_info,
@@ -35,6 +34,8 @@ from ..io.open import fiff_open
 from ..io.tag import read_tag
 from ..io.meas_info import write_meas_info, read_meas_info
 from ..io.constants import Bunch, FIFF
+from ..viz import plot_ica_panel, plot_ica_topomap, plot_ica_scores
+from ..io.channels import _contains_ch_type
 from ..io.write import start_file, end_file, write_id
 from ..viz import plot_ica_panel, plot_ica_topomap
 from ..epochs import _is_good
@@ -999,6 +1000,29 @@ class ICA(object):
         return plot_ica_topomap(self, source_idx=source_idx, ch_type=ch_type,
                                 res=res, layout=layout, vmax=vmax, cmap=cmap,
                                 sensors=sensors, colorbar=colorbar, show=show)
+
+    def plot_scores(self, scores, exclude=None, axhline=None,
+                    title='ICA component scores', figsize=(12, 6)):
+        """Plot scores and detected components
+
+        Parameters
+        ----------
+        ica : instance of mne.preprocessing.ICA
+            The ICA object.
+        scores : array_like of float, shape (n ica components)
+            Scores based on arbitrary metric to characterize ICA components.
+        exclude : array_like of int
+            The components marked for exclusion. If None (default), ICA.exclude
+            will be used.
+        axhline : float
+            Draw horizontal line to e.g. visualize rejection threshold.
+        title : str
+            The figure title.
+        figsize : tuple of int
+            The figure size. Defaults to (12, 6)
+        """
+        return plot_ica_scores(ica=self, scores=scores, exclude=exclude,
+                               axhline=axhline, title=title, figsize=figsize)
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                          ecg_ch=None, ecg_score_func='pearsonr',
