@@ -1563,7 +1563,7 @@ def _check_raw_compatibility(raw):
         raw[0].orig_format = 'unknown'
 
 
-def concatenate_raws(raws, preload=None, event_list=None):
+def concatenate_raws(raws, preload=None, events_list=None):
     """Concatenate raw instances as if they were continuous. Note that raws[0]
     is modified in-place to achieve the concatenation.
 
@@ -1575,7 +1575,7 @@ def concatenate_raws(raws, preload=None, event_list=None):
         If None, preload status is inferred using the preload status of the
         raw files passed in. True or False sets the resulting raw file to
         have or not have data preloaded.
-    event_list : None | list
+    events_list : None | list
         The events to concatenate. Defaults to None.
 
     Returns
@@ -1585,15 +1585,15 @@ def concatenate_raws(raws, preload=None, event_list=None):
     events : ndarray of int, shape (n events, 3)
         The events. Only returned if `event_list` is not None.
     """
-    if event_list is not None:
-        if len(event_list) != len(raws):
+    if events_list is not None:
+        if len(events_list) != len(raws):
             raise ValueError('`raws` and `event_list` are required '
                              'to be of the same length')
         first, last = zip(*[(r.first_samp, r.last_samp) for r in raws])
-        events = concatenate_events(event_list, first, last)
+        events = concatenate_events(events_list, first, last)
     raws[0].append(raws[1:], preload)
 
-    if event_list is None:
+    if events_list is None:
         return raws[0]
     else:
         return raws[0], events

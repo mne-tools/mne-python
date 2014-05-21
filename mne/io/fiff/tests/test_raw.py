@@ -168,7 +168,7 @@ def test_multiple_files():
     # test concatenation of split file
     assert_raises(ValueError, concatenate_raws, raws, True, events[1:])
     all_raw_1, events1 = concatenate_raws(raws, preload=False,
-                                          event_list=events)
+                                          events_list=events)
     assert_true(raw.first_samp == all_raw_1.first_samp)
     assert_true(raw.last_samp == all_raw_1.last_samp)
     assert_allclose(raw[:, :][0], all_raw_1[:, :][0])
