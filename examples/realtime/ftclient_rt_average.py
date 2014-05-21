@@ -41,7 +41,7 @@ import numpy as np
 
 import matplotlib.pyplot as plt
 
-# select the left-auditory condition
+# select the left/right-auditory condition
 event_ids = [1, 2]
 tmin, tmax = -0.2, 0.5
 
@@ -84,8 +84,8 @@ with FieldTripClient(host='localhost', port=1972,
 
         ax[0].cla(), ax[1].cla()
 
-        plot_events(np.array(rt_epochs.events[-5:]), raw_info['sfreq'],
-                    axis=ax[0])
+        plot_events(np.array(rt_epochs.events[-5:]), ev.info['sfreq'],
+                    axes=ax[0])
 
         if jj > 0:
             evoked.plot(axes=ax[1])  # plot on second subplot

@@ -3853,7 +3853,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 
 def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
-                axis=None, show=True):
+                axes=None, show=True):
     """Plot events to get a visual display of the paradigm
 
     Parameters
@@ -3875,6 +3875,8 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         Dictionary of event label (e.g. 'aud_l') and its associated
         event_id value. Label used to plot a legend. If None, no legend is
         drawn.
+    axes : instance of matplotlib.axes.AxesSubplot
+       The subplot handle.
     show : bool
         Call pyplot.show() at the end.
 
@@ -3925,7 +3927,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
 
     import matplotlib.pyplot as plt
 
-    ax = axis if axis else plt
+    ax = axes if axes else plt
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
 
@@ -3939,7 +3941,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
                 events[ev_mask, 2], '.', **kwargs)
 
-    if axis:
+    if axes:
         ax.set_ylim([min_event - 1, max_event + 1])
         ax.set_xlabel('Time (s)')
         ax.set_ylabel('Events id')
@@ -3953,7 +3955,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     if event_id is not None:
         ax.legend()
 
-    if show and not axis:
-            ax.show()
+    if show and not axes:
+        ax.show()
 
     return ax
