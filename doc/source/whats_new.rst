@@ -65,6 +65,7 @@ Changelog
 
    - Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
 
+   - Add `events_list` parameter to `mne.concatenate_raws` to concatenate events corresponding to runs by `Denis Engemann`_
 
 BUG
 ~~~
