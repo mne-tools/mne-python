@@ -34,12 +34,16 @@ print(__doc__)
 # License: BSD (3-clause)
 
 import mne
+from mne.viz import plot_events
 from mne.realtime import FieldTripClient, RtEpochs
+
+import numpy as np
 
 import matplotlib.pyplot as plt
 
 # select the left-auditory condition
-event_id, tmin, tmax = 1, -0.2, 0.5
+event_ids = [1, 2]
+tmin, tmax = -0.2, 0.5
 
 # user must provide list of bad channels because
 # FieldTrip header object does not provide that
@@ -47,9 +51,8 @@ bads = ['MEG 2443', 'EEG 053']
 
 plt.ion()  # make plot interactive
 
-# 'with' statement is required for a clean exit
 with FieldTripClient(host='localhost', port=1972,
-                     tmax=150) as rt_client:
+                     tmax=150, wait_max=10) as rt_client:
 
     # get measurement info guessed by MNE-Python
     raw_info = rt_client.get_measurement_info()
@@ -59,20 +62,36 @@ with FieldTripClient(host='localhost', port=1972,
                            stim=True, exclude=bads)
 
     # create the real-time epochs object
-    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
-                         reject=dict(grad=4000e-13, eog=150e-6),
-                         decim=1, isi_max=10.0, proj=None)
+    rt_epochs = RtEpochs(rt_client, event_ids, tmin, tmax,
+                         stim_channel='STI 014', picks=picks,
+                         reject=None, decim=1, isi_max=10.0, proj=None)
 
     # start the acquisition
     rt_epochs.start()
+    jj = 0  # counter for event_id = 0
 
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
         print("Just got epoch %d" % (ii + 1))
-        if ii > 0:
-            ev += evoked
-        evoked = ev
-        plt.clf()  # clear canvas
-        evoked.plot(axes=plt.gca())  # plot on current figure
+
+        event_id = int(ev.comment)
+
+        if event_id == event_ids[0]:
+            evoked = ev if jj == 0 else evoked + ev
+            jj += 1
+
+        if jj == 0:
+            _, ax = plt.subplots(2, 1, figsize=(8, 8))
+
+        ax[0].cla(), ax[1].cla()
+
+        plot_events(np.array(rt_epochs.events[-5:]), raw_info['sfreq'],
+                    axis=ax[0])
+
+        if jj > 0:
+            evoked.plot(axes=ax[1])  # plot on second subplot
+            ax[1].set_title('Evoked response for gradiometer channels'
+                            '(event_id = %d)' % event_ids[0])
         plt.pause(0.05)
+        plt.draw()
 
     plt.close()

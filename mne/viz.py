@@ -3853,7 +3853,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 
 def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
-                show=True):
+                axis=None, show=True):
     """Plot events to get a visual display of the paradigm
 
     Parameters
@@ -3880,15 +3880,15 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
 
     Returns
     -------
-    fig : matplotlib.figure.Figure
-        The figure object containing the plot.
+    ax : matplotlib.axes.AxesSubplot | matplotlib.pyplot
+        The axis object containing the plot.
     """
     unique_events = np.unique(events[:, 2])
 
     if event_id is not None:
         # get labels and unique event ids from event_id dict,
         # sorted by value
-        event_id_rev = dict((v,k) for k, v in event_id.items())
+        event_id_rev = dict((v, k) for k, v in event_id.items())
         conditions, unique_events_id = zip(*sorted(event_id.items(),
                                                    key=lambda x: x[1]))
 
@@ -3924,7 +3924,8 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
                               'colors will be used.' % this_event)
 
     import matplotlib.pyplot as plt
-    fig = plt.figure()
+
+    ax = axis if axis else plt
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
 
@@ -3935,15 +3936,24 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
             kwargs['label'] = event_id_rev[ev]
         if ev in color:
             kwargs['color'] = color[ev]
-        plt.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                 events[ev_mask, 2], '.', **kwargs)
-    plt.ylim([min_event - 1, max_event + 1])
-    plt.xlabel('Time (s)')
-    plt.ylabel('Events id')
-    plt.grid('on')
+        ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
+                events[ev_mask, 2], '.', **kwargs)
+
+    if axis:
+        ax.set_ylim([min_event - 1, max_event + 1])
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel('Events id')
+    else:
+        ax.ylim([min_event - 1, max_event + 1])
+        ax.xlabel('Time (s)')
+        ax.ylabel('Events id')
+
+    ax.grid('on')
 
     if event_id is not None:
-        plt.legend()
-    if show:
-        plt.show()
-    return fig
+        ax.legend()
+
+    if show and not axis:
+            ax.show()
+
+    return ax
