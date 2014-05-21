@@ -1576,14 +1576,14 @@ def concatenate_raws(raws, preload=None, event_list=None):
         raw files passed in. True or False sets the resulting raw file to
         have or not have data preloaded.
     event_list : None | list
-        The evnets to concatenate. Default to None
+        The events to concatenate. Defaults to None.
 
     Returns
     -------
     raw : instance of Raw
         The result of the concatenation (first Raw instance passed in).
     events : ndarray of int, shape (n events, 3)
-        The events. Only returned if event_list is not None
+        The events. Only returned if `event_list` is not None.
     """
     if event_list is not None:
         if len(event_list) != len(raws):
