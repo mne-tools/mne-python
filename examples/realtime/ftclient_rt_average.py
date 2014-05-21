@@ -37,8 +37,6 @@ import mne
 from mne.viz import plot_events
 from mne.realtime import FieldTripClient, RtEpochs
 
-import numpy as np
-
 import matplotlib.pyplot as plt
 
 # select the left/right-auditory condition
@@ -84,7 +82,7 @@ with FieldTripClient(host='localhost', port=1972,
 
         ax[0].cla(), ax[1].cla()
 
-        plot_events(np.array(rt_epochs.events[-5:]), ev.info['sfreq'],
+        plot_events(rt_epochs.events[-5:], ev.info['sfreq'],
                     axes=ax[0])
 
         if jj > 0:

@@ -3885,6 +3885,7 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     ax : matplotlib.axes.AxesSubplot | matplotlib.pyplot
         The axis object containing the plot.
     """
+    events = np.asarray(events)
     unique_events = np.unique(events[:, 2])
 
     if event_id is not None:
