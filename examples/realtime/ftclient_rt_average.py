@@ -34,6 +34,7 @@ print(__doc__)
 # License: BSD (3-clause)
 
 import mne
+from mne.viz import plot_events
 from mne.realtime import FieldTripClient, RtEpochs
 
 import matplotlib.pyplot as plt
@@ -46,10 +47,10 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 bads = ['MEG 2443', 'EEG 053']
 
 plt.ion()  # make plot interactive
+_, ax = plt.subplots(2, 1, figsize=(8, 8))  # create subplots
 
-# 'with' statement is required for a clean exit
 with FieldTripClient(host='localhost', port=1972,
-                     tmax=150) as rt_client:
+                     tmax=150, wait_max=10) as rt_client:
 
     # get measurement info guessed by MNE-Python
     raw_info = rt_client.get_measurement_info()
@@ -59,7 +60,8 @@ with FieldTripClient(host='localhost', port=1972,
                            stim=True, exclude=bads)
 
     # create the real-time epochs object
-    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax, picks=picks,
+    rt_epochs = RtEpochs(rt_client, event_id, tmin, tmax,
+                         stim_channel='STI 014', picks=picks,
                          reject=dict(grad=4000e-13, eog=150e-6),
                          decim=1, isi_max=10.0, proj=None)
 
@@ -68,11 +70,21 @@ with FieldTripClient(host='localhost', port=1972,
 
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
         print("Just got epoch %d" % (ii + 1))
+
         if ii > 0:
             ev += evoked
         evoked = ev
-        plt.clf()  # clear canvas
-        evoked.plot(axes=plt.gca())  # plot on current figure
+
+        ax[0].cla(), ax[1].cla()  # clear axis
+
+        plot_events(rt_epochs.events[-5:], ev.info['sfreq'],
+                    axes=ax[0])
+
+        evoked.plot(axes=ax[1])  # plot on second subplot
+        ax[1].set_title('Evoked response for gradiometer channels'
+                        '(event_id = %d)' % event_id)
+
         plt.pause(0.05)
+        plt.draw()
 
     plt.close()

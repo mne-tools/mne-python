@@ -4,12 +4,14 @@
 
 import re
 import copy
+import time
 import threading
 import warnings
 import numpy as np
 
 from ..constants import FIFF
 from ..io.meas_info import Info
+from ..utils import logger
 from ..externals.FieldTrip import Client as FtClient
 
 
@@ -37,6 +39,8 @@ class FieldTripClient(object):
         Hostname (or IP address) of the host where Fieldtrip buffer is running.
     port : int
         Port to use for the connection.
+    wait_max : float
+        Maximum time (in seconds) to wait for Fieldtrip buffer to start
     tmin : float
         Time instant to start receiving buffers.
     tmax : float
@@ -46,11 +50,12 @@ class FieldTripClient(object):
     verbose : bool, str, int, or None
         Log verbosity see mne.verbose.
     """
-    def __init__(self, info=None, host='localhost', port=1972, tmin=0,
-                 tmax=np.inf, buffer_size=1000, verbose=None):
+    def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
+                 tmin=0, tmax=np.inf, buffer_size=1000, verbose=None):
         self.verbose = verbose
 
         self.info = info
+        self.wait_max = wait_max
         self.tmin = tmin
         self.tmax = tmax
         self.buffer_size = buffer_size
@@ -64,12 +69,39 @@ class FieldTripClient(object):
     def __enter__(self):
         # instantiate Fieldtrip client and connect
         self.ft_client = FtClient()
-        self.ft_client.connect(self.host, self.port)
 
-        self.ft_header = self.ft_client.getHeader()
+        # connect to FieldTrip buffer
+        logger.info("FieldTripClient: Waiting for server to start")
+        start_time, current_time = time.time(), time.time()
+        success = False
+        while current_time < (start_time + self.wait_max):
+            try:
+                self.ft_client.connect(self.host, self.port)
+                logger.info("FieldTripClient: Connected")
+                success = True
+                break
+            except:
+                current_time = time.time()
+                time.sleep(0.1)
+
+        if not success:
+            raise RuntimeError('Could not connect to FieldTrip Buffer')
+
+        # retrieve header
+        logger.info("FieldTripClient: Retrieving header")
+        start_time, current_time = time.time(), time.time()
+        while current_time < (start_time + self.wait_max):
+            self.ft_header = self.ft_client.getHeader()
+            if self.ft_header is None:
+                current_time = time.time()
+                time.sleep(0.1)
+            else:
+                break
 
         if self.ft_header is None:
             raise RuntimeError('Failed to retrieve Fieldtrip header!')
+        else:
+            logger.info("FieldTripClient: Header retrieved")
 
         self.info = self._guess_measurement_info()
         self.ch_names = self.ft_header.labels
