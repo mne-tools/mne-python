@@ -359,7 +359,7 @@ def _verify_source_estimate_compat(a, b):
                          'same vertices. Consider using stc.expand().')
     if a.subject != b.subject:
         raise ValueError('source estimates do not have the same subject '
-                         'names, "%s" and "%s"' % (a.name, b.name))
+                         'names, %r and %r' % (a.subject, b.subject))
 
 
 class _BaseSourceEstimate(object):
