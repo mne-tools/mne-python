@@ -569,7 +569,8 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
             # compute the psd
             if adaptive:
                 out = parallel(my_psd_from_mt_adaptive(x, eigvals, freq_mask)
-                       for x in np.array_split(x_mt_src, n_jobs))
+                       for x in np.array_split(x_mt_src,
+                                               min(n_jobs, len(x_mt_src))))
                 this_psd = np.concatenate(out)
             else:
                 x_mt_src = x_mt_src[:, :, freq_mask]
