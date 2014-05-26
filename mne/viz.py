@@ -823,7 +823,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=256, size=1, format='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
-                        show_names=False, title=None):
+                        show_names=False, title=None, mask=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -950,19 +950,28 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             vmax = vmax(data)
         elif vmin is None:
             vmax = np.max(data)
-
+    plot_fun = partial(plot_topomap, vmin=vmin, vmax=vmax,
+                       sensors=sensors, res=res, names=names,
+                       show_names=show_names)
     images = []
+    if mask is not None:
+        _picks = picks[::2 if channel_type not in ['mag', 'eeg'] else 1]
+        mask_ = mask[np.ix_(_picks, time_idx)]
+        data_masked = data.copy()
+        data_masked[mask_] = np.nan
     for i, t in enumerate(times):
-        plt.subplot(1, nax, i + 1)
-        tp = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax, cmap=cmap,
-                          sensors=sensors, res=res, names=names,
-                          show_names=show_names)
+        ax = plt.subplot(1, nax, i + 1)
+        if mask is not None:
+            _ = plot_fun(data[:, i], pos, cmap='gray', axis=ax)
+            tp = plot_fun(data_masked[:, i], pos, cmap=cmap, axis=ax)
+        else:
+            tp = plot_fun(data[:, i], pos, cmap=cmap, axis=ax)
         images.append(tp)
         plt.title(time_format % (t * scale_time))
 
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
-        plt.colorbar(cax=cax, ticks=[vmin, 0, vmax], format=format)
+        plt.colorbar(images[-1], cax=cax, ticks=[vmin, 0, vmax], format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         cpos.x0 = 1 - (.7 + .1 / size) / nax
