@@ -957,13 +957,12 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if mask is not None:
         _picks = picks[::2 if channel_type not in ['mag', 'eeg'] else 1]
         mask_ = mask[np.ix_(_picks, time_idx)]
-        data_masked = data.copy()
-        data_masked[mask_] = np.nan
+        # data_masked = np.ma.masked_array(data.copy(), mask_)
     for i, t in enumerate(times):
         ax = plt.subplot(1, nax, i + 1)
         if mask is not None:
-            _ = plot_fun(data[:, i], pos, cmap='gray', axis=ax)
-            tp = plot_fun(data_masked[:, i], pos, cmap=cmap, axis=ax)
+            # _ = plot_fun(data[:, i], pos, cmap='gray', axis=ax)
+            tp = plot_fun(data[:, i], pos, cmap=cmap, axis=ax, mask=mask_[:, i])
         else:
             tp = plot_fun(data[:, i], pos, cmap=cmap, axis=ax)
         images.append(tp)
@@ -1128,7 +1127,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
 
 
 def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
-                 res=100, axis=None, names=None, show_names=False):
+                 res=100, axis=None, names=None, show_names=False, mask=None):
     """Plot a topographic map as image
 
     Parameters
@@ -1194,9 +1193,9 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
 
     plt.xticks(())
     plt.yticks(())
-
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
+
     ax = axis if axis else plt
     if sensors:
         if sensors is True:
@@ -1217,6 +1216,8 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
 
+    if mask is not None:
+        data[mask] = -1
     triang = delaunay.Triangulation(pos_x, pos_y)
     interp = triang.linear_interpolator(data)
     x = np.linspace(xmin, xmax, res)
@@ -1225,6 +1226,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
 
     im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
                 xi.min():xi.max():complex(0, xi.shape[1])]
+
     im = np.ma.masked_array(im, im == np.nan)
     im = ax.imshow(im, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax))
