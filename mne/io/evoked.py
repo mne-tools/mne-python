@@ -889,7 +889,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
 
     if not fname.endswith(('-ave.fif', '-ave.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
-                      's. All evoked files should end with -ave.fif.')
+                      's. All evoked files should end with -ave.fif or'
+                      ' -ave.fif.gz.')
 
     return_list = True
     if condition is None:
@@ -981,7 +982,8 @@ def write_evokeds(fname, evoked):
 
     if not fname.endswith(('-ave.fif', '-ave.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
-                      's. All evoked files should end with -ave.fif.')
+                      's. All evoked files should end with -ave.fif or'
+                      ' -ave.fif.gz.')
 
     if not isinstance(evoked, list):
         evoked = [evoked]

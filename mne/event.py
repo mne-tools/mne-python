@@ -211,10 +211,10 @@ def read_events(filename, include=None, exclude=None):
     decimation.
     """
 
-    if not filename.endswith(('eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
+    if not filename.endswith(('.eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
                               '-eve.txt')):
         warnings.warn('This filename does not conform to mne naming convention'
-                      's. All epochs files should end with -eve.fif.')
+                      's. All events files should end with -eve.fif.')
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
@@ -263,10 +263,10 @@ def write_events(filename, event_list):
         The list of events
     """
  
-    if not filename.endswith(('eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
+    if not filename.endswith(('.eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
                               '-eve.txt')):
         warnings.warn('This filename does not conform to mne naming convention'
-                      's. All epochs files should end with -eve.fif.')
+                      's. All events files should end with -eve.fif.')
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':

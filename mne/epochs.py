@@ -1828,9 +1828,9 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
         The epochs
     """
 
-    if not fname.endswith('-eve.fif'):
+    if not fname.endswith('-epo.fif'):
         warnings.warn('This filename does not conform to mne naming convention'
-                      's. All epochs files should end with -eve.fif.')
+                      's. All epochs files should end with -epo.fif.')
 
     epochs = Epochs(None, None, None, None, None)
 
