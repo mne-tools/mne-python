@@ -314,26 +314,44 @@ def read_ch_connectivity(fname):
     """
     nb = loadmat(fname)['neighbours']
     ch_names = _recursive_flatten(nb['label'], string_types)
-    neighbours = [_recursive_flatten(c, string_types) for c in
-                  nb['neighblabel'].flatten()]
-    assert len(ch_names) == len(neighbours)
-    return neighours_connectivity(ch_names, neighbours)
+    neighbors = [_recursive_flatten(c, string_types) for c in
+                 nb['neighblabel'].flatten()]
+    assert len(ch_names) == len(neighbors)
+    return ch_neighbor_connectivity(ch_names, neighbors)
 
 
-def neighours_connectivity(ch_names, neighbours):
+def ch_neighbor_connectivity(ch_names, neighbors):
     """Compute sensor connectivity matrix
 
     Parameters
     ----------
     ch_names : list of str
+        The channel names.
+    neighbors : list of list
+        A list of list of channe names. The neighbors the corresponding
+        channel in ch_names is connected with.
 
     Returns
     -------
     ch_connectivity
 
     """
-    ch_connectivity = np.diag(np.ones(len(ch_names), dtype=bool))
-    for ii, neigbs in enumerate(neighbours):
+    if len(ch_names) != len(neighbors):
+        raise ValueError('`ch_names` and `neighbors` must '
+                         'have the same length')
+    set_neighbors = set([c for d in neighbors for c in d])
+    rest = set_neighbors - set(ch_names)
+    if len(rest) > 0:
+        raise ValueError('Some of your neighbors are not present in the '
+                         ' channel list')
+
+    for neigh in neighbors:
+        if (not isinstance(neigh, list) and
+           not all(isinstance(c, string_types) for c in neigh)):
+            raise ValueError('`neighbors` must be a list of lists of str')
+
+    ch_connectivity = np.eye(len(ch_names), dtype=bool)
+    for ii, neigbs in enumerate(neighbors):
         ch_connectivity[ii, [ch_names.index(i) for i in neigbs]] = True
 
     ch_connectivity = sparse.csr_matrix(ch_connectivity)

@@ -11,7 +11,8 @@ import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 
 from mne import io
-from mne.io.channels import rename_channels, read_ch_connectivity
+from mne.io.channels import (rename_channels, read_ch_connectivity,
+                             ch_neighbor_connectivity)
 from mne.constants import FIFF
 from mne.fixes import partial
 from mne.utils import _TempDir
@@ -92,3 +93,11 @@ def test_read_ch_connectivity():
     assert_true(x[0, 1] == False)
     assert_true(x[0, 2] == True)
     assert_true(np.all(x.flat[::len(x) + 1]) == True)
+
+    ch_names = ['EEG01', 'EEG02', 'EEG03']
+    neighbors = [['EEG02'], ['EEG04'], ['EEG02']]
+    assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
+    neighbors = [['EEG02'], ['EEG01', 'EEG03'], ['EEG 02']]
+    assert_raises(ValueError, ch_neighbor_connectivity, ch_names[:2], neighbors)
+    neighbors = [['EEG02'], 'EEG01', ['EEG 02']]
+    assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)

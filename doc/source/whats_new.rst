@@ -67,6 +67,10 @@ Changelog
 
    - Add `events_list` parameter to `mne.concatenate_raws` to concatenate events corresponding to runs by `Denis Engemann`_
 
+   - Add `read_ch_connectivity` function and `ch_neighboir_connectivity`
+   to read FieldTrip neighbour template .mat files and compute between
+   sensor adjancency matrixes by `Denis Engemann`_
+
 BUG
 ~~~
 
