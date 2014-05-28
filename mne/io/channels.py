@@ -4,7 +4,11 @@
 #
 # License: BSD (3-clause)
 
+
+import os.path as op
 import numpy as np
+from scipy.io import loadmat
+from scipy import sparse
 
 from ..externals.six import string_types
 
@@ -284,3 +288,53 @@ def rename_channels(info, mapping):
     # reference magic, please don't change (with the local binding
     # it doesn't work)
     info['ch_names'] = [c['ch_name'] for c in chs]
+
+
+def _recursive_flatten(cell, dtype):
+    while not isinstance(cell[0], dtype):
+        cell = [c for d in cell for c in d]
+        _recursive_flatten(cell, dtype)
+    return cell
+
+
+def read_ch_connectivity(fname):
+    """Parse fieldtrip neighbours .mat file
+
+    Parameters
+    ----------
+    fname : str
+        The file name.
+
+    Returns
+    -------
+    ch_names : list of str
+        The channels names.
+    neighbors : list of list
+        The corresponding neighbor channels.
+    """
+    nb = loadmat(fname)['neighbours']
+    ch_names = _recursive_flatten(nb['label'], string_types)
+    neighbours = [_recursive_flatten(c, string_types) for c in
+                  nb['neighblabel'].flatten()]
+    assert len(ch_names) == len(neighbours)
+    return neighours_connectivity(ch_names, neighbours)
+
+
+def neighours_connectivity(ch_names, neighbours):
+    """Compute sensor connectivity matrix
+
+    Parameters
+    ----------
+    ch_names : list of str
+
+    Returns
+    -------
+    ch_connectivity
+
+    """
+    ch_connectivity = np.diag(np.ones(len(ch_names), dtype=bool))
+    for ii, neigbs in enumerate(neighbours):
+        ch_connectivity[ii, [ch_names.index(i) for i in neigbs]] = True
+
+    ch_connectivity = sparse.csr_matrix(ch_connectivity)
+    return ch_connectivity
