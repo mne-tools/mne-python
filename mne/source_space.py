@@ -1701,3 +1701,82 @@ def _do_src_distances(con, vertno, run_inds, limit):
     min_idx = min_idx[midx, range_idx]
     d[d == np.inf] = 0  # scipy will give us np.inf for uncalc. distances
     return d, min_idx, min_dist
+
+def get_segment_positions(subject, label=None, random_ori=False,
+                          subjects_dir=None):
+    """Gets the positions of a segmented volume
+    
+    Parameters
+    ----------
+    subject : str
+        Subject to process.
+    label : str, or int
+        Label to use. If string, the numeric index will be read from 
+        the look-up table
+    random_ori : bool
+        Sets up random or fixed orientations
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose: bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose)
+
+    Returns
+    -------
+    pos : dict
+        The positions to feed into mne.setup_volume_source_space
+
+    """
+
+    # convert string to numeric index
+    if type(label)==str:
+        # find the look-up table
+        lut_fname = op.join(os.environ['FREESURFER_HOME'],
+                            'FreeSurferColorLUT.txt')
+        # read the look-up table
+        lut = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
+                            names=['ix', 'name'])
+        label = lut['ix'][lut['name']==label]
+
+    subjects_dir = get_subjects_dir(subjects_dir)    
+    
+    # find the segmentation file
+    aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
+   
+    # read the segment data using nibabel
+    aseg = nib.load(aseg_fname)
+    aseg_data = aseg.get_data()
+    aseg_header = aseg.get_header()
+
+    # get the indices to the specified label
+    ix = aseg_data == label
+    
+    # convert indices into x, y, z coordinates
+    iix = []  # empty list
+    for i in range(ix.shape[0]):
+        for j in range(ix.shape[1]):
+            for k in range(ix.shape[2]):
+                if ix[i, j, k]:
+                    iix.append([i, j, k])
+
+    # convert from list to array
+    iix = np.array(iix)
+
+    # transform data to ras coordinates
+    trans = aseg_header.get_vox2ras_tkr()
+    xyz = np.dot(iix, trans[:3, :3].T)+trans[:3, 3]
+
+    # convert to meters
+    xyz /= 1000.
+    
+    # get the orientations
+    if random_ori:  # random orientations
+        ori = np.random.randn(xyz.shape[0], xyz.shape[1])
+    else:
+        ori = np.zeros(xyz.shape)
+        ori[:, 2] = 1.0  # source orientation is immaterial
+
+    # return dict or positions and orientations
+    pos = dict(rr=xyz, nn=ori)
+    
+    return pos
+    

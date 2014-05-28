@@ -1,6 +1,21 @@
+"""
+========================================
+Plot activations for subcortical volumes
+========================================
+
+"""
+
+# Author: Alan Leggitt <alan.leggitt@ucsf.edu>
+#
+# License: BSD (3-clause)
+
+print(__doc__)
+
 import nibabel as nib
 import numpy as np
 import mne
+from mne import fiff
+from mne.preprocessing import ICA
 from mne.datasets import spm_face
 from mne.minimum_norm import make_inverse_operator, apply_inverse_epochs
 import matplotlib.pyplot as plt
@@ -9,48 +24,41 @@ from scipy import stats
 # get the data paths
 data_path = spm_face.data_path()
 subjects_dir = data_path + '/subjects'
-
-# get the segmentation, bem, and transformation files
-aseg_fname = subjects_dir + '/spm/mri/aseg.mgz'
-mri = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
 bem = subjects_dir + '/spm/bem/spm-5120-5120-5120-bem-sol.fif'
+mri = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
 
-# Read the epoch data
-epo_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_epochs.fif'
-epochs = mne.read_epochs(epo_fname)
+# Load and filter data, set up epochs
+raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
 
-# load segment info using nibabel
-aseg = nib.load(aseg_fname)
-aseg_data = aseg.get_data()
-ix = aseg_data == 54  # index for the right amygdala
+raw = fiff.Raw(raw_fname % 1, preload=True) # Take first run
 
-# get the indices in x, y, z space
-iix = []
-for i in range(ix.shape[0]):
-    for j in range(ix.shape[1]):
-        for k in range(ix.shape[2]):
-            if ix[i, j, k]:
-                iix.append([i, j, k])
+picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
+raw.filter(1, 45, method='iir')
 
-iix = np.array(iix)  # convert to array
+events = mne.find_events(raw, stim_channel='UPPT001')
+event_ids = {"faces":1, "scrambled":2}
 
-# get the header information
-aseg_hdr = aseg.get_header()
+tmin, tmax = -0.2, 0.6
+baseline = None  # no baseline as high-pass is applied
+reject = dict(mag=1.5e-12)
 
-# get the transformation matrix
-trans = aseg_hdr.get_vox2ras_tkr()
+epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
+                    baseline=baseline, preload=True, reject=reject)
 
-# convert using the transformation matrix
-xyz = np.dot(iix, trans[:3, :3].T)+trans[:3, 3]
+# Fit ICA, find and remove major artifacts
+ica = ICA(None, 50).decompose_epochs(epochs, decim=2)
 
-# convert to meters
-xyz /= 1000.
+for ch_name in ['MRT51-2908', 'MLF14-2908']:  # ECG, EOG contaminated chs
+    scores = ica.find_sources_epochs(epochs, ch_name, 'pearsonr')
+    ica.exclude += list(np.argsort(np.abs(scores))[-2:])
 
-# generate random orientations
-ori = np.random.randn(xyz.shape[0], xyz.shape[1])
+# select ICA sources and reconstruct MEG signals, compute clean ERFs
+epochs = ica.pick_sources_epochs(epochs)
 
-# create the pos dictionary
-pos = dict(rr=xyz, nn=ori)
+# get positions and orientations of subcortical space
+pos = mne.source_space.get_segment_positions('spm', 'Right-Amygdala',
+                                             random_ori=True,
+                                             subjects_dir=subjects_dir)
 
 # estimate noise covarariance
 noise_cov = mne.compute_covariance(epochs.crop(None, 0, copy=True))
