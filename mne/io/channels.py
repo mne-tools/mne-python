@@ -297,13 +297,16 @@ def _recursive_flatten(cell, dtype):
     return cell
 
 
-def read_ch_connectivity(fname):
+def read_ch_connectivity(fname, picks=None):
     """Parse fieldtrip neighbours .mat file
 
     Parameters
     ----------
     fname : str
         The file name.
+    picks : array-like of int, shape (n channels)
+        The indices of the channels to include. Must match the template.
+        Defaults to None.
 
     Returns
     -------
@@ -317,7 +320,16 @@ def read_ch_connectivity(fname):
     neighbors = [_recursive_flatten(c, string_types) for c in
                  nb['neighblabel'].flatten()]
     assert len(ch_names) == len(neighbors)
-    return ch_neighbor_connectivity(ch_names, neighbors)
+    if picks is not None:
+        if max(picks) >= len(ch_names):
+            raise ValueError('The picks must be compatible with '
+                             'channels. Found a pick ({}) which exceeds '
+                             'the channel range ({})'
+                             .format(max(picks), len(ch_names)))
+    connectivity = ch_neighbor_connectivity(ch_names, neighbors)
+    if picks is not None:
+        connectivity = connectivity[np.ix_(picks, picks)]
+    return connectivity
 
 
 def ch_neighbor_connectivity(ch_names, neighbors):
@@ -330,7 +342,6 @@ def ch_neighbor_connectivity(ch_names, neighbors):
     neighbors : list of list
         A list of list of channe names. The neighbors the corresponding
         channel in ch_names is connected with.
-
     Returns
     -------
     ch_connectivity
@@ -340,10 +351,10 @@ def ch_neighbor_connectivity(ch_names, neighbors):
         raise ValueError('`ch_names` and `neighbors` must '
                          'have the same length')
     set_neighbors = set([c for d in neighbors for c in d])
-    rest = set_neighbors - set(ch_names)
+    rest = set(ch_names) - set_neighbors
     if len(rest) > 0:
         raise ValueError('Some of your neighbors are not present in the '
-                         ' channel list')
+                         'list of channel names')
 
     for neigh in neighbors:
         if (not isinstance(neigh, list) and

@@ -86,18 +86,24 @@ def test_read_ch_connectivity():
                                     [a(['MEG0121'])]])]],
                    dtype=[('label', 'O'), ('neighblabel', 'O')])
     mat = dict(neighbours=nbh)
-    savemat(op.join(tempdir, 'test_mat.mat'), mat)
-    ch_connectivity = read_ch_connectivity(op.join(tempdir, 'test_mat.mat'))
+    mat_fname = op.join(tempdir, 'test_mat.mat')
+    savemat(mat_fname, mat)
+    ch_connectivity = read_ch_connectivity(mat_fname)
     x = ch_connectivity.todense()
     assert_equal(x.shape, (3, 3))
     assert_true(x[0, 1] == False)
     assert_true(x[0, 2] == True)
     assert_true(np.all(x.flat[::len(x) + 1]) == True)
+    assert_raises(ValueError, read_ch_connectivity, mat_fname, [0, 3])
+    ch_connectivity = read_ch_connectivity(mat_fname, picks=[0, 2])
+    x = ch_connectivity.todense()
+    assert_equal(len(x), 2)
 
     ch_names = ['EEG01', 'EEG02', 'EEG03']
     neighbors = [['EEG02'], ['EEG04'], ['EEG02']]
     assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
     neighbors = [['EEG02'], ['EEG01', 'EEG03'], ['EEG 02']]
-    assert_raises(ValueError, ch_neighbor_connectivity, ch_names[:2], neighbors)
+    assert_raises(ValueError, ch_neighbor_connectivity, ch_names[:2],
+                  neighbors)
     neighbors = [['EEG02'], 'EEG01', ['EEG 02']]
     assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
