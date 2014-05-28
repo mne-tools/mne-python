@@ -328,6 +328,7 @@ def read_ch_connectivity(fname, picks=None):
                              .format(max(picks), len(ch_names)))
     connectivity = ch_neighbor_connectivity(ch_names, neighbors)
     if picks is not None:
+        # picking before constructing matrix is buggy
         connectivity = connectivity[np.ix_(picks, picks)]
     return connectivity
 
