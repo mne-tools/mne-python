@@ -9,6 +9,7 @@
 from .externals.six import string_types
 import numpy as np
 from os.path import splitext
+import warnings
 
 from .utils import get_config, logger, verbose
 from .constants import FIFF
@@ -209,6 +210,12 @@ def read_events(filename, include=None, exclude=None):
     was decimated are no longer valid. Please recompute your events after
     decimation.
     """
+
+    if not filename.endswith(('eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
+                              '-eve.txt')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All epochs files should end with -eve.fif.')
+
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
@@ -255,6 +262,12 @@ def write_events(filename, event_list):
     event_list : array, shape (n_events, 3)
         The list of events
     """
+ 
+    if not filename.endswith(('eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
+                              '-eve.txt')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All epochs files should end with -eve.fif.')
+
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         #   Start writing...

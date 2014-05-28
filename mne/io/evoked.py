@@ -862,7 +862,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     Parameters
     ----------
     fname : string
-        The file name.
+        The file name, which should end with -ave.fif or -ave.fif.gz.
     condition : int or str | list of int or str | None
         The index or list of indices of the evoked dataset to read. FIF files
         can contain multiple datasets. If None, all datasets are returned as a
@@ -886,6 +886,11 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition is None or list)
         The evoked dataset(s).
     """
+
+    if not fname.endswith(('-ave.fif', '-ave.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All evoked files should end with -ave.fif.')
+
     return_list = True
     if condition is None:
         evoked_node = _get_evoked_node(fname)
@@ -967,12 +972,16 @@ def write_evokeds(fname, evoked):
     Parameters
     ----------
     fname : string
-        The file name.
+        The file name, which should end with -ave.fif or -ave.fif.gz.
     evoked : Evoked instance, or list of Evoked instances
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
     """
+
+    if not fname.endswith(('-ave.fif', '-ave.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All evoked files should end with -ave.fif.')
 
     if not isinstance(evoked, list):
         evoked = [evoked]

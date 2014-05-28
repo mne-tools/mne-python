@@ -1803,7 +1803,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     Parameters
     ----------
     fname : str
-        The name of the file.
+        The name of the file, which should end with -eve.fif
     proj : bool | 'delayed'
         Apply SSP projection vectors. If proj is 'delayed' and reject is not
         None the single epochs will be projected before the rejection
@@ -1827,6 +1827,11 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs : instance of Epochs
         The epochs
     """
+
+    if not fname.endswith('-eve.fif'):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All epochs files should end with -eve.fif.')
+
     epochs = Epochs(None, None, None, None, None)
 
     logger.info('Reading %s ...' % fname)
