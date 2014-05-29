@@ -59,7 +59,7 @@ def read_inverse_operator(fname, verbose=None):
     Parameters
     ----------
     fname : string
-        The name of the FIF file.
+        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -68,6 +68,12 @@ def read_inverse_operator(fname, verbose=None):
     inv : dict
         The inverse operator.
     """
+
+    if not fname.endswith(('-inv.fif', '-inv.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All inverse operator files should end with '
+                      ' -inv.fif or -inv.fif.gz.')
+
     #
     #   Open the file, create directory
     #
@@ -295,12 +301,18 @@ def write_inverse_operator(fname, inv, verbose=None):
     Parameters
     ----------
     fname : string
-        The name of the FIF file.
+        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     inv : dict
         The inverse operator.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+
+    if not fname.endswith(('-inv.fif', '-inv.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All inverse operator files should end with '
+                      ' -inv.fif or -inv.fif.gz.')
+
     #
     #   Open the file, create directory
     #

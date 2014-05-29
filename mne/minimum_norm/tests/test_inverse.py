@@ -315,6 +315,13 @@ def test_io_inverse_operator():
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
 
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        inv_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        write_inverse_operator(inv_badname, inverse_operator)
+        read_inverse_operator(inv_badname)
+    assert_true(len(w) == 2)
+
 
 @sample.requires_sample_data
 def test_apply_mne_inverse_raw():
