@@ -5,6 +5,8 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from scipy.io import loadmat
+from scipy import sparse
 
 from ..externals.six import string_types
 
@@ -284,3 +286,82 @@ def rename_channels(info, mapping):
     # reference magic, please don't change (with the local binding
     # it doesn't work)
     info['ch_names'] = [c['ch_name'] for c in chs]
+
+
+def _recursive_flatten(cell, dtype):
+    """Helper to unpack mat files in Python"""
+    while not isinstance(cell[0], dtype):
+        cell = [c for d in cell for c in d]
+    return cell
+
+
+def read_ch_connectivity(fname, picks=None):
+    """Parse FieldTrip neighbors .mat file
+
+    Parameters
+    ----------
+    fname : str
+        The file name.
+    picks : array-like of int, shape (n channels)
+        The indices of the channels to include. Must match the template.
+        Defaults to None.
+
+    Returns
+    -------
+    ch_connectivity : scipy.sparse matrix
+        The connectivity matrix.
+    """
+    nb = loadmat(fname)['neighbours']
+    ch_names = _recursive_flatten(nb['label'], string_types)
+    neighbors = [_recursive_flatten(c, string_types) for c in
+                 nb['neighblabel'].flatten()]
+    assert len(ch_names) == len(neighbors)
+    if picks is not None:
+        if max(picks) >= len(ch_names):
+            raise ValueError('The picks must be compatible with '
+                             'channels. Found a pick ({}) which exceeds '
+                             'the channel range ({})'
+                             .format(max(picks), len(ch_names)))
+    connectivity = ch_neighbor_connectivity(ch_names, neighbors)
+    if picks is not None:
+        # picking before constructing matrix is buggy
+        connectivity = connectivity[np.ix_(picks, picks)]
+    return connectivity
+
+
+def ch_neighbor_connectivity(ch_names, neighbors):
+    """Compute sensor connectivity matrix
+
+    Parameters
+    ----------
+    ch_names : list of str
+        The channel names.
+    neighbors : list of list
+        A list of list of channel names. The neighbors to
+        which the channels in ch_names are connected with.
+        Must be of the same length as ch_names.
+    Returns
+    -------
+    ch_connectivity : scipy.sparse matrix
+        The connectivity matrix.
+    """
+    if len(ch_names) != len(neighbors):
+        raise ValueError('`ch_names` and `neighbors` must '
+                         'have the same length')
+    set_neighbors = set([c for d in neighbors for c in d])
+    rest = set(ch_names) - set_neighbors
+    if len(rest) > 0:
+        raise ValueError('Some of your neighbors are not present in the '
+                         'list of channel names')
+
+    for neigh in neighbors:
+        if (not isinstance(neigh, list) and
+           not all(isinstance(c, string_types) for c in neigh)):
+            raise ValueError('`neighbors` must be a list of lists of str')
+
+    ch_connectivity = np.eye(len(ch_names), dtype=bool)
+    for ii, neigbs in enumerate(neighbors):
+        ch_connectivity[ii, [ch_names.index(i) for i in neigbs]] = True
+
+    ch_connectivity = sparse.csr_matrix(ch_connectivity)
+    return ch_connectivity

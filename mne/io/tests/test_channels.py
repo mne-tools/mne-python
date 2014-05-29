@@ -1,4 +1,5 @@
 # Author: Daniel G Wakeman <dwakeman@nmr.mgh.harvard.edu>
+#         Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -6,11 +7,19 @@ import os.path as op
 
 from copy import deepcopy
 
-from nose.tools import assert_raises, assert_true
+import numpy as np
+from nose.tools import assert_raises, assert_true, assert_equal
 
 from mne import io
-from mne.io.channels import rename_channels
+from mne.io.channels import (rename_channels, read_ch_connectivity,
+                             ch_neighbor_connectivity)
 from mne.constants import FIFF
+from mne.fixes import partial
+from mne.utils import _TempDir
+from scipy.io import savemat
+
+tempdir = _TempDir()
+
 
 base_dir = op.join(op.dirname(__file__), 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -64,3 +73,37 @@ def test_rename_channels():
     assert_true(info2['ch_names'][373] == 'EOG 059')
     assert_true('EOG 059' in info2['bads'])
     assert_true(info2['chs'][373]['kind'] is FIFF.FIFFV_EOG_CH)
+
+
+def test_read_ch_connectivity():
+    "Test reading channel connectivity templates"
+    a = partial(np.array, dtype='<U7')
+    # no pep8
+    nbh = np.array([[(['MEG0111'], [[a(['MEG0131'])]]),
+                     (['MEG0121'], [[a(['MEG0111'])],
+                                    [a(['MEG0131'])]]),
+                     (['MEG0131'], [[a(['MEG0111'])],
+                                    [a(['MEG0121'])]])]],
+                   dtype=[('label', 'O'), ('neighblabel', 'O')])
+    mat = dict(neighbours=nbh)
+    mat_fname = op.join(tempdir, 'test_mat.mat')
+    savemat(mat_fname, mat)
+
+    ch_connectivity = read_ch_connectivity(mat_fname)
+    x = ch_connectivity
+    assert_equal(x.shape, (3, 3))
+    assert_true(x[0, 1] == False)
+    assert_true(x[0, 2] == True)
+    assert_true(np.all(x.diagonal() == True))
+    assert_raises(ValueError, read_ch_connectivity, mat_fname, [0, 3])
+    ch_connectivity = read_ch_connectivity(mat_fname, picks=[0, 2])
+    assert_equal(ch_connectivity.shape[0], 2)
+
+    ch_names = ['EEG01', 'EEG02', 'EEG03']
+    neighbors = [['EEG02'], ['EEG04'], ['EEG02']]
+    assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
+    neighbors = [['EEG02'], ['EEG01', 'EEG03'], ['EEG 02']]
+    assert_raises(ValueError, ch_neighbor_connectivity, ch_names[:2],
+                  neighbors)
+    neighbors = [['EEG02'], 'EEG01', ['EEG 02']]
+    assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
