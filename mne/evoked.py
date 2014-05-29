@@ -507,11 +507,14 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
-        mask : None, ndarray of bool, shape (n_channels, n_times)
-            The values to be marked as e.,g., significant.
+        mask : ndarray of bool, shape (n_channels, n_times) | None
+            The channels to be marked as significant at a given time point.
             Indicies set to `True` will be considered. Defaults to None.
-        mask_params : None | dict
+        mask_params : dict | None
             Additional plotting parameters for plotting significant sensors.
+            Default (None) equals:
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
+                 markersize=4)
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,

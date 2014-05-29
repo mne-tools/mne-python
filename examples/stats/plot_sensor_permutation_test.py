@@ -67,7 +67,7 @@ evoked = epochs.average()   # create evoked
 evoked.times = np.array([0])
 evoked.data = T0[:, np.newaxis]
 
-# # Extract mask and indices of active sensors in layout
+# Extract mask and indices of active sensors in layout
 idx_of_sensors = [evoked.ch_names.index(name)
                   for name in significant_sensors_names]
 
@@ -79,4 +79,5 @@ evoked.plot_topomap(ch_type='grad', times=[0],
                     cmap='RdBu_r', vmin=np.min, vmax=np.max,
                     unit='T', format='-%0.1f', mask=mask,
                     size=5, res=1024,
-                    mask_params=dict(markersize=7, markeredgewidth=2))
+                    mask_params=dict(markersize=7, markeredgewidth=2),
+                    show_names=lambda x: x[4:] + ' ' * 12)

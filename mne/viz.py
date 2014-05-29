@@ -894,11 +894,14 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         sensors will be shown.
     title : str | None
         Title. If None (default), no title is displayed.
-    mask : None, ndarray of bool, shape (n_channels, n_times)
-        The values to be marked as e.,g., significant.
+    mask : ndarray of bool, shape (n_channels, n_times) | None
+        The channels to be marked as significant at a given time point.
         Indicies set to `True` will be considered. Defaults to None.
-    mask_params : None | dict
+    mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
+        Default (None) equals:
+        dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
+             markersize=4)
     """
     import matplotlib.pyplot as plt
 
@@ -964,7 +967,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             vmax = np.max(data)
     images = []
     if mask is not None:
-        _picks = picks[::2 if channel_type not in ['mag', 'eeg'] else 1]
+        _picks = picks[::2 if ch_type not in ['mag', 'eeg'] else 1]
         mask_ = mask[np.ix_(_picks, time_idx)]
     for i, t in enumerate(times):
         plt.subplot(1, nax, i + 1)
@@ -1159,8 +1162,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         Colormap.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If mask is not None,
-        Only sensors inlcuded by the mask will depicted.
+        format string (e.g., 'r+' for red plusses).
     res : int
         The resolution of the topomap image (n pixels along each side).
     axis : instance of Axes | None
@@ -1173,11 +1175,14 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         delete the prefix 'MEG ' from all channel names, pass the function
         lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
         sensors will be shown.
-    mask : None, ndarray of bool, shape (n_channels, n_times)
-        The values to be marked as e.,g., significant.
+    mask : ndarray of bool, shape (n_channels, n_times) | None
+        The channels to be marked as significant at a given time point.
         Indicies set to `True` will be considered. Defaults to None.
-    mask_params : None | dict
+    mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
+        Default (None) equals:
+        dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
+             markersize=4)
     """
     import matplotlib.pyplot as plt
     from matplotlib import delaunay
