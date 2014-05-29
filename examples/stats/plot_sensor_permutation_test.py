@@ -64,17 +64,19 @@ print("Sensors names : %s" % significant_sensors_names)
 # View location of significantly active sensors
 
 evoked = epochs.average()   # create evoked
-evoked.times = np.array([0])  # replace times with frequencies.
+evoked.times = np.array([0])
 evoked.data = T0[:, np.newaxis]
 
 # # Extract mask and indices of active sensors in layout
 idx_of_sensors = [evoked.ch_names.index(name)
                   for name in significant_sensors_names]
 
-mask = np.ones_like(T0).astype(bool)[:, np.newaxis]
-mask[idx_of_sensors] = False
+mask = np.zeros_like(T0).astype(bool)[:, np.newaxis]
+mask[idx_of_sensors] = True
 
 evoked.plot_topomap(ch_type='grad', times=[0],
-                    scale=1, scale_time=1, time_format='%i',
+                    scale=1, scale_time=1, time_format=None,
                     cmap='RdBu_r', vmin=np.min, vmax=np.max,
-                    unit='stat fun', format='-%0.1f', mask=mask, size=3)
+                    unit='T', format='-%0.1f', mask=mask,
+                    size=5, res=1024,
+                    mask_params=dict(markersize=7, markeredgewidth=2))

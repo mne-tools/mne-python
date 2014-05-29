@@ -441,7 +441,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=256, size=1,
                      format="%3.1f", time_format='%01d ms', proj=False,
-                     show=True, show_names=False, title=None, mask=None):
+                     show=True, show_names=False, title=None, mask=None,
+                     mask_params=None):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -500,11 +501,17 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             Call pyplot.show() at the end.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g.,
-            to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', '')
+            passed, channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
+            sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
+        mask : None, ndarray of bool, shape (n_channels, n_times)
+            The values to be marked as e.,g., significant.
+            Indicies set to `True` will be considered. Defaults to None.
+        mask_params : None | dict
+            Additional plotting parameters for plotting significant sensors.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
@@ -515,7 +522,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                    res=res, proj=proj, size=size,
                                    format=format, time_format=time_format,
                                    show_names=show_names, title=title,
-                                   mask=mask)
+                                   mask=mask, mask_params=mask_params)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):

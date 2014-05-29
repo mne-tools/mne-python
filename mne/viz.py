@@ -67,7 +67,12 @@ DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                 ylim=dict(mag=(-600., 600.), grad=(-200., 200.),
                           eeg=(-200., 200.), misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
-                            mag='Magnetometers', misc='misc'))
+                            mag='Magnetometers', misc='misc'),
+                mask_params=dict(marker='o',
+                                 markerfacecolor='w',
+                                 markeredgecolor='k',
+                                 linewidth=0,
+                                 markersize=4))
 
 
 def _mutable_defaults(*mappings):
@@ -823,7 +828,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=256, size=1, format='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
-                        show_names=False, title=None, mask=None):
+                        show_names=False, title=None, mask=None,
+                        mask_params=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -884,9 +890,15 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', '')
+        lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
+        sensors will be shown.
     title : str | None
         Title. If None (default), no title is displayed.
+    mask : None, ndarray of bool, shape (n_channels, n_times)
+        The values to be marked as e.,g., significant.
+        Indicies set to `True` will be considered. Defaults to None.
+    mask_params : None | dict
+        Additional plotting parameters for plotting significant sensors.
     """
     import matplotlib.pyplot as plt
 
@@ -950,23 +962,20 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             vmax = vmax(data)
         elif vmin is None:
             vmax = np.max(data)
-    plot_fun = partial(plot_topomap, vmin=vmin, vmax=vmax,
-                       sensors=sensors, res=res, names=names,
-                       show_names=show_names)
     images = []
     if mask is not None:
         _picks = picks[::2 if channel_type not in ['mag', 'eeg'] else 1]
         mask_ = mask[np.ix_(_picks, time_idx)]
-        # data_masked = np.ma.masked_array(data.copy(), mask_)
     for i, t in enumerate(times):
-        ax = plt.subplot(1, nax, i + 1)
-        if mask is not None:
-            # _ = plot_fun(data[:, i], pos, cmap='gray', axis=ax)
-            tp = plot_fun(data[:, i], pos, cmap=cmap, axis=ax, mask=mask_[:, i])
-        else:
-            tp = plot_fun(data[:, i], pos, cmap=cmap, axis=ax)
+        plt.subplot(1, nax, i + 1)
+        tp = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax,
+                          sensors=sensors, res=res, names=names,
+                          show_names=show_names, cmap=cmap,
+                          mask=mask_[:, i] if mask is not None else None,
+                          mask_params=mask_params)
         images.append(tp)
-        plt.title(time_format % (t * scale_time))
+        if time_format is not None:
+            plt.title(time_format % (t * scale_time))
 
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
@@ -1127,7 +1136,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
 
 
 def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
-                 res=100, axis=None, names=None, show_names=False, mask=None):
+                 res=100, axis=None, names=None, show_names=False, mask=None,
+                 mask_params=None):
     """Plot a topographic map as image
 
     Parameters
@@ -1149,7 +1159,8 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         Colormap.
     sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses).
+        format string (e.g., 'r+' for red plusses). If mask is not None,
+        Only sensors inlcuded by the mask will depicted.
     res : int
         The resolution of the topomap image (n pixels along each side).
     axis : instance of Axes | None
@@ -1160,7 +1171,13 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', '')
+        lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
+        sensors will be shown.
+    mask : None, ndarray of bool, shape (n_channels, n_times)
+        The values to be marked as e.,g., significant.
+        Indicies set to `True` will be considered. Defaults to None.
+    mask_params : None | dict
+        Additional plotting parameters for plotting significant sensors.
     """
     import matplotlib.pyplot as plt
     from matplotlib import delaunay
@@ -1197,15 +1214,32 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     pos_y = pos[:, 1]
 
     ax = axis if axis else plt
-    if sensors:
-        if sensors is True:
-            sensors = 'k,'
+    if mask_params is None:
+        mask_params = DEFAULTS['mask_params']
+    elif isinstance(mask_params, dict):
+        params = dict((k, v) for k, v in DEFAULTS['mask_params'].items()
+                      if k not in mask_params)
+        mask_params.update(params)
+    else:
+        raise ValueError('`mask_params` must be of dict-type '
+                         'or None')
+    if sensors is True:
+        sensors = 'k,'
+    if sensors and mask is None:
         ax.plot(pos_x, pos_y, sensors)
+    elif sensors and mask is not None:
+        idx = np.where(mask)[0]
+        ax.plot(pos_x[idx], pos_y[idx], **mask_params)
+        idx = np.where(~mask)[0]
+        ax.plot(pos_x[idx], pos_y[idx], sensors)
 
     if show_names:
         if show_names is True:
             show_names = lambda x: x
-        for p, ch_id in zip(pos, names):
+        show_idx = np.arange(len(names)) if mask is None else np.where(mask)[0]
+        for ii, (p, ch_id) in enumerate(zip(pos, names)):
+            if ii not in show_idx:
+                continue
             ch_id = show_names(ch_id)
             ax.text(p[0], p[1], ch_id, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
@@ -1216,8 +1250,6 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
 
-    if mask is not None:
-        data[mask] = -1
     triang = delaunay.Triangulation(pos_x, pos_y)
     interp = triang.linear_interpolator(data)
     x = np.linspace(xmin, xmax, res)
