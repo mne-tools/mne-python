@@ -18,7 +18,7 @@ from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
 
 data_path = sample.data_path(download=False)
 raw_path = os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-kit_raw_path = os.path.join(kit_data_dir, 'test_bin.fif')
+kit_raw_path = os.path.join(kit_data_dir, 'test_bin-raw.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 
 tempdir = _TempDir()

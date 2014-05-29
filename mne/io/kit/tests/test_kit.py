@@ -39,7 +39,7 @@ def test_data():
 
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
-    raw_bin = op.join(data_dir, 'test_bin.fif')
+    raw_bin = op.join(data_dir, 'test_bin-raw.fif')
     raw_bin = Raw(raw_bin, preload=True)
     bin_picks = pick_types(raw_bin.info, stim=True, exclude='bads')
     data_bin, _ = raw_bin[bin_picks]
@@ -81,7 +81,7 @@ def test_ch_loc():
     """Test raw kit loc
     """
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<')
-    raw_bin = Raw(op.join(data_dir, 'test_bin.fif'))
+    raw_bin = Raw(op.join(data_dir, 'test_bin-raw.fif'))
 
     ch_py = raw_py._sqd_params['sensor_locs'][:, :5]
     # ch locs stored as m, not mm

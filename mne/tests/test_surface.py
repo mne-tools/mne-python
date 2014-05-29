@@ -27,7 +27,7 @@ def test_helmet():
     """
     base_dir = op.join(op.dirname(__file__), '..', 'io')
     fname_raw = op.join(base_dir, 'tests', 'data', 'test_raw.fif')
-    fname_kit_raw = op.join(base_dir, 'kit', 'tests', 'data', 'test_bin.fif')
+    fname_kit_raw = op.join(base_dir, 'kit', 'tests', 'data', 'test_bin-raw.fif')
     fname_bti_raw = op.join(base_dir, 'bti', 'tests', 'data',
                             'exported4D_linux.fif')
     fname_ctf_raw = op.join(base_dir, 'tests', 'data', 'test_ctf_raw.fif')

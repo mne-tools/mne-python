@@ -87,7 +87,7 @@ def test_make_forward_solution_kit():
     elp_path = op.join(kit_dir, 'test_elp.txt')
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
     mri_path = op.join(kit_dir, 'trans-sample.fif')
-    fname_kit_raw = op.join(kit_dir, 'test_bin.fif')
+    fname_kit_raw = op.join(kit_dir, 'test_bin-raw.fif')
 
     bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
                       'tests', 'data')

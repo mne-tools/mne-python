@@ -398,6 +398,13 @@ def test_io_raw():
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
 
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        raw_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        raw.save(raw_badname)
+        Raw(raw_badname)
+    assert_true(len(w) == 2)
+
 
 def test_io_complex():
     """Test IO with complex data types
@@ -662,8 +669,8 @@ def test_resample():
     # test parallel on upsample
     raw_resamp.resample(sfreq * 2, n_jobs=2)
     assert_true(raw_resamp.n_times == len(raw_resamp._times))
-    raw_resamp.save(op.join(tempdir, 'raw_resamp.fif'))
-    raw_resamp = Raw(op.join(tempdir, 'raw_resamp.fif'), preload=True)
+    raw_resamp.save(op.join(tempdir, 'raw_resamp-raw.fif'))
+    raw_resamp = Raw(op.join(tempdir, 'raw_resamp-raw.fif'), preload=True)
     assert_true(sfreq == raw_resamp.info['sfreq'] / 2)
     assert_true(raw.n_times == raw_resamp.n_times / 2)
     assert_true(raw_resamp._data.shape[1] == raw_resamp.n_times)
@@ -820,7 +827,7 @@ def test_save():
     assert_raises(IOError, raw.save, fif_fname)
 
     # test abspath support
-    new_fname = op.join(op.abspath(op.curdir), 'break.fif')
+    new_fname = op.join(op.abspath(op.curdir), 'break-raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
     new_raw = Raw(op.join(tempdir, new_fname), preload=False)
     assert_raises(ValueError, new_raw.save, new_fname)

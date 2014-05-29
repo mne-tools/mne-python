@@ -644,7 +644,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         ----------
         fname : string
             File name of the new dataset. This has to be a new filename
-            unless data have been preloaded.
+            unless data have been preloaded. Filenames should end with
+            raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif
+            or raw_tsss.fif.gz.
         picks : array-like of int | None
             Indices of channels to include. If None all channels are kept.
         tmin : float | None
@@ -689,6 +691,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
+
+        if not fname.endswith(('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
+                               'raw.fif.gz', 'raw_sss.fif.gz',
+                               'raw_tsss.fif.gz')):
+            warnings.warn('This filename does not conform to mne naming'
+                          ' conventions. All raw files should end with '
+                          'raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,'
+                          ' raw_tsss.fif or raw_tsss.fif.gz.')
+
         fname = op.realpath(fname)
         if not self._preloaded and fname in self._filenames:
             raise ValueError('You cannot save data to the same file.'
