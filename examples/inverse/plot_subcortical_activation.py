@@ -49,7 +49,7 @@ else:  # must generate epochs from raw
     raw = io.Raw(raw_fname, preload=True)  # Take first run
 
     # use the meg channels
-    picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
+    picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 
     # bandpass filter
     raw.filter(1, 45, method='iir')
