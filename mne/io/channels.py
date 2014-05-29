@@ -317,7 +317,7 @@ def read_ch_connectivity(fname, picks=None):
                  nb['neighblabel'].flatten()]
     assert len(ch_names) == len(neighbors)
     if picks is not None:
-        if np.max(picks) >= len(ch_names):
+        if max(picks) >= len(ch_names):
             raise ValueError('The picks must be compatible with '
                              'channels. Found a pick ({}) which exceeds '
                              'the channel range ({})'
