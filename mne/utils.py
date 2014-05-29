@@ -1685,3 +1685,33 @@ def _sphere_to_cartesian(theta, phi, r):
     x = rcos_phi * np.cos(theta)
     y = rcos_phi * np.sin(theta)
     return x, y, z
+
+
+def create_slices(start, stop, step=None, length=1):
+    """ Generate slices of time indexes
+    Parameters
+    ----------
+    start : int
+        Index where first slice should start.
+    stop : int
+        Index where last slice should maximally end.
+    length : int
+        Number of time sample included in a given slice.
+    step: int | None
+        Number of time samples separating two slices.
+        If step = None, step = length.
+
+    Returns
+    -------
+    slices : list
+        List of slice objects.
+    """
+
+    # default parameters
+    if step is None:
+        step = length
+
+    # slicing
+    slices = [slice(t, t + length, 1) for t in
+              range(start, stop - length + 1, step)]
+    return slices
