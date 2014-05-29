@@ -400,6 +400,7 @@ def test_io_raw():
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
         raw_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         raw.save(raw_badname)
         Raw(raw_badname)
