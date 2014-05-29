@@ -1,4 +1,6 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -9,47 +11,70 @@ from ..parallel import parallel_func
 from ..pick import channel_type, pick_types
 
 
-def _time_gen_one_fold(clf, X, y, X_generalize, y_generalize, train, test, scoring, window_width):
+def _time_gen_one_fold(clf, scorer, 
+                       X, y, 
+                       X_generalize, y_generalize, 
+                       train, test, 
+                       train_times, test_times):
     """Aux function of time_generalization"""
-    from sklearn.metrics import SCORERS
-    # initialize results
-    n_times = X.shape[2]-window_width+1
-    scores = np.zeros((n_times, n_times))
+    
+    scores = np.zeros((len(train_times), len(test_times)))
     generalize_across_condition = X_generalize != None and y_generalize != None
     if generalize_across_condition:
-        scores_generalize = np.zeros((n_times, n_times))
+        scores_generalize = np.zeros((len(train_times), len(test_times)))
     else:
         scores_generalize = None
-    scorer = SCORERS[scoring]
+    
     # loops across time points
     my_reshape = lambda X: X.reshape(len(X), np.prod(X.shape[1:]))
-    iter_train_times = _create_time_slices(len(X), window_width)
-    iter_test_times = _create_time_slices(len(X), window_width)
-    for t_train in iter_train_times:
+    for train_time, t_train in enumerate(train_times):
         # select time slide
-        X_train = my_reshape(X[train, :, t_train])
+        X_train = my_reshape(X[train, :, train_time])
         clf.fit(X_train, y[train])
-        for t_test in iter_test_times:
-            X_test = my_reshape(X[test, :, t_test])
+        for test_time, t_test in enumerate(test_times):
+            X_test = my_reshape(X[test, :, test_time])
             scores[t_test, t_train] = scorer(clf, X_test, y[test])
             # Generalize across experimental conditions?
             if generalize_across_condition:
-                x_gen = my_reshape(X_generalize[:, :, t_test])
-                scores_generalize[t_test, t_train] = scorer(clf, x_gen, 
-                                                            y_generalize)
+                x_gen = my_reshape(X_generalize[:, :, test_time])
+                scores_generalize[t_test, t_train] = scorer(clf, x_gen, y_generalize)
     return scores, scores_generalize
 
 
-# def create_slices(n_times, window_width, overlap=1):
-#     """Select a slide of time and reshape X data into trials x features """
-#     return [slice(t, t + window_width, overlap) for t in
-#             range(0, n_times - window_width + 1, overlap)]
+def create_slices(n_times, start=0, stop=None, width=1, across_step=None, within_step=1):
+    """ Generate slices of time 
+    Parameters
+    ----------
+    n_times : integer
+        number of total time samples
+    start : integer
+        index where first slice should start
+    stop : integer
+        index where last slice should maximally end
+    width : integer
+        number of time sample included in a given slice
+    across_step: integer
+        number of time samples separating two slices
+    within_step: integer
+        number of time samples separating two temporal feature within a slice of time
 
+    Returns
+    -------
+    slices : list 
+        list of list of time indexes
 
-def _create_time_slices(n_times, window_width):
-    """Select a slide of time and reshape X data into trials x features """
-    return [slice(t, t + window_width, window_width) for t in
-            range(n_times - window_width + 1)]
+    Notes
+    ----------
+    This function may be changed to become more general and fit frequency and spatial slicing (i.e. search light)"""
+    
+    # default parameters
+    if stop is None: stop = n_times
+    if across_step is None: across_step = width 
+    
+    # slicing
+    slices = [slice(t,t+width,within_step) for t in
+            range(start, stop - width + 1, across_step)]
+    return slices
 
 
 @verbose
@@ -136,7 +161,7 @@ def time_generalization(epochs_list, epochs_list_generalize=None, clf=None, cv=5
         X_generalize = np.concatenate(X_generalize)
         y_generalize = np.concatenate(y_generalize)
 
-
+    # Launch main script
     ch_types = set([channel_type(info, idx) for idx in data_picks])
     logger.info('Running time generalization on %s epochs using %s.' %
                 (len(X), ch_types.pop()))
@@ -155,6 +180,7 @@ def time_gen_all_fold(X, y, clf=None, scoring="roc_auc",
     from sklearn.cross_validation import check_cv
     from sklearn.base import clone
     from sklearn.utils import check_random_state
+    from sklearn.metrics import SCORERS
     from nose.tools import assert_true
 
     # check data sets
@@ -180,13 +206,22 @@ def time_gen_all_fold(X, y, clf=None, scoring="roc_auc",
 
     # Set default cross validation scheme
     cv = check_cv(cv, X, y, classifier=True)
+
+    # Set default scoring scheme
+    scorer = SCORERS[scoring]
+
+    # setup temporal generalization slicing
+    n_times = X.shape[2]-window_width+1
+    train_times = create_slices(n_times, width=window_width)
+    test_times = create_slices(n_times, width=window_width)
     
     # Run parallel decoding across folds
     parallel, p_time_gen, _ = parallel_func(_time_gen_one_fold, n_jobs)
-    scores = parallel(p_time_gen(clone(clf), 
+    scores = parallel(p_time_gen(clone(clf), scorer,
         X, y, 
         X_generalize, y_generalize, 
-        train, test, scoring, window_width)
+        train, test, 
+        train_times, test_times)
                       for train, test in cv)
 
     # Unpack MVPA results & output results as a dictionary
@@ -196,4 +231,13 @@ def time_gen_all_fold(X, y, clf=None, scoring="roc_auc",
     if X_generalize is not None:
         scores_generalize = np.mean(scores_generalize, axis=0)
         out['scores_generalize'] = scores_generalize
+    out['train_times'] = train_times
+    out['test_times'] = train_times
     return out
+
+# to do list
+# - ouput classifiers rescaled coefficients
+# - pass more window slicing arguments to user
+# - design different window parameters tests
+# - generalize slicing function, put in utils?
+
