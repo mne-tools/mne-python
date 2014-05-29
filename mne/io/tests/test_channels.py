@@ -88,6 +88,7 @@ def test_read_ch_connectivity():
     mat = dict(neighbours=nbh)
     mat_fname = op.join(tempdir, 'test_mat.mat')
     savemat(mat_fname, mat)
+
     ch_connectivity = read_ch_connectivity(mat_fname)
     x = ch_connectivity
     assert_equal(x.shape, (3, 3))
@@ -96,8 +97,7 @@ def test_read_ch_connectivity():
     assert_true(np.all(x.diagonal() == True))
     assert_raises(ValueError, read_ch_connectivity, mat_fname, [0, 3])
     ch_connectivity = read_ch_connectivity(mat_fname, picks=[0, 2])
-    x = ch_connectivity.todense()
-    assert_equal(len(x), 2)
+    assert_equal(ch_connectivity.shape[0], 2)
 
     ch_names = ['EEG01', 'EEG02', 'EEG03']
     neighbors = [['EEG02'], ['EEG04'], ['EEG02']]
