@@ -41,7 +41,7 @@ def read_proj(fname):
 
     ff, tree, _ = io.fiff_open(fname)
     with ff as fid:
-        projs = io.proj.read_proj(fid, tree)
+        projs = io.proj._read_proj(fid, tree)
     return projs
 
 
@@ -64,7 +64,7 @@ def write_proj(fname, projs):
                       '-proj.fif.gz.')
 
     fid = io.write.start_file(fname)
-    io.proj.write_proj(fid, projs)
+    io.proj._write_proj(fid, projs)
     io.write.end_file(fid)
 
 

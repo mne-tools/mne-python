@@ -14,7 +14,7 @@ from ..io.open import fiff_open
 from ..io.tag import find_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                            write_named_matrix)
-from ..io.proj import read_proj, make_projector, write_proj
+from ..io.proj import _read_proj, make_projector, _write_proj
 from ..io.tree import dir_tree_find
 from ..io.write import (write_int, write_float_matrix, start_file,
                           start_block, end_block, end_file, write_float,
@@ -255,7 +255,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     #  We also need the SSP operator
     #
-    inv['projs'] = read_proj(fid, tree)
+    inv['projs'] = _read_proj(fid, tree)
 
     #
     #  Some empty fields to be filled in later
@@ -326,7 +326,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     #
     #   Write SSP operator
     #
-    write_proj(fid, inv['projs'])
+    _write_proj(fid, inv['projs'])
 
     #
     #   Write the source spaces

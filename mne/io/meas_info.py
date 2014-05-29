@@ -15,7 +15,7 @@ from ..constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
 from .tag import read_tag
-from .proj import read_proj, write_proj, _uniquify_projs
+from .proj import _read_proj, _write_proj, _uniquify_projs
 from .ctf import read_ctf_comp, write_ctf_comp
 from .channels import read_bad_channels
 from .write import (start_file, end_file, start_block, end_block,
@@ -332,7 +332,7 @@ def read_meas_info(fid, tree, verbose=None):
                 acq_stim = tag.data
 
     #   Load the SSP data
-    projs = read_proj(fid, meas_info)
+    projs = _read_proj(fid, meas_info)
 
     #   Load the CTF compensation data
     comps = read_ctf_comp(fid, meas_info, chs)
@@ -529,7 +529,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_coord_trans(fid, info['ctf_head_t'])
 
     #   Projectors
-    write_proj(fid, info['projs'])
+    _write_proj(fid, info['projs'])
 
     #   CTF compensation info
     write_ctf_comp(fid, info['comps'])

@@ -10,7 +10,7 @@ from .write import (start_block, end_block, write_int, write_name_list,
                     write_double, write_float_matrix)
 from .tag import find_tag
 from .tree import dir_tree_find
-from .proj import read_proj, write_proj
+from .proj import _read_proj, _write_proj
 from .channels import read_bad_channels
 from ..utils import logger, verbose
 
@@ -114,7 +114,7 @@ def read_cov(fid, node, cov_kind, verbose=None):
                 eigvec = None
 
             #   Read the projection operator
-            projs = read_proj(fid, this)
+            projs = _read_proj(fid, this)
 
             #   Read the bad channel list
             bads = read_bad_channels(fid, this)
@@ -170,7 +170,7 @@ def write_cov(fid, cov):
 
     #   Projection operator
     if cov['projs'] is not None and len(cov['projs']) > 0:
-        write_proj(fid, cov['projs'])
+        _write_proj(fid, cov['projs'])
 
     #   Bad channels
     if cov['bads'] is not None and len(cov['bads']) > 0:
