@@ -75,6 +75,12 @@ class Covariance(dict):
 
     def save(self, fname):
         """save covariance matrix in a FIF file"""
+
+        if not fname.endswith(('-cov.fif', '-cov.fif.gz')):
+            warnings.warn('This filename does not conform to mne naming convention'
+                          's. All covariance files should end with -cov.fif or'
+                          ' -cov.fif.gz.')
+
         fid = start_file(fname)
 
         try:
@@ -156,13 +162,20 @@ def read_cov(fname):
     Parameters
     ----------
     fname : string
-        The name of file containing the covariance matrix.
+        The name of file containing the covariance matrix. It should end with
+        -cov.fif or -cov.fif.gz.
 
     Returns
     -------
     cov : Covariance
         The noise covariance matrix.
     """
+
+    if not fname.endswith(('-cov.fif', '-cov.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All covariance files should end with -cov.fif or'
+                      ' -cov.fif.gz.')
+
     return Covariance(fname)
 
 
@@ -440,10 +453,11 @@ def write_cov(fname, cov):
     Parameters
     ----------
     fname : string
-        The name of the file
+        The name of the file. It should end with -cov.fif or -cov.fif.gz.
     cov : Covariance
         The noise covariance matrix
     """
+
     cov.save(fname)
 
 
