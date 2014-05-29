@@ -11,16 +11,15 @@ Plot activations for subcortical volumes
 
 print(__doc__)
 
-import nibabel as nib
+import os
 import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
 import mne
-from mne import fiff
+from mne import io
 from mne.preprocessing import ICA
 from mne.datasets import spm_face
 from mne.minimum_norm import make_inverse_operator, apply_inverse_epochs
-import matplotlib.pyplot as plt
-from scipy import stats
-import os
 
 # supress text output
 mne.set_log_level(False)
@@ -43,21 +42,21 @@ if os.path.exists(epo_fname):
     epochs = mne.read_epochs(epo_fname)
 
 else:  # must generate epochs from raw
-    
+
     # Load and filter data, set up epochs
     raw_fname = meg_dir + '/SPM_CTF_MEG_example_faces1_3D_raw.fif'
 
-    raw = fiff.Raw(raw_fname, preload=True) # Take first run
+    raw = io.Raw(raw_fname, preload=True)  # Take first run
 
     # use the meg channels
     picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
-    
+
     # bandpass filter
     raw.filter(1, 45, method='iir')
 
     # find the events
     events = mne.find_events(raw, stim_channel='UPPT001')
-    event_ids = {"faces":1, "scrambled":2}
+    event_ids = {"faces": 1, "scrambled": 2}
 
     # setup epoch parameters
     tmin, tmax = -0.2, 0.6
@@ -78,7 +77,7 @@ else:  # must generate epochs from raw
 
     # select ICA sources and reconstruct MEG signals, compute clean ERFs
     epochs = ica.pick_sources_epochs(epochs)
-    
+
     # save the epoched data
     epochs.save(epo_fname)
 
@@ -121,7 +120,7 @@ stc_faces = apply_inverse_epochs(epochs['faces'], inverse_operator, lambda2,
                                  method)
 stc_scrambled = apply_inverse_epochs(epochs['scrambled'], inverse_operator,
                                      lambda2, method)
-                                     
+
 # compare face vs. scrambled trials
 
 # empty array
