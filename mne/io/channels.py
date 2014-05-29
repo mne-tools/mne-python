@@ -302,7 +302,7 @@ def read_ch_connectivity(fname, picks=None):
     ----------
     fname : str
         The file name.
-    picks : array-like of int, shape (n channels)
+    picks : array-like of int, shape (n_channels)
         The indices of the channels to include. Must match the template.
         Defaults to None.
 
@@ -317,7 +317,7 @@ def read_ch_connectivity(fname, picks=None):
                  nb['neighblabel'].flatten()]
     assert len(ch_names) == len(neighbors)
     if picks is not None:
-        if max(picks) >= len(ch_names):
+        if np.max(picks) >= len(ch_names):
             raise ValueError('The picks must be compatible with '
                              'channels. Found a pick ({}) which exceeds '
                              'the channel range ({})'
