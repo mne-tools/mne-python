@@ -4,8 +4,6 @@
 #
 # License: BSD (3-clause)
 
-
-import os.path as op
 import numpy as np
 from scipy.io import loadmat
 from scipy import sparse
@@ -291,14 +289,14 @@ def rename_channels(info, mapping):
 
 
 def _recursive_flatten(cell, dtype):
+    """Helper to unpack mat files in Python"""
     while not isinstance(cell[0], dtype):
         cell = [c for d in cell for c in d]
-        _recursive_flatten(cell, dtype)
     return cell
 
 
 def read_ch_connectivity(fname, picks=None):
-    """Parse fieldtrip neighbours .mat file
+    """Parse FieldTrip neighbors .mat file
 
     Parameters
     ----------
@@ -310,10 +308,8 @@ def read_ch_connectivity(fname, picks=None):
 
     Returns
     -------
-    ch_names : list of str
-        The channels names.
-    neighbors : list of list
-        The corresponding neighbor channels.
+    ch_connectivity : scipy.sparse matrix
+        The connectivity matrix.
     """
     nb = loadmat(fname)['neighbours']
     ch_names = _recursive_flatten(nb['label'], string_types)
@@ -341,12 +337,13 @@ def ch_neighbor_connectivity(ch_names, neighbors):
     ch_names : list of str
         The channel names.
     neighbors : list of list
-        A list of list of channe names. The neighbors the corresponding
-        channel in ch_names is connected with.
+        A list of list of channel names. The neighbors to
+        which the channels in ch_names are connected with.
+        Must be of the same length as ch_names.
     Returns
     -------
-    ch_connectivity
-
+    ch_connectivity : scipy.sparse matrix
+        The connectivity matrix.
     """
     if len(ch_names) != len(neighbors):
         raise ValueError('`ch_names` and `neighbors` must '

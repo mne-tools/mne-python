@@ -89,11 +89,11 @@ def test_read_ch_connectivity():
     mat_fname = op.join(tempdir, 'test_mat.mat')
     savemat(mat_fname, mat)
     ch_connectivity = read_ch_connectivity(mat_fname)
-    x = ch_connectivity.todense()
+    x = ch_connectivity
     assert_equal(x.shape, (3, 3))
     assert_true(x[0, 1] == False)
     assert_true(x[0, 2] == True)
-    assert_true(np.all(x.flat[::len(x) + 1]) == True)
+    assert_true(np.all(x.diagonal() == True))
     assert_raises(ValueError, read_ch_connectivity, mat_fname, [0, 3])
     ch_connectivity = read_ch_connectivity(mat_fname, picks=[0, 2])
     x = ch_connectivity.todense()
