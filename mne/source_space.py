@@ -9,6 +9,7 @@ import os
 import os.path as op
 from scipy import sparse, linalg
 from copy import deepcopy
+import warnings
 
 from .constants import FIFF
 from .io.tree import dir_tree_find
@@ -186,7 +187,8 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     Parameters
     ----------
     fname : str
-        The name of the file.
+        The name of the file, which should end with .src, -src.fif or
+        -src.fif.gz.
     add_geom : bool, optional (default False)
         Add geometry information to the surfaces.
     verbose : bool, str, int, or None
@@ -197,6 +199,12 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     src : SourceSpaces
         The source spaces.
     """
+
+    if not fname.endswith(('.src', '-src.fif', '-src.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All inverse operator files should end with '
+                      '.src, -src.fif or -src.fif.gz.')
+
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
         src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
@@ -551,12 +559,19 @@ def write_source_spaces(fname, src, verbose=None):
     Parameters
     ----------
     fname : str
-        File to write.
+        The name of the file, which should end with .src, -src.fif or
+        -src.fif.gz.
     src : SourceSpaces
         The source spaces (as returned by read_source_spaces).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+
+    if not fname.endswith(('.src', '-src.fif', '-src.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All inverse operator files should end with '
+                      '.src, -src.fif or -src.fif.gz.')
+
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)
 

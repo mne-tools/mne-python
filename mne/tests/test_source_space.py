@@ -339,9 +339,16 @@ def test_write_source_space():
     """Test writing and reading of source spaces
     """
     src0 = read_source_spaces(fname, add_geom=False)
-    write_source_spaces(op.join(tempdir, 'tmp.fif'), src0)
-    src1 = read_source_spaces(op.join(tempdir, 'tmp.fif'), add_geom=False)
+    write_source_spaces(op.join(tempdir, 'tmp-src.fif'), src0)
+    src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'), add_geom=False)
     _compare_source_spaces(src0, src1)
+
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        write_source_spaces(src_badname, src0)
+        read_source_spaces(src_badname)
+    assert_true(len(w) == 2)
 
 
 def _compare_source_spaces(src0, src1, mode='exact'):
