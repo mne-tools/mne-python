@@ -363,7 +363,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     Parameters
     ----------
     fname : string
-        The file name.
+        The file name, which should end with -fwd.fif or -fwd.fif.gz.
     force_fixed : bool, optional (default False)
         Force fixed source orientation mode?
     surf_ori : bool, optional (default False)
@@ -383,6 +383,11 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd : dict
         The forward solution.
     """
+
+    if not fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All projection files should end with -fwd.fif or '
+                      '-fwd.fif.gz.')
 
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
@@ -648,7 +653,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     Parameters
     ----------
     fname : str
-        File name to save the forward solution to.
+        File name to save the forward solution to. It should end with -fwd.fif
+        or -fwd.fif.gz.
     fwd : dict
         Forward solution.
     overwrite : bool
@@ -656,6 +662,12 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+
+    if not fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All projection files should end with -fwd.fif or '
+                      '-fwd.fif.gz.')
+
     # check for file existence
     _check_fname(fname, overwrite)
     fid = start_file(fname)
