@@ -22,14 +22,16 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
-proj_fname = op.join(base_dir, 'test_proj.fif')
-proj_gz_fname = op.join(base_dir, 'test_proj.fif.gz')
+proj_fname = op.join(base_dir, 'test-proj.fif')
+proj_gz_fname = op.join(base_dir, 'test-proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
 
 data_path = sample.data_path(download=False)
 sample_path = op.join(data_path, 'MEG', 'sample')
 fwd_fname = op.join(sample_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
 sensmap_fname = op.join(sample_path, 'sample_audvis-%s-oct-6-fwd-sensmap-%s.w')
+
+# sample dataset should be updated to reflect mne conventions
 eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
 
 tempdir = _TempDir()
@@ -89,9 +91,9 @@ def test_compute_proj_epochs():
 
     evoked = epochs.average()
     projs = compute_proj_epochs(epochs, n_grad=1, n_mag=1, n_eeg=0, n_jobs=1)
-    write_proj(op.join(tempdir, 'proj.fif.gz'), projs)
+    write_proj(op.join(tempdir, 'test-proj.fif.gz'), projs)
     for p_fname in [proj_fname, proj_gz_fname,
-                    op.join(tempdir, 'proj.fif.gz')]:
+                    op.join(tempdir, 'test-proj.fif.gz')]:
         projs2 = read_proj(p_fname)
 
         assert_true(len(projs) == len(projs2))
@@ -122,7 +124,7 @@ def test_compute_proj_epochs():
     # test that you can save them
     epochs.info['projs'] += projs
     evoked = epochs.average()
-    evoked.save(op.join(tempdir, 'foo.fif'))
+    evoked.save(op.join(tempdir, 'foo-ave.fif'))
 
     projs = read_proj(proj_fname)
 
@@ -135,6 +137,13 @@ def test_compute_proj_epochs():
     projs = activate_proj(projs)
     proj_par, _, _ = make_projector(projs, epochs.ch_names, bads=[])
     assert_allclose(proj, proj_par, rtol=1e-8, atol=1e-16)
+
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        write_proj(proj_badname, projs)
+        read_proj(proj_badname)
+    assert_true(len(w) == 2)
 
 
 def test_compute_proj_raw():
