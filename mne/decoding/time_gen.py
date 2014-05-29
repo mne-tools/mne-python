@@ -27,11 +27,11 @@ def _time_gen_one_fold(clf, scorer,
     
     # loops across time points
     my_reshape = lambda X: X.reshape(len(X), np.prod(X.shape[1:]))
-    for train_time, t_train in enumerate(train_times):
+    for t_train, train_time in enumerate(train_times):
         # select time slide
         X_train = my_reshape(X[train, :, train_time])
         clf.fit(X_train, y[train])
-        for test_time, t_test in enumerate(test_times):
+        for t_test, test_time in enumerate(test_times):
             X_test = my_reshape(X[test, :, test_time])
             scores[t_test, t_train] = scorer(clf, X_test, y[test])
             # Generalize across experimental conditions?
