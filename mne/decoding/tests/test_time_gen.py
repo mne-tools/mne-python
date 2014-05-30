@@ -10,6 +10,7 @@ from nose.tools import assert_true
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import _TempDir, requires_sklearn, create_slices
 from mne.decoding import time_generalization
+from functools import partial
 
 tempdir = _TempDir()
 
@@ -47,22 +48,26 @@ def test_time_generalization():
         assert_true(scores.min() >= 0.)
         # test that traing and testing time are correct
         n_times = epochs_list[0].get_data().shape[2]
-        train_times = create_slices(stop=n_times, across_step=2)
-        test_times = create_slices(stop=n_times, within_step=2)
+        train_times = create_slices(n_times, across_step=2)
+        test_times = create_slices(n_times, within_step=2)
         results = time_generalization(epochs_list, cv=2, random_state=42,
                                       train_times=train_times,
                                       test_times=test_times)
         scores = results['scores']
         assert_true(scores.shape == (8, 15))
+        # test create_slice callable
+        train_times = partial(create_slices,across_step=2)
+        results = time_generalization(epochs_list, cv=2, random_state=42,
+                                      train_times=train_times)
         # test on time generalization within across two conditions
-        epochs_list_generalize = Epochs(raw, events, event_id_gen, tmin, tmax, 
+        epochs_list_gen = Epochs(raw, events, event_id_gen, tmin, tmax, 
                                         picks=picks, baseline=(None, 0),
                                         preload=True, decim=decim)
-        epochs_list_generalize = [epochs_list_generalize[k] 
+        epochs_list_gen = [epochs_list_gen[k] 
                                   for k in event_id.keys()]
         results = time_generalization(epochs_list, 
-                                    epochs_list_generalize=epochs_list_generalize,
-                                    cv=2, random_state=42)
+                                      epochs_list_generalize=epochs_list_gen,
+                                      cv=2, random_state=42)
         scores = results['scores']
         scores_generalize = results['scores_generalize']
         assert_true(scores.shape == scores_generalize.shape)

@@ -67,9 +67,9 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
     epochs_list_generalize : list | None
         Epochs used to test the classifiers' generalization performance 
         in novel experimental conditions.
-    train_times : list | None
+    train_times : list | callable | None
         List of slices generated with create_slices()
-    test_times : list | None
+    test_times : list |  callable | None
         List of slices generated with create_slices()
     clf : object | None
         A object following scikit-learn estimator API (fit & predict).
@@ -217,9 +217,17 @@ def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
 
     # Setup temporal generalization slicing
     if train_times is None:
-        train_times = create_slices(stop=X.shape[2])
+        # default: train and test over all time samples
+        train_times = create_slices(X.shape[2]) 
+    elif callable(train_times):
+        # create slices once n_times is known
+        train_times = train_times(X.shape[2]) 
     if test_times is None: 
+        # default: testing time is identical to training time
         test_times = train_times
+    elif callable(test_times):
+        # create slices once n_times is known
+        test_times = test_times(X.shape[2]) 
     
     # Run parallel decoding across folds
     parallel, p_time_gen, _ = parallel_func(_time_gen_one_fold, n_jobs)

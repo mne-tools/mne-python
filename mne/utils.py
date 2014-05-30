@@ -1401,17 +1401,15 @@ def _check_type_picks(picks):
     return picks
 
 
-def create_slices(start=0, stop=0, width=1, 
+def create_slices(stop, start=0, width=1, 
                   across_step=None, within_step=1):
     """ Generate slices of time indexes
     Parameters
     ----------
-    stop : int
-        Index where last slice should maximally end.
-    n_times : int
-        Number of total time samples.
     start : int
         Index where first slice should start.
+    stop : int
+        Index where last slice should maximally end.
     width : int
         Number of time sample included in a given slice.
     across_step: int | None
