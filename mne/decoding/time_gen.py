@@ -47,7 +47,7 @@ def _time_gen_one_fold(clf, scorer,
 @verbose
 def time_generalization(epochs_list, epochs_list_generalize=None, 
                         clf=None, cv=5, scoring="roc_auc",
-                        slices_train=dict(start=0), slices_test=None,
+                        train_times=None, test_times=None,
                         shuffle=True, random_state=None, 
                         n_jobs=1, verbose=None):
     """Fit decoder at each time instant and test at all others
@@ -67,11 +67,10 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
     epochs_list_generalize : list | None
         Epochs used to test the classifiers' generalization performance 
         in novel experimental conditions.
-    slices_train : dict
-        Variables to be unpacked in create_slices() to define the training time
-    slices_test : dict | None
-        Variables to be unpacked in create_slices() to define the testing time. 
-        If slices_test is None, slices_test = slices_train.
+    train_times : list | None
+        List of slices generated with create_slices()
+    test_times : list | None
+        List of slices generated with create_slices()
     clf : object | None
         A object following scikit-learn estimator API (fit & predict).
         If None the classifier will be a linear SVM (C=1.) after
@@ -145,8 +144,8 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
                                  X_generalize=X_generalize, 
                                  y_generalize=y_generalize,
                                  clf=clf, scoring=scoring, cv=cv, 
-                                 slices_train=slices_train,
-                                 slices_test=slices_test, 
+                                 train_times=train_times,
+                                 test_times=test_times, 
                                  n_jobs=n_jobs)
 
     return out
@@ -155,7 +154,7 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
 
 def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
                            clf=None, scoring="roc_auc", cv=5, 
-                           slices_train=dict(start=0), slices_test=None,
+                           train_times=None, test_times=None,
                            shuffle=True, random_state=None,
                            n_jobs=1):
     """ This functions allows users using the pipeline direclty with X and y, 
@@ -217,14 +216,10 @@ def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
     scorer = SCORERS[scoring]
 
     # Setup temporal generalization slicing
-    if slices_test is None: # by default use idential training & testing times
-        slices_test = slices_train
-    if 'stop' not in slices_train or slices_train['stop'] > X.shape[2]:
-        slices_train['stop'] = X.shape[2]
-    if 'stop' not in slices_test or slices_test['stop'] > X.shape[2]:
-        slices_test['stop'] = X.shape[2]
-    train_times = create_slices(**slices_train)
-    test_times = create_slices(**slices_test)
+    if train_times is None:
+        train_times = create_slices(stop=X.shape[2])
+    if test_times is None: 
+        test_times = train_times
     
     # Run parallel decoding across folds
     parallel, p_time_gen, _ = parallel_func(_time_gen_one_fold, n_jobs)
