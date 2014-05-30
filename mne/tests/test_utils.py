@@ -10,7 +10,7 @@ from ..utils import (set_log_level, set_log_file, _TempDir,
                      get_config, set_config, deprecated, _fetch_file,
                      sum_squared, requires_mem_gb, estimate_rank,
                      _url_to_local_path, sizeof_fmt,
-                     _check_type_picks)
+                     _check_type_picks, create_slices)
 from ..io import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -278,3 +278,13 @@ def test_check_type_picks():
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
 
+def test_create_slices():
+    """Test checking the create of time create_slices
+    """
+    assert_true(create_slices()==[])
+    assert_true(len(create_slices(stop=100))==100)
+    assert_true(len(create_slices(start=50,stop=100))==50)
+    assert_true(len(create_slices(width=2,stop=100))==50)
+    assert_true(len(create_slices(width=2,stop=100))==50)
+    assert_true(len(create_slices(across_step=10,stop=100))==10)
+    assert_true(len(create_slices(width=50,within_step=10,stop=500))==10)

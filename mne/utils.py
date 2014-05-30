@@ -1399,3 +1399,41 @@ def _check_type_picks(picks):
     else:
         raise ValueError(err_msg)
     return picks
+
+
+def create_slices(start=0, stop=0, width=1, 
+                  across_step=None, within_step=1):
+    """ Generate slices of time indexes
+    Parameters
+    ----------
+    stop : int
+        Index where last slice should maximally end.
+    n_times : int
+        Number of total time samples.
+    start : int
+        Index where first slice should start.
+    width : int
+        Number of time sample included in a given slice.
+    across_step: int | None
+        Number of time samples separating two slices.
+    within_step: int
+        Number of time samples separating two temporal feature within a slice 
+        of time.
+
+    Returns
+    -------
+    slices : list 
+        List of list of time indexes.
+
+    Notes
+    ----------
+    This function may be changed to become more general and fit frequency and 
+    spatial  slicing (i.e. search light)"""
+    
+    # default parameters
+    if across_step is None: across_step = width 
+    
+    # slicing
+    slices = [slice(t,t+width,within_step) for t in
+            range(start, stop - width + 1, across_step)]
+    return slices
