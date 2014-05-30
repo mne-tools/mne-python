@@ -236,6 +236,7 @@ def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
     elif callable(train_times):
         # create slices once n_times is known
         train_times = train_times(X.shape[2]) 
+    
     if test_times is None: 
         # default: testing time is identical to training time
         test_times = [train_times]*X.shape[2]
@@ -260,6 +261,6 @@ def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
         out['scores_generalize'] = scores_generalize
 
     out['train_times'] = train_times
-    out['test_times'] = train_times
+    out['test_times'] = test_times
     
     return out
