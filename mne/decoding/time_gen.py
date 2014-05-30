@@ -15,14 +15,18 @@ def _time_gen_one_fold(clf, scorer,
                        X, y, 
                        X_generalize, y_generalize, 
                        train, test, 
-                       train_times, test_times):
+                       train_times, test_times,
+                       compress_results=True):
     """Aux function of time_generalization"""
     
     # Initialize results
-    scores = np.zeros((len(train_times), len(test_times)))
+    n_train_t = max([t.stop for t in train_times]) # get maximum time sample
+    n_test_t = max([t.stop for tt in test_times for t in tt])
+    scores = np.zeros((n_train_t, n_test_t))
+    tested = np.zeros((n_train_t, n_test_t), dtype=bool)
     generalize_across_condition = X_generalize is not None and y_generalize is not None
     if generalize_across_condition:
-        scores_generalize = np.zeros((len(train_times), len(test_times)))
+        scores_generalize = np.zeros((n_train_t, n_test_t))
     else:
         scores_generalize = None
     
@@ -33,15 +37,25 @@ def _time_gen_one_fold(clf, scorer,
         # Select training time slice
         X_train = my_reshape(X[train, :, train_time])
         clf.fit(X_train, y[train])
-        for t_test, test_time in enumerate(test_times):
+        for test_time in test_times[t_train]:
             # Select testing time slice
             X_test = my_reshape(X[test, :, test_time])
             # Evaluate classifer on cross-validation set
-            scores[t_train, t_test] = scorer(clf, X_test, y[test])
+            scores[train_time.start, test_time.start] = scorer(clf, X_test, y[test])
+            tested[train_time.start, test_time.start] = True
             # Evaluate classifier on cross-condition generalization set
             if generalize_across_condition:
                 x_gen = my_reshape(X_generalize[:, :, test_time])
-                scores_generalize[t_train, t_test] = scorer(clf, x_gen, y_generalize)
+                scores_generalize[train_time.start, test_time.start] = scorer(clf, x_gen, y_generalize)
+
+    if compress_results:
+        # avoid returning partially empty results
+        # removing empty lines and columns (generally due to window width > 1)
+        scores = scores[:,np.any(tested,axis=1)]
+        scores = scores[np.any(tested, axis=0),:]
+        if generalize_across_condition:
+            scores_generalize = scores_generalize[:,np.any(tested,axis=1)]
+            scores_generalize = scores_generalize[np.any(tested,axis=0),:]
     return scores, scores_generalize
 
 @verbose
@@ -224,10 +238,10 @@ def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
         train_times = train_times(X.shape[2]) 
     if test_times is None: 
         # default: testing time is identical to training time
-        test_times = train_times
+        test_times = [train_times]*X.shape[2]
     elif callable(test_times):
         # create slices once n_times is known
-        test_times = test_times(X.shape[2]) 
+        test_times = [test_times(X.shape[2])]*X.shape[2]
     
     # Run parallel decoding across folds
     parallel, p_time_gen, _ = parallel_func(_time_gen_one_fold, n_jobs)
