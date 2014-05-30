@@ -982,7 +982,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
-        plt.colorbar(images[-1], cax=cax, ticks=[vmin, 0, vmax], format=format)
+        plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax], format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         cpos.x0 = 1 - (.7 + .1 / size) / nax

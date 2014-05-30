@@ -78,6 +78,6 @@ evoked.plot_topomap(ch_type='grad', times=[0],
                     scale=1, scale_time=1, time_format=None,
                     cmap='RdBu_r', vmin=np.min, vmax=np.max,
                     unit='T', format='-%0.1f', mask=mask,
-                    size=5, res=1024,
+                    size=3, res=1024,
                     mask_params=dict(markersize=7, markeredgewidth=2),
                     show_names=lambda x: x[4:] + ' ' * 12)
