@@ -281,10 +281,10 @@ def test_check_type_picks():
 def test_create_slices():
     """Test checking the create of time create_slices
     """
-    assert_true(create_slices()==[])
-    assert_true(len(create_slices(stop=100))==100)
-    assert_true(len(create_slices(start=50,stop=100))==50)
-    assert_true(len(create_slices(width=2,stop=100))==50)
-    assert_true(len(create_slices(width=2,stop=100))==50)
-    assert_true(len(create_slices(across_step=10,stop=100))==10)
-    assert_true(len(create_slices(width=50,within_step=10,stop=500))==10)
+    assert_true(create_slices() == [])
+    assert_true(len(create_slices(stop=100)) == 100)
+    assert_true(len(create_slices(start=50, stop=100)) == 50)
+    assert_true(len(create_slices(width=2, stop=100)) == 50)
+    assert_true(len(create_slices(width=2, stop=100)) == 50)
+    assert_true(len(create_slices(across_step=10, stop=100)) == 10)
+    assert_true(len(create_slices(width=50, within_step=10, stop=500)) == 10)

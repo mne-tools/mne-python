@@ -29,7 +29,7 @@ def test_time_generalization():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     decim = 30
 
@@ -47,17 +47,19 @@ def test_time_generalization():
         assert_true(scores.min() >= 0.)
         # test that traing and testing time are correct
         results = time_generalization(epochs_list, cv=2, random_state=42,
-            slices_train=dict(across_step=2), slices_test=dict(within_step=1))
+                                      slices_train=dict(across_step=2),
+                                      slices_test=dict(within_step=1))
         scores = results['scores']
         assert_true(scores.shape == (8, 15))
         # test on time generalization within across two conditions
         epochs_list_generalize = Epochs(raw, events, event_id_gen, tmin, tmax, 
-            picks=picks, baseline=(None, 0), preload=True, decim=decim)
+                                        picks=picks, baseline=(None, 0),
+                                        preload=True, decim=decim)
         epochs_list_generalize = [epochs_list_generalize[k] 
                                   for k in event_id.keys()]
         results = time_generalization(epochs_list, 
-            epochs_list_generalize=epochs_list_generalize,
-            cv=2, random_state=42)
+                                    epochs_list_generalize=epochs_list_generalize,
+                                    cv=2, random_state=42)
         scores = results['scores']
         scores_generalize = results['scores_generalize']
         assert_true(scores.shape == scores_generalize.shape)

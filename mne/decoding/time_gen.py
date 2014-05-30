@@ -180,8 +180,8 @@ def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
     out : dict
         'scores' : mean cross-validated scores across folds
         'scores_generalize' : mean cross-condition generalization scores
-        'time_train' : time slices use to train each classifier
-        'time_test' : time slices use to test each classifier
+        'time_train' : time slices used to train each classifier
+        'time_test' : time slices used to test each classifier
     """
     from sklearn.cross_validation import check_cv
     from sklearn.base import clone

@@ -1423,17 +1423,18 @@ def create_slices(start=0, stop=0, width=1,
     Returns
     -------
     slices : list 
-        List of list of time indexes.
+        List of slice objects.
 
     Notes
-    ----------
+    -----
     This function may be changed to become more general and fit frequency and 
     spatial  slicing (i.e. search light)"""
     
     # default parameters
-    if across_step is None: across_step = width 
+    if across_step is None: 
+        across_step = width 
     
     # slicing
-    slices = [slice(t,t+width,within_step) for t in
-            range(start, stop - width + 1, across_step)]
+    slices = [slice(t, t + width,within_step) for t in
+              range(start, stop - width + 1, across_step)]
     return slices
