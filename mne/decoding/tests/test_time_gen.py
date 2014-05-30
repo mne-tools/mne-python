@@ -42,29 +42,28 @@ def test_time_generalization():
         epochs_list = [epochs[k] for k in event_id.keys()]
         results = time_generalization(epochs_list, cv=2, random_state=42)
         scores = results['scores']
-        n_times = len(epochs.times)
-        assert_true(scores.shape == (n_times, n_times))
+        n_slices = len(epochs.times)
+        assert_true(scores.shape == (n_slices, n_slices))
         assert_true(scores.max() <= 1.)
         assert_true(scores.min() >= 0.)
         # test that traing and testing time are correct
-        n_times = epochs_list[0].get_data().shape[2]
-        train_times = create_slices(n_times, across_step=2)
-        test_times = create_slices(n_times, within_step=2)
+        n_slices = epochs_list[0].get_data().shape[2]
+        train_slices = create_slices(n_slices, across_step=2)
+        test_slices = [create_slices(n_slices, within_step=2)] * len(train_slices)
         results = time_generalization(epochs_list, cv=2, random_state=42,
-                                      train_times=train_times,
-                                      test_times=test_times)
+                                      train_slices=train_slices,
+                                      test_slices=test_slices)
         scores = results['scores']
         assert_true(scores.shape == (8, 15))
         # test create_slice callable
-        train_times = partial(create_slices,across_step=2)
+        train_slices = partial(create_slices,across_step=2)
         results = time_generalization(epochs_list, cv=2, random_state=42,
-                                      train_times=train_times)
+                                      train_slices=train_slices)
         # test on time generalization within across two conditions
         epochs_list_gen = Epochs(raw, events, event_id_gen, tmin, tmax, 
                                         picks=picks, baseline=(None, 0),
                                         preload=True, decim=decim)
-        epochs_list_gen = [epochs_list_gen[k] 
-                                  for k in event_id.keys()]
+        epochs_list_gen = [epochs_list_gen[k] for k in event_id.keys()]
         results = time_generalization(epochs_list, 
                                       epochs_list_generalize=epochs_list_gen,
                                       cv=2, random_state=42)

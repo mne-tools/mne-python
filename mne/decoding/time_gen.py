@@ -15,15 +15,15 @@ def _time_gen_one_fold(clf, scorer,
                        X, y, 
                        X_generalize, y_generalize, 
                        train, test, 
-                       train_times, test_times,
+                       train_slices, test_slices,
                        compress_results=True):
     """Aux function of time_generalization"""
     
     # Initialize results
-    n_train_t = max([t.stop for t in train_times]) # get maximum time sample
-    n_test_t = max([t.stop for tt in test_times for t in tt])
-    scores = np.zeros((n_train_t, n_test_t))
-    tested = np.zeros((n_train_t, n_test_t), dtype=bool)
+    n_train_t = max([t.stop for t in train_slices]) # get maximum time sample
+    n_test_t = max([t.stop for tt in test_slices for t in tt])
+    scores = np.zeros((n_train_t, n_test_t)) # scores
+    tested = np.zeros((n_train_t, n_test_t), dtype=bool) # tested time points
     generalize_across_condition = X_generalize is not None and y_generalize is not None
     if generalize_across_condition:
         scores_generalize = np.zeros((n_train_t, n_test_t))
@@ -33,11 +33,11 @@ def _time_gen_one_fold(clf, scorer,
     # Function to vectorize all time * channels features
     my_reshape = lambda X: X.reshape(len(X), np.prod(X.shape[1:]))
     # Loop across time points
-    for t_train, train_time in enumerate(train_times):
+    for t_train, train_time in enumerate(train_slices):
         # Select training time slice
         X_train = my_reshape(X[train, :, train_time])
         clf.fit(X_train, y[train])
-        for test_time in test_times[t_train]:
+        for test_time in test_slices[t_train]:
             # Select testing time slice
             X_test = my_reshape(X[test, :, test_time])
             # Evaluate classifer on cross-validation set
@@ -51,8 +51,8 @@ def _time_gen_one_fold(clf, scorer,
     if compress_results:
         # avoid returning partially empty results
         # removing empty lines and columns (generally due to window width > 1)
-        scores = scores[:,np.any(tested,axis=1)]
-        scores = scores[np.any(tested, axis=0),:]
+        scores = scores[:,np.any(tested, axis=0)]
+        scores = scores[np.any(tested, axis=1),:]
         if generalize_across_condition:
             scores_generalize = scores_generalize[:,np.any(tested,axis=1)]
             scores_generalize = scores_generalize[np.any(tested,axis=0),:]
@@ -61,7 +61,7 @@ def _time_gen_one_fold(clf, scorer,
 @verbose
 def time_generalization(epochs_list, epochs_list_generalize=None, 
                         clf=None, cv=5, scoring="roc_auc",
-                        train_times=None, test_times=None,
+                        train_slices=None, test_slices=None,
                         shuffle=True, random_state=None, 
                         n_jobs=1, verbose=None):
     """Fit decoder at each time instant and test at all others
@@ -81,9 +81,9 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
     epochs_list_generalize : list | None
         Epochs used to test the classifiers' generalization performance 
         in novel experimental conditions.
-    train_times : list | callable | None
+    train_slices : list | callable | None
         List of slices generated with create_slices()
-    test_times : list |  callable | None
+    test_slices : list |  callable | None
         List of slices generated with create_slices()
     clf : object | None
         A object following scikit-learn estimator API (fit & predict).
@@ -108,7 +108,7 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
 
     Returns
     -------
-    scores : array, shape (training_times, testing_times)
+    scores : array, shape (training_slices, testing_slices)
         The scores averaged across folds. scores[i, j] contains
         the generalization score when learning at time j and testing
         at time i. The diagonal is the cross-validation score
@@ -158,9 +158,12 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
                                  X_generalize=X_generalize, 
                                  y_generalize=y_generalize,
                                  clf=clf, scoring=scoring, cv=cv, 
-                                 train_times=train_times,
-                                 test_times=test_times, 
+                                 train_slices=train_slices,
+                                 test_slices=test_slices, 
                                  n_jobs=n_jobs)
+
+    out['train_times'] = epochs_list[0].times[[s.start for s in out['train_slices']]]
+    out['test_times'] = epochs_list[0].times[[s.start for s in out['test_slices'][0]]]
 
     return out
 
@@ -168,7 +171,7 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
 
 def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
                            clf=None, scoring="roc_auc", cv=5, 
-                           train_times=None, test_times=None,
+                           train_slices=None, test_slices=None,
                            shuffle=True, random_state=None,
                            n_jobs=1):
     """ This functions allows users using the pipeline direclty with X and y, 
@@ -176,11 +179,11 @@ def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
 
     Parameters
     ----------
-    X : array, shape (n_trials, n_channels, n_times)
+    X : array, shape (n_trials, n_channels, n_slices)
         Input data on which the model is fitted (with cross-validation).
     y : array, shape (n_trials)
         To-be-fitted model (e.g. trials' classes).
-    X_generalize : array, shape (m_trials, n_channels, n_times) | None
+    X_generalize : array, shape (m_trials, n_channels, n_slices) | None
         Input data on which the model ability to generalize to a novel condition 
         is tested.
     y_generalize : array, shape (m_trials) | None
@@ -230,24 +233,24 @@ def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
     scorer = SCORERS[scoring]
 
     # Setup temporal generalization slicing
-    if train_times is None:
+    if train_slices is None:
         # default: train and test over all time samples
-        train_times = create_slices(X.shape[2]) 
-    elif callable(train_times):
-        # create slices once n_times is known
-        train_times = train_times(X.shape[2]) 
-    
-    if test_times is None: 
+        train_slices = create_slices(X.shape[2]) 
+    elif callable(train_slices):
+        # create slices once n_slices is known
+        train_slices = train_slices(X.shape[2]) 
+
+    if test_slices is None: 
         # default: testing time is identical to training time
-        test_times = [train_times]*X.shape[2]
-    elif callable(test_times):
-        # create slices once n_times is known
-        test_times = [test_times(X.shape[2])]*X.shape[2]
+        test_slices = [train_slices] * len(train_slices)
+    elif callable(test_slices):
+        # create slices once n_slices is known
+        test_slices = [test_slices(X.shape[2])] * len(train_slices)
     
     # Run parallel decoding across folds
     parallel, p_time_gen, _ = parallel_func(_time_gen_one_fold, n_jobs)
     scores = parallel(p_time_gen(clone(clf), scorer, X, y, X_generalize,
-                      y_generalize, train, test, train_times, test_times)
+                      y_generalize, train, test, train_slices, test_slices)
                       for train, test in cv)
 
     # Unpack MVPA results from parallel outputs
@@ -260,7 +263,7 @@ def time_generalization_Xy(X, y, X_generalize=None, y_generalize=None,
         scores_generalize = np.mean(scores_generalize, axis=0)
         out['scores_generalize'] = scores_generalize
 
-    out['train_times'] = train_times
-    out['test_times'] = test_times
+    out['train_slices'] = train_slices
+    out['test_slices'] = test_slices
     
     return out

@@ -65,43 +65,28 @@ epochs_list_generalize = [epochs[k] for k in event_id_generalize]
 mne.epochs.equalize_epoch_counts(epochs_list_generalize) 
 
 ###############################################################################
-# 1. classic decoding across time example
-# 
 # Compute Area Under the Curver (AUC) Receiver Operator Curve (ROC) score
 # of time generalization. A perfect decoding would lead to AUCs of 1.
 # Chance level is at 0.5.
 # The default classifier is a linear SVM (C=1) after feature scaling.
 
 # Setup time generalization parameters
-# train_times = partial(create_slices,width=2) # width of the temporal window, in time sample
-# test_times = partial(create_slices,width=2)
-
-# results = time_generalization(epochs_list,
-# 	                          epochs_list_generalize=epochs_list_generalize,
-# 	                          train_times=train_times,
-# 	                          clf=None, cv=5, scoring="roc_auc",
-# 	                          shuffle=True, n_jobs=1)
-
-
-# 2. Generalization across time
-train_times = partial(create_slices,width=2) # width of the temporal window, in time sample
+train_times = None#partial(create_slices,width=2) # width of the temporal window, in time sample
 
 results = time_generalization(epochs_list,
 	                          epochs_list_generalize=epochs_list_generalize,
-	                          train_times=train_times,
+	                          train_slices=train_times,
 	                          clf=None, cv=5, scoring="roc_auc",
-	                          shuffle=True, n_jobs=1)
+	                          shuffle=True, n_jobs=5)
 
 scores = results['scores']
 scores_generalize = results['scores_generalize']
+# note that time corresponds to the *start* of the classifier. Larger window width imply that 
+# later time points will be used by each classifier
+train_times = 1e3 * results['train_times']
+test_times = 1e3 * results['test_times']
 
 ###############################################################################
-
-# convert times to ms (note that for windows' width > 1, time 
-#                      corresponds to the latest time sample)
-train_times = 1e3 * epochs.times[list(s.stop for s in results['train_times'])]
-test_times = 1e3 * epochs.times[list(s.stop for s in results['test_times'][0])]
-
 # Now visualize
 fig, ax = plt.subplots(2, 2, figsize=(12, 8))
 ax1, ax2, ax3, ax4 = ax.T.flatten()
