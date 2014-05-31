@@ -11,6 +11,8 @@ from mne import io, Epochs, read_events, pick_types
 from mne.utils import _TempDir, requires_sklearn, create_slices
 from mne.decoding import time_generalization
 from functools import partial
+import time
+
 
 tempdir = _TempDir()
 
@@ -72,3 +74,34 @@ def test_time_generalization():
         assert_true(scores.shape == scores_gen.shape)
         assert_true(scores_gen.max() <= 1.)
         assert_true(scores_gen.min() >= 0.)
+
+        # Test parallelization & timing
+        results = time_generalization(epochs_list, parallel_across='time_samples')
+        results = time_generalization(epochs_list, parallel_across='folds')
+        
+        if False:
+            # With more computing & memory load
+            picks = pick_types(raw.info, meg='grad', stim=False, ecg=False,
+                               eog=False, exclude='bads')
+            epochs = Epochs(raw, events, event_id, -.5, 1.5, picks=picks,
+                            baseline=(None, 0), preload=True)
+            epochs_list = [epochs[k] for k in event_id.keys()]
+
+            def timeit(slices, cv, parallel):
+                test_slices = [create_slices(len(slices), across_step=1, width=slices[0].stop - slices[0].start)] * \
+                              len(slices)
+                t = time.time()
+                results = time_generalization(epochs_list, train_slices=slices,
+                                    test_slices=test_slices, generalization='cardinal', 
+                                    n_jobs=-1, parallel_across=parallel, cv=cv)
+                print(time.time() - t)
+                return results
+
+            slices = create_slices(200, width = 50, across_step=1)
+            results = timeit(slices, 2, 'folds')
+            results = timeit(slices, 2, 'time_samples')
+
+            slices = create_slices(20, start=10)
+            results = timeit(slices, 6, 'folds')
+            results = timeit(slices, 6, 'time_samples')
+        
