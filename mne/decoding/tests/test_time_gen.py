@@ -65,10 +65,10 @@ def test_time_generalization():
                                         preload=True, decim=decim)
         epochs_list_gen = [epochs_list_gen[k] for k in event_id.keys()]
         results = time_generalization(epochs_list, 
-                                      epochs_list_generalize=epochs_list_gen,
+                                      epochs_list_gen=epochs_list_gen,
                                       cv=2, random_state=42)
         scores = results['scores']
-        scores_generalize = results['scores_generalize']
-        assert_true(scores.shape == scores_generalize.shape)
-        assert_true(scores_generalize.max() <= 1.)
-        assert_true(scores_generalize.min() >= 0.)
+        scores_gen = results['scores_gen']
+        assert_true(scores.shape == scores_gen.shape)
+        assert_true(scores_gen.max() <= 1.)
+        assert_true(scores_gen.min() >= 0.)
