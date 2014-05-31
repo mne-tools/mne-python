@@ -54,13 +54,14 @@ def _time_gen_one_fold(clf, scorer,
         scores = scores[:,np.any(tested, axis=0)]
         scores = scores[np.any(tested, axis=1),:]
         if generalize_across_condition:
-            scores_generalize = scores_generalize[:,np.any(tested,axis=1)]
-            scores_generalize = scores_generalize[np.any(tested,axis=0),:]
+            scores_generalize = scores_generalize[:,np.any(tested,axis=0)]
+            scores_generalize = scores_generalize[np.any(tested,axis=1),:]
     return scores, scores_generalize
 
 @verbose
 def time_generalization(epochs_list, epochs_list_generalize=None, 
                         clf=None, cv=5, scoring="roc_auc",
+                        generalization="cardinal",
                         train_slices=None, test_slices=None,
                         shuffle=True, random_state=None, 
                         n_jobs=1, verbose=None):
@@ -85,6 +86,9 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
         List of slices generated with create_slices()
     test_slices : list |  callable | None
         List of slices generated with create_slices()
+    generalization: str
+        "cardinal" or "diagonal" to construct relative or absolute testing 
+        slices from train slices
     clf : object | None
         A object following scikit-learn estimator API (fit & predict).
         If None the classifier will be a linear SVM (C=1.) after
@@ -149,6 +153,13 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
         X_generalize = np.concatenate(X_generalize)
         y_generalize = np.concatenate(y_generalize)
 
+    # Setup time slices
+    n_sample = X.shape[2]
+    # Change code here to add timing (ms -> sample) compatibility 
+    train_slices, test_slices = gen_type(n_sample,
+                                         generalization=generalization, 
+                                         train_slices=train_slices,
+                                         test_slices=test_slices)
     # Launch main script
     ch_types = set([channel_type(info, idx) for idx in data_picks])
     logger.info('Running time generalization on %s epochs using %s.' %
@@ -166,6 +177,70 @@ def time_generalization(epochs_list, epochs_list_generalize=None,
     out['test_times'] = epochs_list[0].times[[s.start for s in out['test_slices'][0]]]
 
     return out
+
+
+def gen_type(n_sample, generalization='diagonal', train_slices=None, 
+             test_slices=None):
+    """
+    """
+    
+    # Setup train slices
+    if train_slices is None:
+        # default: train and test over all time samples
+        train_slices = create_slices(n_sample) 
+    elif callable(train_slices):
+        # create slices once n_slices is known
+       train_slices = train_slices(n_sample) 
+    
+    # Setup test slices
+    if generalization =='cardinal':
+        # Time generalization is from/to particular time samples
+        if test_slices is None: 
+            # Default: testing time is identical to training time
+            test_slices = [train_slices] * len(train_slices)
+        elif callable(test_slices):
+            test_slices = [test_slices(n_sample)] * len(train_slices)
+
+    elif generalization == 'diagonal':
+        # Time generalization is at/around the training time samples
+        if test_slices is None: 
+            # Default: testing times are identical to training slices 
+            # (classic decoding across time)
+            test_slices = [[s] for s in train_slices]
+        else:
+            def up_slice(test,train):
+                """ Update slice by combining timing of test and train slices 
+                """
+                out = slice(test.start + train.start, 
+                            test.stop + train.stop - 1, 
+                            train.step)
+                return out
+            test_slices = np.tile([test_slices], (len(train_slices),1)).tolist()
+            for t_train in range(len(train_slices)):
+                for t_test in range(len(test_slices[t_train])):
+                    # Add start and stop of training and testing slices
+                    # to make testing timing dependent on training timing
+                    test_slices[t_train][t_test] = up_slice(test_slices[t_train][t_test],
+                                                            train_slices[t_train])
+
+    # Check that all time samples are in bounds
+    if any([s.start < 0 | s.stop > n_sample for s in train_slices]) | \
+       any([s.start < 0 | s.stop > n_sample for ss in test_slices for s in ss]):
+        logger.info('/!\ Slicing: time samples out of bound!')
+        # shortcut to select slices that are inbound
+        sel = lambda slices, bol: [s for (s, b) in zip(slices, bol) if b]
+        # Deal with testing slices first:
+        for t_train in range(len(test_slices)):
+            # Find testing slices in bounds
+            inbound = [(s.start >= 0) & (s.stop <= n_sample) 
+                       for s in test_slices[t_train]]
+            test_slices[t_train] = sel(test_slices[t_train],inbound)
+                # Find training slices in bounds
+        # Deal with training slices then:
+        inbound = [(s.start >= 0) & (s.stop <= n_sample) for s in train_slices]
+        train_slices = sel(train_slices,inbound)
+
+    return train_slices, test_slices
 
 
 
