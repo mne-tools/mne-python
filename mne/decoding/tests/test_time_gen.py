@@ -10,7 +10,7 @@ from nose.tools import assert_true
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import _TempDir, requires_sklearn, create_slices
 from mne.decoding import time_generalization
-from functools import partial
+from mne.fixes import partial
 import time
 
 
@@ -37,7 +37,7 @@ def test_time_generalization():
     decim = 30
 
     with warnings.catch_warnings(record=True) as w:
-        # test on time generalization within one condition
+        # Test on time generalization within one condition
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, decim=decim)
 
@@ -45,26 +45,31 @@ def test_time_generalization():
         results = time_generalization(epochs_list, cv=2, random_state=42)
         scores = results['scores']
         n_slices = len(epochs.times)
+        # Test that by default, the temporal generalization is trained and
+        # Tested across all time points
         assert_true(scores.shape == (n_slices, n_slices))
+        # Test that the decoding scores are between 0 and 1
         assert_true(scores.max() <= 1.)
         assert_true(scores.min() >= 0.)
-        # test that traing and testing time are correct
-        n_slices = epochs_list[0].get_data().shape[2]
+        # Test that traing and testing time are correct for asymetrical 
+        # training and testing times
+        n_slices = len(epochs_list[0].times)
         train_slices = create_slices(n_slices, across_step=2)
-        test_slices = [create_slices(n_slices, within_step=2)] * len(train_slices)
+        test_slices = [create_slices(n_slices, within_step=2)] * \
+                      len(train_slices)
         results = time_generalization(epochs_list, cv=2, random_state=42,
                                       train_slices=train_slices,
                                       test_slices=test_slices)
         scores = results['scores']
         assert_true(scores.shape == (8, 15))
-        # test create_slice callable
+        # Test create_slice callable
         train_slices = partial(create_slices,across_step=2)
         results = time_generalization(epochs_list, cv=2, random_state=42,
                                       train_slices=train_slices)
-        # test on time generalization within across two conditions
+        # Test on time generalization within across two conditions
         epochs_list_gen = Epochs(raw, events, event_id_gen, tmin, tmax, 
-                                        picks=picks, baseline=(None, 0),
-                                        preload=True, decim=decim)
+                                 picks=picks, baseline=(None, 0),
+                                 preload=True, decim=decim)
         epochs_list_gen = [epochs_list_gen[k] for k in event_id.keys()]
         results = time_generalization(epochs_list, 
                                       epochs_list_gen=epochs_list_gen,
@@ -76,8 +81,8 @@ def test_time_generalization():
         assert_true(scores_gen.min() >= 0.)
 
         # Test parallelization & timing
-        results = time_generalization(epochs_list, parallel_across='time_samples')
-        results = time_generalization(epochs_list, parallel_across='folds')
+        r = time_generalization(epochs_list, parallel_across='time_samples')
+        r = time_generalization(epochs_list, parallel_across='folds')
         
         if False:
             # With more computing & memory load
@@ -88,16 +93,20 @@ def test_time_generalization():
             epochs_list = [epochs[k] for k in event_id.keys()]
 
             def timeit(slices, cv, parallel):
-                test_slices = [create_slices(len(slices), across_step=1, width=slices[0].stop - slices[0].start)] * \
+                test_slices = [create_slices(len(slices), across_step=1, 
+                                             width=slices[0].stop - \
+                                             slices[0].start)] * \
                               len(slices)
                 t = time.time()
                 results = time_generalization(epochs_list, train_slices=slices,
-                                    test_slices=test_slices, generalization='cardinal', 
-                                    n_jobs=-1, parallel_across=parallel, cv=cv)
+                                              test_slices=test_slices, 
+                                              generalization='cardinal', 
+                                              n_jobs=-1, 
+                                              parallel_across=parallel, cv=cv)
                 print(time.time() - t)
                 return results
 
-            slices = create_slices(200, width = 50, across_step=1)
+            slices = create_slices(200, width=50, across_step=1)
             results = timeit(slices, 2, 'folds')
             results = timeit(slices, 2, 'time_samples')
 

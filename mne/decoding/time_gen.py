@@ -12,8 +12,8 @@ from ..pick import channel_type, pick_types
 from sklearn.base import clone
 
 
-def _one_fold(clf, scorer, X, y, X_gen, y_gen, train, test, 
-                       train_slices, test_slices, n_jobs=1):
+def _one_fold(clf, scorer, X, y, X_gen, y_gen, train, test, train_slices,
+              test_slices, n_jobs=1):
     """Aux function of time_generalization
 
     Parameters
@@ -36,51 +36,54 @@ def _one_fold(clf, scorer, X, y, X_gen, y_gen, train, test,
     scores : array
         Classification scores at each training/testing sample.
     scores_gen : array
-        Classification scores of generalization set at each training/testing 
+        Classification scores of generalization set at each training/testing
         sample.
     tested : bool array
         Indicate which training/testing sample was used.
     """
-    
+
     # Initialize results
-    n_train_t = max([t.stop for t in train_slices]) # get maximum time sample
+    n_train_t = max([t.stop for t in train_slices])  # get maximum time sample
     n_test_t = max([t.stop for tt in test_slices for t in tt])
-    scores = np.zeros((n_train_t, n_test_t)) # scores
-    tested = np.zeros((n_train_t, n_test_t), dtype=bool) # tested time points
-    if X_gen is not None and y_gen is not None:
+    scores = np.zeros((n_train_t, n_test_t))  # scores
+    tested = np.zeros((n_train_t, n_test_t), dtype=bool)  # tested time points
+    if (X_gen is not None) and (y_gen is not None):
         scores_gen = np.zeros((n_train_t, n_test_t))
     else:
         scores_gen = None
-    
+
     # Loop across time points
     # Parallel across training time
     parallel, p_time_gen, _ = parallel_func(_time_loop, n_jobs)
-    packed = parallel(p_time_gen(clone(clf), scorer, X, y, train, test, 
-                                  X_gen, y_gen, train_slices[t_train], 
-                                  test_slices[t_train])
-                       for t_train in range(len(train_slices)))
+    packed = parallel(p_time_gen(clone(clf), scorer, X, y, train, test,
+                                 X_gen, y_gen, train_slices[t_train],
+                                 test_slices[t_train])
+                      for t_train in range(len(train_slices)))
     # Unpack results in temporary variables
     scores_, scores_gen_, tested_ = zip(*packed)
-    
+
     # Store results in absolute sampling-time
     for t_train, train_time in enumerate(train_slices):
         for t_test, test_time in enumerate(test_slices[t_train]):
-            scores[train_time.start, test_time.start] = scores_[t_train][t_test]
-            tested[train_time.start, test_time.start] = tested_[t_train][t_test]
-            if  X_gen is not None and y_gen is not None:
-                scores_gen[train_time.start, t_test] = scores_gen_[t_train][t_test]
+            scores[train_time.start, test_time.start] = scores_[
+                t_train][t_test]
+            tested[train_time.start, test_time.start] = tested_[
+                t_train][t_test]
+            if (X_gen is not None) and (y_gen is not None):
+                scores_gen[train_time.start, test_time.start] = scores_gen_[
+                    t_train][t_test]
     return scores, scores_gen, tested
 
 
-def _time_loop(clf, scorer, X, y, train, test, X_gen, y_gen, 
-                        train_slice, test_slices):
+def _time_loop(clf, scorer, X, y, train, test, X_gen, y_gen, train_slice,
+               test_slices):
     # Initialize results
-    scores = [] # scores
-    tested = [] # tested time points
-    scores_gen = [] # generalization score
+    scores = []  # scores
+    tested = []  # tested time points
+    scores_gen = []  # generalization score
     # Flatten features
     my_reshape = lambda X: X.reshape(len(X), np.prod(X.shape[1:]))
-    # Select training set 
+    # Select training set
     X_train = my_reshape(X[train, :, train_slice])
     # Fit classifier
     clf.fit(X_train, y[train])
@@ -93,28 +96,29 @@ def _time_loop(clf, scorer, X, y, train, test, X_gen, y_gen,
         scores.append(scorer(clf, X_test, y[test]))
         tested.append(True)
         # Evaluate classifier on cross-condition generalization set
-        if X_gen is not None and y_gen is not None:
+        if (X_gen is not None) and (y_gen is not None):
             x_gen = my_reshape(X_gen[:, :, test_slice])
             scores_gen.append(scorer(clf, x_gen, y_gen))
 
     return scores, scores_gen, tested
 
-  
 
 def _compress_results(scores, tested):
-    # avoid returning partially empty results
-    # removing empty lines and columns (generally due to window width > 1)
-    scores = scores[:,np.any(tested, axis=0)]
-    scores = scores[np.any(tested, axis=1),:]
+    """"
+    Avoids returning partially empty results by removing empty lines and
+    columns (generally due to window width > 1).
+    """
+    scores = scores[:, np.any(tested, axis=0)]
+    scores = scores[np.any(tested, axis=1), :]
     return scores
 
 
 @verbose
-def time_generalization(epochs_list, epochs_list_gen=None, 
+def time_generalization(epochs_list, epochs_list_gen=None,
                         clf=None, cv=5, scoring="roc_auc",
                         generalization="cardinal",
                         train_slices=None, test_slices=None,
-                        shuffle=True, random_state=None, 
+                        shuffle=True, random_state=None,
                         n_jobs=1, parallel_across='folds', verbose=None):
     """Fit decoder at each time instant and test at all others
 
@@ -128,18 +132,22 @@ def time_generalization(epochs_list, epochs_list_gen=None,
     Parameters
     ----------
     epochs_list : list
-        These epcohs are used to train the classifiers (using a cross-validation 
+        These epochs are used to train the classifiers (using a cross-validation
         scheme).
     epochs_list_gen : list | None
-        Epochs used to test the classifiers' generalization performance 
+        Epochs used to test the classifiers' generalization performance
         in novel experimental conditions.
     train_slices : list | callable | None
-        List of slices generated with create_slices()
+        List of slices generated with create_slices(). By default the
+        classifiers are trained on all time points (i.e.
+        create_slices(n_time)).
     test_slices : list |  callable | None
-        List of slices generated with create_slices()
+        List of slices generated with create_slices(). By default the
+        classifiers are tested on all time points (i.e.
+        [create_slices(n_time)] * n_time).
     generalization: str
-        "cardinal" or "diagonal" to construct relative or absolute testing 
-        slices from train slices
+        "cardinal" or "diagonal" to construct relative or absolute testing
+        slices from train slices.
     clf : object | None
         A object following scikit-learn estimator API (fit & predict).
         If None the classifier will be a linear SVM (C=1.) after
@@ -195,23 +203,21 @@ def time_generalization(epochs_list, epochs_list_gen=None,
 
     # Apply same procedure with optional generalization set
     if epochs_list_gen is None:
-        X_gen = None
-        y_gen = None
+        X_gen, y_gen = None, None
     else:
         info = epochs_list_gen[0].info
         data_picks = pick_types(info, meg=True, eeg=True, exclude='bads')
-        X_gen = [e.get_data()[:, data_picks, :] 
-                        for e in epochs_list_gen]
-        y_gen = [k * np.ones(len(this_X)) 
-                        for k, this_X in enumerate(X_gen)]
+        X_gen = [e.get_data()[:, data_picks, :]
+                 for e in epochs_list_gen]
+        y_gen = [k * np.ones(len(this_X)) for k, this_X in enumerate(X_gen)]
         X_gen = np.concatenate(X_gen)
         y_gen = np.concatenate(y_gen)
 
     # Setup time slices
     n_sample = X.shape[2]
-    # Change code here to add timing (ms -> sample) compatibility 
+    # Change code here to add timing (ms -> sample) compatibility
     train_slices, test_slices = gen_type(n_sample,
-                                         generalization=generalization, 
+                                         generalization=generalization,
                                          train_slices=train_slices,
                                          test_slices=test_slices)
     # Launch main script
@@ -219,25 +225,27 @@ def time_generalization(epochs_list, epochs_list_gen=None,
     logger.info('Running time generalization on %s epochs using %s.' %
                 (len(X), ch_types.pop()))
 
-    out = time_generalization_Xy(X, y, 
-                                 X_gen=X_gen, 
+    out = time_generalization_Xy(X, y,
+                                 X_gen=X_gen,
                                  y_gen=y_gen,
-                                 clf=clf, scoring=scoring, cv=cv, 
+                                 clf=clf, scoring=scoring, cv=cv,
                                  train_slices=train_slices,
-                                 test_slices=test_slices, 
+                                 test_slices=test_slices,
                                  n_jobs=n_jobs, parallel_across=parallel_across)
 
-    out['train_times'] = epochs_list[0].times[[s.start for s in out['train_slices']]]
-    out['test_times'] = epochs_list[0].times[[s.start for s in out['test_slices'][0]]]
+    out['train_times'] = epochs_list[0].times[
+        [s.start for s in out['train_slices']]]
+    out['test_times'] = epochs_list[0].times[
+        [s.start for s in out['test_slices'][0]]]
 
     return out
 
 
-def gen_type(n_sample, generalization='diagonal', train_slices=None, 
+def gen_type(n_sample, generalization='diagonal', train_slices=None,
              test_slices=None):
     """ Creates typical temporal generalization scenarios
 
-    The function return train_slices, test_slices that indicate the time 
+    The function return train_slices, test_slices that indicate the time
     samples to be used for training and testing each classifier. These
     lists can be directly used by time_generalization_Xy()
 
@@ -248,24 +256,28 @@ def gen_type(n_sample, generalization='diagonal', train_slices=None,
         classifier can be trained
     generalization : str, value = 'diagonal' | 'cardinal'
         Indicates the type of scenario used for the testing_slices
-    train_slices : list | object | None
-        create_slices() partial object or list of training slices
-    train_slices : list | object | None
-        create_slices() partial object or list of test slices
+    train_slices : list | callable | None
+        List of slices generated with create_slices(). By default the
+        classifiers are trained on all time points (i.e.
+        create_slices(n_time)).
+    test_slices : list |  callable | None
+        List of slices generated with create_slices(). By default the
+        classifiers are tested on all time points (i.e.
+        [create_slices(n_time)] * n_time).
     """
-    
+
     # Setup train slices
     if train_slices is None:
         # default: train and test over all time samples
-        train_slices = create_slices(n_sample) 
+        train_slices = create_slices(n_sample)
     elif callable(train_slices):
         # create slices once n_slices is known
-       train_slices = train_slices(n_sample) 
-    
+        train_slices = train_slices(n_sample)
+
     # Setup test slices
-    if generalization =='cardinal':
+    if generalization == 'cardinal':
         # Time generalization is from/to particular time samples
-        if test_slices is None: 
+        if test_slices is None:
             # Default: testing time is identical to training time
             test_slices = [train_slices] * len(train_slices)
         elif callable(test_slices):
@@ -273,57 +285,58 @@ def gen_type(n_sample, generalization='diagonal', train_slices=None,
 
     elif generalization == 'diagonal':
         # Time generalization is at/around the training time samples
-        if test_slices is None: 
-            # Default: testing times are identical to training slices 
+        if test_slices is None:
+            # Default: testing times are identical to training slices
             # (classic decoding across time)
             test_slices = [[s] for s in train_slices]
         else:
-            def up_slice(test,train):
-                """ Update slice by combining timing of test and train slices 
-                """
-                out = slice(test.start + train.start, 
-                            test.stop + train.stop - 1, 
-                            train.step)
-                return out
-            test_slices = np.tile([test_slices], (len(train_slices),1)).tolist()
+            # Update slice by combining timing of test and train slices
+            up_slice = lambda test, train: slice(test.start + train.start,
+                                                 test.stop + train.stop - 1,
+                                                 train.step)
+
+            test_slices = np.tile(
+                [test_slices], (len(train_slices), 1)).tolist()
             for t_train in range(len(train_slices)):
                 for t_test in range(len(test_slices[t_train])):
                     # Add start and stop of training and testing slices
                     # to make testing timing dependent on training timing
-                    test_slices[t_train][t_test] = up_slice(test_slices[t_train][t_test],
-                                                            train_slices[t_train])
+                    test_slices[t_train][t_test] = up_slice(
+                        test_slices[t_train][t_test],
+                        train_slices[t_train])
 
     # Check that all time samples are in bounds
-    if any([s.start < 0 | s.stop > n_sample for s in train_slices]) | \
-       any([s.start < 0 | s.stop > n_sample for ss in test_slices for s in ss]):
+    if any([(s.start < 0) or (s.stop > n_sample) for s in train_slices]) or \
+       any([(s.start < 0) or (s.stop > n_sample) for ss in test_slices
+            for s in ss]):
         logger.info('/!\ Slicing: time samples out of bound!')
-        
+
         # Shortcut to select slices that are in bounds
         sel = lambda slices, bol: [s for (s, b) in zip(slices, bol) if b]
-        
+
         # Deal with testing slices first:
         for t_train in range(len(test_slices)):
             # Find testing slices that are in bounds
-            inbound = [(s.start >= 0) & (s.stop <= n_sample) 
+            inbound = [(s.start >= 0) and (s.stop <= n_sample)
                        for s in test_slices[t_train]]
-            test_slices[t_train] = sel(test_slices[t_train],inbound)
+            test_slices[t_train] = sel(test_slices[t_train], inbound)
 
         # Deal with training slices then:
-        inbound = [(s.start >= 0) & (s.stop <= n_sample) for s in train_slices]
-        train_slices = sel(train_slices,inbound)
+        inbound = [(s.start >= 0) and (s.stop <= n_sample)
+                   for s in train_slices]
+        train_slices = sel(train_slices, inbound)
 
     return train_slices, test_slices
 
 
-
 def time_generalization_Xy(X, y, X_gen=None, y_gen=None,
-                           clf=None, scoring="roc_auc", cv=5, 
+                           clf=None, scoring="roc_auc", cv=5,
                            train_slices=None, test_slices=None,
                            shuffle=True, random_state=None,
-                           compress_results=True, n_jobs=1, 
+                           compress_results=True, n_jobs=1,
                            parallel_across='folds'):
-    """ This functions allows users using the pipeline direclty with X and y, 
-    rather than MNE  structured data 
+    """ This functions allows users using the pipeline directly with X and y,
+    rather than MNE  structured data
 
     Parameters
     ----------
@@ -332,7 +345,7 @@ def time_generalization_Xy(X, y, X_gen=None, y_gen=None,
     y : array, shape (n_trials)
         To-be-fitted model (e.g. trials' classes).
     X_gen : array, shape (m_trials, n_channels, n_slices) | None
-        Input data on which the model ability to generalize to a novel condition 
+        Input data on which the model ability to generalize to a novel condition
         is tested.
     y_gen : array, shape (m_trials) | None
         Generalization model.
@@ -340,7 +353,7 @@ def time_generalization_Xy(X, y, X_gen=None, y_gen=None,
         If true returns only training/tested time samples.
 
     The other input parameters are identical to time_generalization().
-    
+
     Returns
     -------
     out : dict
@@ -384,18 +397,18 @@ def time_generalization_Xy(X, y, X_gen=None, y_gen=None,
     # Setup temporal generalization slicing
     if train_slices is None:
         # Default: train and test over all time samples
-        train_slices = create_slices(X.shape[2]) 
+        train_slices = create_slices(X.shape[2])
     elif callable(train_slices):
         # Create slices once n_slices is known
-        train_slices = train_slices(X.shape[2]) 
+        train_slices = train_slices(X.shape[2])
 
-    if test_slices is None: 
+    if test_slices is None:
         # Default: testing time is identical to training time
         test_slices = [train_slices] * len(train_slices)
     elif callable(test_slices):
         # Create slices once n_slices is known
         test_slices = [test_slices(X.shape[2])] * len(train_slices)
-    
+
     # Chose parallization type
     if parallel_across == 'folds':
         n_jobs_time = 1
@@ -407,10 +420,10 @@ def time_generalization_Xy(X, y, X_gen=None, y_gen=None,
     # Cross-validation loop
     parallel, p_time_gen, _ = parallel_func(_one_fold, n_jobs_fold)
     packed = parallel(p_time_gen(clone(clf), scorer, X, y, X_gen,
-                                 y_gen, train, test, train_slices, test_slices, 
+                                 y_gen, train, test, train_slices, test_slices,
                                  n_jobs=n_jobs_time)
                       for train, test in cv)
-    
+
     # Unpack MVPA results from parallel outputs
     scores, scores_gen, tested = zip(*packed)
 
@@ -432,5 +445,5 @@ def time_generalization_Xy(X, y, X_gen=None, y_gen=None,
 
     out['train_slices'] = train_slices
     out['test_slices'] = test_slices
-    
+
     return out

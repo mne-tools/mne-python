@@ -168,6 +168,7 @@ def deprecated_func():
 
 @deprecated('message')
 class deprecated_class(object):
+
     def __init__(self):
         pass
 
@@ -278,30 +279,38 @@ def test_check_type_picks():
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
 
+
 def test_create_slices():
     """Test checking the create of time create_slices
     """
+    # Test that create_slices default provide an empty list
     assert_true(create_slices(0) == [])
+    # Test that create_slice return correct number of slices
     assert_true(len(create_slices(100)) == 100)
+    # Test with non-zero start parameters
     assert_true(len(create_slices(100, start=50)) == 50)
+    # Test slices' length with non-zero start and window_width=2
     assert_true(len(create_slices(100, width=2)) == 50)
-    assert_true(len(create_slices(100, width=2)) == 50)
+    # Test slices' length with manual slice separation
     assert_true(len(create_slices(100, across_step=10)) == 10)
+    # Test slices' within length for non-consecutive samples
     assert_true(len(create_slices(500, width=50, within_step=10)) == 10)
+    # Test that slices elements start, stop and step correctly
     slices = create_slices(10)
     assert_true(slices[0].start == 0)
     assert_true(slices[0].step == 1)
     assert_true(slices[0].stop == 1)
     assert_true(slices[-1].stop == 10)
+    # Same with larger window width
     slices = create_slices(9, width=3)
     assert_true(slices[0].start == 0)
     assert_true(slices[0].step == 1)
     assert_true(slices[0].stop == 3)
     assert_true(slices[-1].stop == 9)
+    # Same with manual slices' separation
     slices = create_slices(9, width=3, across_step=1)
     assert_true(len(slices) == 7)
     assert_true(slices[0].step == 1)
     assert_true(slices[0].stop == 3)
     assert_true(slices[-1].start == 6)
     assert_true(slices[-1].stop == 9)
-
