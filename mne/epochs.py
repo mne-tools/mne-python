@@ -1263,8 +1263,15 @@ class Epochs(_BaseEpochs):
         Parameters
         ----------
         fname : str
-            The name of the file.
+            The name of the file, which should end with -epo.fif or
+            -epo.fif.gz.
         """
+
+        if not fname.endswith(('-epo.fif', '-epo.fif.gz')):
+            warnings.warn('This filename does not conform to mne naming '
+                          'conventions. All epochs files should end with '
+                          '-epo.fif or -epo.fif.gz.')
+
         # Create the file and save the essentials
         fid = start_file(fname)
 
@@ -1829,8 +1836,9 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     """
 
     if not fname.endswith(('-epo.fif', '-epo.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All epochs files should end with -epo.fif.')
+        warnings.warn('This filename does not conform to mne naming '
+                      'conventions. All epochs files should end with '
+                      '-epo.fif or -epo.fif.gz.')
 
     epochs = Epochs(None, None, None, None, None)
 

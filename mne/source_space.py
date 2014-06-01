@@ -202,7 +202,7 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
 
     if not fname.endswith(('.src', '-src.fif', '-src.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
-                      's. All inverse operator files should end with '
+                      's. All source space files should end with '
                       '.src, -src.fif or -src.fif.gz.')
 
     ff, tree, _ = fiff_open(fname)
@@ -569,7 +569,7 @@ def write_source_spaces(fname, src, verbose=None):
 
     if not fname.endswith(('.src', '-src.fif', '-src.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
-                      's. All inverse operator files should end with '
+                      's. All source space files should end with '
                       '.src, -src.fif or -src.fif.gz.')
 
     fid = start_file(fname)

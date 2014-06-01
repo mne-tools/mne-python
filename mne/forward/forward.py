@@ -386,7 +386,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     if not fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
-                      's. All projection files should end with -fwd.fif or '
+                      's. All forward files should end with -fwd.fif or '
                       '-fwd.fif.gz.')
 
     #   Open the file, create directory
@@ -665,7 +665,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
 
     if not fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
-                      's. All projection files should end with -fwd.fif or '
+                      's. All forward files should end with -fwd.fif or '
                       '-fwd.fif.gz.')
 
     # check for file existence
