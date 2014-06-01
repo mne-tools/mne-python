@@ -68,7 +68,7 @@ def test_ica_full_data_recovery():
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     n_channels = 5
@@ -108,12 +108,12 @@ def test_ica_core():
     """
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     # XXX. The None cases helped revealing bugs but are time consuming.
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     noise_cov = [None, test_cov]
@@ -193,16 +193,16 @@ def test_ica_additional():
     stop2 = 500
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     test_cov = read_cov(test_cov_name)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                             eog=True, exclude='bads')
+                        eog=True, exclude='bads')
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                         baseline=(None, 0), preload=True)
 
@@ -238,7 +238,7 @@ def test_ica_additional():
     # epochs extraction from raw fit
     assert_raises(RuntimeError, ica.get_sources_epochs, epochs)
     # test reading and writing
-    test_ica_fname = op.join(op.dirname(tempdir), 'ica_test.fif')
+    test_ica_fname = op.join(op.dirname(tempdir), 'test-ica.fif')
     for cov in (None, test_cov):
         ica = ICA(noise_cov=cov, n_components=2, max_pca_components=4,
                   n_pca_components=4)
@@ -385,7 +385,7 @@ def test_ica_additional():
     assert_true(len(ica_raw._filenames) == 0)  # API consistency
     ica_chans = [ch for ch in ica_raw.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
-    test_ica_fname = op.join(op.abspath(op.curdir), 'test_ica.fif')
+    test_ica_fname = op.join(op.abspath(op.curdir), 'test-ica_raw.fif')
     ica.n_components = np.int32(ica.n_components)
     ica_raw.save(test_ica_fname, overwrite=True)
     ica_raw2 = io.Raw(test_ica_fname, preload=True)
@@ -411,6 +411,13 @@ def test_ica_additional():
         ncomps_ = _check_n_pca_components(ica, ncomps)
         assert_true(ncomps_ == expected)
 
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        ica_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        ica.save(ica_badname)
+        read_ica(ica_badname)
+    assert_true(len(w) == 2)
+
 
 @requires_sklearn
 def test_run_ica():
@@ -430,7 +437,7 @@ def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4)
     raw._data[2, 1000:1005] = 5e-12
     drop_log = op.join(op.dirname(tempdir), 'ica_drop.log')
@@ -440,6 +447,7 @@ def test_ica_reject_buffer():
     assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     log = [l for l in open(drop_log) if 'detected' in l]
     assert_equal(len(log), 1)
+
 
 @requires_sklearn
 def test_ica_twice():

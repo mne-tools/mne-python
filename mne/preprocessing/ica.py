@@ -25,10 +25,10 @@ from .eog import _find_eog_events
 from ..cov import compute_whitener
 from .. import Covariance
 from ..pick import (pick_types, pick_channels, pick_info,
-                         channel_indices_by_type)
+                    channel_indices_by_type)
 from ..io.write import (write_double_matrix, write_string,
-                          write_name_list, write_int, start_block,
-                          end_block)
+                        write_name_list, write_int, start_block,
+                        end_block)
 from ..io.tree import dir_tree_find
 from ..io.open import fiff_open
 from ..io.tag import read_tag
@@ -491,10 +491,16 @@ class ICA(object):
         ----------
         fname : str
             The absolute path of the file name to save the ICA session into.
+            The file name should end with -ica.fif or -ica.fif.gz.
         """
         if self.current_fit == 'unfitted':
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
+
+        if not fname.endswith(('-ica.fif', '-ica.fif.gz')):
+            warnings.warn('This filename does not conform to mne naming '
+                          'conventions. All ICA files should end with '
+                          '-ica.fif or -ica.fif.gz')
 
         logger.info('Wrting ica session to %s...' % fname)
         fid = start_file(fname)
@@ -1481,12 +1487,18 @@ def read_ica(fname):
     ----------
     fname : str
         Absolute path to fif file containing ICA matrices.
+        The file name should end with -ica.fif or -ica.fif.gz.
 
     Returns
     -------
     ica : instance of ICA
         The ICA estimator.
     """
+
+    if not fname.endswith(('-ica.fif', '-ica.fif.gz')):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All ICA files should end with '
+                      '-ica.fif or -ica.fif.gz')
 
     logger.info('Reading %s ...' % fname)
     fid, tree, _ = fiff_open(fname)
