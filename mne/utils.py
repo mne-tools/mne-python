@@ -39,7 +39,7 @@ logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
-###############################################################################
+#
 # RANDOM UTILITIES
 
 def check_random_state(seed):
@@ -100,7 +100,9 @@ def sum_squared(X):
 
 
 class WrapStdOut(object):
+
     """Ridiculous class to work around how doctest captures stdout"""
+
     def __getattr__(self, name):
         # Even more ridiculous than this class, this must be sys.stdout (not
         # just stdout) in order for this to work (tested on OSX and Linux)
@@ -108,6 +110,7 @@ class WrapStdOut(object):
 
 
 class _TempDir(str):
+
     """Class for creating and auto-destroying temp dir
 
     This is designed to be used with testing modules.
@@ -116,6 +119,7 @@ class _TempDir(str):
     function may be cleaned up before this object, so we use the atexit module
     instead.
     """
+
     def __new__(self):
         new = str.__new__(self, tempfile.mkdtemp())
         return new
@@ -232,7 +236,9 @@ def run_subprocess(command, *args, **kwargs):
 
 
 class _FormatDict(dict):
+
     """Helper for pformat()"""
+
     def __missing__(self, key):
         return "{" + key + "}"
 
@@ -256,7 +262,7 @@ def trait_wraith(*args, **kwargs):
     return lambda x: x
 
 
-###############################################################################
+#
 # DECORATORS
 
 # Following deprecated class copied from scikit-learn
@@ -266,6 +272,7 @@ warnings.simplefilter('default')
 
 
 class deprecated(object):
+
     """Decorator to mark a function or class as deprecated.
 
     Issue a warning when the function is called/the class is instantiated and
@@ -670,7 +677,7 @@ def requires_scipy_version(min_version):
                                  % min_version)
 
 
-###############################################################################
+#
 # LOGGING
 
 def set_log_level(verbose=None, return_old_level=False):
@@ -752,7 +759,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger.addHandler(lh)
 
 
-###############################################################################
+#
 # CONFIG / PREFS
 
 def get_subjects_dir(subjects_dir=None, raise_error=False):
@@ -874,12 +881,12 @@ known_config_types = [
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_SAMPLE_DATASET_TESTS',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
-    ]
+]
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 known_config_wildcards = [
     'MNE_STIM_CHANNEL',
-    ]
+]
 
 
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
@@ -988,6 +995,7 @@ def set_config(key, value, home_dir=None):
 
 
 class ProgressBar(object):
+
     """Class for generating a command-line progressbar
 
     Parameters
@@ -1101,6 +1109,7 @@ class ProgressBar(object):
 
 
 class _HTTPResumeURLOpener(urllib.request.FancyURLopener):
+
     """Create sub-class in order to overide error 206.
 
     This error means a partial file is being sent, which is ok in this case.
@@ -1401,8 +1410,7 @@ def _check_type_picks(picks):
     return picks
 
 
-def create_slices(stop, start=0, width=1, 
-                  across_step=None, within_step=1):
+def create_slices(start, stop, step=None, length=1):
     """ Generate slices of time indexes
     Parameters
     ----------
@@ -1410,29 +1418,23 @@ def create_slices(stop, start=0, width=1,
         Index where first slice should start.
     stop : int
         Index where last slice should maximally end.
-    width : int
+    length : int
         Number of time sample included in a given slice.
-    across_step: int | None
-        Number of time samples separating two slices.
-    within_step: int
-        Number of time samples separating two temporal feature within a slice 
-        of time.
+    step: int | None
+        Number of time samples separating two slices. 
+        If step = None, step = length.
 
     Returns
     -------
     slices : list 
         List of slice objects.
+    """
 
-    Notes
-    -----
-    This function may be changed to become more general and fit frequency and 
-    spatial  slicing (i.e. search light)"""
-    
     # default parameters
-    if across_step is None: 
-        across_step = width 
-    
+    if step is None:
+        step = length
+
     # slicing
-    slices = [slice(t, t + width,within_step) for t in
-              range(start, stop - width + 1, across_step)]
+    slices = [slice(t, t + length, 1) for t in
+              range(start, stop - length + 1, step)]
     return slices
