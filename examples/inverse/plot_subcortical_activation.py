@@ -111,6 +111,9 @@ method = 'dSPM'
 # estimate noise covarariance
 noise_cov = mne.compute_covariance(epochs.crop(None, 0, copy=True))
 
+# crop the data
+epochs.crop(0, None, copy=False)
+
 # make the inverse operator
 inverse_operator = make_inverse_operator(epochs.info, forward, noise_cov,
                                          loose=0.2, depth=0.8)
