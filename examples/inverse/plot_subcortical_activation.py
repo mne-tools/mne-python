@@ -34,6 +34,11 @@ meg_dir = data_path + '/MEG/spm'
 bem_fname = subject_dir + '/bem/spm-5120-5120-5120-bem-sol.fif'
 mri_fname = meg_dir + '/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
 epo_fname = meg_dir + '/SPM_CTF_MEG_example_faces1_3D_epo.fif'
+fwd_fname = meg_dir + '/SPM_CTF_MEG_example_faces1_3D_' + \
+                      'oct-6-rh-amyg-vol-fwd.fif'
+
+##############################################################################
+# get the epoch data
 
 # load the epoch data if it already exists
 if os.path.exists(epo_fname):
@@ -81,29 +86,41 @@ else:  # must generate epochs from raw
     # save the epoched data
     epochs.save(epo_fname)
 
-# estimate noise covarariance
-noise_cov = mne.compute_covariance(epochs.crop(None, 0, copy=True))
+##############################################################################
+# get the forward operator
 
-# get positions and orientations of subcortical space
-pos = mne.source_space.get_segment_positions('spm', 'Right-Amygdala',
-                                             random_ori=True,
-                                             subjects_dir=subjects_dir)
+# load the forward solution if it already exists
+if os.path.exists(fwd_fname):
 
-# setup the right amygdala volume source space
-vol_src = mne.setup_volume_source_space('spm', pos=pos)
+    # read the forward solution
+    forward = mne.read_forward_solution(fwd_fname)
 
-# setup the cortical surface source space
-src = mne.setup_source_space('spm', overwrite=True)
+else:  # merge cortical and subcortical sources and computer forward solution
 
-# combine the source spaces
-src.append(vol_src[0])
+    # get positions and orientations of subcortical space
+    pos = mne.source_space.get_segment_positions('spm', 'Right-Amygdala',
+                                                 random_ori=True,
+                                                 subjects_dir=subjects_dir)
 
-# setup the forward model
-forward = mne.make_forward_solution(epochs.info, mri=mri_fname, src=src,
-                                    bem=bem_fname)
-forward = mne.convert_forward_solution(forward, surf_ori=True)
+    # setup the right amygdala volume source space
+    vol_src = mne.setup_volume_source_space('spm', pos=pos)
 
+    # setup the cortical surface source space
+    src = mne.setup_source_space('spm', overwrite=True)
+
+    # combine the source spaces
+    src.append(vol_src[0])
+
+    # setup the forward model
+    forward = mne.make_forward_solution(epochs.info, mri=mri_fname, src=src,
+                                        bem=bem_fname)
+
+    # save the forward solution
+    mne.write_forward_solution(fwd_fname, forward, overwrite=True)
+
+##############################################################################
 # Compute inverse solution
+
 snr = 5.0
 lambda2 = 1.0 / snr ** 2
 method = 'dSPM'
@@ -116,7 +133,7 @@ epochs.crop(0, None, copy=False)
 
 # make the inverse operator
 inverse_operator = make_inverse_operator(epochs.info, forward, noise_cov,
-                                         loose=0.2, depth=0.8)
+                                         loose=None, depth=None)
 
 # Apply inverse solution to both stim types
 stc_faces = apply_inverse_epochs(epochs['faces'], inverse_operator, lambda2,
@@ -124,6 +141,7 @@ stc_faces = apply_inverse_epochs(epochs['faces'], inverse_operator, lambda2,
 stc_scrambled = apply_inverse_epochs(epochs['scrambled'], inverse_operator,
                                      lambda2, method)
 
+##############################################################################
 # compare face vs. scrambled trials
 
 # empty array

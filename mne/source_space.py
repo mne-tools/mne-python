@@ -1726,22 +1726,11 @@ def get_segment_positions(subject, label=None, random_ori=False,
     aseg_header = aseg.get_header()
 
     # get the indices to the specified label
-    ix = aseg_data == label
-    
-    # convert indices into x, y, z coordinates
-    iix = []  # empty list
-    for i in range(ix.shape[0]):
-        for j in range(ix.shape[1]):
-            for k in range(ix.shape[2]):
-                if ix[i, j, k]:
-                    iix.append([i, j, k])
-
-    # convert from list to array
-    iix = np.array(iix)
+    ix = np.array(np.where(aseg_data == label))
 
     # transform data to ras coordinates
     trans = aseg_header.get_vox2ras_tkr()
-    xyz = np.dot(iix, trans[:3, :3].T)+trans[:3, 3]
+    xyz = np.dot(trans[:3, :3], ix).T+trans[:3, 3]
 
     # convert to meters
     xyz /= 1000.
