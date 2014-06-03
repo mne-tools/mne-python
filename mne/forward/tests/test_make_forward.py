@@ -3,6 +3,7 @@ from __future__ import print_function
 import os
 import os.path as op
 from subprocess import CalledProcessError
+import warnings
 
 from nose.tools import assert_raises
 from numpy.testing import (assert_equal, assert_allclose)
@@ -154,10 +155,11 @@ def test_make_forward_solution_kit():
     fwd_py = make_forward_solution(ctf_raw.info, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=fname_mri)
-
-    fwd = do_forward_solution('sample', ctf_raw, src=fname_src,
-                              mindist=0.0, bem=fname_bem, mri=fname_mri,
-                              eeg=False, meg=True, subjects_dir=subjects_dir)
+    with warnings.catch_warnings(record=True):
+        fwd = do_forward_solution('sample', ctf_raw, src=fname_src,
+                                  mindist=0.0, bem=fname_bem, mri=fname_mri,
+                                  eeg=False, meg=True,
+                                  subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, 108)
 
 

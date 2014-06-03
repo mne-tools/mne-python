@@ -41,7 +41,8 @@ tempdir = _TempDir()
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
-    proj_eog = read_proj(eog_fname)
+    with warnings.catch_warnings(record=True) as w:
+        proj_eog = read_proj(eog_fname)
     decim = 6
     for ch_type in ['eeg', 'grad', 'mag']:
         w = read_source_estimate(sensmap_fname % (ch_type, 'lh')).data
