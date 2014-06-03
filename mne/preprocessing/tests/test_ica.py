@@ -221,6 +221,7 @@ def test_ica_additional():
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         ica_badname = op.join(op.dirname(tempdir), 'test-bad-name.fif.gz')
         ica.save(ica_badname)
         read_ica(ica_badname)

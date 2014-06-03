@@ -345,6 +345,7 @@ def test_write_source_space():
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_source_spaces(src_badname, src0)
         read_source_spaces(src_badname)

@@ -99,6 +99,7 @@ def test_io_events():
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         fname2 = op.join(tempdir, 'test-bad-name.fif')
         write_events(fname2, events)
         read_events(fname2)

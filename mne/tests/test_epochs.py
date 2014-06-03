@@ -202,6 +202,7 @@ def test_read_write_epochs():
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         epochs_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         epochs.save(epochs_badname)
         read_epochs(epochs_badname)

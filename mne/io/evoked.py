@@ -886,7 +886,6 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition is None or list)
         The evoked dataset(s).
     """
-
     if not fname.endswith(('-ave.fif', '-ave.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
                       's. All evoked files should end with -ave.fif or'
@@ -979,7 +978,6 @@ def write_evokeds(fname, evoked):
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
     """
-
     if not fname.endswith(('-ave.fif', '-ave.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
                       's. All evoked files should end with -ave.fif or'

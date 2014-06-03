@@ -60,10 +60,11 @@ def test_io_cov():
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         cov_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_cov(cov_badname, cov)
         read_cov(cov_badname)
-    #assert_true(len(w) == 2)
+    assert_true(len(w) == 2)
 
 
 def test_cov_estimation_on_raw_segment():

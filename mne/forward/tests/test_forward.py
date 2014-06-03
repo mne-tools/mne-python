@@ -120,6 +120,7 @@ def test_io_forward():
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
         write_forward_solution(fwd_badname, fwd_meeg)
         read_forward_solution(fwd_badname)

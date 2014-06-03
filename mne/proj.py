@@ -33,7 +33,6 @@ def read_proj(fname):
     projs : list
         The list of projection vectors.
     """
-
     if not fname.endswith(('-proj.fif', '-proj.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
                       's. All projection files should end with -proj.fif or '
@@ -57,7 +56,6 @@ def write_proj(fname, projs):
     projs : list
         The list of projection vectors.
     """
-
     if not fname.endswith(('-proj.fif', '-proj.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
                       's. All projection files should end with -proj.fif or '

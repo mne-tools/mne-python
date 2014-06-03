@@ -383,7 +383,6 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd : dict
         The forward solution.
     """
-
     if not fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
                       's. All forward files should end with -fwd.fif or '
@@ -662,7 +661,6 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-
     if not fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
                       's. All forward files should end with -fwd.fif or '

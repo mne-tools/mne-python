@@ -1494,7 +1494,6 @@ def read_ica(fname):
     ica : instance of ICA
         The ICA estimator.
     """
-
     if not fname.endswith(('-ica.fif', '-ica.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
                       's. All ICA files should end with '

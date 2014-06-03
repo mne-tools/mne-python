@@ -68,7 +68,6 @@ def read_inverse_operator(fname, verbose=None):
     inv : dict
         The inverse operator.
     """
-
     if not fname.endswith(('-inv.fif', '-inv.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
                       's. All inverse operator files should end with '
@@ -307,7 +306,6 @@ def write_inverse_operator(fname, inv, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-
     if not fname.endswith(('-inv.fif', '-inv.fif.gz')):
         warnings.warn('This filename does not conform to mne naming convention'
                       's. All inverse operator files should end with '

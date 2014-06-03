@@ -691,7 +691,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
-
         if not fname.endswith(('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                'raw.fif.gz', 'raw_sss.fif.gz',
                                'raw_tsss.fif.gz')):

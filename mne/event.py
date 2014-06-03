@@ -210,7 +210,6 @@ def read_events(filename, include=None, exclude=None):
     was decimated are no longer valid. Please recompute your events after
     decimation.
     """
-
     if not filename.endswith(('.eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
                               '-eve.txt')):
         warnings.warn('This filename does not conform to mne naming convention'
@@ -263,7 +262,6 @@ def write_events(filename, event_list):
     event_list : array, shape (n_events, 3)
         The list of events
     """
- 
     if not filename.endswith(('.eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
                               '-eve.txt')):
         warnings.warn('This filename does not conform to mne naming convention'

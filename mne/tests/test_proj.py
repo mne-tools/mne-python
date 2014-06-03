@@ -140,6 +140,7 @@ def test_compute_proj_epochs():
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_proj(proj_badname, projs)
         read_proj(proj_badname)

@@ -1266,7 +1266,6 @@ class Epochs(_BaseEpochs):
             The name of the file, which should end with -epo.fif or
             -epo.fif.gz.
         """
-
         if not fname.endswith(('-epo.fif', '-epo.fif.gz')):
             warnings.warn('This filename does not conform to mne naming '
                           'conventions. All epochs files should end with '
@@ -1834,7 +1833,6 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs : instance of Epochs
         The epochs
     """
-
     if not fname.endswith(('-epo.fif', '-epo.fif.gz')):
         warnings.warn('This filename does not conform to mne naming '
                       'conventions. All epochs files should end with '

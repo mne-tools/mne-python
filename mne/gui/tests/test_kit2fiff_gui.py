@@ -17,7 +17,7 @@ mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 sqd_path = os.path.join(kit_data_dir, 'test.sqd')
 hsp_path = os.path.join(kit_data_dir, 'test_hsp.txt')
 fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
-fif_path = os.path.join(kit_data_dir, 'test_bin-raw.fif')
+fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
 tempdir = _TempDir()
 tgt_fname = os.path.join(tempdir, 'test-raw.fif')
