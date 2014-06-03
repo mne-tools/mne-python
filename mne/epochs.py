@@ -38,7 +38,7 @@ from .filter import resample, detrend
 from .event import _read_events_fif
 from .fixes import in1d
 from .viz import _mutable_defaults, plot_epochs
-from .utils import logger, verbose
+from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
 from .utils import deprecated, _check_type_picks
@@ -1266,10 +1266,7 @@ class Epochs(_BaseEpochs):
             The name of the file, which should end with -epo.fif or
             -epo.fif.gz.
         """
-        if not fname.endswith(('-epo.fif', '-epo.fif.gz')):
-            warnings.warn('This filename does not conform to mne naming '
-                          'conventions. All epochs files should end with '
-                          '-epo.fif or -epo.fif.gz.')
+        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
 
         # Create the file and save the essentials
         fid = start_file(fname)
@@ -1833,10 +1830,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs : instance of Epochs
         The epochs
     """
-    if not fname.endswith(('-epo.fif', '-epo.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming '
-                      'conventions. All epochs files should end with '
-                      '-epo.fif or -epo.fif.gz.')
+    check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
 
     epochs = Epochs(None, None, None, None, None)
 

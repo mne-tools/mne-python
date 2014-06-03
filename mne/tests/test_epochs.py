@@ -1138,7 +1138,7 @@ def test_array_epochs():
                          tmin=-.2)
 
     # saving
-    temp_fname = op.join(tempdir, 'epo.fif')
+    temp_fname = op.join(tempdir, 'test-epo.fif')
     epochs.save(temp_fname)
     epochs2 = read_epochs(temp_fname)
     data2 = epochs2.get_data()

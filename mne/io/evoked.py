@@ -20,7 +20,8 @@ from .channels import ContainsMixin, PickDropChannelsMixin
 from ..baseline import rescale
 from ..filter import resample, detrend
 from ..fixes import in1d
-from ..utils import _check_pandas_installed, logger, verbose, deprecated
+from ..utils import (_check_pandas_installed, check_fname, logger, verbose,
+                     deprecated)
 from .write import (start_file, start_block, end_file, end_block,
                     write_int, write_string, write_float_matrix,
                     write_id)
@@ -886,10 +887,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition is None or list)
         The evoked dataset(s).
     """
-    if not fname.endswith(('-ave.fif', '-ave.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All evoked files should end with -ave.fif or'
-                      ' -ave.fif.gz.')
+    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
 
     return_list = True
     if condition is None:
@@ -978,10 +976,7 @@ def write_evokeds(fname, evoked):
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
     """
-    if not fname.endswith(('-ave.fif', '-ave.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All evoked files should end with -ave.fif or'
-                      ' -ave.fif.gz.')
+    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
 
     if not isinstance(evoked, list):
         evoked = [evoked]

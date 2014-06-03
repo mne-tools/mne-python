@@ -9,16 +9,15 @@ import os
 import os.path as op
 from scipy import sparse, linalg
 from copy import deepcopy
-import warnings
 
 from .constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
 from .io.write import (start_block, end_block, write_int,
-                         write_float_sparse_rcs, write_string,
-                         write_float_matrix, write_int_matrix,
-                         write_coord_trans, start_file, end_file, write_id)
+                       write_float_sparse_rcs, write_string,
+                       write_float_matrix, write_int_matrix,
+                       write_coord_trans, start_file, end_file, write_id)
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, read_bem_surfaces,
                       _read_surface_geom, _normalize_vectors,
@@ -26,7 +25,8 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       fast_cross_3d)
 from .source_estimate import mesh_dist
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
-                    has_nibabel, logger, verbose, check_scipy_version)
+                    has_nibabel, check_fname, logger, verbose,
+                    check_scipy_version)
 from .fixes import in1d, partial
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -199,11 +199,7 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     src : SourceSpaces
         The source spaces.
     """
-
-    if not fname.endswith(('-src.fif', '-src.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All source space files should end with '
-                      '-src.fif or -src.fif.gz.')
+    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
@@ -566,11 +562,7 @@ def write_source_spaces(fname, src, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-
-    if not fname.endswith(('-src.fif', '-src.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All source space files should end with '
-                      '-src.fif or -src.fif.gz.')
+    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
 
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)
@@ -1289,7 +1281,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
     idx3 = np.logical_and(idx2, y > minn[1])
     neigh[11, idx3] = k[idx3] - 1 - nrow - nplane
 
-    idx2 = np.logical_and(idx1,  y > minn[1])
+    idx2 = np.logical_and(idx1, y > minn[1])
     neigh[12, idx2] = k[idx2] - nrow - nplane
     idx3 = np.logical_and(idx2, x < maxn[0])
     neigh[13, idx3] = k[idx3] + 1 - nrow - nplane

@@ -38,7 +38,7 @@ from ..viz import plot_ica_panel, plot_ica_topomap
 from ..io.channels import _contains_ch_type
 from ..io.write import start_file, end_file, write_id
 from ..epochs import _is_good
-from ..utils import check_sklearn_version, logger, verbose
+from ..utils import check_sklearn_version, check_fname, logger, verbose
 
 try:
     from sklearn.utils.extmath import fast_dot
@@ -497,10 +497,7 @@ class ICA(object):
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
 
-        if not fname.endswith(('-ica.fif', '-ica.fif.gz')):
-            warnings.warn('This filename does not conform to mne naming '
-                          'conventions. All ICA files should end with '
-                          '-ica.fif or -ica.fif.gz')
+        check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'))
 
         logger.info('Wrting ica session to %s...' % fname)
         fid = start_file(fname)
@@ -1494,10 +1491,7 @@ def read_ica(fname):
     ica : instance of ICA
         The ICA estimator.
     """
-    if not fname.endswith(('-ica.fif', '-ica.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All ICA files should end with '
-                      '-ica.fif or -ica.fif.gz')
+    check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'))
 
     logger.info('Reading %s ...' % fname)
     fid, tree, _ = fiff_open(fname)

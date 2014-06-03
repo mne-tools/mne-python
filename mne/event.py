@@ -9,9 +9,8 @@
 from .externals.six import string_types
 import numpy as np
 from os.path import splitext
-import warnings
 
-from .utils import get_config, logger, verbose
+from .utils import get_config, check_fname, logger, verbose
 from .constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -210,11 +209,8 @@ def read_events(filename, include=None, exclude=None):
     was decimated are no longer valid. Please recompute your events after
     decimation.
     """
-    if not filename.endswith(('.eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
-                              '-eve.txt')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All events files should end with -eve.fif, '
-                      '-eve.fif.gz, .eve, -eve.lst or -eve.txt.')
+    check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
+                                     '-eve.lst', '-eve.txt'))
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
@@ -262,11 +258,8 @@ def write_events(filename, event_list):
     event_list : array, shape (n_events, 3)
         The list of events
     """
-    if not filename.endswith(('.eve', '-eve.fif', '-eve.fif.gz', '-eve.lst',
-                              '-eve.txt')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All events files should end with -eve.fif, '
-                      '-eve.fif.gz, .eve, -eve.lst or -eve.txt.')
+    check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
+                                     '-eve.lst', '-eve.txt'))
 
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':

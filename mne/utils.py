@@ -99,6 +99,25 @@ def sum_squared(X):
     return np.dot(X_flat, X_flat)
 
 
+def check_fname(fname, filetype, endings):
+    """Enforce MNE filename conventions
+
+    Parameters
+    ----------
+    fname : str
+        Name of the file.
+    filetype : str
+        Type of file. e.g., ICA, Epochs etc.
+    endings : tuple
+        Acceptable endings for the filename.
+    """
+    print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
+    if not fname.endswith(endings):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All %s files should end with '
+                      '%s' % (filetype, print_endings))
+
+
 class WrapStdOut(object):
     """Ridiculous class to work around how doctest captures stdout"""
     def __getattr__(self, name):

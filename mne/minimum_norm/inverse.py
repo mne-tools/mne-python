@@ -13,12 +13,12 @@ from ..constants import FIFF
 from ..io.open import fiff_open
 from ..io.tag import find_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
-                           write_named_matrix)
+                         write_named_matrix)
 from ..io.proj import _read_proj, make_projector, _write_proj
 from ..io.tree import dir_tree_find
 from ..io.write import (write_int, write_float_matrix, start_file,
-                          start_block, end_block, end_file, write_float,
-                          write_coord_trans, write_string)
+                        start_block, end_block, end_file, write_float,
+                        write_coord_trans, write_string)
 
 from ..io.cov import read_cov, write_cov
 from ..pick import channel_type, pick_info
@@ -31,7 +31,7 @@ from ..source_space import (read_source_spaces_from_tree,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
 from ..transforms import invert_transform, transform_surface_to
 from ..source_estimate import _make_stc
-from ..utils import logger, verbose
+from ..utils import check_fname, logger, verbose
 from functools import reduce
 
 
@@ -68,10 +68,7 @@ def read_inverse_operator(fname, verbose=None):
     inv : dict
         The inverse operator.
     """
-    if not fname.endswith(('-inv.fif', '-inv.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All inverse operator files should end with '
-                      ' -inv.fif or -inv.fif.gz.')
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
     #
     #   Open the file, create directory
@@ -306,10 +303,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    if not fname.endswith(('-inv.fif', '-inv.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All inverse operator files should end with '
-                      ' -inv.fif or -inv.fif.gz.')
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
     #
     #   Open the file, create directory

@@ -12,10 +12,10 @@ import numpy as np
 from scipy import linalg
 
 from . import io
-from .utils import logger, verbose
+from .utils import check_fname, logger, verbose
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, proj_equal, activate_proj,
-                        _has_eeg_average_ref_proj)
+                      _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .pick import (pick_types, channel_indices_by_type, pick_channels_cov,
                    pick_channels)
@@ -75,10 +75,7 @@ class Covariance(dict):
 
     def save(self, fname):
         """save covariance matrix in a FIF file"""
-        if not fname.endswith(('-cov.fif', '-cov.fif.gz')):
-            warnings.warn('This filename does not conform to mne naming convention'
-                          's. All covariance files should end with -cov.fif or'
-                          ' -cov.fif.gz.')
+        check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
 
         fid = start_file(fname)
 
@@ -169,10 +166,7 @@ def read_cov(fname):
     cov : Covariance
         The noise covariance matrix.
     """
-    if not fname.endswith(('-cov.fif', '-cov.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All covariance files should end with -cov.fif or'
-                      ' -cov.fif.gz.')
+    check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
 
     return Covariance(fname)
 

@@ -4,10 +4,9 @@
 
 import numpy as np
 from scipy import linalg
-import warnings
 
 from . import io, Epochs
-from .utils import logger, verbose
+from .utils import check_fname, logger, verbose
 from .pick import pick_types, pick_types_forward
 from .io.proj import Projection, _has_eeg_average_ref_proj
 from .event import make_fixed_length_events
@@ -33,10 +32,7 @@ def read_proj(fname):
     projs : list
         The list of projection vectors.
     """
-    if not fname.endswith(('-proj.fif', '-proj.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All projection files should end with -proj.fif or '
-                      '-proj.fif.gz.')
+    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
 
     ff, tree, _ = io.fiff_open(fname)
     with ff as fid:
@@ -56,10 +52,7 @@ def write_proj(fname, projs):
     projs : list
         The list of projection vectors.
     """
-    if not fname.endswith(('-proj.fif', '-proj.fif.gz')):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All projection files should end with -proj.fif or '
-                      '-proj.fif.gz.')
+    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
 
     fid = io.write.start_file(fname)
     io.proj._write_proj(fid, projs)
