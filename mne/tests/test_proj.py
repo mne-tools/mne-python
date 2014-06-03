@@ -3,7 +3,8 @@ from nose.tools import assert_true
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_allclose
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_equal)
 
 import copy as cp
 
@@ -42,6 +43,7 @@ def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         proj_eog = read_proj(eog_fname)
     decim = 6
     for ch_type in ['eeg', 'grad', 'mag']:
@@ -145,7 +147,8 @@ def test_compute_proj_epochs():
         proj_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_proj(proj_badname, projs)
         read_proj(proj_badname)
-    assert_true(len(w) == 2)
+        print([ww.message for ww in w])
+    assert_equal(len(w), 2)
 
 
 def test_compute_proj_raw():
@@ -155,6 +158,7 @@ def test_compute_proj_raw():
     raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)
     for ii in (0.25, 0.5, 1, 2):
         with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             projs = compute_proj_raw(raw, duration=ii - 0.1, stop=raw_time,
                                      n_grad=1, n_mag=1, n_eeg=0)
             assert_true(len(w) == 1)
@@ -172,9 +176,10 @@ def test_compute_proj_raw():
 
     # Test that purely continuous (no duration) raw projection works
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         projs = compute_proj_raw(raw, duration=None, stop=raw_time,
                                  n_grad=1, n_mag=1, n_eeg=0)
-        assert_true(len(w) == 1)
+        assert_equal(len(w), 1)
 
     # test that you can compute the projection matrix
     projs = activate_proj(projs)
@@ -192,6 +197,7 @@ def test_compute_proj_raw():
     raw_resamp = cp.deepcopy(raw)
     raw_resamp.resample(raw.info['sfreq'] * 2, n_jobs=2)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         projs = compute_proj_raw(raw_resamp, duration=None, stop=raw_time,
                                  n_grad=1, n_mag=1, n_eeg=0)
     projs = activate_proj(projs)
@@ -201,6 +207,7 @@ def test_compute_proj_raw():
     # test with bads
     raw.load_bad_channels(bads_fname)  # adds 2 bad mag channels
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         projs = compute_proj_raw(raw, n_grad=0, n_mag=0, n_eeg=1)
 
     # test that bad channels can be excluded

@@ -201,7 +201,8 @@ def test_regularize_cov():
 
 def test_evoked_whiten():
     """Test whitening of evoked data"""
-    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0), proj=True)
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
+                          proj=True)
     cov = read_cov(cov_fname)
 
     ###########################################################################

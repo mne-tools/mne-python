@@ -19,6 +19,8 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.externals.six.moves import zip
 
+warnings.simplefilter('always')
+
 # WARNING: test_source_space is imported by forward, so download=False
 # is critical here, otherwise on first import of MNE users will have to
 # download the whole sample dataset!
@@ -289,6 +291,7 @@ def test_setup_source_space():
     src = read_source_spaces(fname_ico)
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
+        warnings.simplefilter('always')
         src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
                                      subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
@@ -297,6 +300,7 @@ def test_setup_source_space():
     src = read_source_spaces(fname)
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
+        warnings.simplefilter('always')
         src_new = setup_source_space('sample', temp_name, spacing='oct6',
                                      subjects_dir=subjects_dir,
                                      overwrite=True)

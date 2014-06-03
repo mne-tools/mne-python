@@ -368,6 +368,7 @@ def test_stc_to_label():
     """Test stc_to_label
     """
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         src = read_source_spaces(src_fname)
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
