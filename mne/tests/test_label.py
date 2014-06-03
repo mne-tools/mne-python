@@ -25,6 +25,8 @@ real_label_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                            'Aud-lh.label')
 real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                               'Aud-rh.label')
+
+# sample dataset should be updated to reflect mne conventions
 src_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
 src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
@@ -461,8 +463,6 @@ def test_grow_labels():
     l0 = l01 + l02
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
-
-
 
 
 @sample.requires_sample_data

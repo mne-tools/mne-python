@@ -94,7 +94,7 @@ def test_make_forward_solution_kit():
     bti_pdf = op.join(bti_dir, 'test_pdf_linux')
     bti_config = op.join(bti_dir, 'test_config_linux')
     bti_hs = op.join(bti_dir, 'test_hs_linux')
-    fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
+    fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
 
     fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                             'data', 'test_ctf_comp_raw.fif')

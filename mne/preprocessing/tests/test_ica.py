@@ -219,6 +219,13 @@ def test_ica_additional():
     assert_raises(RuntimeError, ica.save, '')
     ica.decompose_raw(raw, picks=None, start=start, stop=stop2)
 
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        ica_badname = op.join(op.dirname(tempdir), 'test-bad-name.fif.gz')
+        ica.save(ica_badname)
+        read_ica(ica_badname)
+    assert_true(len(w) == 2)
+
     # test decim
     ica = ICA(n_components=3, max_pca_components=4,
               n_pca_components=4)
@@ -410,13 +417,6 @@ def test_ica_additional():
     for ncomps, expected in [[0.3, 1], [0.9, 4], [1, 1]]:
         ncomps_ = _check_n_pca_components(ica, ncomps)
         assert_true(ncomps_ == expected)
-
-    # test warnings on bad filenames
-    with warnings.catch_warnings(record=True) as w:
-        ica_badname = op.join(tempdir, 'test-bad-name.fif.gz')
-        ica.save(ica_badname)
-        read_ica(ica_badname)
-    assert_true(len(w) == 2)
 
 
 @requires_sklearn

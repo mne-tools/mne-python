@@ -204,7 +204,7 @@ def test_find_layout():
     assert_true(lout.kind == 'EEG')
     # no common layout, 'meg' option not supported
 
-    fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
+    fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
     lout = find_layout(Raw(fname_bti_raw).info)
     assert_true(lout.kind == 'magnesWH3600')
 

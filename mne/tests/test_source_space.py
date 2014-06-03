@@ -77,7 +77,7 @@ def test_add_source_space_distances_limited():
     n_do = 200  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
-    out_name = op.join(tempdir, 'temp.src')
+    out_name = op.join(tempdir, 'temp-src.fif')
     try:
         add_source_space_distances(src_new, dist_limit=0.007)
     except RuntimeError:  # what we throw when scipy version is wrong
@@ -114,7 +114,7 @@ def test_add_source_space_distances():
     n_do = 20  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
-    out_name = op.join(tempdir, 'temp.src')
+    out_name = op.join(tempdir, 'temp-src.fif')
     add_source_space_distances(src_new)
     write_source_spaces(out_name, src_new)
     src_new = read_source_spaces(out_name)

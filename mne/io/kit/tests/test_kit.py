@@ -63,11 +63,11 @@ def test_read_segment():
     """
     raw1 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
                         preload=False)
-    raw1_file = op.join(tempdir, 'raw1.fif')
+    raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
     raw2 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
                         preload=True)
-    raw2_file = op.join(tempdir, 'raw2.fif')
+    raw2_file = op.join(tempdir, 'test2-raw.fif')
     raw2.save(raw2_file, buffer_size_sec=.1, overwrite=True)
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)

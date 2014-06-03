@@ -29,7 +29,7 @@ def test_helmet():
     fname_raw = op.join(base_dir, 'tests', 'data', 'test_raw.fif')
     fname_kit_raw = op.join(base_dir, 'kit', 'tests', 'data', 'test_bin-raw.fif')
     fname_bti_raw = op.join(base_dir, 'bti', 'tests', 'data',
-                            'exported4D_linux.fif')
+                            'exported4D_linux_raw.fif')
     fname_ctf_raw = op.join(base_dir, 'tests', 'data', 'test_ctf_raw.fif')
     fname_trans = op.join(base_dir, 'tests', 'data',
                           'sample-audvis-raw-trans.txt')

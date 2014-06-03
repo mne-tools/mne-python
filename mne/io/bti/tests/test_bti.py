@@ -23,7 +23,7 @@ archs = 'linux', 'solaris'
 pdf_fnames = [op.join(base_dir, 'test_pdf_%s' % a) for a in archs]
 config_fnames = [op.join(base_dir, 'test_config_%s' % a) for a in archs]
 hs_fnames = [op.join(base_dir, 'test_hs_%s' % a) for a in archs]
-exported_fnames = [op.join(base_dir, 'exported4D_%s.fif' % a) for a in archs]
+exported_fnames = [op.join(base_dir, 'exported4D_%s_raw.fif' % a) for a in archs]
 tmp_raw_fname = op.join(base_dir, 'tmp_raw.fif')
 tempdir = _TempDir()
 
