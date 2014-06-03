@@ -76,7 +76,9 @@ def test_volume_stc():
     # save the stc as a nifti file and export
     try:
         import nibabel as nib
-        src = read_source_spaces(fname_vsrc)
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always')
+            src = read_source_spaces(fname_vsrc)
         vol_fname = op.join(tempdir, 'stc.nii.gz')
         stc.save_as_volume(vol_fname, src,
                            dest='surf', mri_resolution=False)

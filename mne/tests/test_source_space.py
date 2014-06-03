@@ -353,7 +353,8 @@ def test_write_source_space():
         src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_source_spaces(src_badname, src0)
         read_source_spaces(src_badname)
-    assert_true(len(w) == 2)
+        print([ww.message for ww in w])
+    assert_equal(len(w), 2)
 
 
 def _compare_source_spaces(src0, src1, mode='exact'):
