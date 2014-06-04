@@ -17,7 +17,6 @@ print(__doc__)
 
 import mne
 from mne import io
-from mne.viz import plot_evoked
 from mne.datasets import sample
 data_path = sample.data_path()
 
@@ -44,4 +43,4 @@ evoked = epochs.average()  # average epochs to get the evoked response
 
 ###############################################################################
 # Show result
-plot_evoked(evoked)
+evoked.plot()

@@ -12,7 +12,6 @@ print(__doc__)
 
 from mne.io import read_evokeds
 from mne.datasets import sample
-from mne.viz import plot_evoked
 
 data_path = sample.data_path()
 
