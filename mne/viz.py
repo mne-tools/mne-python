@@ -1113,7 +1113,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     return fig
 
 
-def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,', 
+def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
                  res=100, axis=None, names=None, show_names=False):
     """Plot a topographic map as image
 
@@ -1217,51 +1217,13 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     return im
 
 
-def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
-                ylim=None, proj=False, xlim='tight', hline=None, units=None,
-                scalings=None, titles=None, axes=None, plot_type="butterfly"):
-    """Plot evoked data
+def _plot_evoked(evoked, picks, exclude, unit, show,
+                 ylim, proj, xlim, hline, units,
+                 scalings, titles, axes, plot_type):
+    """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
-    Note: If bad channels are not excluded they are shown in red.
+    Extra param is:
 
-    Parameters
-    ----------
-    evoked : instance of Evoked
-        The evoked data
-    picks : array-like of int | None
-        The indices of channels to plot. If None show all.
-    exclude : list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
-        bad channels are excluded.
-    unit : bool
-        Scale plot with channel (SI) unit.
-    show : bool
-        Call pyplot.show() as the end or not.
-    ylim : dict | None
-        ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
-        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
-        for each channel equals the pyplot default.
-    xlim : 'tight' | tuple | None
-        xlim for plots.
-    proj : bool | 'interactive'
-        If true SSP projections are applied before display. If 'interactive',
-        a check box for reversible selection of SSP projection vectors will
-        be shown.
-    hline : list of floats | None
-        The values at which to show an horizontal line.
-    units : dict | None
-        The units of the channel types used for axes lables. If None,
-        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
-    scalings : dict | None
-        The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
-    titles : dict | None
-        The titles associated with the channels. If None, defaults to
-        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
-    axes : instance of Axes | list | None
-        The axes to plot to. If list, the list must be a list of Axes of
-        the same length as the number of channel types. If instance of
-        Axes, there must be only one channel type plotted.
     plot_type : str, value ('butterfly' | 'image')
         The type of graph to plot: 'butterfly' plots each channel as a line
         (x axis: time, y axis: amplitude). 'image' plots a 2D image where
@@ -1279,6 +1241,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                                                 ('units', units))
 
     channel_types = set(key for d in [scalings, titles, units] for key in d)
+    channel_types = sorted(channel_types)  # to guarantee consistent order
+
     if picks is None:
         picks = list(range(evoked.info['nchan']))
 
@@ -1372,7 +1336,10 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
             if plot_type == 'butterfly':
                 ax.set_ylabel('data (%s)' % ch_unit)
             elif plot_type == 'image':
-                ax.set_ylabel('channels')
+                ax.set_ylabel('channels (%s)' % ch_unit)
+            else:
+                raise ValueError("plot_type has to be 'butterfly' or 'image'."
+                                 "Got %s." % plot_type)
 
             if (plot_type == 'butterfly') and (hline is not None):
                 for h in hline:
@@ -1394,7 +1361,109 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         fig.canvas.draw()  # for axes plots update axes.
     tight_layout(fig=fig)
 
-    return fig
+
+def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
+                ylim=None, proj=False, xlim='tight', hline=None, units=None,
+                scalings=None, titles=None, axes=None, plot_type="butterfly"):
+    """Plot evoked data
+
+    Note: If bad channels are not excluded they are shown in red.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data
+    picks : array-like of int | None
+        The indices of channels to plot. If None show all.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
+    unit : bool
+        Scale plot with channel (SI) unit.
+    show : bool
+        Call pyplot.show() as the end or not.
+    ylim : dict | None
+        ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
+        for each channel equals the pyplot default.
+    xlim : 'tight' | tuple | None
+        xlim for plots.
+    proj : bool | 'interactive'
+        If true SSP projections are applied before display. If 'interactive',
+        a check box for reversible selection of SSP projection vectors will
+        be shown.
+    hline : list of floats | None
+        The values at which to show an horizontal line.
+    units : dict | None
+        The units of the channel types used for axes lables. If None,
+        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    titles : dict | None
+        The titles associated with the channels. If None, defaults to
+        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
+    axes : instance of Axes | list | None
+        The axes to plot to. If list, the list must be a list of Axes of
+        the same length as the number of channel types. If instance of
+        Axes, there must be only one channel type plotted.
+    """
+    return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
+                        show=show, ylim=ylim, proj=proj, xlim=xlim,
+                        hline=hline, units=units, scalings=scalings,
+                        titles=titles, axes=axes, plot_type="butterfly")
+
+
+def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
+                ylim=None, proj=False, xlim='tight', hline=None, units=None,
+                scalings=None, titles=None, axes=None):
+    """Plot evoked data
+
+    Note: If bad channels are not excluded they are shown in red.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data
+    picks : array-like of int | None
+        The indices of channels to plot. If None show all.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
+    unit : bool
+        Scale plot with channel (SI) unit.
+    show : bool
+        Call pyplot.show() as the end or not.
+    ylim : dict | None
+        ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
+        for each channel equals the pyplot default.
+    xlim : 'tight' | tuple | None
+        xlim for plots.
+    proj : bool | 'interactive'
+        If true SSP projections are applied before display. If 'interactive',
+        a check box for reversible selection of SSP projection vectors will
+        be shown.
+    hline : list of floats | None
+        The values at which to show an horizontal line.
+    units : dict | None
+        The units of the channel types used for axes lables. If None,
+        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    titles : dict | None
+        The titles associated with the channels. If None, defaults to
+        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
+    axes : instance of Axes | list | None
+        The axes to plot to. If list, the list must be a list of Axes of
+        the same length as the number of channel types. If instance of
+        Axes, there must be only one channel type plotted.
+    """
+    return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
+                        show=show, ylim=ylim, proj=proj, xlim=xlim,
+                        hline=hline, units=units, scalings=scalings,
+                        titles=titles, axes=axes, plot_type="image")
 
 
 def _plot_update_evoked(params, bools):
