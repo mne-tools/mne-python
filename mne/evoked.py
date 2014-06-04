@@ -16,6 +16,7 @@ from .utils import (_check_pandas_installed, check_fname, logger, verbose,
                     deprecated)
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
+from .viz import plot_evoked_image
 from .externals.six import string_types
 
 from .io.constants import FIFF
@@ -346,7 +347,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=None, scalings=None,
              titles=None, axes=None):
-        """Plot evoked data
+        """Plot evoked data as butterfly plots
 
         Note: If bad channels are not excluded they are shown in red.
 
@@ -390,6 +391,52 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                            show=show, ylim=ylim, proj=proj, xlim=xlim,
                            hline=hline, units=units, scalings=scalings,
                            titles=titles, axes=axes)
+
+    def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
+                   ylim=None, proj=False, xlim='tight', hline=None, units=None,
+                   scalings=None, titles=None, axes=None):
+        """Plot evoked data as images
+
+        Parameters
+        ----------
+        picks : array-like of int | None
+            The indices of channels to plot. If None show all.
+        exclude : list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the
+            bad channels are excluded.
+        unit : bool
+            Scale plot with channel (SI) unit.
+        show : bool
+            Call pyplot.show() at the end or not.
+        ylim : dict
+            ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+            Valid keys are eeg, mag, grad
+        xlim : 'tight' | tuple | None
+            xlim for plots.
+        proj : bool | 'interactive'
+            If true SSP projections are applied before display. If
+            'interactive', a check box for reversible selection of SSP
+            projection vectors will be shown.
+        hline : list of floats | None
+            The values at which show an horizontal line.
+        units : dict | None
+            The units of the channel types used for axes lables. If None,
+            defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+        scalings : dict | None
+            The scalings of the channel types to be applied for plotting.
+            If None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        titles : dict | None
+            The titles associated with the channels. If None, defaults to
+            `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
+        axes : instance of Axes | list | None
+            The axes to plot to. If list, the list must be a list of Axes of
+            the same length as the number of channel types. If instance of
+            Axes, there must be only one channel type plotted.
+        """
+        return plot_evoked_image(self, picks=picks, exclude=exclude, unit=unit,
+                                 show=show, ylim=ylim, proj=proj, xlim=xlim,
+                                 hline=hline, units=units, scalings=scalings,
+                                 titles=titles, axes=axes)
 
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
