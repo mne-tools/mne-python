@@ -1219,7 +1219,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, proj=False, xlim='tight', hline=None, units=None,
-                scalings=None, titles=None, axes=None):
+                scalings=None, titles=None, axes=None, plot_type="butterfly"):
     """Plot evoked data
 
     Note: If bad channels are not excluded they are shown in red.
@@ -1262,6 +1262,12 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
+    plot_type : str, value ('butterfly' | 'image')
+        The type of graph to plot: 'butterfly' plots each channel as a line 
+        (x axis: time, y axis: amplitude). 'image' plots a 2D image where 
+        color depicts the amplitude of each channel at a given time point 
+        (x axis: time, y axis: channel). In 'image' mode, the plot is not
+        interactive.
     """
     import matplotlib.pyplot as plt
     if axes is not None and proj == 'interactive':
@@ -1330,31 +1336,45 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
             ch_unit = 'NA'  # no unit
         idx = [picks[i] for i in range(len(picks)) if types[i] == t]
         if len(idx) > 0:
-            if any([i in bad_ch_idx for i in idx]):
-                colors = ['k'] * len(idx)
-                for i in bad_ch_idx:
-                    if i in idx:
-                        colors[idx.index(i)] = 'r'
+            # Parameters for butterfly interactive plots
+            if plot_type == 'butterfly':
+                if any([i in bad_ch_idx for i in idx]):
+                    colors = ['k'] * len(idx)
+                    for i in bad_ch_idx:
+                        if i in idx:
+                            colors[idx.index(i)] = 'r'
 
-                ax._get_lines.color_cycle = iter(colors)
-            else:
-                ax._get_lines.color_cycle = cycle(['k'])
-
+                    ax._get_lines.color_cycle = iter(colors)
+                else:
+                    ax._get_lines.color_cycle = cycle(['k'])
+            # Set amplitude scaling
             D = this_scaling * evoked.data[idx, :]
             # plt.axes(ax)
-            ax.plot(times, D.T)
+            if plot_type == 'butterfly':
+                ax.plot(times, D.T)
+            elif plot_type == 'image':
+                im = ax.imshow(D, interpolation='nearest', origin='lower',
+                               extent=[times[0], times[-1], 0, D.shape[0]], 
+                               aspect='auto')
+                plt.colorbar(im, ax=ax)
             if xlim is not None:
                 if xlim == 'tight':
                     xlim = (times[0], times[-1])
                 ax.set_xlim(xlim)
             if ylim is not None and t in ylim:
-                ax.set_ylim(ylim[t])
+                if plot_type == 'butterfly':
+                    ax.set_ylim(ylim[t])
+                elif plot_type == 'image':
+                    im.set_clim(ylim[t])
             ax.set_title(titles[t] + ' (%d channel%s)' % (
                          len(D), 's' if len(D) > 1 else ''))
             ax.set_xlabel('time (ms)')
-            ax.set_ylabel('data (%s)' % ch_unit)
+            if plot_type == 'butterfly':
+                ax.set_ylabel('data (%s)' % ch_unit)
+            elif plot_type == 'image':
+                ax.set_ylabel('channels')
 
-            if hline is not None:
+            if (plot_type == 'butterfly') and (hline is not None):
                 for h in hline:
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
 
