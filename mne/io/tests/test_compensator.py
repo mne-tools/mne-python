@@ -53,7 +53,7 @@ def test_compensation_mne():
         return evoked
 
     def compensate_mne(fname, comp):
-        tmp_fname = '%s-%d.fif' % (fname[:-4], comp)
+        tmp_fname = '%s-%d-ave.fif' % (fname[:-4], comp)
         cmd = ['mne_compensate_data', '--in', fname,
                '--out', tmp_fname, '--grad', str(comp)]
         run_subprocess(cmd)

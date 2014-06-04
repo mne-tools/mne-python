@@ -3,7 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
@@ -12,7 +11,7 @@ from .constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import logger
+from .utils import check_fname, logger
 from .externals.six import string_types
 
 
@@ -281,9 +280,8 @@ def write_trans(fname, trans):
     trans : dict
         Trans file data, as returned by read_trans.
     """
-    if not fname[-10:] == '-trans.fif':
-        warnings.warn("This filename does not conform to mne naming "
-                      "conventions. All trans files should end in -trans.fif.")
+    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
+
     fid = start_file(fname)
     write_coord_trans(fid, trans)
     end_file(fid)

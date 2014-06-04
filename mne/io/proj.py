@@ -181,7 +181,7 @@ def proj_equal(a, b):
 
 
 @verbose
-def read_proj(fid, node, verbose=None):
+def _read_proj(fid, node, verbose=None):
     """Read spatial projections from a FIF file.
 
     Parameters
@@ -302,7 +302,7 @@ from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 
 
-def write_proj(fid, projs):
+def _write_proj(fid, projs):
     """Write a projection operator to a file.
 
     Parameters

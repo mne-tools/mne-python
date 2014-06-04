@@ -57,7 +57,7 @@ def test_event_ordering():
     np.random.shuffle(events2)
     for ii, eve in enumerate([events, events2]):
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always', RuntimeWarning)
+            warnings.simplefilter('always')
             Epochs(raw, eve, event_id, tmin, tmax,
                    baseline=(None, 0), reject=reject, flat=flat)
             assert_equal(len(w), ii)
@@ -134,6 +134,7 @@ def test_read_write_epochs():
 
     # test decim kwarg
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         epochs_dec = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             baseline=(None, 0), decim=4)
         assert_equal(len(w), 1)
@@ -200,6 +201,14 @@ def test_read_write_epochs():
     # Test that one can drop channels on read file
     epochs_read5.drop_channels(epochs_read5.ch_names[:1])
 
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        epochs_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        epochs.save(epochs_badname)
+        read_epochs(epochs_badname)
+    assert_true(len(w) == 2)
+
 
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
@@ -262,28 +271,31 @@ def test_evoked_io_from_epochs():
     """
     # offset our tmin so we don't get exactly a zero value when decimating
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         epochs = Epochs(raw, events[:4], event_id, tmin + 0.011, tmax,
                         picks=picks, baseline=(None, 0), decim=5)
     assert_true(len(w) == 1)
     evoked = epochs.average()
-    evoked.save(op.join(tempdir, 'evoked.fif'))
-    evoked2 = read_evokeds(op.join(tempdir, 'evoked.fif'))[0]
+    evoked.save(op.join(tempdir, 'evoked-ave.fif'))
+    evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4,
                     atol=1 / evoked.info['sfreq'])
 
     # now let's do one with negative time
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         epochs = Epochs(raw, events[:4], event_id, 0.1, tmax,
                         picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
-    evoked.save(op.join(tempdir, 'evoked.fif'))
-    evoked2 = read_evokeds(op.join(tempdir, 'evoked.fif'))[0]
+    evoked.save(op.join(tempdir, 'evoked-ave.fif'))
+    evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
     assert_allclose(evoked.data, evoked2.data, rtol=1e-4, atol=1e-20)
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
     # should be equivalent to a cropped original
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         epochs = Epochs(raw, events[:4], event_id, -0.2, tmax,
                         picks=picks, baseline=(0.1, 0.2), decim=5)
     evoked = epochs.average()
@@ -298,10 +310,10 @@ def test_evoked_standard_error():
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = [epochs.average(), epochs.standard_error()]
-    io.write_evokeds(op.join(tempdir, 'evoked.fif'), evoked)
-    evoked2 = read_evokeds(op.join(tempdir, 'evoked.fif'), [0, 1])
-    evoked3 = [read_evokeds(op.join(tempdir, 'evoked.fif'), 'Unknown'),
-               read_evokeds(op.join(tempdir, 'evoked.fif'), 'Unknown',
+    io.write_evokeds(op.join(tempdir, 'evoked-ave.fif'), evoked)
+    evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), [0, 1])
+    evoked3 = [read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown'),
+               read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown',
                             kind='standard_error')]
     for evoked_new in [evoked2, evoked3]:
         assert_true(evoked_new[0]._aspect_kind ==
@@ -1130,7 +1142,7 @@ def test_array_epochs():
                          tmin=-.2)
 
     # saving
-    temp_fname = op.join(tempdir, 'epo.fif')
+    temp_fname = op.join(tempdir, 'test-epo.fif')
     epochs.save(temp_fname)
     epochs2 = read_epochs(temp_fname)
     data2 = epochs2.get_data()

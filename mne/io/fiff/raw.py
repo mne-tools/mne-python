@@ -21,7 +21,7 @@ from ..proj import proj_equal
 from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw
 
-from ...utils import logger, verbose
+from ...utils import check_fname, logger, verbose
 from ...externals.six import string_types
 
 
@@ -32,7 +32,8 @@ class RawFIFF(_BaseRaw):
     ----------
     fnames : list, or string
         A list of the raw files to treat as a Raw instance, or a single
-        raw file.
+        raw file. Filenames should end with raw.fif, raw.fif.gz, raw_sss.fif,
+        raw_sss.fif.gz, raw_tsss.fif or raw_tsss.fif.gz.
     allow_maxshield : bool, (default False)
         allow_maxshield if True, allow loading of data that has been
         processed with Maxshield. Maxshield-processed data should generally
@@ -130,6 +131,10 @@ class RawFIFF(_BaseRaw):
                        verbose=None):
         """Read in header information from a raw file"""
         logger.info('Opening raw data file %s...' % fname)
+
+        check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
+                                   'raw.fif.gz', 'raw_sss.fif.gz',
+                                   'raw_tsss.fif.gz'))
 
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         ext = os.path.splitext(fname)[1].lower()

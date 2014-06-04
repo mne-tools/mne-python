@@ -10,7 +10,7 @@ from .externals.six import string_types
 import numpy as np
 from os.path import splitext
 
-from .utils import get_config, logger, verbose
+from .utils import get_config, check_fname, logger, verbose
 from .constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -209,6 +209,9 @@ def read_events(filename, include=None, exclude=None):
     was decimated are no longer valid. Please recompute your events after
     decimation.
     """
+    check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
+                                     '-eve.lst', '-eve.txt'))
+
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
@@ -255,6 +258,9 @@ def write_events(filename, event_list):
     event_list : array, shape (n_events, 3)
         The list of events
     """
+    check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
+                                     '-eve.lst', '-eve.txt'))
+
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         #   Start writing...

@@ -38,7 +38,7 @@ from .filter import resample, detrend
 from .event import _read_events_fif
 from .fixes import in1d
 from .viz import _mutable_defaults, plot_epochs
-from .utils import logger, verbose
+from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
 from .utils import deprecated, _check_type_picks
@@ -1263,8 +1263,11 @@ class Epochs(_BaseEpochs):
         Parameters
         ----------
         fname : str
-            The name of the file.
+            The name of the file, which should end with -epo.fif or
+            -epo.fif.gz.
         """
+        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+
         # Create the file and save the essentials
         fid = start_file(fname)
 
@@ -1803,7 +1806,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     Parameters
     ----------
     fname : str
-        The name of the file.
+        The name of the file, which should end with -epo.fif or -epo.fif.gz.
     proj : bool | 'delayed'
         Apply SSP projection vectors. If proj is 'delayed' and reject is not
         None the single epochs will be projected before the rejection
@@ -1827,6 +1830,8 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs : instance of Epochs
         The epochs
     """
+    check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+
     epochs = Epochs(None, None, None, None, None)
 
     logger.info('Reading %s ...' % fname)

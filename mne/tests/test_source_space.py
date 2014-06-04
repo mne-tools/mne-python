@@ -19,6 +19,8 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.externals.six.moves import zip
 
+warnings.simplefilter('always')
+
 # WARNING: test_source_space is imported by forward, so download=False
 # is critical here, otherwise on first import of MNE users will have to
 # download the whole sample dataset!
@@ -77,7 +79,7 @@ def test_add_source_space_distances_limited():
     n_do = 200  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
-    out_name = op.join(tempdir, 'temp.src')
+    out_name = op.join(tempdir, 'temp-src.fif')
     try:
         add_source_space_distances(src_new, dist_limit=0.007)
     except RuntimeError:  # what we throw when scipy version is wrong
@@ -114,7 +116,7 @@ def test_add_source_space_distances():
     n_do = 20  # limit this for speed
     src_new[0]['vertno'] = src_new[0]['vertno'][:n_do].copy()
     src_new[1]['vertno'] = src_new[1]['vertno'][:n_do].copy()
-    out_name = op.join(tempdir, 'temp.src')
+    out_name = op.join(tempdir, 'temp-src.fif')
     add_source_space_distances(src_new)
     write_source_spaces(out_name, src_new)
     src_new = read_source_spaces(out_name)
@@ -289,6 +291,7 @@ def test_setup_source_space():
     src = read_source_spaces(fname_ico)
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
+        warnings.simplefilter('always')
         src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
                                      subjects_dir=subjects_dir)
     _compare_source_spaces(src, src_new, mode='approx')
@@ -297,6 +300,7 @@ def test_setup_source_space():
     src = read_source_spaces(fname)
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
+        warnings.simplefilter('always')
         src_new = setup_source_space('sample', temp_name, spacing='oct6',
                                      subjects_dir=subjects_dir,
                                      overwrite=True)
@@ -339,9 +343,18 @@ def test_write_source_space():
     """Test writing and reading of source spaces
     """
     src0 = read_source_spaces(fname, add_geom=False)
-    write_source_spaces(op.join(tempdir, 'tmp.fif'), src0)
-    src1 = read_source_spaces(op.join(tempdir, 'tmp.fif'), add_geom=False)
+    write_source_spaces(op.join(tempdir, 'tmp-src.fif'), src0)
+    src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'), add_geom=False)
     _compare_source_spaces(src0, src1)
+
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        write_source_spaces(src_badname, src0)
+        read_source_spaces(src_badname)
+        print([ww.message for ww in w])
+    assert_equal(len(w), 2)
 
 
 def _compare_source_spaces(src0, src1, mode='exact'):

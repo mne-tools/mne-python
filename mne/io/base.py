@@ -32,7 +32,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
-                     logger, verbose)
+                     check_fname, logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
@@ -644,7 +644,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         ----------
         fname : string
             File name of the new dataset. This has to be a new filename
-            unless data have been preloaded.
+            unless data have been preloaded. Filenames should end with
+            raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif
+            or raw_tsss.fif.gz.
         picks : array-like of int | None
             Indices of channels to include. If None all channels are kept.
         tmin : float | None
@@ -689,6 +691,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
+        check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
+                                   'raw.fif.gz', 'raw_sss.fif.gz',
+                                   'raw_tsss.fif.gz'))
+
         fname = op.realpath(fname)
         if not self._preloaded and fname in self._filenames:
             raise ValueError('You cannot save data to the same file.'

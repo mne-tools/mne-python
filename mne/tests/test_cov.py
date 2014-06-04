@@ -12,7 +12,7 @@ from scipy import linalg
 import warnings
 
 from mne.cov import regularize, whiten_evoked
-from mne import (read_cov, Epochs, merge_events,
+from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
                  compute_covariance)
 from mne import pick_channels_cov, pick_channels, pick_types
@@ -36,27 +36,35 @@ def test_io_cov():
     """Test IO for noise covariance matrices
     """
     cov = read_cov(cov_fname)
-    cov.save(op.join(tempdir, 'cov.fif'))
-    cov2 = read_cov(op.join(tempdir, 'cov.fif'))
+    cov.save(op.join(tempdir, 'test-cov.fif'))
+    cov2 = read_cov(op.join(tempdir, 'test-cov.fif'))
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(op.join(tempdir, 'cov.fif.gz'))
-    cov2 = read_cov(op.join(tempdir, 'cov.fif.gz'))
+    cov2.save(op.join(tempdir, 'test-cov.fif.gz'))
+    cov2 = read_cov(op.join(tempdir, 'test-cov.fif.gz'))
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov['bads'] = ['EEG 039']
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
     assert_true(cov_sel['dim'] == (len(cov['data']) - len(cov['bads'])))
     assert_true(cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim']))
-    cov_sel.save(op.join(tempdir, 'cov.fif'))
+    cov_sel.save(op.join(tempdir, 'test-cov.fif'))
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(op.join(tempdir, 'cov.fif.gz'))
-    cov2 = read_cov(op.join(tempdir, 'cov.fif.gz'))
+    cov2.save(op.join(tempdir, 'test-cov.fif.gz'))
+    cov2 = read_cov(op.join(tempdir, 'test-cov.fif.gz'))
     assert_array_almost_equal(cov.data, cov2.data)
+
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        cov_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        write_cov(cov_badname, cov)
+        read_cov(cov_badname)
+    assert_true(len(w) == 2)
 
 
 def test_cov_estimation_on_raw_segment():
@@ -193,7 +201,8 @@ def test_regularize_cov():
 
 def test_evoked_whiten():
     """Test whitening of evoked data"""
-    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0), proj=True)
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
+                          proj=True)
     cov = read_cov(cov_fname)
 
     ###########################################################################

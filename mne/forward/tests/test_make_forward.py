@@ -3,6 +3,7 @@ from __future__ import print_function
 import os
 import os.path as op
 from subprocess import CalledProcessError
+import warnings
 
 from nose.tools import assert_raises
 from numpy.testing import (assert_equal, assert_allclose)
@@ -87,14 +88,14 @@ def test_make_forward_solution_kit():
     elp_path = op.join(kit_dir, 'test_elp.txt')
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
     mri_path = op.join(kit_dir, 'trans-sample.fif')
-    fname_kit_raw = op.join(kit_dir, 'test_bin.fif')
+    fname_kit_raw = op.join(kit_dir, 'test_bin_raw.fif')
 
     bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
                       'tests', 'data')
     bti_pdf = op.join(bti_dir, 'test_pdf_linux')
     bti_config = op.join(bti_dir, 'test_config_linux')
     bti_hs = op.join(bti_dir, 'test_hs_linux')
-    fname_bti_raw = op.join(bti_dir, 'exported4D_linux.fif')
+    fname_bti_raw = op.join(bti_dir, 'exported4D_linux_raw.fif')
 
     fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                             'data', 'test_ctf_comp_raw.fif')
@@ -154,10 +155,11 @@ def test_make_forward_solution_kit():
     fwd_py = make_forward_solution(ctf_raw.info, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=fname_mri)
-
-    fwd = do_forward_solution('sample', ctf_raw, src=fname_src,
-                              mindist=0.0, bem=fname_bem, mri=fname_mri,
-                              eeg=False, meg=True, subjects_dir=subjects_dir)
+    with warnings.catch_warnings(record=True):
+        fwd = do_forward_solution('sample', ctf_raw, src=fname_src,
+                                  mindist=0.0, bem=fname_bem, mri=fname_mri,
+                                  eeg=False, meg=True,
+                                  subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, 108)
 
 

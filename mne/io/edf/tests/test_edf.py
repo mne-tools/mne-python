@@ -81,7 +81,7 @@ def test_read_segment():
     """Test writing raw edf files when preload is False
     """
     raw1 = read_raw_edf(edf_path, stim_channel=139, preload=False)
-    raw1_file = op.join(tempdir, 'raw1.fif')
+    raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
     raw11 = Raw(raw1_file, preload=True)
     data1, times1 = raw1[:139, :]
@@ -91,7 +91,7 @@ def test_read_segment():
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
     raw2 = read_raw_edf(edf_path, stim_channel=139, preload=True)
-    raw2_file = op.join(tempdir, 'raw2.fif')
+    raw2_file = op.join(tempdir, 'test2-raw.fif')
     raw2.save(raw2_file, overwrite=True)
     data2, times2 = raw2[:139, :]
     assert_array_equal(data1, data2)
@@ -182,7 +182,7 @@ def test_write_annotations():
     """Test writing raw files when annotations were parsed.
     """
     raw1 = read_raw_edf(edf_path, tal_channel=-1, preload=True)
-    raw1_file = op.join(tempdir, 'raw1.fif')
+    raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
     raw11 = Raw(raw1_file, preload=True)
     data1, times1 = raw1[:, :]

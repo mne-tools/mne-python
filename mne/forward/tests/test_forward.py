@@ -83,7 +83,7 @@ def test_io_forward():
     leadfield = fwd_meeg['sol']['data']
     assert_equal(leadfield.shape, (366, 22494))
     assert_equal(len(fwd_meeg['sol']['row_names']), 366)
-    fname_temp = op.join(temp_dir, 'fwd.fif')
+    fname_temp = op.join(temp_dir, 'test-fwd.fif')
     write_forward_solution(fname_temp, fwd_meeg, overwrite=True)
 
     fwd_meeg = read_forward_solution(fname_temp)
@@ -96,7 +96,7 @@ def test_io_forward():
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (306, 22494))
     assert_equal(len(fwd['sol']['row_names']), 306)
-    fname_temp = op.join(temp_dir, 'fwd.fif')
+    fname_temp = op.join(temp_dir, 'test-fwd.fif')
     write_forward_solution(fname_temp, fwd, overwrite=True)
 
     fwd = read_forward_solution(fname, surf_ori=True)
@@ -117,6 +117,14 @@ def test_io_forward():
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])
+
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
+        write_forward_solution(fwd_badname, fwd_meeg)
+        read_forward_solution(fwd_badname)
+    assert_true(len(w) == 2)
 
 
 @sample.requires_sample_data
@@ -282,7 +290,7 @@ def test_average_forward_solution():
 
     # modify a fwd solution, save it, use MNE to average with old one
     fwd_copy['sol']['data'] *= 0.5
-    fname_copy = op.join(temp_dir, 'fwd.fif')
+    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
     cmd = ('mne_average_forward_solutions', '--fwd', fname, '--fwd',
            fname_copy, '--out', fname_copy)

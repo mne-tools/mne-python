@@ -24,12 +24,12 @@ from ..io.tree import dir_tree_find
 from ..io.channels import read_bad_channels
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
-                           write_named_matrix)
+                         write_named_matrix)
 from ..pick import (pick_channels_forward, pick_info, pick_channels,
-                         pick_types)
+                    pick_types)
 from ..io.write import (write_int, start_block, end_block,
-                          write_coord_trans, write_ch_info, write_name_list,
-                          write_string, start_file, end_file, write_id)
+                        write_coord_trans, write_ch_info, write_name_list,
+                        write_string, start_file, end_file, write_id)
 from ..io.base import _BaseRaw
 from ..io.evoked import Evoked, write_evokeds
 from ..epochs import Epochs
@@ -39,7 +39,7 @@ from ..source_space import (read_source_spaces_from_tree,
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_command_line_tools,
-                     run_subprocess, logger, verbose)
+                     run_subprocess, check_fname, logger, verbose)
 
 
 def prepare_bem_model(bem, sol_fname=None, method='linear'):
@@ -363,7 +363,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     Parameters
     ----------
     fname : string
-        The file name.
+        The file name, which should end with -fwd.fif or -fwd.fif.gz.
     force_fixed : bool, optional (default False)
         Force fixed source orientation mode?
     surf_ori : bool, optional (default False)
@@ -383,6 +383,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd : dict
         The forward solution.
     """
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
     #   Open the file, create directory
     logger.info('Reading forward solution from %s...' % fname)
@@ -648,7 +649,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     Parameters
     ----------
     fname : str
-        File name to save the forward solution to.
+        File name to save the forward solution to. It should end with -fwd.fif
+        or -fwd.fif.gz.
     fwd : dict
         Forward solution.
     overwrite : bool
@@ -656,6 +658,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+    check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
+
     # check for file existence
     _check_fname(fname, overwrite)
     fid = start_file(fname)

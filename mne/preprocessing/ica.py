@@ -25,10 +25,10 @@ from .eog import _find_eog_events
 from ..cov import compute_whitener
 from .. import Covariance
 from ..pick import (pick_types, pick_channels, pick_info,
-                         channel_indices_by_type)
+                    channel_indices_by_type)
 from ..io.write import (write_double_matrix, write_string,
-                          write_name_list, write_int, start_block,
-                          end_block)
+                        write_name_list, write_int, start_block,
+                        end_block)
 from ..io.tree import dir_tree_find
 from ..io.open import fiff_open
 from ..io.tag import read_tag
@@ -38,7 +38,7 @@ from ..viz import plot_ica_panel, plot_ica_topomap
 from ..io.channels import _contains_ch_type
 from ..io.write import start_file, end_file, write_id
 from ..epochs import _is_good
-from ..utils import check_sklearn_version, logger, verbose
+from ..utils import check_sklearn_version, check_fname, logger, verbose
 
 try:
     from sklearn.utils.extmath import fast_dot
@@ -491,10 +491,13 @@ class ICA(object):
         ----------
         fname : str
             The absolute path of the file name to save the ICA session into.
+            The file name should end with -ica.fif or -ica.fif.gz.
         """
         if self.current_fit == 'unfitted':
             raise RuntimeError('No fit available. Please first fit ICA '
                                'decomposition.')
+
+        check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'))
 
         logger.info('Wrting ica session to %s...' % fname)
         fid = start_file(fname)
@@ -1481,12 +1484,14 @@ def read_ica(fname):
     ----------
     fname : str
         Absolute path to fif file containing ICA matrices.
+        The file name should end with -ica.fif or -ica.fif.gz.
 
     Returns
     -------
     ica : instance of ICA
         The ICA estimator.
     """
+    check_fname(fname, 'ICA', ('-ica.fif', '-ica.fif.gz'))
 
     logger.info('Reading %s ...' % fname)
     fid, tree, _ = fiff_open(fname)
