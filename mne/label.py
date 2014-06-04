@@ -155,13 +155,6 @@ class Label(object):
         Name of the subject the label is from.
     color : None | matplotlib color
         Default label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
-    src : None | SourceSpaces
-        Source space in which the label was defined (default is None). If a
-        source space is provided, the label is expanded to fill in surface
-        vertices that lie between the vertices included in the source space.
-        For the added vertices, ``pos`` is filled in with positions from the
-        source space, and ``values`` is filled in from the closest source space
-        vertex.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -190,7 +183,7 @@ class Label(object):
     """
     @verbose
     def __init__(self, vertices, pos=None, values=None, hemi=None, comment="",
-                 name=None, filename=None, subject=None, color=None, src=None,
+                 name=None, filename=None, subject=None, color=None,
                  verbose=None):
         # check parameters
         if not isinstance(hemi, string_types):
@@ -199,56 +192,18 @@ class Label(object):
         if np.any(np.diff(vertices.astype(int)) <= 0):
             raise ValueError('Vertices must be ordered in increasing order.')
 
-        if src is not None:
-            src_vertices = vertices
-
-            # find source space patch info
-            if hemi == 'lh':
-                hemi_src = src[0]
-            elif hemi == 'rh':
-                hemi_src = src[1]
-
-            if not np.all(in1d(src_vertices, hemi_src['vertno'])):
-                raise ValueError("Source space does not contain all vertices")
-
-            nearest = hemi_src['nearest']
-            if nearest is None:
-                msg = ("Computing patch info for source space, this can take "
-                       "a while. In order to avoid this in the future, run "
-                       "mne.add_source_space_distances() on the source space "
-                       "and save it.")
-                logger.warn(msg)
-                add_source_space_distances(src)
-                nearest = hemi_src['nearest']
-
-            # find new vertices
-            include = in1d(nearest, src_vertices, False)
-            vertices = np.nonzero(include)[0]
-
-            # update values and pos
-            if values is not None:
-                src_values = values
-                nearest_in_label = np.digitize(nearest[vertices], src_vertices,
-                                               True)
-                values = src_values[nearest_in_label]
-            if pos is not None:
-                old_value_index = in1d(vertices, src_vertices)
-                src_pos = pos
-                pos = hemi_src['rr'][vertices]
-                pos[old_value_index] = src_pos
-
         if color is not None:
             from matplotlib.colors import colorConverter
             color = colorConverter.to_rgba(color)
 
         if values is None:
             values = np.ones(len(vertices))
-        elif src is None:
+        else:
             values = np.asarray(values)
 
         if pos is None:
             pos = np.zeros((len(vertices), 3))
-        elif src is None:
+        else:
             pos = np.asarray(pos)
 
         if not (len(vertices) == len(values) == len(pos)):
@@ -420,10 +375,40 @@ class Label(object):
             The label covering the same vertices in source space but also
             including intermediate surface vertices.
         """
+        # find source space patch info
+        if self.hemi == 'lh':
+            hemi_src = src[0]
+        elif self.hemi == 'rh':
+            hemi_src = src[1]
+
+        if not np.all(in1d(self.vertices, hemi_src['vertno'])):
+            msg = "Source space does not contain all of the label's vertices"
+            raise ValueError(msg)
+
+        nearest = hemi_src['nearest']
+        if nearest is None:
+            msg = ("Computing patch info for source space, this can take "
+                   "a while. In order to avoid this in the future, run "
+                   "mne.add_source_space_distances() on the source space "
+                   "and save it.")
+            logger.warn(msg)
+            add_source_space_distances(src)
+            nearest = hemi_src['nearest']
+
+        # find new vertices
+        include = in1d(nearest, self.vertices, False)
+        vertices = np.nonzero(include)[0]
+
+        # values
+        nearest_in_label = np.digitize(nearest[vertices], self.vertices, True)
+        values = self.values[nearest_in_label]
+        # pos
+        pos = hemi_src['rr'][vertices]
+
         if name is None:
             name = self.name
-        label = Label(self.vertices, self.pos, self.values, self.hemi,
-                      self.comment, name, None, self.subject, self.color, src)
+        label = Label(vertices, pos, values, self.hemi, self.comment, name,
+                      None, self.subject, self.color)
         return label
 
     @verbose
@@ -1122,7 +1107,7 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
                 if smooth == 'patch':
                     label = Label(idx_use, this_rr[idx_use], None, hemi,
                                   'Label from stc', subject=subject,
-                                  color=color, src=src)
+                                  color=color).fill(src)
                 else:
                     for k in range(smooth):
                         e_use = e[:, idx_use]

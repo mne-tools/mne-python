@@ -48,8 +48,8 @@ Changelog
    - Add `rename_channels` function to change channel names and types in info object by `Dan Wakeman`_ and `Denis Engemann`_
 
    - Add  `compute_ems` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
-   
-   - Add option to expand Labels defined in source space to the original surface in the Label constructor by `Christian Brodbeck`_ 
+
+   - Add option to expand Labels defined in a source space to the original surface (`Label.fill()`) by `Christian Brodbeck`_ 
 
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
@@ -97,7 +97,7 @@ API
    - Deprecate Epochs.drop_picks in favor of a new method called drop_channels
 
    - Deprecate `labels_from_parc` and `parc_from_labels` in favor of `read_annot` and `write_annot`
-   
+
    - The default of the new add_dist option of `setup_source_space` to add patch information will change from False to True in MNE-Python 0.9
 
    - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`.

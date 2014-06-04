@@ -122,8 +122,8 @@ def test_label_in_src():
     where = np.in1d(label.vertices, vert_in_src)
     pos_in_src = label.pos[where]
     values_in_src = label.values[where]
-    label_src = Label(vert_in_src, pos_in_src, values_in_src, hemi='lh',
-                      src=src)
+    label_src = Label(vert_in_src, pos_in_src, values_in_src,
+                      hemi='lh').fill(src)
 
     # check label vertices
     vertices_status = np.in1d(src[0]['nearest'], label.vertices)
@@ -142,8 +142,8 @@ def test_label_in_src():
     assert_labels_equal(label_src, label_src2)
 
     # test exception
-    vertices = np.append(vert_in_src, [-1])
-    assert_raises(ValueError, Label, vertices, hemi='lh', src=src)
+    vertices = np.append([-1], vert_in_src)
+    assert_raises(ValueError, Label(vertices, hemi='lh').fill, src)
 
 
 @sample.requires_sample_data
