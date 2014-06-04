@@ -251,6 +251,7 @@ Visualization
    plot_cov
    plot_drop_log
    plot_evoked
+   plot_evoked_image
    plot_evoked_topomap
    plot_evoked_field
    plot_ica_panel
