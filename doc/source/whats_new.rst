@@ -71,6 +71,9 @@ Changelog
    to read FieldTrip neighbor template .mat files and compute between
    sensor adjacency matrices by `Denis Engemann`_
 
+   - Add `plot_image` method to Evoked object to display data as images by `JR King`_ and `Alex Gramfort`_
+
+
 BUG
 ~~~
 
@@ -707,3 +710,5 @@ of commits):
 .. _Federico Raimondo: https://github.com/fraimondo
 
 .. _Cathy Nangini: https://github.com/KatiRG
+
+.. _JR King: https://github.com/kingjr
