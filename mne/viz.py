@@ -1415,11 +1415,9 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
 
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
-                ylim=None, proj=False, xlim='tight', hline=None, units=None,
-                scalings=None, titles=None, axes=None):
-    """Plot evoked data
-
-    Note: If bad channels are not excluded they are shown in red.
+                      clim=None, proj=False, xlim='tight', units=None,
+                      scalings=None, titles=None, axes=None):
+    """Plot evoked data as images
 
     Parameters
     ----------
@@ -1434,9 +1432,9 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Scale plot with channel (SI) unit.
     show : bool
         Call pyplot.show() as the end or not.
-    ylim : dict | None
-        ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
-        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
+    clim : dict | None
+        clim for plots. e.g. clim = dict(eeg=[-200e-6, 200e6])
+        Valid keys are eeg, mag, grad, misc. If None, the clim parameter
         for each channel equals the pyplot default.
     xlim : 'tight' | tuple | None
         xlim for plots.
@@ -1444,8 +1442,6 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    hline : list of floats | None
-        The values at which to show an horizontal line.
     units : dict | None
         The units of the channel types used for axes lables. If None,
         defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
@@ -1461,8 +1457,8 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         Axes, there must be only one channel type plotted.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
-                        show=show, ylim=ylim, proj=proj, xlim=xlim,
-                        hline=hline, units=units, scalings=scalings,
+                        show=show, ylim=clim, proj=proj, xlim=xlim,
+                        hline=None, units=units, scalings=scalings,
                         titles=titles, axes=axes, plot_type="image")
 
 
