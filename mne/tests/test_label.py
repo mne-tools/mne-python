@@ -136,11 +136,6 @@ def test_label_in_src():
     value_idx = np.digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
     assert_array_equal(label_src.values, values_in_src[value_idx])
 
-    # use Label.fill()
-    label_ = Label(vert_in_src, pos_in_src, values_in_src, hemi='lh')
-    label_src2 = label_.fill(src)
-    assert_labels_equal(label_src, label_src2)
-
     # test exception
     vertices = np.append([-1], vert_in_src)
     assert_raises(ValueError, Label(vertices, hemi='lh').fill, src)
