@@ -408,7 +408,7 @@ def test_stc_to_label():
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
         warnings.simplefilter('always')
         labels2 = stc_to_label(stc, src=src, smooth=3)
-    assert_equal(len(w), 1)
+    assert_equal(len(w), 2)
     assert_equal(len(labels1), len(labels2))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
@@ -417,7 +417,7 @@ def test_stc_to_label():
         warnings.simplefilter('always')
         labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3,
                                             connected=True)
-    assert_equal(len(w), 1)
+    assert_equal(len(w), 2)
     assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=3,
                   connected=True)
     assert_raises(RuntimeError, stc_to_label, stc, src=src_bad, connected=True)
@@ -425,7 +425,7 @@ def test_stc_to_label():
     assert_equal(len(labels_rh), 1)
 
     # with smooth='patch'
-    labels_patch = stc_to_label(stc, src=src, smooth='patch')
+    labels_patch = stc_to_label(stc, src=src, smooth=True)
     assert_equal(len(labels_patch), len(labels1))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)

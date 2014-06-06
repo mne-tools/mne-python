@@ -10,6 +10,7 @@ from os import path as op
 import os
 import copy as cp
 import re
+from warnings import warn
 
 import numpy as np
 from scipy import linalg, sparse
@@ -988,7 +989,7 @@ def label_sign_flip(label, src):
     return flip
 
 
-def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
+def stc_to_label(stc, src=None, smooth=None, connected=False, subjects_dir=None):
     """Compute a label from the non-zero sources in an stc object.
 
     Parameters
@@ -999,10 +1000,13 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
         The source space over which the source estimates are defined.
         If it's a string it should the subject name (e.g. fsaverage).
         Can be None if stc.subject is not None.
-    smooth : int | 'patch'
-        Number of smoothing steps to use. For 'patch', fill in all surface
-        vertices based on the closest source space vertex; 'patch' requires
-        src to be a SourceSpace.
+    smooth : bool
+        Fill in vertices on the cortical surface that are not in the source
+        space based on the closest source space vertex (requires
+        src to be a SourceSpace). The default is currently to smooth with a
+        deprecated method, and will change to True in v0.9 (i.e., the parameter
+        should be explicitly specified as boolean until then to avoid a
+        deprecation warning).
     connected : bool
         If True a list of connected labels will be returned in each
         hemisphere. The labels are ordered in decreasing order depending
@@ -1031,11 +1035,26 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
     if not isinstance(stc, SourceEstimate):
         raise ValueError('SourceEstimate should be surface source estimates')
 
+    if not isinstance(smooth, bool):
+        if smooth is None:
+            msg = ("The smooth parameter was not explicitly specified. The "
+                   "default behavior of stc_to_label() will change in v0.9 "
+                   "to filling the label using source space patch "
+                   "information. In order to avoid this warning, set smooth "
+                   "to a boolean explicitly.")
+            smooth = 5
+        else:
+            msg = ("The smooth parameter of stc_to_label() was specified as "
+                   "int. This value is deprecated and will raise an error in "
+                   "v0.9. In order to avoid this warning, set smooth to a "
+                   "boolean.")
+        warn(msg, DeprecationWarning)
+
     if isinstance(src, string_types):
         if connected:
             raise ValueError('The option to return only connected labels is '
                              'only available if source spaces are provided.')
-        if smooth == 'patch':
+        if isinstance(smooth, bool) and smooth:
             msg = ("stc_to_label with smooth='patch' requires src to be a "
                    "SourceSpace")
             raise ValueError(msg)
@@ -1104,7 +1123,7 @@ def stc_to_label(stc, src=None, smooth=5, connected=False, subjects_dir=None):
             colors = _n_colors(len(clusters))
             for c, color in zip(clusters, colors):
                 idx_use = c
-                if smooth == 'patch':
+                if isinstance(smooth, bool) and smooth:
                     label = Label(idx_use, this_rr[idx_use], None, hemi,
                                   'Label from stc', subject=subject,
                                   color=color).fill(src)

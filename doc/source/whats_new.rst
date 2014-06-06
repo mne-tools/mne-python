@@ -110,6 +110,8 @@ affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
 
    - Pick functions (e.g., `pick_types`) are now in the mne namespace (e.g. use `mne.pick_types`).
 
+   - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
+
 .. _changes_0_7:
 
 Version 0.7
