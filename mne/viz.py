@@ -45,7 +45,9 @@ from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
 from .externals import six
-
+from .transforms import read_trans
+from .surface import get_head_surf, get_meg_helmet_surf
+#from .forward._field_interpolation import _find_trans
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -3738,6 +3740,90 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     if show:
         plt.show()
 
+    return fig
+
+
+def plot_trans(evoked, trans_fname='auto', subject=None, subjects_dir=None,
+               ch_type=None):
+    """Plot MEG/EEG head surface and helmet in 3D
+
+    Parameters
+    ----------
+    evoked : instance of mne.io.Evoked
+        The evoked object.
+    trans_fname : str | 'auto' | None
+        The full path to the `*-trans.fif` file produced during
+        coregistration. If present or found using 'auto'
+        the maps will be in MRI coordinates.
+        If None, map for EEG data will not be available.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None, map for EEG data will not be available.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    ch_type : None | 'eeg' | 'meg'
+        If None, a map for each available channel type will be returned.
+        Else only the specified type will be used.
+
+    Returns
+    -------
+    fig : instance of mlab.Figure
+        The mayavi figure.
+    """
+
+    info = evoked.info
+
+    if ch_type is None:
+        types = [t for t in ['eeg', 'meg'] if t in evoked]
+    else:
+        if ch_type not in ['eeg', 'meg']:
+            raise ValueError("ch_type should be 'eeg' or 'meg' (got %s)"
+                             % ch_type)
+        types = [ch_type]
+
+    #if trans_fname == 'auto':
+        # let's try to do this in MRI coordinates so they're easy to plot
+    #    trans_fname = _find_trans(subject, subjects_dir)
+
+    if 'eeg' in types and trans_fname is None:
+        print('No trans file available. EEG data ignored.')
+        types.remove('eeg')
+
+    trans = None
+    if trans_fname is not None:
+        trans = read_trans(trans_fname)
+
+    surfs = []
+    for this_type in types:
+        if this_type == 'meg':
+            surf = get_meg_helmet_surf(info, trans)
+        else:
+            surf = get_head_surf(subject, subjects_dir=subjects_dir)
+        surfs.append(surf)
+
+    # Plot them
+    from mayavi import mlab
+    alphas = [1.0, 0.5]
+    colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
+
+    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+
+    for ii, surf in enumerate(surfs):
+
+        x, y, z = surf['rr'].T
+        nn = surf['nn']
+        # make absolutely sure these are normalized for Mayavi
+        nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
+
+        # Make a solid surface
+        alpha = alphas[ii]
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
+        mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
+
+    mlab.view(10, 60)
     return fig
 
 
