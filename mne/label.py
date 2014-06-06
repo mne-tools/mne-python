@@ -1055,8 +1055,8 @@ def stc_to_label(stc, src=None, smooth=None, connected=False, subjects_dir=None)
             raise ValueError('The option to return only connected labels is '
                              'only available if source spaces are provided.')
         if isinstance(smooth, bool) and smooth:
-            msg = ("stc_to_label with smooth='patch' requires src to be a "
-                   "SourceSpace")
+            msg = ("stc_to_label with smooth='patch' requires src to be an "
+                   "instance of SourceSpace")
             raise ValueError(msg)
         subjects_dir = get_subjects_dir(subjects_dir)
         surf_path_from = op.join(subjects_dir, src, 'surf')
