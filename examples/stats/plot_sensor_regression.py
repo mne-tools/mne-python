@@ -11,7 +11,7 @@ trial regression is performed in each sensor and timepoint individually,
 resulting in an Evoked object which contains the regression coefficient
 (beta value) for each combination of sensor and timepoint.
 
-(See Hauk et al. (2006). The time course of visual word recognition as 
+(See Hauk et al. (2006). The time course of visual word recognition as
 revealed by linear regression analysis of ERP data. Neuroimage.)
 """
 # Authors: Tal Linzen <linzen@nyu.edu>
@@ -46,7 +46,7 @@ picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
                         exclude='bads')
 
 # Reject some epochs based on amplitude
-reject = dict(grad=800e-13)
+reject = dict(grad=4000e-13)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=reject)
@@ -62,7 +62,7 @@ mean_volume = 5
 stddev_volume = 2
 volume = mean_volume + np.random.randn(len(events)) * stddev_volume
 
-# Select the subset of epochs that are in the selection (i.e. auditory stimuli) 
+# Select the subset of epochs that are in the selection (i.e. auditory stimuli)
 # and that haven't been dropped due to amplitude thresholds or other reasons
 selection_volume = volume[epochs.selection]
 
@@ -83,13 +83,14 @@ intercept = np.ones((len(epochs),))
 design_matrix = np.column_stack([intercept, selection_volume])
 ols = ols_epochs(epochs, design_matrix, names)
 
+
 def plot_beta_map(m):
     return m.plot_topomap(ch_type='grad', size=3, times=[0.1, 0.2], vmax=200)
 
 plot_beta_map(ols['beta']['Intercept'])
 plot_beta_map(ols['beta']['Volume'])
 
-ols['t']['Volume'].plot_topomap(ch_type='grad', size=3, times=[0.1, 0.2], 
+ols['t']['Volume'].plot_topomap(ch_type='grad', size=3, times=[0.1, 0.2],
                                 scale=1, unit='t value')
 
 signed_scaled_p = ols['p']['Volume'].copy()
