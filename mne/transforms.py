@@ -3,6 +3,8 @@
 #
 # License: BSD (3-clause)
 
+import os
+import glob
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
@@ -50,6 +52,24 @@ def _print_coord_trans(t, prefix='Coordinate transformation: '):
     for tt in t['trans']:
         logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f mm' %
                     (tt[0], tt[1], tt[2], 1000 * tt[3]))
+
+
+def _find_trans(subject, subjects_dir=None):
+    if subject is None:
+        if 'SUBJECT' in os.environ:
+            subject = os.environ['SUBJECT']
+        else:
+            raise ValueError('SUBJECT environment variable not set')
+
+    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
+                                          '*-trans.fif'))
+    if len(trans_fnames) < 1:
+        raise RuntimeError('Could not find the transformation for '
+                           '{subject}'.format(subject=subject))
+    elif len(trans_fnames) > 1:
+        raise RuntimeError('Found multiple transformations for '
+                           '{subject}'.format(subject=subject))
+    return trans_fnames[0]
 
 
 def apply_trans(trans, pts, move=True):

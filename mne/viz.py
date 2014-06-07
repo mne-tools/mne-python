@@ -7,6 +7,7 @@ from __future__ import print_function
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
+#          Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: Simplified BSD
 from .externals.six import string_types
@@ -45,9 +46,8 @@ from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
 from .externals import six
-from .transforms import read_trans
+from .transforms import read_trans, _find_trans
 from .surface import get_head_surf, get_meg_helmet_surf
-#from .forward._field_interpolation import _find_trans
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -3782,9 +3782,9 @@ def plot_trans(evoked, trans_fname='auto', subject=None, subjects_dir=None,
                              % ch_type)
         types = [ch_type]
 
-    #if trans_fname == 'auto':
+    if trans_fname == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
-    #    trans_fname = _find_trans(subject, subjects_dir)
+        trans_fname = _find_trans(subject, subjects_dir)
 
     if 'eeg' in types and trans_fname is None:
         print('No trans file available. EEG data ignored.')
