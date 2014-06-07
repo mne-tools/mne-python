@@ -214,6 +214,7 @@ class RawEDF(_BaseRaw):
             buffer_size = blockstop - blockstart
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
+            datas = np.zeros((n_chan, buffer_size), dtype=np.int32)
 
             if 'n_samps' in self._edf_info:
                 n_samps = self._edf_info['n_samps']
@@ -221,7 +222,7 @@ class RawEDF(_BaseRaw):
                 blocks = int(buffer_size / max_samp)
             else:
                 blocks = int(ceil(float(buffer_size) / sfreq))
-            datas = []
+
             # bdf data: 24bit data
             if self._edf_info['subtype'] == '24BIT':
                 # loop over 10s increment to not tax the memory
@@ -250,24 +251,27 @@ class RawEDF(_BaseRaw):
 
                     data = data.reshape((int(sfreq), n_chan, blocks), order='F')
                     for i in range(blocks):
-                        datas.append(data[:, :, i].T)
+                        start_pt = int(sfreq * i)
+                        stop_pt = int(start_pt + sfreq)
+                        datas[:, start_pt:stop_pt] = data[:, :, i].T
             else:
+                # complicated edf: various sampling rates within file
                 if 'n_samps' in self._edf_info:
                     data = []
-                    for _ in range(blocks):
+                    for i in range(blocks):
                         for samp in n_samps:
                             chan_data = np.fromfile(fid, dtype='<i2',
                                                     count=samp)
                             data.append(chan_data)
-                    for i, samp in enumerate(n_samps):
-                        chan_data = data[i::n_chan]
+                    for j, samp in enumerate(n_samps):
+                        chan_data = data[j::n_chan]
                         chan_data = np.hstack(chan_data)
-                        if i == tal_channel:
+                        if j == tal_channel:
                             # don't resample tal_channel,
                             # pad with zeros instead.
                             n_missing = int(max_samp - samp) * blocks
                             chan_data = np.hstack([chan_data, [0] * n_missing])
-                        elif i == stim_channel and samp < max_samp:
+                        elif j == stim_channel and samp < max_samp:
                             if annot and annotmap or tal_channel is not None:
                                 # don't bother with resampling the stim channel
                                 # because it gets overwritten later on.
@@ -284,18 +288,21 @@ class RawEDF(_BaseRaw):
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
                                                  down=1, npad=0)
-                        datas.append(chan_data)
+                        datas[j, :] = chan_data
+                # simple edf
                 else:
                     data = np.fromfile(fid, dtype='<i2',
                                        count=buffer_size * n_chan)
                     data = data.reshape((int(sfreq), n_chan, blocks),
                                         order='F')
                     for i in range(blocks):
-                        datas.append(data[:, :, i].T)
+                        start_pt = int(sfreq * i)
+                        stop_pt = int(start_pt + sfreq)
+                        datas[:, start_pt:stop_pt] = data[:, :, i].T
         if 'n_samps' in self._edf_info:
             datas = np.vstack(datas)
-        else:
-            datas = np.hstack(datas)
+#        else:
+#            datas = np.hstack(datas)
         gains = np.array([gains])
         datas = gains.T * datas
         if stim_channel is not None:
