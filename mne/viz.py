@@ -3743,28 +3743,23 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     return fig
 
 
-def plot_trans(evoked, trans_fname='auto', subject=None, subjects_dir=None,
+def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
                ch_type=None):
-    """Plot MEG/EEG head surface and helmet in 3D
+    """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
     ----------
-    evoked : instance of mne.io.Evoked
-        The evoked object.
+    info : dict
+        The measurement info.
     trans_fname : str | 'auto' | None
         The full path to the `*-trans.fif` file produced during
-        coregistration. If present or found using 'auto'
-        the maps will be in MRI coordinates.
-        If None, map for EEG data will not be available.
+        coregistration.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. If None, map for EEG data will not be available.
+        variable SUBJECT.
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
-    ch_type : None | 'eeg' | 'meg'
-        If None, a map for each available channel type will be returned.
-        Else only the specified type will be used.
 
     Returns
     -------
@@ -3772,35 +3767,16 @@ def plot_trans(evoked, trans_fname='auto', subject=None, subjects_dir=None,
         The mayavi figure.
     """
 
-    info = evoked.info
-
-    if ch_type is None:
-        types = [t for t in ['eeg', 'meg'] if t in evoked]
-    else:
-        if ch_type not in ['eeg', 'meg']:
-            raise ValueError("ch_type should be 'eeg' or 'meg' (got %s)"
-                             % ch_type)
-        types = [ch_type]
-
     if trans_fname == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         trans_fname = _find_trans(subject, subjects_dir)
-
-    if 'eeg' in types and trans_fname is None:
-        print('No trans file available. EEG data ignored.')
-        types.remove('eeg')
 
     trans = None
     if trans_fname is not None:
         trans = read_trans(trans_fname)
 
-    surfs = []
-    for this_type in types:
-        if this_type == 'meg':
-            surf = get_meg_helmet_surf(info, trans)
-        else:
-            surf = get_head_surf(subject, subjects_dir=subjects_dir)
-        surfs.append(surf)
+    surfs = [get_meg_helmet_surf(info, trans),
+             get_head_surf(subject, subjects_dir=subjects_dir)]
 
     # Plot them
     from mayavi import mlab

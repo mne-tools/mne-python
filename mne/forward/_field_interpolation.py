@@ -257,7 +257,7 @@ def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
         trans_fname = _find_trans(subject, subjects_dir)
 
     if 'eeg' in types and trans_fname is None:
-        print('No trans file available. EEG data ignored.')
+        logger.info('No trans file available. EEG data ignored.')
         types.remove('eeg')
 
     if len(types) == 0:
