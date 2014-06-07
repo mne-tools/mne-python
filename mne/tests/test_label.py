@@ -408,7 +408,7 @@ def test_stc_to_label():
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
         warnings.simplefilter('always')
         labels2 = stc_to_label(stc, src=src, smooth=3)
-    assert_equal(len(w), 2)
+    assert_true(len(w) > 0)
     assert_equal(len(labels1), len(labels2))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
