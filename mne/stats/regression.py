@@ -1,12 +1,14 @@
-# Author: Tal Linzen <linzen@nyu.edu>
+# Authors: Tal Linzen <linzen@nyu.edu>
+#          Teon Brooks <teon@nyu.edu>
 #
 # License: Simplified BSD
 
 import numpy as np
-import scipy
-from scipy import linalg
+from scipy import linalg, stats
+from sklearn.linear_model import LinearRegression
 
 from mne.source_estimate import SourceEstimate
+
 
 def ols(data, design_matrix, names):
     """
@@ -54,7 +56,11 @@ def ols(data, design_matrix, names):
                          'number of column in design matrix')
 
     y = np.reshape(data, (n_trials, -1))
-    betas, resid_sum_squares, _, _ = linalg.lstsq(design_matrix, y)
+    reg = LinearRegression(fit_intercept=False)
+    reg.fit(X=design_matrix, y=y)
+    betas = reg.coef_.T
+    y_hat = np.dot(design_matrix, betas)
+    resid_sum_squares = np.sum((y - y_hat) ** 2, axis=0)
 
     df = n_rows - n_predictors
     sqrt_noise_var = np.sqrt(resid_sum_squares / df)
@@ -70,10 +76,11 @@ def ols(data, design_matrix, names):
         beta[pred] = x.reshape(data.shape[1:])
         stderr[pred] = sqrt_noise_var * unscaled_stderr
         t[pred] = beta[pred] / stderr[pred]
-        cdf = scipy.stats.t.cdf(np.abs(t[pred]), df)
+        cdf = stats.t.cdf(np.abs(t[pred]), df)
         p[pred] = (1 - cdf) * 2
 
     return dict(beta=beta, stderr=stderr, t=t, p=p)
+
 
 def ols_epochs(epochs, design_matrix, names):
     """
@@ -116,6 +123,7 @@ def ols_epochs(epochs, design_matrix, names):
             v[k] = ev
     return ols_fit
 
+
 def ols_source_estimates(source_estimates, design_matrix, names):
     """
     Parameters
@@ -141,8 +149,8 @@ def ols_source_estimates(source_estimates, design_matrix, names):
             p : two-sided p-value of t statistic under the t distribution
 
         The values are themselves dictionaries from regressor name to
-        SourceEstimate objects. For instance, `results['t']['volume']` will be a
-        SourceEstimate object that contains the t statistic for the regressor
+        SourceEstimate objects. For instance, `results['t']['volume']` will be
+        a SourceEstimate object that contains the t statistic for the regressor
         'volume' in each source at each timepoint.
     """
     data = np.array([stc.data for stc in source_estimates])
