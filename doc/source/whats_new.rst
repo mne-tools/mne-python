@@ -71,6 +71,8 @@ Changelog
    to read FieldTrip neighbor template .mat files and compute between
    sensor adjacency matrices by `Denis Engemann`_
 
+   - Add display of head in helmet from -trans.fif file to check coregistration quality by `Mainak Jas`_
+
 BUG
 ~~~
 
