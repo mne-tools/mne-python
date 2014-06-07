@@ -46,7 +46,7 @@ picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
                         exclude='bads')
 
 # Reject some epochs based on amplitude
-reject = dict(grad=800e-13)
+reject = dict(grad=4000e-13)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=reject)
@@ -82,6 +82,7 @@ names = ['Intercept', 'Volume']
 intercept = np.ones((len(epochs),))
 design_matrix = np.column_stack([intercept, selection_volume])
 ols = ols_epochs(epochs, design_matrix, names)
+
 
 def plot_beta_map(m):
     return m.plot_topomap(ch_type='grad', size=3, times=[0.1, 0.2], vmax=200)

@@ -32,7 +32,6 @@ from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.stats.regression import ols_source_estimates
 
 logger = logging.getLogger('mne')
-logger.setLevel(logging.WARNING)
 
 ###############################################################################
 # Set parameters and read data
@@ -53,7 +52,7 @@ picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=False,
                         exclude='bads')
 
 # Reject some epochs based on amplitude
-reject = dict(grad=800e-13)
+reject = dict(grad=4000e-13)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=reject)
@@ -100,6 +99,7 @@ names = ['Intercept', 'Volume']
 intercept = np.ones((len(epochs),))
 design_matrix = np.column_stack([intercept, selection_volume])
 ols = ols_source_estimates(stcs, design_matrix, names)
+
 
 def plot_beta_map(b, fig, title):
     p = b.plot(subjects_dir=subjects_dir, figure=fig)
