@@ -9,7 +9,6 @@ data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 trans_fname = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
-# If trans_fname is set to None then only MEG estimates can be visualized
 
 condition = 'Left Auditory'
 evoked = read_evokeds(evoked_fname, condition=condition, baseline=(-0.2, 0.0))

@@ -15,7 +15,8 @@ from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_sparse_source_estimates, plot_source_estimates,
                      plot_cov, mne_analyze_colormap, plot_image_epochs,
                      plot_connectivity_circle, circular_layout, plot_drop_log,
-                     compare_fiff, plot_source_spectrogram, plot_events)
+                     compare_fiff, plot_source_spectrogram, plot_events,
+                     plot_trans)
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
@@ -557,7 +558,7 @@ def test_plot_evoked_field():
     trans_fname = op.join(data_dir, 'MEG', 'sample',
                           'sample_audvis_raw-trans.fif')
     evoked = io.read_evokeds(evoked_fname, condition='Left Auditory',
-                               baseline=(-0.2, 0.0))
+                             baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
     for t in ['meg', None]:
         maps = make_field_map(evoked, trans_fname=trans_fname,
@@ -565,6 +566,19 @@ def test_plot_evoked_field():
                               n_jobs=1, ch_type=t)
 
         evoked.plot_field(maps, time=0.1)
+
+
+@requires_mayavi
+@sample.requires_sample_data
+def test_plot_trans():
+    """Test plotting of -trans.fif files
+    """
+    trans_fname = op.join(data_dir, 'MEG', 'sample',
+                          'sample_audvis_raw-trans.fif')
+    evoked = io.read_evokeds(evoked_fname, condition='Left Auditory',
+                             baseline=(-0.2, 0.0))
+    plot_trans(evoked.info, trans_fname=trans_fname, subject='sample',
+               subjects_dir=subjects_dir)
 
 
 def test_plot_events():
