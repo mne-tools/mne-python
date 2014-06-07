@@ -224,17 +224,33 @@ class RawEDF(_BaseRaw):
             datas = []
             # bdf data: 24bit data
             if self._edf_info['subtype'] == '24BIT':
-                data = fid.read(buffer_size * n_chan * data_size)
-                data = np.fromstring(data, np.uint8)
-                data = data.reshape(-1, 3).astype(np.int32)
-                # this converts to 24-bit little endian integer
-                # # no support in numpy
-                data = (data[:, 0] + (data[:, 1] << 8) + (data[:, 2] << 16))
-                # 24th bit determines the sign
-                data[data >= (1 << 23)] -= (1 << 24)
-                data = data.reshape((int(sfreq), n_chan, blocks), order='F')
-                for i in range(blocks):
-                    datas.append(data[:, :, i].T)
+                # loop over 10s increment to not tax the memory
+                buffer_max = sfreq * 10.
+                iters = int(floor(buffer_size / buffer_max))
+                mod = int(np.mod(buffer_size, buffer_max))
+                if iters == 1:
+                    mini_buffers = [mod]
+                else:
+                    if mod:
+                        mini_buffers = np.hstack((np.ones(iters, int) *
+                                                  buffer_max, mod))
+                    else:
+                        mini_buffers = np.ones(iters, int) * buffer_size
+
+                for mini_buffer in mini_buffers:
+                    samp = int(mini_buffer * n_chan * data_size)
+                    blocks = int(ceil(float(mini_buffer) / sfreq))
+                    data = np.fromfile(fid, dtype=np.uint8, count=samp)
+                    data = data.reshape(-1, 3).astype(np.int32)
+                    # this converts to 24-bit little endian integer
+                    # # no support in numpy
+                    data = (data[:, 0] + (data[:, 1] << 8) + (data[:, 2] << 16))
+                    # 24th bit determines the sign
+                    data[data >= (1 << 23)] -= (1 << 24)
+
+                    data = data.reshape((int(sfreq), n_chan, blocks), order='F')
+                    for i in range(blocks):
+                        datas.append(data[:, :, i].T)
             else:
                 if 'n_samps' in self._edf_info:
                     data = []
@@ -277,47 +293,47 @@ class RawEDF(_BaseRaw):
                     for i in range(blocks):
                         datas.append(data[:, :, i].T)
         if 'n_samps' in self._edf_info:
-            data = np.vstack(datas)
+            datas = np.vstack(datas)
         else:
-            data = np.hstack(datas)
+            datas = np.hstack(datas)
         gains = np.array([gains])
-        data = gains.T * data
+        datas = gains.T * datas
         if stim_channel is not None:
             if annot and annotmap:
-                data[stim_channel] = 0
+                datas[stim_channel] = 0
                 evts = _read_annot(annot, annotmap, sfreq, self.last_samp)
-                data[stim_channel, :evts.size] = evts[start:stop]
+                datas[stim_channel, :evts.size] = evts[start:stop]
             elif tal_channel is not None:
-                evts = _parse_tal_channel(data[tal_channel])
+                evts = _parse_tal_channel(datas[tal_channel])
                 self._edf_info['events'] = evts
 
                 unique_annots = sorted(set([e[2] for e in evts]))
                 mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
 
-                data[stim_channel] = 0
+                datas[stim_channel] = 0
                 for t_start, t_duration, annotation in evts:
                     evid = mapping[annotation]
                     n_start = int(t_start * sfreq)
                     n_stop = int(t_duration * sfreq) + n_start - 1
                     # make sure events without duration get one sample
-                    n_stop = n_stop if n_stop > n_start else n_start+1
-                    if any(data[stim_channel][n_start:n_stop]):
+                    n_stop = n_stop if n_stop > n_start else n_start + 1
+                    if any(datas[stim_channel][n_start:n_stop]):
                         raise NotImplementedError('EDF+ with overlapping '
                                                   'events not supported.')
-                    data[stim_channel][n_start:n_stop] = evid
+                    datas[stim_channel][n_start:n_stop] = evid
             else:
-                stim = np.array(data[stim_channel], int)
+                stim = np.array(datas[stim_channel], int)
                 mask = 255 * np.ones(stim.shape, int)
                 stim = np.bitwise_and(stim, mask)
-                data[stim_channel] = stim
+                datas[stim_channel] = stim
         datastart = start - blockstart
         datastop = stop - blockstart
-        data = data[sel, datastart:datastop]
+        datas = datas[sel, datastart:datastop]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / self.info['sfreq']
 
-        return data, times
+        return datas, times
 
 
 def _parse_tal_channel(tal_channel_data):
