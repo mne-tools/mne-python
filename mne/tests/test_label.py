@@ -417,7 +417,7 @@ def test_stc_to_label():
         warnings.simplefilter('always')
         labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3,
                                             connected=True)
-    assert_equal(len(w), 2)
+    assert_true(len(w) > 0)
     assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=3,
                   connected=True)
     assert_raises(RuntimeError, stc_to_label, stc, src=src_bad, connected=True)
