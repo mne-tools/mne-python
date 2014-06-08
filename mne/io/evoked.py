@@ -393,7 +393,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                            titles=titles, axes=axes)
 
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
-                   ylim=None, proj=False, xlim='tight', hline=None, units=None,
+                   clim=None, proj=False, xlim='tight', units=None,
                    scalings=None, titles=None, axes=None):
         """Plot evoked data as images
 
@@ -408,8 +408,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             Scale plot with channel (SI) unit.
         show : bool
             Call pyplot.show() at the end or not.
-        ylim : dict
-            ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+        clim : dict
+            clim for images. e.g. clim = dict(eeg=[-200e-6, 200e6])
             Valid keys are eeg, mag, grad
         xlim : 'tight' | tuple | None
             xlim for plots.
@@ -417,8 +417,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             If true SSP projections are applied before display. If
             'interactive', a check box for reversible selection of SSP
             projection vectors will be shown.
-        hline : list of floats | None
-            The values at which show an horizontal line.
         units : dict | None
             The units of the channel types used for axes lables. If None,
             defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
@@ -434,8 +432,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             Axes, there must be only one channel type plotted.
         """
         return plot_evoked_image(self, picks=picks, exclude=exclude, unit=unit,
-                                 show=show, ylim=ylim, proj=proj, xlim=xlim,
-                                 hline=hline, units=units, scalings=scalings,
+                                 show=show, clim=clim, proj=proj, xlim=xlim,
+                                 units=units, scalings=scalings,
                                  titles=titles, axes=axes)
 
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
