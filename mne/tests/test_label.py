@@ -404,9 +404,9 @@ def test_stc_to_label():
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
-    labels1 = stc_to_label(stc, src='sample', smooth=3)
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
         warnings.simplefilter('always')
+        labels1 = stc_to_label(stc, src='sample', smooth=3)
         labels2 = stc_to_label(stc, src=src, smooth=3)
     assert_true(len(w) > 0)
     assert_equal(len(labels1), len(labels2))
@@ -415,17 +415,21 @@ def test_stc_to_label():
 
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
         warnings.simplefilter('always')
-        labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3,
+        labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=True,
                                             connected=True)
     assert_true(len(w) > 0)
-    assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=3,
+    assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=True,
                   connected=True)
-    assert_raises(RuntimeError, stc_to_label, stc, src=src_bad, connected=True)
+    assert_raises(RuntimeError, stc_to_label, stc, smooth=True, src=src_bad,
+                  connected=True)
     assert_equal(len(labels_lh), 1)
     assert_equal(len(labels_rh), 1)
 
     # with smooth='patch'
-    labels_patch = stc_to_label(stc, src=src, smooth=True)
+    with warnings.catch_warnings(record=True) as w:  # connectedness warning
+        warnings.simplefilter('always')
+        labels_patch = stc_to_label(stc, src=src, smooth=True)
+    assert_equal(len(w), 1)
     assert_equal(len(labels_patch), len(labels1))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
