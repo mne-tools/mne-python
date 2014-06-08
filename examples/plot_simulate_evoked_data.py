@@ -19,7 +19,7 @@ from mne import (read_proj, read_forward_solution, read_cov, read_label,
 from mne.io import read_evokeds, Raw
 from mne.datasets import sample
 from mne.time_frequency import iir_filter_raw, morlet
-from mne.viz import plot_evoked, plot_sparse_source_estimates
+from mne.viz import plot_sparse_source_estimates
 from mne.simulation import generate_sparse_stc, generate_evoked
 
 ###############################################################################
@@ -85,4 +85,4 @@ plot_sparse_source_estimates(fwd['src'], stc, bgcolor=(1, 1, 1),
 plt.figure()
 plt.psd(evoked.data[0])
 
-plot_evoked(evoked)
+evoked.plot()

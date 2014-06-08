@@ -208,6 +208,11 @@ def test_plot_evoked():
                       proj='interactive')
         assert_raises(RuntimeError, evoked_delayed_ssp.plot,
                       proj='interactive', axes='foo')
+
+        evoked.plot_image(proj=True)
+        # plot with bad channels excluded
+        evoked.plot_image(exclude='bads')
+        evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing
         plt.close('all')
 
 
