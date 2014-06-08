@@ -1,3 +1,16 @@
+"""
+=========================================
+Plotting head in helmet from a trans file
+=========================================
+
+In this example, the head is shown in the
+helmet to assess the coregistration quality.
+
+"""
+# Author: Mainak Jas <mainak@neuro.hut.fi>
+#
+# License: BSD (3-clause)
+
 from mne.io import read_evokeds
 from mne.datasets import sample
 from mne.viz import plot_trans

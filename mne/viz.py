@@ -3780,7 +3780,7 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
 
     # Plot them
     from mayavi import mlab
-    alphas = [1.0, 0.5]
+    alphas = [0.5, 1.0]
     colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
 
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
