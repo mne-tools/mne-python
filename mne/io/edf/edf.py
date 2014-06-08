@@ -190,6 +190,7 @@ class RawEDF(_BaseRaw):
         annot = self._edf_info['annot']
         annotmap = self._edf_info['annotmap']
 
+        # this is used to deal with indexing in the middle of a sampling period
         blockstart = int(floor(float(start) / sfreq) * sfreq)
         blockstop = int(ceil(float(stop) / sfreq) * sfreq)
 
