@@ -201,13 +201,11 @@ class RawEDF(_BaseRaw):
                     (start, stop - 1, start / float(sfreq),
                      (stop - 1) / float(sfreq)))
 
-        gains = []
-        for chan in range(n_chan):
-            # gain constructor
-            physical_range = self.info['chs'][chan]['range']
-            cal = float(self.info['chs'][chan]['cal'])
-            unit_mul = 10 ** self.info['chs'][chan]['unit_mul']
-            gains.append(unit_mul * (physical_range / cal))
+        # gain constructor
+        physical_range = np.array([ch['range'] for ch in self.info['chs']])
+        cal = np.array([ch['cal'] for ch in self.info['chs']], float)
+        unit_mul = np.array([10 ** ch['unit_mul'] for ch in self.info['chs']])
+        gains = np.atleast_2d(unit_mul * (physical_range / cal))
 
         with open(self.info['file_id'], 'rb') as fid:
             # extract data
@@ -300,11 +298,7 @@ class RawEDF(_BaseRaw):
                         start_pt = int(sfreq * i)
                         stop_pt = int(start_pt + sfreq)
                         datas[:, start_pt:stop_pt] = data[:, :, i].T
-        if 'n_samps' in self._edf_info:
-            datas = np.vstack(datas)
-#        else:
-#            datas = np.hstack(datas)
-        gains = np.array([gains])
+
         datas = gains.T * datas
         if stim_channel is not None:
             if annot and annotmap:
