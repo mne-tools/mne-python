@@ -4,7 +4,9 @@ Plotting head in helmet from a trans file
 =========================================
 
 In this example, the head is shown in the
-helmet to assess the coregistration quality.
+MEG helmet along with the EEG electrodes in MRI
+coordinate system. This allows assessing the
+MEG <-> MRI coregistration quality.
 
 """
 # Author: Mainak Jas <mainak@neuro.hut.fi>

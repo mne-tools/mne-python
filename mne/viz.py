@@ -46,7 +46,7 @@ from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
 from .externals import six
-from .transforms import read_trans, _find_trans
+from .transforms import read_trans, _find_trans, apply_trans
 from .surface import get_head_surf, get_meg_helmet_surf
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -3760,6 +3760,10 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
     subjects_dir : str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    ch_type : None | 'eeg' | 'meg'
+        If None, both the MEG helmet and EEG electrodes will be shown.
+        If 'meg', only the MEG helmet will be shown. If 'eeg', only the
+        EEG electrodes will be shown.
 
     Returns
     -------
@@ -3775,13 +3779,14 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
     if trans_fname is not None:
         trans = read_trans(trans_fname)
 
-    surfs = [get_meg_helmet_surf(info, trans),
-             get_head_surf(subject, subjects_dir=subjects_dir)]
+    surfs = [get_head_surf(subject, subjects_dir=subjects_dir)]
+    if ch_type is not 'eeg':
+        surfs.append(get_meg_helmet_surf(info, trans))
 
     # Plot them
     from mayavi import mlab
-    alphas = [0.5, 1.0]
-    colors = [(0.6, 0.6, 0.6), (1.0, 1.0, 1.0)]
+    alphas = [1.0, 0.5]
+    colors = [(0.6, 0.6, 0.6), (0.0, 0.0, 0.6)]
 
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
 
@@ -3799,7 +3804,23 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
         mesh.data.cell_data.normals = None
         mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
 
-    mlab.view(10, 60)
+    if ch_type is not 'meg':
+        eeg_locs = [l['eeg_loc'][:, 0] for l in info['chs']
+                    if l['eeg_loc'] is not None]
+
+        if len(eeg_locs) > 0:
+            eeg_loc = np.array(eeg_locs)
+
+            # Transform EEG electrodes to MRI coordinates
+            eeg_loc = apply_trans(trans['trans'], eeg_loc)
+
+            mlab.points3d(eeg_loc[:, 0], eeg_loc[:, 1], eeg_loc[:, 2],
+                          color=(1.0, 0.0, 0.0), scale_factor=0.005)
+        else:
+            raise warnings.warn('EEG electrode locations not found.'
+                                'Cannot plot EEG electrodes.')
+
+    mlab.view(90, 90)
     return fig
 
 
