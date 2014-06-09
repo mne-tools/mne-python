@@ -1115,7 +1115,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     return fig
 
 
-def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,', 
+def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
                  res=100, axis=None, names=None, show_names=False):
     """Plot a topographic map as image
 
@@ -3751,7 +3751,7 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
     ----------
     info : dict
         The measurement info.
-    trans_fname : str | 'auto' | None
+    trans_fname : str | 'auto'
         The full path to the `*-trans.fif` file produced during
         coregistration.
     subject : str | None
@@ -3775,12 +3775,10 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
         # let's try to do this in MRI coordinates so they're easy to plot
         trans_fname = _find_trans(subject, subjects_dir)
 
-    trans = None
-    if trans_fname is not None:
-        trans = read_trans(trans_fname)
+    trans = read_trans(trans_fname)
 
     surfs = [get_head_surf(subject, subjects_dir=subjects_dir)]
-    if ch_type is not 'eeg':
+    if ch_type is None or ch_type == 'meg':
         surfs.append(get_meg_helmet_surf(info, trans))
 
     # Plot them
@@ -3804,7 +3802,7 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
         mesh.data.cell_data.normals = None
         mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
 
-    if ch_type is not 'meg':
+    if ch_type is None or ch_type == 'eeg':
         eeg_locs = [l['eeg_loc'][:, 0] for l in info['chs']
                     if l['eeg_loc'] is not None]
 
