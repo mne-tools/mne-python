@@ -1,15 +1,13 @@
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
-import os
-import glob
 
 from ..constants import FIFF
 from ..pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
-from ..transforms import transform_surface_to, read_trans
+from ..transforms import transform_surface_to, read_trans, _find_trans
 from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _get_legen_lut_fast, _get_legen_lut_accurate)
@@ -209,24 +207,6 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     return fmd
 
 
-def _find_trans(subject, subjects_dir=None):
-    if subject is None:
-        if 'SUBJECT' in os.environ:
-            subject = os.environ['SUBJECT']
-        else:
-            raise ValueError('SUBJECT environment variable not set')
-
-    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
-                                          '*-trans.fif'))
-    if len(trans_fnames) < 1:
-        raise RuntimeError('Could not find the transformation for '
-                           '{subject}'.format(subject=subject))
-    elif len(trans_fnames) > 1:
-        raise RuntimeError('Found multiple transformations for '
-                           '{subject}'.format(subject=subject))
-    return trans_fnames[0]
-
-
 def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', n_jobs=1):
     """Compute surface maps used for field display in 3D
@@ -277,7 +257,7 @@ def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
         trans_fname = _find_trans(subject, subjects_dir)
 
     if 'eeg' in types and trans_fname is None:
-        print('No trans file available. EEG data ignored.')
+        logger.info('No trans file available. EEG data ignored.')
         types.remove('eeg')
 
     if len(types) == 0:
@@ -298,8 +278,8 @@ def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
     surf_maps = list()
 
     for this_type, this_surf in zip(types, surfs):
-        this_map = _make_surface_mapping(evoked.info, this_surf, this_type, trans,
-                                         n_jobs=n_jobs)
+        this_map = _make_surface_mapping(evoked.info, this_surf, this_type,
+                                         trans, n_jobs=n_jobs)
         this_map['surf'] = this_surf  # XXX : a bit weird...
         surf_maps.append(this_map)
 

@@ -7,6 +7,7 @@ from __future__ import print_function
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
+#          Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: Simplified BSD
 from .externals.six import string_types
@@ -45,7 +46,8 @@ from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
 from .externals import six
-
+from .transforms import read_trans, _find_trans, apply_trans
+from .surface import get_head_surf, get_meg_helmet_surf
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -1113,7 +1115,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     return fig
 
 
-def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,', 
+def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
                  res=100, axis=None, names=None, show_names=False):
     """Plot a topographic map as image
 
@@ -3738,6 +3740,89 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     if show:
         plt.show()
 
+    return fig
+
+
+def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
+               ch_type=None):
+    """Plot MEG/EEG head surface and helmet in 3D.
+
+    Parameters
+    ----------
+    info : dict
+        The measurement info.
+    trans_fname : str | 'auto'
+        The full path to the `*-trans.fif` file produced during
+        coregistration.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    ch_type : None | 'eeg' | 'meg'
+        If None, both the MEG helmet and EEG electrodes will be shown.
+        If 'meg', only the MEG helmet will be shown. If 'eeg', only the
+        EEG electrodes will be shown.
+
+    Returns
+    -------
+    fig : instance of mlab.Figure
+        The mayavi figure.
+    """
+
+    if ch_type not in [None, 'eeg', 'meg']:
+        raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
+                         % ch_type)
+
+    if trans_fname == 'auto':
+        # let's try to do this in MRI coordinates so they're easy to plot
+        trans_fname = _find_trans(subject, subjects_dir)
+
+    trans = read_trans(trans_fname)
+
+    surfs = [get_head_surf(subject, subjects_dir=subjects_dir)]
+    if ch_type is None or ch_type == 'meg':
+        surfs.append(get_meg_helmet_surf(info, trans))
+
+    # Plot them
+    from mayavi import mlab
+    alphas = [1.0, 0.5]
+    colors = [(0.6, 0.6, 0.6), (0.0, 0.0, 0.6)]
+
+    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+
+    for ii, surf in enumerate(surfs):
+
+        x, y, z = surf['rr'].T
+        nn = surf['nn']
+        # make absolutely sure these are normalized for Mayavi
+        nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
+
+        # Make a solid surface
+        alpha = alphas[ii]
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
+        mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
+
+    if ch_type is None or ch_type == 'eeg':
+        eeg_locs = [l['eeg_loc'][:, 0] for l in info['chs']
+                    if l['eeg_loc'] is not None]
+
+        if len(eeg_locs) > 0:
+            eeg_loc = np.array(eeg_locs)
+
+            # Transform EEG electrodes to MRI coordinates
+            eeg_loc = apply_trans(trans['trans'], eeg_loc)
+
+            mlab.points3d(eeg_loc[:, 0], eeg_loc[:, 1], eeg_loc[:, 2],
+                          color=(1.0, 0.0, 0.0), scale_factor=0.005)
+        else:
+            raise warnings.warn('EEG electrode locations not found.'
+                                'Cannot plot EEG electrodes.')
+
+    mlab.view(90, 90)
     return fig
 
 
