@@ -84,7 +84,6 @@ BUG
 
   - Fix pre-whitening / rescaling when estimating ICA on multiple channels without covariance by `Denis Engemann`_
 
-
 API
 ~~~
 

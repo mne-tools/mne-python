@@ -955,38 +955,30 @@ def test_pick_channels_mixin():
     """Test channel-picking functionality
     """
     # preload is True
+
     raw = Raw(fif_fname, preload=True)
     ch_names = raw.ch_names[:3]
 
     ch_names_orig = raw.ch_names
-    dummy = raw.pick_channels(ch_names, copy=True) # copy is True
+    dummy = raw.pick_channels(ch_names, copy=True)  # copy is True
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, raw.ch_names)
     assert_equal(len(ch_names_orig), raw._data.shape[0])
 
-    raw.pick_channels(ch_names, copy=False) # copy is False
+    raw.pick_channels(ch_names, copy=False)  # copy is False
     assert_equal(ch_names, raw.ch_names)
     assert_equal(len(ch_names), len(raw.cals))
     assert_equal(len(ch_names), raw._data.shape[0])
 
-    # preload is False
     raw = Raw(fif_fname, preload=False)
-    ch_names = raw.ch_names[:3]
-
-    ch_names_orig = raw.ch_names
-    dummy = raw.pick_channels(ch_names, copy=True) # copy is True
-    assert_equal(ch_names, dummy.ch_names)
-    assert_equal(ch_names_orig, raw.ch_names)
-
-    raw.pick_channels(ch_names, copy=False) # copy is False
-    assert_equal(ch_names, raw.ch_names)
-    assert_equal(len(ch_names), len(raw.cals))
+    assert_raises(RuntimeError, raw.pick_channels, ch_names)
+    assert_raises(RuntimeError, raw.drop_channels, ch_names)
 
 
 def test_equalize_channels():
     """Test equalization of channels
     """
-    raw1 = Raw(fif_fname)
+    raw1 = Raw(fif_fname, preload=True)
 
     raw2 = raw1.copy()
     ch_names = raw1.ch_names[2:]
