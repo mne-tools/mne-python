@@ -579,6 +579,9 @@ def test_plot_trans():
                              baseline=(-0.2, 0.0))
     plot_trans(evoked.info, trans_fname=trans_fname, subject='sample',
                subjects_dir=subjects_dir)
+    assert_raises(ValueError, plot_trans, evoked.info, trans_fname=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  ch_type='bad-chtype')
 
 
 def test_plot_events():

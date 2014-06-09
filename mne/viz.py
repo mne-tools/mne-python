@@ -3771,6 +3771,10 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
         The mayavi figure.
     """
 
+    if ch_type not in [None, 'eeg', 'meg']:
+        raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
+                         % ch_type)
+
     if trans_fname == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
         trans_fname = _find_trans(subject, subjects_dir)
