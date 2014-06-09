@@ -213,7 +213,7 @@ class RawEDF(_BaseRaw):
             buffer_size = blockstop - blockstart
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
-            datas = np.zeros((n_chan, buffer_size), dtype=np.int32)
+            datas = np.zeros((n_chan, buffer_size), dtype='float64')
 
             if 'n_samps' in self._edf_info:
                 n_samps = self._edf_info['n_samps']
@@ -225,21 +225,12 @@ class RawEDF(_BaseRaw):
             # bdf data: 24bit data
             if self._edf_info['subtype'] == '24BIT':
                 # loop over 10s increment to not tax the memory
-                buffer_max = sfreq * 10.
-                iters = int(floor(buffer_size / buffer_max))
-                mod = int(np.mod(buffer_size, buffer_max))
-                if iters == 1:
-                    mini_buffers = [mod]
-                else:
-                    if mod:
-                        mini_buffers = np.hstack((np.ones(iters, int) *
-                                                  buffer_max, mod))
-                    else:
-                        mini_buffers = np.ones(iters, int) * buffer_size
-
-                for mini_buffer in mini_buffers:
-                    samp = int(mini_buffer * n_chan * data_size)
-                    blocks = int(ceil(float(mini_buffer) / sfreq))
+                buffer_step = int(sfreq * 10)
+                for block in range(buffer_size, 0, -buffer_step):
+                    if block < buffer_step:
+                        buffer_step = block
+                    samp = int(buffer_step * n_chan * data_size)
+                    blocks = int(ceil(float(buffer_step) / sfreq))
                     data = np.fromfile(fid, dtype=np.uint8, count=samp)
                     data = data.reshape(-1, 3).astype(np.int32)
                     # this converts to 24-bit little endian integer
@@ -298,8 +289,8 @@ class RawEDF(_BaseRaw):
                         start_pt = int(sfreq * i)
                         stop_pt = int(start_pt + sfreq)
                         datas[:, start_pt:stop_pt] = data[:, :, i].T
+        datas *= gains.T
 
-        datas = gains.T * datas
         if stim_channel is not None:
             if annot and annotmap:
                 datas[stim_channel] = 0
