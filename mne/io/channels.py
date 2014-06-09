@@ -203,6 +203,10 @@ class PickDropChannelsMixin(object):
         from .fiff.raw import _BaseRaw
         from .. import Epochs
         from . import Evoked
+        if isinstance(self, _BaseRaw):
+            if not self._preloaded:
+                raise RuntimeError('Raw data must be preloaded to drop or pick'
+                                   ' channels')
 
         inst_has = lambda attr: getattr(self, attr, None) is not None
 
