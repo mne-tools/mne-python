@@ -210,6 +210,33 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                             self.reject, self.flat, full_report=True,
                             ignore_chs=self.info['bads'])
 
+    @verbose
+    def _preprocess(self, epoch, verbose=None):
+        """ Aux Function
+        """
+        # Detrend
+        if self.detrend is not None:
+            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                               ref_meg=False, eog=False, ecg=False,
+                               emg=False, exclude=[])
+            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+
+        # Baseline correct
+        picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                           ref_meg=True, eog=True, ecg=True,
+                           emg=True, exclude=[])
+        epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
+                               'mean', copy=False, verbose=verbose)
+
+        # handle offset
+        if self._offset is not None:
+            epoch += self._offset
+
+        # Decimate
+        if self.decim > 1:
+            epoch = epoch[:, self._decim_idx]
+        return epoch
+
     def get_data(self):
         """Get all epochs as a 3D array
 
@@ -888,40 +915,13 @@ class Epochs(_BaseEpochs):
         # only preprocess first candidate, to make delayed SSP working
         # we need to postpone the preprocessing since projection comes
         # first.
-        epochs[0] = self._preprocess(epochs[0], verbose)
+        epochs[0] = self._preprocess(epochs[0])
 
         # return a second None if nothing is projected
         if len(epochs) == 1:
             epochs += [None]
 
         return epochs
-
-    @verbose
-    def _preprocess(self, epoch, verbose=None):
-        """ Aux Function
-        """
-        # Detrend
-        if self.detrend is not None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               ref_meg=False, eog=False, ecg=False,
-                               emg=False, exclude=[])
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
-
-        # Baseline correct
-        picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                           ref_meg=True, eog=True, ecg=True,
-                           emg=True, exclude=[])
-        epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
-                               'mean', copy=False, verbose=verbose)
-
-        # handle offset
-        if self._offset is not None:
-            epoch += self._offset
-
-        # Decimate
-        if self.decim > 1:
-            epoch = epoch[:, self._decim_idx]
-        return epoch
 
     @verbose
     def _get_data_from_disk(self, out=True, verbose=None):
@@ -1087,7 +1087,7 @@ class Epochs(_BaseEpochs):
                 raise StopIteration
             epoch = self._data[self._current]
             if self._check_delayed():
-                epoch = self._preprocess(epoch.copy())
+                epoch = self._preprocess(epoch.copy(), self.verbose)
             self._current += 1
         else:
             proj = True if self._check_delayed() else self.proj
@@ -1101,7 +1101,7 @@ class Epochs(_BaseEpochs):
                 is_good, _ = self._is_good_epoch(epoch)
             # If delayed-ssp mode, pass 'virgin' data after rejection decision.
             if self._check_delayed():
-                epoch = self._preprocess(epoch_raw)
+                epoch = self._preprocess(epoch_raw, self.verbose)
 
         if not return_event_id:
             return epoch
