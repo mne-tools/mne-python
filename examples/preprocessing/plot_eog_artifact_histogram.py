@@ -43,7 +43,6 @@ data = np.sum((data.astype(int) & 512) == 512, axis=0)
 
 ###############################################################################
 # Plot EOG artifact distribution
-plt.ion()
 plt.stem(1e3 * epochs.times, data)
 plt.xlabel('Times (ms)')
 plt.ylabel('Blink counts (from %s trials)' % len(epochs))
