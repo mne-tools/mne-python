@@ -161,7 +161,7 @@ def test_discrete_source_space():
         np.savetxt(temp_pos, np.c_[src[0]['rr'][v], src[0]['nn'][v]])
         # let's try the spherical one (no bem or surf supplied)
         run_subprocess(['mne_volume_source_space', '--meters',
-                        '--pos',  temp_pos, '--src', temp_name])
+                        '--pos', temp_pos, '--src', temp_name])
         src_c = read_source_spaces(temp_name)
         pos_dict = dict(rr=src[0]['rr'][v], nn=src[0]['nn'][v])
         src_new = setup_volume_source_space('sample', None,
@@ -207,7 +207,7 @@ def test_volume_source_space():
 
         # let's try the spherical one (no bem or surf supplied)
         run_subprocess(['mne_volume_source_space',
-                        '--grid',  '15.0',
+                        '--grid', '15.0',
                         '--src', temp_name,
                         '--mri', fname_mri])
         src = read_source_spaces(temp_name)
@@ -219,7 +219,7 @@ def test_volume_source_space():
         # now without MRI argument, it should give an error when we try
         # to read it
         run_subprocess(['mne_volume_source_space',
-                        '--grid',  '15.0',
+                        '--grid', '15.0',
                         '--src', temp_name])
         assert_raises(ValueError, read_source_spaces, temp_name)
     finally:
@@ -279,13 +279,18 @@ def test_setup_source_space():
     fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
     # first lets test some input params
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='oct')
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='octo')
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='oct6e')
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='7emm')
-    assert_raises(ValueError, setup_source_space, 'sample', spacing='alls')
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='oct',
+                  add_dist=False)
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='octo',
+                  add_dist=False)
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='oct6e',
+                  add_dist=False)
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='7emm',
+                  add_dist=False)
+    assert_raises(ValueError, setup_source_space, 'sample', spacing='alls',
+                  add_dist=False)
     assert_raises(IOError, setup_source_space, 'sample', spacing='oct6',
-                  subjects_dir=subjects_dir)
+                  subjects_dir=subjects_dir, add_dist=False)
 
     # ico 5 (fsaverage) - write to temp file
     src = read_source_spaces(fname_ico)
@@ -293,7 +298,7 @@ def test_setup_source_space():
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         warnings.simplefilter('always')
         src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
-                                     subjects_dir=subjects_dir)
+                                     subjects_dir=subjects_dir, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')
 
     # oct-6 (sample) - auto filename + IO
@@ -303,7 +308,7 @@ def test_setup_source_space():
         warnings.simplefilter('always')
         src_new = setup_source_space('sample', temp_name, spacing='oct6',
                                      subjects_dir=subjects_dir,
-                                     overwrite=True)
+                                     overwrite=True, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx')
@@ -311,7 +316,7 @@ def test_setup_source_space():
     # all source points - no file writing
     src = read_source_spaces(fname_all)
     src_new = setup_source_space('sample', None, spacing='all',
-                                 subjects_dir=subjects_dir)
+                                 subjects_dir=subjects_dir, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')
 
 
@@ -453,8 +458,8 @@ def test_vertex_to_mni():
     coords_f = np.array([[-41.28, -40.04, 18.20], [-6.05, 49.74, -18.15],
                          [-61.71, -14.55, 20.52], [21.70, -60.84, 25.02]])
     hemis = [0, 0, 0, 1]
-    for coords, subj in zip([coords_s, coords_f], ['sample', 'fsaverage']):
-        coords_2 = vertex_to_mni(vertices, hemis, subj)
+    for coords, subject in zip([coords_s, coords_f], ['sample', 'fsaverage']):
+        coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
         # less than 1mm error
         assert_allclose(coords, coords_2, atol=1.0)
 
@@ -469,8 +474,10 @@ def test_vertex_to_mni_fs_nibabel():
     for subject in ['sample', 'fsaverage']:
         vertices = np.random.randint(0, 100000, n_check)
         hemis = np.random.randint(0, 1, n_check)
-        coords = vertex_to_mni(vertices, hemis, subject, mode='nibabel')
-        coords_2 = vertex_to_mni(vertices, hemis, subject, mode='freesurfer')
+        coords = vertex_to_mni(vertices, hemis, subject, subjects_dir,
+                               'nibabel')
+        coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir,
+                                 'freesurfer')
         # less than 0.1 mm error
         assert_allclose(coords, coords_2, atol=0.1)
 

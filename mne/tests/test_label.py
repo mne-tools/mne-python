@@ -20,14 +20,16 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
+src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 real_label_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                            'Aud-lh.label')
 real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                               'Aud-rh.label')
+v1_label_fname = op.join(subjects_dir, 'sample', 'label', 'lh.V1.label')
 
 # sample dataset should be updated to reflect mne conventions
-src_fname = op.join(data_path, 'MEG', 'sample',
+fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
 src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
@@ -108,6 +110,35 @@ def test_label_addition():
     bhl2 = l1 + bhl
     assert_labels_equal(bhl2.lh, l01)
     assert_equal(bhl2.color, _blend_colors(l1.color, bhl.color))
+
+
+@sample.requires_sample_data
+def test_label_in_src():
+    src = read_source_spaces(src_fname)
+    label = read_label(v1_label_fname)
+
+    # construct label from source space vertices
+    vert_in_src = np.intersect1d(label.vertices, src[0]['vertno'], True)
+    where = in1d(label.vertices, vert_in_src)
+    pos_in_src = label.pos[where]
+    values_in_src = label.values[where]
+    label_src = Label(vert_in_src, pos_in_src, values_in_src,
+                      hemi='lh').fill(src)
+
+    # check label vertices
+    vertices_status = in1d(src[0]['nearest'], label.vertices)
+    vertices_in = np.nonzero(vertices_status)[0]
+    vertices_out = np.nonzero(np.logical_not(vertices_status))[0]
+    assert_array_equal(label_src.vertices, vertices_in)
+    assert_array_equal(in1d(vertices_out, label_src.vertices), False)
+
+    # check values
+    value_idx = np.digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
+    assert_array_equal(label_src.values, values_in_src[value_idx])
+
+    # test exception
+    vertices = np.append([-1], vert_in_src)
+    assert_raises(ValueError, Label(vertices, hemi='lh').fill, src)
 
 
 @sample.requires_sample_data
@@ -319,7 +350,7 @@ def test_write_annot():
     label0 = labels_lh[0]
     label1 = labels_reloaded[-1]
     assert_equal(label1.name, "unknown-lh")
-    assert_true(np.all(np.in1d(label0.vertices, label1.vertices)))
+    assert_true(np.all(in1d(label0.vertices, label1.vertices)))
 
 
 @sample.requires_sample_data
@@ -369,29 +400,39 @@ def test_stc_to_label():
     """
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        src = read_source_spaces(src_fname)
+        src = read_source_spaces(fwd_fname)
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
-    labels1 = stc_to_label(stc, src='sample', smooth=3)
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
         warnings.simplefilter('always')
+        labels1 = stc_to_label(stc, src='sample', smooth=3)
         labels2 = stc_to_label(stc, src=src, smooth=3)
-    assert_true(len(w) == 1)
-    assert_true(len(labels1) == len(labels2))
+    assert_true(len(w) > 0)
+    assert_equal(len(labels1), len(labels2))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
 
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
         warnings.simplefilter('always')
-        labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=3,
+        labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=True,
                                             connected=True)
-    assert_true(len(w) == 1)
-    assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=3,
+    assert_true(len(w) > 0)
+    assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=True,
                   connected=True)
-    assert_raises(RuntimeError, stc_to_label, stc, src=src_bad, connected=True)
-    assert_true(len(labels_lh) == 1)
-    assert_true(len(labels_rh) == 1)
+    assert_raises(RuntimeError, stc_to_label, stc, smooth=True, src=src_bad,
+                  connected=True)
+    assert_equal(len(labels_lh), 1)
+    assert_equal(len(labels_rh), 1)
+
+    # with smooth='patch'
+    with warnings.catch_warnings(record=True) as w:  # connectedness warning
+        warnings.simplefilter('always')
+        labels_patch = stc_to_label(stc, src=src, smooth=True)
+    assert_equal(len(w), 1)
+    assert_equal(len(labels_patch), len(labels1))
+    for l1, l2 in zip(labels1, labels2):
+        assert_labels_equal(l1, l2, decimal=4)
 
 
 @sample.requires_sample_data

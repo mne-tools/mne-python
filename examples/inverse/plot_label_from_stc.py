@@ -62,7 +62,7 @@ stc_mean_label = stc_mean.in_label(label)
 data = np.abs(stc_mean_label.data)
 stc_mean_label.data[data < 0.6 * np.max(data)] = 0.
 
-func_labels, _ = mne.stc_to_label(stc_mean_label, src=src, smooth=5,
+func_labels, _ = mne.stc_to_label(stc_mean_label, src=src, smooth=True,
                                   subjects_dir=subjects_dir, connected=True)
 
 # take first as func_labels are ordered based on maximum values in stc

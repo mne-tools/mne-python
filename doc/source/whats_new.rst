@@ -49,6 +49,8 @@ Changelog
 
    - Add  `compute_ems` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
 
+   - Add option to expand Labels defined in a source space to the original surface (`Label.fill()`) by `Christian Brodbeck`_ 
+
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
    - Add `add_channels_epochs` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
@@ -80,7 +82,7 @@ BUG
 
    - Fix corner case error for step-down-in-jumps permutation test (when step-down threshold was high enough to include all clusters) by `Eric Larson`_
 
-  - Fix selection of total number of components via float when picking ICA sources by `Denis Engemann`_ and `Qunxi Dong`_
+   - Fix selection of total number of components via float when picking ICA sources by `Denis Engemann`_ and `Qunxi Dong`_
 
   - Fix writing and reading transforms after modification in measurment info by `Denis Engemann`_ and `Martin Luessi`_ and `Eric Larson`_
 
@@ -97,6 +99,8 @@ API
 
    - Deprecate `labels_from_parc` and `parc_from_labels` in favor of `read_annot` and `write_annot`
 
+   - The default of the new add_dist option of `setup_source_space` to add patch information will change from False to True in MNE-Python 0.9
+
    - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`.
 read_evokeds will return all Evoked instances in a file by default.
 
@@ -106,6 +110,8 @@ affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
    - Deprecate `mne.fiff` module, use `mne.io` instead e.g. `mne.io.Raw` instead of `mne.fiff.Raw`.
 
    - Pick functions (e.g., `pick_types`) are now in the mne namespace (e.g. use `mne.pick_types`).
+
+   - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
 
 .. _changes_0_7:
 
