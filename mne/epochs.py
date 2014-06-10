@@ -900,14 +900,13 @@ class Epochs(_BaseEpochs):
     def _preprocess(self, epoch, verbose=None):
         """ Aux Function
         """
-        if self.detrend is not None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               ref_meg=False, eog=False, ecg=False,
-                               emg=False, exclude=[])
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+        # Detrend
         picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                           ref_meg=True, eog=True, ecg=True,
-                           emg=True, exclude=[])
+                           ref_meg=False, eog=False, ecg=False,
+                           emg=False, exclude=[])
+        if self.detrend is not None:
+            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+
         # Baseline correct
         epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
                                'mean', copy=False, verbose=verbose)
