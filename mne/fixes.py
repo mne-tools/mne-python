@@ -186,8 +186,8 @@ def _digitize(x, bins, right=False):
     if right:
         x = np.asarray(x)
         bins = np.asarray(bins)
-        if x.dtype.kind != 'i' or bins.dtype.kind != 'i':
-            raise NotImplementedError("Not implemented for integer input")
+        if (x.dtype.kind not in 'ui') or (bins.dtype.kind not in 'ui'):
+            raise NotImplementedError("Only implemented for integer input")
         return np.digitize(x - 1e-5, bins)
     else:
         return np.digitize(x, bins)
