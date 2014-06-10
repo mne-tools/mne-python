@@ -14,7 +14,7 @@ from mne import (label_time_courses, read_label, stc_to_label,
                  read_annot, write_annot, split_label)
 from mne.label import Label, _blend_colors
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
-from mne.fixes import in1d, assert_is, assert_is_not
+from mne.fixes import digitize, in1d, assert_is, assert_is_not
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -133,7 +133,7 @@ def test_label_in_src():
     assert_array_equal(in1d(vertices_out, label_src.vertices), False)
 
     # check values
-    value_idx = np.digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
+    value_idx = digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
     assert_array_equal(label_src.values, values_in_src[value_idx])
 
     # test exception

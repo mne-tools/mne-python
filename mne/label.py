@@ -15,7 +15,7 @@ from warnings import warn
 import numpy as np
 from scipy import linalg, sparse
 
-from .fixes import in1d
+from .fixes import digitize, in1d
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
                     deprecated)
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
@@ -401,7 +401,7 @@ class Label(object):
         vertices = np.nonzero(include)[0]
 
         # values
-        nearest_in_label = np.digitize(nearest[vertices], self.vertices, True)
+        nearest_in_label = digitize(nearest[vertices], self.vertices, True)
         values = self.values[nearest_in_label]
         # pos
         pos = hemi_src['rr'][vertices]
