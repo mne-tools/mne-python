@@ -611,6 +611,10 @@ def read_label(filename, subject=None, color=None):
             vertices       vertex indices (0 based, column 1)
             pos            locations in meters (columns 2 - 4 divided by 1000)
             values         values at the vertices (column 5)
+
+    See Also
+    --------
+    read_annot_labels
     """
     if subject is not None and not isinstance(subject, string_types):
         raise TypeError('subject must be a string')
@@ -675,6 +679,10 @@ def write_label(filename, label, verbose=None):
     -----
     Note that due to file specification limitations, the Label's subject and
     color attributes are not saved to disk.
+
+    See Also
+    --------
+    write_labels_annot
     """
     hemi = label.hemi
     path_head, name = op.split(filename)
@@ -1316,8 +1324,14 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
 
     return labels
 
-
+@verbose
+@deprecated("_read_annot() will be removed in release 0.9. Use "
+            "read_annot() instead.")
 def _read_annot(fname):
+    read_annot(fname)
+
+
+def read_annot(fname):
     """Read a Freesurfer annotation from a .annot file.
 
     Note : Copied from PySurfer
@@ -1427,20 +1441,21 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
 @verbose
 @deprecated("labels_from_parc() will be removed in release 0.9. Use "
-            "read_annot() instead (note the change in return values).")
+            "read_annot_labels() instead (note the change in return values).")
 def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                      annot_fname=None, regexp=None, subjects_dir=None,
                      verbose=None):
     """Deprecated (will be removed in mne 0.9). Use read_annot() instead"""
-    labels = read_annot(subject, parc, hemi, surf_name, annot_fname, regexp,
-                        subjects_dir, verbose)
+    labels = read_annot_labels(subject, parc, hemi, surf_name, annot_fname,
+                               regexp, subjects_dir, verbose)
     label_colors = [l.color for l in labels]
     return labels, label_colors
 
 
 @verbose
-def read_annot(subject, parc='aparc', hemi='both', surf_name='white',
-               annot_fname=None, regexp=None, subjects_dir=None, verbose=None):
+def read_annot_labels(subject, parc='aparc', hemi='both', surf_name='white',
+                      annot_fname=None, regexp=None, subjects_dir=None,
+                      verbose=None):
     """Read labels from FreeSurfer parcellation
 
     Note: Only cortical labels will be returned.
@@ -1491,7 +1506,7 @@ def read_annot(subject, parc='aparc', hemi='both', surf_name='white',
     labels = list()
     for fname, hemi in zip(annot_fname, hemis):
         # read annotation
-        annot, ctab, label_names = _read_annot(fname)
+        annot, ctab, label_names = read_annot(fname)
         label_rgbas = ctab[:, :4]
         label_ids = ctab[:, -1]
 
@@ -1532,7 +1547,14 @@ def read_annot(subject, parc='aparc', hemi='both', surf_name='white',
     return labels
 
 
-def _write_annot(fname, annot, ctab, names):
+@verbose
+@deprecated("_write_annot() will be removed in release 0.9. Use "
+            "write_annot() instead.")
+def _write_annot(fname):
+    write_annot(fname)
+
+
+def write_annot(fname, annot, ctab, names):
     """Write a Freesurfer annotation to a .annot file.
 
     Parameters
@@ -1585,12 +1607,13 @@ def _write_annot(fname, annot, ctab, names):
 
 @verbose
 @deprecated("parc_from_labels() will be removed in release 0.9. Use "
-            "write_annot() instead (note the change in the function "
+            "write_labels_annot() instead (note the change in the function "
             "signature).")
 def parc_from_labels(labels, colors=None, subject=None, parc=None,
                      annot_fname=None, overwrite=False, subjects_dir=None,
                      verbose=None):
-    """Deprecated (will be removed in mne 0.9). Use write_annot() instead"""
+    """Deprecated (will be removed in mne 0.9). Use write_labels_annot()
+    instead"""
     if colors is not None:
         # do some input checking
         colors = np.asarray(colors)
@@ -1606,13 +1629,13 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
         for label, color in zip(labels, colors):
             label.color = color
 
-    write_annot(labels, subject, parc, overwrite, subjects_dir, annot_fname,
-                verbose)
+    write_labels_annot(labels, subject, parc, overwrite, subjects_dir,
+                       annot_fname, verbose)
 
 
 @verbose
-def write_annot(labels, subject=None, parc=None, overwrite=False,
-                subjects_dir=None, annot_fname=None, verbose=None):
+def write_labels_annot(labels, subject=None, parc=None, overwrite=False,
+                       subjects_dir=None, annot_fname=None, verbose=None):
     """Create a FreeSurfer parcellation from labels
 
     Parameters
@@ -1712,7 +1735,8 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
 
         # find number of vertices in surface
         if subject is not None and subjects_dir is not None:
-            fpath = os.path.join(subjects_dir, subject, 'surf', '%s.white' % hemi)
+            fpath = os.path.join(subjects_dir, subject, 'surf', '%s.white'
+                                 % hemi)
             points, _ = read_surface(fpath)
             n_vertices = len(points)
         else:
@@ -1804,6 +1828,6 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
     # write it
     for fname, annot, ctab, hemi_names in to_save:
         logger.info('   writing %d labels to %s' % (len(hemi_names), fname))
-        _write_annot(fname, annot, ctab, hemi_names)
+        write_annot(fname, annot, ctab, hemi_names)
 
     logger.info('[done]')
