@@ -119,18 +119,18 @@ def test_label_in_src():
 
     # construct label from source space vertices
     vert_in_src = np.intersect1d(label.vertices, src[0]['vertno'], True)
-    where = np.in1d(label.vertices, vert_in_src)
+    where = in1d(label.vertices, vert_in_src)
     pos_in_src = label.pos[where]
     values_in_src = label.values[where]
     label_src = Label(vert_in_src, pos_in_src, values_in_src,
                       hemi='lh').fill(src)
 
     # check label vertices
-    vertices_status = np.in1d(src[0]['nearest'], label.vertices)
+    vertices_status = in1d(src[0]['nearest'], label.vertices)
     vertices_in = np.nonzero(vertices_status)[0]
     vertices_out = np.nonzero(np.logical_not(vertices_status))[0]
     assert_array_equal(label_src.vertices, vertices_in)
-    assert_array_equal(np.in1d(vertices_out, label_src.vertices), False)
+    assert_array_equal(in1d(vertices_out, label_src.vertices), False)
 
     # check values
     value_idx = np.digitize(src[0]['nearest'][vertices_in], vert_in_src, True)
@@ -350,7 +350,7 @@ def test_write_annot():
     label0 = labels_lh[0]
     label1 = labels_reloaded[-1]
     assert_equal(label1.name, "unknown-lh")
-    assert_true(np.all(np.in1d(label0.vertices, label1.vertices)))
+    assert_true(np.all(in1d(label0.vertices, label1.vertices)))
 
 
 @sample.requires_sample_data
