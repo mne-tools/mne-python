@@ -24,7 +24,6 @@ import numpy as np
 import scipy
 
 import mne
-from mne import fiff
 from mne.datasets import sample
 from mne.stats.regression import ols_epochs
 
@@ -38,12 +37,12 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, aud_r=2)
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname, preload=True)
+raw = mne.io.Raw(raw_fname, preload=True)
 events = mne.read_events(event_fname)
 
 raw.info['bads'] = ['MEG 2443']  # set bad channels
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
-                        exclude='bads')
+picks = mne.io.pick_types(raw.info, meg='grad', eeg=False, stim=False,
+                          eog=False, exclude='bads')
 
 # Reject some epochs based on amplitude
 reject = dict(grad=4000e-13)

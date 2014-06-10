@@ -5,13 +5,13 @@
 
 import numpy as np
 from scipy import linalg, stats
-from sklearn.linear_model import LinearRegression
 
-from mne.source_estimate import SourceEstimate
+from ..source_estimate import SourceEstimate
 
 
-def ols(data, design_matrix, names):
-    """
+def ols(data, design_matrix, **kwargs):
+    """Ordinary Least Squares Fitter
+
     Parameters
     ----------
     data : instance of numpy.ndarray  (n_observations, ...)
@@ -22,9 +22,10 @@ def ols(data, design_matrix, names):
         the first dimension of `data`. The first column of this matrix will
         typically consist of ones (intercept column).
     names : list-like | None
-        Names of the regressors. The length must correspond to the
-        number of columns present in regressors (including the intercept, if
-        present).
+        Optional parameter to name the regressors. If provided, the length must
+        correspond to the number of columns present in regressors
+        (including the intercept, if present).
+        Otherwise the default names are x0, x1, x2...xn for n regressors.
 
     Returns
     -------
@@ -43,6 +44,10 @@ def ols(data, design_matrix, names):
         the arrays will be (n_channels, n_timepoints).
     """
 
+    if 'names' in kwargs:
+        names = kwargs['names']
+    else:
+        names = ['x%s' % r for r in range(design_matrix.shape[1])]
     n_trials = data.shape[0]
     if len(design_matrix.shape) != 2:
         raise ValueError('Design matrix must be a 2d array')
@@ -56,11 +61,7 @@ def ols(data, design_matrix, names):
                          'number of column in design matrix')
 
     y = np.reshape(data, (n_trials, -1))
-    reg = LinearRegression(fit_intercept=False)
-    reg.fit(X=design_matrix, y=y)
-    betas = reg.coef_.T
-    y_hat = np.dot(design_matrix, betas)
-    resid_sum_squares = np.sum((y - y_hat) ** 2, axis=0)
+    betas, resid_sum_squares, _, _ = linalg.lstsq(a=design_matrix, b=y)
 
     df = n_rows - n_predictors
     sqrt_noise_var = np.sqrt(resid_sum_squares / df)
@@ -82,8 +83,9 @@ def ols(data, design_matrix, names):
     return dict(beta=beta, stderr=stderr, t=t, p=p)
 
 
-def ols_epochs(epochs, design_matrix, names):
-    """
+def ols_epochs(epochs, design_matrix, **kwargs):
+    """Ordinary Least Squares Fitter for Epochs
+
     Parameters
     ----------
     epochs : instance of Epochs
@@ -94,9 +96,10 @@ def ols_epochs(epochs, design_matrix, names):
         Note: use `epochs.selection` to align regressors with the remaining
         epochs if regressors were obtained from e.g. behavioral logs.
     names : list-like | None
-        Names of the regressors. The length must correspond to the
-        number of columns present in regressors (including the intercept, if
-        present).
+        Optional parameter to name the regressors. If provided, the length must
+        correspond to the number of columns present in regressors
+        (including the intercept, if present).
+        Otherwise the default names are x0, x1, x2...xn for n regressors.
 
     Returns
     -------
@@ -113,6 +116,10 @@ def ols_epochs(epochs, design_matrix, names):
         Evoked object that represents the t statistic for the regressor
         'volume' in each channel at each timepoint.
     """
+    if 'names' in kwargs:
+        names = kwargs['names']
+    else:
+        names = ['x%s' % r for r in range(design_matrix.shape[1])]
     evoked = epochs.average()
     data = epochs.get_data()
     ols_fit = ols(data, design_matrix, names)
@@ -124,8 +131,9 @@ def ols_epochs(epochs, design_matrix, names):
     return ols_fit
 
 
-def ols_source_estimates(source_estimates, design_matrix, names):
-    """
+def ols_source_estimates(source_estimates, design_matrix, *kwargs):
+    """Ordinary Least Squares Fitter for Source Estimates
+
     Parameters
     ----------
     source_estimates : list of SourceEstimate objects
@@ -133,10 +141,11 @@ def ols_source_estimates(source_estimates, design_matrix, names):
         The regressors to be used. Must be a 2d array with the same number of
         rows as the number of objects in `source_estimates`. The first column
         of this matrix will typically consist of ones (intercept column).
-    regressor_names : list-like | None
-        Names of the regressors. The length must correspond to the
-        number of columns present in regressors (including the intercept, if
-        present).
+    names : list-like | None
+        Optional parameter to name the regressors. If provided, the length must
+        correspond to the number of columns present in regressors
+        (including the intercept, if present).
+        Otherwise the default names are x0, x1, x2...xn for n regressors.
 
     Returns
     -------
@@ -153,6 +162,10 @@ def ols_source_estimates(source_estimates, design_matrix, names):
         a SourceEstimate object that contains the t statistic for the regressor
         'volume' in each source at each timepoint.
     """
+    if 'names' in kwargs:
+        names = kwargs['names']
+    else:
+        names = ['x%s' % r for r in range(design_matrix.shape[1])]
     data = np.array([stc.data for stc in source_estimates])
     ols_fit = ols(data, design_matrix, names)
     s = source_estimates[0]
