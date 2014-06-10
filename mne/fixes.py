@@ -174,6 +174,21 @@ else:
     in1d = np.in1d
 
 
+def _digitize(x, bins, right=False):
+    """Replacement for digitize with right kwarg (numpy < 1.7)"""
+    if right:
+        if x.dtype.kind != 'i':
+            raise NotImplementedError
+        return np.digitize(x - 1e-5, bins)
+    else:
+        return np.digitize(x, bins)
+
+if np.__version__ >= '1.7':
+    digitize = np.digitize
+else:
+    digitize = _digitize
+
+
 def _tril_indices(n, k=0):
     """Replacement for tril_indices that is provided for numpy >= 1.4"""
     mask = np.greater_equal(np.subtract.outer(np.arange(n), np.arange(n)), -k)

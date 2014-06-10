@@ -5,13 +5,13 @@
 
 import numpy as np
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal
 from distutils.version import LooseVersion
 from scipy import signal
 
 from ..fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
-                     _Counter, _unique, _bincount)
+                     _Counter, _unique, _bincount, _digitize)
 from ..fixes import _firwin2 as mne_firwin2
 from ..fixes import _filtfilt as mne_filtfilt
 
@@ -76,6 +76,18 @@ def test_in1d():
     assert_equal(_in1d(a, b).sum(), 5)
 
 
+def test_digitize():
+    """Test numpy.digitize() replacement"""
+    data = np.arange(9)
+    bins = [0, 5, 10]
+    left = np.array([1, 1, 1, 1, 1, 2, 2, 2, 2])
+    right = np.array([0, 1, 1, 1, 1, 1, 2, 2, 2])
+
+    assert_array_equal(_digitize(data, bins), left)
+    assert_array_equal(_digitize(data, bins, True), right)
+    assert_raises(NotImplementedError, _digitize, data + 0.1, bins, True)
+
+
 def test_tril_indices():
     """Test numpy.tril_indices() replacement"""
     il1 = _tril_indices(4)
@@ -87,7 +99,7 @@ def test_tril_indices():
                   [13, 14, 15, 16]])
 
     assert_array_equal(a[il1],
-                       np.array([1,  5,  6,  9, 10, 11, 13, 14, 15, 16]))
+                       np.array([1, 5, 6, 9, 10, 11, 13, 14, 15, 16]))
 
     assert_array_equal(a[il2], np.array([5, 9, 10, 13, 14, 15]))
 
