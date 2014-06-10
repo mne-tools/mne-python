@@ -553,8 +553,8 @@ def test_detrend():
         # All data channels should be almost equal
         assert_true(np.allclose(a[:, data_picks, :], b[:, data_picks, :],
                                 rtol=1e-16, atol=1e-20))
-        # There are non-M/EEG channels that should not be equal:
-        assert_true(not np.allclose(a, b))
+        # All channels should be equal (only M/EEG affected in both cases):
+        assert_allclose(a, b)
 
 
 def test_bootstrap():
