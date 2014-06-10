@@ -174,6 +174,30 @@ else:
     in1d = np.in1d
 
 
+def _digitize(x, bins, right=False):
+    """Replacement for digitize with right kwarg (numpy < 1.7).
+
+    Notes
+    -----
+    This fix is only meant for integer arrays. If ``right==True`` but either
+    ``x`` or ``bins`` are of a different type, a NotImplementedError will be
+    raised.
+    """
+    if right:
+        x = np.asarray(x)
+        bins = np.asarray(bins)
+        if x.dtype.kind != 'i' or bins.dtype.kind != 'i':
+            raise NotImplementedError("Not implemented for integer input")
+        return np.digitize(x - 1e-5, bins)
+    else:
+        return np.digitize(x, bins)
+
+if LooseVersion(np.__version__) < LooseVersion('1.7'):
+    digitize = _digitize
+else:
+    digitize = np.digitize
+
+
 def _tril_indices(n, k=0):
     """Replacement for tril_indices that is provided for numpy >= 1.4"""
     mask = np.greater_equal(np.subtract.outer(np.arange(n), np.arange(n)), -k)
