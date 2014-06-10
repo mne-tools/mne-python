@@ -183,10 +183,10 @@ def _digitize(x, bins, right=False):
     else:
         return np.digitize(x, bins)
 
-if np.__version__ >= '1.7':
-    digitize = np.digitize
-else:
+if LooseVersion(np.__version__) < LooseVersion('1.7'):
     digitize = _digitize
+else:
+    digitize = np.digitize
 
 
 def _tril_indices(n, k=0):
