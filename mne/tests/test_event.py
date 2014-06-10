@@ -29,6 +29,29 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 tempdir = _TempDir()
 
 
+def test_add_events():
+    """Test adding events to a Raw file"""
+    # need preload
+    raw = io.Raw(raw_fname, preload=False)
+    events = np.array([[raw.first_samp, 0, 1]])
+    assert_raises(RuntimeError, raw.add_events, events, 'STI 014')
+    raw = io.Raw(raw_fname, preload=True)
+    orig_events = find_events(raw, 'STI 014')
+    # add some events
+    events = np.array([raw.first_samp, 0, 1])
+    assert_raises(ValueError, raw.add_events, events, 'STI 014')  # bad shape
+    events[0] = raw.first_samp + raw.n_times + 1
+    events = events[np.newaxis, :]
+    assert_raises(ValueError, raw.add_events, events, 'STI 014')  # bad time
+    events[0, 0] = raw.first_samp - 1
+    assert_raises(ValueError, raw.add_events, events, 'STI 014')  # bad time
+    events[0, 0] = raw.first_samp + 1  # can't actually be first_samp
+    assert_raises(ValueError, raw.add_events, events, 'STI FOO')
+    raw.add_events(events, 'STI 014')
+    new_events = find_events(raw, 'STI 014')
+    assert_array_equal(new_events, np.concatenate((events, orig_events)))
+
+
 def test_merge_events():
     """Test event merging
     """

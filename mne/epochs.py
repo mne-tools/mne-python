@@ -905,9 +905,12 @@ class Epochs(_BaseEpochs):
                                ref_meg=False, eog=False, ecg=False,
                                emg=False, exclude=[])
             epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
+        picks = pick_types(self.info, meg=True, eeg=True, stim=False,
+                           ref_meg=True, eog=True, ecg=True,
+                           emg=True, exclude=[])
         # Baseline correct
-        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
-                        copy=False, verbose=verbose)
+        epoch[picks] = rescale(epoch[picks], self._raw_times, self.baseline,
+                               'mean', copy=False, verbose=verbose)
 
         # handle offset
         if self._offset is not None:

@@ -17,7 +17,7 @@ from scipy.signal import hilbert
 from scipy import linalg
 
 from ..constants import FIFF
-from ..pick import pick_types, channel_type
+from ..pick import pick_types, channel_type, pick_channels
 from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
@@ -32,7 +32,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
-                     check_fname, logger, verbose)
+                     check_fname, _get_stim_channel, logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
@@ -1266,6 +1266,46 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                                 self.n_times)
         return "<Raw  |  %s>" % s
+
+    def add_events(self, events, stim_channel=None):
+        """Add events to stim channel
+
+        Parameters
+        ----------
+        events : ndarray, shape (n_events, 3)
+            Events to add. The first column specifies the sample number of
+            each event, the second column is ignored, and the third column
+            provides the event value. If events already exist in the Raw
+            instance at the given sample numbers, the event values will be
+            added together.
+        stim_channel : str | None
+            Name of the stim channel to add to. If None, the config variable
+            'MNE_STIM_CHANNEL' is used. If this is not found, it will default
+            to 'STI 014'.
+
+        Notes
+        -----
+        Data must be preloaded in order to add events.
+        """
+        if not self._preloaded:
+            raise RuntimeError('cannot add events unless data are preloaded')
+        events = np.asarray(events)
+        if events.ndim != 2 or events.shape[1] != 3:
+            raise ValueError('events must be shape (n_events, 3)')
+        stim_channel = _get_stim_channel(stim_channel)
+        pick = pick_channels(self.ch_names, stim_channel)
+        if len(pick) == 0:
+            raise ValueError('Channel %s not found' % stim_channel)
+        pick = pick[0]
+        idx = events[:, 0].astype(int)
+        if np.any(idx < self.first_samp) or np.any(idx > self.last_samp):
+            raise ValueError('event sample numbers must be between %s and %s'
+                             % (self.first_samp, self.last_samp))
+        if not all(idx == events[:, 0]):
+            raise ValueError('event sample numbers must be integers')
+        print(self._data[pick])
+        self._data[pick][idx - self.first_samp] += events[:, 2]
+        print(self._data[pick])
 
 
 def set_eeg_reference(raw, ref_channels, copy=True):
