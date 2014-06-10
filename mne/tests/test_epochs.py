@@ -124,7 +124,7 @@ def test_read_write_epochs():
     assert_array_equal(data, epochs_no_id.get_data())
 
     eog_picks = pick_types(raw.info, meg=False, eeg=False, stim=False,
-                                eog=True, exclude='bads')
+                           eog=True, exclude='bads')
     eog_ch_names = [raw.ch_names[k] for k in eog_picks]
     epochs.drop_channels(eog_ch_names)
     assert_true(len(epochs.info['chs']) == len(epochs.ch_names)
@@ -215,7 +215,7 @@ def test_epochs_proj():
     """
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
     this_picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
-                                 eog=True, exclude=exclude)
+                            eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True)
     assert_true(all(p['active'] is True for p in epochs.info['projs']))
@@ -237,7 +237,7 @@ def test_epochs_proj():
 
     # make sure we can exclude avg ref
     this_picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
-                                 eog=True, exclude=exclude)
+                            eog=True, exclude=exclude)
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True, add_eeg_ref=True)
     assert_true(_has_eeg_average_ref_proj(epochs.info['projs']))
@@ -534,7 +534,7 @@ def test_detrend():
     epochs_2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                       baseline=None, detrend=None)
     data_picks = pick_types(epochs_1.info, meg=True, eeg=True,
-                                 exclude='bads')
+                            exclude='bads')
     evoked_1 = epochs_1.average()
     evoked_2 = epochs_2.average()
     evoked_2.detrend(1)
@@ -795,6 +795,7 @@ def test_access_by_name():
     assert_array_equal(epochs.events, epochs6.events)
     assert_array_almost_equal(epochs.get_data(), epochs6.get_data(), 20)
 
+
 @requires_pandas
 def test_as_data_frame():
     """Test epochs Pandas exporter"""
@@ -902,7 +903,8 @@ def test_drop_epochs():
     selection = epochs.selection.copy()
     epochs.drop_epochs([2, 4], reason='d')
     assert_equal(len(epochs.drop_log), len(events))
-    assert_equal([epochs.drop_log[k] for k in selection[[2, 4]]], [['d'],['d']])
+    assert_equal([epochs.drop_log[k]
+                  for k in selection[[2, 4]]], [['d'], ['d']])
     assert_array_equal(events[epochs.selection], events1[[0, 1, 3, 5, 6]])
     assert_array_equal(events[epochs[3:].selection], events1[[5, 6]])
     assert_array_equal(events[epochs['1'].selection], events1[[0, 1, 3, 5, 6]])
@@ -1159,4 +1161,3 @@ def test_array_epochs():
     # indexing
     assert_array_equal(np.unique(epochs['a'].events[:, 2]), np.array([1]))
     assert_equal(len(epochs[:2]), 2)
-
