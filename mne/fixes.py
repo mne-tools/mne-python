@@ -175,10 +175,19 @@ else:
 
 
 def _digitize(x, bins, right=False):
-    """Replacement for digitize with right kwarg (numpy < 1.7)"""
+    """Replacement for digitize with right kwarg (numpy < 1.7).
+
+    Notes
+    -----
+    This fix is only meant for integer arrays. If ``right==True`` but either
+    ``x`` or ``bins`` are of a different type, a NotImplementedError will be
+    raised.
+    """
     if right:
-        if x.dtype.kind != 'i':
-            raise NotImplementedError
+        x = np.asarray(x)
+        bins = np.asarray(bins)
+        if x.dtype.kind != 'i' or bins.dtype.kind != 'i':
+            raise NotImplementedError("Not implemented for integer input")
         return np.digitize(x - 1e-5, bins)
     else:
         return np.digitize(x, bins)

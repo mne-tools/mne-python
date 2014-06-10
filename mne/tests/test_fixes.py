@@ -86,6 +86,7 @@ def test_digitize():
     assert_array_equal(_digitize(data, bins), left)
     assert_array_equal(_digitize(data, bins, True), right)
     assert_raises(NotImplementedError, _digitize, data + 0.1, bins, True)
+    assert_raises(NotImplementedError, _digitize, data, [0., 5, 10], True)
 
 
 def test_tril_indices():
