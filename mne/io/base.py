@@ -1303,9 +1303,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                              % (self.first_samp, self.last_samp))
         if not all(idx == events[:, 0]):
             raise ValueError('event sample numbers must be integers')
-        print(self._data[pick])
-        self._data[pick][idx - self.first_samp] += events[:, 2]
-        print(self._data[pick])
+        self._data[pick, idx - self.first_samp] += events[:, 2]
 
 
 def set_eeg_reference(raw, ref_channels, copy=True):
