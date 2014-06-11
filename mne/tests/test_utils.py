@@ -10,7 +10,7 @@ from ..utils import (set_log_level, set_log_file, _TempDir,
                      get_config, set_config, deprecated, _fetch_file,
                      sum_squared, requires_mem_gb, estimate_rank,
                      _url_to_local_path, sizeof_fmt,
-                     _check_type_picks)
+                     _check_type_picks, create_slices)
 from ..io import Evoked, show_fiff
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -168,6 +168,7 @@ def deprecated_func():
 
 @deprecated('message')
 class deprecated_class(object):
+
     def __init__(self):
         pass
 
@@ -278,3 +279,38 @@ def test_check_type_picks():
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
 
+
+def test_create_slices():
+    """Test checking the create of time create_slices
+    """
+    # Test that create_slices default provide an empty list
+    assert_true(create_slices(0, 0) == [])
+    # Test that create_slice return correct number of slices
+    assert_true(len(create_slices(0, 100)) == 100)
+    # Test with non-zero start parameters
+    assert_true(len(create_slices(50, 100)) == 50)
+    # Test slices' length with non-zero start and window_width=2
+    assert_true(len(create_slices(0, 100, length=2)) == 50)
+    # Test slices' length with manual slice separation
+    assert_true(len(create_slices(0, 100, step=10)) == 10)
+    # Test slices' within length for non-consecutive samples
+    assert_true(len(create_slices(0, 500, length=50, step=10)) == 46)
+    # Test that slices elements start, stop and step correctly
+    slices = create_slices(0, 10)
+    assert_true(slices[0].start == 0)
+    assert_true(slices[0].step == 1)
+    assert_true(slices[0].stop == 1)
+    assert_true(slices[-1].stop == 10)
+    # Same with larger window width
+    slices = create_slices(0, 9, length=3)
+    assert_true(slices[0].start == 0)
+    assert_true(slices[0].step == 1)
+    assert_true(slices[0].stop == 3)
+    assert_true(slices[-1].stop == 9)
+    # Same with manual slices' separation
+    slices = create_slices(0, 9, length=3, step=1)
+    assert_true(len(slices) == 7)
+    assert_true(slices[0].step == 1)
+    assert_true(slices[0].stop == 3)
+    assert_true(slices[-1].start == 6)
+    assert_true(slices[-1].stop == 9)
