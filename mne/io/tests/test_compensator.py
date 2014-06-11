@@ -7,10 +7,9 @@ from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_allclose
 
-from mne import Epochs
-from mne import pick_types
+from mne import Epochs, read_evokeds, pick_types
 from mne.io.compensator import make_compensator, get_current_comp
-from mne.io import Raw, read_evokeds
+from mne.io import Raw
 from mne.utils import _TempDir, requires_mne, run_subprocess
 
 base_dir = op.join(op.dirname(__file__), 'data')

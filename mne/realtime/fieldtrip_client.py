@@ -9,7 +9,7 @@ import threading
 import warnings
 import numpy as np
 
-from ..constants import FIFF
+from ..io.constants import FIFF
 from ..io.meas_info import Info
 from ..utils import logger
 from ..externals.FieldTrip import Client as FtClient

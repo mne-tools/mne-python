@@ -14,9 +14,9 @@ import warnings
 from mne.cov import regularize, whiten_evoked
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
-                 compute_covariance)
+                 compute_covariance, read_evokeds)
 from mne import pick_channels_cov, pick_channels, pick_types
-from mne.io import Raw, read_evokeds
+from mne.io import Raw
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings

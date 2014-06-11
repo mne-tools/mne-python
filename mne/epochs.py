@@ -23,14 +23,13 @@ from .io.meas_info import read_meas_info, write_meas_info, _merge_info
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
-from .io import Evoked
-from .constants import FIFF
-from .pick import (pick_types, channel_indices_by_type, channel_type,
-                        pick_channels, pick_info)
+from .io.constants import FIFF
+from .io.pick import (pick_types, channel_indices_by_type, channel_type,
+                      pick_channels, pick_info)
 from .io.proj import setup_proj, ProjMixin
 from .io.channels import ContainsMixin, PickDropChannelsMixin
-from .io.evoked import aspect_rev
 from .io.base import _BaseRaw, _time_as_index, _index_as_time
+from .evoked import Evoked, aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed)

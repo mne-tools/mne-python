@@ -11,7 +11,7 @@ import os.path as op
 import re
 import uuid
 
-from ..constants import FIFF
+from .constants import FIFF
 from ..utils import logger
 from ..externals.jdcal import jcal2jd
 from ..fixes import gzip_open

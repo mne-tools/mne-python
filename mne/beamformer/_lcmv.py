@@ -11,9 +11,9 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from ..constants import FIFF
+from ..io.constants import FIFF
 from ..io.proj import make_projector
-from ..pick import pick_types, pick_channels_forward, pick_channels_cov
+from ..io.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener, compute_covariance

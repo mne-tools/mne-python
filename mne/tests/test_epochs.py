@@ -15,17 +15,17 @@ import copy as cp
 import warnings
 
 from mne import (io, Epochs, read_events, pick_events, read_epochs,
-                 equalize_channels, pick_types, pick_channels)
+                 equalize_channels, pick_types, pick_channels, read_evokeds,
+                 write_evokeds)
 from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
                         add_channels_epochs, EpochsArray)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
                        clean_warning_registry)
 
-from mne.io import read_evokeds
 from mne.io.array import create_info
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
-from mne.constants import FIFF
+from mne.io.constants import FIFF
 from mne.externals.six.moves import zip
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -310,7 +310,7 @@ def test_evoked_standard_error():
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = [epochs.average(), epochs.standard_error()]
-    io.write_evokeds(op.join(tempdir, 'evoked-ave.fif'), evoked)
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), evoked)
     evoked2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), [0, 1])
     evoked3 = [read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown'),
                read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 'Unknown',

@@ -14,7 +14,7 @@ import threading
 import numpy as np
 
 from ..utils import logger, verbose
-from ..constants import FIFF
+from ..io.constants import FIFF
 from ..io.meas_info import read_meas_info
 from ..io.tag import Tag, read_tag
 from ..io.tree import make_dir_tree

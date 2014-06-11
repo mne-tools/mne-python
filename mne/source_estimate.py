@@ -15,7 +15,7 @@ from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
 from .filter import resample
-from .io.evoked import _get_peak
+from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)

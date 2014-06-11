@@ -16,7 +16,7 @@ Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
 print(__doc__)
 
-from mne.io import read_evokeds
+from mne import read_evokeds
 from mne.datasets.megsim import load_data
 
 condition = 'visual'  # or 'auditory' or 'somatosensory'

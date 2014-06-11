@@ -14,8 +14,8 @@ from mne import read_label, read_forward_solution
 from mne.time_frequency import morlet
 from mne.simulation import generate_sparse_stc, generate_evoked
 from mne import read_cov
-from mne.io import Raw, read_evokeds
-from mne.pick import pick_types_evoked, pick_types_forward
+from mne.io import Raw
+from mne import pick_types_evoked, pick_types_forward, read_evokeds
 
 warnings.simplefilter('always')
 

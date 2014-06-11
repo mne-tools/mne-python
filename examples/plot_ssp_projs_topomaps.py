@@ -14,8 +14,7 @@ The projections used are the ones correcting for ECG artifacts.
 print(__doc__)
 
 import matplotlib.pyplot as plt
-from mne import read_proj, find_layout
-from mne.io import read_evokeds
+from mne import read_proj, find_layout, read_evokeds
 from mne.datasets import sample
 from mne import viz
 data_path = sample.data_path()

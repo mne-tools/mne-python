@@ -16,7 +16,7 @@ print(__doc__)
 
 import matplotlib.pyplot as plt
 from mne.datasets import sample
-from mne.io import read_evokeds
+from mne import read_evokeds
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 

@@ -10,9 +10,9 @@ from scipy import sparse
 
 from ..externals.six import string_types
 
-from ..constants import FIFF
 from ..utils import verbose, logger
-from ..pick import channel_type, pick_info
+from .pick import channel_type, pick_info
+from .constants import FIFF
 from .tree import dir_tree_find
 from .tag import find_tag
 
@@ -117,11 +117,12 @@ def equalize_channels(candidates, verbose=None):
 
     Note. This function operates inplace.
     """
-    from . import Raw
-    from .. import Epochs
-    from . import Evoked
+    from .base import _BaseRaw
+    from ..epochs import Epochs
+    from ..evoked import Evoked
 
-    if not all([isinstance(c, (Raw, Epochs, Evoked)) for c in candidates]):
+    if not all([isinstance(c, (_BaseRaw, Epochs, Evoked))
+                for c in candidates]):
         valid = ['Raw', 'Epochs', 'Evoked']
         raise ValueError('candidates must be ' + ' or '.join(valid))
 
@@ -201,8 +202,8 @@ class PickDropChannelsMixin(object):
 
         # avoid circular imports
         from .fiff.raw import _BaseRaw
-        from .. import Epochs
-        from . import Evoked
+        from ..epochs import Epochs
+        from ..evoked import Evoked
         if isinstance(self, _BaseRaw):
             if not self._preloaded:
                 raise RuntimeError('Raw data must be preloaded to drop or pick'
