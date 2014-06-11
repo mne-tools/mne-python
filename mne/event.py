@@ -6,11 +6,10 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 import numpy as np
 from os.path import splitext
 
-from .utils import get_config, check_fname, logger, verbose
+from .utils import check_fname, logger, verbose, _get_stim_channel
 from .constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
@@ -444,7 +443,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, output='onset',
-                consecutive='increasing', min_duration=0, 
+                consecutive='increasing', min_duration=0,
                 shortest_event=2):
     """Find events from raw file
 
@@ -712,26 +711,3 @@ def concatenate_events(events, first_samps, last_samps):
         events_out = np.concatenate((events_out, e2), axis=0)
 
     return events_out
-
-
-def _get_stim_channel(stim_channel):
-    """Helper to determine the appropriate stim_channel"""
-    if stim_channel is not None:
-        if not isinstance(stim_channel, list):
-            if not isinstance(stim_channel, string_types):
-                raise ValueError('stim_channel must be a str, list, or None')
-            stim_channel = [stim_channel]
-        if not all([isinstance(s, string_types) for s in stim_channel]):
-            raise ValueError('stim_channel list must contain all strings')
-        return stim_channel
-
-    stim_channel = list()
-    ch_count = 0
-    ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None):
-        stim_channel.append(ch)
-        ch_count += 1
-        ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
-    if ch_count == 0:
-        stim_channel = ['STI 014']
-    return stim_channel
