@@ -1,7 +1,7 @@
 # Authors: Tal Linzen <linzen@nyu.edu>
 #          Teon Brooks <teon@nyu.edu>
 #
-# License: Simplified BSD
+# License: BSD (3-clause)
 
 import numpy as np
 from scipy import linalg, stats
@@ -9,7 +9,7 @@ from scipy import linalg, stats
 from ..source_estimate import SourceEstimate
 
 
-def ols(data, design_matrix, **kwargs):
+def ols(data, design_matrix, names=None):
     """Ordinary Least Squares Fitter
 
     Parameters
@@ -44,9 +44,7 @@ def ols(data, design_matrix, **kwargs):
         the arrays will be (n_channels, n_timepoints).
     """
 
-    if 'names' in kwargs:
-        names = kwargs['names']
-    else:
+    if names == None:
         names = ['x%s' % r for r in range(design_matrix.shape[1])]
     n_trials = data.shape[0]
     if len(design_matrix.shape) != 2:
@@ -83,7 +81,7 @@ def ols(data, design_matrix, **kwargs):
     return dict(beta=beta, stderr=stderr, t=t, p=p)
 
 
-def ols_epochs(epochs, design_matrix, **kwargs):
+def ols_epochs(epochs, design_matrix, names=None):
     """Ordinary Least Squares Fitter for Epochs
 
     Parameters
@@ -116,10 +114,9 @@ def ols_epochs(epochs, design_matrix, **kwargs):
         Evoked object that represents the t statistic for the regressor
         'volume' in each channel at each timepoint.
     """
-    if 'names' in kwargs:
-        names = kwargs['names']
-    else:
+    if names == None:
         names = ['x%s' % r for r in range(design_matrix.shape[1])]
+
     evoked = epochs.average()
     data = epochs.get_data()
     ols_fit = ols(data, design_matrix, names)
@@ -131,7 +128,7 @@ def ols_epochs(epochs, design_matrix, **kwargs):
     return ols_fit
 
 
-def ols_source_estimates(source_estimates, design_matrix, *kwargs):
+def ols_source_estimates(source_estimates, design_matrix, names=None):
     """Ordinary Least Squares Fitter for Source Estimates
 
     Parameters
@@ -162,10 +159,9 @@ def ols_source_estimates(source_estimates, design_matrix, *kwargs):
         a SourceEstimate object that contains the t statistic for the regressor
         'volume' in each source at each timepoint.
     """
-    if 'names' in kwargs:
-        names = kwargs['names']
-    else:
+    if names == None:
         names = ['x%s' % r for r in range(design_matrix.shape[1])]
+
     data = np.array([stc.data for stc in source_estimates])
     ols_fit = ols(data, design_matrix, names)
     s = source_estimates[0]
