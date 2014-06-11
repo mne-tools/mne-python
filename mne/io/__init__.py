@@ -6,20 +6,19 @@
 # License: BSD (3-clause)
 
 from .open import fiff_open, show_fiff, _fiff_get_fid
-from .evoked import (Evoked, read_evoked, write_evoked, read_evokeds,
-                     write_evokeds)
 from .meas_info import read_fiducials, write_fiducials, read_info, write_info
 
 from .proj import proj_equal, make_eeg_average_ref_proj
-from .cov import read_cov, write_cov
 from . import array
 from . import base
 from . import brainvision
 from . import bti
+from . import constants
 from . import edf
 from . import egi
 from . import fiff
 from . import kit
+from . import pick
 
 from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti

@@ -15,7 +15,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 import mne
 from mne.utils import _TempDir
 from mne import pick_types
-from mne.constants import FIFF
+from mne.io.constants import FIFF
 from mne.io import Raw
 from mne.io import read_raw_brainvision
 

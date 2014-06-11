@@ -16,8 +16,8 @@ import numpy as np
 from scipy.signal import hilbert
 from scipy import linalg
 
-from ..constants import FIFF
-from ..pick import pick_types, channel_type, pick_channels
+from .constants import FIFF
+from .pick import pick_types, channel_type, pick_channels
 from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)

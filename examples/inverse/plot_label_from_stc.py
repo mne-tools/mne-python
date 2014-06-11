@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.minimum_norm import read_inverse_operator, apply_inverse
-from mne.io import read_evokeds
 from mne.datasets import sample
 
 data_path = sample.data_path()
@@ -42,7 +41,7 @@ aparc_label_name = 'bankssts-lh'
 tmin, tmax = 0.080, 0.120
 
 # Load data
-evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
+evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']  # get the source space
 

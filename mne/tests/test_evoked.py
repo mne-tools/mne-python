@@ -12,15 +12,17 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises
 
-from mne import equalize_channels, pick_types
-from mne.io import read_evoked, write_evoked, read_evokeds, write_evokeds
-from mne.io.evoked import _get_peak
+from mne import (equalize_channels, pick_types, read_evoked, write_evoked,
+                 read_evokeds, write_evokeds)
+from mne.evoked import _get_peak
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 
 warnings.simplefilter('always')
 
-fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
-fname_gz = op.join(op.dirname(__file__), 'data', 'test-ave.fif.gz')
+fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
+                'test-ave.fif')
+fname_gz = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
+                   'test-ave.fif.gz')
 
 tempdir = _TempDir()
 

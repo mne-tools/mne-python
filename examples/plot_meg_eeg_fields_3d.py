@@ -16,9 +16,8 @@ This process can be computationally intensive.
 
 print(__doc__)
 
-from mne.io import read_evokeds
 from mne.datasets import sample
-from mne import make_field_map
+from mne import make_field_map, read_evokeds
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'

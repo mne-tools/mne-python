@@ -15,7 +15,7 @@ from scipy import sparse
 from fnmatch import fnmatch
 
 from .io.channels import _get_meg_system
-from .constants import FIFF
+from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import find_tag

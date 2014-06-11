@@ -6,9 +6,8 @@ from nose.tools import assert_true, assert_equal
 import warnings
 
 from mne import io, read_events, Epochs, SourceEstimate, read_cov, read_proj
-from mne import make_field_map, pick_types
+from mne import make_field_map, pick_types, pick_channels_evoked, read_evokeds
 from mne.layouts import read_layout
-from mne.pick import pick_channels_evoked
 from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_topo_phase_lock, plot_topo_image_epochs,
                      plot_evoked_topomap, plot_projs_topomap,
@@ -20,7 +19,7 @@ from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
-from mne.constants import FIFF
+from mne.io.constants import FIFF
 from mne.utils import check_sklearn_version
 
 
@@ -96,7 +95,7 @@ def _get_events():
 
 def _get_picks(raw):
     return pick_types(raw.info, meg=True, eeg=False, stim=False,
-                           ecg=False, eog=False, exclude='bads')
+                      ecg=False, eog=False, exclude='bads')
 
 
 def _get_epochs():
@@ -283,7 +282,7 @@ def test_plot_ica_panel():
     """
     raw = _get_raw()
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
-                                ecg=False, eog=False, exclude='bads')
+                           ecg=False, eog=False, exclude='bads')
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
     ica.decompose_raw(raw, picks=ica_picks)
@@ -454,8 +453,8 @@ def test_plot_topomap():
     # evoked
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
-        evoked = io.read_evokeds(evoked_fname, 'Left Auditory',
-                                  baseline=(None, 0))
+        evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                              baseline=(None, 0))
         evoked.plot_topomap(0.1, 'mag', layout=layout)
         plot_evoked_topomap(evoked, None, ch_type='mag')
         times = [0.1, 0.2]
@@ -497,7 +496,7 @@ def test_plot_topomap():
         assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
 
         projs = read_proj(ecg_fname)
-        projs = [p for p in projs if p['desc'].lower().find('eeg') < 0]
+        projs = [pp for pp in projs if pp['desc'].lower().find('eeg') < 0]
         plot_projs_topomap(projs)
         plt.close('all')
         for ch in evoked.info['chs']:
@@ -524,7 +523,7 @@ def test_plot_ica_topomap():
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
-                                ecg=False, eog=False, exclude='bads')
+                           ecg=False, eog=False, exclude='bads')
     ica.decompose_raw(raw, picks=ica_picks)
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
@@ -557,8 +556,8 @@ def test_plot_source_spectrogram():
 def test_plot_evoked_field():
     trans_fname = op.join(data_dir, 'MEG', 'sample',
                           'sample_audvis_raw-trans.fif')
-    evoked = io.read_evokeds(evoked_fname, condition='Left Auditory',
-                             baseline=(-0.2, 0.0))
+    evoked = read_evokeds(evoked_fname, condition='Left Auditory',
+                          baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
     for t in ['meg', None]:
         maps = make_field_map(evoked, trans_fname=trans_fname,
@@ -575,8 +574,8 @@ def test_plot_trans():
     """
     trans_fname = op.join(data_dir, 'MEG', 'sample',
                           'sample_audvis_raw-trans.fif')
-    evoked = io.read_evokeds(evoked_fname, condition='Left Auditory',
-                             baseline=(-0.2, 0.0))
+    evoked = read_evokeds(evoked_fname, condition='Left Auditory',
+                          baseline=(-0.2, 0.0))
     plot_trans(evoked.info, trans_fname=trans_fname, subject='sample',
                subjects_dir=subjects_dir)
     assert_raises(ValueError, plot_trans, evoked.info, trans_fname=trans_fname,

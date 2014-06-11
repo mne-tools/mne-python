@@ -12,7 +12,7 @@ import numpy as np
 from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from .. import pick_types
-from ..constants import FIFF
+from ..io.constants import FIFF
 from ..utils import _clean_names
 from ..externals.six.moves import map
 

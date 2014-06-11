@@ -11,7 +11,7 @@ from scipy import linalg
 from ..externals.six import BytesIO, string_types
 from datetime import datetime as dt
 
-from ..constants import FIFF
+from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
 from .tag import read_tag
@@ -86,7 +86,7 @@ def read_fiducials(fname):
         List of digitizer points (each point in a dict).
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.constants.FIFF.FIFFV_COORD_...)
+        mne.io.constants.FIFF.FIFFV_COORD_...)
     """
     fid, tree, _ = fiff_open(fname)
     with fid:
@@ -128,7 +128,7 @@ def write_fiducials(fname, pts, coord_frame=0):
         the keys 'kind', 'ident' and 'r'.
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.constants.FIFF.FIFFV_COORD_...)
+        mne.io.constants.FIFF.FIFFV_COORD_...)
     """
     pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
     bad_frames = pts_frames - set((coord_frame,))

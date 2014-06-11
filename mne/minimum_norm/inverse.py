@@ -9,7 +9,7 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-from ..constants import FIFF
+from ..io.constants import FIFF
 from ..io.open import fiff_open
 from ..io.tag import find_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
@@ -20,9 +20,8 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
                         write_coord_trans, write_string)
 
-from ..io.cov import read_cov, write_cov
-from ..pick import channel_type, pick_info
-from ..cov import prepare_noise_cov
+from ..io.pick import channel_type, pick_info
+from ..cov import prepare_noise_cov, _read_cov, _write_cov
 from ..forward import (compute_depth_prior, read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
                        compute_orient_prior, _to_fixed_ori)
@@ -187,23 +186,23 @@ def read_inverse_operator(fname, verbose=None):
     #
     #   Read the covariance matrices
     #
-    inv['noise_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
+    inv['noise_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
     logger.info('    Noise covariance matrix read.')
 
-    inv['source_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
+    inv['source_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
     logger.info('    Source covariance matrix read.')
     #
     #   Read the various priors
     #
-    inv['orient_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+    inv['orient_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
     if inv['orient_prior'] is not None:
         logger.info('    Orientation priors read.')
 
-    inv['depth_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
+    inv['depth_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
     if inv['depth_prior'] is not None:
         logger.info('    Depth priors read.')
 
-    inv['fmri_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
+    inv['fmri_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
     if inv['fmri_prior'] is not None:
         logger.info('    fMRI priors read.')
 
@@ -370,21 +369,21 @@ def write_inverse_operator(fname, inv, verbose=None):
     #   write the covariance matrices
     #
     logger.info('    Writing noise covariance matrix.')
-    write_cov(fid, inv['noise_cov'])
+    _write_cov(fid, inv['noise_cov'])
 
     logger.info('    Writing source covariance matrix.')
-    write_cov(fid, inv['source_cov'])
+    _write_cov(fid, inv['source_cov'])
 
     #
     #   write the various priors
     #
     logger.info('    Writing orientation priors.')
     if inv['depth_prior'] is not None:
-        write_cov(fid, inv['depth_prior'])
+        _write_cov(fid, inv['depth_prior'])
     if inv['orient_prior'] is not None:
-        write_cov(fid, inv['orient_prior'])
+        _write_cov(fid, inv['orient_prior'])
     if inv['fmri_prior'] is not None:
-        write_cov(fid, inv['fmri_prior'])
+        _write_cov(fid, inv['fmri_prior'])
 
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
 
@@ -1336,7 +1335,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     has_meg = False
     has_eeg = False
     ch_idx = [k for k, c in enumerate(info['chs'])
-                                    if c['ch_name'] in gain_info['ch_names']]
+              if c['ch_name'] in gain_info['ch_names']]
     for idx in ch_idx:
         ch_type = channel_type(info, idx)
         if ch_type == 'eeg':

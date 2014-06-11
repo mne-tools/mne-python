@@ -15,8 +15,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from mne import (read_proj, read_forward_solution, read_cov, read_label,
-                 pick_types_evoked, pick_types_forward, pick_types)
-from mne.io import read_evokeds, Raw
+                 pick_types_evoked, pick_types_forward, pick_types,
+                 read_evokeds)
+from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import iir_filter_raw, morlet
 from mne.viz import plot_evoked, plot_sparse_source_estimates

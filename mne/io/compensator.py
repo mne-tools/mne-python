@@ -1,6 +1,6 @@
 import numpy as np
 
-from ..constants import FIFF
+from .constants import FIFF
 
 
 def get_current_comp(info):

@@ -9,14 +9,14 @@ from copy import deepcopy
 
 import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
+from scipy.io import savemat
 
 from mne import io
 from mne.io.channels import (rename_channels, read_ch_connectivity,
                              ch_neighbor_connectivity)
-from mne.constants import FIFF
+from mne.io.constants import FIFF
 from mne.fixes import partial
 from mne.utils import _TempDir
-from scipy.io import savemat
 
 tempdir = _TempDir()
 

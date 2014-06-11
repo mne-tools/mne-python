@@ -4,13 +4,14 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 from copy import deepcopy
 import re
 
 import numpy as np
-from .utils import logger, verbose
+
 from .constants import FIFF
+from ..utils import logger, verbose
+from ..externals.six import string_types
 
 
 def channel_type(info, idx):

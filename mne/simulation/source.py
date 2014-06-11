@@ -5,6 +5,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+
 from ..source_estimate import SourceEstimate
 from ..utils import check_random_state
 from ..externals.six.moves import zip

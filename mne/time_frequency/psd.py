@@ -6,7 +6,7 @@ import numpy as np
 
 from ..parallel import parallel_func
 from ..io.proj import make_projector_info
-from ..pick import pick_types
+from ..io.pick import pick_types
 from ..utils import logger, verbose
 
 

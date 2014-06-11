@@ -10,7 +10,7 @@ Reading and writing an evoked file
 
 print(__doc__)
 
-from mne.io import read_evokeds
+from mne import read_evokeds
 from mne.datasets import sample
 from mne.viz import plot_evoked
 
@@ -20,7 +20,8 @@ fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading
 condition = 'Left Auditory'
-evoked = read_evokeds(fname, condition=condition, baseline=(None, 0), proj=True)
+evoked = read_evokeds(fname, condition=condition, baseline=(None, 0),
+                      proj=True)
 
 ###############################################################################
 # Show result:

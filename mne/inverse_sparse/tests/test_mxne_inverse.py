@@ -11,8 +11,7 @@ from nose.tools import assert_true
 
 from mne.datasets import sample
 from mne.label import read_label
-from mne import read_cov, read_forward_solution
-from mne.io import read_evokeds
+from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 

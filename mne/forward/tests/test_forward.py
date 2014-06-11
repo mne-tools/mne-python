@@ -8,11 +8,11 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 
 from mne.datasets import sample
-from mne.io import Raw, read_evokeds
+from mne.io import Raw
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution)
-from mne import SourceEstimate, pick_types_forward
+from mne import SourceEstimate, pick_types_forward, read_evokeds
 from mne.label import read_label
 from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.forward import restrict_forward_to_stc, restrict_forward_to_label
