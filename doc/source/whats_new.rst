@@ -75,6 +75,8 @@ Changelog
 
    - Add display of head in helmet from -trans.fif file to check coregistration quality by `Mainak Jas`_
 
+   - Add `raw.add_events` to allow adding events to a raw file by `Eric Larson`_
+
 BUG
 ~~~
 
