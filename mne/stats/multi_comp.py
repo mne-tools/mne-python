@@ -105,7 +105,8 @@ def bonferroni_correction(pval, alpha=0.05):
 
 
 def _local_fdr_h0_err(f, xb, par):
-    "Error function for H0 subdensity used in local FDR optimization"
+    """Error function for H0 subdensity used in local FDR optimization.
+    """
     mu, sigma, alo, ahi = par
     sl = slice(np.argmin(np.abs(xb - alo)), np.argmin(np.abs(xb - ahi)))
     if sl.start == sl.stop:
@@ -126,39 +127,26 @@ def _local_fdr(data, n_bins=100, h0_maxiter=500, decimate=1):
     Parameters
     ----------
     n_bins : int
-        Number of points at which to evaluate the density
+        Number of points at which to evaluate the density.
     h0_maxtier : int
-        Max no of iteratios for H0 fit optimization
+        Max no of iteratios for H0 fit optimization.
     decimate : int
-        Factor by which to decimate data prior to density estimation
+        Factor by which to decimate data prior to density estimation.
 
     Returns
     -------
     xb : array
-        Points at which the densities are evaluated
+        Points at which the densities are evaluated.
     f : array
-        Density of `x`
+        Density of x.
     cf : array
-        Estimated "center density" of H0
+        Estimated "center density" of H0.
     fdr : array
-        Estimated false discovery rate
+        Estimated false discovery rate.
     mu : float
-        Mean of H0 distribution
+        Mean of H0 distribution.
     sig : float
-        Std of H0 distribution
-
-    Notes
-    -----
-
-    The use of a Gaussian in this implementation is not required, in fact, the
-    distribution to be fit does not even have to have an analytic PDF, rather
-    it is simply necessary to be able to compute a numerical density for the
-    H0.
-
-    Reference:
-    Efron B, Tibshirani R.
-    Empirical Bayes methods and false discovery rates for microarrays.
-    Genetic epidemiology 2002; 23(1): 70-86.
+        Std of H0 distribution.
     """
 
     x = data.reshape(-1)[::decimate]
@@ -197,32 +185,43 @@ def _local_fdr(data, n_bins=100, h0_maxiter=500, decimate=1):
 
 
 def local_fdr_correction(data, n_bins=100, h0_maxiter=500, decimate=1):
-    """
-    Correction for multiple comparison based on local FDR.
+    """Correction for multiple comparison based on local FDR.
 
     Rather than working directly with the p-values, local FDR determines
     the FDR of each sample based on empirical and assumed H0 distributions,
     and thresholds on the sample's FDR value.
 
+    As with fdr_correction, this operates on the entire flattened array.
+
     Parameters
     ----------
-
     data : array_like
-        set of observations to test
+        Set of observations to test.
     n_bins : int
-        Number of points at which to evaluate the density
+        Number of points at which to evaluate the density.
     h0_maxtier : int
-        Max no of iteratios for H0 fit optimization
+        Max no of iteratios for H0 fit optimization.
     decimate : int
-        Factor by which to decimate data prior to density estimation
+        Factor by which to decimate data prior to density estimation.
 
 
     Returns
     -------
-
     qvals : array
-        Values of FDR for each element of data
+        Values of FDR for each element of data.
 
+    Notes
+    -----
+
+    The use of a Gaussian in this implementation is not required, in fact, the
+    distribution to be fit does not even have to have an analytic PDF, rather
+    it is simply necessary to be able to compute a numerical density for the
+    H0.
+
+    Reference:
+    Efron B, Tibshirani R.
+    Empirical Bayes methods and false discovery rates for microarrays.
+    Genetic epidemiology 2002; 23(1): 70-86.
     """
 
     xb, _, _, fdr, _, _ = _local_fdr(data, n_bins=n_bins,

@@ -46,7 +46,8 @@ def test_multi_pval_correction():
 
 
 def test_local_fdr_correction():
-    "Test local fdr correction"
+    """Test local fdr correction
+    """
 
     rng = np.random.RandomState(0)
     X = rng.randn(15, 1000)
