@@ -14,10 +14,9 @@ from datetime import datetime as dt
 from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
-from .tag import read_tag
+from .tag import read_tag, find_tag
 from .proj import _read_proj, _write_proj, _uniquify_projs
 from .ctf import read_ctf_comp, write_ctf_comp
-from .channels import read_bad_channels
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
@@ -167,6 +166,33 @@ def read_info(fname, verbose=None):
     with f as fid:
         info = read_meas_info(fid, tree)[0]
     return info
+
+
+def read_bad_channels(fid, node):
+    """Read bad channels
+
+    Parameters
+    ----------
+    fid : file
+        The file descriptor.
+
+    node : dict
+        The node of the FIF tree that contains info on the bad channels.
+
+    Returns
+    -------
+    bads : list
+        A list of bad channel's names.
+    """
+    nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)
+
+    bads = []
+    if len(nodes) > 0:
+        for node in nodes:
+            tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
+            if tag is not None and tag.data is not None:
+                bads = tag.data.split(':')
+    return bads
 
 
 @verbose

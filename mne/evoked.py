@@ -9,6 +9,7 @@ import numpy as np
 import warnings
 
 from .baseline import rescale
+from .channels import ContainsMixin, PickDropChannelsMixin
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
@@ -24,7 +25,6 @@ from .io.tree import dir_tree_find
 from .io.pick import channel_type, pick_types
 from .io.meas_info import read_meas_info, write_meas_info
 from .io.proj import ProjMixin
-from .io.channels import ContainsMixin, PickDropChannelsMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id)

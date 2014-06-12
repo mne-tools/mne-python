@@ -8,40 +8,11 @@ import numpy as np
 from scipy.io import loadmat
 from scipy import sparse
 
-from ..externals.six import string_types
+from .externals.six import string_types
 
-from ..utils import verbose, logger
-from .pick import channel_type, pick_info
-from .constants import FIFF
-from .tree import dir_tree_find
-from .tag import find_tag
-
-
-def read_bad_channels(fid, node):
-    """Read bad channels
-
-    Parameters
-    ----------
-    fid : file
-        The file descriptor.
-
-    node : dict
-        The node of the FIF tree that contains info on the bad channels.
-
-    Returns
-    -------
-    bads : list
-        A list of bad channel's names.
-    """
-    nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)
-
-    bads = []
-    if len(nodes) > 0:
-        for node in nodes:
-            tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
-            if tag is not None and tag.data is not None:
-                bads = tag.data.split(':')
-    return bads
+from .utils import verbose, logger
+from .io.pick import channel_type, pick_info
+from .io.constants import FIFF
 
 
 def _get_meg_system(info):
