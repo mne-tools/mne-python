@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+from ..externals.six import string_types
 from copy import deepcopy
 import numpy as np
 import warnings
@@ -14,7 +15,7 @@ from .channels import ContainsMixin, PickDropChannelsMixin
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
-                    deprecated)
+                    deprecated, dict_hash)
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
 from .viz import plot_evoked_image
@@ -702,6 +703,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         out = merge_evoked([self, this_evoked])
         out.comment = self.comment + " - " + this_evoked.comment
         return out
+
+    def __hash__(self):
+        return dict_hash(dict(info=self.info, data=self.data))
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
                  time_as_index=False):

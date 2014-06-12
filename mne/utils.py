@@ -23,6 +23,7 @@ import atexit
 from math import log, ceil
 import json
 import ftplib
+import hashlib
 
 import numpy as np
 import scipy
@@ -39,6 +40,19 @@ logger.propagate = False  # don't propagate (in case of multiple imports)
 
 ###############################################################################
 # RANDOM UTILITIES
+
+def dict_hash(d, h=None):
+    """Hash a dict containing numpy-convertible values"""
+    if h is None:
+        h = hashlib.md5()
+    if isinstance(d, dict):
+        for key in sorted(d.keys()):
+            dict_hash(key, h)
+            dict_hash(d[key], h)
+    else:
+        h.update(np.array(d).tostring())
+    return int(h.hexdigest(), 16)
+
 
 def check_random_state(seed):
     """Turn seed into a np.random.RandomState instance
@@ -579,7 +593,7 @@ def requires_statsmodels(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            import statsmodels
+            import statsmodels  # noqa, analysis:ignore
         except ImportError:
             skip = True
 
@@ -604,7 +618,7 @@ def requires_patsy(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            import patsy
+            import patsy  # noqa, analysis:ignore
         except ImportError:
             skip = True
 

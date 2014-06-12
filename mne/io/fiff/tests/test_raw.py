@@ -13,7 +13,8 @@ import warnings
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
-from nose.tools import assert_true, assert_raises, assert_equal
+from nose.tools import (assert_true, assert_raises, assert_equal,
+                        assert_not_equal)
 
 from mne import pick_types, pick_channels
 from mne.io.constants import FIFF
@@ -38,6 +39,18 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 tempdir = _TempDir()
+
+
+def test_hash_raw():
+    """Test hashing raw objects
+    """
+    raw = Raw(fif_fname)
+    assert_raises(RuntimeError, raw.__hash__)
+    raw = Raw(fif_fname, preload=True)
+    raw_2 = Raw(fif_fname, preload=True)
+    assert_equal(hash(raw), hash(raw_2))
+    raw_2._data[0, 0] -= 1
+    assert_not_equal(hash(raw), hash(raw_2))
 
 
 def test_subject_info():
