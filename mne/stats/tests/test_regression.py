@@ -7,31 +7,38 @@ from numpy.testing import assert_array_equal, assert_almost_equal
 from scipy import linalg, stats
 
 import mne
+from mne.datasets import sample
 from mne.stats.regression import ols_epochs
 
 
 def test_regression():
     """Test Ordinary Least Squares Regression
     """
-    # generate data
-    np.random.seed(10)
-    n_trials, n_chan, n_samples = 10, 30, 100
-    data = np.random.randn(n_trials, n_chan, n_samples)
-    design_matrix = np.ones((n_trials, 2))
-    design_matrix[:, 1] = np.arange(n_trials) + 1
+    data_path = sample.data_path()
+    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+    event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+    tmin, tmax = -0.2, 0.5
+    event_id = dict(aud_l=1, aud_r=2)
 
-    # create an epochs object
-    ch_names = ['CH %02d' % ch_no for ch_no in range(n_chan)]
-    ch_types = ['mag'] * n_chan
-    sfreq = 1000
-    info = mne.io.array.create_info(ch_names, sfreq, ch_types)
-    ep = mne.epochs.EpochsArray(data, info, np.zeros((n_trials, 3)))
+    # Setup for reading the raw data
+    raw = mne.io.Raw(raw_fname, preload=True)
+    events = mne.read_events(event_fname)
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                        baseline=(None, 0), preload=True)
+    data = epochs.get_data()
+    data_shape = data.shape
+    data = np.reshape(data, (data_shape[0], -1))
+    design_matrix = epochs.events[:, 1:]
+    # makes the intercept
+    design_matrix[:, 0] += 1
+    # creates contrast: aud_l=0, aud_r=1
+    design_matrix[:, 1] -= 1
 
     # do the regression: min |b - aX|
-    y = np.reshape(data, (n_trials, -1))
     betas, residuals, _, _ = linalg.lstsq(design_matrix, data)
+    betas = betas.reshape(betas.shape[0], data_shape[1], data_shape[2])
 
-    res = ols_epochs(ep, design_matrix)
+    res = ols_epochs(epochs, design_matrix)
 
     # test for equivalence
     assert_array_equal(res['beta']['x0'].data, betas[0])
@@ -47,24 +54,22 @@ def test_regression():
     design_invcov = linalg.inv(np.dot(design_matrix.T, design_matrix))
     unscaled_stderrs = np.sqrt(np.diag(design_invcov))
 
-    stderrs = [unscaled_stderrs[0] * rmse]
-    stderrs.append(unscaled_stderrs[1] * rmse)
+    stderrs = [rmse * unscaled_stderr for unscaled_stderr in unscaled_stderrs]
+    stderrs = [stderr.reshape(data_shape[1], data_shape[2]) for
+               stderr in stderrs]
 
     # test for equivalence
     assert_array_equal(res['stderr']['x0'].data, stderrs[0])
     assert_array_equal(res['stderr']['x1'].data, stderrs[1])
 
     # wald t-statistic
-    ts = betas / stderrs
+    ts = betas / np.array(stderrs)
 
     # test for equivalence
     assert_array_equal(res['t']['x0'].data, ts[0])
     assert_array_equal(res['t']['x1'].data, ts[1])
 
     # p-value
-    cdf = stats.t.cdf(np.abs(ts[0]), df)
-    p = [(1 - cdf) * 2]
-    cdf = stats.t.cdf(np.abs(ts[1]), df)
-    p.append((1 - cdf) * 2)
+    p = [(1 - stats.t.cdf(np.abs(t), df)) * 2 for t in ts]
     assert_array_equal(res['p']['x0'].data, p[0])
     assert_array_equal(res['p']['x1'].data, p[1])
