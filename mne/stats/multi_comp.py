@@ -196,7 +196,7 @@ def _local_fdr(data, n_bins=100, h0_maxiter=500, decimate=1):
     return xb, f, cf, fdr, mu, sig
 
 
-def local_fdr_correction(data, q=0.2, n_bins=100, h0_maxiter=500, decimate=1):
+def local_fdr_correction(data, n_bins=100, h0_maxiter=500, decimate=1):
     """
     Correction for multiple comparison based on local FDR.
 
@@ -209,6 +209,13 @@ def local_fdr_correction(data, q=0.2, n_bins=100, h0_maxiter=500, decimate=1):
 
     data : array_like
         set of observations to test
+    n_bins : int
+        Number of points at which to evaluate the density
+    h0_maxtier : int
+        Max no of iteratios for H0 fit optimization
+    decimate : int
+        Factor by which to decimate data prior to density estimation
+
 
     Returns
     -------
@@ -221,4 +228,4 @@ def local_fdr_correction(data, q=0.2, n_bins=100, h0_maxiter=500, decimate=1):
     xb, _, _, fdr, _, _ = _local_fdr(data, n_bins=n_bins,
                                      h0_maxiter=h0_maxiter, decimate=decimate)
     qvals = np.interp(data, xb, fdr, 0.0, 0.0)
-    return qvals <= q, qvals
+    return qvals

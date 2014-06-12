@@ -51,12 +51,14 @@ def test_local_fdr_correction():
     rng = np.random.RandomState(0)
     X = rng.randn(15, 1000)
 
-    rej, qs = local_fdr_correction(X)
+    qs = local_fdr_correction(X)
+    rej = qs < 0.02
     assert_true(rej.shape==qs.shape==X.shape)
     assert_false(rej.any())
 
     X[3, 234] = 5.0
-    rej, qs = local_fdr_correction(X)
+    qs = local_fdr_correction(X)
+    rej = qs < 0.02
     assert_true(rej[3, 234])
     rej[3, 234] = False
     assert_false(rej.any())
