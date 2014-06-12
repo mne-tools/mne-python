@@ -1,9 +1,10 @@
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_allclose, assert_raises
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_false
 from scipy import stats
 
-from mne.stats import fdr_correction, bonferroni_correction
+from mne.stats import (fdr_correction, bonferroni_correction,
+                       local_fdr_correction)
 
 
 def test_multi_pval_correction():
@@ -42,3 +43,22 @@ def test_multi_pval_correction():
     thresh_fdr = np.min(np.abs(T)[reject_fdr])
     assert_true(0 <= (reject_fdr.sum() - 50) <= 50 * 1.05)
     assert_true(thresh_uncorrected <= thresh_fdr <= thresh_bonferroni)
+
+
+def test_local_fdr_correction():
+    "Test local fdr correction"
+
+    rng = np.random.RandomState(0)
+    X = rng.randn(15, 1000)
+
+    rej, qs = local_fdr_correction(X)
+    assert_true(rej.shape==qs.shape==X.shape)
+    assert_false(rej.any())
+
+    X[3, 234] = 5.0
+    rej, qs = local_fdr_correction(X)
+    assert_true(rej[3, 234])
+    rej[3, 234] = False
+    assert_false(rej.any())
+
+
