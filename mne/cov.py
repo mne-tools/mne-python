@@ -11,21 +11,21 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from .utils import check_fname, logger, verbose
 from .io.write import start_file, end_file
 from .io.proj import (make_projector, proj_equal, activate_proj,
                       _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
                       pick_channels)
-from .io.channels import read_bad_channels
 from .io.constants import FIFF
+from .io.meas_info import read_bad_channels
 from .io.proj import _read_proj, _write_proj
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix)
 from .epochs import _is_good
+from .utils import check_fname, logger, verbose
 from .externals.six.moves import zip
 
 
