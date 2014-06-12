@@ -11,9 +11,9 @@ import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 from scipy.io import savemat
 
-from mne import io
-from mne.io.channels import (rename_channels, read_ch_connectivity,
-                             ch_neighbor_connectivity)
+from mne.channels import (rename_channels, read_ch_connectivity,
+                          ch_neighbor_connectivity)
+from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.fixes import partial
 from mne.utils import _TempDir
@@ -21,14 +21,14 @@ from mne.utils import _TempDir
 tempdir = _TempDir()
 
 
-base_dir = op.join(op.dirname(__file__), 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
 def test_rename_channels():
     """Test rename channels
     """
-    info = io.read_info(raw_fname)
+    info = read_info(raw_fname)
     # Error Tests
     # Test channel name exists in ch_names
     mapping = {'EEG 160': 'EEG060'}
@@ -92,9 +92,9 @@ def test_read_ch_connectivity():
     ch_connectivity = read_ch_connectivity(mat_fname)
     x = ch_connectivity
     assert_equal(x.shape, (3, 3))
-    assert_true(x[0, 1] == False)
-    assert_true(x[0, 2] == True)
-    assert_true(np.all(x.diagonal() == True))
+    assert_equal(x[0, 1], False)
+    assert_equal(x[0, 2], True)
+    assert_true(np.all(x.diagonal()))
     assert_raises(ValueError, read_ch_connectivity, mat_fname, [0, 3])
     ch_connectivity = read_ch_connectivity(mat_fname, picks=[0, 2])
     assert_equal(ch_connectivity.shape[0], 2)
