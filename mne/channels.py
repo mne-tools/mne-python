@@ -88,9 +88,9 @@ def equalize_channels(candidates, verbose=None):
 
     Note. This function operates inplace.
     """
-    from .base import _BaseRaw
-    from ..epochs import Epochs
-    from ..evoked import Evoked
+    from .io.base import _BaseRaw
+    from .epochs import Epochs
+    from .evoked import Evoked
 
     if not all([isinstance(c, (_BaseRaw, Epochs, Evoked))
                 for c in candidates]):
@@ -170,11 +170,10 @@ class PickDropChannelsMixin(object):
         return inst
 
     def _pick_drop_channels(self, idx):
-
         # avoid circular imports
-        from .fiff.raw import _BaseRaw
-        from ..epochs import Epochs
-        from ..evoked import Evoked
+        from .io.base import _BaseRaw
+        from .epochs import Epochs
+        from .evoked import Evoked
         if isinstance(self, _BaseRaw):
             if not self._preloaded:
                 raise RuntimeError('Raw data must be preloaded to drop or pick'
