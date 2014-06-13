@@ -31,14 +31,11 @@ import os
 import mne
 from mne import fiff
 from mne.io.edf import read_raw_edf
-from mne.datasets import sample
+from mne.datasets import eegbci
 from mne.event import find_events
 from mne.decoding import CSP
 from mne.layouts import read_layout
 import matplotlib.pyplot as plt
-
-
-data_path = sample.data_path()
 
 
 def get_data(subject, runs=[6, 10, 14]):
@@ -86,7 +83,7 @@ subject = 1
 #runs = [5, 9, 13]  # motor execution: hands vs feet
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
-raw_fnames = get_data(subject, runs)
+raw_fnames = eegbci.load_data(subject, runs)
 
 # Read raw data from EDF files
 raw = None
