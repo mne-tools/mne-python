@@ -144,6 +144,7 @@ print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
+print(epochs_data.shape, labels.shape)
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should match results above
 
@@ -157,5 +158,6 @@ plt.title('running classifier')
 csp.fit_transform(epochs_data, labels)
 evoked.data = csp.patterns_.T
 evoked.times = np.arange(evoked.data.shape[0])
-evoked.plot_topomap(times=[0, 1, 2, 3, 60, 61, 62, 63], ch_type='eeg',
-                    layout=layout, colorbar=False, size=1.5)
+evoked.plot_topomap(times=[0, 1, 2, 61, 62, 63], ch_type='eeg', layout=layout,
+                    scale_time=1, time_format='%i', scale=1,
+                    unit='Patterns (AU)', size=1.5)
