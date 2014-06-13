@@ -38,7 +38,7 @@ def test_hash_evoked():
     ave = read_evokeds(fname, 0)
     ave_2 = read_evokeds(fname, 0)
     assert_equal(hash(ave), hash(ave_2))
-    ave_2._data[0, 0] -= 1
+    ave_2.data[0, 0] -= 1
     assert_not_equal(hash(ave), hash(ave_2))
 
 

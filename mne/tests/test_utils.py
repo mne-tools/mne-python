@@ -1,5 +1,6 @@
 from numpy.testing import assert_equal, assert_array_equal
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_not_equal
+from copy import deepcopy
 import os.path as op
 import numpy as np
 import os
@@ -10,7 +11,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
                        sum_squared, requires_mem_gb, estimate_rank,
                        _url_to_local_path, sizeof_fmt,
-                       _check_type_picks, dict_hash)
+                       _check_type_picks, object_hash)
 from mne.io import show_fiff
 from mne import Evoked
 
@@ -36,21 +37,21 @@ def test_hash():
     # does hashing a dict (containing dicts) work
     d0 = dict(info=dict(me=0.1, you='fo'), data=np.ones(3))
     d1 = deepcopy(d0)
-    assert_equal(dict_hash(d0), dict_hash(d1))
+    assert_equal(object_hash(d0), object_hash(d1))
 
     # change values slightly
     d1['data'] = np.ones(3, int)
-    assert_not_equal(dict_hash(d0), dict_hash(d1))
+    assert_not_equal(object_hash(d0), object_hash(d1))
 
     d1 = deepcopy(d0)
-    assert_equal(dict_hash(d0), dict_hash(d1))
+    assert_equal(object_hash(d0), object_hash(d1))
     d0['info']['me'] = 0.11
-    assert_not_equal(dict_hash(d0), dict_hash(d1))
+    assert_not_equal(object_hash(d0), object_hash(d1))
 
     d1 = deepcopy(d0)
-    assert_equal(dict_hash(d0), dict_hash(d1))
+    assert_equal(object_hash(d0), object_hash(d1))
     d0[1] = 2
-    assert_not_equal(dict_hash(d0), dict_hash(d1))
+    assert_not_equal(object_hash(d0), object_hash(d1))
 
 
 def test_tempdir():
@@ -301,4 +302,3 @@ def test_check_type_picks():
     assert_raises(ValueError, _check_type_picks, picks)
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
-

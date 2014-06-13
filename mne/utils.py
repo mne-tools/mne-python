@@ -31,7 +31,7 @@ from scipy import linalg
 
 
 from .externals.six.moves import urllib
-from .externals.six import string_types
+from .externals.six import string_types, StringIO
 from .externals.decorator import decorator
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -41,17 +41,92 @@ logger.propagate = False  # don't propagate (in case of multiple imports)
 ###############################################################################
 # RANDOM UTILITIES
 
-def dict_hash(d, h=None):
-    """Hash a dict containing numpy-convertible values"""
+def object_hash(x, h=None):
+    """Hash a reasonable python object
+
+    Parameters
+    ----------
+    x : object
+        Object to hash. Can be anything comprised of nested versions of:
+        {dict, list,tuple, ndarray, str, float, int, None, StringIO}.
+    h : hashlib HASH object | None
+        Optional, object to add the hash to. None creates an MD5 hash.
+
+    Returns
+    -------
+    digest : int
+        The digest resulting from the hash.
+    """
     if h is None:
         h = hashlib.md5()
-    if isinstance(d, dict):
-        for key in sorted(d.keys()):
-            dict_hash(key, h)
-            dict_hash(d[key], h)
+    if isinstance(x, dict):
+        for key in sorted(x.keys()):
+            object_hash(key, h)
+            object_hash(x[key], h)
+    elif isinstance(x, StringIO):
+        # h.update(x.getvalue())
+        pass  # XXX buggy for Raw instances for some reason...
+    elif isinstance(x, (list, tuple)):
+        h.update(str(type(x)))
+        for xx in x:
+            object_hash(xx, h)
+    elif isinstance(x, (string_types, float, int, type(None))):
+        h.update(str(type(x)))
+        h.update(str(x))
+    elif isinstance(x, np.ndarray):
+        x = np.asarray(x)
+        h.update(str(x.shape))
+        h.update(str(x.dtype))
+        h.update(x.tostring())
     else:
-        h.update(np.array(d).tostring())
+        raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
     return int(h.hexdigest(), 16)
+
+
+def comparison(x1, x2, pre=''):
+    """Compute all differences between two python variables
+
+    Parameters
+    ----------
+    x1 : object
+        Currently supported: dict, list, tuple, ndarray, int, str, float,
+        StringIO.
+    x2 : object
+        Must be same type as x1.
+    """
+    if type(x1) != type(x2):
+        print(pre + ' type mismatch (%s, %s)' % (type(x1), type(x2)))
+    elif isinstance(x1, dict):
+        k1s = sorted(x1.keys())
+        k2s = sorted(x2.keys())
+        m1 = set(k2s) - set(k1s)
+        if len(m1):
+            print(pre + ' x1 missing keys %s' % (m1))
+        for key in k1s:
+            if key not in k2s:
+                print(pre + ' x2 missing key %s' % key)
+            else:
+                comparison(x1[key], x2[key], pre + 'd1[%s]' % repr(key))
+    elif isinstance(x1, (list, tuple)):
+        if len(x1) != len(x2):
+            print(pre + ' length mismatch (%s, %s)' % (len(x1), len(x2)))
+        else:
+            for xx1, xx2 in zip(x1, x2):
+                comparison(xx1, xx2, pre='')
+    elif isinstance(x1, (string_types, int, float)):
+        if x1 != x2:
+            print(pre + ' value mismatch (%s, %s)' % (x1, x2))
+    elif x1 is None:
+        if x2 is not None:
+            print(pre + ' x1 is None, x2 is not (%s)' % (x2))
+    elif isinstance(x1, np.ndarray):
+        if not np.array_equal(x1, x2):
+            print(pre + ' array mismatch')
+    elif isinstance(x1, StringIO):
+        if x1.getvalue() != x2.getvalue():
+            print(pre + ' StringIO mismatch')
+    else:
+        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(x1), x1))
 
 
 def check_random_state(seed):

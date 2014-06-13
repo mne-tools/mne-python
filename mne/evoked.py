@@ -15,7 +15,7 @@ from .channels import ContainsMixin, PickDropChannelsMixin
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
-                    deprecated, dict_hash)
+                    deprecated, object_hash)
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
 from .viz import plot_evoked_image
@@ -705,7 +705,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         return out
 
     def __hash__(self):
-        return dict_hash(dict(info=self.info, data=self.data))
+        return object_hash(dict(info=self.info, data=self.data))
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
                  time_as_index=False):
