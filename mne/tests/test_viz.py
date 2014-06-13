@@ -562,6 +562,8 @@ def test_plot_source_spectrogram():
 @requires_mayavi
 @sample.requires_sample_data
 def test_plot_evoked_field():
+    """Test plotting evoked field
+    """
     trans_fname = op.join(data_dir, 'MEG', 'sample',
                           'sample_audvis_raw-trans.fif')
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
@@ -592,6 +594,8 @@ def test_plot_trans():
 
 
 def test_plot_events():
+    """Test plotting events
+    """
     event_labels = {'aud_l': 1, 'aud_r': 2, 'vis_l': 3, 'vis_r': 4}
     color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c'}
     raw = _get_raw()
