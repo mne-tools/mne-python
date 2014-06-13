@@ -38,18 +38,6 @@ from mne.layouts import read_layout
 import matplotlib.pyplot as plt
 
 
-def get_data(subject, runs=[6, 10, 14]):
-    """Return full path to data file and download if necessary."""
-    datapath = ['S{s:03d}R{r:02d}.edf'.format(s=subject, r=r) for r in runs]
-    for p, r in zip(datapath, runs):
-        if not os.path.exists(p):
-            url = ('http://www.physionet.org/physiobank/database/eegmmidb/'
-                   'S{s:03d}/S{s:03d}R{r:02d}.edf').format(s=subject, r=r)
-            print('downloading {f} from {u}...'.format(f=p, u=url))
-            urlretrieve(url, p)
-    return datapath
-
-
 class LogCSP(CSP):
     """This class replaces the CSP's normalized bandpower features with
     log-bandpower features.
