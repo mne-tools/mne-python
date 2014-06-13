@@ -1109,7 +1109,9 @@ class ICA(object):
     def _pre_whiten(self, data, info, picks):
         """Aux function"""
         info = pick_info(deepcopy(info), picks)
-        if self.noise_cov is None:  # use standardization as whitener
+        has_pre_whitener = hasattr(self, '_pre_whitener')
+        if not has_pre_whitener and self.noise_cov is None:
+            # use standardization as whitener
             # Scale (z-score) the data by channel type
             pre_whitener = np.empty([len(data), 1])
             for ch_type in ['mag', 'grad', 'eeg']:
@@ -1120,7 +1122,7 @@ class ICA(object):
                         this_picks = pick_types(info, meg=ch_type, eeg=False)
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
-        elif not hasattr(self, '_pre_whitener'):  # pick cov
+        elif not has_pre_whitener and self.noise_cov is not None:
             ncov = deepcopy(self.noise_cov)
             if data.shape[0] != ncov['data'].shape[0]:
                 ncov['data'] = ncov['data'][picks][:, picks]
@@ -1128,6 +1130,9 @@ class ICA(object):
 
             pre_whitener, _ = compute_whitener(ncov, info, picks)
             data = fast_dot(pre_whitener, data)
+        elif has_pre_whitener and self.noise_cov is None:
+            data /= self._pre_whitener
+            pre_whitener = self._pre_whitener
         else:
             data = fast_dot(self._pre_whitener, data)
             pre_whitener = self._pre_whitener
