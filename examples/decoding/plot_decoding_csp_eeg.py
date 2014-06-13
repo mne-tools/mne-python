@@ -20,8 +20,7 @@ See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
 print(__doc__)
 import numpy as np
 
-import mne
-from mne import fiff
+from mne import Epochs, pick_types
 from mne.io import concatenate_raws
 from mne.io.edf import read_raw_edf
 from mne.datasets import eegbci
@@ -79,16 +78,16 @@ layout = read_layout('../../examples/decoding/EEG1005.lay')
 events = find_events(raw, output='onset', shortest_event=0,
                      stim_channel='STI 014')
 
-picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
-                        exclude='bads')
+picks = pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
+                   exclude='bads')
 
 # Read epochs
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
-                    baseline=None, preload=True, add_eeg_ref=False)
+epochs = Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+                baseline=None, preload=True, add_eeg_ref=False)
 
 # larger epochs for running classifier testing
-epochs2 = mne.Epochs(raw, events, event_id, -1, 4, proj=True, picks=picks,
-                     baseline=None, preload=True, add_eeg_ref=False)
+epochs2 = Epochs(raw, events, event_id, -1, 4, proj=True, picks=picks,
+                 baseline=None, preload=True, add_eeg_ref=False)
 
 labels = epochs.events[:, -1] - 2
 evoked = epochs.average()
