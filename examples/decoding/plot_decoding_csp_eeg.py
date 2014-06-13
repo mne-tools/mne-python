@@ -32,7 +32,7 @@ import os
 
 import mne
 from mne import fiff
-from mne.fiff.edf import read_raw_edf
+from mne.io.edf import read_raw_edf
 from mne.datasets import sample
 from mne.event import find_events
 from mne.decoding import CSP
@@ -71,33 +71,6 @@ class LogCSP(CSP):
         # calculate log-bandpower features
         X = np.log(X)
         return X
-
-# from scot.builtin.csp import csp as _csp
-# class LogCSP:
-#     """This class replaces the CSP's normalized bandpower features with
-#     log-bandpower features.
-#
-#     Averaged band power is chi-square distributed. Taking the logarithm brings
-#     it closer to the normal distribution, which improves LDA classification.
-#     """
-#     def __init__(self, n_components, reg):
-#         pass
-#
-#     def fit(self, x, y):
-#         w, v = _csp(x.T, y, n_components)
-#         self.filters_ = w.T
-#         self.patterns_ = v
-#         return self
-#
-#     def transform(self, x):
-#         X = np.asarray([np.dot(self.filters_, e) for e in x])
-#         X = (X ** 2).mean(axis=-1)
-#         X = np.log(X)
-#         return X
-#
-#     def fit_transform(self, x, y):
-#         self.fit(x, y)
-#         return self.transform(x)
 
 
 ###############################################################################
