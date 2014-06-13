@@ -71,12 +71,12 @@ def object_hash(x, h=None):
         for xx in x:
             object_hash(xx, h)
     elif isinstance(x, (string_types, float, int, type(None))):
-        h.update(str(type(x)))
-        h.update(str(x))
+        h.update(str(type(x)).encode('utf-8'))
+        h.update(str(x).encode('utf-8'))
     elif isinstance(x, np.ndarray):
         x = np.asarray(x)
-        h.update(str(x.shape))
-        h.update(str(x.dtype))
+        h.update(str(x.shape).encode('utf-8'))
+        h.update(str(x.dtype).encode('utf-8'))
         h.update(x.tostring())
     else:
         raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
