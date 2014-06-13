@@ -20,14 +20,6 @@ See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
 print(__doc__)
 import numpy as np
 
-try:
-    # Python 3
-    from urllib.request import urlretrieve as urlretrieve
-except ImportError:
-    # Python 2.7
-    from urllib import urlretrieve as urlretrieve
-import os
-
 import mne
 from mne import fiff
 from mne.io.edf import read_raw_edf
@@ -46,7 +38,7 @@ class LogCSP(CSP):
     it closer to the normal distribution, which improves LDA classification.
     """
     def __init__(self, *args, **kwargs):
-        self = CSP.__init__(self, *args, **kwargs)
+        CSP.__init__(self, *args, **kwargs)
 
     def transform(self, epochs_data, y=None):
         X = CSP.transform(self, epochs_data, y)
@@ -102,12 +94,12 @@ picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
                         exclude='bads')
 
 # Read epochs
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=None, preload=True, add_eeg_ref=False)
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+                    baseline=None, preload=True, add_eeg_ref=False)
 
 # larger epochs for running classifier testing
-epochs2 = mne.Epochs(raw, events, event_id, -1, 4, proj=True,
-                    picks=picks, baseline=None, preload=True, add_eeg_ref=False)
+epochs2 = mne.Epochs(raw, events, event_id, -1, 4, proj=True, picks=picks,
+                     baseline=None, preload=True, add_eeg_ref=False)
 
 labels = epochs.events[:, -1] - 2
 evoked = epochs.average()
@@ -130,8 +122,8 @@ epochs_data = epochs.get_data()
 epochs2_data = epochs2.get_data()
 
 fs = raw.info['sfreq']
-winlen = int(fs * 0.5)  # running classifier: window length
-winstep = int(fs * 0.1) # running classifier: window step size
+winlen = int(fs * 0.5)   # running classifier: window length
+winstep = int(fs * 0.1)  # running classifier: window step size
 time = np.arange(0, epochs2_data.shape[2] - winlen, winstep)
 
 accs = []
@@ -149,7 +141,7 @@ for train_idx, test_idx in cv:
     # running classifier: test classifier on sliding window
     acc = []
     for n in time:
-        X_test = csp.transform(epochs2_data[test_idx][:, :, n : (n + winlen)])
+        X_test = csp.transform(epochs2_data[test_idx][:, :, n:(n + winlen)])
         acc.append(svc.score(X_test, y_test))
     accs.append(acc)
 
@@ -177,5 +169,5 @@ plt.title('running classifier')
 csp.fit_transform(epochs_data, labels)
 evoked.data = csp.patterns_.T
 evoked.times = np.arange(evoked.data.shape[0])
-evoked.plot_topomap(times=[0, 1, 2, 3, 60, 61, 62, 63], ch_type='eeg', layout=layout,
-                    colorbar=False, size=1.5)
+evoked.plot_topomap(times=[0, 1, 2, 3, 60, 61, 62, 63], ch_type='eeg',
+                    layout=layout, colorbar=False, size=1.5)
