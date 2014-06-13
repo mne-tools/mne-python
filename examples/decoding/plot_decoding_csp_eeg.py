@@ -102,25 +102,25 @@ raw.info['lowpass'] = raw.info['sfreq'] * 0.5
 raw.info['highpass'] = 0
 raw.filter(7, 30, method='iir')
 
-print(raw.info['ch_names'])
-raw.info['ch_names'] = [chn.strip('.').upper() for chn in raw.info['ch_names']]
-
 layout = read_layout('../../examples/decoding/EEG1005.lay')
+
+# make sure channel names are in the same case
+raw.info['ch_names'] = [chn.strip('.').upper() for chn in raw.info['ch_names']]
 layout.names = [chn.upper() for chn in layout.names]
 
 events = find_events(raw, output='onset', shortest_event=0,
                      stim_channel='STI 014')
 
+#raw.info['bads'] = ['T8']  # set bad channels
 picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
                         exclude='bads')
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=None, preload=True)
+                    picks=picks, baseline=None, preload=True, add_eeg_ref=False)
 
 labels = epochs.events[:, -1] - 2
 evoked = epochs.average()
-
 
 
 ###############################################################################
@@ -131,7 +131,7 @@ from sklearn.cross_validation import LeaveOneOut, ShuffleSplit
 
 n_components = 4  # pick some components
 svc = LDA()
-csp = LogCSP(n_components=n_components, reg='lws')
+csp = LogCSP(n_components=n_components, reg=None)
 
 # Define a monte-carlo cross-validation generator (reduce variance):
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
@@ -155,31 +155,23 @@ class_balance = max(class_balance, 1. - class_balance)
 print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
                                                           class_balance))
 
-# # Or use much more convenient scikit-learn cross_val_score function using
-# # a Pipeline
-# from sklearn.pipeline import Pipeline
-# from sklearn.cross_validation import cross_val_score
-# cv = LeaveOneOut(len(labels))
-# clf = Pipeline([('CSP', csp), ('SVC', svc)])
-# scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
-# print(scores.mean())  # should match results above
-#
-# # And using regularized csp with Ledoit-Wolf estimator
-# csp = CSP(n_components=n_components, reg='lws')
-# clf = Pipeline([('CSP', csp), ('SVC', svc)])
-# scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
-# print(scores.mean())  # should get better results than above
+# Or use much more convenient scikit-learn cross_val_score function using
+# a Pipeline
+from sklearn.pipeline import Pipeline
+from sklearn.cross_validation import cross_val_score
+clf = Pipeline([('CSP', csp), ('SVC', svc)])
+scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
+print(scores.mean())  # should match results above
 
 # can't use MNE's topomap (yet?) due to missing electrode positions.
 from eegtopo.topoplot import Topoplot
 from eegtopo.eegpos3d import positions
 import matplotlib.pyplot as plt
 
-scotlabels = {k.lower(): k for k in positions.keys()}
+scotlabels = {k.upper(): k for k in positions.keys()}
 ch_locs = []
 for ch_name in raw.info['ch_names'][:-1]:
-    ch = ch_name.strip('.')
-    ch = scotlabels[ch.lower()]
+    ch = scotlabels[ch_name]
     ch_locs.append(list(positions[ch].vector))
 ch_locs = np.array(ch_locs)
 
