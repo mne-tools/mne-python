@@ -59,9 +59,6 @@ class LogCSP(CSP):
 tmin, tmax = 1, 2
 event_id = dict(hands=2, feet=3)
 subject = 1
-#runs = [3, 7, 11]  # motor execution: left hand vs right hand
-#runs = [4, 8, 12]  # motor imagery: left hand vs right hand
-#runs = [5, 9, 13]  # motor execution: hands vs feet
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
