@@ -201,37 +201,36 @@ h4 {
     text-align: center;
 }
 
+a, a:hover{
+    color: #333333;
+}
+
 #wrapper {
     text-align: left;
     margin: 5em auto;
     width: 700px;
 }
 
+#container{
+    position: relative;
+}
+
 #toc {
-    list-style: none;
-    margin-bottom: 20px;
+  background: #a8a599;
+  position: fixed;
+  width: 20%;
+  height: 100%;
+  margin-top: 45px;
 }
 
 #toc li {
     overflow: hidden;
     padding-bottom: 2px;
-}
-
-#toc span {
-    display: inline-block;
-    background: #fff;
-    position: relative;
-    bottom: -4px;
+    margin-left: 20px;
 }
 
 #toc a {
-    float: right;
     padding: 0 0 3px 2px;
-}
-
-#toc a:hover {
-    text-decoration:underline;
-    background-color: #eee;
 }
 
 #toc span {
@@ -260,10 +259,6 @@ div.footer {
 
 <ul class="nav nav-pills navbar-right" style="margin-top: 7px;">
 
-    <li>
-        <a href="#">Table of Contents</a>
-    </li>
-
     <li class="active raw-btn">
         <a href="#" onclick="togglebutton('.raw')">Raw</a>
     </li>
@@ -287,7 +282,7 @@ div.footer {
 """)
 
 footer_template = HTMLTemplate(u"""
-</body>
+</div></body>
 <div class="footer">
         &copy; Copyright 2012-2013, MNE Developers.
       Created on {{date}}.
@@ -364,10 +359,8 @@ class HTMLScanRenderer(object):
         return footer_template.substitute(date=time.strftime("%B %d, %Y"))
 
     def render_toc(self, fnames):
-
-        html = u'<div id="wrapper">'
-        html += u'<h1> Table of Contents </h1>\n'
-        html += u'<ul id="toc">'
+        html = u'<div id="container">'
+        html += u'<div id="toc"><h1>Table of Contents</h1>'
 
         global_id = 1
         for fname in fnames:
@@ -394,11 +387,10 @@ class HTMLScanRenderer(object):
 
             if _endswith(fname, ['.nii', '.nii.gz', '.mgh', '.mgz', 'raw.fif',
                                  'sss.fif', '-eve.fif', '-cov.fif']):
-                html += (u'\n\t<li class="%s"><span title="%s" '
-                         'style="color:%s"> %s </span> <a href="#%d">'
-                         'report </a> </li>' % (class_name, fname,
-                                                color, os.path.basename(fname),
-                                                global_id))
+                html += (u'\n\t<li class="%s"><a href="#%d"><span title="%s" '
+                         'style="color:%s"> %s </span>'
+                         '</a></li>' % (class_name, global_id, fname,
+                                        color, os.path.basename(fname)))
                 global_id += 1
 
             # loop through conditions for evoked
@@ -412,13 +404,15 @@ class HTMLScanRenderer(object):
 
                 html += u'<li class="evoked"><ul>'
                 for ev in evokeds:
-                    html += (u'\n\t<li class="evoked"><span title="%s"> %s'
-                             '</span> <a href="#%d"> report </a> </li>'
-                             % (fname, ev.comment, global_id))
+                    html += (u'\n\t<li class="evoked"><a href="#%d"><span title="%s" style="color:%s"> %s'
+                             '</span></a></li>'
+                             % (global_id, fname, color, ev.comment))
                     global_id += 1
                 html += u'</ul></li>'
 
         html += u'\n</ul></div>'
+
+        html += u'<div style="margin-left: 20%;">'
 
         return html
 
@@ -513,7 +507,8 @@ class HTMLScanRenderer(object):
         global_id = self.get_id()
         events = mne.read_events(eve_fname)
         sfreq = 1000.  # XXX
-        fig = mne.viz.plot_events(events, sfreq=sfreq, show=False)
+        ax = mne.viz.plot_events(events, sfreq=sfreq, show=False)  # XXX : weird colors
+        fig = ax.gcf()
         output = StringIO.StringIO()
         # fig.savefig(output, dpi=self.dpi, format='png')
         fig.savefig(output, format='png')
