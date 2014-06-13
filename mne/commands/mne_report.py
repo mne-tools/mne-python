@@ -6,7 +6,6 @@
 #
 # License: BSD (3-clause)
 
-import sys
 import os
 import os.path as op
 import fnmatch
@@ -15,6 +14,7 @@ import StringIO
 import numpy as np
 import webbrowser
 import time
+import Image
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -25,6 +25,7 @@ import nibabel as nib
 import mne
 from tempita import HTMLTemplate
 
+tempdir = mne.utils._TempDir()
 
 ###############################################################################
 # IMAGE FUNCTIONS
@@ -271,6 +272,9 @@ div.footer {
     <li class="active events-btn">
         <a href="#" onclick="togglebutton('.events')">Eve</a>
     </li>
+    <li class="active trans-btn">
+        <a href="#" onclick="togglebutton('.trans')">Trans</a>
+    </li>
     <li class="active slices-images-btn">
         <a href="#" onclick="togglebutton('.slices-images')">Slices</a>
     </li>
@@ -368,7 +372,7 @@ class HTMLScanRenderer(object):
             # identify bad file naming patterns and highlight them
             if not _endswith(fname, ['-eve.fif', '-ave.fif', '-cov.fif',
                                      '-sol.fif', '-fwd.fif', '-inv.fif',
-                                     '-src.fif']):
+                                     '-src.fif', '-trans.fif', 'raw.fif']):
                 color = 'red'
             else:
                 color = ''
@@ -382,11 +386,14 @@ class HTMLScanRenderer(object):
                 class_name = 'covariance'
             elif _endswith(fname, ['raw.fif', 'sss.fif']):
                 class_name = 'raw'
+            elif _endswith(fname, ['-trans.fif']):
+                class_name = 'trans'
             elif _endswith(fname, ['.nii', '.nii.gz', '.mgh', '.mgz']):
                 class_name = 'slices-images'
 
             if _endswith(fname, ['.nii', '.nii.gz', '.mgh', '.mgz', 'raw.fif',
-                                 'sss.fif', '-eve.fif', '-cov.fif']):
+                                 'sss.fif', '-eve.fif', '-cov.fif',
+                                 '-trans.fif']):
                 html += (u'\n\t<li class="%s"><a href="#%d"><span title="%s" '
                          'style="color:%s"> %s </span>'
                          '</a></li>' % (class_name, global_id, fname,
@@ -541,6 +548,30 @@ class HTMLScanRenderer(object):
                                          caption=caption,
                                          show=show)
 
+    def render_trans(self, trans_fname, path, info_fname, subjects_dir,
+                     subject):
+
+        global_id = self.get_id()
+
+        info = mne.io.read_info(info_fname)
+        fig = mne.viz.plot_trans(info, trans_fname=trans_fname,
+                                 subject=subject, subjects_dir=subjects_dir)
+
+        fig.scene.save_bmp(tempdir + 'test')  # XXX: save_bmp / save_png / ...
+        output = StringIO.StringIO()
+        Image.open(tempdir + 'test').save(output, format='bmp')
+        img = output.getvalue().encode('base64')
+
+        caption = 'Trans : ' + trans_fname
+        div_klass = 'trans'
+        img_klass = 'trans'
+        show = True
+        return image_template.substitute(img=img, id=global_id,
+                                         div_klass=div_klass,
+                                         img_klass=img_klass,
+                                         caption=caption,
+                                         show=show)
+
 
 def _endswith(fname, extensions):
     for ext in extensions:
@@ -558,7 +589,7 @@ def recursive_search(path, pattern):
     return filtered_files
 
 
-def render_folder(path):
+def render_folder(path, info_fname, subjects_dir, subject):
     renderer = HTMLScanRenderer()
     html = renderer.init_render(path)
     folders = []
@@ -585,6 +616,9 @@ def render_folder(path):
                 html += renderer.render_eve(fname)
             elif _endswith(fname, ['-cov.fif']):
                 html += renderer.render_cov(fname)
+            elif _endswith(fname, ['-trans.fif']):
+                html += renderer.render_trans(fname, path, info_fname,
+                                              subjects_dir, subject)
             elif op.isdir(fname):
                 folders.append(fname)
                 print folders
@@ -602,5 +636,25 @@ def render_folder(path):
 
 
 if __name__ == '__main__':
-    path = sys.argv[-1]
-    report_fname = render_folder(path)
+
+    from mne.commands.utils import get_optparser
+
+    parser = get_optparser(__file__)
+
+    parser.add_option("-p", "--path", dest="path",
+                      help="Path to folder who MNE-Report must be created")
+    parser.add_option("-i", "--info-fname", dest="info_fname",
+                      help="File from which info dictionary is to be read",
+                      metavar="FILE")
+    parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
+                      help="The subjects directory")
+    parser.add_option("-s", "--subject", dest="subject",
+                      help="The subject name")
+
+    options, args = parser.parse_args()
+    path = options.path
+    info_fname = options.info_fname
+    subjects_dir = options.subjects_dir
+    subject = options.subject
+
+    report_fname = render_folder(path, info_fname, subjects_dir, subject)
