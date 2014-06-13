@@ -74,8 +74,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
         if path is None:
             path = def_path
             msg = ('No path entered, defaulting to download EEGBCI data to:\n'
-                   '    %s\nDo you want to continue ([y]/n)? '
-                   % path)
+                   '    %s\nDo you want to continue ([y]/n)? ' % path)
             answer = raw_input(msg)
             if answer.lower() == 'n':
                 raise ValueError('Please enter preferred path as '
@@ -157,8 +156,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     For example, one could do:
 
         >>> from mne.datasets import eegbci
-        >>> eegbci.load_data(subject=1, runs=[4, 10, 14],
-        >>>                  os.getenv('HOME') + '/datasets') # doctest:+SKIP
+        >>> eegbci.load_data(1, [4, 10, 14],\
+                             os.getenv('HOME') + '/datasets') # doctest:+SKIP
 
     This would download runs 4, 10, and 14 (hand/foot motor imagery) runs from
     subject 1 in the EEGBCI dataset to the 'datasets' folder, and prompt the
