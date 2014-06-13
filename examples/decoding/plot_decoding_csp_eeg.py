@@ -98,7 +98,7 @@ evoked = epochs.average()
 # Classification with linear discrimant analysis
 
 from sklearn.lda import LDA
-from sklearn.cross_validation import LeaveOneOut, ShuffleSplit
+from sklearn.cross_validation import ShuffleSplit
 
 n_components = 4  # pick some components
 svc = LDA()
