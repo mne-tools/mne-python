@@ -96,40 +96,47 @@ def object_diff(a, b, pre=''):
         StringIO.
     b : object
         Must be same type as x1.
+
+    Returns
+    -------
+    diffs : str
+        A string representation of the differences.
     """
+    out = ''
     if type(a) != type(b):
-        print(pre + ' type mismatch (%s, %s)' % (type(a), type(b)))
+        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
     elif isinstance(a, dict):
         k1s = sorted(a.keys())
         k2s = sorted(b.keys())
         m1 = set(k2s) - set(k1s)
         if len(m1):
-            print(pre + ' x1 missing keys %s' % (m1))
+            out += pre + ' x1 missing keys %s\n' % (m1)
         for key in k1s:
             if key not in k2s:
-                print(pre + ' x2 missing key %s' % key)
+                out += pre + ' x2 missing key %s\n' % key
             else:
-                object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
+                out += object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
     elif isinstance(a, (list, tuple)):
         if len(a) != len(b):
-            print(pre + ' length mismatch (%s, %s)' % (len(a), len(b)))
+            out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
         else:
             for xx1, xx2 in zip(a, b):
-                object_diff(xx1, xx2, pre='')
+                out += object_diff(xx1, xx2, pre='')
     elif isinstance(a, (string_types, int, float)):
         if a != b:
-            print(pre + ' value mismatch (%s, %s)' % (a, b))
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:
         if b is not None:
-            print(pre + ' a is None, b is not (%s)' % (b))
+            out += pre + ' a is None, b is not (%s)\n' % (b)
     elif isinstance(a, np.ndarray):
         if not np.array_equal(a, b):
-            print(pre + ' array mismatch')
+            out += pre + ' array mismatch\n'
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
-            print(pre + ' StringIO mismatch')
+            out += pre + ' StringIO mismatch\n'
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
+    return out
 
 
 def check_random_state(seed):

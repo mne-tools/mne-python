@@ -54,12 +54,14 @@ def test_hash():
     print(object_diff(d0, d1))
     assert_equal(object_hash(d0), object_hash(d1))
     d1['a']['a'] = 0.11
+    object_diff(d0, d1)
     assert_not_equal(object_hash(d0), object_hash(d1))
 
     d1 = deepcopy(d0)
     print(object_diff(d0, d1))
     assert_equal(object_hash(d0), object_hash(d1))
     d1[1] = 2
+    object_diff(d0, d1)
     assert_not_equal(object_hash(d0), object_hash(d1))
     # generators (and other types) not supported
     d1[1] = (x for x in d0)
