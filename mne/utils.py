@@ -31,7 +31,7 @@ from scipy import linalg
 
 
 from .externals.six.moves import urllib
-from .externals.six import string_types, StringIO
+from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -66,11 +66,11 @@ def object_hash(x, h=None):
         for key in keys:
             object_hash(key, h)
             object_hash(x[key], h)
-    elif isinstance(x, StringIO):
+    elif isinstance(x, (StringIO, BytesIO)):
         # h.update(x.getvalue())
         pass  # XXX buggy for Raw instances for some reason...
     elif isinstance(x, (list, tuple)):
-        h.update(str(type(x)))
+        h.update(str(type(x)).encode('utf-8'))
         for xx in x:
             object_hash(xx, h)
     elif isinstance(x, (string_types, float, int, type(None))):
@@ -125,7 +125,7 @@ def comparison(x1, x2, pre=''):
     elif isinstance(x1, np.ndarray):
         if not np.array_equal(x1, x2):
             print(pre + ' array mismatch')
-    elif isinstance(x1, StringIO):
+    elif isinstance(x1, (StringIO, BytesIO)):
         if x1.getvalue() != x2.getvalue():
             print(pre + ' StringIO mismatch')
     else:
