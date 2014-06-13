@@ -28,5 +28,4 @@ evoked = read_evokeds(fname, condition=condition, baseline=(None, 0),
 evoked.plot(exclude=[])
 
 # Show result as a 2D image (x: time, y: channels, color: amplitude)
-# In this mode, exclusion does not work
 evoked.plot_image(exclude=[])
