@@ -36,6 +36,7 @@ from mne.io.edf import read_raw_edf
 from mne.datasets import sample
 from mne.event import find_events
 from mne.decoding import CSP
+from mne.layouts import read_layout
 
 
 data_path = sample.data_path()
@@ -103,6 +104,12 @@ raw.info['lowpass'] = raw.info['sfreq'] * 0.5
 raw.info['highpass'] = 0
 raw.filter(7, 30, method='iir')
 
+print(raw.info['ch_names'])
+raw.info['ch_names'] = [chn.strip('.').upper() for chn in raw.info['ch_names']]
+
+layout = read_layout('../../examples/decoding/EEG1005.lay')
+layout.names = [chn.upper() for chn in layout.names]
+
 events = find_events(raw, output='onset', shortest_event=0,
                      stim_channel='STI 014')
 
@@ -115,6 +122,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 
 labels = epochs.events[:, -1] - 2
 evoked = epochs.average()
+
 
 
 ###############################################################################
@@ -163,13 +171,6 @@ print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
 # clf = Pipeline([('CSP', csp), ('SVC', svc)])
 # scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 # print(scores.mean())  # should get better results than above
-#
-# # # plot CSP patterns estimated on full data for visualization
-# # csp.fit_transform(epochs_data, labels)
-# # evoked.data = csp.patterns_.T
-# # evoked.times = np.arange(evoked.data.shape[0])
-# # evoked.plot_topomap(times=[0, 1, 62, 63], ch_type='grad',
-# #                     colorbar=False, size=1.5)
 
 # can't use MNE's topomap (yet?) due to missing electrode positions.
 from eegtopo.topoplot import Topoplot
@@ -189,8 +190,8 @@ mpx = np.max(np.abs(csp.patterns_))
 
 topo = Topoplot()
 topo.set_locations(ch_locs)
-for i, j in enumerate([0, 1, 2, 3]):
-    plt.subplot(2, 2, i)
+for i, j in enumerate([0, 1, 2, 3, 60, 61, 62, 63]):
+    plt.subplot(2, 4, i + 1)
 
     pattern = csp.patterns_[j, :]
 
@@ -200,5 +201,12 @@ for i, j in enumerate([0, 1, 2, 3]):
     topo.plot_map(crange=[-mpx, mpx])
     topo.plot_locations()
     topo.plot_head()
+
+# plot CSP patterns estimated on full data for visualization
+csp.fit_transform(epochs_data, labels)
+evoked.data = csp.patterns_.T
+evoked.times = np.arange(evoked.data.shape[0])
+evoked.plot_topomap(times=[0, 1, 2, 3, 60, 61, 62, 63], ch_type='eeg', layout=layout,
+                    colorbar=False, size=1.5)
 
 plt.show()
