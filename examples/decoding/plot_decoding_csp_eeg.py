@@ -22,6 +22,7 @@ import numpy as np
 
 import mne
 from mne import fiff
+from mne.io import concatenate_raws
 from mne.io.edf import read_raw_edf
 from mne.datasets import eegbci
 from mne.event import find_events
@@ -64,15 +65,11 @@ subject = 1
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
+raw_files = [read_raw_edf(f, tal_channel=-1, preload=True) for f in raw_fnames]
+raw = concatenate_raws(raw_files)
 
-# Read raw data from EDF files
-raw = None
-for fname in raw_fnames:
-    raw0 = read_raw_edf(fname, tal_channel=-1, preload=True)
-    try:
-        raw.append(raw0)
-    except AttributeError:
-        raw = raw0
+# strip channel names
+raw.info['ch_names'] = [chn.strip('.') for chn in raw.info['ch_names']]
 
 # Apply band-pass filter
 # Hack: fake filter information so raw.filter won't throw an exception at us.
@@ -82,14 +79,9 @@ raw.filter(7, 30, method='iir')
 
 layout = read_layout('../../examples/decoding/EEG1005.lay')
 
-# make sure channel names are in the same case
-raw.info['ch_names'] = [chn.strip('.') for chn in raw.info['ch_names']]
-#layout.names = [chn.upper() for chn in layout.names]
-
 events = find_events(raw, output='onset', shortest_event=0,
                      stim_channel='STI 014')
 
-#raw.info['bads'] = ['T8']  # set bad channels
 picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
                         exclude='bads')
 
