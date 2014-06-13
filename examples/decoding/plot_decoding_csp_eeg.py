@@ -35,6 +35,7 @@ from mne.datasets import sample
 from mne.event import find_events
 from mne.decoding import CSP
 from mne.layouts import read_layout
+import matplotlib.pyplot as plt
 
 
 data_path = sample.data_path()
@@ -77,7 +78,7 @@ class LogCSP(CSP):
 
 # avoid classification of evoked responses by using epochs that start 1s after
 # cue onset.
-tmin, tmax = 1, 4
+tmin, tmax = 1, 2
 event_id = dict(hands=2, feet=3)
 subject = 1
 #runs = [3, 7, 11]  # motor execution: left hand vs right hand
@@ -105,8 +106,8 @@ raw.filter(7, 30, method='iir')
 layout = read_layout('../../examples/decoding/EEG1005.lay')
 
 # make sure channel names are in the same case
-raw.info['ch_names'] = [chn.strip('.').upper() for chn in raw.info['ch_names']]
-layout.names = [chn.upper() for chn in layout.names]
+raw.info['ch_names'] = [chn.strip('.') for chn in raw.info['ch_names']]
+#layout.names = [chn.upper() for chn in layout.names]
 
 events = find_events(raw, output='onset', shortest_event=0,
                      stim_channel='STI 014')
@@ -117,6 +118,10 @@ picks = fiff.pick_types(raw.info, meg=False, eeg=True, stim=False, eog=False,
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
+                    picks=picks, baseline=None, preload=True, add_eeg_ref=False)
+
+# larger epochs for running classifier testing
+epochs2 = mne.Epochs(raw, events, event_id, -1, 4, proj=True,
                     picks=picks, baseline=None, preload=True, add_eeg_ref=False)
 
 labels = epochs.events[:, -1] - 2
@@ -137,7 +142,14 @@ csp = LogCSP(n_components=n_components, reg=None)
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
 scores = []
 epochs_data = epochs.get_data()
+epochs2_data = epochs2.get_data()
 
+fs = raw.info['sfreq']
+winlen = int(fs * 0.5)  # running classifier: window length
+winstep = int(fs * 0.1) # running classifier: window step size
+time = np.arange(0, epochs2_data.shape[2] - winlen, winstep)
+
+accs = []
 for train_idx, test_idx in cv:
     y_train, y_test = labels[train_idx], labels[test_idx]
 
@@ -148,6 +160,13 @@ for train_idx, test_idx in cv:
     svc.fit(X_train, y_train)
 
     scores.append(svc.score(X_test, y_test))
+
+    # running classifier: test classifier on sliding window
+    acc = []
+    for n in time:
+        X_test = csp.transform(epochs2_data[test_idx][:, :, n : (n + winlen)])
+        acc.append(svc.score(X_test, y_test))
+    accs.append(acc)
 
 # Printing the results
 class_balance = np.mean(labels == labels[0])
@@ -163,34 +182,11 @@ clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should match results above
 
-# can't use MNE's topomap (yet?) due to missing electrode positions.
-from eegtopo.topoplot import Topoplot
-from eegtopo.eegpos3d import positions
-import matplotlib.pyplot as plt
-
-scotlabels = {k.upper(): k for k in positions.keys()}
-ch_locs = []
-for ch_name in raw.info['ch_names'][:-1]:
-    ch = scotlabels[ch_name]
-    ch_locs.append(list(positions[ch].vector))
-ch_locs = np.array(ch_locs)
-
-csp.fit(epochs_data, labels)
-mpx = np.max(np.abs(csp.patterns_))
-
-topo = Topoplot()
-topo.set_locations(ch_locs)
-for i, j in enumerate([0, 1, 2, 3, 60, 61, 62, 63]):
-    plt.subplot(2, 4, i + 1)
-
-    pattern = csp.patterns_[j, :]
-
-    topo.set_values(pattern)
-    topo.create_map()
-
-    topo.plot_map(crange=[-mpx, mpx])
-    topo.plot_locations()
-    topo.plot_head()
+plt.plot((time + winlen / 2) / fs + epochs2.tmin, np.mean(accs, 0))
+plt.plot([0, 0], plt.gca().get_ylim(), 'k--')
+plt.xlabel('time (s)')
+plt.ylabel('classification accuracy')
+plt.title('running classifier')
 
 # plot CSP patterns estimated on full data for visualization
 csp.fit_transform(epochs_data, labels)
@@ -198,5 +194,3 @@ evoked.data = csp.patterns_.T
 evoked.times = np.arange(evoked.data.shape[0])
 evoked.plot_topomap(times=[0, 1, 2, 3, 60, 61, 62, 63], ch_type='eeg', layout=layout,
                     colorbar=False, size=1.5)
-
-plt.show()
