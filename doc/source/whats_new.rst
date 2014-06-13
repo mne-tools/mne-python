@@ -75,7 +75,7 @@ Changelog
 
    - Add `raw.add_events` to allow adding events to a raw file by `Eric Larson`_
 
-   - Add `plot_image` method to Evoked object to display data as images by `JR King`_ and `Alex Gramfort
+   - Add `plot_image` method to Evoked object to display data as images by `JR King`_ and `Alex Gramfort`_ and `Denis Engemann`_
 
 BUG
 ~~~

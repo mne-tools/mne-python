@@ -89,7 +89,8 @@ def _mutable_defaults(*mappings):
 def _check_delayed_ssp(container):
     """ Aux function to be used for interactive SSP selection
     """
-    if container.proj is True:
+    if container.proj is True or\
+       all([p['active'] for p in container.info['projs']]):
         raise RuntimeError('Projs are already applied. Please initialize'
                            ' the data with proj set to False.')
     elif len(container.info['projs']) < 1:
@@ -1355,13 +1356,16 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
                       axes=axes, types=types, units=units, scalings=scalings,
                       unit=unit, ch_types_used=ch_types_used, picks=picks,
-                      plot_update_proj_callback=_plot_update_evoked)
+                      plot_update_proj_callback=_plot_update_evoked,
+                      plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
     if show and plt.get_backend() != 'agg':
         plt.show()
         fig.canvas.draw()  # for axes plots update axes.
     tight_layout(fig=fig)
+
+    return fig
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
@@ -1480,7 +1484,10 @@ def _plot_update_evoked(params, bools):
         this_scaling = params['scalings'][t]
         idx = [picks[i] for i in range(len(picks)) if params['types'][i] == t]
         D = this_scaling * new_evoked.data[idx, :]
-        [line.set_data(times, di) for line, di in zip(ax.lines, D)]
+        if params['plot_type'] == 'butterfly':
+            [line.set_data(times, di) for line, di in zip(ax.lines, D)]
+        else:
+            ax.images[0].set_data(D)
     params['fig'].canvas.draw()
 
 

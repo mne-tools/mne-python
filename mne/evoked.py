@@ -96,7 +96,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         if condition is None and setno is not None:
             condition = setno
             msg = ("'setno' will be deprecated in 0.9. Use 'condition' "
-                    "instead.")
+                   "instead.")
             warnings.warn(msg, DeprecationWarning)
 
         self.verbose = verbose
