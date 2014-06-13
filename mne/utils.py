@@ -60,7 +60,10 @@ def object_hash(x, h=None):
     if h is None:
         h = hashlib.md5()
     if isinstance(x, dict):
-        for key in sorted(x.keys()):
+        keys = list(x.keys())  # note: not thread-safe
+        idx = np.argsort([str(k) for k in keys])
+        keys = [keys[ii] for ii in idx]
+        for key in keys:
             object_hash(key, h)
             object_hash(x[key], h)
     elif isinstance(x, StringIO):
