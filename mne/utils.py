@@ -41,6 +41,14 @@ logger.propagate = False  # don't propagate (in case of multiple imports)
 ###############################################################################
 # RANDOM UTILITIES
 
+def _sort_keys(x):
+    """Sort and return keys of dict"""
+    keys = list(x.keys())  # note: not thread-safe
+    idx = np.argsort([str(k) for k in keys])
+    keys = [keys[ii] for ii in idx]
+    return keys
+
+
 def object_hash(x, h=None):
     """Hash a reasonable python object
 
@@ -60,9 +68,7 @@ def object_hash(x, h=None):
     if h is None:
         h = hashlib.md5()
     if isinstance(x, dict):
-        keys = list(x.keys())  # note: not thread-safe
-        idx = np.argsort([str(k) for k in keys])
-        keys = [keys[ii] for ii in idx]
+        keys = _sort_keys(x)
         for key in keys:
             object_hash(key, h)
             object_hash(x[key], h)
@@ -106,8 +112,8 @@ def object_diff(a, b, pre=''):
     if type(a) != type(b):
         out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
     elif isinstance(a, dict):
-        k1s = sorted(a.keys())
-        k2s = sorted(b.keys())
+        k1s = _sort_keys(a)
+        k2s = _sort_keys(b)
         m1 = set(k2s) - set(k1s)
         if len(m1):
             out += pre + ' x1 missing keys %s\n' % (m1)
@@ -1331,6 +1337,7 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     # chunk and will write it to file and update the progress bar
     chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
+    data.close()
 
 
 def _chunk_write(chunk, local_file, progress):
