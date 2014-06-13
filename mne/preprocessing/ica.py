@@ -22,10 +22,11 @@ from scipy import linalg
 from .ecg import qrs_detector
 from .eog import _find_eog_events
 
+from ..channels import _contains_ch_type
 from ..cov import compute_whitener
 from .. import Covariance
-from ..pick import (pick_types, pick_channels, pick_info,
-                    channel_indices_by_type)
+from ..io.pick import (pick_types, pick_channels, pick_info,
+                       channel_indices_by_type)
 from ..io.write import (write_double_matrix, write_string,
                         write_name_list, write_int, start_block,
                         end_block)
@@ -33,10 +34,9 @@ from ..io.tree import dir_tree_find
 from ..io.open import fiff_open
 from ..io.tag import read_tag
 from ..io.meas_info import write_meas_info, read_meas_info
-from ..constants import Bunch, FIFF
-from ..viz import plot_ica_panel, plot_ica_topomap
-from ..io.channels import _contains_ch_type
+from ..io.constants import Bunch, FIFF
 from ..io.write import start_file, end_file, write_id
+from ..viz import plot_ica_panel, plot_ica_topomap
 from ..epochs import _is_good
 from ..utils import check_sklearn_version, check_fname, logger, verbose
 

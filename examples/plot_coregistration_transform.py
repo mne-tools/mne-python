@@ -13,7 +13,7 @@ MEG <-> MRI coregistration quality.
 #
 # License: BSD (3-clause)
 
-from mne.io import read_evokeds
+from mne import read_evokeds
 from mne.datasets import sample
 from mne.viz import plot_trans
 

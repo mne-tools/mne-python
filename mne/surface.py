@@ -14,17 +14,17 @@ from scipy.spatial.distance import cdist
 from scipy import sparse
 from fnmatch import fnmatch
 
-from .io.channels import _get_meg_system
-from .constants import FIFF
+from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import find_tag
 from .io.write import (write_int, write_float, write_float_matrix,
-                         write_int_matrix, start_file, end_block,
-                         start_block, end_file, write_string,
-                         write_float_sparse_rcs)
-from .utils import logger, verbose, get_subjects_dir
+                       write_int_matrix, start_file, end_block,
+                       start_block, end_file, write_string,
+                       write_float_sparse_rcs)
+from .channels import _get_meg_system
 from .transforms import transform_surface_to
+from .utils import logger, verbose, get_subjects_dir
 
 
 ##############################################################################

@@ -15,7 +15,7 @@ print(__doc__)
 
 import numpy as np
 from mne.datasets import sample
-from mne.io import read_evokeds
+from mne import read_evokeds
 
 path = sample.data_path()
 fname = path + '/MEG/sample/sample_audvis-ave.fif'

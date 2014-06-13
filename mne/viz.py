@@ -39,8 +39,8 @@ from .baseline import rescale
 from .utils import (get_subjects_dir, get_config, set_config, _check_subject,
                     logger, verbose)
 from .io import show_fiff
-from .constants import FIFF
-from .pick import channel_type, pick_types
+from .io.constants import FIFF
+from .io.pick import channel_type, pick_types
 from .io.proj import make_projector, setup_proj
 from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names

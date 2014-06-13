@@ -4,30 +4,30 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
 from copy import deepcopy
 import numpy as np
 import warnings
 
-from ..constants import FIFF
-from .open import fiff_open
-from .tag import read_tag
-from .tree import dir_tree_find
-from ..pick import channel_type, pick_types
-from .meas_info import read_meas_info, write_meas_info
-from .proj import ProjMixin
+from .baseline import rescale
 from .channels import ContainsMixin, PickDropChannelsMixin
-from ..baseline import rescale
-from ..filter import resample, detrend
-from ..fixes import in1d
-from ..utils import (_check_pandas_installed, check_fname, logger, verbose,
-                     deprecated)
-from .write import (start_file, start_block, end_file, end_block,
-                    write_int, write_string, write_float_matrix,
-                    write_id)
+from .filter import resample, detrend
+from .fixes import in1d
+from .utils import (_check_pandas_installed, check_fname, logger, verbose,
+                    deprecated)
+from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
+from .viz import plot_evoked_field
+from .externals.six import string_types
 
-from ..viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
-from ..viz import plot_evoked_field
+from .io.constants import FIFF
+from .io.open import fiff_open
+from .io.tag import read_tag
+from .io.tree import dir_tree_find
+from .io.pick import channel_type, pick_types
+from .io.meas_info import read_meas_info, write_meas_info
+from .io.proj import ProjMixin
+from .io.write import (start_file, start_block, end_file, end_block,
+                       write_int, write_string, write_float_matrix,
+                       write_id)
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}

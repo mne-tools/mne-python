@@ -6,7 +6,7 @@
 import struct
 import numpy as np
 
-from ..constants import FIFF
+from .constants import FIFF
 from .tag import Tag
 from .tag import read_tag
 from .write import write_id, start_block, end_block, _write

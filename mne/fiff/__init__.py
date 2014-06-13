@@ -8,16 +8,16 @@
 from ..utils import deprecated
 
 from ..io.open import fiff_open, show_fiff, _fiff_get_fid
-from ..io.evoked import (Evoked, read_evoked, write_evoked, read_evokeds,
-                     write_evokeds)
+from ..evoked import (Evoked, read_evoked, write_evoked, read_evokeds,
+                      write_evokeds)
 from ..io.meas_info import read_fiducials, write_fiducials, read_info, write_info
-from ..pick import (pick_types, pick_channels, pick_types_evoked,
-                   pick_channels_regexp, pick_channels_forward,
-                   pick_types_forward, pick_channels_cov,
-                   pick_channels_evoked, pick_info, _has_kit_refs)
+from ..io.pick import (pick_types, pick_channels, pick_types_evoked,
+                       pick_channels_regexp, pick_channels_forward,
+                       pick_types_forward, pick_channels_cov,
+                       pick_channels_evoked, pick_info, _has_kit_refs)
 
 from ..io.proj import proj_equal, make_eeg_average_ref_proj
-from ..io.cov import read_cov, write_cov
+from ..cov import _read_cov, _write_cov
 from ..io import array
 from ..io import base
 from ..io import brainvision
@@ -62,8 +62,8 @@ read_info = _deprecate_io(read_info, 'read_info')
 write_info = _deprecate_io(write_info, 'write_info')
 proj_equal = _deprecate_io(proj_equal, 'proj_equal')
 make_eeg_average_ref_proj = _deprecate_io(make_eeg_average_ref_proj, 'make_eeg_average_ref_proj')
-read_cov = _deprecate_io(read_cov, 'read_cov')
-write_cov = _deprecate_io(write_cov, 'write_cov')
+read_cov = _deprecate_io(_read_cov, 'read_cov')
+write_cov = _deprecate_io(_write_cov, 'write_cov')
 concatenate_raws = _deprecate_io(concatenate_raws, 'concatenate_raws')
 get_chpi_positions = _deprecate_io(get_chpi_positions, 'get_chpi_positions')
 set_eeg_reference = _deprecate_io(set_eeg_reference, 'set_eeg_reference')

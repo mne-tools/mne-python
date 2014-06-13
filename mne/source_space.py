@@ -10,7 +10,7 @@ import os.path as op
 from scipy import sparse, linalg
 from copy import deepcopy
 
-from .constants import FIFF
+from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open

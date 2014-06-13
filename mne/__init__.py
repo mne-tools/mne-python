@@ -7,10 +7,11 @@ __version__ = '0.8.git'
 from .utils import (set_log_level, set_log_file, verbose, set_config,
                     get_config, get_config_path, set_cache_dir,
                     set_memmap_min_size)
-from .pick import (pick_types, pick_channels, pick_types_evoked,
-                   pick_channels_regexp, pick_channels_forward,
-                   pick_types_forward, pick_channels_cov,
-                   pick_channels_evoked, pick_info)
+from .io.pick import (pick_types, pick_channels, pick_types_evoked,
+                      pick_channels_regexp, pick_channels_forward,
+                      pick_types_forward, pick_channels_cov,
+                      pick_channels_evoked, pick_info)
+from .io.base import concatenate_raws, get_chpi_positions
 from .cov import (read_cov, write_cov, Covariance,
                   compute_covariance, compute_raw_data_covariance,
                   whiten_evoked)
@@ -41,6 +42,8 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            setup_volume_source_space,
                            add_source_space_distances)
 from .epochs import Epochs, read_epochs
+from .evoked import (Evoked, read_evoked, write_evoked, read_evokeds,
+                     write_evokeds)
 from .label import (label_time_courses, read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
                     BiHemiLabel, labels_from_parc, parc_from_labels,
@@ -55,7 +58,8 @@ from .proj import (read_proj, write_proj, compute_proj_epochs,
 from .selection import read_selection
 from .dipole import read_dip
 from .layouts.layout import find_layout
-from .io.channels import equalize_channels, rename_channels
+from .channels import (equalize_channels, rename_channels,
+                       read_ch_connectivity)
 
 from . import beamformer
 from . import connectivity

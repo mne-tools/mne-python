@@ -6,7 +6,7 @@ import numpy as np
 
 from ..utils import logger, verbose
 from ..parallel import parallel_func
-from ..pick import channel_type, pick_types
+from ..io.pick import channel_type, pick_types
 
 
 def _time_gen_one_fold(clf, X, y, train, test, scoring):

@@ -9,17 +9,18 @@ import os
 import time
 import re
 import warnings
-from ...externals.six import StringIO, u
-from ...externals.six.moves import configparser
 
 import numpy as np
 
 from ...coreg import get_ras_to_neuromag_trans, read_elp
 from ...transforms import als_ras_trans, apply_trans
 from ...utils import verbose, logger
-from ...constants import FIFF
+from ..constants import FIFF
 from ..meas_info import Info
 from ..base import _BaseRaw
+
+from ...externals.six import StringIO, u
+from ...externals.six.moves import configparser
 
 
 class RawBrainVision(_BaseRaw):

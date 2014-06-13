@@ -30,7 +30,7 @@ Classes
    io.Raw
    io.RawFIFF
    Epochs
-   io.Evoked
+   Evoked
    SourceEstimate
    Covariance
    Label
@@ -76,10 +76,12 @@ Logging and Configuration
 
    init_cuda
 
-File I/O
-========
+Reading raw data
+================
 
-.. currentmodule:: mne
+:py:mod:`mne.io`:
+
+.. currentmodule:: mne.io
 
 Classes:
 
@@ -87,51 +89,7 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   io.Evoked
-   io.Raw
-
-Functions:
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   decimate_surface
-   get_head_surf
-   get_meg_helmet_surf
-   parse_config
-   read_annot
-   read_bem_solution
-   read_bem_surfaces
-   read_cov
-   read_dip
-   read_epochs
-   read_events
-   read_forward_solution
-   read_label
-   read_morph_map
-   read_proj
-   read_reject_parameters
-   read_selection
-   read_source_estimate
-   read_source_spaces
-   read_surface
-   read_trans
-   save_stc_as_volume
-   write_annot
-   write_bem_surface
-   write_cov
-   write_events
-   write_forward_solution
-   write_label
-   write_proj
-   write_source_spaces
-   write_surface
-   write_trans
-
-.. currentmodule:: mne.io
-
-:py:mod:`mne.io.bti`:
+   Raw
 
 Functions:
 
@@ -178,6 +136,55 @@ Functions:
   :template: function.rst
 
   create_info
+
+
+File I/O
+========
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   decimate_surface
+   get_head_surf
+   get_meg_helmet_surf
+   parse_config
+   read_annot
+   read_bem_solution
+   read_bem_surfaces
+   read_cov
+   read_dip
+   read_epochs
+   read_events
+   read_evokeds
+   read_forward_solution
+   read_label
+   read_morph_map
+   read_proj
+   read_reject_parameters
+   read_selection
+   read_source_estimate
+   read_source_spaces
+   read_surface
+   read_trans
+   save_stc_as_volume
+   write_annot
+   write_bem_surface
+   write_cov
+   write_events
+   write_evokeds
+   write_forward_solution
+   write_label
+   write_proj
+   write_source_spaces
+   write_surface
+   write_trans
+
+
+Sample datasets
+===============
 
 :py:mod:`mne.datasets.sample`:
 
@@ -376,9 +383,9 @@ Sensor Space Data
    :toctree: generated/
    :template: function.rst
 
-   io.concatenate_raws
-   io.get_chpi_positions
-
+   concatenate_raws
+   equalize_channels
+   get_chpi_positions
    pick_channels
    pick_channels_cov
    pick_channels_forward
@@ -386,9 +393,11 @@ Sensor Space Data
    pick_types
    pick_types_evoked
    pick_types_forward
+   read_ch_connectivity
    read_epochs
    read_reject_parameters
    read_selection
+   rename_channels
 
 
 Covariance

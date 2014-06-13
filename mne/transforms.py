@@ -9,7 +9,7 @@ import numpy as np
 from numpy import sin, cos
 from scipy import linalg
 
-from .constants import FIFF
+from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans

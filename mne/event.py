@@ -10,12 +10,12 @@ import numpy as np
 from os.path import splitext
 
 from .utils import check_fname, logger, verbose, _get_stim_channel
-from .constants import FIFF
+from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.open import fiff_open
 from .io.write import write_int, start_block, start_file, end_block, end_file
-from .pick import pick_channels
+from .io.pick import pick_channels
 
 
 def pick_events(events, include=None, exclude=None):
