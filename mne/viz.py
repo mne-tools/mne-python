@@ -2087,8 +2087,9 @@ def _prepare_topo_plot(obj, ch_type, layout):
             from .layouts.layout import _find_topomap_coords
             pos = _find_topomap_coords(chs, layout)
         else:
-            pos = [layout.pos[layout.names.index(info['ch_names'][k])] for k in
-                   picks]
+            names = [n.upper() for n in layout.names]
+            pos = [layout.pos[names.index(info['ch_names'][k].upper())]
+                   for k in picks]
 
     return picks, pos, merge_grads, info['ch_names']
 
