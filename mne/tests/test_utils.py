@@ -6,12 +6,13 @@ import numpy as np
 import os
 import warnings
 from mne.externals.six.moves import urllib
+from mne.externals.six import StringIO, BytesIO
 
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
                        sum_squared, requires_mem_gb, estimate_rank,
                        _url_to_local_path, sizeof_fmt,
-                       _check_type_picks, object_hash)
+                       _check_type_picks, object_hash, object_diff)
 from mne.io import show_fiff
 from mne import Evoked
 
@@ -33,10 +34,16 @@ def clean_lines(lines):
 
 
 def test_hash():
-    """Test dictionary hashing function"""
-    # does hashing a dict (containing dicts) work
-    d0 = dict(info=dict(me=0.1, you='fo'), data=np.ones(3))
+    """Test dictionary hashing and comparison functions"""
+    # does hashing all of these types work:
+    # {dict, list, tuple, ndarray, str, float, int, None, StringIO, BytesIO}
+    d0 = dict(a=dict(a=0.1, b='fo', c=1), b=[1, 'b'], c=(), d=np.ones(3))
+    d0[1] = None
+    d0[2.] = StringIO()
+    d0[-3] = BytesIO()
+
     d1 = deepcopy(d0)
+    print(object_diff(d0, d1))
     assert_equal(object_hash(d0), object_hash(d1))
 
     # change values slightly
@@ -44,14 +51,19 @@ def test_hash():
     assert_not_equal(object_hash(d0), object_hash(d1))
 
     d1 = deepcopy(d0)
+    print(object_diff(d0, d1))
     assert_equal(object_hash(d0), object_hash(d1))
-    d0['info']['me'] = 0.11
+    d1['a']['a'] = 0.11
     assert_not_equal(object_hash(d0), object_hash(d1))
 
     d1 = deepcopy(d0)
+    print(object_diff(d0, d1))
     assert_equal(object_hash(d0), object_hash(d1))
-    d0[1] = 2
+    d1[1] = 2
     assert_not_equal(object_hash(d0), object_hash(d1))
+    # generators (and other types) not supported
+    d1[1] = (x for x in d0)
+    assert_raises(RuntimeError, object_hash, d1)
 
 
 def test_tempdir():

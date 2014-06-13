@@ -48,7 +48,7 @@ def object_hash(x, h=None):
     ----------
     x : object
         Object to hash. Can be anything comprised of nested versions of:
-        {dict, list,tuple, ndarray, str, float, int, None, StringIO}.
+        {dict, list, tuple, ndarray, str, float, int, None, StringIO, BytesIO}.
     h : hashlib HASH object | None
         Optional, object to add the hash to. None creates an MD5 hash.
 
@@ -86,22 +86,22 @@ def object_hash(x, h=None):
     return int(h.hexdigest(), 16)
 
 
-def comparison(x1, x2, pre=''):
+def object_diff(a, b, pre=''):
     """Compute all differences between two python variables
 
     Parameters
     ----------
-    x1 : object
+    a : object
         Currently supported: dict, list, tuple, ndarray, int, str, float,
         StringIO.
-    x2 : object
+    b : object
         Must be same type as x1.
     """
-    if type(x1) != type(x2):
-        print(pre + ' type mismatch (%s, %s)' % (type(x1), type(x2)))
-    elif isinstance(x1, dict):
-        k1s = sorted(x1.keys())
-        k2s = sorted(x2.keys())
+    if type(a) != type(b):
+        print(pre + ' type mismatch (%s, %s)' % (type(a), type(b)))
+    elif isinstance(a, dict):
+        k1s = sorted(a.keys())
+        k2s = sorted(b.keys())
         m1 = set(k2s) - set(k1s)
         if len(m1):
             print(pre + ' x1 missing keys %s' % (m1))
@@ -109,27 +109,27 @@ def comparison(x1, x2, pre=''):
             if key not in k2s:
                 print(pre + ' x2 missing key %s' % key)
             else:
-                comparison(x1[key], x2[key], pre + 'd1[%s]' % repr(key))
-    elif isinstance(x1, (list, tuple)):
-        if len(x1) != len(x2):
-            print(pre + ' length mismatch (%s, %s)' % (len(x1), len(x2)))
+                object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
+    elif isinstance(a, (list, tuple)):
+        if len(a) != len(b):
+            print(pre + ' length mismatch (%s, %s)' % (len(a), len(b)))
         else:
-            for xx1, xx2 in zip(x1, x2):
-                comparison(xx1, xx2, pre='')
-    elif isinstance(x1, (string_types, int, float)):
-        if x1 != x2:
-            print(pre + ' value mismatch (%s, %s)' % (x1, x2))
-    elif x1 is None:
-        if x2 is not None:
-            print(pre + ' x1 is None, x2 is not (%s)' % (x2))
-    elif isinstance(x1, np.ndarray):
-        if not np.array_equal(x1, x2):
+            for xx1, xx2 in zip(a, b):
+                object_diff(xx1, xx2, pre='')
+    elif isinstance(a, (string_types, int, float)):
+        if a != b:
+            print(pre + ' value mismatch (%s, %s)' % (a, b))
+    elif a is None:
+        if b is not None:
+            print(pre + ' a is None, b is not (%s)' % (b))
+    elif isinstance(a, np.ndarray):
+        if not np.array_equal(a, b):
             print(pre + ' array mismatch')
-    elif isinstance(x1, (StringIO, BytesIO)):
-        if x1.getvalue() != x2.getvalue():
+    elif isinstance(a, (StringIO, BytesIO)):
+        if a.getvalue() != b.getvalue():
             print(pre + ' StringIO mismatch')
     else:
-        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(x1), x1))
+        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
 
 
 def check_random_state(seed):
