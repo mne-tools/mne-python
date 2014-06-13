@@ -494,7 +494,10 @@ def test_plot_topomap():
             plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
         assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                       proj='interactive')  # projs have already been applied
-        evoked.proj = False  # let's fake it like they haven't been applied
+
+        # change to no-proj mode
+        evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                              baseline=(None, 0), proj=False)
         plot_evoked_topomap(evoked, 0.1, 'mag', proj='interactive')
         assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                       np.repeat(.1, 50))
