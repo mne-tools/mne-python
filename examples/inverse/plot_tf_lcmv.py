@@ -57,7 +57,7 @@ reject = dict(mag=4e-12)
 # until later. To perform bad epoch rejection based on the reject parameter
 # passed here, run epochs.drop_bad_epochs(). This is done automatically in
 # tf_lcmv to reject bad epochs based on unfiltered data.
-event_id, tmin, tmax = 1, -0.3, 0.5
+event_id, tmin, tmax = 1, -0.6, 0.8
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=False,
@@ -103,9 +103,10 @@ data_reg = 0.001
 subtract_evoked = False
 
 # Calculating covariance from empty room noise. To use baseline data as noise
-# substitute raw for raw_noise, epochs for epochs_noise, and 0 for tmax.
+# substitute raw for raw_noise, epochs.events for epochs_noise.events, and 0
+# for tmax.
 # Note, if using baseline data, the averaged evoked response in the baseline
-# epoch should be flat.
+# period should be flat.
 noise_covs = []
 for (l_freq, h_freq) in freq_bins:
     raw_band = raw_noise.copy()
@@ -127,4 +128,5 @@ stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                reg=data_reg, label=label)
 
 # Plotting source spectrogram for source with maximum activity
-plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=True)
+plot_source_spectrogram(stcs, freq_bins, tmin=-0.3, tmax=0.5,
+                        source_index=None, colorbar=True)

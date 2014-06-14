@@ -3746,9 +3746,9 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     return fig
 
 
-def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
-                            show=True):
-    """Plot source power in time-freqency grid
+def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
+                            source_index=None, colorbar=False, show=True):
+    """Plot source power in time-freqency grid.
 
     Parameters
     ----------
@@ -3757,6 +3757,10 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
         should be provided for each frequency bin.
     freq_bins : list of tuples of float
         Start and end points of frequency bins of interest.
+    tmin : float
+        Minimum time instant to show.
+    tmax : float
+        Maximum time instant to show.
     source_index : int | None
         Index of source for which the spectrogram will be plotted. If None,
         the source with the largest activation will be selected.
@@ -3767,21 +3771,37 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     """
     import matplotlib.pyplot as plt
 
-    # Gathering results for each time window
+    # Input checks
+    stc = stcs[0]
     if len(stcs) == 0:
         raise ValueError('cannot plot spectrogram if len(stcs) == 0')
+    if tmin is not None and tmin < stc.times[0]:
+        raise ValueError('tmin cannot be smaller than the first time point '
+                         'provided in stcs')
+    if tmax is not None and tmax > stc.times[-1] + stc.tstep:
+        raise ValueError('tmax cannot be larger than the sum of the last time '
+                         'point and the time step, which are provided in stcs')
+
+    # Preparing time-frequency cell boundaries for plotting
+    if tmin is None:
+        tmin = stc.times[0]
+    if tmax is None:
+        tmax = stc.times[-1] + stc.tstep
+    time_bounds = np.arange(tmin, tmax + stc.tstep, stc.tstep)
+    freq_bounds = sorted(set(np.ravel(freq_bins)))
+    freq_ticks = deepcopy(freq_bounds)
+
+    # Rejecting time points that will not be plotted
+    for stc in stcs:
+        stc.crop(tmin, tmax)
+
+    # Gathering results for each time window
     source_power = np.array([stc.data for stc in stcs])
 
     # Finding the source with maximum source power
     if source_index is None:
         source_index = np.unravel_index(source_power.argmax(),
                                         source_power.shape)[1]
-
-    # Preparing time-frequency cell boundaries for plotting
-    stc = stcs[0]
-    time_bounds = np.append(stc.times, stc.times[-1] + stc.tstep)
-    freq_bounds = sorted(set(np.ravel(freq_bins)))
-    freq_ticks = deepcopy(freq_bounds)
 
     # If there is a gap in the frequency bins record its locations so that it
     # can be covered with a gray horizontal bar
