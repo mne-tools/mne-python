@@ -179,7 +179,7 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
 
     Returns
     -------
-    ecg_epochs : instance of mne.Epochs
+    ecg_epochs : instance of Epochs
         Data epoched around ECG r-peaks.
     """
     events = find_eog_events(raw, ch_name=ch_name, event_id=event_id,

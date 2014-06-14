@@ -17,7 +17,7 @@ def find_outliers(X, threshold=0.0):
 
     Returns
     -------
-    bad_idx : np.ndarray of int, shape (n ica components)
+    bad_idx : np.ndarray of int, shape (n_features)
         The outlier indices.
     """
     from sklearn.mixture import GMM

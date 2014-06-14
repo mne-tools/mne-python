@@ -273,7 +273,7 @@ class ICA(ContainsMixin):
             If flat is None then no rejection is done.
             It only applies if `inst` is of type Raw.
         tstep : float
-            Length of data chunks for artefact rejection in seconds.
+            Length of data chunks for artifact rejection in seconds.
             It only applies if `inst` is of type Raw.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).

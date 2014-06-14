@@ -255,7 +255,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
 
     Returns
     -------
-    eog_epochs : instance of mne.Epochs
+    eog_epochs : instance of Epochs
         Data epoched around EOG events.
     """
 

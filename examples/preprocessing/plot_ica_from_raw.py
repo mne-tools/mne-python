@@ -4,8 +4,8 @@ Compute ICA components on raw data
 ==================================
 
 ICA is fit to MEG raw data.
-The sources matching the ECG and EOG are automatically found and displayed.
-Subsequently, artefact detection and rejection quality are assessed.
+The sources matching the EOG are automatically found and displayed.
+Subsequently, artifact detection and rejection quality are assessed.
 """
 print(__doc__)
 
@@ -65,7 +65,7 @@ ica.exclude += eog_inds  # mark for exclusion
 ###############################################################################
 # 3) check detection and visualize artifact rejection
 
-# esimtate average artifact
+# estimate average artifact
 eog_evoked = eog_epochs.average()
 ica.plot_sources(eog_evoked)  # latent EOG sources + selction
 ica.plot_overlay(eog_evoked)  # overlay raw and clean EOG artifacts

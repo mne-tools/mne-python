@@ -62,7 +62,7 @@ ica.exclude += ecg_inds[:2]  # mark bad components, rely on first two
 ###############################################################################
 # 3) Assess component selection and unmixing quality
 
-# esimtate average artifact
+# estimate average artifact
 ecg_evoked = ecg_epochs.average()
 ica.plot_sources(ecg_evoked)  # plot ECG sources + selection
 ica.plot_overlay(ecg_evoked)  # plot ecg cleaning

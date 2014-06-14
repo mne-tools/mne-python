@@ -64,9 +64,9 @@ ica.plot_scores(eog_scores, eog_inds)  # see scores the selection is based on
 ica.plot_components(eog_inds)  # view topographic sensitivity of components
 ica.exclude += eog_inds[:1]  # we saw the 2nd ECG component looked too dipolar
 ica.plot_overlay(eog_epochs.average())  # inspect artifact removal
-ica.apply(epochs)  # clean data
+epochs_cln = ica.apply(epochs, copy=True)  # clean data, default in place
 
-evoked = [epochs[k].average() for k in event_ids]
+evoked = [epochs_cln[k].average() for k in event_ids]
 
 contrast = evoked[1] - evoked[0]
 
@@ -91,7 +91,7 @@ maps = mne.make_field_map(evoked[0], trans_fname=trans_fname,
                           n_jobs=1)
 
 
-evoked[0].plot_field(maps, time=170.)
+evoked[0].plot_field(maps, time=.17)
 
 
 ###############################################################################
@@ -125,7 +125,7 @@ stc = apply_inverse(contrast, inverse_operator, lambda2, method,
 # Plot brain in 3D with PySurfer if available. Note that the subject name
 # is already known by the SourceEstimate stc object.
 brain = stc.plot(surface='inflated', hemi='both', subjects_dir=subjects_dir)
-brain.set_time(160.)
+brain.set_time(.17)
 brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
 brain.show_view('ventral')
 # brain.save_image('dSPM_map.png')
