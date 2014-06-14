@@ -1234,7 +1234,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         try:
             file_size = int(u.headers['Content-Length'].strip())
         finally:
-            u.close()
+            del u
         print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
