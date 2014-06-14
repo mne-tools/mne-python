@@ -77,6 +77,9 @@ Changelog
 
    - Add `plot_image` method to Evoked object to display data as images by `JR King`_ and `Alex Gramfort`_ and `Denis Engemann`_
 
+   - Add BCI demo with CSP on motor imagery by `Martin Billinger`_
+
+
 BUG
 ~~~
 

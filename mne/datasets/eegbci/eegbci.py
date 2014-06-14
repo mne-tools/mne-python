@@ -1,4 +1,4 @@
-# Author: Eric Larson <larson.eric.d@gmail.com>
+# Author: Martin Billinger <martin.billinger@tugraz.at>
 # License: BSD Style.
 
 import os
@@ -133,17 +133,17 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
          5, 9, 13 | Motor execution: hands vs feet
         6, 10, 14 | Motor imagery: hands vs feet
     path : None | str
-        Location of where to look for the MEGSIM data storing location.
+        Location of where to look for the EEGBCI data storing location.
         If None, the environment variable or config parameter
-        MNE_DATASETS_MEGSIM_PATH is used. If it doesn't exist, the
-        "mne-python/examples" directory is used. If the MEGSIM dataset
+        MNE_DATASETS_EEGBCI_PATH is used. If it doesn't exist, the
+        "mne-python/examples" directory is used. If the EEGBCI dataset
         is not found under the given path (e.g., as
         "mne-python/examples/MEGSIM"), the data
         will be automatically downloaded to the specified folder.
     force_update : bool
         Force update of the dataset even if a local copy exists.
     update_path : bool | None
-        If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
+        If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
 
     Returns
