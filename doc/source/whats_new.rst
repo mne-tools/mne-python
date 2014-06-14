@@ -77,6 +77,8 @@ Changelog
 
    - Add `raw.add_events` to allow adding events to a raw file by `Eric Larson`_
 
+   - Add BCI demo with CSP on motor imagery by `Martin Billinger`_
+
 BUG
 ~~~
 

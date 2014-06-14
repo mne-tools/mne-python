@@ -475,13 +475,15 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
                              for filt in prefiltering])
         lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt)
                             for filt in prefiltering])
+
+        high_pass_default = 0.
         if highpass.size == 0:
-            info['highpass'] = None
+            info['highpass'] = high_pass_default
         elif all(highpass):
             if highpass[0] == 'NaN':
-                info['highpass'] = None
+                info['highpass'] = high_pass_default
             elif highpass[0] == 'DC':
-                info['highpass'] = 0
+                info['highpass'] = 0.
             else:
                 info['highpass'] = int(highpass[0])
         else:
@@ -489,6 +491,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
             warnings.warn('%s' % ('Channels contain different highpass'
                                   + 'filters. Highest filter setting will'
                                   + 'be stored.'))
+
         if lowpass.size == 0:
             info['lowpass'] = None
         elif all(lowpass):
@@ -510,10 +513,14 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         n_samples_per_record = n_samples_per_record[0]
         fid.read(32 * info['nchan'])  # reserved
         assert fid.tell() == header_nbytes
+
     physical_ranges = physical_max - physical_min
     cals = digital_max - digital_min
     info['sfreq'] = n_samples_per_record / float(record_length)
     edf_info['nsamples'] = n_records * n_samples_per_record
+
+    if info['lowpass'] is None:
+        info['lowpass'] = info['sfreq'] / 2.
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
