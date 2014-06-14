@@ -113,7 +113,7 @@ evoked.plot_topomap(times=[0, 1, 2, 61, 62, 63], ch_type='eeg', layout=layout,
                     unit='Patterns (AU)', size=1.5)
 
 ###############################################################################
-# Look on at performance over time
+# Look at performance over time
 
 sfreq = raw.info['sfreq']
 w_length = int(sfreq * 0.5)   # running classifier: window length
