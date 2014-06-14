@@ -57,7 +57,7 @@ reject = dict(mag=4e-12)
 # until later. To perform bad epoch rejection based on the reject parameter
 # passed here, run epochs.drop_bad_epochs(). This is done automatically in
 # tf_lcmv to reject bad epochs based on unfiltered data.
-event_id, tmin, tmax = 1, -0.6, 0.8
+event_id, tmin, tmax = 1, -0.55, 0.75
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=False,
