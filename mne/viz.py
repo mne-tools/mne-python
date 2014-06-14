@@ -29,6 +29,7 @@ import inspect
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
+import nibabel as nib
 from warnings import warn
 from collections import deque
 
@@ -47,7 +48,7 @@ from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
 from .externals import six
 from .transforms import read_trans, _find_trans, apply_trans
-from .surface import get_head_surf, get_meg_helmet_surf
+from .surface import get_head_surf, get_meg_helmet_surf, read_surface
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -4446,6 +4447,88 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         time_label %= (1e3 * evoked.times[time_idx])
     mlab.text(0.01, 0.01, time_label, width=0.4)
     mlab.view(10, 60)
+    return fig
+
+
+def plot_bem_contours(mri_fname, surf_fnames, slices=None, colors=None,
+                      show=True):
+    """Plot BEM contours on anatomical slices.
+
+    Parameters
+    ----------
+    mri_fname : str
+        The name of the file containing anatomical data.
+    surf_fnames : list of str
+        The filenames for the BEM surfaces in the format
+        ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
+    slices : list of int
+        Slice coordinates of ['coronal', 'transverse', 'sagittal'].
+    colors : list of str
+        List of colors for the BEM surfaces in the format
+        ['inner_skull_color', 'outer_skull_color', 'outer_skin_color'].
+    show : bool
+        Call pyplot.show() at the end.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
+    """
+
+    import matplotlib.pyplot as plt
+
+    # Load the T1 data
+    nim = nib.load(mri_fname)
+    data = nim.get_data()
+
+    if slices is None:
+        slices = [128, 128, 128]  # [coronal, transverse, sagittal]
+
+    if colors is None:
+        col = ['red', 'blue', 'yellow']
+
+    # First plot the anatomical data
+    fig, ax = plt.subplots(1, 3, figsize=(20, 8))
+
+    dat = data[:, :, slices[0]]
+    ax[0].imshow(dat.transpose()[::-1, :], cmap=plt.cm.gray)
+    ax[0].axis('off')
+    ax[0].set_title('Coronal (slice = %d)' % slices[0])
+
+    dat = data[:, slices[1], :]
+    ax[1].imshow(dat.transpose(), cmap=plt.cm.gray)
+    ax[1].axis('off')
+    ax[1].set_title('Transverse (slice = %d)' % slices[1])
+
+    dat = data[slices[2], :, :]
+    ax[2].imshow(dat[::-1, :], cmap=plt.cm.gray)
+    ax[2].axis('off')
+    ax[2].set_title('Sagittal (slice = %d)' % slices[2])
+
+    # Now plot the surface contours
+    for surf_fname, color in zip(surf_fnames, col):
+
+        rr, tris = read_surface(surf_fname)
+
+        # Align the surfaces whose origin is
+        # at the center rather than corner (image
+        # slices)
+        rr[:, 0] += data.shape[0] // 2
+        rr[:, 1] += data.shape[1] // 2
+        rr[:, 2] += data.shape[2] // 2
+
+        ax[0].tricontour(rr[:, 0], rr[:, 2], tris, rr[:, 1],
+                         levels=[slices[0]], colors=color, linewidths=2.0)
+
+        ax[1].tricontour(rr[:, 0], rr[:, 1], tris, rr[:, 2],
+                         levels=[slices[1]], colors=color, linewidths=2.0)
+
+        ax[2].tricontour(rr[:, 1], rr[:, 2], tris, rr[:, 0],
+                         levels=[slices[2]], colors=color, linewidths=2.0)
+
+    if show:
+        plt.show()
+
     return fig
 
 
