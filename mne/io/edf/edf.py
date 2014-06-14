@@ -189,10 +189,11 @@ class RawEDF(_BaseRaw):
         tal_channel = self._edf_info['tal_channel']
         annot = self._edf_info['annot']
         annotmap = self._edf_info['annotmap']
+        record_samps = self._edf_info['n_samples_per_record']
 
         # this is used to deal with indexing in the middle of a sampling period
-        blockstart = int(floor(float(start) / sfreq) * sfreq)
-        blockstop = int(ceil(float(stop) / sfreq) * sfreq)
+        blockstart = int(floor(float(start) / record_samps) * record_samps)
+        blockstop = int(ceil(float(stop) / record_samps) * record_samps)
 
         if start >= stop:
             raise ValueError('No data in this range')
@@ -278,7 +279,8 @@ class RawEDF(_BaseRaw):
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
                                                  down=1, npad=0)
-                        datas[j, :] = chan_data
+                        stop_pt = chan_data.shape[1]
+                        datas[j, :stop_pt] = chan_data
                 # simple edf
                 else:
                     data = np.fromfile(fid, dtype='<i2',
@@ -519,7 +521,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
                 raise RuntimeError('%s' % ('Channels contain different'
                                            'sampling rates. '
                                            'Must set preload=True'))
-        n_samples_per_record = n_samples_per_record[0]
+        n_samples_per_record = max(n_samples_per_record)
+        edf_info['n_samples_per_record'] = n_samples_per_record
         fid.read(32 * info['nchan'])  # reserved
         assert fid.tell() == header_nbytes
 
