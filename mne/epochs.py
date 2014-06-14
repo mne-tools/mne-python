@@ -358,7 +358,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     def __hash__(self):
         if not self.preload:
             raise RuntimeError('Cannot hash epochs unless preloaded')
-        return object_hash(dict(info=self.info, data=self._data))
+        return object_hash(dict(info=self.info, data=self._data),
+                           ignore_sbio=True)
 
     def average(self, picks=None):
         """Compute average of epochs

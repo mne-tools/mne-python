@@ -49,7 +49,7 @@ def _sort_keys(x):
     return keys
 
 
-def object_hash(x, h=None):
+def object_hash(x, h=None, ignore_sbio=False):
     """Hash a reasonable python object
 
     Parameters
@@ -59,6 +59,8 @@ def object_hash(x, h=None):
         {dict, list, tuple, ndarray, str, float, int, None, StringIO, BytesIO}.
     h : hashlib HASH object | None
         Optional, object to add the hash to. None creates an MD5 hash.
+    ignore_sbio : bool
+        If True, instances of StringIO / BytesIO are ignored.
 
     Returns
     -------
@@ -70,15 +72,16 @@ def object_hash(x, h=None):
     if isinstance(x, dict):
         keys = _sort_keys(x)
         for key in keys:
-            object_hash(key, h)
-            object_hash(x[key], h)
+            object_hash(key, h, ignore_sbio)
+            object_hash(x[key], h, ignore_sbio)
     elif isinstance(x, (StringIO, BytesIO)):
-        # h.update(x.getvalue())
-        pass  # XXX buggy for Raw instances for some reason...
+        # XXX buggy for Raw instances for some reason...
+        if not ignore_sbio:
+            h.update(x.getvalue())
     elif isinstance(x, (list, tuple)):
         h.update(str(type(x)).encode('utf-8'))
         for xx in x:
-            object_hash(xx, h)
+            object_hash(xx, h, ignore_sbio)
     elif isinstance(x, (string_types, float, int, type(None))):
         h.update(str(type(x)).encode('utf-8'))
         h.update(str(x).encode('utf-8'))
@@ -102,6 +105,8 @@ def object_diff(a, b, pre=''):
         StringIO.
     b : object
         Must be same type as x1.
+    pre : str
+        String to prepend to each line.
 
     Returns
     -------
