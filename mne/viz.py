@@ -3772,9 +3772,10 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     import matplotlib.pyplot as plt
 
     # Input checks
-    stc = stcs[0]
     if len(stcs) == 0:
         raise ValueError('cannot plot spectrogram if len(stcs) == 0')
+
+    stc = stcs[0]
     if tmin is not None and tmin < stc.times[0]:
         raise ValueError('tmin cannot be smaller than the first time point '
                          'provided in stcs')
