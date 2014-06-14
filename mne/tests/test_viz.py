@@ -550,6 +550,10 @@ def test_plot_source_spectrogram():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_source_spectrogram([stc, stc], [[1, 2], [3, 4]])
     assert_raises(ValueError, plot_source_spectrogram, [], [])
+    assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
+                  [[1, 2], [3, 4]], tmin=0)
+    assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
+                  [[1, 2], [3, 4]], tmax=7)
 
 
 @requires_mayavi
