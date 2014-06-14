@@ -4491,7 +4491,7 @@ def plot_bem_contours(mri_fname, surf_fnames, slices=None, colors=None,
     fig, ax = plt.subplots(1, 3, figsize=(20, 8))
 
     dat = data[:, :, slices[0]]
-    ax[0].imshow(dat.transpose()[::-1, :], cmap=plt.cm.gray)
+    ax[0].imshow(dat.transpose(), cmap=plt.cm.gray)
     ax[0].axis('off')
     ax[0].set_title('Coronal (slice = %d)' % slices[0])
 
@@ -4501,7 +4501,7 @@ def plot_bem_contours(mri_fname, surf_fnames, slices=None, colors=None,
     ax[1].set_title('Transverse (slice = %d)' % slices[1])
 
     dat = data[slices[2], :, :]
-    ax[2].imshow(dat[::-1, :], cmap=plt.cm.gray)
+    ax[2].imshow(dat, cmap=plt.cm.gray)
     ax[2].axis('off')
     ax[2].set_title('Sagittal (slice = %d)' % slices[2])
 
@@ -4513,17 +4513,18 @@ def plot_bem_contours(mri_fname, surf_fnames, slices=None, colors=None,
         # Align the surfaces whose origin is
         # at the center rather than corner (image
         # slices)
-        rr[:, 0] += data.shape[0] // 2
-        rr[:, 1] += data.shape[1] // 2
-        rr[:, 2] += data.shape[2] // 2
+        n_cor, n_tran, n_sag = data.shape
+        rr[:, 0] += n_cor // 2
+        rr[:, 1] += n_tran // 2
+        rr[:, 2] += n_sag // 2
 
-        ax[0].tricontour(rr[:, 0], rr[:, 2], tris, rr[:, 1],
+        ax[0].tricontour(rr[:, 0], n_sag - rr[:, 2], tris, rr[:, 1],
                          levels=[slices[0]], colors=color, linewidths=2.0)
 
         ax[1].tricontour(rr[:, 0], rr[:, 1], tris, rr[:, 2],
                          levels=[slices[1]], colors=color, linewidths=2.0)
 
-        ax[2].tricontour(rr[:, 1], rr[:, 2], tris, rr[:, 0],
+        ax[2].tricontour(rr[:, 1], n_sag - rr[:, 2], tris, rr[:, 0],
                          levels=[slices[2]], colors=color, linewidths=2.0)
 
     if show:
