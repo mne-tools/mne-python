@@ -776,6 +776,50 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                 time_idx if time_as_index else self.times[time_idx])
 
 
+class EvokedArray(Evoked):
+    """Evoked object from numpy array
+
+    Parameters
+    ----------
+    data : array of shape (n_channels, n_times)
+        The channels' evoked response.
+    info : instance of Info
+        Info dictionary. Consider using ``create_info`` to populate
+        this structure.
+    comment : string
+        Comment on dataset. Can be the condition.
+    nave : int
+        Number of averaged epochs.
+    kind : str
+        Type of data, either average or standard_error.
+    tmin : float
+        Start time before event.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+    """
+
+    @verbose
+    def __init__(self, data, info, tmin, tmax, comment='', nave=1,
+                 kind='average', verbose=None):
+
+        self.data = data
+
+        self.times = np.arange(tmin, tmax, 1./info['sfreq'], dtype=np.float)
+        self.first = -np.sum(self.times < 0)
+        self.last = np.sum(self.times >= 0) - 1
+
+        self.info = info
+        self.nave = nave
+        self.kind = kind
+        self.comment = comment
+        self.proj = None
+        self.picks = None
+        self.verbose = verbose
+        self._projector = None
+        self._aspect_kind = None
+
+
 def _get_entries(fid, evoked_node):
     """Helper to get all evoked entries"""
     comments = list()
