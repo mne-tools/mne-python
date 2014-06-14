@@ -1234,7 +1234,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         try:
             file_size = int(u.headers['Content-Length'].strip())
         finally:
-            u.close()
+            del u
         print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
@@ -1257,7 +1257,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
                     _fetch_file(url, resume=False)
                 else:
                     _chunk_read(data, local_file, initial_size=local_file_size)
-                    data.close()
+                    del data  # should auto-close
             else:
                 _chunk_read_ftp_resume(url, temp_file_name, local_file)
         else:
@@ -1266,7 +1266,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
             try:
                 _chunk_read(data, local_file, initial_size=initial_size)
             finally:
-                data.close()
+                del data  # should auto-close
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
