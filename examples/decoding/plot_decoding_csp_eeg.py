@@ -73,7 +73,7 @@ raw.info['lowpass'] = raw.info['sfreq'] * 0.5
 raw.info['highpass'] = 0
 raw.filter(7, 30, method='iir')
 
-layout = read_layout('EEG1005.lay')
+layout = read_layout('EEG1005')
 
 events = find_events(raw, output='onset', shortest_event=0,
                      stim_channel='STI 014')
