@@ -77,6 +77,10 @@ FIFF.FIFF_BLOCK_NAME      = 111
 FIFF.FIFF_BLOCK_VERSION   = 112
 FIFF.FIFF_CREATOR         = 113  # Program that created the file (string)
 FIFF.FIFF_MODIFIER        = 114  # Program that modified the file (string)
+FIFF.FIFF_REF_ROLE        = 115
+FIFF.FIFF_REF_FILE_ID     = 116
+FIFF.FIFF_REF_FILE_NUM    = 117
+FIFF.FIFF_REF_FILE_NAME   = 118
 #
 #  Megacq saves the parameters in these tags
 #
@@ -226,6 +230,13 @@ FIFF.FIFF_SQUID_GATE        = 703
 FIFF.FIFFV_ASPECT_IFII_LOW  = 1100
 FIFF.FIFFV_ASPECT_IFII_HIGH = 1101
 FIFF.FIFFV_ASPECT_GATE      = 1102
+
+#
+# Values for file references
+#
+FIFF.FIFFV_ROLE_PREV_FILE = 1
+FIFF.FIFFV_ROLE_NEXT_FILE = 2
+
 #
 # References
 #
