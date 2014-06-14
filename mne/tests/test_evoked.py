@@ -1,5 +1,6 @@
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #         Denis Engemann <d.engemann@fz-juelich.de>
+#         Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -14,8 +15,12 @@ from nose.tools import assert_true, assert_raises
 
 from mne import (equalize_channels, pick_types, read_evoked, write_evoked,
                  read_evokeds, write_evokeds)
-from mne.evoked import _get_peak
+from mne.evoked import _get_peak, EvokedArray
+from mne.epochs import EpochsArray
+
 from mne.utils import _TempDir, requires_pandas, requires_nitime
+
+from mne.io.array import create_info
 
 warnings.simplefilter('always')
 
@@ -320,3 +325,36 @@ def test_equalize_channels():
     equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
+
+
+def test_array_epochs():
+    """Test creating evoked from array
+    """
+
+    # creating
+    rng = np.random.RandomState(42)
+    data1 = rng.random_sample((20, 60))
+    sfreq = 1e3
+    ch_names = ['EEG %03d' % (i + 1) for i in range(20)]
+    types = ['eeg'] * 20
+    info = create_info(ch_names, sfreq, types)
+    evoked1 = EvokedArray(data1, info, tmin=-0.01)
+
+    # saving
+    temp_fname = op.join(tempdir, 'test-evkd.fif')
+    evoked1.save(temp_fname)
+    evoked2 = read_evokeds(temp_fname)[0]
+    data2 = evoked2.data
+    assert_allclose(data1, data2)
+    assert_allclose(evoked1.times, evoked2.times)
+
+    # now compare with EpochsArray (with single epoch)
+    rng = np.random.RandomState(42)
+    data = rng.random_sample((1, 20, 60))
+    sfreq = 1e3
+    ch_names = ['EEG %03d' % (i + 1) for i in range(20)]
+    types = ['eeg'] * 20
+    info = create_info(ch_names, sfreq, types)
+    events = np.c_[10, 0, 1]
+    evoked3 = EpochsArray(data, info, events=events, tmin=-0.01).average()
+    assert_allclose(evoked1.data, evoked3.data)

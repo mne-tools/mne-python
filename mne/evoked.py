@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
+#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -800,14 +801,15 @@ class EvokedArray(Evoked):
     """
 
     @verbose
-    def __init__(self, data, info, tmin, tmax, comment='', nave=1,
-                 kind='average', verbose=None):
+    def __init__(self, data, info, tmin, comment='', nave=1, kind='average',
+                 verbose=None):
 
         self.data = data
 
-        self.times = np.arange(tmin, tmax, 1./info['sfreq'], dtype=np.float)
-        self.first = -np.sum(self.times < 0)
-        self.last = np.sum(self.times >= 0) - 1
+        self.first = int(tmin*info['sfreq'])
+        self.last = self.first + np.shape(data)[-1] - 1
+        self.times = np.arange(self.first, self.last + 1, dtype=np.float)
+        self.times /= info['sfreq']
 
         self.info = info
         self.nave = nave
@@ -817,7 +819,10 @@ class EvokedArray(Evoked):
         self.picks = None
         self.verbose = verbose
         self._projector = None
-        self._aspect_kind = None
+        if self.kind == 'average':
+            self._aspect_kind = aspect_dict['average']
+        else:
+            self._aspect_kind = aspect_dict['standard_error']
 
 
 def _get_entries(fid, evoked_node):
