@@ -30,6 +30,7 @@ tmtags
 auto_examples
 MNE-sample-data*
 MNE-spm-face*
+MNE-eegbci-data*
 build
 coverage
 
