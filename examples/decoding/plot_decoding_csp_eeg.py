@@ -92,7 +92,7 @@ epochs_data_train = epochs_train.get_data()
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import cross_val_score
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
-scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)
+scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
 
 # Printing the results
 class_balance = np.mean(labels == labels[0])
