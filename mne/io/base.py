@@ -708,9 +708,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                    'raw_tsss.fif.gz'))
 
         if isinstance(split_size, string_types):
-            try:
-                exp = dict(MB=20, GB=30)[split_size[-2:]]
-            except KeyError:
+            exp = dict(MB=20, GB=30).get(split_size[-2:], None)
+            if exp is None:
                 raise ValueError('split_size has to end with either'
                                  '"MB" or "GB"')
             split_size = int(float(split_size[:-2]) * 2 ** exp)
@@ -1465,7 +1464,7 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
         write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
         end_block(fid, FIFF.FIFFB_REF)
 
-    pos_prev = 0
+    pos_prev = None
     for first in range(start, stop, buffer_size):
         last = first + buffer_size
         if last >= stop:
@@ -1485,17 +1484,23 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
                         '[done]')
             break
         logger.info('Writing ...')
+
+        if pos_prev is None:
+            pos_prev = fid.tell()
+
         _write_raw_buffer(fid, data, cals, format, inv_comp)
 
         pos = fid.tell()
-        this_buff_size = pos - pos_prev
-        if this_buff_size > split_size / 2:
+        this_buff_size_bytes = pos - pos_prev
+        if this_buff_size_bytes > split_size / 2:
             raise ValueError('buffer size is too large for the given split'
                              'size: decrease "buffer_size_sec" or increase'
                              '"split_size".')
+        if pos > split_size:
+            raise logger.warning('file is larger than "split_size"')
 
         # Split files if necessary, leave some space for next file info
-        if pos >= split_size - this_buff_size - 2 ** 20:
+        if pos >= split_size - this_buff_size_bytes - 2 ** 20:
             next_fname, next_idx = _write_raw(fname, raw, info, picks, format,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
                 projector, inv_comp, drop_small_buffer, split_size,
@@ -1507,7 +1512,6 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
             write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
             end_block(fid, FIFF.FIFFB_REF)
-
             break
 
         pos_prev = pos
