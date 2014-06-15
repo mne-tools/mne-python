@@ -168,9 +168,9 @@ Creating data objects from arrays
 
 Classes:
 
-.. currentmodule:: mne.epochs
+.. currentmodule:: mne
 
-:py:mod:`mne.epochs`:
+:py:mod:`mne`:
 
 .. autosummary::
    :toctree: generated/
@@ -178,9 +178,9 @@ Classes:
 
    EpochsArray
 
-.. currentmodule:: mne.evoked
+.. currentmodule:: mne
 
-:py:mod:`mne.evoked`:
+:py:mod:`mne`:
 
 .. autosummary::
    :toctree: generated/
@@ -188,9 +188,9 @@ Classes:
 
    EvokedArray
 
-.. currentmodule:: mne.io.array
+.. currentmodule:: mne.io
 
-:py:mod:`mne.io.array`:
+:py:mod:`mne.io`:
 
 .. autosummary::
    :toctree: generated/
@@ -200,9 +200,9 @@ Classes:
 
 Functions:
 
-.. currentmodule:: mne.io.array
+.. currentmodule:: mne
 
-:py:mod:`mne.io.array`:
+:py:mod:`mne`:
 
 .. autosummary::
   :toctree: generated/
