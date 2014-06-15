@@ -39,7 +39,9 @@ def _get_n_epochs(epochs, n):
 
 def _fit_mvar_lsq(data, order, delta):
     var = VAR(order, delta)
-    var.fit(np.array(data).transpose([2, 1, 0]))
+    #todo: only convert if data is a generator
+    data = np.asarray(list(data)).transpose([2, 1, 0])
+    var.fit(data)
     return var
 
 
@@ -51,25 +53,23 @@ def _fit_mvar_yw(data, order, n_jobs=1, verbose=None):
     n_epochs = 0
     logger.info('Accumulating autocovariance matrices...')
     for epoch_block in _get_n_epochs(data, n_jobs):
-        out = parallel(my_epoch_autocorrelations(epoch, order) for epoch in epoch_block)
-
+        out = parallel(my_epoch_autocorrelations(epoch, order)
+                       for epoch in epoch_block)
         if n_epochs == 0:
             acm_estimates = np.sum(out, 0)
         else:
             acm_estimates += np.sum(out, 0)
-
         n_epochs += len(epoch_block)
-
     acm_estimates /= n_epochs
 
     var = VARBase(order)
-    var.from_yw(acm_estimates, np.array(data).transpose([2, 1, 0]))
+    var.from_yw(acm_estimates)
 
     return var
 
 
-def mvar_connectivity(data, method, order, fitting_mode='yw', sfreq=2, fmin=0, fmax=np.inf,
-                      nfft=512):
+def mvar_connectivity(data, method, order, fitting_mode='yw', sfreq=2, fmin=0,
+                      fmax=np.inf, nfft=512):
     """Estimate connectivity from multivariate autoregressive (MVAR) models.
 
     Parameters
@@ -81,6 +81,10 @@ def mvar_connectivity(data, method, order, fitting_mode='yw', sfreq=2, fmin=0, f
         Connectivity measure(s) to compute.
     order : int
         order (length) of the underlying MVAR model
+    fitting_mode : str
+        Determines how to fit the MVAR model.
+        'yw' : Solve Yule-Walker equations
+        'lsq' : Least-Squares fitting
     sfreq : float
         The sampling frequency.
     fmin : float | tuple of floats
@@ -102,25 +106,16 @@ def mvar_connectivity(data, method, order, fitting_mode='yw', sfreq=2, fmin=0, f
         raise ValueError('fmax must be larger than fmin')
 
     logger.info('MVAR fitting...')
-
     if fitting_mode == 'yw':
         var = _fit_mvar_yw(data, order)
     elif fitting_mode == 'lsq':
         var = _fit_mvar_lsq(data, order, 0)
-
 
     freqs, fmask = [], []
     freq_range = np.linspace(0, sfreq/2, nfft)
     for fl, fh in zip(fmin, fmax):
         fmask.append(np.logical_and(fl <= freq_range, freq_range <= fh))
         freqs.append(freq_range[fmask[-1]])
-
-    #var.rescov += np.eye(var.rescov.shape[0])
-
-    import matplotlib.pyplot as plt
-    plt.imshow(var.rescov)
-    plt.colorbar()
-    plt.show()
 
     logger.info('Connectivity computation...')
     results = []
