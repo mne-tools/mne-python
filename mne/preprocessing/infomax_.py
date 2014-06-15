@@ -1,5 +1,5 @@
 # Authors: Lukas Breuer <l.breuer@fz-juelich.de>
-#          Jürgen Dammers <j.dammers@fz-juelich.de>
+#          Juergen Dammers <j.dammers@fz-juelich.de>
 #          Denis A. Engeman <denis.engemann@gemail.com>
 #
 # License: BSD (3-clause)
