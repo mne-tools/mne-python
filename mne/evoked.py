@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
+#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -774,6 +775,65 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         return (self.ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
+
+
+class EvokedArray(Evoked):
+    """Evoked object from numpy array
+
+    Parameters
+    ----------
+    data : array of shape (n_channels, n_times)
+        The channels' evoked response.
+    info : instance of Info
+        Info dictionary. Consider using ``create_info`` to populate
+        this structure.
+    comment : string
+        Comment on dataset. Can be the condition.
+    nave : int
+        Number of averaged epochs.
+    kind : str
+        Type of data, either average or standard_error.
+    tmin : float
+        Start time before event.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+    """
+
+    @verbose
+    def __init__(self, data, info, tmin, comment='', nave=1, kind='average',
+                 verbose=None):
+
+        dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
+        data = np.asanyarray(data, dtype=dtype)
+
+        if data.ndim != 2:
+            raise ValueError('Data must be a 2D array of shape (n_channels, '
+                             'n_samples)')
+
+        if len(info['ch_names']) != np.shape(data)[0]:
+            raise ValueError('Info and data must have same number of '
+                             'channels.')
+
+        self.data = data
+
+        self.first = int(tmin * info['sfreq'])
+        self.last = self.first + np.shape(data)[-1] - 1
+        self.times = np.arange(self.first, self.last + 1, dtype=np.float)
+        self.times /= info['sfreq']
+
+        self.info = info
+        self.nave = nave
+        self.kind = kind
+        self.comment = comment
+        self.proj = None
+        self.picks = None
+        self.verbose = verbose
+        self._projector = None
+        if self.kind == 'average':
+            self._aspect_kind = aspect_dict['average']
+        else:
+            self._aspect_kind = aspect_dict['standard_error']
 
 
 def _get_entries(fid, evoked_node):

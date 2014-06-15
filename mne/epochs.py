@@ -1588,6 +1588,18 @@ class EpochsArray(Epochs):
     @verbose
     def __init__(self, data, info, events, event_id=None, tmin=0,
                  verbose=None):
+
+        dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
+        data = np.asanyarray(data, dtype=dtype)
+
+        if data.ndim != 3:
+            raise ValueError('Data must be a 3D array of shape (n_epochs, '
+                             'n_channels, n_samples)')
+
+        if len(info['ch_names']) != np.shape(data)[1]:
+            raise ValueError('Info and data must have same number of '
+                             'channels.')
+
         self.info = info
         self._data = data
         if event_id is None:  # convert to int to make typing-checks happy

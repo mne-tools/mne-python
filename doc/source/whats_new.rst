@@ -49,7 +49,7 @@ Changelog
 
    - Add  `compute_ems` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
 
-   - Add option to expand Labels defined in a source space to the original surface (`Label.fill()`) by `Christian Brodbeck`_ 
+   - Add option to expand Labels defined in a source space to the original surface (`Label.fill()`) by `Christian Brodbeck`_
 
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
@@ -84,6 +84,11 @@ Changelog
    - Apply ICA at the evoked stage by `Denis Engemann`_
 
    - New ICA methods for visualizing unmixing quality, artifact detection and rejection by `Denis Engemann`_
+
+   - Add 'pick_channels' and 'drop_channels' mixin class to pick and drop channels from Raw, Epochs, and Evoked objects by 'Andrew Dykstra'_ and 'Denis Engemann'_
+
+   - Add 'EvokedArray' class to create an Evoked object from an array by 'Andrew Dykstra'_
+
 
 BUG
 ~~~

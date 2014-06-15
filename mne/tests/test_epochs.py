@@ -22,7 +22,7 @@ from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
                        clean_warning_registry)
 
-from mne.io.array import create_info
+from mne.io.meas_info import create_info
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.io.constants import FIFF

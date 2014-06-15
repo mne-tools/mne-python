@@ -12,6 +12,7 @@ from .io.pick import (pick_types, pick_channels, pick_types_evoked,
                       pick_types_forward, pick_channels_cov,
                       pick_channels_evoked, pick_info)
 from .io.base import concatenate_raws, get_chpi_positions
+from .io.meas_info import create_info
 from .cov import (read_cov, write_cov, Covariance,
                   compute_covariance, compute_raw_data_covariance,
                   whiten_evoked)
@@ -41,9 +42,9 @@ from .source_space import (read_source_spaces, vertex_to_mni,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space,
                            add_source_space_distances)
-from .epochs import Epochs, read_epochs
-from .evoked import (Evoked, read_evoked, write_evoked, read_evokeds,
-                     write_evokeds)
+from .epochs import Epochs, EpochsArray, read_epochs
+from .evoked import (Evoked, EvokedArray, read_evoked, write_evoked,
+                     read_evokeds, write_evokeds)
 from .label import (label_time_courses, read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
                     BiHemiLabel, labels_from_parc, parc_from_labels,
