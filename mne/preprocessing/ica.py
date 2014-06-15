@@ -791,7 +791,7 @@ class ICA(ContainsMixin):
         return scores
 
     @verbose
-    def find_bads_ecg(self, inst, ch_name=None, threshold=0,
+    def find_bads_ecg(self, inst, ch_name=None, threshold=3.0,
                       start=None, stop=None, l_freq=8, h_freq=16,
                       verbose=None):
         """Detect ECG related components using correlation
@@ -858,7 +858,7 @@ class ICA(ContainsMixin):
         return list(ecg_idx), scores
 
     @verbose
-    def find_bads_eog(self, inst, ch_name=None, threshold=0,
+    def find_bads_eog(self, inst, ch_name=None, threshold=3.0,
                       start=None, stop=None, l_freq=1, h_freq=10,
                       verbose=None):
         """Detect EOG related components using correlation

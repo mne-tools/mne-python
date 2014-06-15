@@ -77,7 +77,7 @@ for e in evoked:
 plt.show()
 
 # estimate noise covarariance
-noise_cov = mne.compute_covariance(epochs, tmax=0)
+noise_cov = mne.compute_covariance(epochs_cln, tmax=0)
 
 ###############################################################################
 # Visualize fields on MEG helmet
@@ -90,7 +90,7 @@ maps = mne.make_field_map(evoked[0], trans_fname=trans_fname,
                           n_jobs=1)
 
 
-evoked[0].plot_field(maps, time=.17)
+evoked[0].plot_field(maps, time=0.170)
 
 
 ###############################################################################
@@ -108,7 +108,7 @@ forward = mne.convert_forward_solution(forward, surf_ori=True)
 ###############################################################################
 # Compute inverse solution
 
-snr = 5.0
+snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = 'dSPM'
 
@@ -124,7 +124,7 @@ stc = apply_inverse(contrast, inverse_operator, lambda2, method,
 # Plot brain in 3D with PySurfer if available. Note that the subject name
 # is already known by the SourceEstimate stc object.
 brain = stc.plot(surface='inflated', hemi='both', subjects_dir=subjects_dir)
-brain.set_time(.17)
+brain.set_time(170)
 brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
 brain.show_view('ventral')
 # brain.save_image('dSPM_map.png')

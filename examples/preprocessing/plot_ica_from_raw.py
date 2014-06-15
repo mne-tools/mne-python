@@ -60,7 +60,7 @@ show_picks = np.abs(scores).argsort()[::-1][:5]  # indices of top five scores
 ica.plot_sources(raw, show_picks, exclude=eog_inds, start=0., stop=3.0)
 ica.plot_components(eog_inds, colorbar=False)  # show component sensitivites
 
-ica.exclude += eog_inds  # mark for exclusion
+ica.exclude += eog_inds[:1]  # mark first for exclusion
 
 ###############################################################################
 # 3) check detection and visualize artifact rejection

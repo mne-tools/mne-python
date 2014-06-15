@@ -3,9 +3,10 @@
 
 
 import numpy as np
+from scipy import stats
 
 
-def find_outliers(X, threshold=0.0):
+def find_outliers(X, threshold=3.0):
     """Find outliers based on Gaussian mixture
 
     Parameters
@@ -20,9 +21,16 @@ def find_outliers(X, threshold=0.0):
     bad_idx : np.ndarray of int, shape (n_features)
         The outlier indices.
     """
-    from sklearn.mixture import GMM
-    clf = GMM(n_components=2, n_init=10, random_state=42)
+    max_iter = 2
+    my_mask = np.zeros(len(X), dtype=np.bool)
     X = np.abs(X)
-    probability = clf.fit(X).score(X)
-    bad_ix = np.where(probability <= threshold)[0]
-    return bad_ix
+    for _ in range(max_iter):
+        X = np.ma.masked_array(X, my_mask)
+        this_z = stats.zscore(X)
+        local_bad = this_z > threshold
+        my_mask = np.max([my_mask, local_bad], 0)
+        if not np.any(local_bad):
+            break
+
+    bad_idx = np.where(my_mask)[0]
+    return bad_idx
