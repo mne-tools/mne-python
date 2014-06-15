@@ -468,9 +468,9 @@ class _BaseSourceEstimate(object):
         """
         mask = np.ones(len(self.times), dtype=np.bool)
         if tmax is not None:
-            mask = mask & (self.times <= tmax)
+            mask = mask & (self.times <= tmax) | np.isclose(self.times, tmax)
         if tmin is not None:
-            mask = mask & (self.times >= tmin)
+            mask = mask & (self.times >= tmin) | np.isclose(self.times, tmin)
             self.tmin = tmin
 
         if self._kernel is not None and self._sens_data is not None:
