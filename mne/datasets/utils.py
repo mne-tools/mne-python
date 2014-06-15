@@ -81,10 +81,16 @@ def _data_path(path=None, force_update=False, update_path=True,
             except OSError:
                 try:
                     logger.info("Trying to create "
-                                "'MNE/' in home directory")
+                                "'MNE/mne_data' in home directory")
                     def_path = op.join(op.expanduser("~"), "MNE")
                     if not op.exists(def_path):
                         os.mkdir(def_path)
+                        def_path = op.join(def_path, "mne_data")
+                        os.mkdir(def_path)
+                    else:
+                        def_path = op.join(def_path, "mne_data")
+                        if not op.exists(def_path):
+                            os.mkdir(def_path)
                 except OSError:
                     raise OSError("User doesn't have write permission "
                                   "at '%s', try giving a path as an argument "
