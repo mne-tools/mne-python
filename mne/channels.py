@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engmeann <d.engemann@fz-juelich.de>
+#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #
 # License: BSD (3-clause)
 
