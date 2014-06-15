@@ -12,6 +12,7 @@ from __future__ import print_function
 # License: Simplified BSD
 from .externals.six import string_types
 import os
+import os.path as op
 import warnings
 from itertools import cycle
 from functools import partial
@@ -29,7 +30,6 @@ import inspect
 import numpy as np
 from scipy import linalg
 from scipy import ndimage
-import nibabel as nib
 from warnings import warn
 from collections import deque
 
@@ -4450,8 +4450,8 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     return fig
 
 
-def plot_bem_contours(mri_fname, surf_fnames, slices=None, colors=None,
-                      show=True):
+def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
+                       slices=None, show=True):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -4461,11 +4461,10 @@ def plot_bem_contours(mri_fname, surf_fnames, slices=None, colors=None,
     surf_fnames : list of str
         The filenames for the BEM surfaces in the format
         ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
+    orientation : str
+        'coronal' or 'transverse' or 'sagittal'
     slices : list of int
-        Slice coordinates of ['coronal', 'transverse', 'sagittal'].
-    colors : list of str
-        List of colors for the BEM surfaces in the format
-        ['inner_skull_color', 'outer_skull_color', 'outer_skin_color'].
+        Slice indices.
     show : bool
         Call pyplot.show() at the end.
 
@@ -4476,61 +4475,128 @@ def plot_bem_contours(mri_fname, surf_fnames, slices=None, colors=None,
     """
 
     import matplotlib.pyplot as plt
+    import nibabel as nib
 
     # Load the T1 data
     nim = nib.load(mri_fname)
     data = nim.get_data()
 
+    n_cor, n_tran, n_sag = data.shape
+
+    if orientation == 'coronal':
+        orientation_axis = 0
+    elif orientation == 'transverse':
+        orientation_axis = 1
+    elif orientation == 'sagittal':
+        orientation_axis = 2
+    else:
+        raise ValueError('Orientation must be [coronal | '
+                         'transverse | sagittal].')
+
     if slices is None:
-        slices = [128, 128, 128]  # [coronal, transverse, sagittal]
+        n_slices = data.shape[orientation_axis]
+        slices = np.linspace(0, n_slices, 12, endpoint=False).astype(np.int)
 
-    if colors is None:
-        col = ['red', 'blue', 'yellow']
+    # create of list of surfaces
+    surfs = list()
+    for surf_fname in surf_fnames:
+        surf = dict()
+        surf['rr'], surf['tris'] = read_surface(surf_fname)
+        # surf['rr'] = nib.affines.apply_affine(affine, surf['rr'])
+        surfs.append(surf)
 
-    # First plot the anatomical data
-    fig, ax = plt.subplots(1, 3, figsize=(20, 8))
+    # Align the surfaces whose origin is
+    # at the center rather than corner (image
+    # slices)
+    for surf in surfs:
+        surf['rr'][:, 0] += n_cor // 2
+        surf['rr'][:, 1] += n_tran // 2
+        surf['rr'][:, 2] += n_sag // 2
 
-    dat = data[:, :, slices[0]]
-    ax[0].imshow(dat.transpose(), cmap=plt.cm.gray)
-    ax[0].axis('off')
-    ax[0].set_title('Coronal (slice = %d)' % slices[0])
+    fig, axs = _prepare_trellis(len(slices), 4)
 
-    dat = data[:, slices[1], :]
-    ax[1].imshow(dat.transpose(), cmap=plt.cm.gray)
-    ax[1].axis('off')
-    ax[1].set_title('Transverse (slice = %d)' % slices[1])
+    for ax, sl in zip(axs, slices):
 
-    dat = data[slices[2], :, :]
-    ax[2].imshow(dat, cmap=plt.cm.gray)
-    ax[2].axis('off')
-    ax[2].set_title('Sagittal (slice = %d)' % slices[2])
+        # adjust the orientations for good view
+        if orientation_axis == 0:
+            dat = data[:, :, sl].transpose()
+        elif orientation_axis == 1:
+            dat = data[:, sl, :].transpose()
+        elif orientation_axis == 2:
+            dat = data[sl, :, :]
 
-    # Now plot the surface contours
-    for surf_fname, color in zip(surf_fnames, col):
+        # First plot the anatomical data
+        ax.imshow(dat, cmap=plt.cm.gray)
+        ax.axis('off')
 
-        rr, tris = read_surface(surf_fname)
-
-        # Align the surfaces whose origin is
-        # at the center rather than corner (image
-        # slices)
-        n_cor, n_tran, n_sag = data.shape
-        rr[:, 0] += n_cor // 2
-        rr[:, 1] += n_tran // 2
-        rr[:, 2] += n_sag // 2
-
-        ax[0].tricontour(rr[:, 0], n_sag - rr[:, 2], tris, rr[:, 1],
-                         levels=[slices[0]], colors=color, linewidths=2.0)
-
-        ax[1].tricontour(rr[:, 0], rr[:, 1], tris, rr[:, 2],
-                         levels=[slices[1]], colors=color, linewidths=2.0)
-
-        ax[2].tricontour(rr[:, 1], n_sag - rr[:, 2], tris, rr[:, 0],
-                         levels=[slices[2]], colors=color, linewidths=2.0)
+        # and then plot the contours on top
+        for surf in surfs:
+            if orientation_axis == 0:
+                ax.tricontour(surf['rr'][:, 0], n_sag - surf['rr'][:, 2],
+                              surf['tris'], surf['rr'][:, 1],
+                              levels=[sl], colors='yellow', linewidths=2.0)
+            elif orientation_axis == 1:
+                ax.tricontour(surf['rr'][:, 0], surf['rr'][:, 1],
+                              surf['tris'], surf['rr'][:, 2],
+                              levels=[sl], colors='yellow', linewidths=2.0)
+            elif orientation_axis == 2:
+                ax.tricontour(surf['rr'][:, 1], n_sag - surf['rr'][:, 2],
+                              surf['tris'], surf['rr'][:, 0],
+                              levels=[sl], colors='yellow', linewidths=2.0)
 
     if show:
         plt.show()
 
     return fig
+
+
+def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
+             slices=None, show=True):
+    """Plot BEM contours on anatomical slices.
+
+    Parameters
+    ----------
+    subject : str
+        Subject name.
+    subjects_dir : str | None
+        Path to the SUBJECTS_DIR. If None, the path is obtained by using
+        the environment variable SUBJECTS_DIR.
+    orientation : str
+        'coronal' or 'transverse' or 'sagittal'.
+    slices : list of int
+        Slice indices.
+    show : bool
+        Call pyplot.show() at the end.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
+    """
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
+    # Get the MRI filename
+    mri_fname = op.join(subjects_dir, 'subjects', subject, 'mri',
+                        'T1.mgz')
+    if not op.isfile(mri_fname):
+        raise IOError('MRI file "%s" does not exist'
+                      % mri_fname)
+
+    # Get the BEM surface filenames
+    bem_path = op.join(subjects_dir, 'subjects', subject, 'bem')
+
+    if not op.isdir(bem_path):
+        raise IOError('Subject bem directory "%s" does not exist'
+                      % bem_path)
+
+    surf_fnames = [op.join(bem_path, 'inner_skull.surf'),
+                   op.join(bem_path, 'outer_skull.surf'),
+                   op.join(bem_path, 'outer_skin.surf')]
+
+    # Plot the contours
+    return _plot_mri_contours(mri_fname, surf_fnames, orientation=orientation,
+                              slices=slices, show=show)
 
 
 def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
