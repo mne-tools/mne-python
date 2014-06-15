@@ -14,7 +14,7 @@ a module heading are found in the :py:mod:`mne` namespace.
 
 .. toctree::
    :maxdepth: 2
-   
+
    python_reference
 
 
@@ -117,26 +117,6 @@ Functions:
    write_hsp
    write_mrk
 
-.. currentmodule:: mne.io.array
-
-:py:mod:`mne.io.array`:
-
-Classes:
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   RawArray
-
-Functions:
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-  create_info
-
 
 File I/O
 ========
@@ -181,6 +161,54 @@ Functions:
    write_source_spaces
    write_surface
    write_trans
+
+
+Creating data objects from arrays
+=================================
+
+Classes:
+
+.. currentmodule:: mne.epochs
+
+:py:mod:`mne.epochs`:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   EpochsArray
+
+.. currentmodule:: mne.evoked
+
+:py:mod:`mne.evoked`:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   EvokedArray
+
+.. currentmodule:: mne.io.array
+
+:py:mod:`mne.io.array`:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   RawArray
+
+Functions:
+
+.. currentmodule:: mne.io.array
+
+:py:mod:`mne.io.array`:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+  create_info
 
 
 Sample datasets
@@ -366,12 +394,6 @@ Events
    define_target_events
 
 .. currentmodule:: mne.epochs
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   EpochsArray
 
 .. autosummary::
    :toctree: generated/
