@@ -333,28 +333,38 @@ def test_array_epochs():
 
     # creating
     rng = np.random.RandomState(42)
-    data1 = rng.random_sample((20, 60))
+    data1 = rng.randn(20, 60)
     sfreq = 1e3
     ch_names = ['EEG %03d' % (i + 1) for i in range(20)]
     types = ['eeg'] * 20
     info = create_info(ch_names, sfreq, types)
     evoked1 = EvokedArray(data1, info, tmin=-0.01)
 
-    # saving
-    temp_fname = op.join(tempdir, 'test-evkd.fif')
-    evoked1.save(temp_fname)
-    evoked2 = read_evokeds(temp_fname)[0]
+    # save, read, and compare evokeds
+    tmp_fname = op.join(tempdir, 'evkdary-ave.fif')
+    evoked1.save(tmp_fname)
+    evoked2 = read_evokeds(tmp_fname)[0]
     data2 = evoked2.data
     assert_allclose(data1, data2)
     assert_allclose(evoked1.times, evoked2.times)
+    assert_equal(evoked1.first, evoked2.first)
+    assert_equal(evoked1.last, evoked2.last)
+    assert_equal(evoked1.kind, evoked2.kind)
+    assert_equal(evoked1.nave, evoked2.nave)
 
     # now compare with EpochsArray (with single epoch)
-    rng = np.random.RandomState(42)
-    data = rng.random_sample((1, 20, 60))
-    sfreq = 1e3
-    ch_names = ['EEG %03d' % (i + 1) for i in range(20)]
-    types = ['eeg'] * 20
-    info = create_info(ch_names, sfreq, types)
+    data3 = data1[np.newaxis, :, :]
     events = np.c_[10, 0, 1]
-    evoked3 = EpochsArray(data, info, events=events, tmin=-0.01).average()
+    evoked3 = EpochsArray(data3, info, events=events, tmin=-0.01).average()
     assert_allclose(evoked1.data, evoked3.data)
+    assert_allclose(evoked1.times, evoked3.times)
+    assert_equal(evoked1.first, evoked3.first)
+    assert_equal(evoked1.last, evoked3.last)
+    assert_equal(evoked1.kind, evoked3.kind)
+    assert_equal(evoked1.nave, evoked3.nave)
+
+    # test match between channels info and data
+    ch_names = ['EEG %03d' % (i + 1) for i in range(19)]
+    types = ['eeg'] * 19
+    info = create_info(ch_names, sfreq, types)
+    assert_raises(ValueError, EvokedArray, data1, info, tmin=-0.01)

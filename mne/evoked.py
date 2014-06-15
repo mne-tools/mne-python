@@ -806,23 +806,27 @@ class EvokedArray(Evoked):
 
         self.data = data
 
-        self.first = int(tmin*info['sfreq'])
-        self.last = self.first + np.shape(data)[-1] - 1
-        self.times = np.arange(self.first, self.last + 1, dtype=np.float)
-        self.times /= info['sfreq']
-
-        self.info = info
-        self.nave = nave
-        self.kind = kind
-        self.comment = comment
-        self.proj = None
-        self.picks = None
-        self.verbose = verbose
-        self._projector = None
-        if self.kind == 'average':
-            self._aspect_kind = aspect_dict['average']
+        if len(info['ch_names']) != np.shape(data)[0]:
+            raise ValueError('Info and data must have same number of '
+                             'channels.')
         else:
-            self._aspect_kind = aspect_dict['standard_error']
+            self.first = int(tmin * info['sfreq'])
+            self.last = self.first + np.shape(data)[-1] - 1
+            self.times = np.arange(self.first, self.last + 1, dtype=np.float)
+            self.times /= info['sfreq']
+
+            self.info = info
+            self.nave = nave
+            self.kind = kind
+            self.comment = comment
+            self.proj = None
+            self.picks = None
+            self.verbose = verbose
+            self._projector = None
+            if self.kind == 'average':
+                self._aspect_kind = aspect_dict['average']
+            else:
+                self._aspect_kind = aspect_dict['standard_error']
 
 
 def _get_entries(fid, evoked_node):
