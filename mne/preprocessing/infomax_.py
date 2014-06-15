@@ -4,8 +4,7 @@
 #
 # License: BSD (3-clause)
 
-import deepcopy
-
+import copy
 import numpy as np
 
 from ..utils import logger, verbose
@@ -59,13 +58,13 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
     if random_state is None:
         seed = 42
         rng = np.random.RandomState(seed=seed)
-    elif isinstance(random_state, int)L:
+    elif isinstance(random_state, int):
         seed = random_state
         rng = np.random.RandomState(seed=seed)
     elif isinstance(random_state, np.random.RandomState):
         rng = random_state
 
-    rng2 = deepcopy.copy(rng)  # the other gets updated each iteration
+    rng2 = copy.deepcopy(rng)  # the other gets updated each iteration
 
     import math
     if extended is True:
