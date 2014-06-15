@@ -20,7 +20,7 @@ from mne.epochs import EpochsArray
 
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 
-from mne.io.array import create_info
+from mne.io.meas_info import create_info
 
 warnings.simplefilter('always')
 
