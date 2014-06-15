@@ -1,50 +1,73 @@
+# Authors: Lukas Breuer <l.breuer@fz-juelich.de>
+#          Jürgen Dammers <j.dammers@fz-juelich.de>
+#          Denis A. Engeman <denis.engemann@gemail.com>
+#
+# License: BSD (3-clause)
+
+import deepcopy
+
 import numpy as np
 
+from ..utils import logger, verbose
 
+
+@verbose
 def infomax(data, w_init=None, learning_rate=None, block=None,
             w_change=1e-16, anneal_deg=60., anneal_step=0.9,
-            extended=True, max_iter=200, verbose=True):
+            extended=True, max_iter=200, random_state=None,
+            verbose=True):
 
     """Run the (extended) Infomax ICA decomposition on raw data
-    (based on the publications of Bell & Sejnowski 1995 (Infomax)
-    and Lee, Girolami & Sejnowski, 1999 (extended Infomax))
 
     Parameters
     ----------
-    data : data array [n_features, n_times] for decomposition
-    w_init : initialize unmixing matrix
-        default: None --> identity matrix is used
-    learning_rate : initial learning rate (for most applications 1e-3 is
-        a  good start)
-        --> smaller learining rates will slowering the convergence
-        it merely indicates the relative size of the change in weights
-        default:  learning_rate = 0.010d/alog(n_features^2.0)
-    block : his block size used to randomly extract (in time) a chop
-        of data
-        default:  block = floor(sqrt(n_times/3d))
-    w_change : iteration stops when weight changes is smaller then this
-        number
-        default: w_change = 1e-12
-    anneal_deg : if angle delta is larger then anneal_deg (in degree) the
-        learning rate will be reduce
-        default:  anneal_deg = 60
-    anneal_step : the learning rate will be reduced by this factor:
-        learning_rate  *= anneal_step
-        default:  anneal_step = 0.9
-    extended : if set extended Infomax ICA is performed
-        default: None
-    max_iter : maximum number of iterations to be done
-        default:  max_iter = 200
+    data : np.ndarray, shape (n_features, n_times)
+        The data to unmix.
+    w_init : np.ndarray, shape (n_features, n_features)
+        The initialized unmixing matrix. Defaults to None. If None, the
+        identity matrix is used.
+    learning_rate : float
+        This quantity indicates the relative size of the change in weights.
+        Note. Smaller learining rates will slow down the procedure.
+        Defaults to 0.010d / alog(n_features ^ 2.0)
+    block : int
+        The block size of randomly chosen data segment.
+        Defaults to floor(sqrt(n_times / 3d))
+    w_change : float
+        The change at which to stop iteration. Defaults to 1e-12.
+    anneal_deg : float
+        The angle at which (in degree) the learning rate will be reduced.
+        Defaults to 60.0
+    anneal_step : float
+        The factor by which the learning rate will be reduced once
+        ``anneal_deg`` is exceeded:
+            learning_rate *= anneal_step
+        Defaults to 0.9
+    extended : bool
+        Wheather to use the extended infomax algorithm or not. Defaults to
+        True.
+    max_iter : int
+        The maximum number of iterations. Defaults to 200.
     verbose : bool, str, int, or None
         if not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    weights : un-mixing matrix
-    activations : underlying sources
+    unmixing_matrix : np.ndarray of float, shape (n_features, n_features)
+        The linear unmixing operator.
     """
+    if random_state is None:
+        seed = 42
+        rng = np.random.RandomState(seed=seed)
+    elif isinstance(random_state, int)L:
+        seed = random_state
+        rng = np.random.RandomState(seed=seed)
+    elif isinstance(random_state, np.random.RandomState):
+        rng = random_state
+
+    rng2 = deepcopy.copy(rng)  # the other gets updated each iteration
+
     import math
-    import random
     if extended is True:
         from scipy.stats import kurtosis
 
@@ -83,8 +106,8 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
         block = int(math.floor(math.sqrt(n_times / 3.0)))
 
     # collect parameter
-    nblock = n_times / block
-    lastt = (nblock - 1) * block + 1
+    n_blocks = n_times // block
+    lastt = (n_blocks - 1) * block + 1
 
     # initialize training
 
@@ -106,8 +129,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
 
     # for extended Infomax
     if extended:
-        signs = np.identity(n_features)
-        signs.flat[::n_features + 1] = -1.
+        signs = np.diag(-1. * np.ones(n_features))
         extblocks = 1
         signcount = 0
         n_sub = default_n_sub
@@ -126,9 +148,9 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
     while step < max_iter:
 
         # shuffel data at each step
-        random.seed(step)  # --> permutation is fixed but differs at each step
+        rng.seed(step)  # --> permutation is fixed but differs at each step
         permute = range(n_times)
-        random.shuffle(permute)
+        rng.shuffle(permute)
 
         # ICA training block
         # loop across block samples
@@ -142,9 +164,8 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
                 weights += learning_rate * np.dot(weights, BI -
                                                   np.dot(np.dot(u.T, y), signs)
                                                   - np.dot(u.T, u))
-                bias += (learning_rate * np.sum((-2.0 * y), axis=0,
-                                                dtype=np.float64)
-                         .reshape(n_features, 1))
+                bias += (learning_rate * np.sum(y, axis=0, dtype=np.float64)
+                         .reshape(n_features, 1)) * -2
 
             else:
                 # logistic ICA weights update
@@ -171,7 +192,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
 
                 if np.abs(n) * extblocks == blockno:
                     if kurtsize < n_times:
-                        rp = np.floor(np.random.uniform(0, 1, kurtsize) *
+                        rp = np.floor(rng2.uniform(0, 1, kurtsize) *
                                       (n_times-1))
                         tpartact = np.dot(data[rp.astype(int), :], weights).T
                     else:
@@ -261,7 +282,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
             if learning_rate <= default_min_learning_rate:
                 raise ValueError('Error in Infomax ICA: weight matrix may not '
                                  'be invertible!')
-    print 'converged with %i iterations:' % step
+    print('converged with %i iterations:' % step)  # XXX debug
 
     # keep in mind row/col convention outside this routine
 

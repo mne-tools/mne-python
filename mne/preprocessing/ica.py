@@ -188,7 +188,7 @@ class ICA(ContainsMixin):
     @verbose
     def __init__(self, n_components=None, max_pca_components=100,
                  n_pca_components=None, noise_cov=None, random_state=None,
-                 method='fastica',
+                 method='infomax',
                  algorithm='parallel', fun='logcosh', fun_args=None,
                  verbose=None):
 
