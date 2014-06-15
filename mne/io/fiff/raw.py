@@ -98,6 +98,10 @@ class RawFIFF(_BaseRaw):
                     continue
                 if next_fname in fnames:
                     # the user manually specified the split files
+                    logger.info('Note: %s is part of a split raw file. It is '
+                                'not necessary to manually specify the parts '
+                                'in this case; simply construct Raw using '
+                                'the name of the first file.' % next_fname)
                     continue
 
                 # process this file next
