@@ -207,7 +207,7 @@ class ICA(ContainsMixin):
         self.max_pca_components = max_pca_components
         self.n_pca_components = n_pca_components
         self.ch_names = None
-        self.random_state = random_state if random_state is not None else 0
+        self.random_state = random_state if random_state is not None else 42
         self.algorithm = algorithm
         self.fun = fun
         self.fun_args = fun_args
@@ -300,6 +300,8 @@ class ICA(ContainsMixin):
         del self.mixing_matrix_
         del self.n_components_
         del self.n_samples_
+        if hasattr(self, 'drop_inds_'):
+            del self.drop_inds_
 
     def _fit_raw(self, raw, picks, start, stop, decim, reject, flat, tstep,
                  verbose):
@@ -418,7 +420,7 @@ class ICA(ContainsMixin):
 
         # XXX fix copy==True later. Bug in sklearn, see PR #2273
         pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
-                            copy=True)
+                            copy=True, random_state=self.random_state)
 
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
