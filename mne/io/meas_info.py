@@ -23,6 +23,16 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_julian)
 from ..utils import logger, verbose
 
+_kind_dict = dict(
+    eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    mag=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFF_UNIT_T),
+    grad=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_PLANAR_T1, FIFF.FIFF_UNIT_T_M),
+    misc=(FIFF.FIFFV_MISC_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_NONE),
+    stim=(FIFF.FIFFV_STIM_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    eog=(FIFF.FIFFV_EOG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    ecg=(FIFF.FIFFV_ECG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+)
+
 
 def _summarize_str(st):
     """Aux function"""

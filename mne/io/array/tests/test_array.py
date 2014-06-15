@@ -13,8 +13,7 @@ from nose.tools import assert_equal, assert_raises, assert_true
 from mne import find_events, Epochs, pick_types
 from mne.io import Raw
 from mne.io.array import RawArray
-from mne.io.meas_info import create_info
-from mne.io.array.array import _kind_dict
+from mne.io.meas_info import create_info, _kind_dict
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests might throw warnings
