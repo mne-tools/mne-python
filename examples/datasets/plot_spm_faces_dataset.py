@@ -124,7 +124,7 @@ stc = apply_inverse(contrast, inverse_operator, lambda2, method,
 # Plot brain in 3D with PySurfer if available. Note that the subject name
 # is already known by the SourceEstimate stc object.
 brain = stc.plot(surface='inflated', hemi='both', subjects_dir=subjects_dir)
-brain.set_time(170)
+brain.set_time(170.0)  # milliseconds
 brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
 brain.show_view('ventral')
 # brain.save_image('dSPM_map.png')
