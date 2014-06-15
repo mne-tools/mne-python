@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import os
 import os.path as op
+import glob
 from copy import deepcopy
 import warnings
 
@@ -281,8 +282,15 @@ def test_split_files():
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
 
     raw_2 = Raw(split_fname)
-
     data_1, times_1 = raw_1[:, :]
+    data_2, times_2 = raw_2[:, :]
+    assert_array_equal(data_1, data_2)
+    assert_array_equal(times_1, times_2)
+
+    # test the case where the silly user specifies the split files
+    fnames = [split_fname]
+    fnames.extend(sorted(glob.glob(op.join(tempdir, 'split_raw-*.fif'))))
+    raw_2 = Raw(fnames)
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
