@@ -190,11 +190,16 @@ class PSDEstimator(TransformerMixin):
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                 adaptive=False, low_bias=True, n_jobs=1, verbose=None):
+                 adaptive=False, low_bias=True, n_jobs=1, normalization='length',
+                 verbose=None):
         self.sfreq = sfreq
         self.fmin = fmin
         self.fmax = fmax
@@ -203,6 +208,7 @@ class PSDEstimator(TransformerMixin):
         self.low_bias = low_bias
         self.n_jobs = n_jobs
         self.verbose = verbose
+        self.normalization = normalization
 
     def fit(self, epochs_data, y):
         """Compute power spectrum density (PSD) using a multi-taper method
@@ -249,9 +255,12 @@ class PSDEstimator(TransformerMixin):
         n_epochs, n_channels, n_times = epochs_data.shape
         X = epochs_data.reshape(n_epochs * n_channels, n_times)
 
-        psd, _ = multitaper_psd(X, self.sfreq, self.fmin, self.fmax,
-                                self.bandwidth, self.adaptive, self.low_bias,
-                                self.n_jobs, self.verbose)
+        psd, _ = multitaper_psd(x=X, sfreq=self.sfreq, fmin=self.fmin,
+                                fmax=self.fmax, bandwidth=self.bandwidth,
+                                adaptive=self.adaptive, low_bias=self.low_bias,
+                                n_jobs=self.n_jobs,
+                                normalization=self.normalization,
+                                verbose=self.verbose)
 
         _, n_freqs = psd.shape
         psd = psd.reshape(n_epochs, n_channels, n_freqs)
