@@ -256,7 +256,7 @@ class PSDEstimator(TransformerMixin):
         X = epochs_data.reshape(n_epochs * n_channels, n_times)
 
         psd, _ = multitaper_psd(x=X, sfreq=self.sfreq, fmin=self.fmin,
-                                fmax=self.fmax, bandwith=self.bandwidth,
+                                fmax=self.fmax, bandwidth=self.bandwidth,
                                 adaptive=self.adaptive, low_bias=self.low_bias,
                                 n_jobs=self.n_jobs,
                                 normalization=self.normalization,
