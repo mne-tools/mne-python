@@ -49,6 +49,16 @@ picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                        selection=left_temporal_channels)
 reject = dict(mag=4e-12)
 
+# Setting time limits and baseline for reading epochs. Note that tmin and tmax
+# are set so that time-frequency beamforming will be performed for a wider
+# range of time points than will later be displayed on the final spectrogram.
+# This ensures that all time bins displayed represent an average of an equal
+# number of time windows. The length of the baseline is chosen to correspond to
+# the widest time window.
+tmin, tmax = -0.55, 0.75  # s
+baseline_tmin = -0.3  # s
+tmin_plot, tmax_plot = -0.3, 0.5  # s
+
 # Read epochs. Note that preload is set to False to enable tf_lcmv to read the
 # underlying raw object from epochs.raw, which would be set to None during
 # preloading. Filtering is then performed on raw data in tf_lcmv and the epochs
@@ -57,10 +67,10 @@ reject = dict(mag=4e-12)
 # until later. To perform bad epoch rejection based on the reject parameter
 # passed here, run epochs.drop_bad_epochs(). This is done automatically in
 # tf_lcmv to reject bad epochs based on unfiltered data.
-event_id, tmin, tmax = 1, -0.55, 0.75
+event_id = 1
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(None, 0), preload=False,
+                    picks=picks, baseline=(baseline_tmin, 0), preload=False,
                     reject=reject)
 
 # Read empty room noise, preload to allow filtering
@@ -103,8 +113,8 @@ data_reg = 0.001
 subtract_evoked = False
 
 # Calculating covariance from empty room noise. To use baseline data as noise
-# substitute raw for raw_noise, epochs.events for epochs_noise.events, and 0
-# for tmax.
+# substitute raw for raw_noise, epochs.events for epochs_noise.events,
+# baseline_tmin for tmin_plot and 0 for tmax_plot.
 # Note, if using baseline data, the averaged evoked response in the baseline
 # period should be flat.
 noise_covs = []
@@ -112,8 +122,8 @@ for (l_freq, h_freq) in freq_bins:
     raw_band = raw_noise.copy()
     raw_band.filter(l_freq, h_freq, picks=epochs.picks, method='iir', n_jobs=1)
     epochs_band = mne.Epochs(raw_band, epochs_noise.events, event_id,
-                             tmin=tmin, tmax=tmax, picks=epochs.picks,
-                             proj=True)
+                             tmin=tmin_plot, tmax=tmax_plot,
+                             picks=epochs.picks, proj=True)
 
     noise_cov = compute_covariance(epochs_band)
     noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=noise_reg,
@@ -127,6 +137,10 @@ stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, subtract_evoked=subtract_evoked,
                reg=data_reg, label=label)
 
-# Plotting source spectrogram for source with maximum activity
-plot_source_spectrogram(stcs, freq_bins, tmin=-0.3, tmax=0.5,
+# Plotting source spectrogram for source with maximum activity.
+# Note that tmin and tmax are set to display a time range that is smaller than
+# the one for which beamforming estimates were calculated. This ensures that
+# all time bins shown are a result of smoothing across an identical number of
+# time windows.
+plot_source_spectrogram(stcs, freq_bins, tmin=tmin_plot, tmax=tmax_plot,
                         source_index=None, colorbar=True)
