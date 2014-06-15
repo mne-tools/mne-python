@@ -1592,40 +1592,39 @@ class EpochsArray(Epochs):
         if len(info['ch_names']) != np.shape(data)[1]:
             raise ValueError('Info and data must have same number of '
                              'channels.')
-        else:
-            self.info = info
-            self._data = data
-            if event_id is None:  # convert to int to make typing-checks happy
-                event_id = dict((str(e), int(e)) for e in
-                                 np.unique(events[:, 2]))
-            self.event_id = event_id
-            self.events = events
 
-            for key, val in self.event_id.items():
-                if val not in events[:, 2]:
-                    msg = ('No matching events found for %s '
-                           '(event id %i)' % (key, val))
-                    raise ValueError(msg)
+        self.info = info
+        self._data = data
+        if event_id is None:  # convert to int to make typing-checks happy
+            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
+        self.event_id = event_id
+        self.events = events
 
-            self.proj = None
-            self.baseline = None
-            self.preload = True
-            self.reject = None
-            self.decim = 1
-            self._decim_idx = slice(0, data.shape[-1], self.decim)
-            self.raw = None
-            self.drop_log = [[] for _ in range(len(events))]
-            self._bad_dropped = True
+        for key, val in self.event_id.items():
+            if val not in events[:, 2]:
+                msg = ('No matching events found for %s '
+                       '(event id %i)' % (key, val))
+                raise ValueError(msg)
 
-            self.selection = np.arange(len(events))
-            self.picks = None
-            self.times = (np.arange(data.shape[-1], dtype=np.float) /
-                                    info['sfreq'] + tmin)
-            self.tmin = self.times[0]
-            self.tmax = self.times[-1]
-            self.verbose = verbose
-            self.name = 'Unknown'
-            self._projector = None
+        self.proj = None
+        self.baseline = None
+        self.preload = True
+        self.reject = None
+        self.decim = 1
+        self._decim_idx = slice(0, data.shape[-1], self.decim)
+        self.raw = None
+        self.drop_log = [[] for _ in range(len(events))]
+        self._bad_dropped = True
+
+        self.selection = np.arange(len(events))
+        self.picks = None
+        self.times = (np.arange(data.shape[-1], dtype=np.float) /
+                                info['sfreq'] + tmin)
+        self.tmin = self.times[0]
+        self.tmax = self.times[-1]
+        self.verbose = verbose
+        self.name = 'Unknown'
+        self._projector = None
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
