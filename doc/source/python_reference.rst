@@ -176,17 +176,8 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   EpochsArray
-
-.. currentmodule:: mne
-
-:py:mod:`mne`:
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
    EvokedArray
+   EpochsArray
 
 .. currentmodule:: mne.io
 

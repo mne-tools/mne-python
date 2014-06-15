@@ -804,11 +804,18 @@ class EvokedArray(Evoked):
     def __init__(self, data, info, tmin, comment='', nave=1, kind='average',
                  verbose=None):
 
-        self.data = data
+        dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
+        data = np.asanyarray(data, dtype=dtype)
+
+        if data.ndim != 2:
+            raise ValueError('Data must be a 2D array of shape (n_channels, '
+                             'n_samples)')
 
         if len(info['ch_names']) != np.shape(data)[0]:
             raise ValueError('Info and data must have same number of '
                              'channels.')
+
+        self.data = data
 
         self.first = int(tmin * info['sfreq'])
         self.last = self.first + np.shape(data)[-1] - 1

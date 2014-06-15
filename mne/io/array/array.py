@@ -29,13 +29,18 @@ class RawArray(_BaseRaw):
     def __init__(self, data, info, verbose=None):
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
+
         if data.ndim != 2:
-            raise ValueError('data must be a 2D array')
+            raise ValueError('Data must be a 2D array of shape (n_channels, '
+                             'n_samples')
+
         logger.info('Creating RawArray with %s data, n_channels=%s, n_times=%s'
                     % (dtype.__name__, data.shape[0], data.shape[1]))
+
         if len(data) != len(info['ch_names']):
             raise ValueError('len(data) does not match len(info["ch_names"])')
         assert len(info['ch_names']) == info['nchan']
+
         cals = np.zeros(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
