@@ -3,7 +3,7 @@
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
@@ -37,7 +37,7 @@ from collections import deque
 from .fixes import tril_indices, Counter
 from .baseline import rescale
 from .utils import (get_subjects_dir, get_config, set_config, _check_subject,
-                    logger, verbose)
+                    logger, verbose, deprecated)
 from .io import show_fiff
 from .io.constants import FIFF
 from .io.pick import channel_type, pick_types
@@ -1950,7 +1950,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     return brain
 
 
-def _plot_ica_panel_onpick(event, sources=None, ylims=None):
+def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
     """Onpick callback for plot_ica_panel"""
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
@@ -1963,10 +1963,10 @@ def _plot_ica_panel_onpick(event, sources=None, ylims=None):
         plt.figure()
         src_idx = artist._mne_src_idx
         component = artist._mne_component
-        plt.plot(sources[src_idx], 'r')
+        plt.plot(sources[src_idx], 'r' if artist._mne_is_bad else 'k')
         plt.ylim(ylims)
         plt.grid(linestyle='-', color='gray', linewidth=.25)
-        plt.title(component)
+        plt.title('ICA #%i' % component)
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers, so we print
         # it here to know what went wrong
@@ -1974,10 +1974,244 @@ def _plot_ica_panel_onpick(event, sources=None, ylims=None):
         raise err
 
 
-@verbose
-def plot_ica_panel(sources, start=None, stop=None, n_components=None,
-                   source_idx=None, ncol=3, nrow=10, verbose=None,
+@deprecated('`plot_ica_topomap` is deprecated and will be removed in '
+            'MNE 1.0. Use `plot_ica_components` instead')
+def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
+                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                     show=True):
+    """This functoin is deprecated
+
+    See ``plot_ica_components``.
+    """
+    return plot_ica_components(ica, source_idx, ch_type, res, layout,
+                               vmax, cmap, sensors, colorbar)
+
+
+def plot_ica_components(ica, picks=None, ch_type='mag', res=500,
+                        layout=None,
+                        vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                        title=None, show=True):
+    """Project unmixing matrix on interpolated sensor topogrpahy.
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA solution.
+    picks : int | array-like | None
+        The indices of the sources to be plotted.
+        If None all are plotted in batches of 20.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        The channel type to plot. For 'grad', the gradiometers are
+        collected in pairs and the RMS for each pair is plotted.
+    layout : None | Layout
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
+    vmax : scalar
+        The value specfying the range of the color scale (-vmax to +vmax).
+        If None, the largest absolute value in the data is used.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib
+        plot format string (e.g., 'r+' for red plusses).
+    colorbar : bool
+        Plot a colorbar.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    show : bool
+        Call pyplot.show() at the end.
+
+    Returns
+    -------
+    fig : instance of matplotlib.pyplot.Figure or list
+        The figure object(s).
+    """
+    import matplotlib.pyplot as plt
+
+    if picks is None:  # plot components by sets of 20
+        n_components = ica.mixing_matrix_.shape[1]
+        p = 20
+        figs = []
+        for k in range(0, n_components, p):
+            picks = range(k, min(k + p, n_components))
+            fig = plot_ica_components(ica, picks=picks,
+                                      ch_type=ch_type, res=res, layout=layout,
+                                      vmax=vmax, cmap=cmap, sensors=sensors,
+                                      colorbar=colorbar, title=title,
+                                      show=show)
+            figs.append(fig)
+        return figs
+    elif np.isscalar(picks):
+        picks = [picks]
+
+    data = np.dot(ica.mixing_matrix_[:, picks].T,
+                  ica.pca_components_[:ica.n_components_])
+
+    if ica.info is None:
+        raise RuntimeError('The ICA\'s measurement info is missing. Please '
+                           'fit the ICA or add the corresponding info object.')
+
+    data_picks, pos, merge_grads, names = _prepare_topo_plot(ica, ch_type,
+                                                             layout)
+    data = np.atleast_2d(data)
+    data = data[:, data_picks]
+
+    # prepare data for iteration
+    fig, axes = _prepare_trellis(len(data), max_col=5)
+    if title is None:
+        title = 'ICA components'
+    fig.suptitle(title)
+
+    if vmax is None:
+        vrange = np.array([f(data) for f in (np.min, np.max)])
+        vmax = max(abs(vrange))
+
+    if merge_grads:
+        from .layouts.layout import _merge_grad_data
+    for ii, data_, ax in zip(picks, data, axes):
+        data_ = _merge_grad_data(data_) if merge_grads else data_
+        plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
+                     res=res, axis=ax)
+        ax.set_title('IC #%03d' % ii, fontsize=12)
+        ax.set_yticks([])
+        ax.set_xticks([])
+        ax.set_frame_on(False)
+
+    tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.9)
+    fig.canvas.draw()
+    if colorbar:
+        vmax_ = normalize_colors(vmin=-vmax, vmax=vmax)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=vmax_)
+        sm.set_array(np.linspace(-vmax, vmax))
+        fig.subplots_adjust(right=0.8)
+        cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        fig.colorbar(sm, cax=cax)
+        cax.set_title('AU')
+
+    if show is True:
+        plt.show()
+    return fig
+
+
+@deprecated('`plot_ica_panel` is deprecated and will be removed in '
+            'MNE 1.0. Use `plot_ica_sources` instead')
+def plot_ica_panel(sources, start=None, stop=None,
+                   source_idx=None, ncol=3, verbose=None,
                    title=None, show=True):
+    """Create panel plots of ICA sources
+
+    Clicking on the plot of an individual source opens a new figure showing
+    the source.
+
+    Parameters
+    ----------
+    sources : ndarray
+        Sources as drawn from ica.get_sources.
+    start : int
+        x-axis start index. If None from the beginning.
+    stop : int
+        x-axis stop index. If None to the end.
+    source_idx : array-like
+        Indices for subsetting the sources.
+    ncol : int
+        Number of panel-columns.
+    title : str
+        The figure title. If None a default is provided.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    show : bool
+        If True, plot will be shown, else just the figure is returned.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+    """
+
+    return _plot_ica_grid(sources=sources, start=start, stop=stop,
+                          source_idx=source_idx, ncol=ncol, verbose=verbose,
+                          title=title, show=show)
+
+
+def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
+                     stop=None, show=True, title=None):
+    """Plot estimated latent sources given the unmixing matrix.
+
+    Typical usecases:
+
+    1. plot evolution of latent sources over time based on (Raw input)
+    2. plot latent source around event related time windows (Epochs input)
+    3. plot time-locking in ICA space (Evoked input)
+
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA solution.
+    inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
+        The object to plot the sources from.
+    picks : ndarray | None.
+        The components to be displayed. If None, plot will show the
+        sources in the order as fitted.
+    start : int
+        X-axis start index. If None from the beginning.
+    stop : int
+        X-axis stop index. If None to the end.
+    exclude : array_like of int
+        The components marked for exclusion. If None (default), ICA.exclude
+        will be used.
+    title : str | None
+        The figure title. If None a default is provided.
+    show : bool
+        If True, plot will be shown, else just the figure is returned.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+        The figure.
+    """
+
+    from .io.base import _BaseRaw
+    from .evoked import Evoked
+    from .epochs import _BaseEpochs
+
+    if exclude is None:
+        exclude = ica.exclude
+
+    if isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        if isinstance(inst, _BaseRaw):
+            sources = ica._transform_raw(inst, start, stop)
+        else:
+            if start is not None or stop is not None:
+                inst = inst.crop(start, stop, copy=True)
+            sources = ica._transform_epochs(inst, concatenate=True)
+        if picks is not None:
+            if np.isscalar(picks):
+                picks = [picks]
+            sources = np.atleast_2d(sources[picks])
+
+        fig = _plot_ica_grid(sources, start=start, stop=stop,
+                             ncol=len(sources) // 10 or 1,
+                             exclude=exclude,
+                             source_idx=picks,
+                             title=title, show=show)
+    elif isinstance(inst, Evoked):
+        sources = ica.get_sources(inst)
+        if start is not None or stop is not None:
+            inst = inst.crop(start, stop, copy=True)
+        fig = _plot_ica_sources_evoked(evoked=sources,
+                                       exclude=exclude,
+                                       title=title)
+    else:
+        raise ValueError('Data input must be of Raw or Epochs type')
+
+    return fig
+
+
+def _plot_ica_grid(sources, start, stop,
+                   source_idx, ncol, exclude,
+                   title, show):
     """Create panel plots of ICA sources
 
     Clicking on the plot of an individual source opens a new figure showing
@@ -1997,53 +2231,39 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         Indices for subsetting the sources.
     ncol : int
         Number of panel-columns.
-    nrow : int
-        Number of panel-rows.
     title : str
         The figure title. If None a default is provided.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     show : bool
         If True, plot will be shown, else just the figure is returned.
-
-    Returns
-    -------
-    fig : instance of pyplot.Figure
     """
     import matplotlib.pyplot as plt
 
     if source_idx is None:
         source_idx = np.arange(len(sources))
-    else:
+    elif isinstance(source_idx, list):
         source_idx = np.array(source_idx)
-
-    for param in ['nrow', 'n_components']:
-        if eval(param) is not None:
-            warnings.warn('The `%s` parameter is deprecated and will be'
-                          'removed in MNE-Python 0.8' % param,
-                          DeprecationWarning)
+    if exclude is None:
+        exclude = []
 
     n_components = len(sources)
-    sources = sources[source_idx, start:stop]
     ylims = sources.min(), sources.max()
     xlims = np.arange(sources.shape[-1])[[0, -1]]
     fig, axes = _prepare_trellis(n_components, ncol)
     if title is None:
-        fig.suptitle('MEG signal decomposition'
-                     ' -- %i components.' % n_components, size=16)
+        fig.suptitle('Reconstructed latent sources', size=16)
     elif title:
         fig.suptitle(title, size=16)
 
     plt.subplots_adjust(wspace=0.05, hspace=0.05)
-
-    for idx, (ax, source) in enumerate(zip(axes, sources)):
-        ax.grid(linestyle='-', color='gray', linewidth=.25)
-        component = '[%i]' % idx
-
+    my_iter = enumerate(zip(source_idx, axes, sources))
+    for i_source, (i_selection, ax, source) in my_iter:
+        component = '[%i]' % i_selection
         # plot+ emebed idx and comp. name to use in callback
-        line = ax.plot(source, linewidth=0.5, color='red', picker=1e9)[0]
-        vars(line)['_mne_src_idx'] = idx
-        vars(line)['_mne_component'] = component
+        color = 'r' if i_selection in exclude else 'k'
+        line = ax.plot(source, linewidth=0.5, color=color, picker=1e9)[0]
+        vars(line)['_mne_src_idx'] = i_source
+        vars(line)['_mne_component'] = i_selection
+        vars(line)['_mne_is_bad'] = i_selection in exclude
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
         ax.text(0.05, .95, component, transform=ax.transAxes,
@@ -2051,7 +2271,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         plt.setp(ax.get_xticklabels(), visible=False)
         plt.setp(ax.get_yticklabels(), visible=False)
     # register callback
-    callback = partial(_plot_ica_panel_onpick, sources=sources, ylims=ylims)
+    callback = partial(_ica_plot_sources_onpick_, sources=sources, ylims=ylims)
     fig.canvas.mpl_connect('pick_event', callback)
 
     if show:
@@ -2060,86 +2280,263 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     return fig
 
 
-def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
-                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                     show=True):
-    """ Plot topographic map from ICA component.
+def _plot_ica_sources_evoked(evoked, exclude, title):
+    """Plot average over epochs in ICA space
 
     Parameters
     ----------
     ica : instance of mne.prerocessing.ICA
-        The ica object to plot from.
-    source_idx : int | array-like
-        The indices of the sources to be plotted.
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
-        The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted.
-    layout : None | Layout
-        Layout instance specifying sensor positions (does not need to
-        be specified for Neuromag data). If possible, the correct layout is
-        inferred from the data.
-    vmax : scalar
-        The value specfying the range of the color scale (-vmax to +vmax). If
-        None, the largest absolute value in the data is used.
-    cmap : matplotlib colormap
-        Colormap.
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses).
-    colorbar : bool
-        Plot a colorbar.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    show : bool
-        Call pyplot.show() at the end.
+        The ICA object.
+    epochs : instance of mne.Epochs
+        The Epochs to be regarded.
+    title : str
+        The figure title.
     """
     import matplotlib.pyplot as plt
+    if title is None:
+        title = 'Reconstructed latent sources, time-locked'
 
-    if np.isscalar(source_idx):
-        source_idx = [source_idx]
+    fig = plt.figure()
+    times = evoked.times * 1e3
 
-    data = np.dot(ica.mixing_matrix_[:, source_idx].T,
-                  ica.pca_components_[:ica.n_components_])
+    # plot unclassified sources
+    plt.plot(times, evoked.data.T, 'k')
+    for ii in exclude:
+        # use indexing to expose event related sources
+        color, label = ('r', 'ICA %02d' % ii)
+        plt.plot(times, evoked.data[ii].T, color='r', label=label)
 
-    if ica.info is None:
-        raise RuntimeError('The ICA\'s measurement info is missing. Please '
-                           'fit the ICA or add the corresponding info object.')
-
-    picks, pos, merge_grads, names = _prepare_topo_plot(ica, ch_type, layout)
-    data = np.atleast_2d(data)
-    data = data[:, picks]
-
-    # prepare data for iteration
-    fig, axes = _prepare_trellis(len(data), max_col=5)
-
-    if vmax is None:
-        vrange = np.array([f(data) for f in (np.min, np.max)])
-        vmax = max(abs(vrange))
-
-    if merge_grads:
-        from .layouts.layout import _merge_grad_data
-    for ii, data_, ax in zip(source_idx, data, axes):
-        data_ = _merge_grad_data(data_) if merge_grads else data_
-        plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
-                     res=res, axis=ax)
-        ax.set_title('IC #%03d' % ii, fontsize=12)
-        ax.set_yticks([])
-        ax.set_xticks([])
-        ax.set_frame_on(False)
-
+    plt.title(title)
+    plt.xlim(times[[0, -1]])
+    plt.xlabel('Time (ms)')
+    plt.ylabel('(NA)')
+    plt.legend(loc='best')
     tight_layout(fig=fig)
-    if colorbar:
-        vmax_ = normalize_colors(vmin=-vmax, vmax=vmax)
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=vmax_)
-        sm.set_array(np.linspace(-vmax, vmax))
-        fig.subplots_adjust(right=0.8)
-        cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        fig.colorbar(sm, cax=cax)
-        cax.set_title('AU')
+    return fig
 
+
+def plot_ica_scores(ica, scores, exclude=None, axhline=None,
+                    title='ICA component scores',
+                    figsize=(12, 6)):
+    """Plot scores related to detected components.
+
+    Use this function to asses how well your score describes outlier
+    sources and how well you were detecting them.
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA object.
+    scores : array_like of float, shape (n ica components) | list of arrays
+        Scores based on arbitrary metric to characterize ICA components.
+    exclude : array_like of int
+        The components marked for exclusion. If None (default), ICA.exclude
+        will be used.
+    axhline : float
+        Draw horizontal line to e.g. visualize rejection threshold.
+    title : str
+        The figure title.
+    figsize : tuple of int
+        The figure size. Defaults to (12, 6)
+
+    Returns
+    -------
+    fig : instance of matplotlib.pyplot.Figure
+        The figure object
+    """
+    import matplotlib.pyplot as plt
+    my_range = np.arange(ica.n_components_)
+    if exclude is None:
+        exclude = ica.exclude
+    exclude = np.unique(exclude)
+    if not isinstance(scores[0], (list, np.ndarray)):
+        scores = [scores]
+    n_rows = len(scores)
+    figsize = (12, 6) if figsize is None else figsize
+    fig, axes = plt.subplots(n_rows, figsize=figsize, sharex=True, sharey=True)
+    if isinstance(axes, np.ndarray):
+        axes = axes.flatten()
+    else:
+        axes = [axes]
+    plt.suptitle(title)
+    for this_scores, ax in zip(scores, axes):
+        if len(my_range) != len(this_scores):
+            raise ValueError('The length ofr `scores` must equal the '
+                             'number of ICA components.')
+        ax.bar(my_range, this_scores, color='w')
+        for excl in exclude:
+            ax.bar(my_range[excl], this_scores[excl], color='r')
+        if axhline is not None:
+            if np.isscalar(axhline):
+                axhline = [axhline]
+            for axl in axhline:
+                ax.axhline(axl, color='r', linestyle='--')
+        ax.set_ylabel('score')
+        ax.set_xlabel('ICA components')
+        ax.set_xlim(0, len(this_scores))
+    plt.show()
+    tight_layout(fig=fig)
+    if len(axes) > 1:
+        plt.subplots_adjust(top=0.9)
+    return fig
+
+
+def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
+                     stop=None, title=None, show=True):
+    """Overlay of raw and cleaned signals given the unmixing matrix.
+
+    This method helps visualizing signal quality and arficat rejection.
+
+    Parameters
+    ----------
+    inst : instance of mne.io.Raw or mne.Evoked
+        The signals to be compared given the ICA solution. If Raw input,
+        The raw data are displayed before and after cleaning. In a second
+        panel the cross channel average will be displayed. Since dipolar
+        sources will be canceled out this display is sensitive to
+        artifacts. If evoked input, butterfly plots for clean and raw
+        signals will be superimposed.
+    exclude : array_like of int
+        The components marked for exclusion. If None (default), ICA.exclude
+        will be used.
+    picks : array-like of int | None (default)
+        Indices of channels to include (if None, all channels
+        are used that were included on fitting).
+    start : int
+        X-axis start index. If None from the beginning.
+    stop : int
+        X-axis stop index. If None to the end.
+    title : str
+        The figure title.
+
+    Returns
+    -------
+        fig : instance of pyplot.Figure
+        The figure.
+    """
+    # avoid circular imports
+    from .io.base import _BaseRaw
+    from .evoked import Evoked
+    from .preprocessing.ica import _check_start_stop
+    import matplotlib.pyplot as plt
+
+    if not isinstance(inst, (_BaseRaw, Evoked)):
+        raise ValueError('Data input must be of Raw or Epochs type')
+    if title is None:
+        title = 'Signals before (red) and after (black) cleaning'
+    if picks is None:
+        picks = [inst.ch_names.index(k) for k in ica.ch_names]
+    if exclude is None:
+        exclude = ica.exclude
+    if isinstance(inst, _BaseRaw):
+        if start is None:
+            start = 0.0
+        if stop is None:
+            stop = 3.0
+        ch_types_used = [k for k in ['mag', 'grad', 'eeg'] if k in ica]
+        start_compare, stop_compare = _check_start_stop(inst, start, stop)
+        data, times = inst[picks, start_compare:stop_compare]
+
+        raw_cln = ica.apply(inst, exclude=exclude, start=start, stop=stop,
+                            copy=True)
+        data_cln, _ = raw_cln[picks, start_compare:stop_compare]
+        fig = _plot_ica_overlay_raw(data=data, data_cln=data_cln,
+                                    times=times * 1e3, title=title,
+                                    ch_types_used=ch_types_used)
+    elif isinstance(inst, Evoked):
+        if start is not None and stop is not None:
+            inst = inst.crop(start, stop, copy=True)
+        if picks is not None:
+            inst.pick_channels([inst.ch_names[p] for p in picks])
+        evoked_cln = ica.apply(inst, exclude=exclude, copy=True)
+        fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
+                                       title=title)
     if show is True:
         plt.show()
+    return fig
 
+
+def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used):
+    """Plot evoked after and before ICA cleaning
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA object.
+    epochs : instance of mne.Epochs
+        The Epochs to be regarded.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+    """
+    import matplotlib.pyplot as plt
+        # Restore sensor space data and keep all PCA components
+    # let's now compare the date before and after cleaning.
+    # first the raw data
+    assert data.shape == data_cln.shape
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    plt.suptitle(title)
+    ax1.plot(times, data.T, color='r')
+    ax1.plot(times, data_cln.T, color='k')
+    ax1.set_xlabel('time (s)')
+    ax1.set_xlim(times[0], times[-1])
+    ax1.set_xlim(times[0], times[-1])
+    ax1.set_title('Raw data')
+
+    _ch_types = {'mag': 'Magnetometers',
+                 'grad': 'Gradiometers',
+                 'eeg': 'EEG'}
+    ch_types = ', '.join([_ch_types[k] for k in ch_types_used])
+    ax2.set_title('Average across channels ({})'.format(ch_types))
+    ax2.plot(times, data.mean(0), color='r')
+    ax2.plot(times, data_cln.mean(0), color='k')
+    ax2.set_xlim(100, 106)
+    ax2.set_xlabel('time (ms)')
+    ax2.set_xlim(times[0], times[-1])
+    tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.90)
+    fig.canvas.draw()
+
+    return fig
+
+
+def _plot_ica_overlay_evoked(evoked, evoked_cln, title):
+    """Plot evoked after and before ICA cleaning
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA object.
+    epochs : instance of mne.Epochs
+        The Epochs to be regarded.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+    """
+    import matplotlib.pyplot as plt
+    ch_types_used = [c for c in ['mag', 'grad', 'eeg'] if c in evoked]
+    n_rows = len(ch_types_used)
+    ch_types_used_cln = [c for c in ['mag', 'grad', 'eeg'] if
+                         c in evoked_cln]
+
+    if len(ch_types_used) != len(ch_types_used_cln):
+        raise ValueError('Raw and clean evokeds must match. '
+                         'Found different channels.')
+
+    fig, axes = plt.subplots(n_rows, 1)
+    fig.suptitle('Average signal before (red) and after (black) ICA)')
+    axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
+
+    evoked.plot(axes=axes)
+    for ax in fig.axes:
+        [l.set_color('r') for l in ax.get_lines()]
+    fig.canvas.draw()
+    evoked_cln.plot(axes=axes)
+    tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.90)
+    fig.canvas.draw()
     return fig
 
 
@@ -3946,7 +4343,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
     Parameters
     ----------
-    evoked : instance of mne.io.Evoked
+    evoked : instance of mne.Evoked
         The evoked object.
     surf_maps : list
         The surface mapping information obtained with make_field_map.

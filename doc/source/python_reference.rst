@@ -254,7 +254,10 @@ Visualization
    plot_evoked_image
    plot_evoked_topomap
    plot_evoked_field
-   plot_ica_panel
+   plot_ica_sources
+   plot_ica_components
+   plot_ica_scores
+   plot_ica_overlay
    plot_image_epochs
    plot_raw
    plot_raw_psds
@@ -307,8 +310,11 @@ Projections:
 
    compute_proj_ecg
    compute_proj_eog
+   create_ecg_epochs
+   create_eog_epochs
    find_ecg_events
    find_eog_events
+   find_outlier_adaptive
    ica_find_ecg_events
    ica_find_eog_events
    read_ica

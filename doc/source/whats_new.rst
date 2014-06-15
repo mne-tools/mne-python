@@ -79,6 +79,11 @@ Changelog
 
    - Add BCI demo with CSP on motor imagery by `Martin Billinger`_
 
+   - New ICA API with unified methods for processing Raw, Epochs and Evoked objects by `Denis Engemann`_
+
+   - Apply ICA at the evoked stage by `Denis Engemann`_
+
+   - New ICA methods for visualizing unmixing quality, artifact detection and rejection by `Denis Engemann`_
 
 BUG
 ~~~
@@ -117,6 +122,8 @@ affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
    - Deprecate `mne.fiff` module, use `mne.io` instead e.g. `mne.io.Raw` instead of `mne.fiff.Raw`.
 
    - Pick functions (e.g., `pick_types`) are now in the mne namespace (e.g. use `mne.pick_types`).
+
+   - Deprecated ICA methods specfific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
 
    - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
 

@@ -18,8 +18,8 @@ from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_trans)
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
-from mne.preprocessing import ICA
 from mne.io.constants import FIFF
+from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import check_sklearn_version
 
 
@@ -282,16 +282,76 @@ def test_plot_cov():
 
 
 @requires_sklearn
-def test_plot_ica_panel():
+def test_plot_ica_components():
+    """Test plotting of ICA solutions
+    """
+    raw = _get_raw()
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+                           ecg=False, eog=False, exclude='bads')
+    ica.fit(raw, picks=ica_picks)
+    warnings.simplefilter('always', UserWarning)
+    with warnings.catch_warnings(record=True):
+        for components in [0, [0], [0, 1], [0, 1] * 7, None]:
+            ica.plot_components(components)
+    ica.info = None
+    assert_raises(RuntimeError, ica.plot_components, 1)
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_ica_sources():
     """Test plotting of ICA panel
+    """
+    raw = io.Raw(raw_fname, preload=True)
+    picks = _get_picks(raw)
+    epochs = _get_epochs()
+    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    raw.pick_channels([raw.ch_names[k] for k in picks])
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+                           ecg=False, eog=False, exclude='bads')
+    ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
+    ica.fit(raw, picks=ica_picks)
+    ica.plot_sources(raw)
+    ica.plot_sources(epochs)
+    ica.plot_sources(epochs.average())
+    assert_raises(ValueError, ica.plot_sources, 'meeow')
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_ica_overlay():
+    """Test plotting of ICA cleaning
+    """
+    raw = _get_raw()
+    picks = _get_picks(raw)
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+                           ecg=False, eog=False, exclude='bads')
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica.fit(raw, picks=ica_picks)
+    # don't test raw, needs preload ...
+    ecg_epochs = create_ecg_epochs(raw, picks=picks)
+    ica.plot_overlay(ecg_epochs.average())
+    eog_epochs = create_eog_epochs(raw, picks=picks)
+    ica.plot_overlay(eog_epochs.average())
+    assert_raises(ValueError, ica.plot_overlay, raw[:2, :3][0])
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_ica_scores():
+    """Test plotting of ICA scores
     """
     raw = _get_raw()
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                            ecg=False, eog=False, exclude='bads')
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica.decompose_raw(raw, picks=ica_picks)
-    ica.plot_sources_raw(raw)
+    ica.fit(raw, picks=ica_picks)
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
+    assert_raises(ValueError, ica.plot_scores, [0.2])
     plt.close('all')
 
 
