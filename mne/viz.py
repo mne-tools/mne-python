@@ -11,6 +11,7 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 from .externals.six import string_types
+from glob import glob
 import os
 import os.path as op
 import warnings
@@ -4053,25 +4054,21 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     fig : Instance of matplotlib.figure.Figure
         The figure.
     """
-
     import matplotlib.pyplot as plt
     import nibabel as nib
+
+    if orientation not in ['coronal', 'axial', 'sagittal']:
+        raise ValueError("Orientation must be 'coronal', 'axial' or "
+                         "'sagittal'. Got %s." % orientation)
 
     # Load the T1 data
     nim = nib.load(mri_fname)
     data = nim.get_data()
+    affine = nim.get_affine()
 
-    n_cor, n_tran, n_sag = data.shape
-
-    if orientation == 'coronal':
-        orientation_axis = 0
-    elif orientation == 'transverse':
-        orientation_axis = 1
-    elif orientation == 'sagittal':
-        orientation_axis = 2
-    else:
-        raise ValueError('Orientation must be [coronal | '
-                         'transverse | sagittal].')
+    n_sag, n_axi, n_cor = data.shape
+    orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
+    orientation_axis = orientation_name2axis[orientation]
 
     if slices is None:
         n_slices = data.shape[orientation_axis]
@@ -4079,30 +4076,28 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
     # create of list of surfaces
     surfs = list()
+
+    trans = linalg.inv(affine)
+    # XXX : next line is a hack don't ask why
+    trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
+
     for surf_fname in surf_fnames:
         surf = dict()
         surf['rr'], surf['tris'] = read_surface(surf_fname)
-        # surf['rr'] = nib.affines.apply_affine(affine, surf['rr'])
+        # move back surface to MRI coordinate system
+        surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
         surfs.append(surf)
-
-    # Align the surfaces whose origin is
-    # at the center rather than corner (image
-    # slices)
-    for surf in surfs:
-        surf['rr'][:, 0] += n_cor // 2
-        surf['rr'][:, 1] += n_tran // 2
-        surf['rr'][:, 2] += n_sag // 2
 
     fig, axs = _prepare_trellis(len(slices), 4)
 
     for ax, sl in zip(axs, slices):
 
         # adjust the orientations for good view
-        if orientation_axis == 0:
+        if orientation == 'coronal':
             dat = data[:, :, sl].transpose()
-        elif orientation_axis == 1:
-            dat = data[:, sl, :].transpose()
-        elif orientation_axis == 2:
+        elif orientation == 'axial':
+            dat = data[:, sl, :]
+        elif orientation == 'sagittal':
             dat = data[sl, :, :]
 
         # First plot the anatomical data
@@ -4111,20 +4106,22 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
         # and then plot the contours on top
         for surf in surfs:
-            if orientation_axis == 0:
-                ax.tricontour(surf['rr'][:, 0], n_sag - surf['rr'][:, 2],
-                              surf['tris'], surf['rr'][:, 1],
-                              levels=[sl], colors='yellow', linewidths=2.0)
-            elif orientation_axis == 1:
+            if orientation == 'coronal':
                 ax.tricontour(surf['rr'][:, 0], surf['rr'][:, 1],
                               surf['tris'], surf['rr'][:, 2],
                               levels=[sl], colors='yellow', linewidths=2.0)
-            elif orientation_axis == 2:
-                ax.tricontour(surf['rr'][:, 1], n_sag - surf['rr'][:, 2],
+            elif orientation == 'axial':
+                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 0],
+                              surf['tris'], surf['rr'][:, 1],
+                              levels=[sl], colors='yellow', linewidths=2.0)
+            elif orientation == 'sagittal':
+                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 1],
                               surf['tris'], surf['rr'][:, 0],
                               levels=[sl], colors='yellow', linewidths=2.0)
 
     if show:
+        plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+                            hspace=0.)
         plt.show()
 
     return fig
@@ -4153,26 +4150,25 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     fig : Instance of matplotlib.figure.Figure
         The figure.
     """
-
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # Get the MRI filename
-    mri_fname = op.join(subjects_dir, 'subjects', subject, 'mri',
-                        'T1.mgz')
+    mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     if not op.isfile(mri_fname):
         raise IOError('MRI file "%s" does not exist'
                       % mri_fname)
 
     # Get the BEM surface filenames
-    bem_path = op.join(subjects_dir, 'subjects', subject, 'bem')
+    bem_path = op.join(subjects_dir, subject, 'bem')
 
     if not op.isdir(bem_path):
         raise IOError('Subject bem directory "%s" does not exist'
                       % bem_path)
 
-    surf_fnames = [op.join(bem_path, 'inner_skull.surf'),
-                   op.join(bem_path, 'outer_skull.surf'),
-                   op.join(bem_path, 'outer_skin.surf')]
+    # XXX : make glob cleaner
+    surf_fnames = [glob(op.join(bem_path, '*inner_skull.surf'))[0],
+                   glob(op.join(bem_path, '*outer_skull.surf'))[0],
+                   glob(op.join(bem_path, '*outer_skin.surf'))[0]]
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surf_fnames, orientation=orientation,
