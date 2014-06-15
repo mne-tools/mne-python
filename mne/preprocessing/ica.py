@@ -20,6 +20,7 @@ from scipy import linalg
 from .ecg import (qrs_detector, _get_ecg_channel_index, _make_ecg,
                   create_ecg_epochs)
 from .eog import _find_eog_events, _get_eog_channel_index
+from .infomax_ import infomax
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
@@ -127,6 +128,8 @@ class ICA(ContainsMixin):
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results.
+    method : {'fastica', 'infomax'}
+        The ICA method to use.
     algorithm : {'parallel', 'deflation'}
         Apply parallel or deflational algorithm for FastICA.
     fun : string or function, optional. Default: 'logcosh'
@@ -185,6 +188,7 @@ class ICA(ContainsMixin):
     @verbose
     def __init__(self, n_components=None, max_pca_components=100,
                  n_pca_components=None, noise_cov=None, random_state=None,
+                 method='fastica',
                  algorithm='parallel', fun='logcosh', fun_args=None,
                  verbose=None):
 
@@ -216,6 +220,7 @@ class ICA(ContainsMixin):
         self.fun_args = fun_args
         self.exclude = []
         self.info = None
+        self.method = method
 
     def __repr__(self):
         """ICA fit information"""
@@ -468,15 +473,19 @@ class ICA(ContainsMixin):
                 self.n_pca_components = len(self.pca_components_)
 
         # Take care of ICA
-        from sklearn.decomposition import FastICA  # to avoid strong dep.
-        ica = FastICA(algorithm=self.algorithm, fun=self.fun,
-                      fun_args=self.fun_args, whiten=False,
-                      random_state=self.random_state)
-        ica.fit(data[:, sel])
+        if self.method == 'fastica':
+            from sklearn.decomposition import FastICA  # to avoid strong dep.
+            ica = FastICA(algorithm=self.algorithm, fun=self.fun,
+                          fun_args=self.fun_args, whiten=False,
+                          random_state=self.random_state)
+            ica.fit(data[:, sel])
 
-        # get unmixing and add scaling
-        self.unmixing_matrix_ = getattr(ica, 'components_', 'unmixing_matrix_')
-        self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
+            # get unmixing and add scaling
+            self.unmixing_matrix_ = getattr(ica, 'components_',
+                                            'unmixing_matrix_')
+            self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
+        elif self.method == 'infomax':
+            self.unmixing_matrix_ = infomax(data[:, sel])
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
 

@@ -36,7 +36,7 @@ raw.filter(1, 45, n_jobs=2)
 # We pass a float value between 0 and 1 to select n_components based on the
 # percentage of variance explained by the PCA components.
 
-ica = ICA(n_components=0.90, max_pca_components=None)
+ica = ICA(n_components=0.99, max_pca_components=None, method='infomax')
 
 ###############################################################################
 # 1) Fit ICA model and identify bad sources
