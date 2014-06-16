@@ -24,11 +24,12 @@ from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.constants import FIFF
-from .io.pick import (pick_types, channel_indices_by_type, channel_type,
-                      pick_channels, pick_info)
+from .io.pick import (pick_types, pick_types_evoked,
+                      channel_indices_by_type, channel_type, pick_channels,
+                      pick_info)
 from .io.proj import setup_proj, ProjMixin
 from .io.base import _BaseRaw, _time_as_index, _index_as_time
-from .evoked import Evoked, EvokedArray, aspect_rev
+from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed)
@@ -390,10 +391,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         """Compute the mean or std over epochs and return Evoked"""
 
         _do_std = True if mode == 'stderr' else False
-        evoked = Evoked(None)
-        evoked.info = cp.deepcopy(self.info)
-        # make sure projs are really copied.
-        evoked.info['projs'] = [cp.deepcopy(p) for p in self.info['projs']]
+
         n_channels = len(self.ch_names)
         n_times = len(self.times)
         if self.preload:
@@ -424,36 +422,33 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                     data += (e - data_mean) ** 2
                 data = np.sqrt(data / n_events)
 
-        evoked.data = data
-        evoked.times = self.times.copy()
-        evoked.comment = self.name
-        evoked.nave = n_events
-        evoked.first = int(self.times[0] * self.info['sfreq'])
-        evoked.last = evoked.first + len(self.times) - 1
         if not _do_std:
-            evoked._aspect_kind = FIFF.FIFFV_ASPECT_AVERAGE
+            _aspect_kind = FIFF.FIFFV_ASPECT_AVERAGE
         else:
-            evoked._aspect_kind = FIFF.FIFFV_ASPECT_STD_ERR
-            evoked.data /= np.sqrt(evoked.nave)
-        evoked.kind = aspect_rev.get(str(evoked._aspect_kind), 'Unknown')
+            _aspect_kind = FIFF.FIFFV_ASPECT_STD_ERR
+            data /= np.sqrt(n_events)
+        kind = aspect_rev.get(str(_aspect_kind), 'Unknown')
 
-        # dropping EOG, ECG and STIM channels. Keeping only data
+        evoked = EvokedArray(data, self.info, tmin=self.times[0],
+                             comment=self.name, nave=n_events, kind=kind,
+                             verbose=self.verbose)
+        evoked._aspect_kind = _aspect_kind
+
+        # pick channels
         if picks is None:
             picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=True,
                                stim=False, eog=False, ecg=False,
                                emg=False, exclude=[])
-            if len(picks) == 0:
-                raise ValueError('No data channel found when averaging.')
 
-        picks = np.sort(picks)  # make sure channel order does not change
-        evoked.info['chs'] = [evoked.info['chs'][k] for k in picks]
-        evoked.info['ch_names'] = [evoked.info['ch_names'][k]
-                                   for k in picks]
-        evoked.info['nchan'] = len(picks)
-        evoked.data = evoked.data[picks]
+        ch_names = [evoked.ch_names[p] for p in picks]
+        evoked.pick_channels(ch_names)
+
+        if len(evoked.info['ch_names']) == 0:
+            raise ValueError('No data channel found when averaging.')
+
         # otherwise the apply_proj will be confused
         evoked.proj = True if self.proj is True else None
-        evoked.verbose = self.verbose
+
         if evoked.nave < 1:
             warnings.warn('evoked object is empty (based on less '
                           'than 1 epoch)', RuntimeWarning)
