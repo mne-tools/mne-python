@@ -496,7 +496,7 @@ def read_extra_meas_info(fid, tree, info):
     for block in blocks:
         nodes = dir_tree_find(tree, block)
         copy_tree(fid, tree['id'], nodes, fid_str)
-    info['orig_fid_str'] = fid_str
+    info['orig_fid_str'] = fid_str.getvalue()
 
 
 def write_extra_meas_info(fid, info):
@@ -505,7 +505,8 @@ def write_extra_meas_info(fid, info):
     if 'orig_blocks' in info and info['orig_blocks'] is not None:
         # Blocks from the original
         blocks = info['orig_blocks']
-        fid_str, tree, _ = fiff_open(info['orig_fid_str'])
+        fid_bytes = BytesIO(info['orig_fid_str'])
+        fid_str, tree, _ = fiff_open(fid_bytes)
         for block in blocks:
             nodes = dir_tree_find(tree, block)
             copy_tree(fid_str, tree['id'], nodes, fid)

@@ -74,17 +74,13 @@ def object_hash(x, h=None, ignore_sbio=False):
         for key in keys:
             object_hash(key, h, ignore_sbio)
             object_hash(x[key], h, ignore_sbio)
-    elif isinstance(x, (StringIO, BytesIO)):
-        # XXX buggy for Raw instances for some reason...
-        if not ignore_sbio:
-            if isinstance(x, BytesIO):
-                h.update(x.getvalue())
-            else:
-                h.update(x.getvalue().encode('utf-8'))
     elif isinstance(x, (list, tuple)):
         h.update(str(type(x)).encode('utf-8'))
         for xx in x:
             object_hash(xx, h, ignore_sbio)
+    elif isinstance(x, bytes):
+        # must come before "str" below
+        h.update(x)
     elif isinstance(x, (string_types, float, int, type(None))):
         h.update(str(type(x)).encode('utf-8'))
         h.update(str(x).encode('utf-8'))
