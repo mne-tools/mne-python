@@ -92,7 +92,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                  kind='average', verbose=None, setno=None):
 
         if fname is None:
-            return
+            raise ValueError('No evoked filename specified')
 
         if condition is None and setno is not None:
             condition = setno
