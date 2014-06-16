@@ -826,7 +826,7 @@ class ICA(ContainsMixin):
         h_freq : float
             High pass frequency.
         method : {'ctps', 'correlation'}
-            The method used for detection. If 'ctps', cros-trial phase
+            The method used for detection. If 'ctps', cross-trial phase
             statistics [1] are used to detect ECG related components.
             Thresholding is then based on the significance value of a Kuiper
             statistic.
@@ -853,7 +853,7 @@ class ICA(ContainsMixin):
             M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
             and phase statistics for complete artifact removal in independent
             components of neuromagnetic recordings. Biomedical
-            Engineering, IEEE Transactions on 55 (10), 2353–2362.
+            Engineering, IEEE Transactions on 55 (10), 2353-2362.
         """
         if verbose is None:
             verbose = self.verbose

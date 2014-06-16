@@ -33,7 +33,7 @@ def get_data(n_trials, j_extent):
     ground_truth = np.tile(single_trial,  n_trials)
     my_shape = n_trials, 1, 600
     random_data = rng.random_sample(my_shape)
-    rand_ints = np.random.random_integers(-j_extent, j_extent, n_trials)
+    rand_ints = rng.random_integers(-j_extent, j_extent, n_trials)
     jittered_data = np.array([np.roll(single_trial, i) for i in rand_ints])
     data = np.concatenate([ground_truth.reshape(my_shape),
                            jittered_data.reshape(my_shape),
@@ -68,7 +68,7 @@ def test_ctps():
         # test shapes
         assert_true(phase_trial.shape == data.shape)
         assert_true(pk_dyn.shape == data.shape[1:])
-        # tets ground_truth + random + jitterede case
+        # tets ground_truth + random + jittered case
         assert_true(pk_dyn[0].max() == 1.0)
         assert_true(len(np.unique(pk_dyn[0])) == 1.0)
         assert_true(pk_dyn[1].max() < pk_max)

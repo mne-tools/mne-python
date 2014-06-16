@@ -3,16 +3,20 @@
 #
 # License: Simplified BSD
 
+import math
+
 import numpy as np
 from scipy.signal import hilbert
 
 
 def _compute_normalized_phase(data):
     """Compute normalized phase angles
+
     Parameters
     ----------
     data : ndarray, shape (n_epochs, n_sources, n_times)
         The data to compute the phase angles for.
+
     Returns
     -------
     phase_angles : ndarray, shape (n_epochs, n_sources, n_times)
@@ -22,13 +26,14 @@ def _compute_normalized_phase(data):
 
 
 def ctps(data, assume_raw=True):
-    """
+    """Compute cross-trial-phase-statistics [1]
+
     Note. It is assumed that the sources are already
     appropriately filtered
 
     Parameters
     ----------
-    data: ndarray
+    data: ndarray, shape (n_epochs, n_channels, n_times)
         Any kind of data of dimensions trials, traces, features.
     assume_raw : bool
         If True it is assumed that data haven't been transformed to Hilbert
@@ -41,9 +46,17 @@ def ctps(data, assume_raw=True):
     pk_dynamics : ndarray, shape (n_sources, n_times)
         The normalized kuiper index for ICA sources and
         time slices.
-    phase_angles : ndarray, (n_epochs, n_sources, n_times) | None
+    phase_angles : ndarray, shape (n_epochs, n_sources, n_times) | None
         The phase values for epochs, sources and time slices. If ``assume_raw``
         is False, None is returned.
+
+    References
+    ----------
+    [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
+        M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
+        and phase statistics for complete artifact removal in independent
+        components of neuromagnetic recordings. Biomedical
+        Engineering, IEEE Transactions on 55 (10), 2353-2362.
     """
     if not data.ndim == 3:
         ValueError('Data must have 3 dimensions, not %i.' % data.ndim)
@@ -66,12 +79,12 @@ def ctps(data, assume_raw=True):
     return ks_dynamics, pk_dynamics, phase_angles if assume_raw else None
 
 
-def kuiper(data, dtype='f8'):
-    """ Kuiper's test of distribution-equality
+def kuiper(data, dtype=np.float64):
+    """ Kuiper's test of uniform distribution
 
     Parameters
     ----------
-    data : ndarray {(n_sources), (n_sources, n_times)}
+    data : ndarray, shape (n_sources,) | (n_sources, n_times)
            Empirical distribution.
     dtype : str | obj
         The data type to be used.
@@ -79,28 +92,23 @@ def kuiper(data, dtype='f8'):
     Returns
     -------
     ks : ndarray
-        Kuiper's statistic
+        Kuiper's statistic.
     pk : ndarray
-        normalized probability of Kuiper's statistic [0,1]
+        Normalized probability of Kuiper's statistic [0, 1].
     """
     # if data not numpy array, implicitly convert and make to use copied data
     # ! sort data array along first axis !
     data = np.sort(data, axis=0).copy().astype(dtype)
-    dim = data.shape
-    n_dim = np.size(dim)
-    n_trials = dim[0]
+    shape = data.shape
+    n_dim = len(shape)
+    n_trials = shape[0]
 
     # create uniform cdf
-    j1 = (np.arange(n_trials, dtype=dtype) + 1) / n_trials
+    j1 = (np.arange(n_trials, dtype=dtype) + 1.) / float(n_trials)
     j2 = (np.arange(n_trials, dtype=dtype)) / n_trials
-    if (n_dim == 1):  # single phase vector (n_trials)
-        n_time_slices = 1
-    else:  # phase array (n_trials, n_time_slices)
-        n_time_slices = dim[1]
-        j1 = j1.repeat(n_time_slices).reshape(n_trials, n_time_slices)
-        j2 = j2.repeat(n_time_slices).reshape(n_trials, n_time_slices)
-
-    # calc max. distance from uniform cdf
+    if n_dim > 1:  # single phase vector (n_trials)
+        j1 = j1[:, np.newaxis]
+        j2 = j2[:, np.newaxis]
     d1 = (j1 - data).max(axis=0)
     d2 = (data - j2).max(axis=0)
     n_eff = n_trials
@@ -138,17 +146,17 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     [3] Press W et al 1995. Nurmerical Receipes in C. The Art of Scientific
     Computing 2nd Ed. Cambridge University Press,pp 626-628
     """
-    n_time_slices = np.size(d)  # single value or vector
+    n_time_slices = len(d)  # single value or vector
     n_points = 100
 
-    en = np.sqrt(np.double(n_eff))
+    en = math.sqrt(n_eff)
     k_lambda = (en + 0.155 + 0.24 / en) * d  # see [1], [3]
     l2 = k_lambda ** 2.0
     j2 = (np.arange(n_points) + 1) ** 2
     j2 = j2.repeat(n_time_slices).reshape(n_points, n_time_slices)
-    fact = np.double(4) * j2 * l2 - np.double(1)
+    fact = np.double(4.) * j2 * l2 - np.double(1)
     expo = np.exp(-2 * j2 * l2)
-    term = 2 * fact * expo
+    term = 2. * fact * expo
     pk = term.sum(axis=0, dtype=dtype)
 
     # Normalized pK to range [0,1]
