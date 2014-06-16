@@ -9,9 +9,9 @@ parcellation. The connectivity is visualized using a circular graph which
 is ordered based on the locations of the regions.
 """
 
-# Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+# Authors: Martin Billinger <martin.billinger@tugraz.at>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
 # License: BSD (3-clause)
 
@@ -50,8 +50,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,
                                                     eog=150e-6))
 
-# Compute inverse solution and for each epoch. By using "return_generator=True"
-# stcs will be a generator object instead of a list.
+# Compute inverse solution and for each epoch.
 snr = 1.0  # use lower SNR for single epochs
 lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
@@ -61,52 +60,37 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
 labels = mne.read_annot('sample', parc='aparc', subjects_dir=subjects_dir)
 label_colors = [label.color for label in labels]
+label_names = [label.name for label in labels]
 
 # Average the source estimates within each label using sign-flips to reduce
 # signal cancellations, also here we return a generator
 src = inverse_operator['src']
 label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
-                                         return_generator=True)
+                                         return_generator=False)
 
-#from scot.backend.sklearn import VAR
-#var = VAR(30)
-#var.fit(label_ts)
-#
-#import matplotlib.pyplot as plt
-#plt.imshow(var.rescov)
-#plt.colorbar()
-#plt.show()
-
-# Now we are ready to compute the connectivity in the alpha band. Notice
-# from the status messages, how mne-python: 1) reads an epoch from the raw
-# file, 2) applies SSP and baseline correction, 3) computes the inverse to
-# obtain a source estimate, 4) averages the source estimate to obtain a
-# time series for each label, 5) includes the label time series in the
-# connectivity computation, and then moves to the next epoch. This
-# behaviour is because we are using generators and allows us to
-# compute connectivity in computationally efficient manner where the amount
-# of memory (RAM) needed is independent from the number of epochs.
-fmin = 8.
-fmax = 13.
+# Now we are ready to compute connectivity in the alpha and beta bands.
+band_names = ('alpha', 'beta')
+band_colors = ('hot', 'bone')
+fmin = (8., 19.)
+fmax = (13., 21.)
+mvar_order = 30  # model order determines frequency resolution
 sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['PDC', 'COH']
-#con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
-#        method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
-#        fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
-con, freqs = mvar_connectivity(label_ts, con_methods, 3, fitting_mode='lsq',
+con, freqs = mvar_connectivity(label_ts, con_methods, mvar_order,
                                sfreq=sfreq, fmin=fmin, fmax=fmax)
 
-# con is a 3D array, get the connectivity for the first (and only) freq. band
-# for each method
 con_res = dict()
 for method, c in zip(con_methods, con):
-    con_res[method] = c[:, :, 0]
+    con_res[method] = c
+
+# First visualize directed (effective) connectivity matrix
+plot_connectivity_matrix(con_res['PDC'][:, :, 0], label_names,
+                         node_colors=label_colors, title='All-to-All '
+                         'Connectivity left-Auditory Condition (PDC)')
 
 # Now, we visualize the connectivity using a circular graph layout
 
-# First, we reorder the labels based on their location in the left hemi
-label_names = [label.name for label in labels]
-
+# Reorder the labels based on their location in the left hemi
 lh_labels = [name for name in label_names if name.endswith('lh')]
 
 # Get the y-location of the label
@@ -130,16 +114,16 @@ node_order.extend(rh_labels)
 node_angles = circular_layout(label_names, node_order, start_pos=90,
                               group_boundaries=[0, len(label_names) / 2])
 
+import matplotlib.pyplot as plt
+
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.
-plot_connectivity_circle(con_res['COH'], label_names, n_lines=300,
-                         node_angles=node_angles, node_colors=label_colors,
-                         title='All-to-All Connectivity left-Auditory '
-                               'Condition (COH)')
+fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
+for i, (b, cm) in enumerate(zip(band_names, band_colors)):
+    plot_connectivity_circle(con_res['COH'][:, :, i], label_names, n_lines=300,
+                             node_angles=node_angles, node_colors=label_colors,
+                             fig=fig, subplot=(1, 2, i + 1), colormap=cm,
+                             title='All-to-All Connectivity left-Auditory '
+                                   'Condition (COH, {} band)'.format(b))
 
-plot_connectivity_matrix(con_res['PDC'], label_names, node_colors=label_colors,
-                         title='All-to-All Connectivity left-Auditory '
-                               'Condition (PDC)')
-
-import matplotlib.pyplot as plt
 plt.show()
