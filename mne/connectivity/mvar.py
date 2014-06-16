@@ -5,12 +5,12 @@
 import numpy as np
 from ..parallel import parallel_func
 from ..utils import logger
-from scot.var import VARBase
-from scot.builtin.var import VAR
-from scot.connectivity import connectivity
+from ..externals.scot.var import VARBase
+from ..externals.scot.builtin.var import VAR
+from ..externals.scot.connectivity import connectivity
 
 
-def acm(x, l):
+def _acm(x, l):
     """Calculates autocorrelation matrix of x at lag l.
     """
     if l == 0:
@@ -23,7 +23,7 @@ def acm(x, l):
 
 
 def _epoch_autocorrelations(epoch, max_lag):
-    return [acm(epoch, l) for l in range(max_lag + 1)]
+    return [_acm(epoch, l) for l in range(max_lag + 1)]
 
 
 def _get_n_epochs(epochs, n):
