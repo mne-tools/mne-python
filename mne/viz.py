@@ -4191,7 +4191,8 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
 
     # Rejecting time points that will not be plotted
     for stc in stcs:
-        stc.crop(tmin, tmax)
+        # Using 1e-10 to improve numerical stability
+        stc.crop(tmin - 1e-10, tmax - stc.tstep + 1e-10)
 
     # Gathering results for each time window
     source_power = np.array([stc.data for stc in stcs])
