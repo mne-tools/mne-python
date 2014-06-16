@@ -92,7 +92,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                  kind='average', verbose=None, setno=None):
 
         if fname is None:
-            return
+            raise ValueError('No evoked filename specified')
 
         if condition is None and setno is not None:
             condition = setno
@@ -787,14 +787,14 @@ class EvokedArray(Evoked):
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
-    comment : string
-        Comment on dataset. Can be the condition.
-    nave : int
-        Number of averaged epochs.
-    kind : str
-        Type of data, either average or standard_error.
     tmin : float
         Start time before event.
+    comment : string
+        Comment on dataset. Can be the condition. Defaults to ''.
+    nave : int
+        Number of averaged epochs. Defaults to 1.
+    kind : str
+        Type of data, either average or standard_error. Defaults to 'average'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
