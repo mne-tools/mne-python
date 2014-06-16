@@ -49,14 +49,12 @@ picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                        selection=left_temporal_channels)
 reject = dict(mag=4e-12)
 
-# Setting time limits and baseline for reading epochs. Note that tmin and tmax
-# are set so that time-frequency beamforming will be performed for a wider
-# range of time points than will later be displayed on the final spectrogram.
-# This ensures that all time bins displayed represent an average of an equal
-# number of time windows. The length of the baseline is chosen to correspond to
-# the widest time window.
+# Setting time limits for reading epochs. Note that tmin and tmax are set so
+# that time-frequency beamforming will be performed for a wider range of time
+# points than will later be displayed on the final spectrogram. This ensures
+# that all time bins displayed represent an average of an equal number of time
+# windows.
 tmin, tmax = -0.55, 0.75  # s
-baseline_tmin = -0.3  # s
 tmin_plot, tmax_plot = -0.3, 0.5  # s
 
 # Read epochs. Note that preload is set to False to enable tf_lcmv to read the
@@ -70,7 +68,7 @@ tmin_plot, tmax_plot = -0.3, 0.5  # s
 event_id = 1
 events = mne.read_events(event_fname)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                    picks=picks, baseline=(baseline_tmin, 0), preload=False,
+                    picks=picks, baseline=None, preload=False,
                     reject=reject)
 
 # Read empty room noise, preload to allow filtering
@@ -82,7 +80,7 @@ events_noise = make_fixed_length_events(raw_noise, event_id, duration=1.)
 # Create an epochs object using preload=True to reject bad epochs based on
 # unfiltered data
 epochs_noise = mne.Epochs(raw_noise, events_noise, event_id, tmin, tmax,
-                          proj=True, picks=picks, baseline=(None, 0),
+                          proj=True, picks=picks, baseline=None,
                           preload=True, reject=reject)
 
 # Make sure the number of noise epochs is the same as data epochs
@@ -113,8 +111,8 @@ data_reg = 0.001
 subtract_evoked = False
 
 # Calculating covariance from empty room noise. To use baseline data as noise
-# substitute raw for raw_noise, epochs.events for epochs_noise.events,
-# baseline_tmin for tmin_plot and 0 for tmax_plot.
+# substitute raw for raw_noise, epochs.events for epochs_noise.events, tmin for
+# desired baseline length, and 0 for tmax_plot.
 # Note, if using baseline data, the averaged evoked response in the baseline
 # period should be flat.
 noise_covs = []
@@ -122,7 +120,7 @@ for (l_freq, h_freq) in freq_bins:
     raw_band = raw_noise.copy()
     raw_band.filter(l_freq, h_freq, picks=epochs.picks, method='iir', n_jobs=1)
     epochs_band = mne.Epochs(raw_band, epochs_noise.events, event_id,
-                             tmin=tmin_plot, tmax=tmax_plot,
+                             tmin=tmin_plot, tmax=tmax_plot, baseline=None,
                              picks=epochs.picks, proj=True)
 
     noise_cov = compute_covariance(epochs_band)
