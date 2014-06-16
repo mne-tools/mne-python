@@ -812,6 +812,19 @@ class ICA(ContainsMixin):
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
+        threshold : float | None
+            The value above which a feature is classified as outlier. If
+            method is 'ctps', defaults to 0.3, else defaults to 3.0
+        start : int | float | None
+            First sample to include. If float, data will be interpreted as
+            time in seconds. If None, data will be used from the first sample.
+        stop : int | float | None
+            Last sample to not include. If float, data will be interpreted as
+            time in seconds. If None, data will be used to the last sample.
+        l_freq : float
+            Low pass frequency.
+        h_freq : float
+            High pass frequency.
         method : {'ctps', 'correlation'}
             The method used for detection. If 'ctps', cros-trial phase
             statistics [1] are used to to detect ECG related components.
@@ -823,18 +836,6 @@ class ICA(ContainsMixin):
             threshold components will be masked and the z-score will
             be recomputed until no supra-threshold component remains.
             Defaults to 'ctps'.
-        threshold : int | float
-            The value above which a feature is classified as outlier.
-        start : int | float | None
-            First sample to include. If float, data will be interpreted as
-            time in seconds. If None, data will be used from the first sample.
-        stop : int | float | None
-            Last sample to not include. If float, data will be interpreted as
-            time in seconds. If None, data will be used to the last sample.
-        l_freq : float
-            Low pass frequency.
-        h_freq : float
-            High pass frequency.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -860,6 +861,8 @@ class ICA(ContainsMixin):
         else:
             ecg = inst.ch_names[idx_ecg]
         if method == 'ctps':
+            if threshold is None:
+                threshold = 0.3
             if isinstance(inst, _BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(inst)).get_data()
             elif isinstance(inst, _BaseEpochs):
@@ -871,6 +874,8 @@ class ICA(ContainsMixin):
             scores = p_vals.max(-1)
             ecg_idx = np.where(scores >= threshold)[0]
         elif method == 'correlation':
+            if threshold is None:
+                threshold = 3.0
             scores = self.score_sources(inst, target=ecg,
                                         score_func='pearsonr',
                                         start=start, stop=stop,
