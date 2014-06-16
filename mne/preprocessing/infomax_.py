@@ -12,7 +12,7 @@ from ..utils import logger, verbose
 
 @verbose
 def infomax(data, w_init=None, learning_rate=None, block=None,
-            w_change=1e-16, anneal_deg=60., anneal_step=0.9,
+            w_change=1e-12, anneal_deg=60., anneal_step=0.9,
             extended=True, max_iter=200, random_state=None,
             verbose=True):
 
@@ -93,7 +93,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
 
     if n_features < 2 or n_times < n_features:
         raise ValueError('Number of components is to small')
-    npc_square = n_features ** 2
+    n_features_square = n_features ** 2
 
     # check input parameter
     # heuristic default - may need adjustment for
@@ -109,7 +109,6 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
     lastt = (n_blocks - 1) * block + 1
 
     # initialize training
-
     if w_init is None:
         # initialize weights as identity matrix
         weights = np.identity(n_features, dtype=np.float64)
@@ -230,7 +229,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
             oldwtchange = weights - oldweights
             step += 1
             angledelta = 0.0
-            delta = oldwtchange.reshape(1, npc_square)
+            delta = oldwtchange.reshape(1, n_features_square)
             change = np.sum(delta * delta, dtype=np.float64)
             print change
             if step > 1:
@@ -269,7 +268,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
             learning_rate *= default_restart_fac  # with lower learning rate
             weights = startweights.copy()
             oldweights = startweights.copy()
-            olddelta = np.zeros((1, npc_square), dtype=np.float64)
+            olddelta = np.zeros((1, n_features_square), dtype=np.float64)
             bias = np.zeros((n_features, 1), dtype=np.float64)
 
             # for extended Infomax
