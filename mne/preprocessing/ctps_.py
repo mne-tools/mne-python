@@ -3,8 +3,6 @@
 #
 # License: Simplified BSD
 
-import math
-
 import numpy as np
 from scipy.signal import hilbert
 
