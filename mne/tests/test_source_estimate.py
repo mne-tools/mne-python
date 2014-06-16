@@ -19,7 +19,7 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
                                  compute_morph_matrix, grade_to_vertices)
 
 from mne.minimum_norm import read_inverse_operator
-from mne.label import read_annot_labels, label_sign_flip
+from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import _TempDir, requires_pandas, requires_sklearn
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -107,8 +107,8 @@ def test_expand():
     """
     stc = read_source_estimate(fname, 'sample')
     assert_true('sample' in repr(stc))
-    labels_lh = read_annot_labels('sample', 'aparc', 'lh',
-                                  subjects_dir=subjects_dir)
+    labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
+                                       subjects_dir=subjects_dir)
     stc_limited = stc.in_label(labels_lh[0] + labels_lh[1])
     stc_new = stc_limited.copy()
     stc_new.data.fill(0)
@@ -235,10 +235,10 @@ def test_extract_label_time_course():
     n_verts = len(vertices[0]) + len(vertices[1])
 
     # get some labels
-    labels_lh = read_annot_labels('sample', hemi='lh',
-                                  subjects_dir=subjects_dir)
-    labels_rh = read_annot_labels('sample', hemi='rh',
-                                  subjects_dir=subjects_dir)
+    labels_lh = read_labels_from_annot('sample', hemi='lh',
+                                       subjects_dir=subjects_dir)
+    labels_rh = read_labels_from_annot('sample', hemi='rh',
+                                       subjects_dir=subjects_dir)
     labels = list()
     labels.extend(labels_lh[:5])
     labels.extend(labels_rh[:4])

@@ -495,10 +495,10 @@ class Label(object):
         Parameters
         ----------
         parts : int >= 2 | tuple of str
-            A sequence of strings specifying label names for the new labels (from
-            posterior to anterior), or the number of new labels to create (default
-            is 2). If a number is specified, names of the new labels will be the
-            input label's name with div1, div2 etc. appended.
+            A sequence of strings specifying label names for the new labels
+            (from posterior to anterior), or the number of new labels to create
+            (default is 2). If a number is specified, names of the new labels
+            will be the input label's name with div1, div2 etc. appended.
         subject : None | str
             Subject which this label belongs to (needed to locate surface file;
             should only be specified if it is not specified in the label).
@@ -518,9 +518,9 @@ class Label(object):
 
         Notes
         -----
-        Works by finding the label's principal eigen-axis on the spherical surface,
-        projecting all label vertex coordinates onto this axis and dividing them at
-        regular spatial intervals.
+        Works by finding the label's principal eigen-axis on the spherical
+        surface, projecting all label vertex coordinates onto this axis and
+        dividing them at regular spatial intervals.
         """
         return split_label(self, parts, subject, subjects_dir, freesurfer)
 
@@ -1221,8 +1221,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         if np.isscalar(names):
             names = [names]
         if len(names) != n_seeds:
-            raise ValueError('The names parameter has to be None or have length '
-                             'len(seeds)')
+            raise ValueError('The names parameter has to be None or have '
+                             'length len(seeds)')
         for i, hemi in enumerate(hemis):
             if not names[i].endswith(hemi):
                 names[i] = '-'.join((names[i], hemi))
@@ -1324,9 +1324,7 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
 
     return labels
 
-@verbose
-@deprecated("_read_annot() will be removed in release 0.9. Use "
-            "read_annot() instead.")
+
 def _read_annot(fname):
     read_annot(fname)
 
@@ -1446,16 +1444,16 @@ def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                      annot_fname=None, regexp=None, subjects_dir=None,
                      verbose=None):
     """Deprecated (will be removed in mne 0.9). Use read_annot() instead"""
-    labels = read_annot_labels(subject, parc, hemi, surf_name, annot_fname,
-                               regexp, subjects_dir, verbose)
+    labels = read_labels_from_annot(subject, parc, hemi, surf_name,
+                                    annot_fname, regexp, subjects_dir, verbose)
     label_colors = [l.color for l in labels]
     return labels, label_colors
 
 
 @verbose
-def read_annot_labels(subject, parc='aparc', hemi='both', surf_name='white',
-                      annot_fname=None, regexp=None, subjects_dir=None,
-                      verbose=None):
+def read_labels_from_annot(subject, parc='aparc', hemi='both',
+                           surf_name='white', annot_fname=None, regexp=None,
+                           subjects_dir=None, verbose=None):
     """Read labels from FreeSurfer parcellation
 
     Note: Only cortical labels will be returned.
@@ -1547,9 +1545,6 @@ def read_annot_labels(subject, parc='aparc', hemi='both', surf_name='white',
     return labels
 
 
-@verbose
-@deprecated("_write_annot() will be removed in release 0.9. Use "
-            "write_annot() instead.")
 def _write_annot(fname):
     write_annot(fname)
 
@@ -1629,13 +1624,13 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
         for label, color in zip(labels, colors):
             label.color = color
 
-    write_labels_annot(labels, subject, parc, overwrite, subjects_dir,
-                       annot_fname, verbose)
+    write_labels_to_annot(labels, subject, parc, overwrite, subjects_dir,
+                          annot_fname, verbose)
 
 
 @verbose
-def write_labels_annot(labels, subject=None, parc=None, overwrite=False,
-                       subjects_dir=None, annot_fname=None, verbose=None):
+def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
+                          subjects_dir=None, annot_fname=None, verbose=None):
     """Create a FreeSurfer parcellation from labels
 
     Parameters

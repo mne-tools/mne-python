@@ -11,7 +11,7 @@ from nose.tools import assert_equal, assert_true, assert_raises
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
-                 read_annot_labels, write_labels_annot, split_label)
+                 read_labels_from_annot, write_labels_to_annot, split_label)
 from mne.label import Label, _blend_colors
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
 from mne.fixes import in1d, assert_is, assert_is_not
@@ -150,18 +150,18 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 
 @sample.requires_sample_data
-def test_read_annot_labels():
+def test_read_labels_from_annot():
     """Test reading labels from FreeSurfer parcellation
     """
     # test some invalid inputs
-    assert_raises(ValueError, read_annot_labels, 'sample', hemi='bla',
+    assert_raises(ValueError, read_labels_from_annot, 'sample', hemi='bla',
                   subjects_dir=subjects_dir)
-    assert_raises(ValueError, read_annot_labels, 'sample',
+    assert_raises(ValueError, read_labels_from_annot, 'sample',
                   annot_fname='bla.annot', subjects_dir=subjects_dir)
 
     # read labels using hemi specification
-    labels_lh = read_annot_labels('sample', hemi='lh',
-                                  subjects_dir=subjects_dir)
+    labels_lh = read_labels_from_annot('sample', hemi='lh',
+                                       subjects_dir=subjects_dir)
     for label in labels_lh:
         assert_true(label.name.endswith('-lh'))
         assert_true(label.hemi == 'lh')
@@ -169,8 +169,8 @@ def test_read_annot_labels():
 
     # read labels using annot_fname
     annot_fname = op.join(subjects_dir, 'sample', 'label', 'rh.aparc.annot')
-    labels_rh = read_annot_labels('sample', annot_fname=annot_fname,
-                                  subjects_dir=subjects_dir)
+    labels_rh = read_labels_from_annot('sample', annot_fname=annot_fname,
+                                       subjects_dir=subjects_dir)
     for label in labels_rh:
         assert_true(label.name.endswith('-rh'))
         assert_true(label.hemi == 'rh')
@@ -185,7 +185,7 @@ def test_read_annot_labels():
     labels_lhrh = [label for (name, label) in sorted(zip(names, labels_lhrh))]
 
     # read all labels at once
-    labels_both = read_annot_labels('sample', subjects_dir=subjects_dir)
+    labels_both = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
     # we have the same result
     _assert_labels_equal(labels_lhrh, labels_both)
@@ -194,22 +194,22 @@ def test_read_annot_labels():
     assert_true(len(labels_both) == 68)
 
     # test regexp
-    label = read_annot_labels('sample', parc='aparc.a2009s', regexp='Angu',
-                              subjects_dir=subjects_dir)[0]
+    label = read_labels_from_annot('sample', parc='aparc.a2009s',
+                                   regexp='Angu', subjects_dir=subjects_dir[0])
     assert_true(label.name == 'G_pariet_inf-Angular-lh')
     # silly, but real regexp:
-    label = read_annot_labels('sample', 'aparc.a2009s',
-                              regexp='.*-.{4,}_.{3,3}-L',
-                              subjects_dir=subjects_dir)[0]
+    label = read_labels_from_annot('sample', 'aparc.a2009s',
+                                   regexp='.*-.{4,}_.{3,3}-L',
+                                   subjects_dir=subjects_dir)[0]
     assert_true(label.name == 'G_oc-temp_med-Lingual-lh')
-    assert_raises(RuntimeError, read_annot_labels, 'sample',
+    assert_raises(RuntimeError, read_labels_from_annot, 'sample',
                   parc='aparc', annot_fname=annot_fname,
                   regexp='JackTheRipper', subjects_dir=subjects_dir)
 
 
 @sample.requires_sample_data
 @requires_mne
-def test_read_annot_labels_annot2labels():
+def test_read_labels_from_annot_annot2labels():
     """Test reading labels from parc. by comparing with mne_annot2labels
     """
 
@@ -232,7 +232,7 @@ def test_read_annot_labels_annot2labels():
 
         return labels
 
-    labels = read_annot_labels('sample', subjects_dir=subjects_dir)
+    labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
     labels_mne = _mne_annot2labels('sample', subjects_dir, 'aparc')
 
     # we have the same result, mne does not fill pos, so ignore it
@@ -240,22 +240,22 @@ def test_read_annot_labels_annot2labels():
 
 
 @sample.requires_sample_data
-def test_write_labels_annot():
+def test_write_labels_to_annot():
     """Test writing FreeSurfer parcellation from labels"""
 
-    labels = read_annot_labels('sample', subjects_dir=subjects_dir)
+    labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
     # write left and right hemi labels:
     fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
 
     for fname in fnames:
-        write_labels_annot(labels, annot_fname=fname)
+        write_labels_to_annot(labels, annot_fname=fname)
 
     # read it back
-    labels2 = read_annot_labels('sample', subjects_dir=subjects_dir,
-                                annot_fname=fnames[0])
-    labels22 = read_annot_labels('sample', subjects_dir=subjects_dir,
-                                 annot_fname=fnames[1])
+    labels2 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
+                                     annot_fname=fnames[0])
+    labels22 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
+                                      annot_fname=fnames[1])
     labels2.extend(labels22)
 
     names = [label.name for label in labels2]
@@ -266,11 +266,11 @@ def test_write_labels_annot():
 
     # same with label-internal colors
     for fname in fnames:
-        write_labels_annot(labels, annot_fname=fname, overwrite=True)
-    labels3 = read_annot_labels('sample', subjects_dir=subjects_dir,
-                                annot_fname=fnames[0])
-    labels33 = read_annot_labels('sample', subjects_dir=subjects_dir,
-                                 annot_fname=fnames[1])
+        write_labels_to_annot(labels, annot_fname=fname, overwrite=True)
+    labels3 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
+                                     annot_fname=fnames[0])
+    labels33 = read_labels_from_annot('sample', subjects_dir=subjects_dir,
+                                      annot_fname=fnames[1])
     labels3.extend(labels33)
     names3 = [label.name for label in labels3]
     for label in labels:
@@ -278,26 +278,26 @@ def test_write_labels_annot():
         assert_labels_equal(label, labels3[idx])
 
     # make sure we can't overwrite things
-    assert_raises(ValueError, write_labels_annot, labels,
+    assert_raises(ValueError, write_labels_to_annot, labels,
                   annot_fname=fnames[0])
 
     # however, this works
-    write_labels_annot(labels, annot_fname=fnames[0], overwrite=True)
+    write_labels_to_annot(labels, annot_fname=fnames[0], overwrite=True)
 
     # label without color
     labels_ = labels[:]
     labels_[0] = labels_[0].copy()
     labels_[0].color = None
-    write_labels_annot(labels_, annot_fname=fnames[0], overwrite=True)
+    write_labels_to_annot(labels_, annot_fname=fnames[0], overwrite=True)
 
     # duplicate color
     labels_[0].color = labels_[2].color
-    assert_raises(ValueError, write_labels_annot, labels_,
+    assert_raises(ValueError, write_labels_to_annot, labels_,
                   annot_fname=fnames[0], overwrite=True)
 
     # invalid color inputs
     labels_[0].color = (1.1, 1., 1., 1.)
-    assert_raises(ValueError, write_labels_annot, labels_,
+    assert_raises(ValueError, write_labels_to_annot, labels_,
                   annot_fname=fnames[0], overwrite=True)
 
     # overlapping labels
@@ -305,15 +305,15 @@ def test_write_labels_annot():
     cuneus_lh = labels[6]
     precuneus_lh = labels[50]
     labels_.append(precuneus_lh + cuneus_lh)
-    assert_raises(ValueError, write_labels_annot, labels_,
+    assert_raises(ValueError, write_labels_to_annot, labels_,
                   annot_fname=fnames[0], overwrite=True)
 
     # unlabeled vertices
     labels_lh = [label for label in labels if label.name.endswith('lh')]
-    write_labels_annot(labels_lh[1:], 'sample', annot_fname=fnames[0],
-                       overwrite=True, subjects_dir=subjects_dir)
-    labels_reloaded = read_annot_labels('sample', annot_fname=fnames[0],
-                                        subjects_dir=subjects_dir)
+    write_labels_to_annot(labels_lh[1:], 'sample', annot_fname=fnames[0],
+                          overwrite=True, subjects_dir=subjects_dir)
+    labels_reloaded = read_labels_from_annot('sample', annot_fname=fnames[0],
+                                             subjects_dir=subjects_dir)
     assert_equal(len(labels_lh), len(labels_reloaded))
     label0 = labels_lh[0]
     label1 = labels_reloaded[-1]
@@ -323,8 +323,8 @@ def test_write_labels_annot():
 
 @sample.requires_sample_data
 def test_split_label():
-    aparc = read_annot_labels('fsaverage', 'aparc', 'lh', regexp='lingual',
-                              subjects_dir=subjects_dir)
+    aparc = read_labels_from_annot('fsaverage', 'aparc', 'lh',
+                                   regexp='lingual', subjects_dir=subjects_dir)
     lingual = aparc[0]
 
     # split with names
