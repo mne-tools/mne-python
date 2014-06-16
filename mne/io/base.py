@@ -32,7 +32,8 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
-                     check_fname, _get_stim_channel, logger, verbose)
+                     check_fname, _get_stim_channel, object_hash,
+                     logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
@@ -66,6 +67,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             self.close()
         except:
             return exception_type, exception_val, trace
+
+    def __hash__(self):
+        if not self._preloaded:
+            raise RuntimeError('Cannot hash raw unless preloaded')
+        return object_hash(dict(info=self.info, data=self._data),
+                           ignore_sbio=True)
 
     def _add_eeg_ref(self, add_eeg_ref):
         """Helper to add an average EEG reference"""

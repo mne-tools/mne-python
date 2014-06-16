@@ -51,6 +51,17 @@ tempdir = _TempDir()
 clean_warning_registry()  # really clean warning stack
 
 
+def test_epochs_hash():
+    """Test epoch hashing
+    """
+    epochs = Epochs(raw, events, event_id, tmin, tmax)
+    assert_raises(RuntimeError, epochs.__hash__)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
+    assert_equal(hash(epochs), hash(epochs))
+    epochs_2 = Epochs(raw, events, event_id, tmin, tmax, preload=True)
+    assert_equal(hash(epochs), hash(epochs_2))
+
+
 def test_event_ordering():
     """Test event order"""
     events2 = events.copy()

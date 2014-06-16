@@ -32,7 +32,7 @@ from .io.base import _BaseRaw, _time_as_index, _index_as_time
 from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
-                    _check_pandas_installed)
+                    _check_pandas_installed, object_hash)
 from .channels import ContainsMixin, PickDropChannelsMixin
 from .filter import resample, detrend
 from .event import _read_events_fif
@@ -354,6 +354,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     def __next__(self, *args, **kwargs):
         """Wrapper for Py3k"""
         return self.next(*args, **kwargs)
+
+    def __hash__(self):
+        if not self.preload:
+            raise RuntimeError('Cannot hash epochs unless preloaded')
+        return object_hash(dict(info=self.info, data=self._data),
+                           ignore_sbio=True)
 
     def average(self, picks=None):
         """Compute average of epochs
@@ -702,7 +708,7 @@ class Epochs(_BaseEpochs):
                 if on_missing == 'error':
                     raise ValueError(msg)
                 elif on_missing == 'warning':
-                    logger.warn(msg)
+                    logger.warning(msg)
                     warnings.warn(msg)
                 else:  # on_missing == 'ignore':
                     pass

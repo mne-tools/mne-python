@@ -485,7 +485,8 @@ def test_ica_reject_buffer():
         ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
             tstep=0.01, verbose=True)
     assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
-    log = [l for l in open(drop_log) if 'detected' in l]
+    with open(drop_log) as fid:
+        log = [l for l in fid if 'detected' in l]
     assert_equal(len(log), 1)
 
 

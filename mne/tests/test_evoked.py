@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import (equalize_channels, pick_types, read_evoked, write_evoked,
                  read_evokeds, write_evokeds)
@@ -30,6 +30,16 @@ fname_gz = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                    'test-ave.fif.gz')
 
 tempdir = _TempDir()
+
+
+def test_hash_evoked():
+    """Test evoked hashing
+    """
+    ave = read_evokeds(fname, 0)
+    ave_2 = read_evokeds(fname, 0)
+    assert_equal(hash(ave), hash(ave_2))
+    ave_2.data[0, 0] -= 1
+    assert_not_equal(hash(ave), hash(ave_2))
 
 
 def test_io_evoked():

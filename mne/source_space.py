@@ -854,7 +854,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
                "defaults to False, but the default will change to True in "
                "release 0.9. Specify the parameter explicitly to avoid this "
                "warning.")
-        logger.warn(msg)
+        logger.warning(msg)
 
     cmd = ('setup_source_space(%s, fname=%s, spacing=%s, surface=%s, '
            'overwrite=%s, subjects_dir=%s, add_dist=%s, verbose=%s)'

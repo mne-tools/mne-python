@@ -23,6 +23,7 @@ import atexit
 from math import log, ceil
 import json
 import ftplib
+import hashlib
 
 import numpy as np
 import scipy
@@ -30,7 +31,7 @@ from scipy import linalg
 
 
 from .externals.six.moves import urllib
-from .externals.six import string_types
+from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
@@ -39,6 +40,118 @@ logger.propagate = False  # don't propagate (in case of multiple imports)
 
 ###############################################################################
 # RANDOM UTILITIES
+
+def _sort_keys(x):
+    """Sort and return keys of dict"""
+    keys = list(x.keys())  # note: not thread-safe
+    idx = np.argsort([str(k) for k in keys])
+    keys = [keys[ii] for ii in idx]
+    return keys
+
+
+def object_hash(x, h=None, ignore_sbio=False):
+    """Hash a reasonable python object
+
+    Parameters
+    ----------
+    x : object
+        Object to hash. Can be anything comprised of nested versions of:
+        {dict, list, tuple, ndarray, str, float, int, None, StringIO, BytesIO}.
+    h : hashlib HASH object | None
+        Optional, object to add the hash to. None creates an MD5 hash.
+    ignore_sbio : bool
+        If True, instances of StringIO / BytesIO are ignored.
+
+    Returns
+    -------
+    digest : int
+        The digest resulting from the hash.
+    """
+    if h is None:
+        h = hashlib.md5()
+    if isinstance(x, dict):
+        keys = _sort_keys(x)
+        for key in keys:
+            object_hash(key, h, ignore_sbio)
+            object_hash(x[key], h, ignore_sbio)
+    elif isinstance(x, (StringIO, BytesIO)):
+        # XXX buggy for Raw instances for some reason...
+        if not ignore_sbio:
+            if isinstance(x, BytesIO):
+                h.update(x.getvalue())
+            else:
+                h.update(x.getvalue().encode('utf-8'))
+    elif isinstance(x, (list, tuple)):
+        h.update(str(type(x)).encode('utf-8'))
+        for xx in x:
+            object_hash(xx, h, ignore_sbio)
+    elif isinstance(x, (string_types, float, int, type(None))):
+        h.update(str(type(x)).encode('utf-8'))
+        h.update(str(x).encode('utf-8'))
+    elif isinstance(x, np.ndarray):
+        x = np.asarray(x)
+        h.update(str(x.shape).encode('utf-8'))
+        h.update(str(x.dtype).encode('utf-8'))
+        h.update(x.tostring())
+    else:
+        raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+    return int(h.hexdigest(), 16)
+
+
+def object_diff(a, b, pre=''):
+    """Compute all differences between two python variables
+
+    Parameters
+    ----------
+    a : object
+        Currently supported: dict, list, tuple, ndarray, int, str, float,
+        StringIO.
+    b : object
+        Must be same type as x1.
+    pre : str
+        String to prepend to each line.
+
+    Returns
+    -------
+    diffs : str
+        A string representation of the differences.
+    """
+    out = ''
+    if type(a) != type(b):
+        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
+    elif isinstance(a, dict):
+        k1s = _sort_keys(a)
+        k2s = _sort_keys(b)
+        m1 = set(k2s) - set(k1s)
+        if len(m1):
+            out += pre + ' x1 missing keys %s\n' % (m1)
+        for key in k1s:
+            if key not in k2s:
+                out += pre + ' x2 missing key %s\n' % key
+            else:
+                out += object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
+    elif isinstance(a, (list, tuple)):
+        if len(a) != len(b):
+            out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
+        else:
+            for xx1, xx2 in zip(a, b):
+                out += object_diff(xx1, xx2, pre='')
+    elif isinstance(a, (string_types, int, float)):
+        if a != b:
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif a is None:
+        if b is not None:
+            out += pre + ' a is None, b is not (%s)\n' % (b)
+    elif isinstance(a, np.ndarray):
+        if not np.array_equal(a, b):
+            out += pre + ' array mismatch\n'
+    elif isinstance(a, (StringIO, BytesIO)):
+        if a.getvalue() != b.getvalue():
+            out += pre + ' StringIO mismatch\n'
+    else:
+        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
+    return out
+
 
 def check_random_state(seed):
     """Turn seed into a np.random.RandomState instance
@@ -579,7 +692,7 @@ def requires_statsmodels(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            import statsmodels
+            import statsmodels  # noqa, analysis:ignore
         except ImportError:
             skip = True
 
@@ -604,7 +717,7 @@ def requires_patsy(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            import patsy
+            import patsy  # noqa, analysis:ignore
         except ImportError:
             skip = True
 
@@ -1232,6 +1345,7 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     # chunk and will write it to file and update the progress bar
     chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
+    data.close()
 
 
 def _chunk_write(chunk, local_file, progress):
