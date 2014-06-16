@@ -23,7 +23,8 @@ from mne.datasets import sample
 from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import mvar_connectivity
-from mne.viz import circular_layout, plot_connectivity_circle
+from mne.viz import (circular_layout, plot_connectivity_circle,
+                     plot_connectivity_matrix)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -65,7 +66,7 @@ label_colors = [label.color for label in labels]
 # signal cancellations, also here we return a generator
 src = inverse_operator['src']
 label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
-                                         return_generator=False)
+                                         return_generator=True)
 
 #from scot.backend.sklearn import VAR
 #var = VAR(30)
@@ -88,11 +89,11 @@ label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
 fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
-con_methods = ['pCOH', 'COH']
+con_methods = ['PDC', 'COH']
 #con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
 #        method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
 #        fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
-con, freqs = mvar_connectivity(label_ts, con_methods, 3, fitting_mode='yw',
+con, freqs = mvar_connectivity(label_ts, con_methods, 3, fitting_mode='lsq',
                                sfreq=sfreq, fmin=fmin, fmax=fmax)
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
@@ -135,16 +136,10 @@ plot_connectivity_circle(con_res['COH'], label_names, n_lines=300,
                          node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition (COH)')
+
+plot_connectivity_matrix(con_res['PDC'], label_names, node_colors=label_colors,
+                         title='All-to-All Connectivity left-Auditory '
+                               'Condition (PDC)')
+
 import matplotlib.pyplot as plt
-plt.savefig('circle.png', facecolor='black')
-
-# Plot connectivity for both methods in the same plot
-fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
-no_names = [''] * len(label_names)
-for ii, method in enumerate(con_methods):
-    plot_connectivity_circle(con_res[method], no_names, n_lines=300,
-                             node_angles=node_angles, node_colors=label_colors,
-                             title=method, padding=0, fontsize_colorbar=6,
-                             fig=fig, subplot=(1, 2, ii + 1))
-
 plt.show()

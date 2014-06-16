@@ -8,6 +8,7 @@ from __future__ import print_function
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: Simplified BSD
 from .externals.six import string_types
@@ -2469,6 +2470,90 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
         for ii in xrange(np.size(indices, axis=1)):
             patches[ii].set_visible(True)
         fig.canvas.draw()
+
+
+def plot_connectivity_matrix(con, node_names, indices=None,
+                             node_colors=None, facecolor='black',
+                             textcolor='white', node_edgecolor='black',
+                             colormap='hot', vmin=None, vmax=None,
+                             colorbar=True, title=None, colorbar_size=0.2,
+                             colorbar_pos=(-0.3, 0.1), fontsize_title=12,
+                             fontsize_names=8, fontsize_colorbar=8, padding=6.,
+                             fig=None, subplot=111):
+    """Visualize connectivity as a matrix.
+    """
+    import matplotlib.pyplot as plt
+
+    n_nodes = len(node_names)
+
+    if node_colors is not None:
+        if len(node_colors) < n_nodes:
+            node_colors = cycle(node_colors)
+    else:
+        # assign colors using colormap
+        node_colors = [plt.cm.spectral(i / float(n_nodes))
+                       for i in range(n_nodes)]
+
+    # handle 1D and 2D connectivity information
+    if con.ndim == 1:
+        if indices is None:
+            raise ValueError('indices has to be provided if con.ndim == 1')
+        tmp = np.zeros((n_nodes, n_nodes))
+        for c, *i in zip(con, *indices):
+            tmp[i] = c
+        con = tmp
+    elif con.ndim == 2:
+        if con.shape[0] != n_nodes or con.shape[1] != n_nodes:
+            raise ValueError('con has to be 1D or a square matrix')
+    else:
+        raise ValueError('con has to be 1D or a square matrix')
+
+    # remove diagonal (do not show node's self-connectivity)
+    np.fill_diagonal(con, 0)
+
+    # get the colormap
+    if isinstance(colormap, string_types):
+        colormap = plt.get_cmap(colormap)
+
+    # Make figure background the same colors as axes
+    if fig is None:
+        fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
+
+    # Use a polar axes
+    if not isinstance(subplot, tuple):
+        subplot = (subplot,)
+    axes = plt.subplot(*subplot, axisbg=facecolor)
+
+    axes.spines['bottom'].set_visible(False)
+    axes.spines['right'].set_visible(False)
+    axes.spines['left'].set_visible(False)
+    axes.spines['top'].set_visible(False)
+
+    h = axes.imshow(con, cmap=colormap, interpolation='nearest', vmin=vmin,
+                    vmax=vmax)
+
+    if colorbar:
+        cb = plt.colorbar(h, ax=axes, use_gridspec=False,
+                          shrink=colorbar_size,
+                          anchor=colorbar_pos)
+        cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
+        cb.ax.tick_params(labelsize=fontsize_colorbar)
+        plt.setp(cb_yticks, color=textcolor)
+
+    if title is not None:
+        plt.title(title, color=textcolor, fontsize=fontsize_title,
+                  axes=axes)
+
+    # Draw node labels
+    for i, name in enumerate(node_names):
+        axes.text(-1, i, name, size=fontsize_names,
+                  rotation=0, rotation_mode='anchor',
+                  horizontalalignment='right', verticalalignment='center',
+                  color=textcolor)
+        axes.text(i, len(node_names), name, size=fontsize_names,
+                  rotation=90, rotation_mode='anchor',
+                  horizontalalignment='right', verticalalignment='center',
+                  color=textcolor)
 
 
 def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
