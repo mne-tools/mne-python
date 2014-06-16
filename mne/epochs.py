@@ -429,7 +429,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             data /= np.sqrt(n_events)
         kind = aspect_rev.get(str(_aspect_kind), 'Unknown')
 
-        evoked = EvokedArray(data, self.info, tmin=self.times[0],
+        info = cp.deepcopy(self.info)
+        evoked = EvokedArray(data, info, tmin=self.times[0],
                              comment=self.name, nave=n_events, kind=kind,
                              verbose=self.verbose)
         evoked._aspect_kind = _aspect_kind
@@ -441,7 +442,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                emg=False, exclude=[])
 
         ch_names = [evoked.ch_names[p] for p in picks]
-        evoked = evoked.pick_channels(ch_names, copy=True)
+        evoked.pick_channels(ch_names)
 
         if len(evoked.info['ch_names']) == 0:
             raise ValueError('No data channel found when averaging.')
