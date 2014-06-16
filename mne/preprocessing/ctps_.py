@@ -146,10 +146,10 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     [3] Press W et al 1995. Nurmerical Receipes in C. The Art of Scientific
     Computing 2nd Ed. Cambridge University Press,pp 626-628
     """
-    n_time_slices = len(d)  # single value or vector
+    n_time_slices = np.size(d)  # single value or vector
     n_points = 100
 
-    en = math.sqrt(n_eff)
+    en = np.sqrt(np.double(n_eff))
     k_lambda = (en + 0.155 + 0.24 / en) * d  # see [1], [3]
     l2 = k_lambda ** 2.0
     j2 = (np.arange(n_points) + 1) ** 2

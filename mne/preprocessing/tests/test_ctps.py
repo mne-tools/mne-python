@@ -78,4 +78,7 @@ def test_ctps():
                           data[:, :, :, None])
 
     assert_true(_prob_kuiper(1.0, 400) == 1.0)
+    # test vecrosization
+    assert_array_equal(_prob_kuiper(np.array([1.0, 1.0]), 400),
+                       _prob_kuiper(np.array([1.0, 1.0]), 400))
     assert_true(_prob_kuiper(0.1, 400) < 0.1)
