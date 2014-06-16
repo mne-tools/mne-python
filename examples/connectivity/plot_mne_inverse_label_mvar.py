@@ -71,8 +71,8 @@ label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
 # Now we are ready to compute connectivity in the alpha and beta bands.
 band_names = ('alpha', 'beta')
 band_colors = ('hot', 'bone')
-fmin = (8., 19.)
-fmax = (13., 21.)
+fmin = (8., 16.)
+fmax = (13., 24.)
 mvar_order = 30  # model order determines frequency resolution
 sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['PDC', 'COH']
