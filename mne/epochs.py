@@ -259,8 +259,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         while True:
             data, event_id = self.next(True)
             tmin = self.times[0]
+            info = cp.deepcopy(self.info)
 
-            yield EvokedArray(data, self.info, tmin, comment=str(event_id))
+            yield EvokedArray(data, info, tmin, comment=str(event_id))
 
     def subtract_evoked(self, evoked=None):
         """Subtract an evoked response from each epoch
