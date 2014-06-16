@@ -560,10 +560,10 @@ class Label(object):
         Parameters
         ----------
         parts : int >= 2 | tuple of str
-            A sequence of strings specifying label names for the new labels (from
-            posterior to anterior), or the number of new labels to create (default
-            is 2). If a number is specified, names of the new labels will be the
-            input label's name with div1, div2 etc. appended.
+            A sequence of strings specifying label names for the new labels
+            (from posterior to anterior), or the number of new labels to create
+            (default is 2). If a number is specified, names of the new labels
+            will be the input label's name with div1, div2 etc. appended.
         subject : None | str
             Subject which this label belongs to (needed to locate surface file;
             should only be specified if it is not specified in the label).
@@ -583,9 +583,9 @@ class Label(object):
 
         Notes
         -----
-        Works by finding the label's principal eigen-axis on the spherical surface,
-        projecting all label vertex coordinates onto this axis and dividing them at
-        regular spatial intervals.
+        Works by finding the label's principal eigen-axis on the spherical
+        surface, projecting all label vertex coordinates onto this axis and
+        dividing them at regular spatial intervals.
         """
         return split_label(self, parts, subject, subjects_dir, freesurfer)
 
@@ -676,6 +676,10 @@ def read_label(filename, subject=None, color=None):
             vertices       vertex indices (0 based, column 1)
             pos            locations in meters (columns 2 - 4 divided by 1000)
             values         values at the vertices (column 5)
+
+    See Also
+    --------
+    read_labels_from_annot
     """
     if subject is not None and not isinstance(subject, string_types):
         raise TypeError('subject must be a string')
@@ -740,6 +744,10 @@ def write_label(filename, label, verbose=None):
     -----
     Note that due to file specification limitations, the Label's subject and
     color attributes are not saved to disk.
+
+    See Also
+    --------
+    write_labels_to_annot
     """
     hemi = label.hemi
     path_head, name = op.split(filename)
@@ -989,7 +997,8 @@ def label_sign_flip(label, src):
     return flip
 
 
-def stc_to_label(stc, src=None, smooth=None, connected=False, subjects_dir=None):
+def stc_to_label(stc, src=None, smooth=None, connected=False,
+                 subjects_dir=None):
     """Compute a label from the non-zero sources in an stc object.
 
     Parameters
@@ -1304,8 +1313,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         if np.isscalar(names):
             names = [names]
         if len(names) != n_seeds:
-            raise ValueError('The names parameter has to be None or have length '
-                             'len(seeds)')
+            raise ValueError('The names parameter has to be None or have '
+                             'length len(seeds)')
         for i, hemi in enumerate(hemis):
             if not names[i].endswith(hemi):
                 names[i] = '-'.join((names[i], hemi))
@@ -1518,21 +1527,24 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
 @verbose
 @deprecated("labels_from_parc() will be removed in release 0.9. Use "
-            "read_annot() instead (note the change in return values).")
+            "read_labels_from_annot() instead (note the change in return "
+            "values).")
 def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
                      annot_fname=None, regexp=None, subjects_dir=None,
                      verbose=None):
-    """Deprecated (will be removed in mne 0.9). Use read_annot() instead"""
-    labels = read_annot(subject, parc, hemi, surf_name, annot_fname, regexp,
-                        subjects_dir, verbose)
+    """Deprecated (will be removed in mne 0.9). Use read_labels_from_annot()
+    instead"""
+    labels = read_labels_from_annot(subject, parc, hemi, surf_name,
+                                    annot_fname, regexp, subjects_dir, verbose)
     label_colors = [l.color for l in labels]
     return labels, label_colors
 
 
 @verbose
-def read_annot(subject, parc='aparc', hemi='both', surf_name='white',
-               annot_fname=None, regexp=None, subjects_dir=None, verbose=None):
-    """Read labels from FreeSurfer parcellation
+def read_labels_from_annot(subject, parc='aparc', hemi='both',
+                           surf_name='white', annot_fname=None, regexp=None,
+                           subjects_dir=None, verbose=None):
+    """Read labels from a FreeSurfer annotation file
 
     Note: Only cortical labels will be returned.
 
@@ -1676,12 +1688,13 @@ def _write_annot(fname, annot, ctab, names):
 
 @verbose
 @deprecated("parc_from_labels() will be removed in release 0.9. Use "
-            "write_annot() instead (note the change in the function "
+            "write_labels_to_annot() instead (note the change in the function "
             "signature).")
 def parc_from_labels(labels, colors=None, subject=None, parc=None,
                      annot_fname=None, overwrite=False, subjects_dir=None,
                      verbose=None):
-    """Deprecated (will be removed in mne 0.9). Use write_annot() instead"""
+    """Deprecated (will be removed in mne 0.9). Use write_labels_to_annot()
+    instead"""
     if colors is not None:
         # do some input checking
         colors = np.asarray(colors)
@@ -1697,14 +1710,14 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
         for label, color in zip(labels, colors):
             label.color = color
 
-    write_annot(labels, subject, parc, overwrite, subjects_dir, annot_fname,
-                verbose)
+    write_labels_to_annot(labels, subject, parc, overwrite, subjects_dir,
+                          annot_fname, verbose)
 
 
 @verbose
-def write_annot(labels, subject=None, parc=None, overwrite=False,
-                subjects_dir=None, annot_fname=None, verbose=None):
-    """Create a FreeSurfer parcellation from labels
+def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
+                          subjects_dir=None, annot_fname=None, verbose=None):
+    """Create a FreeSurfer annotation from a list of labels
 
     Parameters
     ----------
@@ -1803,7 +1816,8 @@ def write_annot(labels, subject=None, parc=None, overwrite=False,
 
         # find number of vertices in surface
         if subject is not None and subjects_dir is not None:
-            fpath = os.path.join(subjects_dir, subject, 'surf', '%s.white' % hemi)
+            fpath = os.path.join(subjects_dir, subject, 'surf',
+                                 '%s.white' % hemi)
             points, _ = read_surface(fpath)
             n_vertices = len(points)
         else:
