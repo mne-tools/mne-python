@@ -542,6 +542,12 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                             '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
                                              freq_bin[0], freq_bin[1]))
 
+                # Counteracts unsafe floating point arithmetic ensuring all
+                # relevant samples will be taken into account when selecting
+                # data in time windows
+                win_tmin = win_tmin - 1e-10
+                win_tmax = win_tmax + 1e-10
+
                 # Calculating data CSD in current time window
                 data_csd = compute_epochs_csd(epochs, mode=mode,
                                               fmin=freq_bin[0],
