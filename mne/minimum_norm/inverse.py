@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD (3-clause)
 
@@ -20,6 +21,7 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
                         write_coord_trans, write_string)
 
+from ..epochs import EpochsArray
 from ..io.pick import channel_type, pick_info
 from ..cov import prepare_noise_cov, _read_cov, _write_cov
 from ..forward import (compute_depth_prior, read_forward_meas_info,
@@ -896,7 +898,443 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     return stc
 
 
-def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
+def point_spread_function(inverse_operator, forward, labels, method='dSPM',
+                          lambda2=1 / 9., pick_ori=None, mode='mean',
+                          svd_comp=1):
+    """Compute point-spread functions (PSFs) for linear estimators
+
+    Compute point-spread functions (PSF) in labels for a combination of inverse
+    operator and forward solution. PSFs are computed for test sources that are
+    perpendicular to cortical surface
+
+    Parameters
+    ----------
+    inverse_operator: dict
+        Inverse operator read with mne.read_inverse_operator.
+    forward: dict
+        Forward solution, created with "surf_ori=True" and "force_fixed=False"
+        Note: (Bad) channels not included in forward solution will not be used
+        in PSF computation.
+    labels: list of Label
+        Labels for which PSFs shall be computed.
+    method: 'MNE' | 'dSPM' | 'sLORETA'
+        Inverse method for which PSFs shall be computed (for apply_inverse).
+    lambda2 : float
+        The regularization parameter (for apply_inverse).
+    pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
+        only the radial component is kept. This is only implemented
+        when working with loose orientations (for apply_inverse).
+    mode: 'mean' | 'sum' | 'svd' |
+        PSFs can be computed for different summary measures with labels:
+        'sum' or 'mean': sum or means of sub-leadfields for labels
+        This corresponds to situations where labels can be assumed to be
+        homogeneously activated.
+        'svd': SVD components of sub-leadfields for labels
+        This is better suited for situations where activation patterns are
+        assumed to be more variable.
+        "sub-leadfields" are the parts of the forward solutions that belong to
+        vertices within invidual labels
+    svd_comp: integer
+        Number of SVD components for which PSFs will be computed and output
+        (irrelevant for 'sum' and 'mean'). Explained variances within
+        sub-leadfields are shown in screen output
+
+    Returns
+    -------
+    stc_psf : SourceEstimate
+        The PSFs for the specified labels
+        If mode='svd': svd_comp components per label are created
+        (i.e. svd_comp successive time points in mne_analyze)
+        The last sample is the summed PSF across all labels
+        Scaling of PSFs is arbitrary, and may differ greatly among methods
+        (especially for MNE compared to noise-normalized estimates)
+    evoked_fwd: Evoked
+        Forward solutions corresponding to PSFs in stc_psf
+        If mode='svd': svd_comp components per label are created
+        (i.e. svd_comp successive time points in mne_analyze)
+        The last sample is the summed forward solution across all labels
+        (sum is taken across summary measures)
+    label_singvals: list of numpy arrays
+        Singular values of svd for sub-leadfields
+        Provides information about how well labels are represented by chosen
+        components. Explained variances within sub-leadfields are shown in
+        screen output
+    """
+    if mode.lower() not in ['mean', 'svd']:
+        raise ValueError('mode must be ''svd'' or ''mean''. Got %s.' %
+                         mode.lower())
+
+    logger.info("\nAbout to process %d labels" % len(labels))
+
+    # get whole leadfield matrix with normal dipole components
+    leadfield = forward['sol']['data'][:, 2::3]
+
+    # in order to convert sub-leadfield matrix to evoked data type (pretending
+    # it's an epoch, see in loop below), uses 'info' from forward solution,
+    # need to add 'sfreq' and 'proj'
+    info = forward['info']
+    info['sfreq'] = 1000.  # add sfreq or it won't work
+    info['projs'] = []  # add projs
+
+    # will contain means of subleadfields for all labels
+    label_psf_summary = np.array(0)
+    # if mode='svd', this will collect all SVD singular values for labels
+    label_singvals = []
+
+    # loop over labels
+    for ll in labels:
+        logger.info(ll)
+        if ll.hemi == 'rh':
+            # for RH labels, add number of LH vertices
+            offset = forward['src'][0]['vertno'].shape[0]
+            # remember whether we are in the LH or RH
+            this_hemi = 1
+        elif ll.hemi == 'lh':
+            offset = 0
+            this_hemi = 0
+
+        # get vertices on cortical surface inside label
+        idx = np.intersect1d(ll.vertices, forward['src'][this_hemi]['vertno'])
+
+        # get vertices in source space inside label
+        fwd_idx = np.searchsorted(forward['src'][this_hemi]['vertno'], idx)
+
+        # get sub-leadfield matrix for label vertices
+        sub_leadfield = leadfield[:, fwd_idx + offset]
+
+        # compute summary data for labels
+        if mode.lower() == 'sum':  # sum across forward solutions in label
+            logger.info("Computing sums within labels")
+            this_label_psf_summary = sub_leadfield.sum(axis=1)
+
+        elif mode.lower() == 'mean':
+            logger.info("Computing means within labels")
+            this_label_psf_summary = sub_leadfield.mean(axis=1)
+
+        elif mode.lower() == 'svd':  # takes svd of forward solutions in label
+            logger.info("Computing SVD within labels, using %d component(s)"
+                        % svd_comp)
+
+            # compute SVD of sub-leadfield
+            u_svd, s_svd, _ = np.linalg.svd(sub_leadfield,
+                                            full_matrices=False,
+                                            compute_uv=True)
+
+            # keep singular values (might be useful to some people)
+            label_singvals.append(s_svd)
+
+            # get first svd_comp components, weighted with their corresponding
+            # singular values
+            logger.info("first 5 singular values:")
+            logger.info(s_svd[0:5])
+            logger.info("(This tells you something about variability of "
+                        "forward solutions in sub-leadfield for label)")
+            # explained variance by chosen components within sub-leadfield
+            my_comps = s_svd[0:svd_comp]
+            comp_var = (100 * np.sum(np.power(my_comps, 2)) /
+                        np.sum(np.power(s_svd, 2)))
+            logger.info("Your %d component(s) explain(s) %.1f%% "
+                        "variance.\n" % (svd_comp, comp_var))
+            this_label_psf_summary = np.dot(u_svd[:, 0:svd_comp],
+                                            np.diag(s_svd[0:svd_comp]))
+            # transpose required for conversion to "evoked"
+            this_label_psf_summary = this_label_psf_summary.T
+
+        # initialise or append to existing collection
+        if label_psf_summary.shape == ():
+            label_psf_summary = this_label_psf_summary
+        else:
+            label_psf_summary = np.vstack((label_psf_summary,
+                                           this_label_psf_summary))
+
+    # compute sum across forward solutions for labels, append to end
+    label_psf_summary = np.vstack((label_psf_summary,
+                                   label_psf_summary.sum(axis=0)))
+    # transpose required for conversion to "evoked"
+    label_psf_summary = label_psf_summary.T
+
+    # convert sub-leadfield matrix to evoked data type (a bit of a hack)
+    evoked_fwd = EpochsArray(label_psf_summary[None, :, :], info,
+                             np.zeros((1, 3), dtype=int)).average()
+
+    # compute PSFs by applying inverse operator to sub-leadfields
+    logger.info("About to apply inverse operator for method='%s' and "
+                "lambda2=%f\n" % (method, lambda2))
+
+    stc_psf = apply_inverse(evoked_fwd, inverse_operator, lambda2,
+                            method=method, pick_ori=pick_ori)
+
+    return stc_psf, evoked_fwd, label_singvals
+
+
+def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
+                                      method='dSPM', lambda2=3, mode='mean',
+                                      svd_comp=1):
+    """
+
+    Get inverse matrix from an inverse operator for specific parameter settings
+    Currently works only for fixed/loose orientation constraints
+    For loose orientation constraint, the CTFs are computed for the radial
+    component (pick_ori='normal')
+
+    Parameters
+    ----------
+    inverse_operator : dict
+        Inverse operator read with mne.read_inverse_operator.
+    forward : dict
+         The forward operator.
+    method : 'MNE' | 'dSPM' | 'sLORETA'
+        Inverse methods (for apply_inverse).
+    labels : list of Label | None
+        Labels for which CTFs shall be computed. If None, inverse matrix for
+        all vertices will be returned.
+    lambda2 : float
+        The regularization parameter (for apply_inverse).
+    pick_ori : None | "normal"
+        pick_ori : None | "normal"
+        If "normal", rather than pooling the orientations by taking the norm,
+        only the radial component is kept. This is only implemented
+        when working with loose orientations (for apply_inverse).
+        Determines whether whole inverse matrix G will have one or three rows
+        per vertex. This will also affect summary measures for labels.
+    mode : 'mean' | 'sum' | 'svd'
+        CTFs can be computed for different summary measures with labels:
+        'sum' or 'mean': sum or means of sub-inverse for labels
+        This corresponds to situations where labels can be assumed to be
+        homogeneously activated.
+        'svd': SVD components of sub-inverse for labels
+        This is better suited for situations where activation patterns are
+        assumed to be more variable.
+        "sub-inverse" is the part of the inverse matrix that belongs to
+        vertices within invidual labels.
+    svd_comp : integer
+        Number of SVD components for which CTFs will be computed and output
+        (irrelevant for 'sum' and 'mean'). Explained variances within
+        sub-inverses are shown in screen output.
+
+    Returns
+    -------
+    invmat : list numpy arrays
+        Inverse matrix associated with inverse operator and specified
+        parameters.
+    label_singvals : list of numpy arrays
+        Singular values of svd for sub-inverses
+        Provides information about how well labels are represented by chosen
+        components. Explained variances within sub-inverses are shown in
+        screen output.
+    """
+    if labels:
+        logger.info("\nAbout to process %d labels" % len(labels))
+    else:
+        logger.info("\nComputing whole inverse operator.")
+
+    # in order to convert sub-leadfield matrix to evoked data type (pretending
+    # it's an epoch, see in loop below), uses 'info' from forward solution,
+    # need to add 'sfreq' and 'proj'
+    info = forward['info']
+    info['sfreq'] = 1000.  # add sfreq or it won't work
+    info['projs'] = []  # add projs
+
+    # create identity matrix as input for inverse operator
+    id_mat = np.eye(forward['nchan'])
+
+    # convert identity matrix to evoked data type (pretending it's an epoch)
+    ev_id = EpochsArray(id_mat[None, :, :], info,
+                        np.zeros((1, 3), dtype=int)).average()
+
+    snr = 3.0
+    lambda2 = 1.0 / snr ** 2
+
+    # apply inverse operator to identity matrix in order to get inverse matrix
+    # free orientation constraint not possible because apply_inverse would
+    # combined components
+    invmat_mat_op = apply_inverse(ev_id, inverse_operator, lambda2=lambda2,
+                                  method=method, pick_ori='normal')
+
+    logger.info("\nDimension of inverse matrix:")
+    logger.info(invmat_mat_op.shape)
+
+    # turn source estimate into numpty array
+    invmat_mat = invmat_mat_op.data
+
+    invmat_summary = np.array(0)
+    # if mode='svd', label_singvals will collect all SVD singular values for
+    # labels
+    label_singvals = []
+
+    if labels:
+        for ll in labels:
+            print ll
+            if ll.hemi == 'rh':
+                # for RH labels, add number of LH vertices
+                offset = forward['src'][0]['vertno'].shape[0]
+                # remember whether we are in the LH or RH
+                this_hemi = 1
+            elif ll.hemi == 'lh':
+                offset = 0
+                this_hemi = 0
+            else:
+                print "Cannot determine hemisphere of label.\n"
+
+            # get vertices on cortical surface inside label
+            idx = np.intersect1d(ll.vertices,
+                                 forward['src'][this_hemi]['vertno'])
+
+            # get vertices in source space inside label
+            fwd_idx = np.searchsorted(forward['src'][this_hemi]['vertno'], idx)
+
+            # get sub-inverse for label vertices, one row per vertex
+            invmat_lbl = invmat_mat[fwd_idx + offset, :]
+
+            # compute summary data for labels
+            if mode.lower() == 'sum':  # takes sum across estimators in label
+                logger.info("Computing sums within labels")
+                this_invmat_summary = invmat_lbl.sum(axis=0)
+
+            elif mode.lower() == 'mean':
+                logger.info("Computing means within labels")
+                this_invmat_summary = invmat_lbl.mean(axis=0)
+
+            elif mode.lower() == 'svd':  # takes svd of sub-inverse in label
+                logger.info("Computing SVD within labels, using %d "
+                            "component(s)" % svd_comp)
+
+                # compute SVD of sub-inverse
+                u_svd, s_svd, _ = np.linalg.svd(invmat_lbl.T,
+                                                full_matrices=False,
+                                                compute_uv=True)
+
+                # keep singular values (might be useful to some people)
+                label_singvals.append(s_svd)
+
+                # get first svd_comp components, weighted with their
+                # corresponding singular values
+                logger.info("first 5 singular values:")
+                logger.info(s_svd[0:5])
+                logger.info("(This tells you something about variability of "
+                            "estimators in sub-inverse for label)")
+                # explained variance by chosen components within sub-inverse
+                my_comps = s_svd[0:svd_comp]
+                comp_var = (100 * np.sum(np.power(my_comps, 2)) /
+                            np.sum(np.power(s_svd, 2)))
+                logger.info("Your %d component(s) explain(s) %.1f%% "
+                            "variance.\n" % (svd_comp, comp_var))
+                this_invmat_summary = np.dot(u_svd[:, 0:svd_comp],
+                                             np.diag(s_svd[0:svd_comp]))
+                this_invmat_summary = this_invmat_summary.T
+
+            if invmat_summary.shape == ():
+                invmat_summary = this_invmat_summary
+            else:
+                invmat_summary = np.vstack((invmat_summary,
+                                            this_invmat_summary))
+
+        invmat = invmat_summary
+
+    else:   # no labels provided: return whole matrix
+        invmat = invmat_mat
+
+    return invmat, label_singvals
+
+
+def cross_talk_function(inverse_operator, forward, labels,
+                        method='dSPM', lambda2=1 / 9.,
+                        mode='mean', svd_comp=1):
+    """Compute cross-talk functions (CTFs) for linear estimators
+
+    Compute cross-talk functions (CTF) in labels for a combination of inverse
+    operator and forward solution. CTFs are computed for test sources that are
+    perpendicular to cortical surface.
+
+    Parameters
+    ----------
+    inverse_operator : dict
+        Inverse operator read with mne.read_inverse_operator.
+    forward : dict
+         Forward solution, created with "force_fixed=True"
+         Note: (Bad) channels not included in forward solution will not be used
+         in CTF computation.
+    method : 'MNE' | 'dSPM' | 'sLORETA'
+        Inverse method for which CTFs shall be computed.
+    labels : list of Label
+        Labels for which CTFs shall be computed.
+    lambda2 : float
+        The regularization parameter.
+    mode : 'mean' | 'sum' | 'svd'
+        CTFs can be computed for different summary measures with labels:
+        'sum' or 'mean': sum or means of sub-inverses for labels
+        This corresponds to situations where labels can be assumed to be
+        homogeneously activated.
+        'svd': SVD components of sub-inverses for labels
+        This is better suited for situations where activation patterns are
+        assumed to be more variable. "sub-inverse" is the part of the inverse
+        matrix that belongs to vertices within invidual labels.
+    svd_comp : int
+        Number of SVD components for which CTFs will be computed and output
+        (irrelevant for 'sum' and 'mean'). Explained variances within
+        sub-inverses are shown in screen output.
+
+    Returns
+    -------
+    stc_ctf : SourceEstimate
+        The CTFs for the specified labels
+        If mode='svd': svd_comp components per label are created
+        (i.e. svd_comp successive time points in mne_analyze)
+        The last sample is the summed CTF across all labels
+    label_singvals : list of numpy arrays
+        Singular values of svd for sub-inverses
+        Provides information about how well labels are represented by chosen
+        components. Explained variances within sub-inverses are shown in screen
+        output.
+    """
+
+    # get the inverse matrix corresponding to inverse operator
+    invmat, label_singvals = _get_matrix_from_inverse_operator(inverse_operator,
+                                                               forward,
+                                                               labels=labels,
+                                                               method=method,
+                                                               lambda2=lambda2,
+                                                               mode=mode,
+                                                               svd_comp=svd_comp)
+
+    # get the leadfield matrix from forward solution
+    leadfield = forward['sol']['data']
+
+    # compute cross-talk functions (CTFs)
+    ctfs = np.dot(invmat, leadfield)
+
+    # compute sum across forward solutions for labels, append to end
+    ctfs = np.vstack((ctfs, ctfs.sum(axis=0)))
+
+    # create a dummy source estimate and put in the CTFs, in order to write
+    # them to STC file
+
+    # in order to convert sub-leadfield matrix to evoked data type (pretending
+    # it's an epoch, see in loop below), uses 'info' from forward solution,
+    # need to add 'sfreq' and 'proj'
+    info = forward['info']
+    info['sfreq'] = 1000.  # add sfreq or it won't work
+    info['projs'] = []  # add projs
+
+    # create identity matrix as input for inverse operator
+    id_mat = np.eye(forward['nchan'])
+
+    # convert identity matrix to evoked data type (pretending it's an epoch)
+    ev_id = EpochsArray(id_mat[None, :, 0:len(labels) + 1], info,
+                        np.zeros((1, 3), dtype=int)).average()
+
+    # apply inverse operator to dummy data to create dummy source estimate, in
+    # this case fixed orientation constraint
+    stc_ctf = apply_inverse(ev_id, inverse_operator, lambda2=3, method='MNE')
+
+    # insert CTF into source estimate object
+    stc_ctf._data = ctfs.T
+
+    return stc_ctf, label_singvals
+
+
+def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
                               verbose=None, pick_normal=None):
     """ see apply_inverse_epochs """
