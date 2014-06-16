@@ -48,20 +48,18 @@ def test_multi_pval_correction():
 def test_local_fdr_correction():
     """Test local fdr correction
     """
-
     rng = np.random.RandomState(0)
-    X = rng.randn(15, 1000)
 
+    X = rng.randn(15, 100)
     qs = local_fdr_correction(X)
-    rej = qs < 0.02
-    assert_true(rej.shape==qs.shape==X.shape)
+    rej = qs < 0.05
+    assert_true(qs.shape == X.shape)
     assert_false(rej.any())
 
-    X[3, 234] = 5.0
+    outlier_index = (3, 24)
+    X[outlier_index] = 5.0
     qs = local_fdr_correction(X)
-    rej = qs < 0.02
-    assert_true(rej[3, 234])
-    rej[3, 234] = False
+    rej = qs < 0.05
+    assert_true(rej[outlier_index])
+    rej[outlier_index] = False
     assert_false(rej.any())
-
-

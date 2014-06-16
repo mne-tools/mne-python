@@ -20,7 +20,8 @@ from scipy import stats
 import mne
 from mne import io
 from mne.datasets import sample
-from mne.stats import bonferroni_correction, fdr_correction
+from mne.stats import (bonferroni_correction, fdr_correction,
+                       local_fdr_correction)
 
 ###############################################################################
 # Set parameters
@@ -61,6 +62,11 @@ threshold_bonferroni = stats.t.ppf(1.0 - alpha / n_tests, n_samples - 1)
 reject_fdr, pval_fdr = fdr_correction(pval, alpha=alpha, method='indep')
 threshold_fdr = np.min(np.abs(T)[reject_fdr])
 
+X_ = X.reshape(-1)
+qvals = local_fdr_correction(X_)
+sort_xq = np.argsort(qvals)
+threshold_lfdr = np.interp(0.05, qvals[sort_xq], X_[sort_xq])
+
 ###############################################################################
 # Plot
 times = 1e3 * epochs.times
@@ -75,6 +81,8 @@ plt.hlines(threshold_bonferroni, xmin, xmax, linestyle='--', colors='r',
            label='p=0.05 (Bonferroni)', linewidth=2)
 plt.hlines(threshold_fdr, xmin, xmax, linestyle='--', colors='b',
            label='p=0.05 (FDR)', linewidth=2)
+plt.hlines(threshold_fdr, xmin, xmax, linestyle='--', colors='c',
+           label='q=0.05 (lFDR)', linewidth=2)
 plt.legend()
 plt.xlabel("Time (ms)")
 plt.ylabel("T-stat")

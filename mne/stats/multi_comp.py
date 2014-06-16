@@ -126,6 +126,8 @@ def _local_fdr(data, n_bins=100, h0_maxiter=500, decimate=1):
 
     Parameters
     ----------
+    data : array, any shape
+        Set of observations on which to estimate FDR.
     n_bins : int
         Number of points at which to evaluate the density.
     h0_maxtier : int
@@ -135,13 +137,13 @@ def _local_fdr(data, n_bins=100, h0_maxiter=500, decimate=1):
 
     Returns
     -------
-    xb : array
+    xb : array, (n_bins*2,)
         Points at which the densities are evaluated.
-    f : array
+    f : array, (n_bins*2,)
         Density of x.
-    cf : array
+    cf : array, (n_bins*2,)
         Estimated "center density" of H0.
-    fdr : array
+    fdr : array, (n_bins*2,)
         Estimated false discovery rate.
     mu : float
         Mean of H0 distribution.
@@ -195,8 +197,8 @@ def local_fdr_correction(data, n_bins=100, h0_maxiter=500, decimate=1):
 
     Parameters
     ----------
-    data : array_like
-        Set of observations to test.
+    data : array, any shape
+        Set of observations on which to estimate FDR.
     n_bins : int
         Number of points at which to evaluate the density.
     h0_maxtier : int
@@ -204,10 +206,9 @@ def local_fdr_correction(data, n_bins=100, h0_maxiter=500, decimate=1):
     decimate : int
         Factor by which to decimate data prior to density estimation.
 
-
     Returns
     -------
-    qvals : array
+    qvals : array, any shape
         Values of FDR for each element of data.
 
     Notes
