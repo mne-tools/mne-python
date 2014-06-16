@@ -46,7 +46,7 @@ ica = ICA(n_components=0.95).fit(epochs)
 ###############################################################################
 # 2) Find ECG Artifacts
 
-# generate ecg epochs to improve detection by correlation
+# generate ECG epochs to improve detection by correlation
 ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5, picks=picks)
 
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs)
