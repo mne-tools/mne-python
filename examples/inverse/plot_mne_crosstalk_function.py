@@ -1,18 +1,24 @@
 """
 ===========================
-Get inverse operator matrix
+Compute cross-talk functions (CTFs) for labels
+for different linear inverse operators
 ===========================
 
-Get inverse matrix from an inverse operator for specific parameter settings
-
+CTFs are computed for four labels in the MNE sample data set
+for three linear inverse operators (MNE, dSPM, sLORETA).
+CTFs are saved as STC files for visualization in mne_analyze.
+CTFs describe the sensitivity of a linear estimator (e.g. for
+one label) to sources across the cortical surface. Sensitivity
+to sources outside the label is undesirable, and referred to as
+"leakage" or "cross-talk".
 """
+
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD (3-clause)
 
 print(__doc__)
 
-import numpy as np
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import cross_talk_function, read_inverse_operator
@@ -30,25 +36,22 @@ fname_label = [data_path + '/MEG/sample/labels/Vis-rh.label',
                data_path + '/MEG/sample/labels/Aud-rh.label',
                data_path + '/MEG/sample/labels/Aud-lh.label']
 
-# In order to get leadfield with fixed source orientation, read forward solution again
+# In order to get leadfield with fixed source orientation,
+# read forward solution with fixed orientations
 forward = mne.read_forward_solution(fname_fwd, force_fixed=True, surf_ori=True)
 
 # read label(s)
 labels = [mne.read_label(ss) for ss in fname_label]
-nr_labels = len(labels)
 
 inverse_operator = read_inverse_operator(fname_inv)
 
-fname_stem = 'ctf_3'
+fname_stem = 'ctf'
 for method in ('MNE', 'dSPM', 'sLORETA'):
-    stc_ctf, label_singvals = cross_talk_function(inverse_operator, forward, labels, method=method,
-                                  lambda2=1 / 9., mode='svd', svd_comp=3)
+    stc_ctf, label_singvals = cross_talk_function(inverse_operator, forward,
+                                                  labels, method=method,
+                                                  lambda2=1 / 9., signed=True,
+                                                  mode='svd', n_svd_comp=3)
 
     fname_out = fname_stem + '_' + method
-    print "Writing CTFs to files %s" % fname_out
-    # signed
+    print("Writing CTFs to files %s" % fname_out)
     stc_ctf.save(fname_out)
-
-    # unsigned
-    stc_ctf._data = np.abs( stc_ctf.data )
-    stc_ctf.save(fname_out+'_abs')

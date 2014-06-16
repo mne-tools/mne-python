@@ -1,19 +1,28 @@
+"""
+===========================
+Compute point-spread functions (PSFs) for labels
+for different linear inverse operators
+===========================
+
+PSFs are computed for four labels in the MNE sample data set
+for three linear inverse operators (MNE, dSPM, sLORETA).
+PSFs are saved as STC files for visualization in mne_analyze.
+PSFs describe the spread of activation from one label
+across the cortical surface.
+"""
+
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-# TODO
-# add bad channels?
-# other ~linear estimators, beamformers etc.?
+## Compute PSFs for labels in MNE sample data set
 
 print(__doc__)
 
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, point_spread_function
-
-## Compute PSFs for labels in MNE sample data set
 
 data_path = sample.data_path()
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
@@ -36,15 +45,28 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
 for method in ('MNE', 'dSPM', 'sLORETA'):
-    stc_psf, evoked_fwd, label_singval = point_spread_function(inverse_operator,
-                                                      forward, method=method,
-                                                      labels=labels,
-                                                      lambda2=lambda2,
-                                                      mode='svd', svd_comp=2)
+    stc_psf, evoked_fwd, singval = point_spread_function(inverse_operator,
+                                                         forward,
+                                                         method=method,
+                                                         labels=labels,
+                                                         lambda2=lambda2,
+                                                         pick_ori='normal',
+                                                         mode='svd',
+                                                         n_svd_comp=2)
+
     fname_out = 'psf_' + method
-    print "Writing STC to file: %s" % fname_out
+    print("Writing STC to file: %s" % fname_out)
     stc_psf.save(fname_out)
 
-# from mne.datasets import sample
-# subjects_dir = sample.data_path() + '/subjects/'
-# stc_psf.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir, time_viewer=True)
+from mne import read_source_estimate
+subjects_dir = sample.data_path() + '/subjects/'
+stc = read_source_estimate('psf_MNE-rh.stc')
+
+fmin = 0
+fmid = stc.data[:, 0].max() / 2
+fmax = stc.data[:, 0].max()
+
+time_label = "Time = %s ms" % (stc.data.shape[1] - 1)
+
+brain = stc_psf.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
+             time_label=time_label, fmin=fmin, fmid=fmid, fmax=fmax)
