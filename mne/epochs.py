@@ -441,7 +441,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                emg=False, exclude=[])
 
         ch_names = [evoked.ch_names[p] for p in picks]
-        evoked.pick_channels(ch_names)
+        evoked = evoked.pick_channels(ch_names, copy=True)
 
         if len(evoked.info['ch_names']) == 0:
             raise ValueError('No data channel found when averaging.')
