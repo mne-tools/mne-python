@@ -38,7 +38,7 @@ except:
     # Older version of sphinx
     extensions.append('numpy_ext_old.numpydoc')
 
-autodoc_default_flags=['inherited-members']
+autodoc_default_flags = ['members', 'inherited-members']
 
 # extensions = ['sphinx.ext.autodoc',
 #               'sphinx.ext.doctest',
