@@ -68,8 +68,8 @@ def _fit_mvar_yw(data, order, n_jobs=1, verbose=None):
     return var
 
 
-def mvar_connectivity(data, method, order, fitting_mode='yw', sfreq=2, fmin=0,
-                      fmax=np.inf, nfft=512):
+def mvar_connectivity(data, method, order, fitting_mode='lsq', ridge=0,
+                      sfreq=2, fmin=0, fmax=np.inf, nfft=512):
     """Estimate connectivity from multivariate autoregressive (MVAR) models.
 
     Parameters
@@ -83,8 +83,15 @@ def mvar_connectivity(data, method, order, fitting_mode='yw', sfreq=2, fmin=0,
         order (length) of the underlying MVAR model
     fitting_mode : str
         Determines how to fit the MVAR model.
-        'yw' : Solve Yule-Walker equations
         'lsq' : Least-Squares fitting
+        'yw' : Solve Yule-Walker equations
+        Yule-Walker equations can utilize data generators, which makes them
+        more memory efficient than least-squares. However, yw-estimation may
+        fail if `order` or `n_signals` is too high for the amount of data
+        available.
+    ridge : float
+        Ridge-regression coefficient (l2 penalty) for least-squares fitting.
+        This parameter is ignored for Yule-Walker fitting.
     sfreq : float
         The sampling frequency.
     fmin : float | tuple of floats
@@ -109,7 +116,7 @@ def mvar_connectivity(data, method, order, fitting_mode='yw', sfreq=2, fmin=0,
     if fitting_mode == 'yw':
         var = _fit_mvar_yw(data, order)
     elif fitting_mode == 'lsq':
-        var = _fit_mvar_lsq(data, order, 0)
+        var = _fit_mvar_lsq(data, order, ridge)
 
     freqs, fmask = [], []
     freq_range = np.linspace(0, sfreq/2, nfft)
