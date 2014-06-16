@@ -1673,6 +1673,7 @@ class EpochsArray(Epochs):
             select[drop_inds] = False
             self.events = self.events[select]
             self._data = self._data[select]
+            self.selection[select]
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):

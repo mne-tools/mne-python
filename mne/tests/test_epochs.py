@@ -1170,3 +1170,4 @@ def test_array_epochs():
                          reject_tmin=0.1, reject_tmax=0.2)
     assert_equal(len(epochs), len(events) - 2)
     assert_equal(epochs.drop_log[0], ['EEG 006'])
+    assert_equal(len(events), len(epochs.selection))
