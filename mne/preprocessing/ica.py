@@ -796,7 +796,7 @@ class ICA(ContainsMixin):
         return scores
 
     @verbose
-    def find_bads_ecg(self, inst, ch_name=None, threshold=0.3,
+    def find_bads_ecg(self, inst, ch_name=None, threshold=None,
                       start=None, stop=None, l_freq=8, h_freq=16,
                       method='ctps', verbose=None):
         """Detect ECG related components using correlation
@@ -812,6 +812,17 @@ class ICA(ContainsMixin):
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
+        method : {'ctps', 'correlation'}
+            The method used for detection. If 'ctps', cros-trial phase
+            statistics [1] are used to to detect ECG related components.
+            Thresholding is then based on the significance value of a Kuiper
+            statistic.
+            If 'correlation', detection is based on Pearson correlation
+            between the filtered data and the filtered ECG channel.
+            Thresholding is based on iterative z-scoring. The above
+            threshold components will be masked and the z-score will
+            be recomputed until no supra-threshold component remains.
+            Defaults to 'ctps'.
         threshold : int | float
             The value above which a feature is classified as outlier.
         start : int | float | None
@@ -824,17 +835,6 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
-        mehtod : {'ctps', 'correlation'}
-            The method used for detection. If 'ctps', cros-trial phase
-            statistics [1] are used to to detect ECG related components.
-            Thresholding is then based on the significance value of a Kuiper
-            statistic.
-            If 'correlation', detection is based on Pearson correlation
-            between the filtered data and the filtered ECG channel.
-            Thresholding is based on iterative z-scoring. The above
-            threshold components will be masked and the z-score will
-            be recomputed until no supra-threshold component remains.
-            Defaults to 'ctps'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
