@@ -28,7 +28,7 @@ from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels, pick_info)
 from .io.proj import setup_proj, ProjMixin
 from .io.base import _BaseRaw, _time_as_index, _index_as_time
-from .evoked import Evoked, aspect_rev
+from .evoked import Evoked, EvokedArray, aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed)
@@ -256,18 +256,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         self._current = 0
 
         while True:
-            evoked = Evoked(None)
-            evoked.info = cp.deepcopy(self.info)
+            data, event_id = self.next(True)
+            tmin = self.times[0]
 
-            evoked.times = self.times.copy()
-            evoked.nave = 1
-            evoked.first = int(self.times[0] * self.info['sfreq'])
-            evoked.last = evoked.first + len(self.times) - 1
-
-            evoked.data, event_id = self.next(True)
-            evoked.comment = str(event_id)
-
-            yield evoked
+            yield EvokedArray(data, self.info, tmin, comment=str(event_id))
 
     def subtract_evoked(self, evoked=None):
         """Subtract an evoked response from each epoch
