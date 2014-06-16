@@ -399,6 +399,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
                      ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
                      resp=resp, chpi=chpi, exci=exci, ias=ias, syst=syst,
                      include=include, exclude=exclude)
+
     include_ch_names = [orig.ch_names[k] for k in sel]
     return pick_channels_evoked(orig, include_ch_names)
 
