@@ -4165,10 +4165,13 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         raise IOError('Subject bem directory "%s" does not exist'
                       % bem_path)
 
-    # XXX : make glob cleaner
-    surf_fnames = [glob(op.join(bem_path, '*inner_skull.surf'))[0],
-                   glob(op.join(bem_path, '*outer_skull.surf'))[0],
-                   glob(op.join(bem_path, '*outer_skin.surf'))[0]]
+    surf_fnames = []
+    for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
+        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))[0]
+        if not op.isfile(surf_fname):
+            raise IOError('Surface file "%s" does not exist'
+                          % surf_fname)
+        surf_fnames.append(surf_fname)
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surf_fnames, orientation=orientation,

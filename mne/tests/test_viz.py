@@ -15,7 +15,7 @@ from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_cov, mne_analyze_colormap, plot_image_epochs,
                      plot_connectivity_circle, circular_layout, plot_drop_log,
                      compare_fiff, plot_source_spectrogram, plot_events,
-                     plot_trans)
+                     plot_trans, plot_bem)
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
 from mne.preprocessing import ICA
@@ -591,6 +591,17 @@ def test_plot_trans():
     assert_raises(ValueError, plot_trans, evoked.info, trans_fname=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   ch_type='bad-chtype')
+
+
+@sample.requires_sample_data
+def test_plot_bem():
+    """Test plotting of BEM contours
+    """
+    assert_raises(IOError, plot_bem, subject='bad-subject')
+    assert_raises(ValueError, plot_bem, subject='sample',
+                  subjects_dir=subjects_dir, orientation='bad-ori')
+    plot_bem(subject='sample', subjects_dir=subjects_dir,
+             orientation='sagittal', slices=[50, 100])
 
 
 def test_plot_events():
