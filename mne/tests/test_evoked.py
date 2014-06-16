@@ -21,6 +21,7 @@ from mne.epochs import EpochsArray
 from mne.utils import _TempDir, requires_pandas, requires_nitime
 
 from mne.io.meas_info import create_info
+from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')
 
@@ -38,6 +39,9 @@ def test_hash_evoked():
     ave = read_evokeds(fname, 0)
     ave_2 = read_evokeds(fname, 0)
     assert_equal(hash(ave), hash(ave_2))
+    # do NOT use assert_equal here, failing output is terrible
+    assert_true(pickle.dumps(ave) == pickle.dumps(ave_2))
+
     ave_2.data[0, 0] -= 1
     assert_not_equal(hash(ave), hash(ave_2))
 
