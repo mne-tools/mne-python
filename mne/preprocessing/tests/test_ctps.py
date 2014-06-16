@@ -9,11 +9,8 @@ from numpy.testing import assert_array_equal
 from mne.preprocessing.ctps_ import (ctps, _prob_kuiper,
                                      _compute_normalized_phase)
 
-  # for testing don't use X server
-
-
 ###############################################################################
-# Generate ERF like signal (copied from MNE-Python)
+# Generate testing signal
 
 tmin = -0.3
 sfreq = 1000.  # Hz
@@ -28,7 +25,7 @@ Ws = morlet(sfreq, [3], n_cycles=[1])
 single_trial[0][:len(Ws[0])] = np.real(Ws[0])
 roll_to = 300 - 265  # shift data to center of time window
 single_trial = np.roll(single_trial, roll_to)
-rng = np.random.RandomState(0)
+rng = np.random.RandomState(42)
 
 
 def get_data(n_trials, j_extent):

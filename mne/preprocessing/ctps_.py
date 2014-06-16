@@ -1,0 +1,165 @@
+# Authors: Juergen Dammers <j.dammers@fz-juelich.de>
+#          Denis Engemann <denis.engemann@gmail.com>
+#
+# License: Simplified BSD
+
+import numpy as np
+from scipy.signal import hilbert
+
+
+def _compute_normalized_phase(data):
+    """Compute normalized phase angles
+    Parameters
+    ----------
+    data : ndarray, shape (n_epochs, n_sources, n_times)
+        The data to compute the phase angles for.
+    Returns
+    -------
+    phase_angles : ndarray, shape (n_epochs, n_sources, n_times)
+        The normalized phase angles
+    """
+    return (np.angle(hilbert(data)) + np.pi) / (2 * np.pi)
+
+
+def ctps(data, assume_raw=True):
+    """
+    Note. It is assumed that the sources are already
+    appropriately filtered
+
+    Parameters
+    ----------
+    data: ndarray
+        Any kind of data of dimensions trials, traces, features.
+    assume_raw : bool
+        If True it is assumed that data haven't been transformed to Hilbert
+        space and phase angles haven't been normalized. Defaults to True.
+
+    Returns
+    -------
+    ks_dynamics : ndarray, shape (n_sources, n_times)
+        The kuiper statistics.
+    pk_dynamics : ndarray, shape (n_sources, n_times)
+        The normalized kuiper index for ICA sources and
+        time slices.
+    phase_angles : ndarray, (n_epochs, n_sources, n_times) | None
+        The phase values for epochs, sources and time slices. If ``assume_raw``
+        is False, None is returned.
+    """
+    if not data.ndim == 3:
+        ValueError('Data must have 3 dimensions, not %i.' % data.ndim)
+
+    if assume_raw:
+        phase_angles = _compute_normalized_phase(data)
+    else:
+        phase_angles = data  # phase angles can be computed externally
+
+    # initialize array for results
+    ks_dynamics = np.zeros_like(phase_angles[0])
+    pk_dynamics = np.zeros_like(phase_angles[0])
+
+    # calculate Kuiper's statistic for each source
+    for ii, source in enumerate(np.transpose(phase_angles, [1, 0, 2])):
+        ks, pk = kuiper(source)
+        pk_dynamics[ii, :] = pk
+        ks_dynamics[ii, :] = ks
+
+    return ks_dynamics, pk_dynamics, phase_angles if assume_raw else None
+
+
+def kuiper(data, dtype='f8'):
+    """ Kuiper's test of distribution-equality
+
+    Parameters
+    ----------
+    data : ndarray {(n_sources), (n_sources, n_times)}
+           Empirical distribution.
+    dtype : str | obj
+        The data type to be used.
+
+    Returns
+    -------
+    ks : ndarray
+        Kuiper's statistic
+    pk : ndarray
+        normalized probability of Kuiper's statistic [0,1]
+    """
+    # if data not numpy array, implicitly convert and make to use copied data
+    # ! sort data array along first axis !
+    data = np.sort(data, axis=0).copy().astype(dtype)
+    dim = data.shape
+    n_dim = np.size(dim)
+    n_trials = dim[0]
+
+    # create uniform cdf
+    j1 = (np.arange(n_trials, dtype=dtype) + 1) / n_trials
+    j2 = (np.arange(n_trials, dtype=dtype)) / n_trials
+    if (n_dim == 1):  # single phase vector (n_trials)
+        n_time_slices = 1
+    else:  # phase array (n_trials, n_time_slices)
+        n_time_slices = dim[1]
+        j1 = j1.repeat(n_time_slices).reshape(n_trials, n_time_slices)
+        j2 = j2.repeat(n_time_slices).reshape(n_trials, n_time_slices)
+
+    # calc max. distance from uniform cdf
+    d1 = (j1 - data).max(axis=0)
+    d2 = (data - j2).max(axis=0)
+    n_eff = n_trials
+
+    d = d1 + d2  # Kuiper's statistic  [n_time_slices]
+
+    return d, _prob_kuiper(d, n_eff, dtype=dtype)
+
+
+def _prob_kuiper(d, n_eff, dtype='f8'):
+    """ Test for statistical significance against uniform distribution.
+
+    Parameters
+    ----------
+    d : float
+        The kuiper distance value.
+    n_eff : int
+        The effective number of elements.
+    dtype : str | obj
+        The data type to be used. Defaults to double precision floats
+
+    Returns
+    -------
+    pk_norm : float
+        The normalized Kuiper value such that 0 < ``pk_norm`` < 1.
+
+    References
+    ----------
+    [1] Stephens MA 1970. Journal of the Royal Statistical Society, ser. B,
+    vol 32, pp 115-122.
+
+    [2] Kuiper NH 1962. Proceedings of the Koninklijke Nederlands Akademie
+    van Wetenschappen, ser Vol 63 pp 38-47
+
+    [3] Press W et al 1995. Nurmerical Receipes in C. The Art of Scientific
+    Computing 2nd Ed. Cambridge University Press,pp 626-628
+    """
+    n_time_slices = np.size(d)  # single value or vector
+    n_points = 100
+
+    en = np.sqrt(np.double(n_eff))
+    k_lambda = (en + 0.155 + 0.24 / en) * d  # see [1], [3]
+    l2 = k_lambda ** 2.0
+    j2 = (np.arange(n_points) + 1) ** 2
+    j2 = j2.repeat(n_time_slices).reshape(n_points, n_time_slices)
+    fact = np.double(4) * j2 * l2 - np.double(1)
+    expo = np.exp(-2 * j2 * l2)
+    term = 2 * fact * expo
+    pk = term.sum(axis=0, dtype=dtype)
+
+    # Normalized pK to range [0,1]
+    pk_norm = np.zeros(n_time_slices)  # init pk_norm
+    pk_norm[pk > 0] = -np.log(pk[pk > 0]) / (2 * n_eff)
+    pk_norm[pk <= 0] = 1
+
+    # check for no difference to uniform cdf
+    pk_norm = np.where((k_lambda < 0.4), 0.0, pk_norm)
+
+    # check for round off errors
+    pk_norm = np.where((pk_norm > 1.0), 1.0, pk_norm)
+
+    return pk_norm
