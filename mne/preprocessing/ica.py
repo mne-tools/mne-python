@@ -814,7 +814,7 @@ class ICA(ContainsMixin):
             channels.
         threshold : float
             The value above which a feature is classified as outlier. If
-            method is 'ctps', defaults to 0.3, else defaults to 3.0.
+            method is 'ctps', defaults to 0.25, else defaults to 3.0.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -870,7 +870,7 @@ class ICA(ContainsMixin):
             ecg = inst.ch_names[idx_ecg]
         if method == 'ctps':
             if threshold is None:
-                threshold = 0.3
+                threshold = 0.25
             if isinstance(inst, _BaseRaw):
                 sources = self.get_sources(create_ecg_epochs(inst)).get_data()
             elif isinstance(inst, _BaseEpochs):
