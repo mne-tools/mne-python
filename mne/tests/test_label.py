@@ -195,7 +195,7 @@ def test_read_labels_from_annot():
 
     # test regexp
     label = read_labels_from_annot('sample', parc='aparc.a2009s',
-                                   regexp='Angu', subjects_dir=subjects_dir[0])
+                                   regexp='Angu', subjects_dir=subjects_dir)[0]
     assert_true(label.name == 'G_pariet_inf-Angular-lh')
     # silly, but real regexp:
     label = read_labels_from_annot('sample', 'aparc.a2009s',

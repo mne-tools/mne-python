@@ -56,8 +56,9 @@ stc_mean = stc.copy().crop(tmin, tmax).mean()
 # use the stc_mean to generate a functional label
 # region growing is halted at 60% of the peak value within the
 # anatomical label / ROI specified by aparc_label_name
-label = mne.read_annot(subject, parc='aparc', subjects_dir=subjects_dir,
-                       regexp=aparc_label_name)[0]
+label = mne.read_labels_from_annot(subject, parc='aparc',
+                                   subjects_dir=subjects_dir,
+                                   regexp=aparc_label_name)[0]
 stc_mean_label = stc_mean.in_label(label)
 data = np.abs(stc_mean_label.data)
 stc_mean_label.data[data < 0.6 * np.max(data)] = 0.
@@ -69,8 +70,9 @@ func_labels, _ = mne.stc_to_label(stc_mean_label, src=src, smooth=5,
 func_label = func_labels[0]
 
 # load the anatomical ROI for comparison
-anat_label = mne.read_annot(subject, parc='aparc', subjects_dir=subjects_dir,
-                            regexp=aparc_label_name)[0]
+anat_label = mne.read_labels_from_annot(subject, parc='aparc',
+                                        subjects_dir=subjects_dir,
+                                        regexp=aparc_label_name)[0]
 
 # extract the anatomical time course for each label
 stc_anat_label = stc.in_label(anat_label)

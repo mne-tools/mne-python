@@ -682,7 +682,7 @@ def write_label(filename, label, verbose=None):
 
     See Also
     --------
-    write_labels_annot
+    write_labels_to_annot
     """
     hemi = label.hemi
     path_head, name = op.split(filename)
