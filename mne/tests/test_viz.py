@@ -661,7 +661,8 @@ def test_plot_trans():
 def test_plot_bem():
     """Test plotting of BEM contours
     """
-    assert_raises(IOError, plot_bem, subject='bad-subject')
+    assert_raises(IOError, plot_bem, subject='bad-subject',
+                  subjects_dir=subjects_dir)
     assert_raises(ValueError, plot_bem, subject='sample',
                   subjects_dir=subjects_dir, orientation='bad-ori')
     plot_bem(subject='sample', subjects_dir=subjects_dir,

@@ -4575,22 +4575,24 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     # Get the MRI filename
     mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
     if not op.isfile(mri_fname):
-        raise IOError('MRI file "%s" does not exist'
-                      % mri_fname)
+        raise IOError('MRI file "%s" does not exist' % mri_fname)
 
     # Get the BEM surface filenames
     bem_path = op.join(subjects_dir, subject, 'bem')
 
     if not op.isdir(bem_path):
-        raise IOError('Subject bem directory "%s" does not exist'
-                      % bem_path)
+        raise IOError('Subject bem directory "%s" does not exist' % bem_path)
 
     surf_fnames = []
     for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
-        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))[0]
+        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
+        if len(surf_name) > 0:
+            surf_fname = surf_fname[0]
+            logger.info("Using surface: %s" % surf_fname)
+        else:
+            raise IOError('No surface found for %s.' % surf_name)
         if not op.isfile(surf_fname):
-            raise IOError('Surface file "%s" does not exist'
-                          % surf_fname)
+            raise IOError('Surface file "%s" does not exist' % surf_fname)
         surf_fnames.append(surf_fname)
 
     # Plot the contours
