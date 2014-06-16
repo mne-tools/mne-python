@@ -77,7 +77,10 @@ def object_hash(x, h=None, ignore_sbio=False):
     elif isinstance(x, (StringIO, BytesIO)):
         # XXX buggy for Raw instances for some reason...
         if not ignore_sbio:
-            h.update(x.getvalue())
+            if isinstance(x, BytesIO):
+                h.update(x.getvalue())
+            else:
+                h.update(x.getvalue().encode('utf-8'))
     elif isinstance(x, (list, tuple)):
         h.update(str(type(x)).encode('utf-8'))
         for xx in x:
