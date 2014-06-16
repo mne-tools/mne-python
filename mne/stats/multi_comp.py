@@ -208,7 +208,7 @@ def local_fdr_correction(data, n_bins=100, h0_maxiter=500, decimate=1):
 
     Returns
     -------
-    qvals : array, any shape
+    qvals : array, data.shape
         Values of FDR for each element of data.
 
     Notes
