@@ -89,6 +89,8 @@ Changelog
 
    - Add 'EvokedArray' class to create an Evoked object from an array by 'Andrew Dykstra'_
 
+   - Add `plot_bem` method to visualize BEM contours on MRI anatomical images by `Mainak Jas`_ and `Alex Gramfort`_
+
 
 BUG
 ~~~
