@@ -304,8 +304,8 @@ def test_evoked_io_from_epochs():
     assert_allclose(evoked.times, evoked2.times, rtol=1e-4, atol=1e-20)
 
 
-def test_evoked_standard_error():
-    """Test calculation and read/write of standard error
+def test_evoked_average_standard_error():
+    """Test calculation and read/write of mean and standard error
     """
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
