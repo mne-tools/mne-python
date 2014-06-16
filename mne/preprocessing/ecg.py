@@ -285,7 +285,7 @@ def _make_ecg(inst, start, stop, verbose=None):
     logger.info('Reconstructing ECG signal from {0}'
                 .format({'mag': 'Magnetometers',
                          'grad': 'Gradiometers'}[ch]))
-    picks = pick_types(inst.info, meg=True, eeg=False, ref_meg=False)
+    picks = pick_types(inst.info, meg=ch, eeg=False, ref_meg=False)
     if isinstance(inst, _BaseRaw):
         ecg, times = inst[picks, start:stop]
     elif isinstance(inst, _BaseEpochs):

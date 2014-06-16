@@ -91,6 +91,7 @@ Changelog
 
    - Add `plot_bem` method to visualize BEM contours on MRI anatomical images by `Mainak Jas`_ and `Alex Gramfort`_
 
+   - Add automated ECG detection using cross-trial phase statistics by `Denis Engemann`_ and `Juergen Dammers`_
 
 BUG
 ~~~
@@ -737,3 +738,5 @@ of commits):
 .. _Cathy Nangini: https://github.com/KatiRG
 
 .. _JR King: https://github.com/kingjr
+
+.. _Juergen Dammers: https://github.com/jdammers

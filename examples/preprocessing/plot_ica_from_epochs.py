@@ -28,10 +28,12 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 
 raw = Raw(raw_fname, preload=True)
 raw.filter(1, 30, method='iir')
-picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                       ecg=True, stim=False, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False, ecg=True,
+                       stim=False, exclude='bads')
 
-tmin, tmax, event_id = -0.2, 0.5, 1
+# longer + more epochs for more artifact exposure
+tmin, tmax = -0.5, 0.5
+event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 events = mne.find_events(raw, stim_channel='STI 014')
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
                     baseline=(None, 0), preload=True, reject=None)
@@ -39,7 +41,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
 ###############################################################################
 # 1) Fit ICA model
 
-ica = ICA(n_components=0.99).fit(epochs)
+ica = ICA(n_components=0.95).fit(epochs)
 
 ###############################################################################
 # 2) Find ECG Artifacts
@@ -47,17 +49,16 @@ ica = ICA(n_components=0.99).fit(epochs)
 # generate ECG epochs to improve detection by correlation
 ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5, picks=picks)
 
-
-ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, ch_name='MEG 1531')
+ecg_inds, scores = ica.find_bads_ecg(ecg_epochs)
 ica.plot_scores(scores, exclude=ecg_inds)
 
 title = 'Sources related to %s artifacts (red)'
 show_picks = np.abs(scores).argsort()[::-1][:5]
 
-ica.plot_sources(epochs, show_picks, exclude=ecg_inds, title=title % 'ECG')
-ica.plot_components(ecg_inds, title=title % 'ECG')
+ica.plot_sources(epochs, show_picks, exclude=ecg_inds, title=title % 'ecg')
+ica.plot_components(ecg_inds, title=title % 'ecg')
 
-ica.exclude += ecg_inds[:2]  # mark bad components, rely on first two
+ica.exclude += ecg_inds[:3]  # whatever happens, we take 3
 
 ###############################################################################
 # 3) Assess component selection and unmixing quality
@@ -65,7 +66,8 @@ ica.exclude += ecg_inds[:2]  # mark bad components, rely on first two
 # estimate average artifact
 ecg_evoked = ecg_epochs.average()
 ica.plot_sources(ecg_evoked)  # plot ECG sources + selection
-ica.plot_overlay(ecg_evoked)  # plot ecg cleaning
+ica.plot_overlay(ecg_evoked)  # plot ECG cleaning
 
 # check effect on ERF of interest
-ica.plot_overlay(epochs.average())  # plot remaining ERF
+epochs.crop(-.2, None)  # crop to baseline of interest
+ica.plot_overlay(epochs['aud_l'].average())  # plot remaining left auditory ERF
