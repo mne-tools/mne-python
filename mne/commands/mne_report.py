@@ -307,6 +307,15 @@ image_template = HTMLTemplate(u"""
 """)
 
 
+def _fig_to_img(fig):
+    """Auxiliary function for fig <-> binary image.
+    """
+    output = StringIO.StringIO()
+    fig.savefig(output, format='png')
+
+    return output.getvalue().encode('base64')
+
+
 class HTMLScanRenderer(object):
     """Object for rendering HTML"""
 
@@ -402,8 +411,8 @@ class HTMLScanRenderer(object):
 
             # loop through conditions for evoked
             elif _endswith(fname, ['-ave.fif']):
-                evokeds = mne.io.read_evokeds(fname, baseline=(None, 0),
-                                              verbose=False)
+                evokeds = mne.read_evokeds(fname, baseline=(None, 0),
+                                           verbose=False)
 
                 html += (u'\n\t<li class="evoked"><span title="%s" '
                          'style="color:%s"> %s </span>'
@@ -416,6 +425,15 @@ class HTMLScanRenderer(object):
                              % (global_id, fname, color, ev.comment))
                     global_id += 1
                 html += u'</ul></li>'
+
+        html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
+                 (global_id, 'BEM contours (coronal)'))
+        global_id += 1
+        html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
+                 (global_id, 'BEM contours (sagittal)'))
+        global_id += 1
+        html += (u'\n\t<li class="evoked"><a href="#%d"><span> %s</span></a>'
+                 '</li>' % (global_id, 'BEM contours (axial)'))
 
         html += u'\n</ul></div>'
 
@@ -487,17 +505,13 @@ class HTMLScanRenderer(object):
         return html
 
     def render_evoked(self, evoked_fname, figsize=None):
-        evokeds = mne.io.read_evokeds(evoked_fname, baseline=(None, 0),
-                                      verbose=False)
+        evokeds = mne.read_evokeds(evoked_fname, baseline=(None, 0),
+                                   verbose=False)
 
         html = []
         for ev in evokeds:
             global_id = self.get_id()
-            fig = ev.plot(show=False)
-            output = StringIO.StringIO()
-            # fig.savefig(output, dpi=self.dpi, format='png')
-            fig.savefig(output, format='png')
-            img = output.getvalue().encode('base64')
+            img = _fig_to_img(ev.plot(show=False))
             caption = 'Evoked : ' + evoked_fname + ' (' + ev.comment + ')'
             div_klass = 'evoked'
             img_klass = 'evoked'
@@ -515,11 +529,7 @@ class HTMLScanRenderer(object):
         events = mne.read_events(eve_fname)
         sfreq = 1000.  # XXX
         ax = mne.viz.plot_events(events, sfreq=sfreq, show=False)  # XXX : weird colors
-        fig = ax.gcf()
-        output = StringIO.StringIO()
-        # fig.savefig(output, dpi=self.dpi, format='png')
-        fig.savefig(output, format='png')
-        img = output.getvalue().encode('base64')
+        img = _fig_to_img(ax.gcf())
         caption = 'Events : ' + eve_fname
         div_klass = 'events'
         img_klass = 'events'
@@ -534,10 +544,8 @@ class HTMLScanRenderer(object):
         global_id = self.get_id()
         cov = mne.Covariance(cov_fname)
         plt.matshow(cov.data)
-        output = StringIO.StringIO()
-        fig = plt.gcf()
-        fig.savefig(output, format='png')
-        img = output.getvalue().encode('base64')
+
+        img = _fig_to_img(plt.gcf())
         caption = 'Covariance : ' + cov_fname
         div_klass = 'covariance'
         img_klass = 'covariance'
@@ -548,8 +556,8 @@ class HTMLScanRenderer(object):
                                          caption=caption,
                                          show=show)
 
-    def render_trans(self, trans_fname, path, info_fname, subjects_dir,
-                     subject):
+    def render_trans(self, trans_fname, path, info_fname, subject,
+                     subjects_dir):
 
         global_id = self.get_id()
 
@@ -565,6 +573,24 @@ class HTMLScanRenderer(object):
         caption = 'Trans : ' + trans_fname
         div_klass = 'trans'
         img_klass = 'trans'
+        show = True
+        return image_template.substitute(img=img, id=global_id,
+                                         div_klass=div_klass,
+                                         img_klass=img_klass,
+                                         caption=caption,
+                                         show=show)
+
+    def render_bem(self, subject, subjects_dir, orientation='coronal'):
+
+        global_id = self.get_id()
+
+        fig = mne.viz.plot_bem(subject=subject, subjects_dir=subjects_dir,
+                               orientation=orientation, show=False)
+        img = _fig_to_img(fig)
+
+        caption = 'BEM Contours : ' + orientation
+        div_klass = 'bem'
+        img_klass = 'bem'
         show = True
         return image_template.substitute(img=img, id=global_id,
                                          div_klass=div_klass,
@@ -618,12 +644,19 @@ def render_folder(path, info_fname, subjects_dir, subject):
                 html += renderer.render_cov(fname)
             elif _endswith(fname, ['-trans.fif']):
                 html += renderer.render_trans(fname, path, info_fname,
-                                              subjects_dir, subject)
+                                              subject, subjects_dir)
             elif op.isdir(fname):
                 folders.append(fname)
                 print folders
         except Exception, e:
             print e
+
+    html += renderer.render_bem(subject=subject, subjects_dir=subjects_dir,
+                                orientation='coronal')
+    html += renderer.render_bem(subject=subject, subjects_dir=subjects_dir,
+                                orientation='sagittal')
+    html += renderer.render_bem(subject=subject, subjects_dir=subjects_dir,
+                                orientation='axial')
     html += renderer.finish_render()
     report_fname = op.join(path, 'report.html')
     fobj = open(report_fname, 'w')
