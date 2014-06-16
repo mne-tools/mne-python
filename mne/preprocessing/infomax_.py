@@ -163,7 +163,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
                                                   np.dot(np.dot(u.T, y), signs)
                                                   - np.dot(u.T, u))
                 bias += (learning_rate * np.sum(y, axis=0, dtype=np.float64)
-                         .reshape(n_features, 1)) * -2
+                         * -2).reshape(n_features, 1)
 
             else:
                 # logistic ICA weights update
