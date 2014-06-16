@@ -2844,8 +2844,8 @@ def plot_connectivity_matrix(con, node_names, indices=None,
         if indices is None:
             raise ValueError('indices has to be provided if con.ndim == 1')
         tmp = np.zeros((n_nodes, n_nodes))
-        for c, *i in zip(con, *indices):
-            tmp[i] = c
+        for ci in zip(con, *indices):
+            tmp[ci[1:]] = c[0]
         con = tmp
     elif con.ndim == 2:
         if con.shape[0] != n_nodes or con.shape[1] != n_nodes:
