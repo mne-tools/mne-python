@@ -55,10 +55,9 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
     if epochs:
         # Set up pick list: MEG - bad channels
         left_temporal_channels = mne.read_selection('Left-temporal')
-        picks = mne.pick_types(raw.info, meg=True, eeg=False,
-                                    stim=True, eog=True, ref_meg=False,
-                                    exclude='bads',
-                                    selection=left_temporal_channels)
+        picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True,
+                               eog=True, ref_meg=False, exclude='bads',
+                               selection=left_temporal_channels)
 
         # Read epochs
         epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
@@ -199,7 +198,7 @@ def test_lcmv_raw():
     # use only the left-temporal MEG channels for LCMV
     left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True, exclude='bads',
-                                selection=left_temporal_channels)
+                           selection=left_temporal_channels)
 
     data_cov = mne.compute_raw_data_covariance(raw, tmin=tmin, tmax=tmax)
 
@@ -277,13 +276,12 @@ def test_tf_lcmv():
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True, eeg=False,
-                                stim=True, eog=True, exclude='bads',
-                                selection=left_temporal_channels)
+                           stim=True, eog=True, exclude='bads',
+                           selection=left_temporal_channels)
 
     # Read epochs
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        picks=picks, baseline=(None, 0),
-                        preload=False,
+                        picks=picks, baseline=None, preload=False,
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
     epochs.drop_bad_epochs()
 
@@ -299,7 +297,8 @@ def test_tf_lcmv():
         raw_band = raw.copy()
         raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1, picks=picks)
         epochs_band = mne.Epochs(raw_band, epochs.events, epochs.event_id,
-                                 tmin=tmin, tmax=tmax, proj=True)
+                                 tmin=tmin, tmax=tmax, baseline=None,
+                                 proj=True)
         with warnings.catch_warnings(record=True):  # not enough samples
             noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
                                            win_length)
