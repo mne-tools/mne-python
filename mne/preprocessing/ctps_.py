@@ -18,7 +18,7 @@ def _compute_normalized_phase(data):
     Returns
     -------
     phase_angles : ndarray, shape (n_epochs, n_sources, n_times)
-        The normalized phase angles
+        The normalized phase angles.
     """
     return (np.angle(hilbert(data)) + np.pi) / (2 * np.pi)
 
@@ -126,7 +126,7 @@ def _prob_kuiper(d, n_eff, dtype='f8'):
     n_eff : int
         The effective number of elements.
     dtype : str | obj
-        The data type to be used. Defaults to double precision floats
+        The data type to be used. Defaults to double precision floats.
 
     Returns
     -------
