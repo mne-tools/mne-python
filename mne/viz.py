@@ -2761,12 +2761,11 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
 def plot_connectivity_matrix(con, node_names, indices=None,
                              node_colors=None, facecolor='black',
-                             textcolor='white',
-                             colormap='hot', vmin=None, vmax=None,
-                             colorbar=True, title=None, colorbar_size=0.2,
-                             colorbar_pos=(-0.3, 0.1), fontsize_title=12,
-                             fontsize_names=8, fontsize_colorbar=8,
-                             fig=None, subplot=111):
+                             textcolor='white', colormap='hot', vmin=None,
+                             vmax=None, colorbar=True, title=None,
+                             colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
+                             fontsize_title=12, fontsize_names=8,
+                             fontsize_colorbar=8, fig=None, subplot=111):
     """Visualize connectivity as a matrix.
 
     Parameters
