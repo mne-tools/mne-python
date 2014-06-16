@@ -1,5 +1,6 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Juergen Dammers <j.dammers@fz-juelich.de>
 #
 # License: BSD (3-clause)
 
@@ -16,7 +17,8 @@ from scipy import stats
 from scipy.spatial import distance
 from scipy import linalg
 
-from .ecg import qrs_detector, _get_ecg_channel_index, _make_ecg
+from .ecg import (qrs_detector, _get_ecg_channel_index, _make_ecg,
+                  create_ecg_epochs)
 from .eog import _find_eog_events, _get_eog_channel_index
 
 from ..cov import compute_whitener
@@ -40,6 +42,7 @@ from ..utils import (check_sklearn_version, logger, check_fname, verbose,
                      deprecated, _reject_data_segments)
 from ..filter import band_pass_filter
 from .bads import find_outliers
+from .ctps_ import ctps
 
 try:
     from sklearn.utils.extmath import fast_dot
@@ -793,18 +796,13 @@ class ICA(ContainsMixin):
         return scores
 
     @verbose
-    def find_bads_ecg(self, inst, ch_name=None, threshold=3.0,
+    def find_bads_ecg(self, inst, ch_name=None, threshold=0.3,
                       start=None, stop=None, l_freq=8, h_freq=16,
-                      verbose=None):
+                      method='ctps', verbose=None):
         """Detect ECG related components using correlation
 
-        Detection is based on Pearson correlation between the
-        filtered data and the filtered ECG channel. If no
-        ECG channel is available, routine attempts to create
+        Note. If no ECG channel is available, routine attempts to create
         an artificial ECG based on cross-channel averaging.
-        Thresholding is based on adaptive z-scoring. The above threshold
-        components will be masked and the z-score will be recomputed
-        until no supra-threshold component remains.
 
         Parameters
         ----------
@@ -826,6 +824,17 @@ class ICA(ContainsMixin):
             Low pass frequency.
         h_freq : float
             High pass frequency.
+        mehtod : {'ctps', 'correlation'}
+            The method used for detection. If 'ctps', cros-trial phase
+            statistics [1] are used to to detect ECG related components.
+            Thresholding is then based on the significance value of a Kuiper
+            statistic.
+            If 'correlation', detection is based on Pearson correlation
+            between the filtered data and the filtered ECG channel.
+            Thresholding is based on iterative z-scoring. The above
+            threshold components will be masked and the z-score will
+            be recomputed until no supra-threshold component remains.
+            Defaults to 'ctps'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -850,11 +859,26 @@ class ICA(ContainsMixin):
             ch_name = 'ECG'
         else:
             ecg = inst.ch_names[idx_ecg]
-        scores = self.score_sources(inst, target=ecg, score_func='pearsonr',
-                                    start=start, stop=stop,
-                                    l_freq=l_freq, h_freq=h_freq,
-                                    verbose=verbose)
-        ecg_idx = find_outliers(scores, threshold=threshold)
+        if method == 'ctps':
+            if isinstance(inst, _BaseRaw):
+                sources = self.get_sources(create_ecg_epochs(inst)).get_data()
+            elif isinstance(inst, _BaseEpochs):
+                sources = self.get_sources(inst).get_data()
+            else:
+                raise ValueError('With `ctps` only Raw and Epochs input is '
+                                 'supported')
+            _, p_vals, _ = ctps(sources)
+            scores = p_vals.max(-1)
+            ecg_idx = np.where(scores >= threshold)[0]
+        elif method == 'correlation':
+            scores = self.score_sources(inst, target=ecg,
+                                        score_func='pearsonr',
+                                        start=start, stop=stop,
+                                        l_freq=l_freq, h_freq=h_freq,
+                                        verbose=verbose)
+            ecg_idx = find_outliers(scores, threshold=threshold)
+        else:
+            raise ValueError('Mehtod "%s" not supported.' % method)
         # sort indices by scores
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
         return list(ecg_idx), scores
