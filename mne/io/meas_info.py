@@ -491,7 +491,7 @@ def read_extra_meas_info(fid, tree, info):
     info['orig_blocks'] = blocks
 
     fid_str = BytesIO()
-    fid_str = start_file(fid_str)
+    fid_str = start_file(fid_str, tree['id'])
     start_block(fid_str, FIFF.FIFFB_MEAS_INFO)
     for block in blocks:
         nodes = dir_tree_find(tree, block)
