@@ -614,7 +614,7 @@ def read_label(filename, subject=None, color=None):
 
     See Also
     --------
-    read_annot_labels
+    read_labels_from_annot
     """
     if subject is not None and not isinstance(subject, string_types):
         raise TypeError('subject must be a string')
@@ -1563,6 +1563,10 @@ def write_annot(fname, annot, ctab, names):
         RGBA colortable array.
     names : list of str
         List of region names to be stored in the annot file
+
+    See Also
+    --------
+    write_labels_to_annot
     """
 
     with open(fname, 'wb') as fid:
