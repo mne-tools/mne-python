@@ -1,12 +1,13 @@
 """
-=========================================================================
-Compute source space connectivity and visualize it using a circular graph
-=========================================================================
+====================================================================
+Compute functional and effective connectivity between source patches
+====================================================================
 
-This example computes the all-to-all connectivity between 68 regions in
-source space based on dSPM inverse solutions and a FreeSurfer cortical
-parcellation. The connectivity is visualized using a circular graph which
-is ordered based on the locations of the regions.
+This example computes functional and effective connectivity between 68 regions
+in source space. Connectivity is estimated with SCoT [1] from multivariate
+autoregressive models.
+
+[1] http://scot-dev.github.io/scot-doc/index.html
 """
 
 # Authors: Martin Billinger <martin.billinger@tugraz.at>
@@ -77,7 +78,7 @@ mvar_order = 30  # model order determines frequency resolution
 sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['PDC', 'COH']
 con, freqs = mvar_connectivity(label_ts, con_methods, mvar_order,
-                               sfreq=sfreq, fmin=fmin, fmax=fmax)
+                               sfreq=sfreq, fmin=fmin, fmax=fmax, ridge=0)
 
 con_res = dict()
 for method, c in zip(con_methods, con):
@@ -86,7 +87,12 @@ for method, c in zip(con_methods, con):
 # First visualize directed (effective) connectivity matrix
 plot_connectivity_matrix(con_res['PDC'][:, :, 0], label_names,
                          node_colors=label_colors, title='All-to-All '
-                         'Connectivity left-Auditory Condition (PDC)')
+                         'Connectivity left-Auditory Condition (PDC, alpha band)')
+
+# First visualize directed (effective) connectivity matrix
+plot_connectivity_matrix(con_res['COH'][:, :, 0], label_names,
+                         node_colors=label_colors, title='All-to-All '
+                         'Connectivity left-Auditory Condition (COH, alpha band)')
 
 # Now, we visualize the connectivity using a circular graph layout
 

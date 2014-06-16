@@ -72,13 +72,25 @@ def mvar_connectivity(data, method, order, fitting_mode='lsq', ridge=0,
                       sfreq=2, fmin=0, fmax=np.inf, nfft=512):
     """Estimate connectivity from multivariate autoregressive (MVAR) models.
 
+    This function uses routines from SCoT [1] to fit MVAR models and compute
+    connectivity measures.
+
     Parameters
     ----------
     data : array, shape=(n_epochs, n_signals, n_times)
            or list/generator of array, shape =(n_signals, n_times)
         The data from which to compute connectivity.
     method : string | list of string
-        Connectivity measure(s) to compute.
+        Connectivity measure(s) to compute. Supported measures:
+        'COH' : coherence
+        'pCOH' : partial coherence
+        'PDC' : partial directed coherence
+        'PDCF' : partial directed coherence factor
+        'GPDC' : generalized partial directed coherence
+        'DTF' : directed transfer function
+        'ffDTF' : full-frequency directed transfer function
+        'dDTF' : "direct" directed transfer function
+        'GDTF' : generalized directed transfer function
     order : int
         order (length) of the underlying MVAR model
     fitting_mode : str
@@ -100,6 +112,11 @@ def mvar_connectivity(data, method, order, fitting_mode='lsq', ridge=0,
     fmax : float | tuple of floats
         The upper frequency of interest. Multiple bands are defined using
         a tuple, e.g. (12., 24.) for two band with 12Hz and 24Hz upper freq.
+
+    References
+    ----------
+    [1] M. Billinger, C.Brunner, G. R. Müller-Putz. "SCoT: a Python toolbox for
+        EEG source connectivity", Frontiers in Neuroinformatics, 8:22, 2014
     """
 
     if not isinstance(method, (list, tuple)):
