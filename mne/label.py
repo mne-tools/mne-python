@@ -1326,10 +1326,6 @@ def _grow_nonoverlapping_labels(subject, seeds_, extents_, hemis, vertices_,
 
 
 def _read_annot(fname):
-    read_annot(fname)
-
-
-def read_annot(fname):
     """Read a Freesurfer annotation from a .annot file.
 
     Note : Copied from PySurfer
@@ -1504,7 +1500,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     labels = list()
     for fname, hemi in zip(annot_fname, hemis):
         # read annotation
-        annot, ctab, label_names = read_annot(fname)
+        annot, ctab, label_names = _read_annot(fname)
         label_rgbas = ctab[:, :4]
         label_ids = ctab[:, -1]
 
@@ -1545,11 +1541,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     return labels
 
 
-def _write_annot(fname):
-    write_annot(fname)
-
-
-def write_annot(fname, annot, ctab, names):
+def _write_annot(fname, annot, ctab, names):
     """Write a Freesurfer annotation to a .annot file.
 
     Parameters
@@ -1827,6 +1819,6 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     # write it
     for fname, annot, ctab, hemi_names in to_save:
         logger.info('   writing %d labels to %s' % (len(hemi_names), fname))
-        write_annot(fname, annot, ctab, hemi_names)
+        _write_annot(fname, annot, ctab, hemi_names)
 
     logger.info('[done]')
