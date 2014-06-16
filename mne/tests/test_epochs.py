@@ -1131,7 +1131,7 @@ def test_array_epochs():
 
     # creating
     rng = np.random.RandomState(42)
-    data = rng.random_sample((10, 20, 50))
+    data = rng.random_sample((10, 20, 300))
     sfreq = 1e3
     ch_names = ['EEG %03d' % (i + 1) for i in range(20)]
     types = ['eeg'] * 20
@@ -1161,3 +1161,13 @@ def test_array_epochs():
     # indexing
     assert_array_equal(np.unique(epochs['a'].events[:, 2]), np.array([1]))
     assert_equal(len(epochs[:2]), 2)
+    data[0, 5, 150] = 3000
+    data[1, :, :] = 0
+    data[2, 5, 210] = 3000
+    data[3, 5, 260] = 0
+    epochs = EpochsArray(data, info, events=events, event_id=event_id,
+                         tmin=0, reject=dict(eeg=1000), flat=dict(eeg=1e-1),
+                         reject_tmin=0.1, reject_tmax=0.2)
+    assert_equal(len(epochs), len(events) - 2)
+    assert_equal(epochs.drop_log[0], ['EEG 006'])
+    assert_equal(len(events), len(epochs.selection))

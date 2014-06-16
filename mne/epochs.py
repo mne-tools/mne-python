@@ -1580,14 +1580,37 @@ class EpochsArray(Epochs):
         in the list are used. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
+    reject : dict
+        Epoch rejection parameters based on peak to peak amplitude.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+        If reject is None then no rejection is done.
+        Values are float. Example::
+
+            reject = dict(grad=4000e-13, # T / m (gradiometers)
+                          mag=4e-12, # T (magnetometers)
+                          eeg=40e-6, # uV (EEG channels)
+                          eog=250e-6 # uV (EOG channels)
+                          )
+
+    flat : dict
+        Epoch rejection parameters based on flatness of signal
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        If flat is None then no rejection is done.
+    reject_tmin : scalar | None
+        Start of the time window used to reject epochs (with the default None,
+        the window will start with tmin).
+    reject_tmax : scalar | None
+        End of the time window used to reject epochs (with the default None,
+        the window will end with tmax).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
     """
 
     @verbose
-    def __init__(self, data, info, events, event_id=None, tmin=0,
-                 verbose=None):
+    def __init__(self, data, info, events, tmin=0, event_id=None,
+                 reject=None, flat=None, reject_tmin=None,
+                 reject_tmax=None, verbose=None):
 
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
@@ -1626,12 +1649,31 @@ class EpochsArray(Epochs):
         self.selection = np.arange(len(events))
         self.picks = None
         self.times = (np.arange(data.shape[-1], dtype=np.float) /
-                                info['sfreq'] + tmin)
+                      info['sfreq'] + tmin)
         self.tmin = self.times[0]
         self.tmax = self.times[-1]
         self.verbose = verbose
         self.name = 'Unknown'
         self._projector = None
+        self.reject = reject
+        self.flat = flat
+        self.reject_tmin = reject_tmin
+        self.reject_tmax = reject_tmax
+        self._reject_setup()
+        drop_inds = list()
+        if self.reject is not None or self.flat is not None:
+            for i_epoch, epoch in enumerate(self):
+                is_good, chan = self._is_good_epoch(epoch,
+                                                    verbose=self.verbose)
+                if not is_good:
+                    drop_inds.append(i_epoch)
+                    self.drop_log[i_epoch].extend(chan)
+        if drop_inds:
+            select = np.ones(len(events), dtype=np.bool)
+            select[drop_inds] = False
+            self.events = self.events[select]
+            self._data = self._data[select]
+            self.selection[select]
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
