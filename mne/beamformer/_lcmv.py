@@ -676,6 +676,12 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                             '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
                                              l_freq, h_freq))
 
+                # Counteracts unsafe floating point arithmetic ensuring all
+                # relevant samples will be taken into account when selecting
+                # data in time windows
+                win_tmin = win_tmin - 1e-10
+                win_tmax = win_tmax + 1e-10
+
                 # Calculating data covariance from filtered epochs in current
                 # time window
                 data_cov = compute_covariance(epochs_band, tmin=win_tmin,
