@@ -812,9 +812,9 @@ class ICA(ContainsMixin):
             The name of the channel to use for ECG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
-        threshold : float | None
+        threshold : float
             The value above which a feature is classified as outlier. If
-            method is 'ctps', defaults to 0.3, else defaults to 3.0
+            method is 'ctps', defaults to 0.3, else defaults to 3.0.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -827,7 +827,7 @@ class ICA(ContainsMixin):
             High pass frequency.
         method : {'ctps', 'correlation'}
             The method used for detection. If 'ctps', cros-trial phase
-            statistics [1] are used to to detect ECG related components.
+            statistics [1] are used to detect ECG related components.
             Thresholding is then based on the significance value of a Kuiper
             statistic.
             If 'correlation', detection is based on Pearson correlation
@@ -846,6 +846,14 @@ class ICA(ContainsMixin):
             The indices of EOG related components.
         scores : np.ndarray of float, shape (ica.n_components_)
             The correlation scores.
+
+        References
+        ----------
+        [1] Dammers, J., Schiek, M., Boers, F., Silex, C., Zvyagintsev,
+            M., Pietrzyk, U., Mathiak, K., 2008. Integration of amplitude
+            and phase statistics for complete artifact removal in independent
+            components of neuromagnetic recordings. Biomedical
+            Engineering, IEEE Transactions on 55 (10), 2353–2362.
         """
         if verbose is None:
             verbose = self.verbose
