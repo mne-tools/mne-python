@@ -4,7 +4,7 @@ Compute ICA components on raw data
 ==================================
 
 ICA is fit to MEG raw data.
-The sources matching the ECG are automatically found and displayed.
+The sources matching the eog are automatically found and displayed.
 Subsequently, artifact detection and rejection quality are assessed.
 """
 print(__doc__)
@@ -18,7 +18,7 @@ import numpy as np
 import mne
 from mne.io import Raw
 from mne.preprocessing import ICA
-from mne.preprocessing import create_ecg_epochs
+from mne.preprocessing import create_eog_epochs
 from mne.datasets import sample
 
 ###############################################################################
@@ -48,30 +48,30 @@ ica.fit(raw, picks=picks, decim=3, reject=dict(mag=4e-12, grad=4000e-13))
 
 # create EOG epochs to improve detection by correlation
 picks = mne.pick_types(raw.info, meg=True, eog=True)
-ecg_epochs = create_ecg_epochs(raw, picks=picks)
+eog_epochs = create_eog_epochs(raw, picks=picks)
 
-ecg_inds, scores = ica.find_bads_ecg(ecg_epochs)  # inds sorted!
+eog_inds, scores = ica.find_bads_eog(eog_epochs)  # inds sorted!
 
-ica.plot_scores(scores, exclude=ecg_inds)  # inspect metrics used
+ica.plot_scores(scores, exclude=eog_inds)  # inspect metrics used
 
 show_picks = np.abs(scores).argsort()[::-1][:5]  # indices of top five scores
 
 # detected artifacts drawn in red (via exclude)
-ica.plot_sources(raw, show_picks, exclude=ecg_inds, start=0., stop=3.0)
-ica.plot_components(ecg_inds, colorbar=False)  # show component sensitivites
+ica.plot_sources(raw, show_picks, exclude=eog_inds, start=0., stop=3.0)
+ica.plot_components(eog_inds, colorbar=False)  # show component sensitivites
 
-ica.exclude += ecg_inds  # mark first for exclusion
+ica.exclude += eog_inds[:1]  # mark first for exclusion
 
 ###############################################################################
 # 3) check detection and visualize artifact rejection
 
 # estimate average artifact
-ecg_evoked = ecg_epochs.average()
-ica.plot_sources(ecg_evoked)  # latent ECG sources + selction
-ica.plot_overlay(ecg_evoked)  # overlay raw and clean ECG artifacts
+eog_evoked = eog_epochs.average()
+ica.plot_sources(eog_evoked)  # latent EOG sources + selction
+ica.plot_overlay(eog_evoked)  # overlay raw and clean EOG artifacts
 
 # check the amplitudes do not change
-ica.plot_overlay(raw)  # ECG artifacts remain
+ica.plot_overlay(raw)  # EOG artifacts remain
 
 ###############################################################################
 # To save an ICA solution you can say:
