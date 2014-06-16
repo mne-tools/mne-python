@@ -900,7 +900,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 def point_spread_function(inverse_operator, forward, labels, method='dSPM',
                           lambda2=1 / 9., pick_ori=None, mode='mean',
-                          svd_comp=1):
+                          n_svd_comp=1):
     """Compute point-spread functions (PSFs) for linear estimators
 
     Compute point-spread functions (PSF) in labels for a combination of inverse
@@ -935,7 +935,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         assumed to be more variable.
         "sub-leadfields" are the parts of the forward solutions that belong to
         vertices within invidual labels
-    svd_comp: integer
+    n_svd_comp: integer
         Number of SVD components for which PSFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-leadfields are shown in screen output
@@ -944,15 +944,15 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     -------
     stc_psf : SourceEstimate
         The PSFs for the specified labels
-        If mode='svd': svd_comp components per label are created
-        (i.e. svd_comp successive time points in mne_analyze)
+        If mode='svd': n_svd_comp components per label are created
+        (i.e. n_svd_comp successive time points in mne_analyze)
         The last sample is the summed PSF across all labels
         Scaling of PSFs is arbitrary, and may differ greatly among methods
         (especially for MNE compared to noise-normalized estimates)
     evoked_fwd: Evoked
         Forward solutions corresponding to PSFs in stc_psf
-        If mode='svd': svd_comp components per label are created
-        (i.e. svd_comp successive time points in mne_analyze)
+        If mode='svd': n_svd_comp components per label are created
+        (i.e. n_svd_comp successive time points in mne_analyze)
         The last sample is the summed forward solution across all labels
         (sum is taken across summary measures)
     label_singvals: list of numpy arrays
@@ -1014,7 +1014,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
 
         elif mode.lower() == 'svd':  # takes svd of forward solutions in label
             logger.info("Computing SVD within labels, using %d component(s)"
-                        % svd_comp)
+                        % n_svd_comp)
 
             # compute SVD of sub-leadfield
             u_svd, s_svd, _ = np.linalg.svd(sub_leadfield,
@@ -1024,20 +1024,20 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
             # keep singular values (might be useful to some people)
             label_singvals.append(s_svd)
 
-            # get first svd_comp components, weighted with their corresponding
+            # get first n_svd_comp components, weighted with their corresponding
             # singular values
             logger.info("first 5 singular values:")
             logger.info(s_svd[0:5])
             logger.info("(This tells you something about variability of "
                         "forward solutions in sub-leadfield for label)")
             # explained variance by chosen components within sub-leadfield
-            my_comps = s_svd[0:svd_comp]
+            my_comps = s_svd[0:n_svd_comp]
             comp_var = (100 * np.sum(np.power(my_comps, 2)) /
                         np.sum(np.power(s_svd, 2)))
             logger.info("Your %d component(s) explain(s) %.1f%% "
-                        "variance.\n" % (svd_comp, comp_var))
-            this_label_psf_summary = np.dot(u_svd[:, 0:svd_comp],
-                                            np.diag(s_svd[0:svd_comp]))
+                        "variance.\n" % (n_svd_comp, comp_var))
+            this_label_psf_summary = np.dot(u_svd[:, 0:n_svd_comp],
+                                            np.diag(s_svd[0:n_svd_comp]))
             # transpose required for conversion to "evoked"
             this_label_psf_summary = this_label_psf_summary.T
 
@@ -1070,7 +1070,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
 
 def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
                                       method='dSPM', lambda2=3, mode='mean',
-                                      svd_comp=1):
+                                      n_svd_comp=1):
     """
 
     Get inverse matrix from an inverse operator for specific parameter settings
@@ -1108,7 +1108,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
         assumed to be more variable.
         "sub-inverse" is the part of the inverse matrix that belongs to
         vertices within invidual labels.
-    svd_comp : integer
+    n_svd_comp : integer
         Number of SVD components for which CTFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-inverses are shown in screen output.
@@ -1198,7 +1198,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
 
             elif mode.lower() == 'svd':  # takes svd of sub-inverse in label
                 logger.info("Computing SVD within labels, using %d "
-                            "component(s)" % svd_comp)
+                            "component(s)" % n_svd_comp)
 
                 # compute SVD of sub-inverse
                 u_svd, s_svd, _ = np.linalg.svd(invmat_lbl.T,
@@ -1208,20 +1208,20 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
                 # keep singular values (might be useful to some people)
                 label_singvals.append(s_svd)
 
-                # get first svd_comp components, weighted with their
+                # get first n_svd_comp components, weighted with their
                 # corresponding singular values
                 logger.info("first 5 singular values:")
                 logger.info(s_svd[0:5])
                 logger.info("(This tells you something about variability of "
                             "estimators in sub-inverse for label)")
                 # explained variance by chosen components within sub-inverse
-                my_comps = s_svd[0:svd_comp]
+                my_comps = s_svd[0:n_svd_comp]
                 comp_var = (100 * np.sum(np.power(my_comps, 2)) /
                             np.sum(np.power(s_svd, 2)))
                 logger.info("Your %d component(s) explain(s) %.1f%% "
-                            "variance.\n" % (svd_comp, comp_var))
-                this_invmat_summary = np.dot(u_svd[:, 0:svd_comp],
-                                             np.diag(s_svd[0:svd_comp]))
+                            "variance.\n" % (n_svd_comp, comp_var))
+                this_invmat_summary = np.dot(u_svd[:, 0:n_svd_comp],
+                                             np.diag(s_svd[0:n_svd_comp]))
                 this_invmat_summary = this_invmat_summary.T
 
             if invmat_summary.shape == ():
@@ -1239,8 +1239,8 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
 
 
 def cross_talk_function(inverse_operator, forward, labels,
-                        method='dSPM', lambda2=1 / 9.,
-                        mode='mean', svd_comp=1):
+                        method='dSPM', lambda2=1 / 9., signed=False,
+                        mode='mean', n_svd_comp=1):
     """Compute cross-talk functions (CTFs) for linear estimators
 
     Compute cross-talk functions (CTF) in labels for a combination of inverse
@@ -1261,6 +1261,9 @@ def cross_talk_function(inverse_operator, forward, labels,
         Labels for which CTFs shall be computed.
     lambda2 : float
         The regularization parameter.
+    signed: True | False
+        If True, CTFs will be written as signed source estimates. If False,
+        absolute (unsigned) values will be written
     mode : 'mean' | 'sum' | 'svd'
         CTFs can be computed for different summary measures with labels:
         'sum' or 'mean': sum or means of sub-inverses for labels
@@ -1270,7 +1273,7 @@ def cross_talk_function(inverse_operator, forward, labels,
         This is better suited for situations where activation patterns are
         assumed to be more variable. "sub-inverse" is the part of the inverse
         matrix that belongs to vertices within invidual labels.
-    svd_comp : int
+    n_svd_comp : int
         Number of SVD components for which CTFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within
         sub-inverses are shown in screen output.
@@ -1279,8 +1282,8 @@ def cross_talk_function(inverse_operator, forward, labels,
     -------
     stc_ctf : SourceEstimate
         The CTFs for the specified labels
-        If mode='svd': svd_comp components per label are created
-        (i.e. svd_comp successive time points in mne_analyze)
+        If mode='svd': n_svd_comp components per label are created
+        (i.e. n_svd_comp successive time points in mne_analyze)
         The last sample is the summed CTF across all labels
     label_singvals : list of numpy arrays
         Singular values of svd for sub-inverses
@@ -1296,7 +1299,7 @@ def cross_talk_function(inverse_operator, forward, labels,
                                                                method=method,
                                                                lambda2=lambda2,
                                                                mode=mode,
-                                                               svd_comp=svd_comp)
+                                                               n_svd_comp=n_svd_comp)
 
     # get the leadfield matrix from forward solution
     leadfield = forward['sol']['data']
@@ -1327,6 +1330,10 @@ def cross_talk_function(inverse_operator, forward, labels,
     # apply inverse operator to dummy data to create dummy source estimate, in
     # this case fixed orientation constraint
     stc_ctf = apply_inverse(ev_id, inverse_operator, lambda2=3, method='MNE')
+
+    # if unsigned output requested, take absolute values
+    if not signed:
+        ctfs = abs(ctfs)
 
     # insert CTF into source estimate object
     stc_ctf._data = ctfs.T
