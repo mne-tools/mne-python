@@ -74,8 +74,8 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         info = raw.info
 
     noise_cov = mne.read_cov(fname_cov)
-    noise_cov = mne.cov.regularize(noise_cov, info,
-                                   mag=0.05, grad=0.05, eeg=0.1, proj=True)
+    noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
+                                   eeg=0.1, proj=True)
     if data_cov:
         data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
     else:
