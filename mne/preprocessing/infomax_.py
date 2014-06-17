@@ -143,6 +143,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
         oldsigns = np.zeros((n_features, n_features))
 
     # trainings loop
+    olddelta, oldchange = 1., 0.
     while step < max_iter:
 
         # shuffel data at each step
@@ -162,8 +163,8 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
                 weights += learning_rate * np.dot(weights, BI -
                                                   np.dot(np.dot(u.T, y), signs)
                                                   - np.dot(u.T, u))
-                bias += (learning_rate * np.sum(y, axis=0, dtype=np.float64)
-                         * -2).reshape(n_features, 1)
+                bias += (learning_rate * (np.sum(y, axis=0, dtype=np.float64)
+                         * -2)).reshape(n_features, 1)
 
             else:
                 # logistic ICA weights update
@@ -191,7 +192,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
                 if np.abs(n) * extblocks == blockno:
                     if kurtsize < n_times:
                         rp = np.floor(rng2.uniform(0, 1, kurtsize) *
-                                      (n_times-1))
+                                      (n_times - 1))
                         tpartact = np.dot(data[rp.astype(int), :], weights).T
                     else:
                         tpartact = np.dot(data, weights).T
@@ -205,8 +206,7 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
                         old_kurt = kurt
 
                     # estimate weighted signs
-                    sings_tmp = ((kurt[:] + signsbias) /
-                                 np.abs(kurt[:] + signsbias))
+                    sings_tmp = (kurt + signsbias) / np.abs(kurt + signsbias)
                     signs.flat[::n_features + 1] = sings_tmp
 
                     ndiff = ((signs.flat[::n_features + 1] -
@@ -224,14 +224,16 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
         # here we continue after the for
         # loop over the ICA training blocks
         # if weights in bounds:
-        olddelta, oldchange = 0, 0
         if not wts_blowup:
             oldwtchange = weights - oldweights
             step += 1
             angledelta = 0.0
             delta = oldwtchange.reshape(1, n_features_square)
             change = np.sum(delta * delta, dtype=np.float64)
-            print change
+            # XXX debug
+            info = "       ...step %4d of %4d: lrate = %g, wchange = %g, max weight val = %0.2f" \
+                   % (step, max_iter, learning_rate, change, max_weight_val)
+            print(info)
             if step > 1:
                 angledelta = math.acos(np.sum(delta * olddelta) /
                                        math.sqrt(change * oldchange))
@@ -280,7 +282,6 @@ def infomax(data, w_init=None, learning_rate=None, block=None,
             if learning_rate <= default_min_learning_rate:
                 raise ValueError('Error in Infomax ICA: weight matrix may not '
                                  'be invertible!')
-    print('converged with %i iterations:' % step)  # XXX debug
 
     # keep in mind row/col convention outside this routine
 
