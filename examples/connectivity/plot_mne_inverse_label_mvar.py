@@ -86,16 +86,11 @@ for method, c in zip(con_methods, con):
     con_res[method] = c
 
 # First visualize directed (effective) connectivity matrix
+title = 'Effective Connectivity left-Auditory Condition (PDC, alpha band)'
 plot_connectivity_matrix(con_res['PDC'][:, :, 0], label_names,
-                         node_colors=label_colors, title='All-to-All '
-                         'Connectivity left-Auditory Condition (PDC, alpha band)')
+                         node_colors=label_colors, title=title)
 
-# First visualize directed (effective) connectivity matrix
-plot_connectivity_matrix(con_res['COH'][:, :, 0], label_names,
-                         node_colors=label_colors, title='All-to-All '
-                         'Connectivity left-Auditory Condition (COH, alpha band)')
-
-# Now, we visualize the connectivity using a circular graph layout
+# Next, we visualize undirected (functional) connectivity via a circular layout
 
 # Reorder the labels based on their location in the left hemi
 lh_labels = [name for name in label_names if name.endswith('lh')]
@@ -130,7 +125,7 @@ for i, (b, cm) in enumerate(zip(band_names, band_colors)):
     plot_connectivity_circle(con_res['COH'][:, :, i], label_names, n_lines=300,
                              node_angles=node_angles, node_colors=label_colors,
                              fig=fig, subplot=(1, 2, i + 1), colormap=cm,
-                             title='All-to-All Connectivity left-Auditory '
+                             title='Functional Connectivity left-Auditory '
                                    'Condition (COH, {} band)'.format(b))
 
 plt.show()
