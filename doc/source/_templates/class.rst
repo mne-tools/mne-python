@@ -9,6 +9,5 @@
    .. automethod:: __init__
    {% endblock %}
 
-   :inherited-members:
 
 
