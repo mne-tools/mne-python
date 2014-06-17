@@ -440,6 +440,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         evoked = EvokedArray(data, info, tmin=self.times[0],
                              comment=self.name, nave=n_events, kind=kind,
                              verbose=self.verbose)
+        # XXX: above constructor doesn't recreate the times object precisely
+        evoked.times = self.times
         evoked._aspect_kind = _aspect_kind
 
         # pick channels
