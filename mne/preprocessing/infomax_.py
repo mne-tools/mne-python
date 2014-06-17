@@ -17,9 +17,9 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             verbose=None):
 
     """Run the (extended) Infomax ICA decomposition on raw data
-    (based on the publications of Bell & Sejnowski 1995 (Infomax)
-    and Lee, Girolami & Sejnowski, 1999 (extended Infomax))
 
+    based on the publications of Bell & Sejnowski 1995 (Infomax)
+    and Lee, Girolami & Sejnowski, 1999 (extended Infomax)
 
     Parameters
     ----------

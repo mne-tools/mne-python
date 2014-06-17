@@ -39,7 +39,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
                     baseline=(None, 0), preload=True, reject=None)
 
 ###############################################################################
-# 1) Fit ICA model
+# 1) Fit ICA model using the fast ICA algorithm
 
 ica = ICA(n_components=0.95, method='fastica').fit(epochs)
 
