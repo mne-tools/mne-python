@@ -6,7 +6,6 @@ import numpy as np
 import os
 import warnings
 from mne.externals.six.moves import urllib
-from mne.externals.six import StringIO, BytesIO
 
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
@@ -36,11 +35,10 @@ def clean_lines(lines):
 def test_hash():
     """Test dictionary hashing and comparison functions"""
     # does hashing all of these types work:
-    # {dict, list, tuple, ndarray, str, float, int, None, StringIO, BytesIO}
+    # {dict, list, tuple, ndarray, str, float, int, None}
     d0 = dict(a=dict(a=0.1, b='fo', c=1), b=[1, 'b'], c=(), d=np.ones(3))
     d0[1] = None
-    d0[2.] = StringIO()
-    d0[-3] = BytesIO()
+    d0[2.] = b'123'
 
     d1 = deepcopy(d0)
     print(object_diff(d0, d1))
