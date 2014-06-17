@@ -14,7 +14,8 @@ import StringIO
 import numpy as np
 import webbrowser
 import time
-import Image
+from PIL import Image
+import glob
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -111,29 +112,6 @@ def build_html_slider(slices_range, slides_klass, slider_id):
                                       minvalue=slices_range[0],
                                       maxvalue=slices_range[-1])
 
-
-def build_tools(global_id, default_cmap="gray"):
-    """ Build tools for slicer """
-    html = []
-    html.append(u'<div class="col-xs-6 col-md-4">')
-    html.append(u'<h4>Color Map</h4>')
-    html.append(u'<select>')
-    import matplotlib.cm as cm
-    html.append(u'<option value="%(c)s">%(c)s</option>' % {'c': default_cmap})
-    for cmap in dir(cm):
-        if cmap != default_cmap:
-            html.append(u'<option value="%(c)s">%(c)s</option>' % {'c': cmap})
-    html.append(u'</select>')
-    html.append(u'<h4>Coordinates</h4>')
-    html.append(u'<dl class="dl-horizontal">')
-    html.append(u'<dt>X</dt><dd id="slicer_coord_x"></dd>')
-    html.append(u'<dt>Y</dt><dd id="slicer_coord_y"></dd>')
-    html.append(u'<dt>Z</dt><dd id="slicer_coord_z"></dd>')
-    html.append(u'</dl>')
-    html.append(u'</div>')
-    return '\n'.join(html)
-
-
 ###############################################################################
 # HTML scan renderer
 
@@ -143,34 +121,6 @@ header_template = Template(u"""
 <head>
 {{include}}
 <script type="text/javascript">
-   function getCoordinates(e, img, ashape, name){
-        var x = e.clientX - img.offsetLeft;
-        var y = e.clientY - img.offsetTop;
-        var maxx = img.width;
-        var maxy = img.height;
-        var divid = 'slicer_coord';
-        if (name=='axial'){
-        var c1 = Math.round(ashape[0]*(maxx - x)/maxx);
-        var c2 = Math.round(ashape[1]*(maxy - y)/maxy);
-        document.getElementById(
-            divid + "_x").innerHTML = ashape[0] - c1;
-        document.getElementById(divid + "_y").innerHTML = c2;
-        };
-        if (name=='sagittal'){
-        var c1 = Math.round(ashape[1]*(maxx - x)/maxx);
-        var c2 = Math.round(ashape[2]*(maxy - y)/maxy);
-        document.getElementById(
-            divid + "_y").innerHTML = ashape[1] - c1;
-        document.getElementById(divid + "_z").innerHTML = c2;
-        };
-        if (name=='coronal'){
-        var c1 = Math.round(ashape[0]*(maxx - x)/maxx);
-        var c2 = Math.round(ashape[2]*(maxy - y)/maxy);
-        document.getElementById(
-            divid + "_x").innerHTML = ashape[0] - c1;
-        document.getElementById(divid + "_z").innerHTML = c2;
-        };
-        }
 
         function togglebutton(class_name){
             $(class_name).toggle();
@@ -201,6 +151,10 @@ a, a:hover{
     color: #333333;
 }
 
+li{
+    list-style-type:none;
+}
+
 #wrapper {
     text-align: left;
     margin: 5em auto;
@@ -217,6 +171,7 @@ a, a:hover{
   width: 20%;
   height: 100%;
   margin-top: 45px;
+  overflow: auto;
 }
 
 #toc li {
@@ -302,15 +257,6 @@ image_template = HTMLTemplate(u"""
 """)
 
 
-def _fig_to_img(fig):
-    """Auxiliary function for fig <-> binary image.
-    """
-    output = StringIO.StringIO()
-    fig.savefig(output, format='png')
-
-    return output.getvalue().encode('base64')
-
-
 class HTMLScanRenderer(object):
     """Object for rendering HTML"""
 
@@ -392,7 +338,8 @@ class HTMLScanRenderer(object):
             # identify bad file naming patterns and highlight them
             if not _endswith(fname, ['-eve.fif', '-ave.fif', '-cov.fif',
                                      '-sol.fif', '-fwd.fif', '-inv.fif',
-                                     '-src.fif', '-trans.fif', 'raw.fif']):
+                                     '-src.fif', '-trans.fif', 'raw.fif',
+                                     'T1.mgz']):
                 color = 'red'
             else:
                 color = ''
@@ -438,22 +385,15 @@ class HTMLScanRenderer(object):
                 html += u'</ul></li>'
 
         html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
-                 (global_id, 'BEM contours (coronal)'))
-        global_id += 1
-        html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
-                 (global_id, 'BEM contours (sagittal)'))
-        global_id += 1
-        html += (u'\n\t<li class="evoked"><a href="#%d"><span> %s</span></a>'
-                 '</li>' % (global_id, 'BEM contours (axial)'))
+                 (global_id, 'BEM contours'))
 
         html += u'\n</ul></div>'
 
-        html += u'<div style="margin-left: 20%;">'
+        html += u'<div style="margin-left: 22%;">'
 
         return html
 
-    def render_array(self, array, cmap='gray', limits=None):
-        global_id = self.get_id()
+    def render_array(self, array, global_id=None, cmap='gray', limits=None):
         html = []
         html.append(u'<div class="row">')
         # Axial
@@ -474,13 +414,12 @@ class HTMLScanRenderer(object):
         coronal_slices_gen = iterate_coronal_slices(array, coronal_limit)
         html.append(
             self.render_one_axe(coronal_slices_gen, 'coronal', global_id, cmap))
-        # Tools
-        html.append(build_tools(global_id))
         # Close section
         html.append(u'</div>')
         return '\n'.join(html)
 
     def render_image(self, image, cmap='gray'):
+        global_id = self.get_id()
         nim = nib.load(image)
         data = nim.get_data()
         shape = data.shape
@@ -488,10 +427,11 @@ class HTMLScanRenderer(object):
                   'axial': range(shape[1] // 3, shape[1] // 2),
                   'coronal': range(shape[2] // 3, shape[2] // 2)}
         name = op.basename(image)
-        html = u'<ul class="slices-images">\n'
+        html = u'<li class="slices-images" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name
-        html += self.render_array(data, cmap=cmap, limits=limits)
-        html += u'</ul>\n'
+        html += self.render_array(data, global_id=global_id,
+                                  cmap=cmap, limits=limits)
+        html += u'</li>\n'
         return html
 
     def render_raw(self, raw_fname):
@@ -535,10 +475,10 @@ class HTMLScanRenderer(object):
 
         return '\n'.join(html)
 
-    def render_eve(self, eve_fname, figsize=None):
+    def render_eve(self, eve_fname, info):
         global_id = self.get_id()
         events = mne.read_events(eve_fname)
-        sfreq = 1000.  # XXX
+        sfreq = info['sfreq']
         ax = mne.viz.plot_events(events, sfreq=sfreq, show=False)  # XXX : weird colors
         img = _fig_to_img(ax.gcf())
         caption = 'Events : ' + eve_fname
@@ -567,12 +507,11 @@ class HTMLScanRenderer(object):
                                          caption=caption,
                                          show=show)
 
-    def render_trans(self, trans_fname, path, info_fname, subject,
+    def render_trans(self, trans_fname, path, info, subject,
                      subjects_dir):
 
         global_id = self.get_id()
 
-        info = mne.io.read_info(info_fname)
         fig = mne.viz.plot_trans(info, trans_fname=trans_fname,
                                  subject=subject, subjects_dir=subjects_dir)
 
@@ -610,6 +549,15 @@ class HTMLScanRenderer(object):
                                          show=show)
 
 
+def _fig_to_img(fig):
+    """Auxiliary function for fig <-> binary image.
+    """
+    output = StringIO.StringIO()
+    fig.savefig(output, format='png')
+
+    return output.getvalue().encode('base64')
+
+
 def _endswith(fname, extensions):
     for ext in extensions:
         if fname.endswith(ext):
@@ -618,6 +566,8 @@ def _endswith(fname, extensions):
 
 
 def recursive_search(path, pattern):
+    """Auxiliary function for recursive_search of the directory.
+    """
     filtered_files = list()
     for dirpath, dirnames, files in os.walk(path):
         for f in fnmatch.filter(files, pattern):
@@ -632,7 +582,9 @@ def render_folder(path, info_fname, subjects_dir, subject):
     folders = []
 
     fnames = recursive_search(path, '*.fif')
-    fnames += recursive_search(path, 'T1.mgz')
+    fnames += glob.glob(op.join(subjects_dir, subject, 'mri', 'T1.mgz'))
+
+    info = mne.io.read_info(info_fname)
 
     print('Rendering : Table of Contents')
     html += renderer.render_toc(fnames)
@@ -650,11 +602,11 @@ def render_folder(path, info_fname, subjects_dir, subject):
             elif _endswith(fname, ['-ave.fif']):
                 html += renderer.render_evoked(fname)
             elif _endswith(fname, ['-eve.fif']):
-                html += renderer.render_eve(fname)
+                html += renderer.render_eve(fname, info)
             elif _endswith(fname, ['-cov.fif']):
                 html += renderer.render_cov(fname)
             elif _endswith(fname, ['-trans.fif']):
-                html += renderer.render_trans(fname, path, info_fname,
+                html += renderer.render_trans(fname, path, info,
                                               subject, subjects_dir)
             elif op.isdir(fname):
                 folders.append(fname)
@@ -664,10 +616,7 @@ def render_folder(path, info_fname, subjects_dir, subject):
 
     html += renderer.render_bem(subject=subject, subjects_dir=subjects_dir,
                                 orientation='coronal')
-    html += renderer.render_bem(subject=subject, subjects_dir=subjects_dir,
-                                orientation='sagittal')
-    html += renderer.render_bem(subject=subject, subjects_dir=subjects_dir,
-                                orientation='axial')
+
     html += renderer.finish_render()
     report_fname = op.join(path, 'report.html')
     fobj = open(report_fname, 'w')
