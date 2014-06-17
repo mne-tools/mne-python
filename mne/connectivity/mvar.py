@@ -5,8 +5,8 @@
 import numpy as np
 from ..parallel import parallel_func
 from ..utils import logger
-from ..externals.scot.var import VARBase
-from ..externals.scot.builtin.var import VAR
+from ..externals.scot.varbase import VARBase
+from ..externals.scot.var import VAR
 from ..externals.scot.connectivity import connectivity
 
 
@@ -115,7 +115,7 @@ def mvar_connectivity(data, method, order, fitting_mode='lsq', ridge=0,
 
     References
     ----------
-    [1] M. Billinger, C.Brunner, G. R. Müller-Putz. "SCoT: a Python toolbox for
+    [1] M. Billinger, C.Brunner, G. R. Mueller-Putz. "SCoT: a Python toolbox for
         EEG source connectivity", Frontiers in Neuroinformatics, 8:22, 2014
     """
 

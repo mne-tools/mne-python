@@ -23,7 +23,6 @@ from .connectivity import Connectivity
 from .connectivity_statistics import surrogate_connectivity, bootstrap_connectivity, test_bootstrap_difference
 from .connectivity_statistics import significance_fdr
 from . import plotting
-from scot.eegtopo.topoplot import Topoplot
 
 
 class Workspace:
@@ -829,6 +828,7 @@ class Workspace:
             raise RuntimeError("Need sensor locations for plotting")
 
         if self.topo_ is None:
+            from scot.eegtopo.topoplot import Topoplot
             self.topo_ = Topoplot()
             self.topo_.set_locations(self.locations_)
 
