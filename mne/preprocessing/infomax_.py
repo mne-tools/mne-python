@@ -20,39 +20,43 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     (based on the publications of Bell & Sejnowski 1995 (Infomax)
     and Lee, Girolami & Sejnowski, 1999 (extended Infomax))
 
-        Parameters
-        ----------
-        data : data array [nchan, n_samples] for decomposition
-        weights : initialize weights matrix
-            default: None --> identity matrix is used
-        l_rate : initial learning rate (for most applications 1e-3 is
-            a  good start)
-            --> smaller learining rates will slowering the convergence
-            it merely indicates the relative size of the change in weights
-            default:  l_rate = 0.010d/alog(nchan^2.0)
-        block : his block size used to randomly extract (in time) a chop
-            of data
-            default:  block = floor(sqrt(n_samples/3d))
-        w_change : iteration stops when weight changes is smaller then this
-            number
-            default: w_change = 1e-16
-        anneal_deg : if angle delta is larger then anneal_deg (in degree) the
-            learning rate will be reduce
-            default:  anneal_deg = 60
-        anneal_step : the learning rate will be reduced by this factor:
-            l_rate  *= anneal_step
-            default:  anneal_step = 0.9
-        extended : if set extended Infomax ICA is performed
-            default: None
-        max_iter : maximum number of iterations to be done
-            default:  max_iter = 200
-        verbose : bool, str, int, or None
-            if not None, override default verbose level (see mne.verbose).
 
-        Returns
-        -------
-        weights : un-mixing matrix
-        activations : underlying sources
+    Parameters
+    ----------
+    data : np.ndarray, shape (n_features, n_times)
+        The data to unmix.
+    w_init : np.ndarray, shape (n_features, n_features)
+        The initialized unmixing matrix. Defaults to None. If None, the
+        identity matrix is used.
+    l_rate : float
+        This quantity indicates the relative size of the change in weights.
+        Note. Smaller learining rates will slow down the procedure.
+        Defaults to 0.010d / alog(n_features ^ 2.0)
+    block : int
+        The block size of randomly chosen data segment.
+        Defaults to floor(sqrt(n_times / 3d))
+    w_change : float
+        The change at which to stop iteration. Defaults to 1e-12.
+    anneal_deg : float
+        The angle at which (in degree) the learning rate will be reduced.
+        Defaults to 60.0
+    anneal_step : float
+        The factor by which the learning rate will be reduced once
+        ``anneal_deg`` is exceeded:
+            l_rate *= anneal_step
+        Defaults to 0.9
+    extended : bool
+        Wheather to use the extended infomax algorithm or not. Defaults to
+        True.
+    max_iter : int
+        The maximum number of iterations. Defaults to 200.
+    verbose : bool, str, int, or None
+        if not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    unmixing_matrix : np.ndarray of float, shape (n_features, n_features)
+        The linear unmixing operator.
     """
 
     random_state = None
@@ -109,18 +113,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     nblock = n_samples / block
     lastt = (nblock - 1) * block + 1
 
-    # print out some parameter information
-    # if verbose:
-    #     print info
-    #     print "       --> number of sources   : %d" % n_features
-    #     print "       --> number of timeslices: %d" % n_samples
-    #     print "       --> learning rate       : %g" % l_rate
-    #     print "       --> block size          : %d" % block
-    #     print "       --> number of blocks    : %d" % nblock
-    #     print "       --> weight epsilon      : %g" % w_change
-    #     print "       --> anneal. factor      : %g" % anneal_step
-    #     print "       --> anneal. degree      : %d" % anneal_deg
-
     # initialize training
     if weights is None:
         # initialize weights as identity matrix
@@ -150,7 +142,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         signsbias = default_signsbias
         signcount_threshold = default_signcount_threshold
         signcount_step = default_signcount_step
-        old_kurt = np.zeros((n_features), dtype=np.float64)
+        old_kurt = np.zeros(n_features, dtype=np.float64)
         oldsigns = np.zeros((n_features, n_features))
 
     # trainings loop
@@ -200,7 +192,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
                 n = np.fix(blockno / extblocks)
 
-                if (np.abs(n) * extblocks) == blockno:
+                if np.abs(n) * extblocks == blockno:
                     if kurtsize < n_samples:
                         rp = np.floor(rng.uniform(0, 1, kurtsize) *
                                       (n_samples - 1))
@@ -244,18 +236,17 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
             info = "       ...step %4d of %4d: l_rate = %g, w_change = %g, max weight val = %0.2f" \
                    % (step, max_iter, l_rate, change, max_weight_val)
-            print(info)
             if step > 1:
-                angledelta = (math.acos(np.sum(delta * olddelta) /
-                              math.sqrt(change * oldchange)) * degconst)
+                angledelta = math.acos(np.sum(delta * olddelta) /
+                                       math.sqrt(change * oldchange))
+                angledelta *= degconst
                 info += ", angledelta %g" % angledelta
 
-            if extended:
+            if extended is True:
                 subgauss = (n_features-np.sum(signs.flat[::n_features + 1]))/2
                 info += ", subgauss %4d" % subgauss
 
-            if verbose:
-                print info
+            print(info)
 
             # anneal learning rate
             oldweights = weights.copy()
