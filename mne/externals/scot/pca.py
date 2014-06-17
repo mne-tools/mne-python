@@ -5,7 +5,7 @@
 """principal component analysis (PCA) implementation"""
 
 import numpy as np
-from ..datatools import cat_trials
+from .datatools import cat_trials
 
 
 def pca_svd(data):

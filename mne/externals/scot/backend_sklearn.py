@@ -10,15 +10,9 @@ from __future__ import absolute_import
 from sklearn.decomposition import FastICA, PCA
 from sklearn import linear_model
 import scipy as sp
-
-from . import builtin
-from . import sklearn_utils
-
-from . import builtin
-
-from .. import config
-from .. import datatools
-from ..var import VARBase
+from . import backend_builtin as builtin
+from . import config, datatools
+from .varbase import VARBase
 
 
 def wrapper_fastica(data):
@@ -87,8 +81,7 @@ backend = builtin.backend.copy()
 backend.update({
     'ica': wrapper_fastica,
     'pca': wrapper_pca,
-    'var': VAR,
-    'utils': sklearn_utils
+    'var': VAR
 })
 
 

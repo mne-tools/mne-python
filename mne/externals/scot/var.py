@@ -1,77 +1,48 @@
-# coding=utf-8
-
 # Released under The MIT License (MIT)
 # http://opensource.org/licenses/MIT
-# Copyright (c) 2013-2014 SCoT Development Team
+# Copyright (c) 2013 SCoT Development Team
 
-""" vector autoregressive (VAR) model """
-
-from __future__ import division
-
-import numbers
-from functools import partial
+""" Vector autoregressive (VAR) model implementation
+"""
 
 import numpy as np
 import scipy as sp
-
-from . import datatools
-from . import xvschema as xv
-from .utils import acm
+from .varbase import VARBase
 from .datatools import cat_trials
+from . import xvschema as xv
 
 
-class Defaults:
-    xvschema = xv.multitrial
+class VAR(VARBase):
+    """ Builtin implementation of VARBase.
 
-
-class VARBase():
-    """ Represents a vector autoregressive (VAR) model.
+    This class provides least squares VAR model fitting with optional ridge regression.
     
-    .. warning:: `VARBase` is an abstract class that defines the interface for VAR model implementations. Several methods must be implemented by derived classes.
-    
-    Parameters
+    Parameters    
     ----------
     model_order : int
         Autoregressive model order
+    delta : float, optional
+        Ridge penalty parameter
+    xvschema : func, optional
+        Function that creates training and test sets for cross-validation. The function takes two parameters: the current cross-validation run (int) and the numer of trials (int). It returns a tuple of two arrays: the training set and the testing set.
     
-    Notes
-    -----
-    Note on the arrangement of model coefficients:
-    *b* is of shape [m, m*p], with sub matrices arranged as follows:
-        
-    +------+------+------+------+
-    | b_00 | b_01 | ...  | b_0m |
-    +------+------+------+------+
-    | b_10 | b_11 | ...  | b_1m |
-    +------+------+------+------+
-    | ...  | ...  | ...  | ...  |
-    +------+------+------+------+
-    | b_m0 | b_m1 | ...  | b_mm |
-    +------+------+------+------+
-    
-    Each sub matrix b_ij is a column vector of length p that contains the
-    filter coefficients from channel j (source) to channel i (sink).
+    Examples
+    --------
+    Bla Test
+    >>> data = np.random.randn(512, 8, 40)
+    >>> v = VAR(5)
+    >>> v.optimize(data).fit(data)
+    >>> print("VAR coefficients: ", v.coef)
+    >>> print('Ridge penalty: ', v.delta)
     """
-
-    def __init__(self, model_order):
-        self.p = model_order
-        self.coef = None
-        self.residuals = None
-        self.rescov = None
-
-    def copy(self):
-        """ Create a copy of the VAR model."""
-        other = self.__class__(self.p)
-        other.coef = self.coef.copy()
-        other.residuals = self.residuals.copy()
-        other.rescov = self.rescov.copy()
-        return other
+    def __init__(self, model_order, delta=0, xvschema=xv.multitrial):
+        VARBase.__init__(self, model_order)
+        self.delta = delta
+        self.xvschema = xvschema
 
     def fit(self, data):
         """ Fit VAR model to data.
         
-        .. warning:: This function must be implemented by derived classes.
-        
         Parameters
         ----------
         data : array-like, shape = [n_samples, n_channels, n_trials] or [n_samples, n_channels]
@@ -82,352 +53,179 @@ class VARBase():
         self : :class:`VAR`
             The :class:`VAR` object to facilitate method chaining (see usage example)
         """
-        raise NotImplementedError('method fit() is not implemented in ' + str(self))
+        data = sp.atleast_3d(data)
 
-    def optimize(self, data):
-        """ Optimize model fitting hyperparameters (such as regularization penalty)
-        
-            .. warning:: This function must be implemented by derived classes.
-        
-            Parameters
-            ----------
-            data : array-like, shape = [n_samples, n_channels, n_trials] or [n_samples, n_channels]
-                Continuous or segmented data set.
-        """
-        raise NotImplementedError('method optimize() is not implemented in ' + str(self))
-        return self
+        if self.delta == 0 or self.delta is None:
+            # ordinary least squares
+            (x, y) = self._construct_eqns(data)
+        else:
+            # regularized least squares (ridge regression)
+            (x, y) = self._construct_eqns_rls(data)
 
-    def from_yw(self, acms):
-        """ Determine VAR model from autocorrelation matrices by solving the
-        Yule-Walker equations.
+        (b, res, rank, s) = sp.linalg.lstsq(x, y)
 
-        Parameters
-        ----------
-        acms : array-like, shape = [n_lags, n_channels, n_channels]
-            acms[l] contains the autocorrelation matrix at lag l. The highest
-            lag must equal the model order.
+        self.coef = b.transpose()
 
-        Returns
-        -------
-        self : :class:`VAR`
-            The :class:`VAR` object to facilitate method chaining (see usage example)
-        """
-        assert(len(acms) == self.p + 1)
-
-        n_channels = acms[0].shape[0]
-
-        acm = lambda l: acms[l] if l >= 0 else acms[-l].T
-
-        r = np.concatenate(acms[1:], 0)
-
-        R = np.array([[acm(m-k) for k in range(self.p)] for m in range(self.p)])
-        R = np.concatenate(np.concatenate(R, -2), -1)
-
-        c = sp.linalg.solve(R, r)
-
-        # calculate residual covariance
-        r = acm(0)
-        for k in range(self.p):
-            bs = k * n_channels
-            r -= np.dot(c[bs:bs + n_channels, :].T, acm(k + 1))
-
-        self.coef = np.concatenate([c[m::n_channels, :] for m in range(n_channels)]).T
-        self.rescov = r
+        self.residuals = data - self.predict(data)
+        self.rescov = sp.cov(cat_trials(self.residuals[self.p:, :, :]), rowvar=False)
 
         return self
 
-    def simulate(self, l, noisefunc=None):
-        """ Simulate vector autoregressive (VAR) model
-        
-            This function generates data from the VAR model.
-            
-            Parameters
-            ----------
-            l : {int, [int, int]}
-                Specify number of samples to generate. Can be a tuple or list where l[0] is the number of samples and l[1] is the number of trials.
-            noisefunc : func, optional
-                This function is used to create the generating noise process. If set to None Gaussian white noise with zero mean and unit variance is used.
-                
-            Returns
-            -------
-            data : array, shape = [n_samples, n_channels, n_trials]
-        """
-        (m, n) = sp.shape(self.coef)
-        p = n // m
 
-        try:
-            (l, t) = l
-        except TypeError:
-            t = 1
-
-        if noisefunc is None:
-            noisefunc = lambda: sp.random.normal(size=(1, m))
-
-        n = l + 10 * p
-
-        y = sp.zeros((n, m, t))
-        res = sp.zeros((n, m, t))
-
-        for s in range(t):
-            for i in range(p):
-                e = noisefunc()
-                res[i, :, s] = e
-                y[i, :, s] = e
-            for i in range(p, n):
-                e = noisefunc()
-                res[i, :, s] = e
-                y[i, :, s] = e
-                for k in range(1, p + 1):
-                    y[i, :, s] += self.coef[:, (k - 1)::p].dot(y[i - k, :, s])
-
-        self.residuals = res[10 * p:, :, :]
-        self.rescov = sp.cov(cat_trials(self.residuals), rowvar=False)
-
-        return y[10 * p:, :, :]
-
-    def predict(self, data):
-        """ Predict samples on actual data.
-        
-        The result of this function is used for calculating the residuals.
+    def optimize_delta_bisection(self, data, skipstep=1):
+        """ Find optimal ridge penalty with bisection search.
         
         Parameters
         ----------
         data : array-like, shape = [n_samples, n_channels, n_trials] or [n_samples, n_channels]
             Continuous or segmented data set.
+        skipstep : int, optional
+            Speed up calculation by skipping samples during cost function calculation
             
         Returns
         -------
-        predicted : shape = `data`.shape
-            Data as predicted by the VAR model.
-            
-        Notes
-        -----
-        Residuals are obtained by r = x - var.predict(x)
+        self : :class:`VAR`
+            The :class:`VAR` object to facilitate method chaining (see usage example)
         """
         data = sp.atleast_3d(data)
         (l, m, t) = data.shape
+        assert (t > 1)
 
-        p = int(sp.shape(self.coef)[1] / m)
+        maxsteps = 10
+        maxdelta = 1e50
 
-        y = sp.zeros(data.shape)
-        if t > l-p:  # which takes less loop iterations
-            for k in range(1, p + 1):
-                bp = self.coef[:, (k - 1)::p]
-                for n in range(p, l):
-                    y[n, :, :] += bp.dot(data[n - k, :, :])
-        else:
-            for k in range(1, p + 1):
-                bp = self.coef[:, (k - 1)::p]
-                for s in range(t):
-                    y[p:, :, s] += data[(p-k):(l-k), :, s].dot(bp.T)
+        a = -10
+        b = 10
 
-        return y
+        transform = lambda x: sp.sqrt(sp.exp(x))
 
-    def is_stable(self):
-        """ Test if the VAR model is stable.
+        msge = self._get_msge_with_gradient_func(data.shape)
+
+        (ja, ka) = msge(data, transform(a), self.xvschema, skipstep)
+        (jb, kb) = msge(data, transform(b), self.xvschema, skipstep)
+
+        # before starting the real bisection, make sure the interval actually contains 0
+        while sp.sign(ka) == sp.sign(kb):
+            print('Bisection initial interval (%f,%f) does not contain zero. New interval: (%f,%f)' % (a, b, a * 2, b * 2))
+            a *= 2
+            b *= 2
+            (jb, kb) = msge(data, transform(b), self.xvschema, skipstep)
+
+            if transform(b) >= maxdelta:
+                print('Bisection: could not find initial interval.')
+                print(' ********* Delta set to zero! ************ ')
+                return 0
+
+        nsteps = 0
+
+        while nsteps < maxsteps:
+
+            # point where the line between a and b crosses zero
+            # this is not very stable!
+            #c = a + (b-a) * np.abs(ka) / np.abs(kb-ka)
+            c = (a + b) / 2
+            (j, k) = msge(data, transform(c), self.xvschema, skipstep)
+            if sp.sign(k) == sp.sign(ka):
+                a, ka = c, k
+            else:
+                b, kb = c, k
+
+            nsteps += 1
+            tmp = transform([a, b, a + (b - a) * np.abs(ka) / np.abs(kb - ka)])
+            print('%d Bisection Interval: %f - %f, (projected: %f)' % (nsteps, tmp[0], tmp[1], tmp[2]))
+
+        self.delta = transform(a + (b - a) * np.abs(ka) / np.abs(kb - ka))
+        print('Final point: %f' % self.delta)
+        return self
         
-        This function tests stability of the VAR model as described in [1]_.
-        
-        Returns
-        -------
-        out : bool
-            True if the model is stable.
-        
-        References
-        ----------
-        .. [1] H. Lütkepohl, "New Introduction to Multiple Time Series Analysis", 2005, Springer, Berlin, Germany
+    optimize = optimize_delta_bisection
+
+    def _construct_eqns_rls(self, data):
+        """Construct VAR equation system with RLS constraint.
         """
-        m, mp = self.coef.shape
-        p = mp // m
-        assert(mp == m*p)
-
-        top_block = []
-        for i in range(p):
-            top_block.append(self.coef[:, i::p])
-        top_block = np.hstack(top_block)
-
-        im = np.eye(m)
-        eye_block = im
-        for i in range(p-2):
-            eye_block = sp.linalg.block_diag(im, eye_block)
-        eye_block = np.hstack([eye_block, np.zeros((m*(p-1), m))])
-
-        tmp = np.vstack([top_block, eye_block])
-
-        return np.all(np.abs(np.linalg.eig(tmp)[0]) < 1)
-
-    def test_whiteness(self, h, repeats=100, get_q=False):
-        """ Test if the VAR model residuals are white (uncorrelated up to a lag of h).
-
-        This function calculates the Li-McLeod as Portmanteau test statistic Q to
-        test against the null hypothesis H0: "the residuals are white" [1]_.
-        Surrogate data for H0 is created by sampling from random permutations of
-        the residuals.
-
-        Usually the returned p-value is compared against a pre-defined type 1 error
-        level of alpha=0.05 or alpha=0.01. If p<=alpha, the hypothesis of white
-        residuals is rejected, which indicates that the VAR model does not properly
-        describe the data.
-        
-        Parameters
-        ----------
-        h : int
-            Maximum lag that is included in the test statistic.
-        repeats : int, optional
-            Number of samples to create under the null hypothesis.
-        get_q : bool, optional
-            Return Q statistic along with *p*-value
-            
-        Returns
-        -------
-        pr : float
-            Probability of observing a more extreme value of Q under the assumption that H0 is true.
-        q0 : list of float, optional (`get_q`)
-            Individual surrogate estimates that were used for estimating the distribution of Q under H0.
-        q : float, optional (`get_q`)
-            Value of the Q statistic of the residuals
-        
-        Notes
-        -----
-        According to [2]_ h must satisfy h = O(n^0.5), where n is the length (time samples) of the residuals.
-
-        References
-        ----------
-        .. [1] H. Lütkepohl, "New Introduction to Multiple Time Series Analysis", 2005, Springer, Berlin, Germany
-        .. [2] J.R.M. Hosking, "The Multivariate Portmanteau Statistic", 1980, J. Am. Statist. Assoc.
-        """
-
-        return test_whiteness(self.residuals, h, self.p, repeats, get_q)
-
-    def _construct_eqns(self, data):
-        """ Construct VAR equation system
-        """
-        (l, m, t) = np.shape(data)
+        (l, m, t) = sp.shape(data)
         n = (l - self.p) * t     # number of linear relations
         # Construct matrix x (predictor variables)
-        x = np.zeros((n, m * self.p))
+        x = sp.zeros((n + m * self.p, m * self.p))
         for i in range(m):
             for k in range(1, self.p + 1):
-                x[:, i * self.p + k - 1] = np.reshape(data[self.p - k:-k, i, :], n)
+                x[:n, i * self.p + k - 1] = sp.reshape(data[self.p - k:-k, i, :], n)
+        sp.fill_diagonal(x[n:, :], self.delta)
 
         # Construct vectors yi (response variables for each channel i)
-        y = np.zeros((n, m))
+        y = sp.zeros((n + m * self.p, m))
         for i in range(m):
-            y[:, i] = np.reshape(data[self.p:, i, :], n)
+            y[:n, i] = sp.reshape(data[self.p:, i, :], n)
 
         return x, y
 
+    def _msge_with_gradient_underdetermined(self, data, delta, xvschema, skipstep):
+        """ Calculate the mean squared generalization error and it's gradient for underdetermined equation system.
+        """
+        (l, m, t) = data.shape
+        d = None
+        j, k = 0, 0
+        nt = sp.ceil(t / skipstep)
+        for s in range(0, t, skipstep):
+            trainset, testset = xvschema(s, t)
 
-############################################################################
+            (a, b) = self._construct_eqns(sp.atleast_3d(data[:, :, trainset]))
+            (c, d) = self._construct_eqns(sp.atleast_3d(data[:, :, testset]))
 
+            e = sp.linalg.inv(sp.eye(a.shape[0]) * delta ** 2 + a.dot(a.transpose()))
 
-def test_whiteness(data, h, p=0, repeats=100, get_q=False):
-    """ Test if signals are white (serially uncorrelated up to a lag of h).
+            cc = c.transpose().dot(c)
 
-    This function calculates the Li-McLeod as Portmanteau test statistic Q to
-    test against the null hypothesis H0: "the residuals are white" [1]_.
-    Surrogate data for H0 is created by sampling from random permutations of
-    the residuals.
+            be = b.transpose().dot(e)
+            bee = be.dot(e)
+            bea = be.dot(a)
+            beea = bee.dot(a)
+            beacc = bea.dot(cc)
+            dc = d.transpose().dot(c)
 
-    Usually the returned p-value is compared against a pre-defined type 1 error
-    level of alpha=0.05 or alpha=0.01. If p<=alpha, the hypothesis of white
-    residuals is rejected, which indicates that the VAR model does not properly
-    describe the data.
-    
-    Parameters
-    ----------
-    signals : array-like, shape = [n_samples, n_channels, n_trials] or [n_samples, n_channels]
-        Continuous or segmented data set.
-    h : int
-        Maximum lag that is included in the test statistic.
-    p : int, optional
-        Model order if the `signals` are the residuals resulting from fitting a VAR model
-    repeats : int, optional
-        Number of samples to create under the null hypothesis.
-    get_q : bool, optional
-        Return Q statistic along with *p*-value
-        
-    Returns
-    -------
-    pr : float
-        Probability of observing a more extreme value of Q under the assumption that H0 is true.
-    q0 : list of float, optional (`get_q`)
-        Individual surrogate estimates that were used for estimating the distribution of Q under H0.
-    q : float, optional (`get_q`)
-        Value of the Q statistic of the residuals
-    
-    Notes
-    -----
-    According to [2]_ h must satisfy h = O(n^0.5), where n is the length (time samples) of the residuals.
+            j += sp.sum(beacc * bea - 2 * bea * dc) + sp.sum(d ** 2)
+            k += sp.sum(beea * dc - beacc * beea) * 4 * delta
 
-    References
-    ----------
-    .. [1] H. Lütkepohl, "New Introduction to Multiple Time Series Analysis", 2005, Springer, Berlin, Germany
-    .. [2] J.R.M. Hosking, "The Multivariate Portmanteau Statistic", 1980, J. Am. Statist. Assoc.
-    """
-    res = data[p:, :, :]
-    (n, m, t) = res.shape
-    nt = (n-p)*t
-
-    q0 = _calc_q_h0(repeats, res, h, nt)[:,2,-1]
-    q = _calc_q_statistic(res, h, nt)[2,-1]
-
-    # probability of observing a result more extreme than q under the null-hypothesis
-    pr = np.sum(q0 >= q) / repeats
-
-    if get_q:
-        return pr, q0, q
-    else:
-        return pr
+        return j / (nt * d.size), k / (nt * d.size)
 
 
-def _calc_q_statistic(x, h, nt):
-    """ Calculate portmanteau statistics up to a lag of h.
-    """
-    (n, m, t) = x.shape
+    def _msge_with_gradient_overdetermined(self, data, delta, xvschema, skipstep):
+        """ Calculate the mean squared generalization error and it's gradient for overdetermined equation system.
+        """
+        (l, m, t) = data.shape
+        d = None
+        l, k = 0, 0
+        nt = sp.ceil(t / skipstep)
+        for s in range(0, t, skipstep):
+            #print(s,drange)
+            trainset, testset = xvschema(s, t)
 
-    # covariance matrix of x
-    c0 = acm(x, 0)
+            (a, b) = self._construct_eqns(sp.atleast_3d(data[:, :, trainset]))
+            (c, d) = self._construct_eqns(sp.atleast_3d(data[:, :, testset]))
 
-    # LU factorization of covariance matrix
-    c0f = sp.linalg.lu_factor(c0, overwrite_a=False, check_finite=True)
+            #e = sp.linalg.inv(np.eye(a.shape[1])*delta**2 + a.transpose().dot(a), overwrite_a=True, check_finite=False)
+            e = sp.linalg.inv(sp.eye(a.shape[1]) * delta ** 2 + a.transpose().dot(a))
 
-    q = np.zeros((3, h+1))
-    for l in range(1, h+1):
-        cl = acm(x, l)
+            ba = b.transpose().dot(a)
+            dc = d.transpose().dot(c)
+            bae = ba.dot(e)
+            baee = bae.dot(e)
+            baecc = bae.dot(c.transpose().dot(c))
 
-        # calculate tr(cl' * c0^-1 * cl * c0^-1)
-        a = sp.linalg.lu_solve(c0f, cl)
-        b = sp.linalg.lu_solve(c0f, cl.T)
-        tmp = a.dot(b).trace()
+            l += sp.sum(baecc * bae - 2 * bae * dc) + sp.sum(d ** 2)
+            k += sp.sum(baee * dc - baecc * baee) * 4 * delta
 
-        # Box-Pierce
-        q[0, l] = tmp
+        return l / (nt * d.size), k / (nt * d.size)
 
-        # Ljung-Box
-        q[1, l] = tmp / (nt-l)
+    def _get_msge_with_gradient_func(self, shape):
+        """ Select which function to use for MSGE calculation (over- or underdetermined).
+        """
+        (l, m, t) = shape
 
-        # Li-McLeod
-        q[2, l] = tmp
+        n = (l - self.p) * t
+        underdetermined = n < m * self.p
 
-    q *= nt
-    q[1, :] *= (nt+2)
-
-    q = np.cumsum(q, axis=1)
-
-    for l in range(1, h+1):
-        q[2, l] = q[0, l] + m*m*l*(l+1) / (2*nt)
-
-    return q
-
-
-def _calc_q_h0(n, x, h, nt):
-    """ Calculate q under the null-hypothesis of whiteness.
-    """
-    x = x.copy()
-
-    q = []
-    for i in range(n):
-        np.random.shuffle(x)    # shuffle along time axis
-        q.append(_calc_q_statistic(x, h, nt))
-    return np.array(q)
+        if underdetermined:
+            return self._msge_with_gradient_underdetermined
+        else:
+            return self._msge_with_gradient_overdetermined

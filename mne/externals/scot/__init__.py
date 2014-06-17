@@ -7,9 +7,11 @@
 
 from . import config
 
+backends = ['backend_builtin', 'backend_sklearn']
+
 # default backend
 # TODO: set default backend in config
-from .backend import builtin
+from . import backend_builtin
 
 from .ooapi import Workspace
 

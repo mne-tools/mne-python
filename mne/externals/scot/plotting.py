@@ -10,7 +10,6 @@ If matplotlib is not available no error is raised, but plotting functions will n
 """
 
 import numpy as np
-from . import var
 
 try:
     #noinspection PyPep8Naming

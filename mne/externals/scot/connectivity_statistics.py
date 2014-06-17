@@ -11,6 +11,7 @@ import numpy as np
 import scipy as sp
 from .datatools import randomize_phase
 from .connectivity import connectivity
+from .utils import cartesian
 from . import config
 
 
@@ -184,7 +185,7 @@ def test_bootstrap_difference(a, b):
     n = a.shape[0]
 
     s1, s2 = 0, 0
-    for i in config.backend['utils'].cartesian((np.arange(n), np.arange(n))):
+    for i in cartesian((np.arange(n), np.arange(n))):
         c = b[i[1], :] - a[i[0], :]
 
         s1 += c >= 0
