@@ -42,6 +42,38 @@ from ..utils import (_check_fname, get_subjects_dir, has_command_line_tools,
                      run_subprocess, check_fname, logger, verbose)
 
 
+class Forward(dict):
+    """Forward class to represent info from forward solution
+    """
+
+    def __repr__(self):
+        """Summarize forward info instead of printing all"""
+
+        entr = '<Forward'
+
+        for k, v in self.items():
+
+            if k == 'info':
+                ch_names = v['ch_names']
+                n_meg_chan = len([c for c in ch_names if 'MEG' in c])
+                entr += ' | ' + 'MEG channels: %d' %n_meg_chan
+                n_eeg_chan = len([c for c in ch_names if 'EEG' in c])
+                entr += ' | ' + 'EEG channels: %d' %n_eeg_chan
+
+            elif k == 'surf_ori':
+                n_src = self['nsource']
+                if v:
+                    entr += (' | ' + 'Source space: Surface with %d vertices'
+                             %n_src)
+                else:
+                    entr += (' | ' + 'Source space: Volume with %d grid points'
+                             %n_src)
+
+        entr += '>'
+
+        return entr
+
+
 def prepare_bem_model(bem, sol_fname=None, method='linear'):
     """Wrapper for the mne_prepare_bem_model command line utility
 
@@ -380,7 +412,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     Returns
     -------
-    fwd : dict
+    fwd : Forward
         The forward solution.
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
@@ -523,7 +555,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd['_orig_source_ori'] = fwd['source_ori']
     convert_forward_solution(fwd, surf_ori, force_fixed, copy=False)
     fwd = pick_channels_forward(fwd, include=include, exclude=exclude)
-    return fwd
+
+    return Forward(fwd)
 
 
 @verbose
