@@ -801,7 +801,7 @@ def _read_cov(fid, node, cov_kind, verbose=None):
                 names = tag.data.split(':')
                 if len(names) != dim:
                     raise ValueError('Number of names does not match '
-                                       'covariance matrix dimension')
+                                     'covariance matrix dimension')
 
             tag = find_tag(fid, this, FIFF.FIFF_MNE_COV)
             if tag is None:
