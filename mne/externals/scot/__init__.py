@@ -5,6 +5,8 @@
 """ SCoT: The Source Connectivity Toolbox
 """
 
+from __future__ import absolute_import
+
 from . import config
 
 backends = ['backend_builtin', 'backend_sklearn']

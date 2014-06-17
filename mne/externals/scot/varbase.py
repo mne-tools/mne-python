@@ -302,23 +302,29 @@ class VARBase():
     def _construct_eqns(self, data):
         """ Construct VAR equation system
         """
+        return _construct_var_eqns(data, self.p)
+
+
+############################################################################
+
+
+def _construct_var_eqns(data, p):
+        """ Construct VAR equation system
+        """
         (l, m, t) = np.shape(data)
-        n = (l - self.p) * t     # number of linear relations
+        n = (l - p) * t     # number of linear relations
         # Construct matrix x (predictor variables)
-        x = np.zeros((n, m * self.p))
+        x = np.zeros((n, m * p))
         for i in range(m):
-            for k in range(1, self.p + 1):
-                x[:, i * self.p + k - 1] = np.reshape(data[self.p - k:-k, i, :], n)
+            for k in range(1, p + 1):
+                x[:, i * p + k - 1] = np.reshape(data[p - k:-k, i, :], n)
 
         # Construct vectors yi (response variables for each channel i)
         y = np.zeros((n, m))
         for i in range(m):
-            y[:, i] = np.reshape(data[self.p:, i, :], n)
+            y[:, i] = np.reshape(data[p:, i, :], n)
 
         return x, y
-
-
-############################################################################
 
 
 def test_whiteness(data, h, p=0, repeats=100, get_q=False):

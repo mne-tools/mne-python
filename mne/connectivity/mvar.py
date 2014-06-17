@@ -8,6 +8,7 @@ from ..utils import logger
 from ..externals.scot.varbase import VARBase
 from ..externals.scot.var import VAR
 from ..externals.scot.connectivity import connectivity
+from ..externals.scot.xvschema import make_nfold
 
 
 def _acm(x, l):
@@ -38,7 +39,15 @@ def _get_n_epochs(epochs, n):
 
 
 def _fit_mvar_lsq(data, order, delta):
-    var = VAR(order, delta)
+    if order is None:
+        order = (1, None)
+    var = VAR(order, delta, xvschema=make_nfold(10))
+    try:
+        pmin, pmax = order[0], order[1]
+        logger.info('MVAR order selection...')
+        var.optimize_order(data, pmin, pmax)
+    except TypeError:  # can't index order -> it is an int
+        pass
     #todo: only convert if data is a generator
     data = np.asarray(list(data)).transpose([2, 1, 0])
     var.fit(data)
@@ -68,7 +77,7 @@ def _fit_mvar_yw(data, order, n_jobs=1, verbose=None):
     return var
 
 
-def mvar_connectivity(data, method, order, fitting_mode='lsq', ridge=0,
+def mvar_connectivity(data, method, order=None, fitting_mode='lsq', ridge=0,
                       sfreq=2, fmin=0, fmax=np.inf, nfft=512):
     """Estimate connectivity from multivariate autoregressive (MVAR) models.
 
@@ -113,10 +122,20 @@ def mvar_connectivity(data, method, order, fitting_mode='lsq', ridge=0,
         The upper frequency of interest. Multiple bands are defined using
         a tuple, e.g. (12., 24.) for two band with 12Hz and 24Hz upper freq.
 
+    Returns
+    -------
+    con : array | list of arrays
+        Computed connectivity measure(s). The shape of each array is
+        (n_signals, n_signals, n_frequencies)
+    freqs : array
+        Frequency points at which the connectivity was computed.
+    var_order : int
+        MVAR model order that was used for fitting the model.
+
     References
     ----------
-    [1] M. Billinger, C.Brunner, G. R. Mueller-Putz. "SCoT: a Python toolbox for
-        EEG source connectivity", Frontiers in Neuroinformatics, 8:22, 2014
+    [1] M. Billinger, C.Brunner, G. R. Mueller-Putz. "SCoT: a Python toolbox
+        for EEG source connectivity", Frontiers in Neuroinformatics, 8:22, 2014
     """
 
     if not isinstance(method, (list, tuple)):
@@ -148,4 +167,4 @@ def mvar_connectivity(data, method, order, fitting_mode='lsq', ridge=0,
         bands = [np.mean(np.abs(c[mth][:, :, fm]), axis=2) for fm in fmask]
         results.append(np.transpose(bands, (1, 2, 0)))
 
-    return results, freqs
+    return results, freqs, var.p

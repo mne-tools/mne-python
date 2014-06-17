@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.fixes import tril_indices
 from mne.connectivity import mvar_connectivity
@@ -65,8 +65,9 @@ def test_mvar_connectivity():
     var_coef = np.zeros((1, n_sigs, n_sigs))
     data = _make_data(var_coef, n_samples, n_epochs)
 
-    con, freqs = mvar_connectivity(data, methods, order=5, sfreq=sfreq)
+    con, freqs, p = mvar_connectivity(data, methods, order=None, sfreq=sfreq)
     con = dict((m, c) for m, c in zip(methods, con))
+    assert_equal(p, 1)
 
     assert_array_almost_equal(con['S'][:, :, 0], np.eye(n_sigs), decimal=2)
     assert_array_almost_equal(con['COH'][:, :, 0], np.eye(n_sigs), decimal=2)
@@ -84,8 +85,9 @@ def test_mvar_connectivity():
     var_coef[:, 1, 0] = f
     data = _make_data(var_coef, n_samples, n_epochs)
 
-    con, freqs = mvar_connectivity(data, methods, order=3, sfreq=sfreq)
+    con, freqs, p = mvar_connectivity(data, methods, order=None, sfreq=sfreq)
     con = dict((m, c) for m, c in zip(methods, con))
+    assert_equal(p, 1)
 
     h = var_coef.squeeze() + np.eye(n_sigs)
 
@@ -111,8 +113,9 @@ def test_mvar_connectivity():
     var_coef[:, 2, 1] = f
     data = _make_data(var_coef, n_samples, n_epochs)
 
-    con, freqs = mvar_connectivity(data, methods, order=3, sfreq=sfreq)
+    con, freqs, p = mvar_connectivity(data, methods, order=None, sfreq=sfreq)
     con = dict((m, c) for m, c in zip(methods, con))
+    assert_equal(p, 1)
 
     assert_array_almost_equal(con['S'][:, :, 0] / f**4, [[f**-4, f**-3, f**-2],
                                                          [f**-3, f**-2, f**-1],

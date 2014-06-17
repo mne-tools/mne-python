@@ -74,11 +74,12 @@ band_names = ('alpha', 'beta')
 band_colors = ('hot', 'bone')
 fmin = (8., 16.)
 fmax = (13., 24.)
-mvar_order = 30  # model order determines frequency resolution
 sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['PDC', 'COH']
-con, freqs = mvar_connectivity(label_ts, con_methods, mvar_order,
-                               sfreq=sfreq, fmin=fmin, fmax=fmax, ridge=0)
+con, freqs, order = mvar_connectivity(label_ts, con_methods, sfreq=sfreq,
+                                      fmin=fmin, fmax=fmax, ridge=0)
+
+print('MVAR order selected:', order)
 
 con_res = dict()
 for method, c in zip(con_methods, con):

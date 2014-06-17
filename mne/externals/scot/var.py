@@ -5,9 +5,11 @@
 """ Vector autoregressive (VAR) model implementation
 """
 
+from __future__ import print_function
+
 import numpy as np
 import scipy as sp
-from .varbase import VARBase
+from .varbase import VARBase, _construct_var_eqns
 from .datatools import cat_trials
 from . import xvschema as xv
 
@@ -62,6 +64,41 @@ class VAR(VARBase):
 
         return self
 
+    def optimize_order(self, data, min_p=1, max_p=None, skipstep=1, verbose=False):
+        """ Determine optimal model order by cross-validating the mean-squared
+        generalization error.
+
+        Parameters
+        ----------
+        min_p : int
+            minimal model order to check
+        max_p : int
+            maximum model order to check
+        """
+        data = np.asarray(data)
+        assert (data.shape[2] > 1)
+        msge, prange = [], []
+        if verbose:
+            print('optimizing model order...')
+        p = min_p
+        while True:
+            if verbose:
+                print(p, end=': ')
+            f = self._get_msge_with_gradient_func(data.shape, p)
+            j, k = f(data, self.delta, self.xvschema, skipstep, p)
+            prange.append(p)
+            msge.append(j)
+            if verbose:
+                print(j)
+            if max_p is None and len(msge) >= 2:
+                if msge[-1] > msge[-2]:
+                    break
+            else:
+                if p == max_p:
+                    break
+            p += 1
+        self.p = prange[np.argmin(msge)]
+        return zip(prange, msge)
 
     def optimize_delta_bisection(self, data, skipstep=1):
         """ Find optimal ridge penalty with bisection search.
@@ -90,17 +127,17 @@ class VAR(VARBase):
 
         transform = lambda x: sp.sqrt(sp.exp(x))
 
-        msge = self._get_msge_with_gradient_func(data.shape)
+        msge = self._get_msge_with_gradient_func(data.shape, self.p)
 
-        (ja, ka) = msge(data, transform(a), self.xvschema, skipstep)
-        (jb, kb) = msge(data, transform(b), self.xvschema, skipstep)
+        (ja, ka) = msge(data, transform(a), self.xvschema, skipstep, self.p)
+        (jb, kb) = msge(data, transform(b), self.xvschema, skipstep, self.p)
 
         # before starting the real bisection, make sure the interval actually contains 0
         while sp.sign(ka) == sp.sign(kb):
             print('Bisection initial interval (%f,%f) does not contain zero. New interval: (%f,%f)' % (a, b, a * 2, b * 2))
             a *= 2
             b *= 2
-            (jb, kb) = msge(data, transform(b), self.xvschema, skipstep)
+            (jb, kb) = msge(data, transform(b), self.xvschema, skipstep, self.p)
 
             if transform(b) >= maxdelta:
                 print('Bisection: could not find initial interval.')
@@ -115,7 +152,7 @@ class VAR(VARBase):
             # this is not very stable!
             #c = a + (b-a) * np.abs(ka) / np.abs(kb-ka)
             c = (a + b) / 2
-            (j, k) = msge(data, transform(c), self.xvschema, skipstep)
+            (j, k) = msge(data, transform(c), self.xvschema, skipstep, self.p)
             if sp.sign(k) == sp.sign(ka):
                 a, ka = c, k
             else:
@@ -134,34 +171,20 @@ class VAR(VARBase):
     def _construct_eqns_rls(self, data):
         """Construct VAR equation system with RLS constraint.
         """
-        (l, m, t) = sp.shape(data)
-        n = (l - self.p) * t     # number of linear relations
-        # Construct matrix x (predictor variables)
-        x = sp.zeros((n + m * self.p, m * self.p))
-        for i in range(m):
-            for k in range(1, self.p + 1):
-                x[:n, i * self.p + k - 1] = sp.reshape(data[self.p - k:-k, i, :], n)
-        sp.fill_diagonal(x[n:, :], self.delta)
+        return _construct_var_eqns_rls(data, self.p, self.delta)
 
-        # Construct vectors yi (response variables for each channel i)
-        y = sp.zeros((n + m * self.p, m))
-        for i in range(m):
-            y[:n, i] = sp.reshape(data[self.p:, i, :], n)
-
-        return x, y
-
-    def _msge_with_gradient_underdetermined(self, data, delta, xvschema, skipstep):
+    @staticmethod
+    def _msge_with_gradient_underdetermined(data, delta, xvschema, skipstep, p):
         """ Calculate the mean squared generalization error and it's gradient for underdetermined equation system.
         """
         (l, m, t) = data.shape
         d = None
         j, k = 0, 0
         nt = sp.ceil(t / skipstep)
-        for s in range(0, t, skipstep):
-            trainset, testset = xvschema(s, t)
+        for trainset, testset in xvschema(t, skipstep):
 
-            (a, b) = self._construct_eqns(sp.atleast_3d(data[:, :, trainset]))
-            (c, d) = self._construct_eqns(sp.atleast_3d(data[:, :, testset]))
+            (a, b) = _construct_var_eqns(sp.atleast_3d(data[:, :, trainset]), p)
+            (c, d) = _construct_var_eqns(sp.atleast_3d(data[:, :, testset]), p)
 
             e = sp.linalg.inv(sp.eye(a.shape[0]) * delta ** 2 + a.dot(a.transpose()))
 
@@ -179,20 +202,18 @@ class VAR(VARBase):
 
         return j / (nt * d.size), k / (nt * d.size)
 
-
-    def _msge_with_gradient_overdetermined(self, data, delta, xvschema, skipstep):
+    @staticmethod
+    def _msge_with_gradient_overdetermined(data, delta, xvschema, skipstep, p):
         """ Calculate the mean squared generalization error and it's gradient for overdetermined equation system.
         """
         (l, m, t) = data.shape
         d = None
         l, k = 0, 0
         nt = sp.ceil(t / skipstep)
-        for s in range(0, t, skipstep):
-            #print(s,drange)
-            trainset, testset = xvschema(s, t)
+        for trainset, testset in xvschema(t, skipstep):
 
-            (a, b) = self._construct_eqns(sp.atleast_3d(data[:, :, trainset]))
-            (c, d) = self._construct_eqns(sp.atleast_3d(data[:, :, testset]))
+            (a, b) = _construct_var_eqns(sp.atleast_3d(data[:, :, trainset]), p)
+            (c, d) = _construct_var_eqns(sp.atleast_3d(data[:, :, testset]), p)
 
             #e = sp.linalg.inv(np.eye(a.shape[1])*delta**2 + a.transpose().dot(a), overwrite_a=True, check_finite=False)
             e = sp.linalg.inv(sp.eye(a.shape[1]) * delta ** 2 + a.transpose().dot(a))
@@ -208,15 +229,36 @@ class VAR(VARBase):
 
         return l / (nt * d.size), k / (nt * d.size)
 
-    def _get_msge_with_gradient_func(self, shape):
+    @staticmethod
+    def _get_msge_with_gradient_func(shape, p):
         """ Select which function to use for MSGE calculation (over- or underdetermined).
         """
         (l, m, t) = shape
 
-        n = (l - self.p) * t
-        underdetermined = n < m * self.p
+        n = (l - p) * t
+        underdetermined = n < m * p
 
         if underdetermined:
-            return self._msge_with_gradient_underdetermined
+            return VAR._msge_with_gradient_underdetermined
         else:
-            return self._msge_with_gradient_overdetermined
+            return VAR._msge_with_gradient_overdetermined
+
+
+def _construct_var_eqns_rls(data, p, delta):
+        """Construct VAR equation system with RLS constraint.
+        """
+        (l, m, t) = sp.shape(data)
+        n = (l - p) * t     # number of linear relations
+        # Construct matrix x (predictor variables)
+        x = sp.zeros((n + m * p, m * p))
+        for i in range(m):
+            for k in range(1, p + 1):
+                x[:n, i * p + k - 1] = sp.reshape(data[p - k:-k, i, :], n)
+        sp.fill_diagonal(x[n:, :], delta)
+
+        # Construct vectors yi (response variables for each channel i)
+        y = sp.zeros((n + m * p, m))
+        for i in range(m):
+            y[:n, i] = sp.reshape(data[p:, i, :], n)
+
+        return x, y

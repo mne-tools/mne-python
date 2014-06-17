@@ -4,58 +4,106 @@
 
 """ Cross-validation schemas """
 
+from __future__ import division
+
+import numpy as np
 from numpy import sort
 
 
-def singletrial(t, num_trials):
+def singletrial(num_trials, skipstep):
     """ Single-trial cross-validation schema
-    
+
     Use one trial for training, all others for testing.
 
     Parameters
     ----------
-    t : int
-        Current cross-validation run
     num_trials : int
         Total number of trials
-        
+    skipstep : int
+        only use every `skipstep` trial for training
+
     Returns
     -------
-    trainset : list of int
-        trials in the training set
-    testset : list of int
-        trials in the testing set
+    gen : generator object
+        the generator returns tuples (trainset, testset)
     """
-    trainset = [t]
-    testset = [i for i in range(trainset[0])] + [i for i in range(trainset[-1] + 1, num_trials)]
+    for t in range(0, num_trials, skipstep):
+        trainset = [t]
+        testset = [i for i in range(trainset[0])] + [i for i in range(trainset[-1] + 1, num_trials)]
+        testset = sort([t % num_trials for t in testset])
+        yield trainset, testset
 
-    testset = sort([t % num_trials for t in testset])
 
-    return trainset, testset
+def multitrial(num_trials, skipstep):
+    """ Multi-trial cross-validation schema
 
-
-def multitrial(t, num_trials):
-    """ Single-trial cross-validation schema
-    
     Use one trial for testing, all others for training.
 
     Parameters
     ----------
-    t : int
-        Current cross-validation run
     num_trials : int
         Total number of trials
-        
+    skipstep : int
+        only use every `skipstep` trial for testing
+
     Returns
     -------
-    trainset : list of int
-        trials in the training set
-    testset : list of int
-        trials in the testing set
+    gen : generator object
+        the generator returns tuples (trainset, testset)
     """
-    testset = [t]
-    trainset = [i for i in range(testset[0])] + [i for i in range(testset[-1] + 1, num_trials)]
+    for t in range(0, num_trials, skipstep):
+        testset = [t]
+        trainset = [i for i in range(testset[0])] + [i for i in range(testset[-1] + 1, num_trials)]
+        trainset = sort([t % num_trials for t in trainset])
+        yield trainset, testset
 
-    trainset = sort([t % num_trials for t in trainset])
 
-    return trainset, testset
+def splitset(num_trials, skipstep):
+    """ Split-set cross validation
+
+    Use half the trials for training, and the other half for testing. Then
+    repeat the other way round.
+
+    Parameters
+    ----------
+    num_trials : int
+        Total number of trials
+    skipstep : int
+        unused
+
+    Returns
+    -------
+    gen : generator object
+        the generator returns tuples (trainset, testset)
+    """
+    split = num_trials // 2
+
+    a = list(range(0, split))
+    b = list(range(split, num_trials))
+    yield a, b
+    yield b, a
+
+
+def make_nfold(n):
+    """ n-fold cross validation
+
+    Use each of n blocks for testing once.
+
+    Parameters
+    ----------
+    n : int
+        number of blocks
+
+    Returns
+    -------
+    gengen : func
+        a function that returns the generator
+    """
+    def nfold(num_trials, skipstep):
+        blocksize = int(np.ceil(num_trials / n))
+        for i in range(0, num_trials, blocksize):
+            testset = [k for k in (i + np.arange(blocksize)) if k < num_trials]
+            trainset = [i for i in range(testset[0])] + [i for i in range(testset[-1] + 1, num_trials)]
+            trainset = sort([t % num_trials for t in trainset])
+            yield trainset, testset
+    return nfold
