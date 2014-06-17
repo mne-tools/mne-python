@@ -688,8 +688,7 @@ class Workspace:
 
         return p, s
 
-    @staticmethod
-    def show_plots():
+    def show_plots(self):
         """Show current plots.
 
         This is only a convenience wrapper around :func:`matplotlib.pyplot.show_plots`.

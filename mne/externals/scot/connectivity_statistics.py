@@ -245,5 +245,5 @@ def convert_output_(output, measures):
         return np.array(output)
     else:
         repeats = len(output)
-        output = {m: np.array([output[r][m] for r in range(repeats)]) for m in measures}
+        output = dict((m, np.array([output[r][m] for r in range(repeats)])) for m in measures)
         return output

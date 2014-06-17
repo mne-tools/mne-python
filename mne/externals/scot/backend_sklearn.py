@@ -7,8 +7,6 @@
 
 from __future__ import absolute_import
 
-from sklearn.decomposition import FastICA, PCA
-from sklearn import linear_model
 import scipy as sp
 from . import backend_builtin as builtin
 from . import config, datatools
@@ -18,6 +16,7 @@ from .varbase import VARBase
 def wrapper_fastica(data):
     """ Call FastICA implementation from scikit-learn.
     """
+    from sklearn.decomposition import FastICA
     ica = FastICA()
     ica.fit(datatools.cat_trials(data))
     u = ica.components_.T
@@ -28,6 +27,7 @@ def wrapper_fastica(data):
 def wrapper_pca(x, reducedim):
     """ Call PCA implementation from scikit-learn.
     """
+    from sklearn.decomposition import PCA
     pca = PCA(n_components=reducedim)
     pca.fit(datatools.cat_trials(x))
     d = pca.components_
@@ -48,8 +48,11 @@ class VAR(VARBase):
     fitobj : class, optional
         Instance of a linear model implementation.
     """
-    def __init__(self, model_order, fitobj=linear_model.LinearRegression()):
+    def __init__(self, model_order, fitobj=None):
         VARBase.__init__(self, model_order)
+        if fitobj is None:
+            from sklearn.linear_model import LinearRegression
+            fitobj = LinearRegression()
         self.fitting_model = fitobj
 
     def fit(self, data):
