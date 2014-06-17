@@ -4,7 +4,8 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types, text_type
+import warnings
+
 from copy import deepcopy
 from inspect import getargspec, isfunction
 from collections import namedtuple
@@ -44,6 +45,7 @@ from ..utils import (check_sklearn_version, logger, check_fname, verbose,
 from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
+from ..externals.six import string_types, text_type
 
 try:
     from sklearn.utils.extmath import fast_dot
@@ -128,21 +130,28 @@ class ICA(ContainsMixin):
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results.
-    method : {'fastica', 'infomax'}
-        The ICA method to use.
+    method : {'fastica', 'infomax', 'extended-infomax'}
+        The ICA method to use. Defaults to 'fastica'.
     algorithm : {'parallel', 'deflation'}
-        Apply parallel or deflational algorithm for FastICA.
+        Apply parallel or deflational algorithm for FastICA. This parameter
+        belongs to FastICA and is deprecated. Please use `fit_params` instead.
     fun : string or function, optional. Default: 'logcosh'
         The functional form of the G function used in the
         approximation to neg-entropy. Could be either 'logcosh', 'exp',
         or 'cube'.
         You can also provide your own function. It should return a tuple
         containing the value of the function, and of its derivative, in the
-        point.
+        point. This parameter belongs to FastICA and is deprecated.
+        Please use `fit_params` instead.
     fun_args: dictionary, optional
         Arguments to send to the functional form.
         If empty and if fun='logcosh', fun_args will take value
-        {'alpha' : 1.0}
+        {'alpha' : 1.0}. This parameter belongs to FastICA and is deprecated.
+        Please use `fit_params` instead.
+    fit_params : dict | None.
+        Additional parameters passed to the ICA estimator chosen by `method`.
+    max_iter : int, optional
+        Maximum number of iterations during fit.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -186,12 +195,15 @@ class ICA(ContainsMixin):
         the number of samples used on fit.
     """
     @verbose
-    def __init__(self, n_components=None, max_pca_components=100,
+    def __init__(self, n_components=None, max_pca_components=None,
                  n_pca_components=None, noise_cov=None, random_state=None,
                  method='fastica',
-                 algorithm='parallel', fun='logcosh', fun_args=None,
-                 verbose=None):
-
+                 algorithm=None, fun=None, fun_args=None,
+                 fit_params=None, max_iter=200, verbose=None):
+        methods = ('fastica', 'infomax', 'extended-infomax')
+        if method not in methods:
+            raise ValueError('`method` must be "%s". You passed: "%s"' %
+                             ('" or "'.join(methods), method))
         if not check_sklearn_version(min_version='0.12'):
             raise RuntimeError('the scikit-learn package (version >= 0.12)'
                                'is required for ICA')
@@ -215,9 +227,34 @@ class ICA(ContainsMixin):
         self.n_pca_components = n_pca_components
         self.ch_names = None
         self.random_state = random_state if random_state is not None else 42
+
+        for attr in ['algorithm', 'fun', 'fun_args']:
+            if eval(attr) is not None:
+                warnings.warn('The parameter `%s` is deprecated and will be'
+                              'removed in MNE-Python 1.0. Pleas use '
+                              '`fit_params` instead' % attr,
+                              DeprecationWarning)
+
         self.algorithm = algorithm
         self.fun = fun
         self.fun_args = fun_args
+
+        if fit_params is None:
+            fit_params = {}
+        if method == 'fastica':
+            update = {'algorithm': 'parallel', 'fun': 'logcosh',
+                      'fun_args': None}
+            fit_params.update(dict((k, v) for k, v in update.items() if k
+                              not in fit_params))
+        elif method == 'infomax':
+            fit_params.update({'extended': False})
+        elif method == 'extended-infomax':
+            fit_params.update({'extended': True})
+        if 'max_iter' not in fit_params:
+            fit_params['max_iter'] = max_iter
+        self.max_iter = max_iter
+        self.fit_params = fit_params
+
         self.exclude = []
         self.info = None
         self.method = method
@@ -475,17 +512,15 @@ class ICA(ContainsMixin):
         # Take care of ICA
         if self.method == 'fastica':
             from sklearn.decomposition import FastICA  # to avoid strong dep.
-            ica = FastICA(algorithm=self.algorithm, fun=self.fun,
-                          fun_args=self.fun_args, whiten=False,
-                          random_state=self.random_state)
+            ica = FastICA(whiten=False,
+                          random_state=self.random_state, **self.fit_params)
             ica.fit(data[:, sel])
-
             # get unmixing and add scaling
             self.unmixing_matrix_ = getattr(ica, 'components_',
                                             'unmixing_matrix_')
-            self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
-        elif self.method == 'infomax':
-            self.unmixing_matrix_ = infomax(data[:, sel]).T
+        elif self.method in ('infomax', 'extended-infomax'):
+            self.unmixing_matrix_ = infomax(data[:, sel], **self.fit_params).T
+        self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
 

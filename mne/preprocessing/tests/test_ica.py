@@ -76,43 +76,46 @@ def test_ica_full_data_recovery():
     data = raw._data[:n_channels].copy()
     data_epochs = epochs.get_data()
     data_evoked = evoked.data
-    for n_components, n_pca_components, ok in [(2, n_channels, True),
-                                               (2, n_channels // 2, False)]:
-        ica = ICA(n_components=n_components,
-                  max_pca_components=n_pca_components,
-                  n_pca_components=n_pca_components)
-        with warnings.catch_warnings(record=True):
-            ica.fit(raw, picks=list(range(n_channels)))
-        raw2 = ica.apply(raw, exclude=[], copy=True)
-        if ok:
-            assert_allclose(data[:n_channels], raw2._data[:n_channels],
-                            rtol=1e-10, atol=1e-15)
-        else:
-            diff = np.abs(data[:n_channels] - raw2._data[:n_channels])
-            assert_true(np.max(diff) > 1e-14)
+    for method in ['fastica', 'infomax', 'extended-infomax']:
+        stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
+        for n_components, n_pca_components, ok in stuff:
+            ica = ICA(n_components=n_components,
+                      max_pca_components=n_pca_components,
+                      n_pca_components=n_pca_components,
+                      method=method, max_iter=1)
+            with warnings.catch_warnings(record=True):
+                ica.fit(raw, picks=list(range(n_channels)))
+            raw2 = ica.apply(raw, exclude=[], copy=True)
+            if ok:
+                assert_allclose(data[:n_channels], raw2._data[:n_channels],
+                                rtol=1e-10, atol=1e-15)
+            else:
+                diff = np.abs(data[:n_channels] - raw2._data[:n_channels])
+                assert_true(np.max(diff) > 1e-14)
 
-        ica = ICA(n_components=n_components,
-                  max_pca_components=n_pca_components,
-                  n_pca_components=n_pca_components)
-        with warnings.catch_warnings(record=True):
-            ica.fit(epochs, picks=list(range(n_channels)))
-        epochs2 = ica.apply(epochs, exclude=[], copy=True)
-        data2 = epochs2.get_data()[:, :n_channels]
-        if ok:
-            assert_allclose(data_epochs[:, :n_channels], data2,
-                            rtol=1e-10, atol=1e-15)
-        else:
-            diff = np.abs(data_epochs[:, :n_channels] - data2)
-            assert_true(np.max(diff) > 1e-14)
+            ica = ICA(n_components=n_components,
+                      max_pca_components=n_pca_components,
+                      n_pca_components=n_pca_components)
+            with warnings.catch_warnings(record=True):
+                ica.fit(epochs, picks=list(range(n_channels)))
+            epochs2 = ica.apply(epochs, exclude=[], copy=True)
+            data2 = epochs2.get_data()[:, :n_channels]
+            if ok:
+                assert_allclose(data_epochs[:, :n_channels], data2,
+                                rtol=1e-10, atol=1e-15)
+            else:
+                diff = np.abs(data_epochs[:, :n_channels] - data2)
+                assert_true(np.max(diff) > 1e-14)
 
-        evoked2 = ica.apply(evoked, exclude=[], copy=True)
-        data2 = evoked2.data[:n_channels]
-        if ok:
-            assert_allclose(data_evoked[:n_channels], data2,
-                            rtol=1e-10, atol=1e-15)
-        else:
-            diff = np.abs(evoked.data[:n_channels] - data2)
-            assert_true(np.max(diff) > 1e-14)
+            evoked2 = ica.apply(evoked, exclude=[], copy=True)
+            data2 = evoked2.data[:n_channels]
+            if ok:
+                assert_allclose(data_evoked[:n_channels], data2,
+                                rtol=1e-10, atol=1e-15)
+            else:
+                diff = np.abs(evoked.data[:n_channels] - data2)
+                assert_true(np.max(diff) > 1e-14)
+    assert_raises(ValueError, ICA, method='pizza-decomposision')
 
 
 @requires_sklearn
@@ -133,19 +136,20 @@ def test_ica_core():
     n_components = [2, 1.0]  # for future dbg add cases
     max_pca_components = [3]
     picks_ = [picks]
+    methods = ['fastica', 'infomax']
     iter_ica_params = product(noise_cov, n_components, max_pca_components,
-                              picks_)
+                              picks_, methods)
 
     # # test init catchers
     assert_raises(ValueError, ICA, n_components=3, max_pca_components=2)
     assert_raises(ValueError, ICA, n_components=2.3, max_pca_components=2)
 
     # test essential core functionality
-    for n_cov, n_comp, max_n, pcks in iter_ica_params:
+    for n_cov, n_comp, max_n, pcks, method in iter_ica_params:
       # Test ICA raw
         ica = ICA(noise_cov=n_cov, n_components=n_comp,
                   max_pca_components=max_n, n_pca_components=max_n,
-                  random_state=0)
+                  random_state=0, method=method, max_iter=1)
 
         print(ica)  # to test repr
 

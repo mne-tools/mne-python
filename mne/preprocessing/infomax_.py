@@ -23,7 +23,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
     Parameters
     ----------
-    data : np.ndarray, shape (n_features, n_times)
+    data : np.ndarray, shape (n_samples, n_features)
         The data to unmix.
     w_init : np.ndarray, shape (n_features, n_features)
         The initialized unmixing matrix. Defaults to None. If None, the
@@ -233,20 +233,10 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             angledelta = 0.0
             delta = oldwtchange.reshape(1, n_features_square)
             change = np.sum(delta * delta, dtype=np.float64)
-
-            info = "       ...step %4d of %4d: l_rate = %g, w_change = %g, max weight val = %0.2f" \
-                   % (step, max_iter, l_rate, change, max_weight_val)
             if step > 1:
                 angledelta = math.acos(np.sum(delta * olddelta) /
                                        math.sqrt(change * oldchange))
                 angledelta *= degconst
-                info += ", angledelta %g" % angledelta
-
-            if extended is True:
-                subgauss = (n_features-np.sum(signs.flat[::n_features + 1]))/2
-                info += ", subgauss %4d" % subgauss
-
-            print(info)
 
             # anneal learning rate
             oldweights = weights.copy()
