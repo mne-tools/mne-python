@@ -75,28 +75,23 @@ def _data_path(path=None, force_update=False, update_path=True,
                                        '..', '..', 'examples'))
         path = get_config(key, def_path)
         # use the same for all datasets
-        if not op.exists(path):
+        if not op.exists(path) or not os.access(path, os.W_OK):
             try:
-                os.mkdir(def_path)
+                os.mkdir(path)
             except OSError:
                 try:
-                    logger.info("Trying to create "
-                                "'MNE/mne_data' in home directory")
-                    def_path = op.join(op.expanduser("~"), "MNE")
-                    if not op.exists(def_path):
-                        os.mkdir(def_path)
-                        def_path = op.join(def_path, "mne_data")
-                        os.mkdir(def_path)
-                    else:
-                        def_path = op.join(def_path, "mne_data")
-                        if not op.exists(def_path):
-                            os.mkdir(def_path)
+                    logger.info("Checking for sample data in '~/mne_data'...")
+                    path = op.join(op.expanduser("~"), "mne_data")
+                    if not op.exists(path):
+                        logger.info("Trying to create "
+                                    "'~/mne_data' in home directory")
+                        os.mkdir(path)
                 except OSError:
-                    raise OSError("User doesn't have write permission "
-                                  "at '%s', try giving a path as an argument "
+                    raise OSError("User does not have write permissions "
+                                  "at '%s', try giving the path as an argument "
                                   "to data_path() where user has write "
-                                  "permission, for ex:data_path"
-                                  "('/home/xyz/me2/')" % (def_path))
+                                  "permissions, for ex:data_path"
+                                  "('/home/xyz/me2/')" % (path))
 
     if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
