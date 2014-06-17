@@ -43,23 +43,43 @@ inverse_operator = read_inverse_operator(fname_inv)
 # regularisation parameter
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = 'dSPM'  # can be 'MNE' or 'sLORETA'
+mode = 'svd'
+n_svd_comp = 1
 
-stc_ctf, _ = cross_talk_function(inverse_operator, forward, labels,
-                                 method=method, lambda2=lambda2, signed=True,
-                                 mode='svd', n_svd_comp=3)
+method = 'MNE'  # can be 'MNE', 'dSPM', or 'sLORETA'
+stc_ctf_mne, singvals = cross_talk_function(inverse_operator, forward, labels,
+                                            method=method, lambda2=lambda2,
+                                            signed=False, mode=mode,
+                                            n_svd_comp=n_svd_comp)
 
-fmax = stc_ctf.data[:, 0].max()
-fmid = fmax / 2.
+method = 'dSPM'
+stc_ctf_dspm, singvals = cross_talk_function(inverse_operator, forward, labels,
+                                             method=method, lambda2=lambda2,
+                                             signed=False, mode=mode,
+                                             n_svd_comp=n_svd_comp)
+
+from mayavi import mlab
+
 fmin = 0.
 
-time_label = "Label %d"
+time_label = "MNE %d"
+fmax = stc_ctf_mne.data[:, 0].max()
+fmid = fmax / 2.
+brain_mne = stc_ctf_mne.plot(surface='inflated', hemi='rh',
+                             subjects_dir=subjects_dir,
+                             time_label=time_label, fmin=fmin,
+                             fmid=fmid, fmax=fmax,
+                             figure=mlab.figure())
 
-brain = stc_ctf.plot(subject='sample', surface='inflated', hemi='rh',
-                     subjects_dir=subjects_dir, time_label=time_label,
-                     fmin=fmin, fmid=fmid, fmax=fmax)
+time_label = "dSPM %d"
+fmax = stc_ctf_dspm.data[:, 0].max()
+fmid = fmax / 2.
+brain_dspm = stc_ctf_dspm.plot(surface='inflated', hemi='rh',
+                               subjects_dir=subjects_dir,
+                               time_label=time_label, fmin=fmin,
+                               fmid=fmid, fmax=fmax,
+                               figure=mlab.figure())
 
-# Save CTFs for visualization in mne_analyze.
-# fname_out = fname_stem + '_' + method
-# print("Writing CTFs to files %s" % fname_out)
-# stc_ctf.save(fname_out)
+# Cross-talk functions for MNE and dSPM (and sLORETA) have the same shapes
+# (they may still differ in overall amplitude).
+# Point-spread functions (PSfs) usually differ significantly.

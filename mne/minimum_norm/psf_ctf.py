@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import mne
 import numpy as np
 from scipy import linalg
 
@@ -79,16 +80,21 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         screen output
     """
     mode = mode.lower()
-    if mode not in ['mean', 'svd']:
-        raise ValueError('mode must be ''svd'' or ''mean''. Got %s.' % mode)
+    if mode not in ['mean', 'sum', 'svd']:
+        raise ValueError('mode must be ''svd'', ''mean'' or ''sum''. Got %s.'
+                         % mode)
 
     logger.info("About to process %d labels" % len(labels))
 
     if not forward['surf_ori']:
-        raise RuntimeError('Forward has to be surface oriented.')
+        raise RuntimeError('Forward has to be surface oriented (surf_ori=True).')
 
     # get whole leadfield matrix with normal dipole components
-    leadfield = forward['sol']['data'][:, 2::3]
+    if not (forward['source_ori'] == 2):
+        # if forward solution already created with force_fixed=True
+        leadfield = forward['sol']['data']
+    else:  # pick normal components of forward solution
+        leadfield = forward['sol']['data'][:, 2::3]
 
     # in order to convert sub-leadfield matrix to evoked data type (pretending
     # it's an epoch, see in loop below), uses 'info' from forward solution,
@@ -126,10 +132,12 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         # compute summary data for labels
         if mode == 'sum':  # sum across forward solutions in label
             logger.info("Computing sums within labels")
-            this_label_psf_summary = sub_leadfield.sum(axis=1)
+            this_label_psf_summary = np.array(sub_leadfield.sum(axis=1))
+            this_label_psf_summary = np.vstack(this_label_psf_summary).T
         elif mode == 'mean':
             logger.info("Computing means within labels")
-            this_label_psf_summary = sub_leadfield.mean(axis=1)
+            this_label_psf_summary = np.array(sub_leadfield.mean(axis=1))
+            this_label_psf_summary = np.vstack(this_label_psf_summary).T
         elif mode == 'svd':  # takes svd of forward solutions in label
             logger.info("Computing SVD within labels, using %d component(s)"
                         % n_svd_comp)
@@ -152,7 +160,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
             comp_var = (100. * np.sum(my_comps * my_comps) /
                         np.sum(s_svd * s_svd))
             logger.info("Your %d component(s) explain(s) %.1f%% "
-                        "variance." % (n_svd_comp, comp_var))
+                        "variance in label." % (n_svd_comp, comp_var))
             this_label_psf_summary = (u_svd[:, :n_svd_comp]
                                       * s_svd[:n_svd_comp][np.newaxis, :])
             # transpose required for conversion to "evoked"
@@ -236,6 +244,11 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
     """
     mode = mode.lower()
 
+    if not forward['surf_ori']:
+        raise RuntimeError('Forward has to be surface oriented and force_fixed=True.')
+    if not (forward['source_ori'] == 1):
+        raise RuntimeError('Forward has to be surface oriented and force_fixed=True.')
+
     if labels:
         logger.info("\nAbout to process %d labels" % len(labels))
     else:
@@ -300,17 +313,19 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
             if mode == 'sum':  # takes sum across estimators in label
                 logger.info("Computing sums within labels")
                 this_invmat_summary = invmat_lbl.sum(axis=0)
+                this_invmat_summary = np.vstack(this_invmat_summary).T
             elif mode == 'mean':
                 logger.info("Computing means within labels")
                 this_invmat_summary = invmat_lbl.mean(axis=0)
+                this_invmat_summary = np.vstack(this_invmat_summary).T
             elif mode == 'svd':  # takes svd of sub-inverse in label
                 logger.info("Computing SVD within labels, using %d "
                             "component(s)" % n_svd_comp)
 
                 # compute SVD of sub-inverse
                 u_svd, s_svd, _ = linalg.svd(invmat_lbl.T,
-                                                full_matrices=False,
-                                                compute_uv=True)
+                                             full_matrices=False,
+                                             compute_uv=True)
 
                 # keep singular values (might be useful to some people)
                 label_singvals.append(s_svd)
@@ -325,7 +340,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
                 comp_var = ((100 * np.sum(my_comps * my_comps)) /
                             np.sum(s_svd * s_svd))
                 logger.info("Your %d component(s) explain(s) %.1f%% "
-                            "variance.\n" % (n_svd_comp, comp_var))
+                            "variance in label.\n" % (n_svd_comp, comp_var))
                 this_invmat_summary = (u_svd[:, :n_svd_comp].T
                                        * s_svd[:n_svd_comp][:, np.newaxis])
 
@@ -417,5 +432,7 @@ def cross_talk_function(inverse_operator, forward, labels,
     # create source estimate object
     vertno = [ss['vertno'] for ss in inverse_operator['src']]
     stc_ctf = SourceEstimate(ctfs.T, vertno, tmin=0., tstep=1.)
+
+    stc_ctf.subject = mne.minimum_norm.inverse._subject_from_inverse(inverse_operator)
 
     return stc_ctf, label_singvals
