@@ -317,8 +317,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
 
                 # get first n_svd_comp components, weighted with their
                 # corresponding singular values
-                logger.info("first 5 singular values:")
-                logger.info(s_svd[0:5])
+                logger.info("first 5 singular values: %s" % s_svd[0:5])
                 logger.info("(This tells you something about variability of "
                             "estimators in sub-inverse for label)")
                 # explained variance by chosen components within sub-inverse
@@ -411,32 +410,11 @@ def cross_talk_function(inverse_operator, forward, labels,
     # compute sum across forward solutions for labels, append to end
     ctfs = np.vstack((ctfs, ctfs.sum(axis=0)))
 
-    # create a dummy source estimate and put in the CTFs, in order to write
-    # them to STC file
-
-    # # in order to convert sub-leadfield matrix to evoked data type
-    # # uses 'info' from forward solution, need to add 'sfreq' and 'proj'
-    # info = forward['info']
-    # info['sfreq'] = 1.  # add sfreq or it won't work
-    # info['projs'] = []  # add projs
-
-    # # create identity matrix as input for inverse operator
-    # id_mat = np.eye(forward['nchan'])
-
-    # # convert identity matrix to evoked data type (pretending it's an epoch)
-    # ev_id = EvokedArray(id_mat[:, :len(labels) + 1], info=info, tmin=0.)
-    # 
-    # # apply inverse operator to dummy data to create dummy source estimate, in
-    # # this case fixed orientation constraint
-    # stc_ctf = apply_inverse(ev_id, inverse_operator, lambda2=lambda2,
-    #                         method=method)
-
     # if unsigned output requested, take absolute values
     if not signed:
         ctfs = np.abs(ctfs, out=ctfs)
 
-    # insert CTF into source estimate object
-    # stc_ctf._data = ctfs.T
+    # create source estimate object
     vertno = [ss['vertno'] for ss in inverse_operator['src']]
     stc_ctf = SourceEstimate(ctfs.T, vertno, tmin=0., tstep=1.)
 
