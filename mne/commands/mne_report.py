@@ -23,7 +23,7 @@ from matplotlib.figure import Figure
 import nibabel as nib
 
 import mne
-from tempita import HTMLTemplate
+from tempita import HTMLTemplate, Template
 
 tempdir = mne.utils._TempDir()
 
@@ -137,16 +137,11 @@ def build_tools(global_id, default_cmap="gray"):
 ###############################################################################
 # HTML scan renderer
 
-header_template = HTMLTemplate(u"""
+header_template = Template(u"""
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<script type="text/javascript" src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
-<script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
-<script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
-<link rel="stylesheet" type="text/css" media="all" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css"/>
-<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
-<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css">
+{{include}}
 <script type="text/javascript">
    function getCoordinates(e, img, ashape, name){
         var x = e.clientX - img.offsetLeft;
@@ -366,7 +361,23 @@ class HTMLScanRenderer(object):
     def init_render(self, path):
         """ Initialize the renderer
         """
-        return header_template.substitute(path=path)
+        inc_fnames = ['bootstrap.min.js', 'jquery-1.10.2.min.js',
+                      'jquery-ui.js', 'bootstrap.min.css', 'jquery-ui.css']
+
+        include = list()
+        for inc_fname in inc_fnames:
+            print('Embedding : %s' % inc_fname)
+            f = open(op.join(op.dirname(__file__), '..', 'html', inc_fname),
+                     'r')
+            if inc_fname.endswith('.js'):
+                include.append(u'<script type="text/javascript">'
+                               + f.read() + u'</script>')
+            elif inc_fname.endswith('.css'):
+                include.append(u'<style type="text/css">'
+                               + f.read() + u'</style>')
+            f.close()
+
+        return header_template.substitute(path=path, include=''.join(include))
 
     def finish_render(self):
         return footer_template.substitute(date=time.strftime("%B %d, %Y"))
@@ -623,7 +634,7 @@ def render_folder(path, info_fname, subjects_dir, subject):
     fnames = recursive_search(path, '*.fif')
     fnames += recursive_search(path, 'T1.mgz')
 
-    print "Rendering : Table of Contents"
+    print('Rendering : Table of Contents')
     html += renderer.render_toc(fnames)
 
     for fname in fnames:
