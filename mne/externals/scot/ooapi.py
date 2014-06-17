@@ -22,7 +22,6 @@ from .datatools import dot_special
 from .connectivity import Connectivity
 from .connectivity_statistics import surrogate_connectivity, bootstrap_connectivity, test_bootstrap_difference
 from .connectivity_statistics import significance_fdr
-from . import plotting
 
 
 class Workspace:
@@ -92,6 +91,8 @@ class Workspace:
         self.plot_diagonal = 'topo'
         self.plot_outside_topo = False
         self.plot_f_range = [0, fs/2]
+
+        self._plotting = None
 
         if self.backend_ is None:
             self.backend_ = config.backend
@@ -402,12 +403,12 @@ class Workspace:
                 diagonal = -1
                 sm = np.abs(self.connectivity_.S())
                 sm /= np.max(sm)     # scale to 1 since components are scaled arbitrarily anyway
-                fig = plotting.plot_connectivity_spectrum(sm, fs=self.fs_, freq_range=self.plot_f_range,
+                fig = self.plotting.plot_connectivity_spectrum(sm, fs=self.fs_, freq_range=self.plot_f_range,
                                                           diagonal=1, border=self.plot_outside_topo, fig=fig)
             else:
                 diagonal = -1
 
-            fig = plotting.plot_connectivity_spectrum(cm, fs=self.fs_, freq_range=self.plot_f_range,
+            fig = self.plotting.plot_connectivity_spectrum(cm, fs=self.fs_, freq_range=self.plot_f_range,
                                                       diagonal=diagonal, border=self.plot_outside_topo, fig=fig)
 
             return cm, fig
@@ -448,12 +449,12 @@ class Workspace:
                 sb = self.get_surrogate_connectivity('absS', repeats)
                 sb /= np.max(sb)     # scale to 1 since components are scaled arbitrarily anyway
                 su = np.percentile(sb, 95, axis=0)
-                fig = plotting.plot_connectivity_spectrum([su], fs=self.fs_, freq_range=self.plot_f_range,
+                fig = self.plotting.plot_connectivity_spectrum([su], fs=self.fs_, freq_range=self.plot_f_range,
                                                           diagonal=1, border=self.plot_outside_topo, fig=fig)
             else:
                 diagonal = -1
             cu = np.percentile(cs, 95, axis=0)
-            fig = plotting.plot_connectivity_spectrum([cu], fs=self.fs_, freq_range=self.plot_f_range,
+            fig = self.plotting.plot_connectivity_spectrum([cu], fs=self.fs_, freq_range=self.plot_f_range,
                                                       diagonal=diagonal, border=self.plot_outside_topo, fig=fig)
             return cs, fig
 
@@ -502,14 +503,14 @@ class Workspace:
                 sm = np.median(sb, axis=0)
                 sl = np.percentile(sb, 2.5, axis=0)
                 su = np.percentile(sb, 97.5, axis=0)
-                fig = plotting.plot_connectivity_spectrum([sm, sl, su], fs=self.fs_, freq_range=self.plot_f_range,
+                fig = self.plotting.plot_connectivity_spectrum([sm, sl, su], fs=self.fs_, freq_range=self.plot_f_range,
                                                           diagonal=1, border=self.plot_outside_topo, fig=fig)
             else:
                 diagonal = -1
             cm = np.median(cb, axis=0)
             cl = np.percentile(cb, 2.5, axis=0)
             cu = np.percentile(cb, 97.5, axis=0)
-            fig = plotting.plot_connectivity_spectrum([cm, cl, cu], fs=self.fs_, freq_range=self.plot_f_range,
+            fig = self.plotting.plot_connectivity_spectrum([cm, cl, cu], fs=self.fs_, freq_range=self.plot_f_range,
                                                       diagonal=diagonal, border=self.plot_outside_topo, fig=fig)
             return cb, fig
 
@@ -573,7 +574,7 @@ class Workspace:
                 s = np.abs(self.get_tf_connectivity('S', winlen, winstep))
                 if crange == 'default':
                     crange = [np.min(s), np.max(s)]
-                fig = plotting.plot_connectivity_timespectrum(s, fs=self.fs_, crange=[np.min(s), np.max(s)],
+                fig = self.plotting.plot_connectivity_timespectrum(s, fs=self.fs_, crange=[np.min(s), np.max(s)],
                                                               freq_range=self.plot_f_range, time_range=[t0, t1],
                                                               diagonal=1, border=self.plot_outside_topo, fig=fig)
             else:
@@ -585,7 +586,7 @@ class Workspace:
                     for m in range(tfc.shape[0]):
                         tfc[m, m, :, :] = 0
                 crange = [np.min(tfc), np.max(tfc)]
-            fig = plotting.plot_connectivity_timespectrum(tfc, fs=self.fs_, crange=crange,
+            fig = self.plotting.plot_connectivity_timespectrum(tfc, fs=self.fs_, crange=crange,
                                                           freq_range=self.plot_f_range, time_range=[t0, t1],
                                                           diagonal=diagonal, border=self.plot_outside_topo, fig=fig)
 
@@ -647,7 +648,7 @@ class Workspace:
                 sm = np.median(sa, axis=0)
                 sl = np.percentile(sa, 2.5, axis=0)
                 su = np.percentile(sa, 97.5, axis=0)
-                fig = plotting.plot_connectivity_spectrum([sm, sl, su], fs=self.fs_, freq_range=self.plot_f_range,
+                fig = self.plotting.plot_connectivity_spectrum([sm, sl, su], fs=self.fs_, freq_range=self.plot_f_range,
                                                           diagonal=1, border=self.plot_outside_topo, fig=fig)
 
                 self.set_used_labels(labels2)
@@ -655,13 +656,13 @@ class Workspace:
                 sm = np.median(sb, axis=0)
                 sl = np.percentile(sb, 2.5, axis=0)
                 su = np.percentile(sb, 97.5, axis=0)
-                fig = plotting.plot_connectivity_spectrum([sm, sl, su], fs=self.fs_, freq_range=self.plot_f_range,
+                fig = self.plotting.plot_connectivity_spectrum([sm, sl, su], fs=self.fs_, freq_range=self.plot_f_range,
                                                           diagonal=1, border=self.plot_outside_topo, fig=fig)
 
                 p_s = test_bootstrap_difference(ca, cb)
                 s_s = significance_fdr(p_s, alpha)
 
-                plotting.plot_connectivity_significance(s_s, fs=self.fs_, freq_range=self.plot_f_range,
+                self.plotting.plot_connectivity_significance(s_s, fs=self.fs_, freq_range=self.plot_f_range,
                                                         diagonal=1, border=self.plot_outside_topo, fig=fig)
             else:
                 diagonal = -1
@@ -670,17 +671,17 @@ class Workspace:
             cl = np.percentile(ca, 2.5, axis=0)
             cu = np.percentile(ca, 97.5, axis=0)
 
-            fig = plotting.plot_connectivity_spectrum([cm, cl, cu], fs=self.fs_, freq_range=self.plot_f_range,
+            fig = self.plotting.plot_connectivity_spectrum([cm, cl, cu], fs=self.fs_, freq_range=self.plot_f_range,
                                                       diagonal=diagonal, border=self.plot_outside_topo, fig=fig)
 
             cm = np.median(cb, axis=0)
             cl = np.percentile(cb, 2.5, axis=0)
             cu = np.percentile(cb, 97.5, axis=0)
 
-            fig = plotting.plot_connectivity_spectrum([cm, cl, cu], fs=self.fs_, freq_range=self.plot_f_range,
+            fig = self.plotting.plot_connectivity_spectrum([cm, cl, cu], fs=self.fs_, freq_range=self.plot_f_range,
                                                       diagonal=diagonal, border=self.plot_outside_topo, fig=fig)
 
-            plotting.plot_connectivity_significance(s, fs=self.fs_, freq_range=self.plot_f_range,
+            self.plotting.plot_connectivity_significance(s, fs=self.fs_, freq_range=self.plot_f_range,
                                                     diagonal=diagonal, border=self.plot_outside_topo, fig=fig)
 
             return p, s, fig
@@ -694,7 +695,7 @@ class Workspace:
         This is only a convenience wrapper around :func:`matplotlib.pyplot.show_plots`.
 
         """
-        plotting.show_plots()
+        self.plotting.show_plots()
 
     def plot_source_topos(self, common_scale=None):
         """ Plot topography of the Source decomposition.
@@ -710,7 +711,7 @@ class Workspace:
 
         self._prepare_plots(True, True)
 
-        plotting.plot_sources(self.topo_, self.mixmaps_, self.unmixmaps_, common_scale)
+        self.plotting.plot_sources(self.topo_, self.mixmaps_, self.unmixmaps_, common_scale)
 
     def plot_connectivity_topos(self, fig=None):
         """ Plot scalp projections of the sources.
@@ -730,9 +731,9 @@ class Workspace:
         """
         self._prepare_plots(True, False)
         if self.plot_outside_topo:
-            fig = plotting.plot_connectivity_topos('outside', self.topo_, self.mixmaps_, fig)
+            fig = self.plotting.plot_connectivity_topos('outside', self.topo_, self.mixmaps_, fig)
         elif self.plot_diagonal == 'topo':
-            fig = plotting.plot_connectivity_topos('diagonal', self.topo_, self.mixmaps_, fig)
+            fig = self.plotting.plot_connectivity_topos('diagonal', self.topo_, self.mixmaps_, fig)
         return fig
 
     def plot_connectivity_surrogate(self, measure_name, repeats=100, fig=None):
@@ -762,66 +763,16 @@ class Workspace:
 
         cu = np.percentile(cb, 95, axis=0)
 
-        fig = plotting.plot_connectivity_spectrum([cu], self.fs_, freq_range=self.plot_f_range, fig=fig)
+        fig = self.plotting.plot_connectivity_spectrum([cu], self.fs_, freq_range=self.plot_f_range, fig=fig)
 
         return fig
 
-    # def plot_tf_connectivity(self, measure, winlen, winstep, freq_range=(-np.inf, np.inf), crange=None,
-    #                          ignore_diagonal=True):
-    #     """
-    #     Workspace.plot_tf_connectivity(measure, winlen, winstep, freq_range)
-    #
-    #     Calculate and plot time-varying spectral connectivity measure.
-    #
-    #     Connectivity is estimated in a sliding window approach on the current
-    #     data set.
-    #
-    #     Parameters     Default  Shape   Description
-    #     --------------------------------------------------------------------------
-    #     measure        :      : str   : Refer to scot.Connectivity for supported
-    #                                     measures.
-    #     winlen         :      :       : Length of the sliding window (in samples).
-    #     winstep        :      :       : Step size for sliding window (in sapmles).
-    #     freq_range     :      : 2     : Restrict plotted frequency range.
-    #
-    #     Requires: var model
-    #     """
-    #     t0 = 0.5 * winlen / self.fs_ + self.time_offset_
-    #     t1 = self.data_.shape[0] / self.fs_ - 0.5 * winlen / self.fs_ + self.time_offset_
-    #
-    #     self._prepare_plots(True, False)
-    #     tfc = self.get_tf_connectivity(measure, winlen, winstep)
-    #
-    #     if isinstance(tfc, dict):
-    #         ncl = np.unique(self.cl_)
-    #         lowest, highest = np.inf, -np.inf
-    #         for c in ncl:
-    #             tfc[c] = self._clean_measure(measure, tfc[c])
-    #             if ignore_diagonal:
-    #                 for m in range(tfc[c].shape[0]):
-    #                     tfc[c][m, m, :, :] = 0
-    #             highest = max(highest, np.max(tfc[c]))
-    #             lowest = min(lowest, np.min(tfc[c]))
-    #
-    #         if crange is None:
-    #             crange = [lowest, highest]
-    #
-    #         fig = {}
-    #         for c in ncl:
-    #             fig[c] = plotting.plot_connectivity_timespectrum(tfc[c], fs=self.fs_, crange=crange,
-    #                                                              freq_range=freq_range, time_range=[t0, t1],
-    #                                                              topo=self.topo_, topomaps=self.mixmaps_)
-    #             fig[c].suptitle(str(c))
-    #
-    #     else:
-    #         tfc = self._clean_measure(measure, tfc)
-    #         if ignore_diagonal:
-    #             for m in range(tfc.shape[0]):
-    #                 tfc[m, m, :, :] = 0
-    #         fig = plotting.plot_connectivity_timespectrum(tfc, fs=self.fs_, crange=[np.min(tfc), np.max(tfc)],
-    #                                                       freq_range=freq_range, time_range=[t0, t1], topo=self.topo_,
-    #                                                       topomaps=self.mixmaps_)
-    #     return fig
+    @property
+    def plotting(self):
+        if not self._plotting:
+            from . import plotting
+            self._plotting = plotting
+        return self._plotting
 
     def _prepare_plots(self, mixing=False, unmixing=False):
         if self.locations_ is None:
@@ -834,13 +785,13 @@ class Workspace:
 
         if mixing and not self.mixmaps_:
             premix = self.premixing_ if self.premixing_ is not None else np.eye(self.mixing_.shape[1])
-            self.mixmaps_ = plotting.prepare_topoplots(self.topo_, np.dot(self.mixing_, premix))
-            #self.mixmaps_ = plotting.prepare_topoplots(self.topo_, self.mixing_)
+            self.mixmaps_ = self.plotting.prepare_topoplots(self.topo_, np.dot(self.mixing_, premix))
+            #self.mixmaps_ = self.plotting.prepare_topoplots(self.topo_, self.mixing_)
 
         if unmixing and not self.unmixmaps_:
             preinv = np.linalg.pinv(self.premixing_) if self.premixing_ is not None else np.eye(self.unmixing_.shape[0])
-            self.unmixmaps_ = plotting.prepare_topoplots(self.topo_, np.dot(preinv, self.unmixing_).T)
-            #self.unmixmaps_ = plotting.prepare_topoplots(self.topo_, self.unmixing_.transpose())
+            self.unmixmaps_ = self.plotting.prepare_topoplots(self.topo_, np.dot(preinv, self.unmixing_).T)
+            #self.unmixmaps_ = self.plotting.prepare_topoplots(self.topo_, self.unmixing_.transpose())
 
     @staticmethod
     def _clean_measure(measure, a):

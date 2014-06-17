@@ -25,15 +25,6 @@ class VAR(VARBase):
         Ridge penalty parameter
     xvschema : func, optional
         Function that creates training and test sets for cross-validation. The function takes two parameters: the current cross-validation run (int) and the numer of trials (int). It returns a tuple of two arrays: the training set and the testing set.
-    
-    Examples
-    --------
-    Bla Test
-    >>> data = np.random.randn(512, 8, 40)
-    >>> v = VAR(5)
-    >>> v.optimize(data).fit(data)
-    >>> print("VAR coefficients: ", v.coef)
-    >>> print('Ridge penalty: ', v.delta)
     """
     def __init__(self, model_order, delta=0, xvschema=xv.multitrial):
         VARBase.__init__(self, model_order)

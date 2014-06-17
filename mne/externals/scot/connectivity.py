@@ -46,7 +46,7 @@ def connectivity(measure_names, b, c=None, nfft=512):
     try:
         return getattr(con, measure_names)()
     except TypeError:
-        return {m: getattr(con, m)() for m in measure_names}
+        return dict((m, getattr(con, m)()) for m in measure_names)
 
 
 #noinspection PyPep8Naming
