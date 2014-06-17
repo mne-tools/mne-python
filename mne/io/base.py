@@ -71,8 +71,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     def __hash__(self):
         if not self._preloaded:
             raise RuntimeError('Cannot hash raw unless preloaded')
-        return object_hash(dict(info=self.info, data=self._data),
-                           ignore_sbio=True)
+        return object_hash(dict(info=self.info, data=self._data))
 
     def _add_eeg_ref(self, add_eeg_ref):
         """Helper to add an average EEG reference"""

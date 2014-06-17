@@ -14,7 +14,7 @@ from ..constants import FIFF
 from ...utils import verbose, logger
 
 _other_fields = [
-    'orig_fid_str', 'lowpass', 'buffer_size_sec', 'dev_ctf_t',
+    'lowpass', 'buffer_size_sec', 'dev_ctf_t',
     'meas_id', 'subject_info',
     'dev_head_t', 'line_freq', 'acq_stim', 'proj_id', 'description',
     'highpass', 'experimenter', 'file_id', 'proj_name',
