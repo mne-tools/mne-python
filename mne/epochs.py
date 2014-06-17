@@ -441,7 +441,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                              comment=self.name, nave=n_events, kind=kind,
                              verbose=self.verbose)
         # XXX: above constructor doesn't recreate the times object precisely
-        evoked.times = self.times
+        evoked.times = self.times.copy()
         evoked._aspect_kind = _aspect_kind
 
         # pick channels
