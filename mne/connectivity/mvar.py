@@ -145,8 +145,7 @@ def mvar_connectivity(data, method, order, fitting_mode='lsq', ridge=0,
     results = []
     c = connectivity(method, var.coef, var.rescov, nfft)
     for mth in method:
-        bands = [np.mean(c[mth][:, :, fm], axis=2) for fm in fmask]
-        bands = np.abs(bands).transpose((1, 2, 0))
-        results.append(bands)
+        bands = [np.mean(np.abs(c[mth][:, :, fm]), axis=2) for fm in fmask]
+        results.append(np.transpose(bands, (1, 2, 0)))
 
     return results, freqs
