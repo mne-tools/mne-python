@@ -231,7 +231,7 @@ class ICA(ContainsMixin):
         for attr in ['algorithm', 'fun', 'fun_args']:
             if eval(attr) is not None:
                 warnings.warn('The parameter `%s` is deprecated and will be'
-                              'removed in MNE-Python 1.0. Pleas use '
+                              'removed in MNE 0.9. Please use '
                               '`fit_params` instead' % attr,
                               DeprecationWarning)
 
@@ -1391,7 +1391,7 @@ class ICA(ContainsMixin):
         return plot_ica_overlay(self, inst=inst, exclude=exclude, start=start,
                                 stop=stop, title=title)
 
-    @deprecated('`decompose_raw` is deprecated and will be removed in MNE 1.0.'
+    @deprecated('`decompose_raw` is deprecated and will be removed in MNE 0.9.'
                 ' Use `fit` instead')
     @verbose
     def decompose_raw(self, raw, picks=None, start=None, stop=None,
@@ -1413,7 +1413,7 @@ class ICA(ContainsMixin):
         return self._fit_epochs(epochs, picks, decim, verbose)
 
     @deprecated('`get_sources_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `get_sources` instead')
+                'MNE 0.9. Use `get_sources` instead')
     def get_sources_raw(self, raw, start=None, stop=None):
         """This method is deprecated.
         See ``ICA.fit``
@@ -1421,7 +1421,7 @@ class ICA(ContainsMixin):
         return self._transform_raw(raw, start, stop)
 
     @deprecated('`get_sources_epochs` is deprecated and will be removed in '
-                'MNE 1.0. Use `get_sources` instead')
+                'MNE 0.9. Use `get_sources` instead')
     def get_sources_epochs(self, epochs, concatenate=False):
         """This method is deprecated.
         See ``ICA.get_sources``
@@ -1429,7 +1429,7 @@ class ICA(ContainsMixin):
         return self._transform_epochs(epochs, concatenate)
 
     @deprecated('`sources_as_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `get_sources` instead')
+                'MNE 0.9. Use `get_sources` instead')
     def sources_as_raw(self, raw, picks=None, start=None, stop=None):
         """This method is deprecated
 
@@ -1443,7 +1443,7 @@ class ICA(ContainsMixin):
         return self.get_sources(raw, add_channels, start, stop)
 
     @deprecated('`sources_as_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `get_sources` instead')
+                'MNE 0.9. Use `get_sources` instead')
     def sources_as_epochs(self, epochs, picks=None):
         """This method is deprecated
 
@@ -1457,7 +1457,7 @@ class ICA(ContainsMixin):
         return self.get_sources(epochs, add_channels, False)
 
     @deprecated('`find_sources_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `find_bads` instead')
+                'MNE 0.9. Use `find_bads` instead')
     def find_sources_raw(self, raw, target=None, score_func='pearsonr',
                          start=None, stop=None, l_freq=None, h_freq=None):
         """Find sources based on own distribution or based on similarity to
@@ -1502,7 +1502,7 @@ class ICA(ContainsMixin):
                                   h_freq=h_freq)
 
     @deprecated('`find_sources_epochs` is deprecated and will be removed in '
-                'MNE 1.0. Use `find_bads` instead')
+                'MNE 0.9. Use `find_bads` instead')
     def find_sources_epochs(self, epochs, target=None, score_func='pearsonr',
                             l_freq=None, h_freq=None):
         """Find sources based on relations between source and target
@@ -1537,7 +1537,7 @@ class ICA(ContainsMixin):
                                   h_freq=h_freq)
 
     @deprecated('`pick_sources_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `apply` instead')
+                'MNE 0.9. Use `apply` instead')
     def pick_sources_raw(self, raw, include=None, exclude=None,
                          n_pca_components=None, start=None, stop=None,
                          copy=True):
@@ -1579,7 +1579,7 @@ class ICA(ContainsMixin):
                           stop=stop, copy=copy)
 
     @deprecated('`pick_sources_epochs` is deprecated and will be removed in '
-                'MNE 1.0. Use `apply` instead')
+                'MNE 0.9. Use `apply` instead')
     def pick_sources_epochs(self, epochs, include=None, exclude=None,
                             n_pca_components=None, copy=True):
         """Recompose epochs
@@ -1615,7 +1615,7 @@ class ICA(ContainsMixin):
                           copy=copy)
 
     @deprecated('`pick_topomap` is deprecated and will be removed in '
-                'MNE 1.0. Use `plot_components` instead')
+                'MNE 0.9. Use `plot_components` instead')
     def plot_topomap(self, source_idx, ch_type='mag', res=500, layout=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
                      show=True):
@@ -1631,7 +1631,7 @@ class ICA(ContainsMixin):
                                     show=show)
 
     @deprecated('`plot_sources_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `plot_sources` instead')
+                'MNE 0.9. Use `plot_sources` instead')
     def plot_sources_raw(self, raw, order=None, start=None, stop=None,
                          n_components=None, source_idx=None, ncol=3, nrow=None,
                          title=None, show=True):
@@ -1645,7 +1645,7 @@ class ICA(ContainsMixin):
         return fig
 
     @deprecated('`plot_sources_epochs` is deprecated and will be removed in '
-                'MNE 1.0. Use `plot_sources` instead')
+                'MNE 0.9. Use `plot_sources` instead')
     def plot_sources_epochs(self, epochs, order=None, epoch_idx=None,
                             start=None, stop=None, n_components=None,
                             source_idx=None, ncol=3, nrow=None, title=None,

@@ -36,15 +36,18 @@ raw.filter(1, 45, n_jobs=2)
 # We pass a float value between 0 and 1 to select n_components based on the
 # percentage of variance explained by the PCA components.
 
-ica = ICA(n_components=0.99, max_pca_components=None, method='infomax')
-
 ###############################################################################
-# 1) Fit ICA model and identify bad sources
+# 1) Fit ICA model using the FastICA algorithm
+
+ica = ICA(n_components=0.95, method='fastica')  # you can also use `infomax`
 
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                        stim=False, exclude='bads')
 
 ica.fit(raw, picks=picks, decim=3, reject=dict(mag=4e-12, grad=4000e-13))
+
+###############################################################################
+# 2) identify bad components by analyzing latent sources.
 
 # create EOG epochs to improve detection by correlation
 picks = mne.pick_types(raw.info, meg=True, eog=True)
@@ -77,7 +80,7 @@ ica.plot_overlay(raw)  # EOG artifacts remain
 # To save an ICA solution you can say:
 # >>> ica.save('my_ica.fif')
 #
-# You can later restore the session by saying:
+# You can later load the solution by saying:
 # >>> from mne.preprocessing import read_ica
 # >>> read_ica('my_ica.fif')
 #
