@@ -41,7 +41,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=False, picks=picks,
 ###############################################################################
 # 1) Fit ICA model
 
-ica = ICA(n_components=0.95, method='infomax').fit(epochs)
+ica = ICA(n_components=0.95, method='fastica').fit(epochs)
 
 ###############################################################################
 # 2) Find ECG Artifacts
