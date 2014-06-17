@@ -486,17 +486,17 @@ def read_extra_meas_info(fid, tree, info):
     # this and its partner, write_extra_meas_info, could be made more
     # comprehensive (i.e.., actually parse and read the data instead of
     # just storing it for later)
-    block_types = [FIFF.FIFFB_EVENTS, FIFF.FIFFB_HPI_RESULT,
-                   FIFF.FIFFB_HPI_MEAS, FIFF.FIFFB_PROCESSING_HISTORY]
-    info['orig_blocks'] = dict(types=block_types)
-    fid_str = BytesIO()
-    start_file(fid_str, tree['id'])
-    start_block(fid_str, FIFF.FIFFB_MEAS_INFO)
-    for block in info['orig_blocks']['types']:
+    blocks = [FIFF.FIFFB_EVENTS, FIFF.FIFFB_HPI_RESULT, FIFF.FIFFB_HPI_MEAS,
+              FIFF.FIFFB_PROCESSING_HISTORY]
+    info['orig_blocks'] = dict(blocks=blocks)
+    fid_bytes = BytesIO()
+    start_file(fid_bytes, tree['id'])
+    start_block(fid_bytes, FIFF.FIFFB_MEAS_INFO)
+    for block in info['orig_blocks']['blocks']:
         nodes = dir_tree_find(tree, block)
-        copy_tree(fid, tree['id'], nodes, fid_str)
-    end_block(fid_str, FIFF.FIFFB_MEAS_INFO)
-    info['orig_blocks']['bytes'] = fid_str.getvalue()
+        copy_tree(fid, tree['id'], nodes, fid_bytes)
+    end_block(fid_bytes, FIFF.FIFFB_MEAS_INFO)
+    info['orig_blocks']['bytes'] = fid_bytes.getvalue()
 
 
 def write_extra_meas_info(fid, info):
@@ -504,11 +504,10 @@ def write_extra_meas_info(fid, info):
     # uses BytesIO fake file to read the appropriate blocks
     if 'orig_blocks' in info and info['orig_blocks'] is not None:
         # Blocks from the original
-        fid_bytes = BytesIO(info['orig_blocks']['bytes'])
-        fid_str, tree, _ = fiff_open(fid_bytes)
-        for block in info['orig_blocks']['types']:
+        fid_bytes, tree, _ = fiff_open(BytesIO(info['orig_blocks']['bytes']))
+        for block in info['orig_blocks']['blocks']:
             nodes = dir_tree_find(tree, block)
-            copy_tree(fid_str, tree['id'], nodes, fid)
+            copy_tree(fid_bytes, tree['id'], nodes, fid)
 
 
 def write_meas_info(fid, info, data_type=None, reset_range=True):
