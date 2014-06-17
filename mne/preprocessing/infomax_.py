@@ -151,12 +151,12 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
         # shuffel data at each step
         rng.seed(step)  # --> permutation is fixed but differs at each step
-        permute = range(n_samples)
+        permute = list(range(n_samples))
         rng.shuffle(permute)
 
         # ICA training block
         # loop across block samples
-        for t in xrange(0, lastt, block):
+        for t in range(0, lastt, block):
             u = np.dot(data[permute[t:t + block], :], weights)
             u += np.dot(bias, onesrow).T
 
