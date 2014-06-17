@@ -43,11 +43,14 @@ inverse_operator = read_inverse_operator(fname_inv)
 # regularisation parameter
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
-method = 'dSPM'  # can be 'MNE' or 'sLORETA'
+method = 'MNE'  # can be 'MNE' or 'sLORETA'
+mode = 'svd'
+n_svd_comp = 1
 
-stc_ctf, _ = cross_talk_function(inverse_operator, forward, labels,
-                                 method=method, lambda2=lambda2, signed=True,
-                                 mode='svd', n_svd_comp=3)
+stc_ctf, singvals = cross_talk_function(inverse_operator, forward, labels,
+                                        method=method, lambda2=lambda2,
+                                        signed=False, mode=mode,
+                                        n_svd_comp=n_svd_comp)
 
 fmax = stc_ctf.data[:, 0].max()
 fmid = fmax / 2.
