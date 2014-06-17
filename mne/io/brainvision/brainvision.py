@@ -448,7 +448,6 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
     info['description'] = None
     info['buffer_size_sec'] = 10.
     info['orig_blocks'] = None
-    info['orig_fid_str'] = None
     info['line_freq'] = None
     info['subject_info'] = None
 

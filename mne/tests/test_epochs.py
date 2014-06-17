@@ -6,7 +6,8 @@
 import os.path as op
 from copy import deepcopy
 
-from nose.tools import assert_true, assert_equal, assert_raises
+from nose.tools import (assert_true, assert_equal, assert_raises,
+                        assert_not_equal)
 
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose)
@@ -27,6 +28,8 @@ from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.io.constants import FIFF
 from mne.externals.six.moves import zip
+from mne.externals.six.moves import cPickle as pickle
+
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -60,6 +63,11 @@ def test_epochs_hash():
     assert_equal(hash(epochs), hash(epochs))
     epochs_2 = Epochs(raw, events, event_id, tmin, tmax, preload=True)
     assert_equal(hash(epochs), hash(epochs_2))
+    # do NOT use assert_equal here, failing output is terrible
+    assert_true(pickle.dumps(epochs) == pickle.dumps(epochs_2))
+
+    epochs_2._data[0, 0, 0] -= 1
+    assert_not_equal(hash(epochs), hash(epochs_2))
 
 
 def test_event_ordering():

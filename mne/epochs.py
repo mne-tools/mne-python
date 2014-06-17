@@ -24,9 +24,8 @@ from .io.open import fiff_open
 from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.constants import FIFF
-from .io.pick import (pick_types, pick_types_evoked,
-                      channel_indices_by_type, channel_type, pick_channels,
-                      pick_info)
+from .io.pick import (pick_types, channel_indices_by_type, channel_type,
+                      pick_channels, pick_info)
 from .io.proj import setup_proj, ProjMixin
 from .io.base import _BaseRaw, _time_as_index, _index_as_time
 from .evoked import EvokedArray, aspect_rev
@@ -358,8 +357,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     def __hash__(self):
         if not self.preload:
             raise RuntimeError('Cannot hash epochs unless preloaded')
-        return object_hash(dict(info=self.info, data=self._data),
-                           ignore_sbio=True)
+        return object_hash(dict(info=self.info, data=self._data))
 
     def average(self, picks=None):
         """Compute average of epochs
@@ -1543,11 +1541,10 @@ class Epochs(_BaseEpochs):
                 key_match = np.logical_or(key_match, epochs._key_match(key))
             eq_inds.append(np.where(key_match)[0])
 
-        event_times = [epochs.events[eq, 0] for eq in eq_inds]
+        event_times = [epochs.events[e, 0] for e in eq_inds]
         indices = _get_drop_indices(event_times, method)
         # need to re-index indices
-        indices = np.concatenate([eq[inds]
-                                  for eq, inds in zip(eq_inds, indices)])
+        indices = np.concatenate([e[idx] for e, idx in zip(eq_inds, indices)])
         epochs.drop_epochs(indices, reason='EQUALIZED_COUNT')
         # actually remove the indices
         return epochs, indices

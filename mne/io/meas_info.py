@@ -488,15 +488,15 @@ def read_extra_meas_info(fid, tree, info):
     # just storing it for later)
     blocks = [FIFF.FIFFB_EVENTS, FIFF.FIFFB_HPI_RESULT, FIFF.FIFFB_HPI_MEAS,
               FIFF.FIFFB_PROCESSING_HISTORY]
-    info['orig_blocks'] = blocks
-
-    fid_str = BytesIO()
-    fid_str = start_file(fid_str)
-    start_block(fid_str, FIFF.FIFFB_MEAS_INFO)
-    for block in blocks:
+    info['orig_blocks'] = dict(blocks=blocks)
+    fid_bytes = BytesIO()
+    start_file(fid_bytes, tree['id'])
+    start_block(fid_bytes, FIFF.FIFFB_MEAS_INFO)
+    for block in info['orig_blocks']['blocks']:
         nodes = dir_tree_find(tree, block)
-        copy_tree(fid, tree['id'], nodes, fid_str)
-    info['orig_fid_str'] = fid_str
+        copy_tree(fid, tree['id'], nodes, fid_bytes)
+    end_block(fid_bytes, FIFF.FIFFB_MEAS_INFO)
+    info['orig_blocks']['bytes'] = fid_bytes.getvalue()
 
 
 def write_extra_meas_info(fid, info):
@@ -504,11 +504,10 @@ def write_extra_meas_info(fid, info):
     # uses BytesIO fake file to read the appropriate blocks
     if 'orig_blocks' in info and info['orig_blocks'] is not None:
         # Blocks from the original
-        blocks = info['orig_blocks']
-        fid_str, tree, _ = fiff_open(info['orig_fid_str'])
-        for block in blocks:
+        fid_bytes, tree, _ = fiff_open(BytesIO(info['orig_blocks']['bytes']))
+        for block in info['orig_blocks']['blocks']:
             nodes = dir_tree_find(tree, block)
-            copy_tree(fid_str, tree['id'], nodes, fid)
+            copy_tree(fid_bytes, tree['id'], nodes, fid)
 
 
 def write_meas_info(fid, info, data_type=None, reset_range=True):
@@ -778,10 +777,9 @@ def _merge_info(infos, verbose=None):
             raise ValueError(err)
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'description', 'dig', 'experimenter', 'file_id',
-                    'filename', 'highpass', 'line_freq',
-                    'lowpass', 'meas_date', 'meas_id', 'orig_blocks',
-                    'orig_fid_str', 'proj_id', 'proj_name', 'projs',
-                    'sfreq', 'subject_info', 'sfreq']
+                    'filename', 'highpass', 'line_freq', 'lowpass',
+                    'meas_date', 'meas_id', 'orig_blocks', 'proj_id',
+                    'proj_name', 'projs', 'sfreq', 'subject_info', 'sfreq']
 
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)

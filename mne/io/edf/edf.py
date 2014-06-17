@@ -526,7 +526,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
     info['description'] = None
     info['buffer_size_sec'] = 10.
     info['orig_blocks'] = None
-    info['orig_fid_str'] = None
 
     if edf_info['subtype'] == '24BIT':
         edf_info['data_size'] = 3  # 24-bit (3 byte) integers

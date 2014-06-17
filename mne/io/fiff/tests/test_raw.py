@@ -24,6 +24,7 @@ from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess)
 from mne.externals.six.moves import zip
+from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -46,9 +47,12 @@ def test_hash_raw():
     """
     raw = Raw(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
-    raw = Raw(fif_fname, preload=True)
-    raw_2 = Raw(fif_fname, preload=True)
+    raw = Raw(fif_fname, preload=True).crop(0, 0.5)
+    raw_2 = Raw(fif_fname, preload=True).crop(0, 0.5)
     assert_equal(hash(raw), hash(raw_2))
+    # do NOT use assert_equal here, failing output is terrible
+    assert_true(pickle.dumps(raw) == pickle.dumps(raw_2))
+
     raw_2._data[0, 0] -= 1
     assert_not_equal(hash(raw), hash(raw_2))
 

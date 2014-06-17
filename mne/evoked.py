@@ -704,8 +704,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         return out
 
     def __hash__(self):
-        return object_hash(dict(info=self.info, data=self.data),
-                           ignore_sbio=True)
+        return object_hash(dict(info=self.info, data=self.data))
 
     def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
                  time_as_index=False):

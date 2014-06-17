@@ -49,18 +49,16 @@ def _sort_keys(x):
     return keys
 
 
-def object_hash(x, h=None, ignore_sbio=False):
+def object_hash(x, h=None):
     """Hash a reasonable python object
 
     Parameters
     ----------
     x : object
         Object to hash. Can be anything comprised of nested versions of:
-        {dict, list, tuple, ndarray, str, float, int, None, StringIO, BytesIO}.
+        {dict, list, tuple, ndarray, str, bytes, float, int, None}.
     h : hashlib HASH object | None
         Optional, object to add the hash to. None creates an MD5 hash.
-    ignore_sbio : bool
-        If True, instances of StringIO / BytesIO are ignored.
 
     Returns
     -------
@@ -72,19 +70,15 @@ def object_hash(x, h=None, ignore_sbio=False):
     if isinstance(x, dict):
         keys = _sort_keys(x)
         for key in keys:
-            object_hash(key, h, ignore_sbio)
-            object_hash(x[key], h, ignore_sbio)
-    elif isinstance(x, (StringIO, BytesIO)):
-        # XXX buggy for Raw instances for some reason...
-        if not ignore_sbio:
-            if isinstance(x, BytesIO):
-                h.update(x.getvalue())
-            else:
-                h.update(x.getvalue().encode('utf-8'))
+            object_hash(key, h)
+            object_hash(x[key], h)
     elif isinstance(x, (list, tuple)):
         h.update(str(type(x)).encode('utf-8'))
         for xx in x:
-            object_hash(xx, h, ignore_sbio)
+            object_hash(xx, h)
+    elif isinstance(x, bytes):
+        # must come before "str" below
+        h.update(x)
     elif isinstance(x, (string_types, float, int, type(None))):
         h.update(str(type(x)).encode('utf-8'))
         h.update(str(x).encode('utf-8'))
@@ -104,8 +98,8 @@ def object_diff(a, b, pre=''):
     Parameters
     ----------
     a : object
-        Currently supported: dict, list, tuple, ndarray, int, str, float,
-        StringIO.
+        Currently supported: dict, list, tuple, ndarray, int, str, bytes,
+        float, StringIO, BytesIO.
     b : object
         Must be same type as x1.
     pre : str
@@ -136,7 +130,7 @@ def object_diff(a, b, pre=''):
         else:
             for xx1, xx2 in zip(a, b):
                 out += object_diff(xx1, xx2, pre='')
-    elif isinstance(a, (string_types, int, float)):
+    elif isinstance(a, (string_types, int, float, bytes)):
         if a != b:
             out += pre + ' value mismatch (%s, %s)\n' % (a, b)
     elif a is None:

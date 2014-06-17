@@ -124,7 +124,7 @@ def copy_tree(fidin, in_id, nodes, fidout):
             if in_id is not None:
                 write_id(fidout, FIFF.FIFF_PARENT_FILE_ID, in_id)
 
-            write_id(fidout, FIFF.FIFF_BLOCK_ID)
+            write_id(fidout, FIFF.FIFF_BLOCK_ID, in_id)
             write_id(fidout, FIFF.FIFF_PARENT_BLOCK_ID, node['id'])
 
         if node['directory'] is not None:
