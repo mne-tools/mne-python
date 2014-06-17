@@ -87,6 +87,8 @@ def ols_epochs(epochs, design_matrix, names=None):
     Parameters
     ----------
     epochs : instance of Epochs
+        The data to be regressed. It contains all the trials, sensors, and time
+        points for the regression.
     design_matrix : instance of numpy.ndarray  (n_observations, n_regressors)
         The regressors to be used. Must be a 2d array with as many rows as
         epochs in `epochs`. The first column of this matrix will typically
@@ -134,6 +136,8 @@ def ols_source_estimates(source_estimates, design_matrix, names=None):
     Parameters
     ----------
     source_estimates : list of SourceEstimate objects
+        The data to be regressed. It contains all the trials, sources, and time
+        points for the regression.
     design_matrix : instance of numpy.ndarray  (n_observations, n_regressors)
         The regressors to be used. Must be a 2d array with the same number of
         rows as the number of objects in `source_estimates`. The first column
