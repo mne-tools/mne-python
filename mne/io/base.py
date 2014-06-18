@@ -923,7 +923,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                               use_first_samp)
 
     def index_as_time(self, index, use_first_samp=False):
-        """Convert time to indices
+        """Convert indices to time
 
         Parameters
         ----------
@@ -952,7 +952,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         Parameters
         ----------
         tstart : float
-            Start time to use for rank estimation. Defaul is 0.0.
+            Start time to use for rank estimation. Default is 0.0.
         tstop : float | None
             End time to use for rank estimation. Default is 30.0.
             If None, the end time of the raw file is used.
@@ -966,7 +966,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             to determine the rank.
         picks : array_like of int, shape (n_selected_channels,)
             The channels to be considered for rank estimation.
-            If None (default) meg and eeg channels are indcluded.
+            If None (default) meg and eeg channels are included.
 
         Returns
         -------
@@ -1400,7 +1400,7 @@ def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False):
 
 
 def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
-    """Convert time to indices
+    """Convert indices to time
 
     Parameters
     ----------
