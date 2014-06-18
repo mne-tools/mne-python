@@ -5,7 +5,7 @@ import os.path as op
 from subprocess import CalledProcessError
 import warnings
 
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_true
 from numpy.testing import (assert_equal, assert_allclose)
 
 from mne.datasets import sample
@@ -17,6 +17,7 @@ from mne import (read_forward_solution, make_forward_solution,
                  convert_forward_solution)
 from mne.utils import requires_mne, _TempDir
 from mne.tests.test_source_space import _compare_source_spaces
+from mne.forward import Forward
 
 data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
@@ -109,12 +110,14 @@ def test_make_forward_solution_kit():
     fwd = do_forward_solution('sample', fname_kit_raw, src=fname_src,
                               mindist=0.0, bem=fname_bem, mri=mri_path,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
+    assert_true(isinstance(fwd, Forward))
 
     # now let's use python with the same raw file
     fwd_py = make_forward_solution(fname_kit_raw, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=mri_path)
     _compare_forwards(fwd, fwd_py, 157, 108)
+    assert_true(isinstance(fwd_py, Forward))
 
     # now let's use mne-python all the way
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
@@ -173,7 +176,9 @@ def test_make_forward_solution():
     fwd_py = make_forward_solution(fname_raw, mindist=5.0,
                                    src=fname_src, eeg=True, meg=True,
                                    bem=fname_bem, mri=fname_mri)
+    assert_true(isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
+    assert_true(isinstance(fwd, Forward))
     _compare_forwards(fwd, fwd_py, 366, 22494)
 
 
