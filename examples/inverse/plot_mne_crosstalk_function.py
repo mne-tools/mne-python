@@ -59,9 +59,7 @@ stc_ctf_dspm, singvals = cross_talk_function(inverse_operator, forward, labels,
                                              n_svd_comp=n_svd_comp)
 
 from mayavi import mlab
-
 fmin = 0.
-
 time_label = "MNE %d"
 fmax = stc_ctf_mne.data[:, 0].max()
 fmid = fmax / 2.
@@ -69,7 +67,7 @@ brain_mne = stc_ctf_mne.plot(surface='inflated', hemi='rh',
                              subjects_dir=subjects_dir,
                              time_label=time_label, fmin=fmin,
                              fmid=fmid, fmax=fmax,
-                             figure=mlab.figure())
+                             figure=mlab.figure(size=(500, 500)))
 
 time_label = "dSPM %d"
 fmax = stc_ctf_dspm.data[:, 0].max()
@@ -78,7 +76,7 @@ brain_dspm = stc_ctf_dspm.plot(surface='inflated', hemi='rh',
                                subjects_dir=subjects_dir,
                                time_label=time_label, fmin=fmin,
                                fmid=fmid, fmax=fmax,
-                               figure=mlab.figure())
+                               figure=mlab.figure(size=(500, 500)))
 
 # Cross-talk functions for MNE and dSPM (and sLORETA) have the same shapes
 # (they may still differ in overall amplitude).

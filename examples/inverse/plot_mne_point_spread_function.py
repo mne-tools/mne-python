@@ -74,9 +74,7 @@ stc_psf_meg, _, _ = point_spread_function(inverse_operator_meg,
 # stc_psf_meg.save('psf_meg')
 
 from mayavi import mlab
-
 fmin = 0.
-
 time_label = "EEGMEG %d"
 fmax = stc_psf_eegmeg.data[:, 0].max()
 fmid = fmax / 2.
@@ -84,7 +82,7 @@ brain_eegmeg = stc_psf_eegmeg.plot(surface='inflated', hemi='rh',
                                    subjects_dir=subjects_dir,
                                    time_label=time_label, fmin=fmin,
                                    fmid=fmid, fmax=fmax,
-                                   figure=mlab.figure())
+                                   figure=mlab.figure(size=(500, 500)))
 
 time_label = "MEG %d"
 fmax = stc_psf_meg.data[:, 0].max()
@@ -93,7 +91,7 @@ brain_meg = stc_psf_meg.plot(surface='inflated', hemi='rh',
                              subjects_dir=subjects_dir,
                              time_label=time_label, fmin=fmin,
                              fmid=fmid, fmax=fmax,
-                             figure=mlab.figure())
+                             figure=mlab.figure(size=(500, 500)))
 
 # The PSF is centred around the right auditory cortex label,
 # but clearly extends beyond it.
