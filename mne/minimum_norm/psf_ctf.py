@@ -76,11 +76,6 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         (i.e. n_svd_comp successive time points in mne_analyze)
         The last sample is the summed forward solution across all labels
         (sum is taken across summary measures).
-    label_singvals: list of numpy arrays
-        Singular values of svd for sub-leadfields.
-        Provides information about how well labels are represented by chosen
-        components. Explained variances within sub-leadfields are shown in
-        screen output.
     """
     mode = mode.lower()
     if mode not in ['mean', 'sum', 'svd']:
@@ -186,7 +181,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     stc_psf = apply_inverse(evoked_fwd, inverse_operator, lambda2,
                             method=method, pick_ori=pick_ori)
 
-    return stc_psf, evoked_fwd, label_singvals
+    return stc_psf, evoked_fwd
 
 
 def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
@@ -406,11 +401,6 @@ def cross_talk_function(inverse_operator, forward, labels,
         If mode='svd': n_svd_comp components per label are created
         (i.e. n_svd_comp successive time points in mne_analyze)
         The last sample is the summed CTF across all labels.
-    label_singvals : list of numpy arrays
-        Singular values of svd for sub-inverses.
-        Provides information about how well labels are represented by chosen
-        components. Explained variances within sub-inverses are shown in screen
-        output.
     """
     # get the inverse matrix corresponding to inverse operator
     out = _get_matrix_from_inverse_operator(inverse_operator, forward,
@@ -438,4 +428,4 @@ def cross_talk_function(inverse_operator, forward, labels,
 
     stc_ctf.subject = _subject_from_inverse(inverse_operator)
 
-    return stc_ctf, label_singvals
+    return stc_ctf
