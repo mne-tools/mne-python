@@ -66,12 +66,20 @@ def _data_path(path=None, force_update=False, update_path=True,
                download=True, name=None, check_version=True, verbose=None):
     """Aux function
     """
+    key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
+           'spm': 'MNE_DATASETS_SPM_FACE_PATH'}[name]
 
     if path is None:
         # use an intelligent guess if it's not defined
         def_path = op.realpath(op.join(op.dirname(__file__),
                                        '..', '..', 'examples'))
-        path = get_config('MNE_DATA', def_path)
+
+        # backward compatibility
+        if get_config(key) is None:
+            key = 'MNE_DATA'
+
+        path = get_config(key, def_path)
+
         # use the same for all datasets
         if not op.exists(path) or not os.access(path, os.W_OK):
             try:
@@ -150,7 +158,7 @@ def _data_path(path=None, force_update=False, update_path=True,
 
     path = op.abspath(path)
     if update_path is None:
-        if get_config('MNE_DATA', '') != path:
+        if get_config(key, '') != path:
             update_path = True
             msg = ('Do you want to set the path:\n    %s\nas the default '
                    'sample dataset path in the mne-python config [y]/n? '
@@ -162,7 +170,7 @@ def _data_path(path=None, force_update=False, update_path=True,
             update_path = False
 
     if update_path is True:
-        set_config('MNE_DATA', path)
+        set_config(key, path)
 
     path = op.join(path, folder_name)
 
