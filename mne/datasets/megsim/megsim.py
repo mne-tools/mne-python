@@ -70,7 +70,6 @@ def data_path(url, path=None, force_update=False, update_path=None):
         if get_config(key) is None:
             key = 'MNE_DATA'
         path = get_config(key, def_path)
-        print '%s %s' %(path, key)
 
         # use the same for all datasets
         if not op.exists(path) or not os.access(path, os.W_OK):
