@@ -95,6 +95,8 @@ Changelog
 
    - Add Forward class to succintly display gain matrix info by 'Andrew Dykstra'_
 
+   - Add reading and writing of split raw files by `Martin Luessi`_
+
 
 BUG
 ~~~
