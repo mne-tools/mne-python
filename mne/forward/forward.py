@@ -26,7 +26,7 @@ from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
 from ..io.meas_info import read_bad_channels
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
-                       pick_types, pick_types_forward)
+                       pick_types)
 from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_ch_info, write_name_list,
                         write_string, start_file, end_file, write_id)
@@ -52,26 +52,26 @@ class Forward(dict):
         entr = '<Forward'
 
         nchan = len(pick_types(self['info'], meg=True, eeg=False))
-        entr += ' | ' + 'MEG channels: %d' %nchan
+        entr += ' | ' + 'MEG channels: %d' % nchan
         nchan = len(pick_types(self['info'], meg=False, eeg=True))
-        entr += ' | ' + 'EEG channels: %d' %nchan
+        entr += ' | ' + 'EEG channels: %d' % nchan
 
         if self['src'][0]['type'] == 'surf':
             entr += (' | Source space: Surface with %d vertices'
-                     %self['nsource'])
+                     % self['nsource'])
         elif self['src'][0]['type'] == 'vol':
             entr += (' | Source space: Volume with %d grid points'
-                     %self['nsource'])
+                     % self['nsource'])
         elif self['src'][0]['type'] == 'discrete':
             entr += (' | Source space: Discrete with %d dipoles'
-                     %self['nsource'])
+                     % self['nsource'])
 
-        if self['source_ori'] == 0:
-            entr += (' | Orientation: Unknown')
-        elif self['source_ori'] == 1:
-            entr += (' | Orientation: Fixed')
-        elif self['source_ori'] == 2:
-            entr += (' | Orientation: Free')
+        if self['source_ori'] == FIFF.FIFFV_MNE_UNKNOWN_ORI:
+            entr += (' | Source orientation: Unknown')
+        elif self['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
+            entr += (' | Source orientation: Fixed')
+        elif self['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI:
+            entr += (' | Source orientation: Free')
 
         entr += '>'
 
