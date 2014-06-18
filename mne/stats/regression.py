@@ -1,22 +1,31 @@
 # Authors: Tal Linzen <linzen@nyu.edu>
 #          Teon Brooks <teon@nyu.edu>
+#          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
+
+from collections import namedtuple
+from inspect import isgenerator
+import warnings
 
 import numpy as np
 from scipy import linalg, stats
 
 from ..source_estimate import SourceEstimate
+from ..epochs import _BaseEpochs
+from ..evoked import Evoked, EvokedArray
+from ..utils import logger
+from ..io.pick import pick_types
 
 
-def ols(data, design_matrix, names=None):
-    """Ordinary Least Squares Fitter
+def linear_regression(inst, design_matrix, names=None):
+    """Fit Ordinary Least Squares regression (OLS)
 
     Parameters
     ----------
-    data : instance of numpy.ndarray  (n_observations, ...)
-        Measurements. Can have an arbitrary number of dimensions; a typical
-        shape would be (n_observations, n_channels, n_timepoints).
+    inst : instance of Epochs | instance of SourceEstimate
+        The data to be regressed. Contains all the trials, sensors, and time
+        points for the regression.
     design_matrix : instance of numpy.ndarray  (n_observations, n_regressors)
         The regressors to be used. Must be a 2d array with as many rows as
         the first dimension of `data`. The first column of this matrix will
@@ -29,13 +38,13 @@ def ols(data, design_matrix, names=None):
 
     Returns
     -------
-    results : dict
-        Dictionary with the following keys:
+    results : namedtuple
+        namedtuple with the following attributes:
 
             beta : regression coefficients
             stderr : standard error of regression coefficients
-            t : t statistics (beta / stderr)
-            p : two-sided p-value of t statistic under the t distribution
+            t_vals : t statistics (beta / stderr)
+            p_vals : two-sided p-value of t statistic under the t distribution
 
         The values are themselves dictionaries from regressor name to
         numpy arrays. The shape of each numpy array is the shape of the data
@@ -43,134 +52,81 @@ def ols(data, design_matrix, names=None):
         (n_observations, n_channels, n_timepoints), then the shape of each of
         the arrays will be (n_channels, n_timepoints).
     """
+    if names is None:
+        names = ['x%i' % i for i in range(design_matrix.shape[1])]
 
-    if names == None:
-        names = ['x%s' % r for r in range(design_matrix.shape[1])]
-    n_trials = data.shape[0]
+    if isinstance(inst, _BaseEpochs):
+        picks = pick_types(inst.info, meg=True, eeg=True, ref_meg=True,
+                           stim=False, eog=False, ecg=False,
+                           emg=False, exclude=['bads'])
+        if [inst.ch_names[p] for p in picks] != inst.ch_names:
+            warnings.warn('Fitting linear model to non-data or bad '
+                          'channels. Check picking', UserWarning)
+        msg = 'Fitting linear model to epochs'
+        data = inst.get_data()
+        out = EvokedArray(np.zeros(data.shape[1:]), inst.info, inst.tmin)
+    elif isgenerator(inst):
+        msg = 'Fitting linear model to source estimates (generator input)'
+        out = next(inst)
+        data = np.array([out.data] + [i.data for i in inst])
+    elif isinstance(inst, list) and isinstance(inst[0], SourceEstimate):
+        msg = 'Fitting linear model to source estimates (list input)'
+        out = inst[0]
+        data = np.array([i.data for i in inst])
+    else:
+        raise ValueError('Input must be epochs or iterable of source '
+                         'estimates')
+    logger.info(msg + ', (%s targets, %s regressors)' %
+                (np.product(data.shape[1:]), len(names)))
+    beta, stderr, t_val, p_val = _fit_lm(data, design_matrix, names)
+    lm = namedtuple('lm', 'beta stderr t_val p_val')
+    lm_fits = {}
+    for name in names:
+        parameters = [beta[name], stderr[name],
+                      t_val[name], p_val[name]]
+        for ii, value in enumerate(parameters):
+            out_ = out.copy()
+            if isinstance(out_, SourceEstimate):
+                out_._data[:] = value
+            elif isinstance(out_, Evoked):
+                out_.data[:] = value
+            else:
+                raise RuntimeError('Invalid container encountered.')
+            parameters[ii] = out_
+        lm_fits[name] = lm(*parameters)
+    logger.info('Done')
+    return lm_fits
+
+
+def _fit_lm(data, design_matrix, names):
+    """Aux function"""
+    n_samples = len(data)
+    n_features = np.product(data.shape[1:])
     if len(design_matrix.shape) != 2:
         raise ValueError('Design matrix must be a 2d array')
     n_rows, n_predictors = design_matrix.shape
 
-    if n_trials != n_rows:
+    if n_samples != n_rows:
         raise ValueError('Number of rows in design matrix must be equal '
                          'to number of observations')
     if n_predictors != len(names):
         raise ValueError('Number of regressor names must be equal to '
                          'number of column in design matrix')
 
-    y = np.reshape(data, (n_trials, -1))
+    y = np.reshape(data, (n_samples, n_features))
     betas, resid_sum_squares, _, _ = linalg.lstsq(a=design_matrix, b=y)
 
     df = n_rows - n_predictors
-    sqrt_noise_var = np.sqrt(resid_sum_squares / df)
-    sqrt_noise_var = sqrt_noise_var.reshape(data.shape[1:])
+    sqrt_noise_var = np.sqrt(resid_sum_squares / df).reshape(data.shape[1:])
     design_invcov = linalg.inv(np.dot(design_matrix.T, design_matrix))
     unscaled_stderrs = np.sqrt(np.diag(design_invcov))
 
-    beta = {}
-    stderr = {}
-    t = {}
-    p = {}
-    for x, unscaled_stderr, pred in zip(betas, unscaled_stderrs, names):
-        beta[pred] = x.reshape(data.shape[1:])
-        stderr[pred] = sqrt_noise_var * unscaled_stderr
-        t[pred] = beta[pred] / stderr[pred]
-        cdf = stats.t.cdf(np.abs(t[pred]), df)
-        p[pred] = (1 - cdf) * 2
+    beta, stderr, t_val, p_val = (dict() for _ in range(4))
+    for x, unscaled_stderr, predictor in zip(betas, unscaled_stderrs, names):
+        beta[predictor] = x.reshape(data.shape[1:])
+        stderr[predictor] = sqrt_noise_var * unscaled_stderr
+        t_val[predictor] = beta[predictor] / stderr[predictor]
+        cdf = stats.t.cdf(np.abs(t_val[predictor]), df)
+        p_val[predictor] = (1 - cdf) * 2
 
-    return dict(beta=beta, stderr=stderr, t=t, p=p)
-
-
-def ols_epochs(epochs, design_matrix, names=None):
-    """Ordinary Least Squares Fitter for Epochs
-
-    Parameters
-    ----------
-    epochs : instance of Epochs
-        The data to be regressed. It contains all the trials, sensors, and time
-        points for the regression.
-    design_matrix : instance of numpy.ndarray  (n_observations, n_regressors)
-        The regressors to be used. Must be a 2d array with as many rows as
-        epochs in `epochs`. The first column of this matrix will typically
-        consist of ones (intercept column).
-        Note: use `epochs.selection` to align regressors with the remaining
-        epochs if regressors were obtained from e.g. behavioral logs.
-    names : list-like | None
-        Optional parameter to name the regressors. If provided, the length must
-        correspond to the number of columns present in regressors
-        (including the intercept, if present).
-        Otherwise the default names are x0, x1, x2...xn for n regressors.
-
-    Returns
-    -------
-    results : dict
-        Dictionary with the following keys:
-
-            beta : regression coefficients
-            stderr : standard error of regression coefficients
-            t : t statistics (beta / stderr)
-            p : two-sided p-value of t statistic under the t distribution
-
-        The values are themselves dictionaries from regressor name to
-        Evoked objects. For instance, `results['t']['volume']` will be an
-        Evoked object that represents the t statistic for the regressor
-        'volume' in each channel at each timepoint.
-    """
-    if names == None:
-        names = ['x%s' % r for r in range(design_matrix.shape[1])]
-
-    evoked = epochs.average()
-    data = epochs.get_data()
-    ols_fit = ols(data, design_matrix, names)
-    for v in ols_fit.values():
-        for k in v.keys():
-            ev = evoked.copy()
-            ev.data = v[k]
-            v[k] = ev
-    return ols_fit
-
-
-def ols_source_estimates(source_estimates, design_matrix, names=None):
-    """Ordinary Least Squares Fitter for Source Estimates
-
-    Parameters
-    ----------
-    source_estimates : list of SourceEstimate objects
-        The data to be regressed. It contains all the trials, sources, and time
-        points for the regression.
-    design_matrix : instance of numpy.ndarray  (n_observations, n_regressors)
-        The regressors to be used. Must be a 2d array with the same number of
-        rows as the number of objects in `source_estimates`. The first column
-        of this matrix will typically consist of ones (intercept column).
-    names : list-like | None
-        Optional parameter to name the regressors. If provided, the length must
-        correspond to the number of columns present in regressors
-        (including the intercept, if present).
-        Otherwise the default names are x0, x1, x2...xn for n regressors.
-
-    Returns
-    -------
-    results : dict
-        Dictionary with the following keys:
-
-            beta : regression coefficients
-            stderr : standard error of regression coefficients
-            t : t statistics (beta / stderr)
-            p : two-sided p-value of t statistic under the t distribution
-
-        The values are themselves dictionaries from regressor name to
-        SourceEstimate objects. For instance, `results['t']['volume']` will be
-        a SourceEstimate object that contains the t statistic for the regressor
-        'volume' in each source at each timepoint.
-    """
-    if names == None:
-        names = ['x%s' % r for r in range(design_matrix.shape[1])]
-
-    data = np.array([stc.data for stc in source_estimates])
-    ols_fit = ols(data, design_matrix, names)
-    s = source_estimates[0]
-    for v in ols_fit.values():
-        for k in v.keys():
-            v[k] = SourceEstimate(v[k], vertices=s.vertno, tmin=s.tmin,
-                                  tstep=s.tstep, subject=s.subject)
-    return ols_fit
+    return beta, stderr, t_val, p_val
