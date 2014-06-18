@@ -463,7 +463,11 @@ Step by step instructions for using :func:`gui.coregistration`:
 Forward Modeling
 ================
 
+:py:mod:`mne`:
+
 .. currentmodule:: mne
+
+Functions:
 
 .. autosummary::
    :toctree: generated/
