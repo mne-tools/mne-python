@@ -470,8 +470,8 @@ Forward Modeling
 Functions:
 
 .. autosummary::
-  :toctree: generated/
-  :template: function.rst
+   :toctree: generated/
+   :template: function.rst
 
    add_source_space_distances
    apply_forward
