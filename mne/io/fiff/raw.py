@@ -69,6 +69,8 @@ class RawFIFF(_BaseRaw):
         List of channels' names.
     n_times : int
         Total number of time points in the raw file.
+    preload : bool
+        Indicates whether raw data are in memory.
     verbose : bool, str, int, or None
         See above.
     """
