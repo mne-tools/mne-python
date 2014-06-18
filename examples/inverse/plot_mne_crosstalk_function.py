@@ -31,7 +31,7 @@ fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
                data_path + '/MEG/sample/labels/Vis-rh.label',
                data_path + '/MEG/sample/labels/Vis-lh.label']
 
-# In order to get leadfield with fixed source orientation,
+# In order to get gain matrix with fixed source orientation,
 # read forward solution with fixed orientations
 forward = mne.read_forward_solution(fname_fwd, force_fixed=True, surf_ori=True)
 
