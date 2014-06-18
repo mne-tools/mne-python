@@ -287,7 +287,7 @@ class _RawEGI(_BaseRaw):
                 ch_info.update(u)
             info['chs'].append(ch_info)
 
-        self._preloaded = True
+        self.preload = True
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         self._times = np.arange(self.first_samp, self.last_samp + 1,
                                 dtype=np.float64)

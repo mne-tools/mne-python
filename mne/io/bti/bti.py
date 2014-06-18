@@ -1159,7 +1159,7 @@ class RawBTi(_BaseRaw):
         self.proj = None
         self.comp = None
         self._filenames = list()
-        self._preloaded = True
+        self.preload = True
         self._projector_hashes = [None]
         self.info = info
 

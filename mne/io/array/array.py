@@ -51,7 +51,7 @@ class RawArray(_BaseRaw):
         self.proj = None
         self.comp = None
         self._filenames = list()
-        self._preloaded = True
+        self.preload = True
         self.info = info
         self._data = data
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1

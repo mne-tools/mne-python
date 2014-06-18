@@ -105,7 +105,7 @@ class RawFIFF(_BaseRaw):
         if preload:
             self._preload_data(preload)
         else:
-            self._preloaded = False
+            self.preload = False
 
         self._projector = None
         # setup the SSP projector
@@ -122,7 +122,7 @@ class RawFIFF(_BaseRaw):
             data_buffer = None
 
         self._data, self._times = self._read_segment(data_buffer=data_buffer)
-        self._preloaded = True
+        self.preload = True
         # close files once data are preloaded
         self.close()
 

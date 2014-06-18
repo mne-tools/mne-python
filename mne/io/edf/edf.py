@@ -97,7 +97,7 @@ class RawEDF(_BaseRaw):
 
         # Raw attributes
         self.verbose = verbose
-        self._preloaded = False
+        self.preload = False
         self._filenames = list()
         self._projector = None
         self.first_samp = 0
@@ -112,7 +112,7 @@ class RawEDF(_BaseRaw):
         self.orig_format = 'int'
 
         if preload:
-            self._preloaded = preload
+            self.preload = preload
             logger.info('Reading raw data from %s...' % input_fname)
             self._data, _ = self._read_segment()
             assert len(self._data) == self.info['nchan']

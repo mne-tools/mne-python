@@ -1170,7 +1170,7 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
 
     # store sensor data in Raw object using the template
     raw = raw_template.copy()
-    raw._preloaded = True
+    raw.preload = True
     raw._data = data
     raw._times = times
 

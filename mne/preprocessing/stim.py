@@ -36,7 +36,7 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
     raw: Raw object
         raw data object.
     """
-    if not raw._preloaded:
+    if not raw.preload:
         raise RuntimeError('Modifying data of Raw is only supported '
                            'when preloading is used. Use preload=True '
                            '(or string) in the constructor.')
