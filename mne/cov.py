@@ -360,7 +360,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     # check for baseline correction
     for epochs_t in epochs:
-        if epochs_t.baseline is None:
+        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5:
             warnings.warn('Epochs are not baseline corrected, covariance '
                           'matrix may be inaccurate')
 
