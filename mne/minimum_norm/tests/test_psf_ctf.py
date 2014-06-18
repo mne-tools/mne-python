@@ -12,8 +12,6 @@ s_path = op.join(sample.data_path(download=False), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_fwd = op.join(s_path, 'sample_audvis-meg-oct-6-fwd.fif')
 
-data_path = sample.data_path()
-
 fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
                data_path + '/MEG/sample/labels/Aud-lh.label']
 
