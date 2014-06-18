@@ -47,7 +47,6 @@ def test_mvar_connectivity():
     # nosetests could randomly fail):
     np.random.seed(0)
 
-    sfreq = 50.
     n_sigs = 3
     n_epochs = 100
     n_samples = 500
@@ -58,6 +57,8 @@ def test_mvar_connectivity():
                   fmax=(5, 10))
     assert_raises(ValueError, mvar_connectivity, [], 'PDC', 99, fmin=(11,),
                   fmax=(12, 15))
+    assert_raises(ValueError, mvar_connectivity, [], 'S', fitting_mode='')
+    assert_raises(NotImplementedError, mvar_connectivity, [], 'H', fitting_mode='yw')
 
     methods = ['S', 'COH', 'DTF', 'PDC', 'ffDTF', 'GPDC', 'GDTF', 'A']
 
@@ -65,7 +66,7 @@ def test_mvar_connectivity():
     var_coef = np.zeros((1, n_sigs, n_sigs))
     data = _make_data(var_coef, n_samples, n_epochs)
 
-    con, freqs, p = mvar_connectivity(data, methods, order=None, sfreq=sfreq)
+    con, freqs, p = mvar_connectivity(data, methods, order=1, fitting_mode='yw')
     con = dict((m, c) for m, c in zip(methods, con))
     assert_equal(p, 1)
 
@@ -85,7 +86,7 @@ def test_mvar_connectivity():
     var_coef[:, 1, 0] = f
     data = _make_data(var_coef, n_samples, n_epochs)
 
-    con, freqs, p = mvar_connectivity(data, methods, order=None, sfreq=sfreq)
+    con, freqs, p = mvar_connectivity(data, methods, order=(2, 5))
     con = dict((m, c) for m, c in zip(methods, con))
 
     h = var_coef.squeeze() + np.eye(n_sigs)
@@ -112,7 +113,7 @@ def test_mvar_connectivity():
     var_coef[:, 2, 1] = f
     data = _make_data(var_coef, n_samples, n_epochs)
 
-    con, freqs, p = mvar_connectivity(data, methods, order=None, sfreq=sfreq)
+    con, freqs, p = mvar_connectivity(data, methods, order=(1, None))
     con = dict((m, c) for m, c in zip(methods, con))
 
     assert_array_almost_equal(con['S'][:, :, 0] / f**4, [[f**-4, f**-3, f**-2],
@@ -132,6 +133,3 @@ def test_mvar_connectivity():
     assert_array_almost_equal(con['PDC'][:, :, 0],
                               h / np.sum(h, 0, keepdims=True), decimal=2)
     assert_array_almost_equal(con['GPDC'], con['PDC'], decimal=2)
-
-
-test_mvar_connectivity()

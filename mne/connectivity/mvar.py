@@ -3,6 +3,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+
 from ..parallel import parallel_func
 from ..utils import logger
 from ..externals.scot.varbase import VARBase
@@ -38,27 +39,26 @@ def _get_n_epochs(epochs, n):
     yield epochs_out
 
 
-def _fit_mvar_lsq(data, order, delta):
-    if order is None:
-        order = (1, None)
-    var = VAR(order, delta, xvschema=make_nfold(10))
-    try:
-        pmin, pmax = order[0], order[1]
+def _fit_mvar_lsq(data, pmin, pmax, delta):
+    var = VAR(pmin, delta, xvschema=make_nfold(10))
+    if pmin != pmax:
         logger.info('MVAR order selection...')
         var.optimize_order(data, pmin, pmax)
-    except TypeError:  # can't index order -> it is an int
-        pass
     #todo: only convert if data is a generator
     data = np.asarray(list(data)).transpose([2, 1, 0])
     var.fit(data)
     return var
 
 
-def _fit_mvar_yw(data, order, n_jobs=1, verbose=None):
+def _fit_mvar_yw(data, pmin, pmax, n_jobs=1, verbose=None):
+    if pmin != pmax:
+        raise NotImplementedError('Yule-Walker fitting does not support '
+                                  'automatic model order selection.')
+    order = pmin
 
     parallel, my_epoch_autocorrelations, _ = \
-                parallel_func(_epoch_autocorrelations, n_jobs,
-                              verbose=verbose)
+        parallel_func(_epoch_autocorrelations, n_jobs,
+                      verbose=verbose)
     n_epochs = 0
     logger.info('Accumulating autocovariance matrices...')
     for epoch_block in _get_n_epochs(data, n_jobs):
@@ -77,8 +77,8 @@ def _fit_mvar_yw(data, order, n_jobs=1, verbose=None):
     return var
 
 
-def mvar_connectivity(data, method, order=None, fitting_mode='lsq', ridge=0,
-                      sfreq=2, fmin=0, fmax=np.inf, nfft=512):
+def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
+                      ridge=0, sfreq=2 * np.pi, fmin=0, fmax=np.inf, nfft=512):
     """Estimate connectivity from multivariate autoregressive (MVAR) models.
 
     This function uses routines from SCoT [1] to fit MVAR models and compute
@@ -100,8 +100,11 @@ def mvar_connectivity(data, method, order=None, fitting_mode='lsq', ridge=0,
         'ffDTF' : full-frequency directed transfer function
         'dDTF' : "direct" directed transfer function
         'GDTF' : generalized directed transfer function
-    order : int
-        order (length) of the underlying MVAR model
+    order : int | (int, int)
+        order (length) of the underlying MVAR model. If order is a tuple
+        (p0, p1) of two ints, the function selects the best model order between
+        p0 and p1. p1 can be None, which causes the order selection to stop at
+        the lowest candidate.
     fitting_mode : str
         Determines how to fit the MVAR model.
         'lsq' : Least-Squares fitting
@@ -148,11 +151,18 @@ def mvar_connectivity(data, method, order=None, fitting_mode='lsq', ridge=0,
     if np.any(fmin > fmax):
         raise ValueError('fmax must be larger than fmin')
 
+    try:
+        pmin, pmax = order[0], order[1]
+    except TypeError:
+        pmin, pmax = order, order
+
     logger.info('MVAR fitting...')
     if fitting_mode == 'yw':
-        var = _fit_mvar_yw(data, order)
+        var = _fit_mvar_yw(data, pmin, pmax)
     elif fitting_mode == 'lsq':
-        var = _fit_mvar_lsq(data, order, ridge)
+        var = _fit_mvar_lsq(data, pmin, pmax, ridge)
+    else:
+        raise ValueError('Unknown fitting mode: %s' % fitting_mode)
 
     freqs, fmask = [], []
     freq_range = np.linspace(0, sfreq/2, nfft)

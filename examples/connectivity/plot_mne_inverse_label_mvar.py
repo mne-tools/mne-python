@@ -31,12 +31,11 @@ data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_raw = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-fname_event = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Load data
 inverse_operator = read_inverse_operator(fname_inv)
 raw = Raw(fname_raw)
-events = mne.read_events(fname_event)
+events = mne.find_events(raw)
 
 # Add a bad channel
 raw.info['bads'] += ['MEG 2443']
