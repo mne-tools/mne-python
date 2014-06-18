@@ -51,10 +51,10 @@ class Forward(dict):
 
         entr = '<Forward'
 
-        tmp_fwd = pick_types_forward(self, meg=True, eeg=False)
-        entr += ' | ' + 'MEG channels: %d' %tmp_fwd['nchan']
-        tmp_fwd = pick_types_forward(self, meg=False, eeg=True)
-        entr += ' | ' + 'EEG channels: %d' %tmp_fwd['nchan']
+        nchan = len(pick_types(self['info'], meg=True, eeg=False))
+        entr += ' | ' + 'MEG channels: %d' %nchan
+        nchan = len(pick_types(self['info'], meg=False, eeg=True))
+        entr += ' | ' + 'EEG channels: %d' %nchan
 
         if self['src'][0]['type'] == 'surf':
             entr += (' | Source space: Surface with %d vertices'
