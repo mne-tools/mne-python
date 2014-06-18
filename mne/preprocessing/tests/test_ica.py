@@ -377,23 +377,23 @@ def test_ica_additional():
         ica.detect_artifacts(raw, start_find=0, stop_find=50, ecg_ch=ch_name,
                              eog_ch=ch_name, skew_criterion=idx,
                              var_criterion=idx, kurt_criterion=idx)
+    with warnings.catch_warnings(record=True):
+        idx, scores = ica.find_bads_ecg(raw, method='ctps')
+        assert_equal(len(scores), ica.n_components_)
+        idx, scores = ica.find_bads_ecg(raw, method='correlation')
+        assert_equal(len(scores), ica.n_components_)
+        idx, scores = ica.find_bads_ecg(epochs, method='ctps')
+        assert_equal(len(scores), ica.n_components_)
+        assert_raises(ValueError, ica.find_bads_ecg, epochs.average(),
+                      method='ctps')
+        assert_raises(ValueError, ica.find_bads_ecg, raw, method='crazy-coupling')
 
-    idx, scores = ica.find_bads_ecg(raw, method='ctps')
-    assert_equal(len(scores), ica.n_components_)
-    idx, scores = ica.find_bads_ecg(raw, method='correlation')
-    assert_equal(len(scores), ica.n_components_)
-    idx, scores = ica.find_bads_ecg(epochs, method='ctps')
-    assert_equal(len(scores), ica.n_components_)
-    assert_raises(ValueError, ica.find_bads_ecg, epochs.average(),
-                  method='ctps')
-    assert_raises(ValueError, ica.find_bads_ecg, raw, method='crazy-coupling')
-
-    idx, scores = ica.find_bads_eog(raw)
-    assert_equal(len(scores), ica.n_components_)
-    raw.info['chs'][raw.ch_names.index('EOG 061') - 1]['kind'] = 202
-    idx, scores = ica.find_bads_eog(raw)
-    assert_true(isinstance(scores, list))
-    assert_equal(len(scores[0]), ica.n_components_)
+        idx, scores = ica.find_bads_eog(raw)
+        assert_equal(len(scores), ica.n_components_)
+        raw.info['chs'][raw.ch_names.index('EOG 061') - 1]['kind'] = 202
+        idx, scores = ica.find_bads_eog(raw)
+        assert_true(isinstance(scores, list))
+        assert_equal(len(scores[0]), ica.n_components_)
 
     # check score funcs
     for name, func in score_funcs.items():
