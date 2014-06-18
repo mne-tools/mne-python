@@ -615,6 +615,8 @@ class Epochs(_BaseEpochs):
         List of indices of selected events (not dropped or ignored etc.). For
         example, if the original event array had 4 events and the second event
         has been dropped, this attribute would be np.array([0, 2, 3]).
+    preload : bool
+        Indicates whether epochs are in memory.
     drop_log : list of lists
         A list of the same length as the event array used to initialize the
         Epochs object. If the i-th original event is still part of the
