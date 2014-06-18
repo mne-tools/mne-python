@@ -14,7 +14,7 @@ from .. import pick_types, pick_info
 from ..io.pick import _has_kit_refs
 from ..io import read_info
 from ..io.constants import FIFF
-from .forward import write_forward_solution, _merge_meg_eeg_fwds
+from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (invert_transform, transform_surface_to,
                           read_trans, _get_mri_head_t_from_trans_file,
@@ -479,7 +479,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
         write_forward_solution(fname, fwd, overwrite, verbose=False)
 
     logger.info('Finished.')
-    return fwd
+    return Forward(fwd)
 
 
 def _to_forward_dict(fwd, fwd_grad, names, coord_frame, source_ori):

@@ -26,7 +26,7 @@ from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
 from ..io.meas_info import read_bad_channels
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
-                       pick_types)
+                       pick_types, pick_types_forward)
 from ..io.write import (write_int, start_block, end_block,
                         write_coord_trans, write_ch_info, write_name_list,
                         write_string, start_file, end_file, write_id)
@@ -51,23 +51,27 @@ class Forward(dict):
 
         entr = '<Forward'
 
-        for k, v in self.items():
+        tmp_fwd = pick_types_forward(self, meg=True, eeg=False)
+        entr += ' | ' + 'MEG channels: %d' %tmp_fwd['nchan']
+        tmp_fwd = pick_types_forward(self, meg=False, eeg=True)
+        entr += ' | ' + 'EEG channels: %d' %tmp_fwd['nchan']
 
-            if k == 'info':
-                ch_names = v['ch_names']
-                n_meg_chan = len([c for c in ch_names if 'MEG' in c])
-                entr += ' | ' + 'MEG channels: %d' %n_meg_chan
-                n_eeg_chan = len([c for c in ch_names if 'EEG' in c])
-                entr += ' | ' + 'EEG channels: %d' %n_eeg_chan
+        if self['src'][0]['type'] == 'surf':
+            entr += (' | Source space: Surface with %d vertices'
+                     %self['nsource'])
+        elif self['src'][0]['type'] == 'vol':
+            entr += (' | Source space: Volume with %d grid points'
+                     %self['nsource'])
+        elif self['src'][0]['type'] == 'discrete':
+            entr += (' | Source space: Discrete with %d dipoles'
+                     %self['nsource'])
 
-            elif k == 'surf_ori':
-                n_src = self['nsource']
-                if v:
-                    entr += (' | ' + 'Source space: Surface with %d vertices'
-                             %n_src)
-                else:
-                    entr += (' | ' + 'Source space: Volume with %d grid points'
-                             %n_src)
+        if self['source_ori'] == 0:
+            entr += (' | Orientation: Unknown')
+        elif self['source_ori'] == 1:
+            entr += (' | Orientation: Fixed')
+        elif self['source_ori'] == 2:
+            entr += (' | Orientation: Free')
 
         entr += '>'
 
@@ -412,7 +416,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
     Returns
     -------
-    fwd : Forward
+    fwd : instance of Forward
         The forward solution.
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
