@@ -18,6 +18,7 @@ import numpy as np
 import mne
 from mne import io
 from mne.datasets import sample
+from mne.report import Reporter
 
 data_path = sample.data_path()
 
@@ -97,3 +98,13 @@ plt.ylabel('CV classification score (% correct)')
 plt.ylim([30, 100])
 plt.title('Sensor space decoding')
 plt.show()
+
+# Make an MNE Report
+fig = plt.gcf()
+rep = Reporter(path=data_path, info_fname=raw_fname,
+               subjects_dir=data_path + '/subjects', subject='sample',
+               title='MNE Report for sample dataset')
+rep.init_render()
+rep.render_folder()
+rep.append([fig])
+rep.finish_render()

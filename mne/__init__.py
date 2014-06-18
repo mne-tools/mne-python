@@ -61,6 +61,7 @@ from .dipole import read_dip
 from .layouts.layout import find_layout
 from .channels import (equalize_channels, rename_channels,
                        read_ch_connectivity)
+from .report import Reporter
 
 from . import beamformer
 from . import connectivity
