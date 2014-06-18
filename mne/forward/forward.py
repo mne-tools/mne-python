@@ -24,7 +24,7 @@ from ..io.tree import dir_tree_find
 from ..io.tag import find_tag, read_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
-from ..io.meas_info import read_bad_channels
+from ..io.meas_info import read_bad_channels, Info
 from ..io.pick import (pick_channels_forward, pick_info, pick_channels,
                        pick_types)
 from ..io.write import (write_int, start_block, end_block,
@@ -201,7 +201,7 @@ def _read_one(fid, node):
     if node is None:
         return None
 
-    one = dict()
+    one = Forward()
 
     tag = find_tag(fid, node, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
     if tag is None:
@@ -277,7 +277,7 @@ def read_forward_meas_info(tree, fid):
     info : instance of mne.io.meas_info.Info
         The measurement info.
     """
-    info = dict()
+    info = Info()
 
     # Information from the MRI file
     parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
@@ -551,8 +551,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     fwd['src'] = src
 
     #   Handle the source locations and orientations
-    fwd['source_rr'] = np.concatenate([s['rr'][s['vertno'], :] for s in src],
-                                      axis=0)
+    fwd['source_rr'] = np.concatenate([ss['rr'][ss['vertno'], :]
+                                       for ss in src], axis=0)
 
     # deal with transformations, storing orig copies so transforms can be done
     # as necessary later
@@ -743,7 +743,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     # Write the source spaces (again)
     #
     _write_source_spaces_to_fid(fid, src)
-    n_vert = sum([s['nuse'] for s in src])
+    n_vert = sum([ss['nuse'] for ss in src])
     n_col = fwd['sol']['data'].shape[1]
     if fwd['source_ori'] == FIFF.FIFFV_MNE_FIXED_ORI:
         assert n_col == n_vert
