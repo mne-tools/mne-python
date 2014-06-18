@@ -3,6 +3,8 @@
 #
 # License: BSD (3-clause)
 
+from copy import deepcopy
+
 import numpy as np
 from scipy import linalg
 
@@ -82,7 +84,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     """
     mode = mode.lower()
     if mode not in ['mean', 'sum', 'svd']:
-        raise ValueError('mode must be ''svd'', ''mean'' or ''sum''. Got %s.'
+        raise ValueError("mode must be 'svd', 'mean' or 'sum'. Got %s."
                          % mode)
 
     logger.info("About to process %d labels" % len(labels))
@@ -101,8 +103,8 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     # in order to convert sub-leadfield matrix to evoked data type (pretending
     # it's an epoch, see in loop below), uses 'info' from forward solution,
     # need to add 'sfreq' and 'proj'
-    info = forward['info']
-    info['sfreq'] = 1.  # add sfreq or it won't work
+    info = deepcopy(forward['info'])
+    info['sfreq'] = 1000.  # add sfreq or it won't work
     info['projs'] = []  # add projs
 
     # will contain means of subleadfields for all labels
@@ -259,7 +261,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
     # in order to convert sub-leadfield matrix to evoked data type (pretending
     # it's an epoch, see in loop below), uses 'info' from forward solution,
     # need to add 'sfreq' and 'proj'
-    info = forward['info']
+    info = deepcopy(forward['info'])
     info['sfreq'] = 1000.  # add sfreq or it won't work
     info['projs'] = []  # add projs
 
@@ -333,7 +335,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
 
                 # get first n_svd_comp components, weighted with their
                 # corresponding singular values
-                logger.info("first 5 singular values: %s" % s_svd[0:5])
+                logger.info("First 5 singular values: %s" % s_svd[:5])
                 logger.info("(This tells you something about variability of "
                             "estimators in sub-inverse for label)")
                 # explained variance by chosen components within sub-inverse
