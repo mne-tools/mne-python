@@ -84,7 +84,7 @@ class RawKIT(_BaseRaw):
 
         # Raw attributes
         self.verbose = verbose
-        self._preloaded = False
+        self.preload = False
         self._projector = None
         self.first_samp = 0
         self.last_samp = self._sqd_params['nsamples'] - 1
@@ -210,7 +210,7 @@ class RawKIT(_BaseRaw):
 
         self._set_stimchannels(stim, slope)
         if preload:
-            self._preloaded = preload
+            self.preload = preload
             logger.info('Reading raw data from %s...' % input_fname)
             self._data, _ = self._read_segment()
             assert len(self._data) == self.info['nchan']
@@ -497,7 +497,7 @@ class RawKIT(_BaseRaw):
             '-' means a negative slope (high-to-low) on the event channel(s)
             is used to trigger an event.
         """
-        if self._preloaded:
+        if self.preload:
             err = "Can't change stim channel after preloading data"
             raise NotImplementedError(err)
 

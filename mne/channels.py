@@ -176,7 +176,7 @@ class PickDropChannelsMixin(object):
         from .epochs import Epochs
         from .evoked import Evoked
         if isinstance(self, _BaseRaw):
-            if not self._preloaded:
+            if not self.preload:
                 raise RuntimeError('Raw data must be preloaded to drop or pick'
                                    ' channels')
 

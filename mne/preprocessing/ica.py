@@ -601,12 +601,12 @@ class ICA(ContainsMixin):
         """
         # merge copied instance and picked data with sources
         sources = self._transform_raw(raw, start=start, stop=stop)
-        if raw._preloaded:  # get data and temporarily delete
+        if raw.preload:  # get data and temporarily delete
             data, times = raw._data, raw._times
             del raw._data, raw._times
 
         out = raw.copy()  # copy and reappend
-        if raw._preloaded:
+        if raw.preload:
             raw._data, raw._times = data, times
 
         # populate copied raw.
@@ -621,7 +621,7 @@ class ICA(ContainsMixin):
         out._data = data_
         out._times = times_
         out._filenames = list()
-        out._preloaded = True
+        out.preload = True
 
         # update first and last samples
         out.first_samp = raw.first_samp + (start if start else 0)
@@ -1030,7 +1030,7 @@ class ICA(ContainsMixin):
     def _apply_raw(self, raw, include, exclude, n_pca_components, start, stop,
                    copy=True):
         """Aux method"""
-        if not raw._preloaded:
+        if not raw.preload:
             raise ValueError('Raw data must be preloaded to apply ICA')
 
         if exclude is None:

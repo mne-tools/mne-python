@@ -74,7 +74,7 @@ class RawBrainVision(_BaseRaw):
 
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
-        self._preloaded = False
+        self.preload = False
 
         # Channel info and events
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
@@ -101,7 +101,7 @@ class RawBrainVision(_BaseRaw):
         self._reference = reference
 
         if preload:
-            self._preloaded = preload
+            self.preload = preload
             logger.info('Reading raw data from %s...' % vhdr_fname)
             self._data, _ = self._read_segment()
             assert len(self._data) == self.info['nchan']
@@ -251,7 +251,7 @@ class RawBrainVision(_BaseRaw):
             self.info['nchan'] -= 1
             del self.info['ch_names'][-1]
             del self.info['chs'][-1]
-            if self._preloaded:
+            if self.preload:
                 self._data = self._data[:-1]
         elif has_events and not had_events:  # add stim channel
             idx = len(self.info['chs']) + 1
@@ -269,13 +269,13 @@ class RawBrainVision(_BaseRaw):
             self.info['nchan'] += 1
             self.info['ch_names'].append(chan_info['ch_name'])
             self.info['chs'].append(chan_info)
-            if self._preloaded:
+            if self.preload:
                 shape = (1, self._data.shape[1])
                 self._data = np.vstack((self._data, np.empty(shape)))
 
         # update events
         self._events = events
-        if has_events and self._preloaded:
+        if has_events and self.preload:
             start = self.first_samp
             stop = self.last_samp + 1
             self._data[-1] = _synthesize_stim_channel(events, start, stop)

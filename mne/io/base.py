@@ -69,7 +69,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             return exception_type, exception_val, trace
 
     def __hash__(self):
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Cannot hash raw unless preloaded')
         return object_hash(dict(info=self.info, data=self._data),
                            ignore_sbio=True)
@@ -131,7 +131,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
         sel, start, stop = self._parse_get_set_params(item)
-        if self._preloaded:
+        if self.preload:
             data, times = self._data[sel, start:stop], self._times[start:stop]
         else:
             data, times = self._read_segment(start=start, stop=stop, sel=sel,
@@ -141,7 +141,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
     def __setitem__(self, item, value):
         """setting raw data content with python slicing"""
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Modifying data of Raw is only supported '
                                'when preloading is used. Use preload=True '
                                '(or string) in the constructor.')
@@ -197,7 +197,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         **kwargs :
             Keyword arguments to pass to fun.
         """
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
 
@@ -348,7 +348,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         if h_freq is not None and not isinstance(h_freq, float):
             h_freq = float(h_freq)
 
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
@@ -483,7 +483,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                 raise RuntimeError('Could not find any valid channels for '
                                    'your Raw object. Please contact the '
                                    'MNE-Python developers.')
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
 
@@ -537,7 +537,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         For some data, it may be more accurate to use npad=0 to reduce
         artifacts. This is dataset dependent -- check your data!
         """
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
         sfreq = float(sfreq)
         o_sfreq = float(self.info['sfreq'])
@@ -636,7 +636,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                        if ri in keepers]
         raw.first_samp = raw._first_samps[0]
         raw.last_samp = raw.first_samp + (smax - smin)
-        if raw._preloaded:
+        if raw.preload:
             raw._data = raw._data[:, smin:smax + 1]
             raw._times = np.arange(raw.n_times) / raw.info['sfreq']
         return raw
@@ -703,11 +703,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                    'raw_tsss.fif.gz'))
 
         fname = op.realpath(fname)
-        if not self._preloaded and fname in self._filenames:
+        if not self.preload and fname in self._filenames:
             raise ValueError('You cannot save data to the same file.'
                              ' Please use a different filename.')
 
-        if self._preloaded:
+        if self.preload:
             if np.iscomplexobj(self._data):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
@@ -1084,7 +1084,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         _check_raw_compatibility(all_raws)
 
         # deal with preloading data first (while files are separate)
-        all_preloaded = self._preloaded and all(r._preloaded for r in raws)
+        all_preloaded = self.preload and all(r.preload for r in raws)
         if preload is None:
             if all_preloaded:
                 preload = True
@@ -1092,17 +1092,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                 preload = False
 
         if preload is False:
-            if self._preloaded:
+            if self.preload:
                 self._data = None
                 self._times = None
-            self._preloaded = False
+            self.preload = False
         else:
             # do the concatenation ourselves since preload might be a string
             nchan = self.info['nchan']
             c_ns = np.cumsum([rr.n_times for rr in ([self] + raws)])
             nsamp = c_ns[-1]
 
-            if not self._preloaded:
+            if not self.preload:
                 this_data = self._read_segment()[0]
             else:
                 this_data = self._data
@@ -1117,14 +1117,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             _data[:, 0:c_ns[0]] = this_data
 
             for ri in range(len(raws)):
-                if not raws[ri]._preloaded:
+                if not raws[ri].preload:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
                     raws[ri]._read_segment(data_buffer=data_buffer)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
             self._data = _data
-            self._preloaded = True
+            self.preload = True
 
         # now combine information from each raw file to construct new self
         for r in raws:
@@ -1136,7 +1136,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
 
         # this has to be done after first and last sample are set appropriately
-        if self._preloaded:
+        if self.preload:
             self._times = np.arange(self.n_times) / self.info['sfreq']
 
     def close(self):
@@ -1294,7 +1294,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         -----
         Data must be preloaded in order to add events.
         """
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('cannot add events unless data are preloaded')
         events = np.asarray(events)
         if events.ndim != 2 or events.shape[1] != 3:
@@ -1338,7 +1338,7 @@ def set_eeg_reference(raw, ref_channels, copy=True):
         Array of reference data subtracted from eeg channels.
     """
     # Check to see that raw data is preloaded
-    if not raw._preloaded:
+    if not raw.preload:
         raise RuntimeError('Raw data needs to be preloaded. Use '
                            'preload=True (or string) in the constructor.')
     # Make sure that reference channels are loaded as list of string

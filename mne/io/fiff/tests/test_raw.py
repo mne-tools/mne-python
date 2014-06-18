@@ -217,14 +217,14 @@ def test_multiple_files():
     # with all data preloaded, result should be preloaded
     raw_combo = Raw(fif_fname, preload=True)
     raw_combo.append(Raw(fif_fname, preload=True))
-    assert_true(raw_combo._preloaded is True)
+    assert_true(raw_combo.preload is True)
     assert_true(len(raw_combo._times) == raw_combo._data.shape[1])
     _compare_combo(raw, raw_combo, times, n_times)
 
     # with any data not preloaded, don't set result as preloaded
     raw_combo = concatenate_raws([Raw(fif_fname, preload=True),
                                   Raw(fif_fname, preload=False)])
-    assert_true(raw_combo._preloaded is False)
+    assert_true(raw_combo.preload is False)
     assert_array_equal(find_events(raw_combo, stim_channel='STI 014'),
                        find_events(raw_combo0, stim_channel='STI 014'))
     _compare_combo(raw, raw_combo, times, n_times)
@@ -233,7 +233,7 @@ def test_multiple_files():
     raw_combo = concatenate_raws([Raw(fif_fname, preload=False),
                                   Raw(fif_fname, preload=True)],
                                  preload=True)
-    assert_true(raw_combo._preloaded is True)
+    assert_true(raw_combo.preload is True)
     _compare_combo(raw, raw_combo, times, n_times)
 
     raw_combo = concatenate_raws([Raw(fif_fname, preload=False),

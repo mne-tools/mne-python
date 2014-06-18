@@ -169,7 +169,7 @@ def test_ica_core():
 
         # test preload filter
         raw3 = raw.copy()
-        raw3._preloaded = False
+        raw3.preload = False
         assert_raises(ValueError, ica.apply, raw3,
                       include=[1, 2])
 
