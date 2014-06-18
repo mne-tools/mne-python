@@ -2,16 +2,27 @@
 #
 # License: BSD (3-clause)
 
+import os.path as op
+import warnings
+
 import numpy as np
-from numpy.testing import assert_array_equal, assert_almost_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 from scipy import linalg, stats
 
+from nose.tools import assert_raises, assert_true
+
 import mne
+from mne import read_source_estimate
 from mne.datasets import sample
-from mne.stats.regression import ols_epochs
+from mne.stats.regression import linear_regression
+
+data_path = sample.data_path(download=False)
+subjects_dir = op.join(data_path, 'subjects')
+stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 
 
-def test_regression():
+@sample.requires_sample_data
+def test_sensor_regression():
     """Test Ordinary Least Squares Regression
     """
     data_path = sample.data_path()
@@ -25,51 +36,31 @@ def test_regression():
     events = mne.read_events(event_fname)
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                         baseline=(None, 0), preload=True)
-    data = epochs.get_data()
-    data_shape = data.shape
-    data = np.reshape(data, (data_shape[0], -1))
-    design_matrix = epochs.events[:, 1:]
+    picks = np.arange(len(epochs.ch_names))
+    evoked = epochs.average(picks=picks)
+    design_matrix = epochs.events[:, 1:].astype(np.float64)
     # makes the intercept
-    design_matrix[:, 0] += 1
+    design_matrix[:, 0] = 1
     # creates contrast: aud_l=0, aud_r=1
     design_matrix[:, 1] -= 1
+    with warnings.catch_warnings(record=True) as w:
+        lm = linear_regression(epochs, design_matrix, ['intercept', 'aud'])
+        assert_true(w[0].category == UserWarning)
+        assert_true('non-data' in '%s' % w[0].message)
 
-    # do the regression: min |b - aX|
-    betas, residuals, _, _ = linalg.lstsq(design_matrix, data)
-    betas = betas.reshape(betas.shape[0], data_shape[1], data_shape[2])
+    for predictor, parameters in lm.items():
+        for value in parameters:
+            assert_array_equal(value.data.shape, evoked.data.shape)
 
-    res = ols_epochs(epochs, design_matrix)
+    assert_raises(ValueError, linear_regression, [epochs, epochs],
+                  design_matrix)
 
-    # test for equivalence
-    assert_array_equal(res['beta']['x0'].data, betas[0])
-    assert_array_equal(res['beta']['x1'].data, betas[1])
+    stc = read_source_estimate(stc_fname).crop(0, 0.02)
+    stc_list = [stc, stc, stc]
+    stc_gen = (s for s in stc_list)
+    lm1 = linear_regression(stc_list, design_matrix[:len(stc_list)])
+    lm2 = linear_regression(stc_gen, design_matrix[:len(stc_list)])
 
-    # degrees of freedom: observations - predictors
-    n_rows, n_predictors = design_matrix.shape
-    df = n_rows - n_predictors
-
-    # root mean squared error
-    rmse = np.sqrt(residuals / df)
-    # model inverse covariance matrix
-    design_invcov = linalg.inv(np.dot(design_matrix.T, design_matrix))
-    unscaled_stderrs = np.sqrt(np.diag(design_invcov))
-
-    stderrs = [rmse * unscaled_stderr for unscaled_stderr in unscaled_stderrs]
-    stderrs = [stderr.reshape(data_shape[1], data_shape[2]) for
-               stderr in stderrs]
-
-    # test for equivalence
-    assert_array_equal(res['stderr']['x0'].data, stderrs[0])
-    assert_array_equal(res['stderr']['x1'].data, stderrs[1])
-
-    # wald t-statistic
-    ts = betas / np.array(stderrs)
-
-    # test for equivalence
-    assert_array_equal(res['t']['x0'].data, ts[0])
-    assert_array_equal(res['t']['x1'].data, ts[1])
-
-    # p-value
-    p = [(1 - stats.t.cdf(np.abs(t), df)) * 2 for t in ts]
-    assert_array_equal(res['p']['x0'].data, p[0])
-    assert_array_equal(res['p']['x1'].data, p[1])
+    for k in lm1:
+        for v1, v2 in zip(lm1[k], lm2[k]):
+            assert_array_equal(v1.data, v2.data)
