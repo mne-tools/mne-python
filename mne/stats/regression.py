@@ -38,19 +38,20 @@ def linear_regression(inst, design_matrix, names=None):
 
     Returns
     -------
-    results : namedtuple
-        namedtuple with the following attributes:
+    results : dict of namedtuple
+        For each regressor (key) a namedtuple is provided with the
+        following attributes:
 
             beta : regression coefficients
             stderr : standard error of regression coefficients
             t_vals : t statistics (beta / stderr)
             p_vals : two-sided p-value of t statistic under the t distribution
 
-        The values are themselves dictionaries from regressor name to
-        numpy arrays. The shape of each numpy array is the shape of the data
-        minus the first dimension; e.g., if the shape of the original data was
-        (n_observations, n_channels, n_timepoints), then the shape of each of
-        the arrays will be (n_channels, n_timepoints).
+        The tuple members are numpy arrays. The shape of each numpy array is
+        the shape of the data minus the first dimension; e.g., if the shape of
+        the original data was (n_observations, n_channels, n_timepoints),
+        then the shape of each of the arrays will be
+        (n_channels, n_timepoints).
     """
     if names is None:
         names = ['x%i' % i for i in range(design_matrix.shape[1])]
@@ -91,7 +92,7 @@ def linear_regression(inst, design_matrix, names=None):
             elif isinstance(out_, Evoked):
                 out_.data[:] = value
             else:
-                raise RuntimeError('Invalid container encountered.')
+                raise RuntimeError('Invalid container.')
             parameters[ii] = out_
         lm_fits[name] = lm(*parameters)
     logger.info('Done')

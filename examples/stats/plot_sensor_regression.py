@@ -68,5 +68,11 @@ def plot_topomap(x, unit, title):
 trial_count = lm['trial-count']
 
 plot_topomap(trial_count.beta, unit='z', title='trial-count (beta)')
+
 plot_topomap(trial_count.t_val, unit='t', title='trial-count (t-test)')
+
+trial_count.p_val.data = -np.log10(trial_count.p_val.data)
+plot_topomap(trial_count.p_val, unit='p',
+             title='trial-count (p value)')
+
 plot_topomap(trial_count.stderr, unit='z', title='trial-count (error)')
