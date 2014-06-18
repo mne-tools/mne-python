@@ -212,8 +212,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     Returns
     -------
-    fwd : dict
-        The generated forward solution.
+    fwd : instance of Forward
+        The forward solution.
 
     Notes
     -----
