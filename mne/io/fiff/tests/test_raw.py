@@ -290,7 +290,9 @@ def test_split_files():
     # test the case where the silly user specifies the split files
     fnames = [split_fname]
     fnames.extend(sorted(glob.glob(op.join(tempdir, 'split_raw-*.fif'))))
-    raw_2 = Raw(fnames)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        raw_2 = Raw(fnames)
     data_2, times_2 = raw_2[:, :]
     assert_array_equal(data_1, data_2)
     assert_array_equal(times_1, times_2)
