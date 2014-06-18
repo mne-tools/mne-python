@@ -463,11 +463,23 @@ Step by step instructions for using :func:`gui.coregistration`:
 Forward Modeling
 ================
 
+:py:mod:`mne`:
+
 .. currentmodule:: mne
+
+Classes:
 
 .. autosummary::
    :toctree: generated/
-   :template: function.rst
+   :template: class.rst
+
+   Forward
+
+Functions:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
 
    add_source_space_distances
    apply_forward
