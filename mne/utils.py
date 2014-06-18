@@ -1005,7 +1005,7 @@ def set_memmap_min_size(memmap_min_size):
     Parameters
     ----------
     memmap_min_size: str or None
-        Threshold on the minimum size of arrays that triggers automated memmory
+        Threshold on the minimum size of arrays that triggers automated memory
         mapping for parallel processing, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays.
     """
