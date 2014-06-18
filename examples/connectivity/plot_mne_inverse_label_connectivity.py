@@ -129,11 +129,10 @@ plt.savefig('circle.png', facecolor='black')
 
 # Plot connectivity for both methods in the same plot
 fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
-no_names = [''] * len(label_names)
 for ii, method in enumerate(con_methods):
-    plot_connectivity_circle(con_res[method], no_names, n_lines=300,
+    plot_connectivity_circle(con_res[method], label_names, n_lines=300,
                              node_angles=node_angles, node_colors=label_colors,
                              title=method, padding=0, fontsize_colorbar=6,
-                             fig=fig, subplot=(1, 2, ii + 1))
+                             fig=fig, subplot=(1, 2, ii + 1), show_names=False)
 
 plt.show()

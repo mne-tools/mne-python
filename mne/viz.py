@@ -2472,6 +2472,15 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
         fig.canvas.draw()
 
 
+def _plot_connectivity_circle_nodename(x, y, node_angles, node_names,
+                                       ylim=[9, 10]):
+    if not ylim[0] <= y <= ylim[1]:
+        return ''
+    node_angles %= (np.pi * 2)
+    node = np.argmin(np.abs(x - node_angles))
+    return '{}: {}'.format(node, node_names[node])
+
+
 def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              node_angles=None, node_width=None,
                              node_colors=None, facecolor='black',
@@ -2481,7 +2490,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
                              fontsize_title=12, fontsize_names=8,
                              fontsize_colorbar=8, padding=6.,
-                             fig=None, subplot=111, interactive=True):
+                             fig=None, subplot=111, interactive=True,
+                             show_names=True):
     """Visualize connectivity as a circular graph.
 
     Note: This code is based on the circle graph example by Nicolas P. Rougier
@@ -2551,6 +2561,9 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     interactive : bool
         When enabled, left-click on a node to show only connections to that
         node. Right-click shows all connections.
+    show_names : bool
+        Enable or disable display of node names in the plot. The names are
+        always displayed in the status bar when mousing over them.
 
     Returns
     -------
@@ -2719,19 +2732,20 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         bar.set_facecolor(color)
 
     # Draw node labels
-    angles_deg = 180 * node_angles / np.pi
-    for name, angle_rad, angle_deg in zip(node_names, node_angles, angles_deg):
-        if angle_deg >= 270:
-            ha = 'left'
-        else:
-            # Flip the label, so text is always upright
-            angle_deg += 180
-            ha = 'right'
+    if show_names:
+        angles_deg = 180 * node_angles / np.pi
+        for name, angle_rad, angle_deg in zip(node_names, node_angles, angles_deg):
+            if angle_deg >= 270:
+                ha = 'left'
+            else:
+                # Flip the label, so text is always upright
+                angle_deg += 180
+                ha = 'right'
 
-        axes.text(angle_rad, 10.4, name, size=fontsize_names,
-                  rotation=angle_deg, rotation_mode='anchor',
-                  horizontalalignment=ha, verticalalignment='center',
-                  color=textcolor)
+            axes.text(angle_rad, 10.4, name, size=fontsize_names,
+                      rotation=angle_deg, rotation_mode='anchor',
+                      horizontalalignment=ha, verticalalignment='center',
+                      color=textcolor)
 
     if title is not None:
         plt.title(title, color=textcolor, fontsize=fontsize_title,
@@ -2756,6 +2770,9 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
         fig.canvas.mpl_connect('button_press_event', callback)
 
+        axes.format_coord = partial(_plot_connectivity_circle_nodename,
+                                    node_angles=node_angles,
+                                    node_names=node_names)
     return fig, axes
 
 
