@@ -110,7 +110,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                 else ' ')
 
     # collect parameter
-    nblock = n_samples / block
+    nblock = n_samples // block
     lastt = (nblock - 1) * block + 1
 
     # initialize training
