@@ -19,11 +19,10 @@ from .cov import (read_cov, write_cov, Covariance,
 from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
                     find_stim_steps)
-from .forward import (Forward, read_forward_solution, apply_forward,
-                      apply_forward_raw, do_forward_solution,
-                      average_forward_solutions, write_forward_solution,
-                      make_forward_solution, convert_forward_solution,
-                      make_field_map)
+from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
+                      do_forward_solution, average_forward_solutions,
+                      write_forward_solution, make_forward_solution,
+                      convert_forward_solution, make_field_map)
 from .source_estimate import (read_source_estimate,
                               SourceEstimate, VolSourceEstimate, morph_data,
                               morph_data_precomputed, compute_morph_matrix,

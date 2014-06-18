@@ -467,14 +467,6 @@ Forward Modeling
 
 .. currentmodule:: mne
 
-Classes:
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   Forward
-
 Functions:
 
 .. autosummary::
