@@ -23,7 +23,9 @@ from mne.minimum_norm import read_inverse_operator, point_spread_function
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects/'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
+fname_inv_eegmeg = (data_path +
+                    '/MEG/sample/sample_audvis-meg-eeg-oct-6-meg-eeg-inv.fif')
+fname_inv_meg = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
                data_path + '/MEG/sample/labels/Aud-lh.label',
                data_path + '/MEG/sample/labels/Vis-rh.label',
@@ -34,8 +36,10 @@ fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
 forward = mne.read_forward_solution(fname_fwd, force_fixed=False,
                                     surf_ori=True)
 
-# read inverse operator
-inverse_operator = read_inverse_operator(fname_inv)
+# read inverse operators
+inverse_operator_eegmeg = read_inverse_operator(fname_inv_eegmeg)
+inverse_operator_meg = read_inverse_operator(fname_inv_meg)
+
 # read label(s)
 labels = [mne.read_label(ss) for ss in fname_label]
 
@@ -46,25 +50,57 @@ method = 'MNE'  # can be 'MNE' or 'sLORETA'
 mode = 'svd'
 n_svd_comp = 1
 
-stc_psf, psf_evoked, singvals = point_spread_function(inverse_operator,
-                                                      forward,
-                                                      method=method,
-                                                      labels=labels,
-                                                      lambda2=lambda2,
-                                                      pick_ori='normal',
-                                                      mode=mode,
-                                                      n_svd_comp=n_svd_comp)
+stc_psf_eegmeg, _, _ = point_spread_function(inverse_operator_eegmeg,
+                                             forward,
+                                             method=method,
+                                             labels=labels,
+                                             lambda2=lambda2,
+                                             pick_ori='normal',
+                                             mode=mode,
+                                             n_svd_comp=n_svd_comp)
 
-fmax = stc_psf.data[:, 0].max()
-fmid = fmax / 2.
+stc_psf_meg, _, _ = point_spread_function(inverse_operator_meg,
+                                          forward,
+                                          method=method,
+                                          labels=labels,
+                                          lambda2=lambda2,
+                                          pick_ori='normal',
+                                          mode=mode,
+                                          n_svd_comp=n_svd_comp)
+
+# save for viewing in mne_analyze in order of labels in 'labels'
+# last sample is average across PSFs
+# stc_psf_eegmeg.save('psf_eegmeg')
+# stc_psf_meg.save('psf_meg')
+
+from mayavi import mlab
+
 fmin = 0.
 
-time_label = "Label %d"
+time_label = "EEGMEG %d"
+fmax = stc_psf_eegmeg.data[:, 0].max()
+fmid = fmax / 2.
+brain_eegmeg = stc_psf_eegmeg.plot(surface='inflated', hemi='rh',
+                                   subjects_dir=subjects_dir,
+                                   time_label=time_label, fmin=fmin,
+                                   fmid=fmid, fmax=fmax,
+                                   figure=mlab.figure())
 
-brain = stc_psf.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                     time_label=time_label, fmin=fmin, fmid=fmid, fmax=fmax)
+time_label = "MEG %d"
+fmax = stc_psf_meg.data[:, 0].max()
+fmid = fmax / 2.
+brain_meg = stc_psf_meg.plot(surface='inflated', hemi='rh',
+                             subjects_dir=subjects_dir,
+                             time_label=time_label, fmin=fmin,
+                             fmid=fmid, fmax=fmax,
+                             figure=mlab.figure())
 
-# Save PSFs for visualization in mne_analyze.
-#fname_out = 'psf_' + method
-#print("Writing STC to file: %s" % fname_out)
-#stc_psf.save(fname_out)
+# The PSF is centred around the right auditory cortex label,
+# but clearly extends beyond it.
+# It also contains "sidelobes" or "ghost sources"
+# in middle/superior temporal lobe.
+# For the Aud-RH example, MEG and EEGMEG do not seem to differ a lot,
+# but the addition of EEG still decreases point-spread to distant areas
+# (e.g. to ATL and IFG).
+# The chosen labels are quite far apart from each other, so their PSFs
+# do not overlap (check in mne_analyze)

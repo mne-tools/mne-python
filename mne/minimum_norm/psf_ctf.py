@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import mne
 import numpy as np
 from scipy import linalg
 
@@ -159,7 +160,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
             comp_var = (100. * np.sum(my_comps * my_comps) /
                         np.sum(s_svd * s_svd))
             logger.info("Your %d component(s) explain(s) %.1f%% "
-                        "variance." % (n_svd_comp, comp_var))
+                        "variance in label." % (n_svd_comp, comp_var))
             this_label_psf_summary = (u_svd[:, :n_svd_comp]
                                       * s_svd[:n_svd_comp][np.newaxis, :])
             # transpose required for conversion to "evoked"
@@ -339,7 +340,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
                 comp_var = ((100 * np.sum(my_comps * my_comps)) /
                             np.sum(s_svd * s_svd))
                 logger.info("Your %d component(s) explain(s) %.1f%% "
-                            "variance.\n" % (n_svd_comp, comp_var))
+                            "variance in label.\n" % (n_svd_comp, comp_var))
                 this_invmat_summary = (u_svd[:, :n_svd_comp].T
                                        * s_svd[:n_svd_comp][:, np.newaxis])
 
@@ -431,5 +432,7 @@ def cross_talk_function(inverse_operator, forward, labels,
     # create source estimate object
     vertno = [ss['vertno'] for ss in inverse_operator['src']]
     stc_ctf = SourceEstimate(ctfs.T, vertno, tmin=0., tstep=1.)
+
+    stc_ctf.subject = mne.minimum_norm.inverse._subject_from_inverse(inverse_operator)
 
     return stc_ctf, label_singvals
