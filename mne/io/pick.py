@@ -195,7 +195,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     if isinstance(ref_meg, string_types):
         if ref_meg != 'auto':
             raise ValueError('ref_meg has to be either a bool or \'auto\'')
-        ref_meg = info['comps'] is not None and len(info['comps']) > 0
+
+        if 'comps' in info:
+            ref_meg = info['comps'] is not None and len(info['comps']) > 0
 
     for k in range(nchan):
         kind = info['chs'][k]['kind']
