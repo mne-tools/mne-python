@@ -87,7 +87,6 @@ def test_mvar_connectivity():
 
     con, freqs, p = mvar_connectivity(data, methods, order=None, sfreq=sfreq)
     con = dict((m, c) for m, c in zip(methods, con))
-    assert_equal(p, 1)
 
     h = var_coef.squeeze() + np.eye(n_sigs)
 
@@ -115,7 +114,6 @@ def test_mvar_connectivity():
 
     con, freqs, p = mvar_connectivity(data, methods, order=None, sfreq=sfreq)
     con = dict((m, c) for m, c in zip(methods, con))
-    assert_equal(p, 1)
 
     assert_array_almost_equal(con['S'][:, :, 0] / f**4, [[f**-4, f**-3, f**-2],
                                                          [f**-3, f**-2, f**-1],
