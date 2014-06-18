@@ -1084,7 +1084,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
             config = json.load(fid)
             if key is None:
                 return config
-        key_found = True if key in config else False
+        key_found = key in config
         val = config.get(key, default)
 
     if not key_found and raise_error is True:
