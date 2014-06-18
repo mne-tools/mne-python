@@ -10,3 +10,4 @@ from .cluster_level import (permutation_cluster_test,
                             ttest_1samp_no_p,
                             summarize_clusters_stc)
 from .multi_comp import fdr_correction, bonferroni_correction
+from regression import ols, ols_epochs, ols_source_estimates
