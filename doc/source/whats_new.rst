@@ -97,6 +97,7 @@ Changelog
 
    - Add reading and writing of split raw files by `Martin Luessi`_
 
+   - Add OLS regression funciton by `Tal Linzen`_, `Teon Brooks`_ and `Denis Engemann`_
 
 BUG
 ~~~

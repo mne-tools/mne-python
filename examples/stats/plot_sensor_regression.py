@@ -61,9 +61,8 @@ lm = linear_regression(epochs, design_matrix, names)
 
 
 def plot_topomap(x, unit, title):
-    x.plot_topomap(ch_type='mag', scale=1, size=2,
-                   times=np.linspace(0.1, 0.2, 7), vmax=np.max, unit=unit,
-                   title=title)
+    x.plot_topomap(ch_type='mag', scale=1, size=1.5, vmax=np.max, unit=unit,
+                   times=np.linspace(0.1, 0.2, 5), title=title)
 
 trial_count = lm['trial-count']
 
@@ -71,8 +70,7 @@ plot_topomap(trial_count.beta, unit='z', title='trial-count (beta)')
 
 plot_topomap(trial_count.t_val, unit='t', title='trial-count (t-test)')
 
-trial_count.p_val.data = -np.log10(trial_count.p_val.data)
-plot_topomap(trial_count.p_val, unit='p',
-             title='trial-count (p value)')
+plot_topomap(trial_count.mplog_p_val, unit='-log10 p',
+             title='trial-count (-log10 p value)')
 
 plot_topomap(trial_count.stderr, unit='z', title='trial-count (error)')

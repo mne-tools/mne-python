@@ -1,4 +1,5 @@
-# Author: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon@nyu.edu>
+#          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -6,10 +7,9 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-from scipy import linalg, stats
+from numpy.testing import assert_array_equal
 
-from nose.tools import assert_raises, assert_true
+from nose.tools import assert_raises, assert_true, assert_equal
 
 import mne
 from mne import read_source_estimate
@@ -22,7 +22,7 @@ stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 
 
 @sample.requires_sample_data
-def test_sensor_regression():
+def test_regression():
     """Test Ordinary Least Squares Regression
     """
     data_path = sample.data_path()
@@ -33,9 +33,9 @@ def test_sensor_regression():
 
     # Setup for reading the raw data
     raw = mne.io.Raw(raw_fname, preload=True)
-    events = mne.read_events(event_fname)
+    events = mne.read_events(event_fname)[:10]
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        baseline=(None, 0), preload=True)
+                        baseline=(None, 0))
     picks = np.arange(len(epochs.ch_names))
     evoked = epochs.average(picks=picks)
     design_matrix = epochs.events[:, 1:].astype(np.float64)
@@ -50,7 +50,7 @@ def test_sensor_regression():
 
     for predictor, parameters in lm.items():
         for value in parameters:
-            assert_array_equal(value.data.shape, evoked.data.shape)
+            assert_equal(value.data.shape, evoked.data.shape)
 
     assert_raises(ValueError, linear_regression, [epochs, epochs],
                   design_matrix)
