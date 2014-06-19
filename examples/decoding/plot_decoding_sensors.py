@@ -97,14 +97,15 @@ plt.xlabel('Times (ms)')
 plt.ylabel('CV classification score (% correct)')
 plt.ylim([30, 100])
 plt.title('Sensor space decoding')
-plt.show()
 
+###############################################################################
 # Make an MNE Report
+
 fig = plt.gcf()
 rep = Reporter(path=data_path, info_fname=raw_fname,
                subjects_dir=data_path + '/subjects', subject='sample',
                title='MNE Report for sample dataset')
 rep.init_render()
 rep.render_folder()
-rep.append([fig])
+rep.append([fig], ['Sensor space decoding'])
 rep.finish_render()
