@@ -44,8 +44,9 @@ def linear_regression(inst, design_matrix, names=None):
 
             beta : regression coefficients
             stderr : standard error of regression coefficients
-            t_vals : t statistics (beta / stderr)
-            p_vals : two-sided p-value of t statistic under the t distribution
+            t_val : t statistics (beta / stderr)
+            p_val : two-sided p-value of t statistic under the t distribution
+            mlog_p_val : l
 
         The tuple members are numpy arrays. The shape of each numpy array is
         the shape of the data minus the first dimension; e.g., if the shape of
@@ -79,12 +80,11 @@ def linear_regression(inst, design_matrix, names=None):
                          'estimates')
     logger.info(msg + ', (%s targets, %s regressors)' %
                 (np.product(data.shape[1:]), len(names)))
-    beta, stderr, t_val, p_val = _fit_lm(data, design_matrix, names)
-    lm = namedtuple('lm', 'beta stderr t_val p_val')
+    lm_params = _fit_lm(data, design_matrix, names)
+    lm = namedtuple('lm', 'beta stderr t_val p_val mlog_p_val')
     lm_fits = {}
     for name in names:
-        parameters = [beta[name], stderr[name],
-                      t_val[name], p_val[name]]
+        parameters = [p[name] for p in lm_params]
         for ii, value in enumerate(parameters):
             out_ = out.copy()
             if isinstance(out_, SourceEstimate):
@@ -122,12 +122,13 @@ def _fit_lm(data, design_matrix, names):
     design_invcov = linalg.inv(np.dot(design_matrix.T, design_matrix))
     unscaled_stderrs = np.sqrt(np.diag(design_invcov))
 
-    beta, stderr, t_val, p_val = (dict() for _ in range(4))
+    beta, stderr, t_val, p_val, mlog_p_val = (dict() for _ in range(5))
     for x, unscaled_stderr, predictor in zip(betas, unscaled_stderrs, names):
         beta[predictor] = x.reshape(data.shape[1:])
         stderr[predictor] = sqrt_noise_var * unscaled_stderr
         t_val[predictor] = beta[predictor] / stderr[predictor]
         cdf = stats.t.cdf(np.abs(t_val[predictor]), df)
-        p_val[predictor] = (1 - cdf) * 2
+        p_val[predictor] = (1. - cdf) * 2.
+        mlog_p_val[predictor] = -np.log10(p_val[predictor])
 
-    return beta, stderr, t_val, p_val
+    return beta, stderr, t_val, p_val, mlog_p_val
