@@ -76,7 +76,7 @@ def test_ica_full_data_recovery():
     data = raw._data[:n_channels].copy()
     data_epochs = epochs.get_data()
     data_evoked = evoked.data
-    for method in ['fastica', 'infomax', 'extended-infomax']:
+    for method in ['fastica']:
         stuff = [(2, n_channels, True), (2, n_channels // 2, False)]
         for n_components, n_pca_components, ok in stuff:
             ica = ICA(n_components=n_components,
@@ -136,7 +136,7 @@ def test_ica_core():
     n_components = [2, 1.0]  # for future dbg add cases
     max_pca_components = [3]
     picks_ = [picks]
-    methods = ['fastica', 'infomax']
+    methods = ['fastica']
     iter_ica_params = product(noise_cov, n_components, max_pca_components,
                               picks_, methods)
 
