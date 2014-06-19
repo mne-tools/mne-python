@@ -16,6 +16,7 @@ import time
 import glob
 from PIL import Image
 import webbrowser
+import mayavi
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -87,7 +88,8 @@ def build_html_image(img, id, div_klass, img_klass, caption=None, show=True):
     add_style = '' if show else 'style="display: none"'
     html.append(u'<li class="%s" id="%s" %s>' % (div_klass, id, add_style))
     html.append(u'<div class="thumbnail">')
-    html.append(u'<img class="%s" alt="" style="width:90%%;" src="data:image/png;base64,%s">'
+    html.append(u'<img class="%s" alt="" style="width:90%%;" '
+                'src="data:image/png;base64,%s">'
                 % (img_klass, img))
     html.append(u'</div>')
     if caption:
@@ -251,7 +253,8 @@ footer_template = HTMLTemplate(u"""
 """)
 
 image_template = HTMLTemplate(u"""
-<li class="{{div_klass}}" id="{{id}}" {{if not show}}style="display: none"{{endif}}>
+<li class="{{div_klass}}" id="{{id}}" {{if not show}}style="display: none"
+{{endif}}>
 {{if caption}}
 <h4>{{caption}}</h4>
 {{endif}}
@@ -291,29 +294,34 @@ class Reporter(object):
 
         self.initial_id = 0
         self.html = []
+        self.fnames = []  # List of file names rendered
 
     def get_id(self):
         self.initial_id += 1
         return self.initial_id
 
-    def append(self, figs, captions=None):
+    def append(self, figs, captions):
         """Append custom user-defined figures.
+
         Parameters
         ----------
-        figs : list of fig
+        figs : list of matplotlib.pyplot.Figure
+            A list of figures to be included in the report.
+        captions : list of str
+            A list of captions to the figures.
         """
         html = []
-        for fig in figs:
+        for fig, caption in zip(figs, captions):
             global_id = self.get_id()
             div_klass = 'custom'
             img_klass = 'custom'
-            caption = 'custom'
             img = _fig_to_img(fig)
             html.append(image_template.substitute(img=img, id=global_id,
                                                   div_klass=div_klass,
                                                   img_klass=img_klass,
                                                   caption=caption,
                                                   show=True))
+            self.fnames.append(img_klass)
         self.html.append(''.join(html))
 
     ###########################################################################
@@ -386,9 +394,6 @@ class Reporter(object):
 
         info = read_info(self.info_fname)
 
-        print('Rendering : Table of Contents')
-        self.render_toc(fnames)
-
         for fname in fnames:
             print "Rendering : %s" % op.join('...' + self.path[-20:], fname)
             try:
@@ -397,17 +402,23 @@ class Reporter(object):
                     if 'aseg' in fname:
                         cmap = 'spectral'
                     self.render_image(fname, surfaces=True, cmap=cmap)
+                    self.fnames.append(fname)
                 elif fname.endswith(('raw.fif', 'sss.fif')):
                     self.render_raw(fname)
+                    self.fnames.append(fname)
                 elif fname.endswith(('-ave.fif')):
                     self.render_evoked(fname)
+                    self.fnames.append(fname)
                 elif fname.endswith(('-eve.fif')):
                     self.render_eve(fname, info)
+                    self.fnames.append(fname)
                 elif fname.endswith(('-cov.fif')):
                     self.render_cov(fname)
+                    self.fnames.append(fname)
                 elif fname.endswith(('-trans.fif')):
                     self.render_trans(fname, self.path, info,
                                       self.subject, self.subjects_dir)
+                    self.fnames.append(fname)
                 elif op.isdir(fname):
                     folders.append(fname)
                     print folders
@@ -417,6 +428,7 @@ class Reporter(object):
         self.render_bem(subject=self.subject,
                         subjects_dir=self.subjects_dir,
                         orientation='coronal')
+        self.fnames.append('bem')
 
     def finish_render(self, report_fname='report.html'):
         """
@@ -425,6 +437,10 @@ class Reporter(object):
         report_fname : str
             File name of the report.
         """
+
+        print('Rendering : Table of Contents')
+        self.render_toc()
+
         html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
         self.html.append(html)
 
@@ -437,12 +453,14 @@ class Reporter(object):
 
         return report_fname
 
-    def render_toc(self, fnames):
+    def render_toc(self):
         html = u'<div id="container">'
         html += u'<div id="toc"><h1>Table of Contents</h1>'
 
         global_id = 1
-        for fname in fnames:
+        for fname in self.fnames:
+
+            print('\t... %s' % fname[-20:])
 
             # identify bad file naming patterns and highlight them
             if not fname.endswith(('-eve.fif', '-ave.fif', '-cov.fif',
@@ -478,6 +496,7 @@ class Reporter(object):
 
             # loop through conditions for evoked
             elif fname.endswith(('-ave.fif')):
+                # XXX: remove redundant read_evokeds
                 evokeds = read_evokeds(fname, baseline=(None, 0),
                                        verbose=False)
 
@@ -487,20 +506,28 @@ class Reporter(object):
 
                 html += u'<li class="evoked"><ul>'
                 for ev in evokeds:
-                    html += (u'\n\t<li class="evoked"><a href="#%d"><span title="%s" style="color:%s"> %s'
+                    html += (u'\n\t<li class="evoked"><a href="#%d">'
+                             '<span title="%s" style="color:%s"> %s'
                              '</span></a></li>'
                              % (global_id, fname, color, ev.comment))
                     global_id += 1
                 html += u'</ul></li>'
 
-        html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
-                 (global_id, 'BEM contours'))
+            elif fname == 'bem':
+                html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
+                         (global_id, 'BEM contours'))
+                global_id += 1
+
+            else:
+                html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
+                         (global_id, 'custom'))
+                global_id += 1
 
         html += u'\n</ul></div>'
 
         html += u'<div style="margin-left: 22%;">'
 
-        self.html.append(html)
+        self.html.insert(1, html)  # insert TOC just after header
 
     def render_array(self, array, global_id=None, surfaces=True, cmap='gray',
                      limits=None):
@@ -624,26 +651,28 @@ class Reporter(object):
     def render_trans(self, trans_fname, path, info, subject,
                      subjects_dir):
 
-        global_id = self.get_id()
-
         fig = plot_trans(info, trans_fname=trans_fname,
                          subject=subject, subjects_dir=subjects_dir)
 
-        fig.scene.save_bmp(tempdir + 'test')  # XXX: save_bmp / save_png / ...
-        output = StringIO.StringIO()
-        Image.open(tempdir + 'test').save(output, format='bmp')
-        img = output.getvalue().encode('base64')
+        if isinstance(fig, mayavi.core.scene.Scene):
+            global_id = self.get_id()
 
-        caption = 'Trans : ' + trans_fname
-        div_klass = 'trans'
-        img_klass = 'trans'
-        show = True
-        html = image_template.substitute(img=img, id=global_id,
-                                         div_klass=div_klass,
-                                         img_klass=img_klass,
-                                         caption=caption,
-                                         show=show)
-        self.html.append(html)
+            # XXX: save_bmp / save_png / ...
+            fig.scene.save_bmp(tempdir + 'test')
+            output = StringIO.StringIO()
+            Image.open(tempdir + 'test').save(output, format='bmp')
+            img = output.getvalue().encode('base64')
+
+            caption = 'Trans : ' + trans_fname
+            div_klass = 'trans'
+            img_klass = 'trans'
+            show = True
+            html = image_template.substitute(img=img, id=global_id,
+                                             div_klass=div_klass,
+                                             img_klass=img_klass,
+                                             caption=caption,
+                                             show=show)
+            self.html.append(html)
 
     def render_bem(self, subject, subjects_dir, orientation='coronal'):
 
