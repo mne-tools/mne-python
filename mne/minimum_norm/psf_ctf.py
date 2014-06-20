@@ -249,9 +249,9 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
                            'force_fixed=True.')
 
     if labels:
-        logger.info("\nAbout to process %d labels" % len(labels))
+        logger.info("About to process %d labels" % len(labels))
     else:
-        logger.info("\nComputing whole inverse operator.")
+        logger.info("Computing whole inverse operator.")
 
     # in order to convert sub-leadfield matrix to evoked data type (pretending
     # it's an epoch, see in loop below), uses 'info' from forward solution,
@@ -338,7 +338,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
                 comp_var = ((100 * np.sum(my_comps * my_comps)) /
                             np.sum(s_svd * s_svd))
                 logger.info("Your %d component(s) explain(s) %.1f%% "
-                            "variance in label.\n" % (n_svd_comp, comp_var))
+                            "variance in label." % (n_svd_comp, comp_var))
                 this_invmat_summary = (u_svd[:, :n_svd_comp].T
                                        * s_svd[:n_svd_comp][:, np.newaxis])
 
