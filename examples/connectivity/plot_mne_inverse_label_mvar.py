@@ -25,7 +25,7 @@ from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import mvar_connectivity
 from mne.viz import (circular_layout, plot_connectivity_circle,
-                     plot_connectivity_matrix)
+                     plot_connectivity_matrix, plot_connectivity_inoutcircles)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -116,6 +116,10 @@ node_angles = circular_layout(label_names, node_order, start_pos=90,
                               group_boundaries=[0, len(label_names) / 2])
 
 import matplotlib.pyplot as plt
+
+plot_connectivity_inoutcircles(con_res['PDC'][:, :, 0], 'temporalpole-rh',
+                               label_names, node_angles=node_angles, node_colors=label_colors,
+                               title=title)
 
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.

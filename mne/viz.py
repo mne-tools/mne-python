@@ -2946,6 +2946,99 @@ def plot_connectivity_matrix(con, node_names, indices=None,
     return fig, axes
 
 
+def plot_connectivity_inoutcircles(con, seed, node_names, textcolor='white',
+                                   colormap='hot', title=None,
+                                   fontsize_suptitle=14, fig=None,
+                                   subplot=(121, 122), **kwargs):
+    """Visualize effective connectivity with two circular graphs, one for
+    incoming, and one for outgoing connections.
+
+    Note: This code is based on the circle graph example by Nicolas P. Rougier
+    http://www.loria.fr/~rougier/coding/recipes.html
+
+    Parameters
+    ----------
+    con : array
+        Connectivity scores. Can be a square matrix, or a 1D array. If a 1D
+        array is provided, "indices" has to be used to define the connection
+        indices.
+    seed : int | str
+        Index or name of the seed node. Connections towards and from that node
+        are displayed. The seed can be changed by clicking on a node in
+        interactive mode.
+    node_names : list of str
+        Node names. The order corresponds to the order in con.
+    textcolor : str
+        Color to use for text. See matplotlib.colors.
+    colormap : str | (str, str)
+        Colormap to use for coloring the connections. Can be a tuple of two
+        strings, in which case the first colormap is used for incoming, and the
+        second colormap for outgoing connections.
+    title : str
+        The figure title.
+    fontsize_suptitle : int
+        Font size to use for title.
+    fig : None | instance of matplotlib.pyplot.Figure
+        The figure to use. If None, a new figure with the specified background
+        color will be created.
+    subplot : (int, int) | (3-tuple, 3-tuple)
+        Location of the two subplots for incoming and outgoing connections.
+        E.g. 121 or (1, 2, 1) for 1 row, 2 columns, plot 1. See
+        matplotlib.pyplot.subplot.
+    **kwargs :
+        The remaining keyword-arguments will be passed directly to
+        plot_connectivity_circle.
+
+    Returns
+    -------
+    fig : instance of matplotlib.pyplot.Figure
+        The figure handle.
+    axes_in : instance of matplotlib.axes.PolarAxesSubplot
+        The subplot handle.
+    axes_out : instance of matplotlib.axes.PolarAxesSubplot
+        The subplot handle.
+    """
+    import matplotlib.pyplot as plt
+
+    n_nodes = len(node_names)
+
+    if type(seed) in six.string_types:
+        try:
+            seed = node_names.index(seed)
+        except ValueError:
+            from difflib import get_close_matches
+            close = get_close_matches(seed, node_names)
+            raise ValueError('{} is not in the list of node names. Did you '
+                             'mean {}?'.format(seed, close))
+
+    if seed < 0 or seed >= n_nodes:
+        raise ValueError('seed={} is not in range [0, {}].'
+                         .format(seed, n_nodes - 1))
+
+    if type(colormap) not in (tuple, list):
+        colormap = (colormap, colormap)
+
+    index_in = (np.array([seed] * n_nodes), np.array([i for i in range(n_nodes)]))
+    index_out = index_in[::-1]
+
+    fig, axes_in = plot_connectivity_circle(con[seed, :].ravel(), node_names,
+                                            indices=index_in,
+                                            colormap=colormap[0], fig=fig,
+                                            subplot=subplot[0],
+                                            title='incoming', **kwargs)
+
+    fig, axes_out = plot_connectivity_circle(con[:, seed].ravel(), node_names,
+                                             indices=index_out,
+                                             colormap=colormap[1], fig=fig,
+                                             subplot=subplot[1],
+                                             title='outgoing', **kwargs)
+
+    if title is not None:
+        plt.suptitle(title, color=textcolor, fontsize=fontsize_suptitle)
+
+    return fig, axes_in, axes_out
+
+
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
                   color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED']):
     """Show the channel stats based on a drop_log from Epochs
