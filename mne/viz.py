@@ -2776,13 +2776,23 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     return fig, axes
 
 
+def _plot_connectivity_matrix_nodename(x, y, con, node_names):
+    x = int(round(x) - 2)
+    y = int(round(y) - 2)
+    if x < 0 or y < 0 or x >= len(node_names) or y >= len(node_names):
+        return ''
+    return '{} --> {}: {:.3g}'.format(node_names[x], node_names[y],
+                                  con[y + 2, x + 2])
+
+
 def plot_connectivity_matrix(con, node_names, indices=None,
                              node_colors=None, facecolor='black',
                              textcolor='white', colormap='hot', vmin=None,
                              vmax=None, colorbar=True, title=None,
                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
                              fontsize_title=12, fontsize_names=8,
-                             fontsize_colorbar=8, fig=None, subplot=111):
+                             fontsize_colorbar=8, fig=None, subplot=111,
+                             show_names=True):
     """Visualize connectivity as a matrix.
 
     Parameters
@@ -2833,9 +2843,9 @@ def plot_connectivity_matrix(con, node_names, indices=None,
         Location of the subplot when creating figures with multiple plots. E.g.
         121 or (1, 2, 1) for 1 row, 2 columns, plot 1. See
         matplotlib.pyplot.subplot.
-    interactive : bool
-        When enabled, left-click on a node to show only connections to that
-        node. Right-click shows all connections.
+    show_names : bool
+        Enable or disable display of node names in the plot. The names are
+        always displayed in the status bar when mousing over them.
 
     Returns
     -------
@@ -2859,10 +2869,10 @@ def plot_connectivity_matrix(con, node_names, indices=None,
     # handle 1D and 2D connectivity information
     if con.ndim == 1:
         if indices is None:
-            raise ValueError('indices has to be provided if con.ndim == 1')
-        tmp = np.zeros((n_nodes, n_nodes))
+            raise ValueError('indices must be provided if con.ndim == 1')
+        tmp = np.zeros((n_nodes, n_nodes)) * np.nan
         for ci in zip(con, *indices):
-            tmp[ci[1:]] = c[0]
+            tmp[ci[1:]] = ci[0]
         con = tmp
     elif con.ndim == 2:
         if con.shape[0] != n_nodes or con.shape[1] != n_nodes:
@@ -2871,7 +2881,7 @@ def plot_connectivity_matrix(con, node_names, indices=None,
         raise ValueError('con has to be 1D or a square matrix')
 
     # remove diagonal (do not show node's self-connectivity)
-    np.fill_diagonal(con, 0)
+    np.fill_diagonal(con, np.nan)
 
     # get the colormap
     if isinstance(colormap, string_types):
@@ -2919,15 +2929,19 @@ def plot_connectivity_matrix(con, node_names, indices=None,
                   axes=axes)
 
     # Draw node labels
-    for i, name in enumerate(node_names):
-        axes.text(-1, i + 2, name, size=fontsize_names,
-                  rotation=0, rotation_mode='anchor',
-                  horizontalalignment='right', verticalalignment='center',
-                  color=textcolor)
-        axes.text(i + 2, len(node_names) + 4, name, size=fontsize_names,
-                  rotation=90, rotation_mode='anchor',
-                  horizontalalignment='right', verticalalignment='center',
-                  color=textcolor)
+    if show_names:
+        for i, name in enumerate(node_names):
+            axes.text(-1, i + 2, name, size=fontsize_names,
+                      rotation=0, rotation_mode='anchor',
+                      horizontalalignment='right', verticalalignment='center',
+                      color=textcolor)
+            axes.text(i + 2, len(node_names) + 4, name, size=fontsize_names,
+                      rotation=90, rotation_mode='anchor',
+                      horizontalalignment='right', verticalalignment='center',
+                      color=textcolor)
+
+    axes.format_coord = partial(_plot_connectivity_matrix_nodename, con=con,
+                                node_names=node_names)
 
     return fig, axes
 
