@@ -23,9 +23,10 @@ def linear_regression(inst, design_matrix, names=None):
 
     Parameters
     ----------
-    inst : instance of Epochs | instance of SourceEstimate
+    inst : instance of Epochs | iterable of SourceEstimate
         The data to be regressed. Contains all the trials, sensors, and time
-        points for the regression.
+        points for the regression. For Source Estimates, accepts either a list
+        or a generator object.
     design_matrix : instance of numpy.ndarray  (n_observations, n_regressors)
         The regressors to be used. Must be a 2d array with as many rows as
         the first dimension of `data`. The first column of this matrix will
@@ -46,7 +47,7 @@ def linear_regression(inst, design_matrix, names=None):
             stderr : standard error of regression coefficients
             t_val : t statistics (beta / stderr)
             p_val : two-sided p-value of t statistic under the t distribution
-            mlog_p_val : l
+            mlog10_p_val : -log10 transformed p-value.
 
         The tuple members are numpy arrays. The shape of each numpy array is
         the shape of the data minus the first dimension; e.g., if the shape of
@@ -81,7 +82,7 @@ def linear_regression(inst, design_matrix, names=None):
     logger.info(msg + ', (%s targets, %s regressors)' %
                 (np.product(data.shape[1:]), len(names)))
     lm_params = _fit_lm(data, design_matrix, names)
-    lm = namedtuple('lm', 'beta stderr t_val p_val mlog_p_val')
+    lm = namedtuple('lm', 'beta stderr t_val p_val mlog10_p_val')
     lm_fits = {}
     for name in names:
         parameters = [p[name] for p in lm_params]
@@ -103,7 +104,7 @@ def _fit_lm(data, design_matrix, names):
     """Aux function"""
     n_samples = len(data)
     n_features = np.product(data.shape[1:])
-    if len(design_matrix.shape) != 2:
+    if design_matrix.ndim != 2:
         raise ValueError('Design matrix must be a 2d array')
     n_rows, n_predictors = design_matrix.shape
 
