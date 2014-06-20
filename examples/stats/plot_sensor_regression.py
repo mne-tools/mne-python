@@ -7,7 +7,11 @@ Predict single trial activity from a continuous variable.
 A single-trial regression is performed in each sensor and timepoint
 individually, resulting in an Evoked object which contains the
 regression coefficient (beta value) for each combination of sensor
-and timepoint.
+and timepoint. Example also shows the T statistics and the associated
+p-values.
+
+Note that this example is for educational purposes and that the data used
+here do not contain any significant effect.
 
 (See Hauk et al. (2006). The time course of visual word recognition as
 revealed by linear regression analysis of ERP data. Neuroimage.)
