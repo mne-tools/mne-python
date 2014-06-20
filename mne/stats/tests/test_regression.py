@@ -32,7 +32,7 @@ def test_regression():
     event_id = dict(aud_l=1, aud_r=2)
 
     # Setup for reading the raw data
-    raw = mne.io.Raw(raw_fname, preload=True)
+    raw = mne.io.Raw(raw_fname)
     events = mne.read_events(event_fname)[:10]
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                         baseline=(None, 0))
