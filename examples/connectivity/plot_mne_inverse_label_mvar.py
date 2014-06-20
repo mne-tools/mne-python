@@ -75,14 +75,19 @@ fmin = (8., 16.)
 fmax = (13., 24.)
 sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['PDC', 'COH']
-con, freqs, order = mvar_connectivity(label_ts, con_methods, sfreq=sfreq,
-                                      fmin=fmin, fmax=fmax, ridge=0)
+con, freqs, order, p_vals = mvar_connectivity(label_ts, con_methods,
+                                              sfreq=sfreq, fmin=fmin,
+                                              fmax=fmax, ridge=100,
+                                              n_surrogates=10)
 
 print('MVAR order selected:', order)
 
+from mne.externals.scot.connectivity_statistics import significance_fdr
+
 con_res = dict()
-for method, c in zip(con_methods, con):
-    con_res[method] = c
+for method, c, p in zip(con_methods, con, p_vals):
+    # set connectivity to 0 if not significant.
+    con_res[method] = c * significance_fdr(p, 0.01)
 
 # First visualize directed (effective) connectivity matrix
 title = 'Effective Connectivity left-Auditory Condition (PDC, alpha band)'
@@ -118,8 +123,8 @@ node_angles = circular_layout(label_names, node_order, start_pos=90,
 import matplotlib.pyplot as plt
 
 plot_connectivity_inoutcircles(con_res['PDC'][:, :, 0], 'temporalpole-rh',
-                               label_names, node_angles=node_angles, node_colors=label_colors,
-                               title=title)
+                               label_names, node_angles=node_angles,
+                               node_colors=label_colors, title=title)
 
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.

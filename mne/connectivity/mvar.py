@@ -9,6 +9,7 @@ from ..utils import logger
 from ..externals.scot.varbase import VARBase
 from ..externals.scot.var import VAR
 from ..externals.scot.connectivity import connectivity
+from ..externals.scot.connectivity_statistics import surrogate_connectivity
 from ..externals.scot.xvschema import make_nfold
 
 
@@ -43,6 +44,7 @@ def _fit_mvar_lsq(data, pmin, pmax, delta):
     var = VAR(pmin, delta, xvschema=make_nfold(10))
     if pmin != pmax:
         logger.info('MVAR order selection...')
+        #todo: joblib!
         var.optimize_order(data, pmin, pmax)
     #todo: only convert if data is a generator
     data = np.asarray(list(data)).transpose([2, 1, 0])
@@ -78,7 +80,8 @@ def _fit_mvar_yw(data, pmin, pmax, n_jobs=1, verbose=None):
 
 
 def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
-                      ridge=0, sfreq=2 * np.pi, fmin=0, fmax=np.inf, nfft=512):
+                      ridge=0, sfreq=2 * np.pi, fmin=0, fmax=np.inf, nfft=512,
+                      n_surrogates=None):
     """Estimate connectivity from multivariate autoregressive (MVAR) models.
 
     This function uses routines from SCoT [1] to fit MVAR models and compute
@@ -124,6 +127,15 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
     fmax : float | tuple of floats
         The upper frequency of interest. Multiple bands are defined using
         a tuple, e.g. (12., 24.) for two band with 12Hz and 24Hz upper freq.
+    n_surrogates : int | None
+        If set to None, no statistics are calculated. Otherwise, `surrogates`
+        is the number of surrogate datasets on which the chance level is
+        calculated. In this case the *p*-values are returned, which are related
+        to the probability that the observed connectivity is not caused by
+        chance. See scot.connectivity_statistics.surrogate_connectivity for
+        details on the procedure.
+        **Warning**: Correction for multiple testing is required if the
+        *p*-values are used as basis for significance testing.
 
     Returns
     -------
@@ -134,6 +146,9 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         Frequency points at which the connectivity was computed.
     var_order : int
         MVAR model order that was used for fitting the model.
+    p_values : optional, array | list of arrays
+        *p*-values of connectivity measure(s). The shape of each array is
+        (n_signals, n_signals, n_frequencies)
 
     References
     ----------
@@ -172,9 +187,35 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
 
     logger.info('Connectivity computation...')
     results = []
-    c = connectivity(method, var.coef, var.rescov, nfft)
+    con = connectivity(method, var.coef, var.rescov, nfft)
     for mth in method:
-        bands = [np.mean(np.abs(c[mth][:, :, fm]), axis=2) for fm in fmask]
+        bands = [np.mean(np.abs(con[mth][:, :, fm]), axis=2) for fm in fmask]
         results.append(np.transpose(bands, (1, 2, 0)))
+
+    if n_surrogates:
+        logger.info('Computing connectivity statistics...')
+        data = np.asarray(list(data)).transpose([2, 1, 0])
+
+        blocksize = 10
+        n_blocks = n_surrogates // blocksize
+
+        p_vals = []
+        for i in range(n_blocks):
+            #todo: joblib!
+            scon = surrogate_connectivity(method, data, var, nfft, blocksize)
+
+            for m, mth in enumerate(method):
+                c, sc = np.abs(con[mth]), np.abs(scon[mth])
+                bands = [np.mean(c[:, :, fm], axis=-1) for fm in fmask]
+                sbands = [np.mean(sc[:, :, :, fm], axis=-1) for fm in fmask]
+
+                p = [np.sum(bs >= b, axis=0) for b, bs in zip(bands, sbands)]
+                p = np.array(p).transpose(1, 2, 0) / (n_blocks * blocksize)
+                if i == 0:
+                    p_vals.append(p)
+                else:
+                    p_vals[m] += p
+
+        return results, freqs, var.p, p_vals
 
     return results, freqs, var.p
