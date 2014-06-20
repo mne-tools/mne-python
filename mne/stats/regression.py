@@ -27,7 +27,7 @@ def linear_regression(inst, design_matrix, names=None):
         The data to be regressed. Contains all the trials, sensors, and time
         points for the regression. For Source Estimates, accepts either a list
         or a generator object.
-    design_matrix : instance of numpy.ndarray  (n_observations, n_regressors)
+    design_matrix : ndarray, shape (n_observations, n_regressors)
         The regressors to be used. Must be a 2d array with as many rows as
         the first dimension of `data`. The first column of this matrix will
         typically consist of ones (intercept column).
@@ -123,13 +123,13 @@ def _fit_lm(data, design_matrix, names):
     design_invcov = linalg.inv(np.dot(design_matrix.T, design_matrix))
     unscaled_stderrs = np.sqrt(np.diag(design_invcov))
 
-    beta, stderr, t_val, p_val, mlog_p_val = (dict() for _ in range(5))
+    beta, stderr, t_val, p_val, mlog10_p_val = (dict() for _ in range(5))
     for x, unscaled_stderr, predictor in zip(betas, unscaled_stderrs, names):
         beta[predictor] = x.reshape(data.shape[1:])
         stderr[predictor] = sqrt_noise_var * unscaled_stderr
         t_val[predictor] = beta[predictor] / stderr[predictor]
         cdf = stats.t.cdf(np.abs(t_val[predictor]), df)
         p_val[predictor] = (1. - cdf) * 2.
-        mlog_p_val[predictor] = -np.log10(p_val[predictor])
+        mlog10_p_val[predictor] = -np.log10(p_val[predictor])
 
-    return beta, stderr, t_val, p_val, mlog_p_val
+    return beta, stderr, t_val, p_val, mlog10_p_val
