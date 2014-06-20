@@ -262,6 +262,80 @@ def _mixed_norm_solver_cd(M, G, alpha, maxit=10000, tol=1e-8,
 
 
 @verbose
+def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
+                           init=None, n_orient=1):
+    """Solves L21 inverse problem with block coordinate descent"""
+    # First make G fortran for faster access to blocks of columns
+    G = np.asfortranarray(G)
+
+    n_sensors, n_times = M.shape
+    n_sensors, n_sources = G.shape
+    n_positions = n_sources / n_orient
+
+    lipschitz_constant = np.empty(n_positions)
+    if n_orient == 1:
+        for j in xrange(n_positions):
+            lipschitz_constant[j] = np.dot(G[:, j].T, G[:, j]) * 1.1
+    else:
+        for j in xrange(n_positions):
+            G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
+            lipschitz_constant[j] = linalg.norm(np.dot(G_tmp.T, G_tmp),
+                                                ord=2) * 1.1
+
+    if init is None:
+        X = np.zeros((n_sources, n_times))
+        R = M.copy()
+    else:
+        X = init
+        R = M - np.dot(G, X)
+
+    E = []  # track cost function
+
+    active_set = np.zeros(n_sources, dtype=np.bool)  # start with full AS
+
+    alpha_lc = alpha / lipschitz_constant
+
+    for i in xrange(maxit):
+        for j in xrange(n_positions):
+            ids = j * n_orient
+            ide = ids + n_orient
+
+            G_j = G[:, ids:ide]
+            X_j = X[ids:ide]
+
+            X_j_new = np.dot(G_j.T, R) / lipschitz_constant[j]
+
+            was_non_zero = np.any(X_j)
+            if was_non_zero:
+                R += np.dot(G_j, X_j)
+                X_j_new += X_j
+
+            block_norm = linalg.norm(X_j_new, 'fro')
+            if block_norm <= alpha_lc[j]:
+                X_j.fill(0.)
+            else:
+                shrink = np.maximum(1.0 - alpha_lc[j] / block_norm, 0.0)
+                X_j_new *= shrink
+                R -= np.dot(G_j, X_j_new)
+                X_j[:] = X_j_new
+
+        active_set = np.any(X, axis=1)
+        gap, pobj, dobj, _ = dgap_l21(M, G, X[active_set], active_set, alpha,
+                                      n_orient)
+        E.append(pobj)
+        logger.debug("Iteration %d :: pobj %f :: dgap %f :: n_active %d" % (
+                        i + 1, pobj, gap, np.sum(active_set) / n_orient))
+
+        if gap < tol:
+            logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
+            break
+
+    X = X[active_set]
+
+    return X, active_set, E
+
+
+@verbose
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
                       solver='auto'):
@@ -294,7 +368,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         Debias source estimates
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
-    solver : 'prox' | 'cd' | 'auto'
+    solver : 'prox' | 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization.
 
     Returns
@@ -322,23 +396,26 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         if has_sklearn and (n_orient == 1):
             solver = 'cd'
         else:
-            solver = 'prox'
+            solver = 'bcd'
 
     if solver == 'cd':
         if n_orient == 1 and not has_sklearn:
             warnings.warn("Scikit-learn >= 0.12 cannot be found. "
                           "Using proximal iterations instead of coordinate "
                           "descent.")
-            solver = 'prox'
+            solver = 'bcd'
         if n_orient > 1:
             warnings.warn("Coordinate descent is only available for fixed "
                           "orientation. Using proximal iterations instead of "
                           "coordinate descent")
-            solver = 'prox'
+            solver = 'bcd'
 
     if solver == 'cd':
         logger.info("Using coordinate descent")
         l21_solver = _mixed_norm_solver_cd
+    elif solver == 'bcd':
+        logger.info("Using block coordinate descent")
+        l21_solver = _mixed_norm_solver_bcd
     else:
         logger.info("Using proximal iterations")
         l21_solver = _mixed_norm_solver_prox
@@ -394,6 +471,62 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     if (active_set.sum() > 0) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
         X *= bias[:, np.newaxis]
+        # X, _, _, _ = linalg.lstsq(G[:, active_set], M)
+
+    return X, active_set, E
+
+
+@verbose
+def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
+                                tol=1e-8, verbose=None, active_set_size=50,
+                                debias=True, n_orient=1, solver='auto'):
+
+    g = lambda w: np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
+    gprime = lambda w: 2. * np.repeat(g(w), n_orient).ravel()
+
+    E = list()
+
+    active_set = np.ones(G.shape[1], dtype=np.bool)
+    weights = np.ones(G.shape[1])
+    X = np.zeros((G.shape[1], M.shape[1]))
+
+    for k in range(n_mxne_iter):
+        X0 = X.copy()
+        active_set_0 = active_set.copy()
+        G_tmp = G[:, active_set] * weights[np.newaxis, :]
+
+        X, _active_set, _ = mixed_norm_solver(M, G_tmp, alpha, debias=False,
+                                              n_orient=n_orient,
+                                              maxit=maxit, tol=tol,
+                                              active_set_size=active_set_size,
+                                              solver=solver, verbose=verbose)
+
+        logger.info('active set size %d' % (_active_set.sum() / n_orient))
+
+        if _active_set.sum() > 0:
+            active_set[active_set] = _active_set
+            X *= weights[_active_set][:, np.newaxis]
+            weights = gprime(X)
+            p_obj = 0.5 * linalg.norm(M - np.dot(G[:, active_set],  X),
+                                 'fro') ** 2. + alpha * np.sum(g(X))
+            E.append(p_obj)
+
+            # Check convergence
+            if k >= 1:
+                if np.all(active_set == active_set_0):
+                    if np.all(np.abs(X - X0) < tol):
+                        print('Convergence reached after %d reweightings!' % k)
+                        break
+        else:
+            active_set = np.zeros_like(active_set)
+            p_obj = 0.5 * linalg.norm(M)
+            E.append(p_obj)
+            break
+
+    if (active_set.sum() > 0) and debias:
+        bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
+        X *= bias[:, np.newaxis]
+        # X, _, _, _ = linalg.lstsq(G[:, active_set], M)
 
     return X, active_set, E
 

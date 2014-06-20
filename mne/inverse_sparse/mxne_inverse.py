@@ -8,26 +8,32 @@ from scipy import linalg, signal
 
 from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
-from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
+from ..forward import (compute_orient_prior, is_fixed_orient, _to_fixed_ori,
+                       compute_depth_prior)
 from ..io.pick import pick_channels_evoked
-from .mxne_optim import mixed_norm_solver, norm_l2inf, tf_mixed_norm_solver
 from ..utils import logger, verbose
+
+from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
+                         norm_l2inf, tf_mixed_norm_solver)
 
 
 @verbose
-def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min,
-                  verbose=None):
-    logger.info('Whitening lead field matrix.')
-    gain = np.dot(whitener, gain)
+def _prepare_gain_mne(forward, info, noise_cov, pca, depth, loose, weights,
+                      weights_min, limit_depth_chs=True, verbose=None):
+    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
+                                                       noise_cov, pca)
+    is_fixed_ori = is_fixed_orient(forward)
+    if depth is not None:
+        patch_areas = forward.get('patch_areas', None)
+        depth_prior = compute_depth_prior(gain, gain_info, is_fixed_ori,
+                                          exp=depth, patch_areas=patch_areas,
+                                          limit_depth_chs=limit_depth_chs)
+    else:
+        depth_prior = np.ones(gain.shape[1], dtype=gain.dtype)
 
-    # Handle depth prior scaling
-    source_weighting = np.sum(gain ** 2, axis=0) ** depth
-
-    # apply loose orientations
     orient_prior = compute_orient_prior(forward, loose)
 
-    source_weighting /= orient_prior
-    source_weighting = np.sqrt(source_weighting)
+    source_weighting = np.sqrt(depth_prior * orient_prior)
     gain /= source_weighting[None, :]
 
     # Handle weights
@@ -57,7 +63,69 @@ def _prepare_gain(gain, forward, whitener, depth, loose, weights, weights_min,
             n_sources = np.sum(mask) / n_dip_per_pos
             logger.info("Reducing source space to %d sources" % n_sources)
 
-    return gain, source_weighting, mask
+    logger.info('Whitening lead field matrix.')
+    gain = np.dot(whitener, gain)
+
+    return gain, gain_info, whitener, source_weighting, mask
+
+
+@verbose
+def _prepare_gain_sloreta(forward, info, noise_cov, pca, depth, loose,
+                          weights, weights_min, limit_depth_chs=True,
+                          verbose=None):
+    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
+                                                       noise_cov, pca)
+
+    n_orient = 1 if is_fixed_orient(forward) else 3
+    n_dipoles = gain.shape[1]
+    n_positions = n_dipoles / n_orient
+
+    W = np.dot(gain.T, linalg.pinv(np.dot(gain, gain.T)))
+
+    source_weighting = np.zeros((n_dipoles, n_orient))
+    orient_prior = compute_orient_prior(forward, loose)
+
+    for i in range(n_positions):
+        idx_s = i * n_orient
+        idx_e = (i + 1) * n_orient
+        Wtmp = np.dot(W[idx_s:idx_e], gain[:, idx_s:idx_e])
+        Wtmp = linalg.pinv(linalg.sqrtm(Wtmp))\
+                 * np.sqrt(orient_prior[idx_s:idx_e])[None, :]
+        source_weighting[idx_s:idx_e] = Wtmp.copy()
+        gain[:, idx_s:idx_e] = np.dot(gain[:, idx_s:idx_e],
+                                      source_weighting[idx_s:idx_e])
+
+    # Handle weights
+    mask = None
+    if weights is not None:
+        if isinstance(weights, SourceEstimate):
+            # weights = np.sqrt(np.sum(weights.data ** 2, axis=1))
+            weights = np.max(np.abs(weights.data), axis=1)
+        weights_max = np.max(weights)
+        if weights_min > weights_max:
+            raise ValueError('weights_min > weights_max (%s > %s)' %
+                             (weights_min, weights_max))
+        weights_min = weights_min / weights_max
+        weights = weights / weights_max
+        n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
+        weights = np.ravel(np.tile(weights, [n_dip_per_pos, 1]).T)
+        if len(weights) != gain.shape[1]:
+            raise ValueError('weights do not have the correct dimension '
+                             ' (%d != %d)' % (len(weights), gain.shape[1]))
+        nz_idx = np.where(weights != 0.0)[0]
+        source_weighting[nz_idx] /= weights[nz_idx]
+        gain *= weights[None, :]
+
+        if weights_min is not None:
+            mask = (weights > weights_min)
+            gain = gain[:, mask]
+            n_sources = np.sum(mask) / n_dip_per_pos
+            logger.info("Reducing source space to %d sources" % n_sources)
+
+    logger.info('Whitening lead field matrix.')
+    gain = np.dot(whitener, gain)
+
+    return gain, gain_info, whitener, source_weighting, mask
 
 
 @verbose
@@ -91,7 +159,8 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=True,
                debias=True, time_pca=True, weights=None, weights_min=None,
-               solver='auto', return_residual=False, verbose=None):
+               solver='auto', n_mxne_iter=1, return_residual=False,
+               verbose=None):
     """Mixed-norm estimate (MxNE)
 
     Compute L1/L2 mixed-norm solution on evoked data.
@@ -139,10 +208,14 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     weights_min : float
         Do not consider in the estimation sources for which weights
         is less than weights_min.
-    solver : 'prox' | 'cd' | 'auto'
+    solver : 'prox' | 'cd' | 'bcd' | 'auto'
         The algorithm to use for the optimization. prox stands for
-        proximal interations using the FISTA algorithm while cd uses
-        coordinate descent. cd is only available for fixed orientation.
+        proximal interations using the FISTA algorithm, cd uses
+        coordinate descent while bcd applies block coordinate descent.
+        cd is only available for fixed orientation.
+    n_mxne_iter : int
+        The number of MxNE iterations. If > 1, iterative reweighting
+        is applied.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     return_residual : bool
@@ -156,6 +229,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
     """
+    if n_mxne_iter < 1:
+        raise Exception('MxNE has to be computed at least 1 time.')
+
     if not isinstance(evoked, list):
         evoked = [evoked]
 
@@ -169,14 +245,16 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         forward = deepcopy(forward)
         _to_fixed_ori(forward)
 
-    info = evoked[0].info
-    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
-                                                       noise_cov, pca)
-
-    # Whiten lead field.
-    gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
-                                                 depth, loose, weights,
-                                                 weights_min)
+    if type(depth) is float:
+        gain, gain_info, whitener, source_weighting, mask = \
+                _prepare_gain_mne(forward, evoked[0].info, noise_cov, pca,
+                                  depth, loose, weights, weights_min)
+    elif depth == 'sLORETA':
+        gain, gain_info, whitener, source_weighting, mask = \
+                _prepare_gain_sloreta(forward, evoked[0].info, noise_cov, pca,
+                                      depth, loose, weights, weights_min)
+    else:
+        raise Exception('Invalid depth parameter.')
 
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
@@ -198,14 +276,23 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
     alpha_max *= 0.01
     gain /= alpha_max
-    source_weighting *= alpha_max
 
-    X, active_set, E = mixed_norm_solver(M, gain, alpha,
-                                         maxit=maxit, tol=tol,
-                                         active_set_size=active_set_size,
-                                         debias=debias,
-                                         n_orient=n_dip_per_pos,
-                                         solver=solver)
+    if n_mxne_iter == 1:
+        X, active_set, E = mixed_norm_solver(M, gain, alpha,
+                                             maxit=maxit, tol=tol,
+                                             active_set_size=active_set_size,
+                                             n_orient=n_dip_per_pos,
+                                             debias=debias, solver=solver,
+                                             verbose=verbose)
+    else:
+        X, active_set, E = iterative_mixed_norm_solver(M, gain, alpha,
+                                             n_mxne_iter, maxit=maxit,
+                                             tol=tol, n_orient=n_dip_per_pos,
+                                             active_set_size=active_set_size,
+                                             debias=debias, solver=solver,
+                                             verbose=verbose)
+
+    X /= alpha_max
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=np.bool)
@@ -220,7 +307,14 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         raise Exception("No active dipoles found. alpha is too big.")
 
     # Reapply weights to have correct unit
-    X /= source_weighting[active_set][:, None]
+    if depth == 'sLORETA':
+        for i in range(np.sum(active_set) / n_dip_per_pos):
+            idx_s = i * n_dip_per_pos
+            idx_e = (i + 1) * n_dip_per_pos
+            X[idx_s:idx_e] = np.dot(source_weighting[active_set][idx_s:idx_e],
+                                    X[idx_s:idx_e])
+    else:
+        X /= source_weighting[active_set][:, None]
 
     stcs = list()
     residual = list()
@@ -369,12 +463,16 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         forward = deepcopy(forward)
         _to_fixed_ori(forward)
 
-    gain_info, gain, _, whitener, _ = _prepare_forward(forward,
-                                                      info, noise_cov, pca)
-
-    # Whiten lead field.
-    gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
-                                        depth, loose, weights, weights_min)
+    if type(depth) is float:
+        gain, gain_info, whitener, source_weighting, mask = \
+                _prepare_gain_mne(forward, evoked[0].info, noise_cov, pca,
+                                  depth, loose, weights, weights_min)
+    elif depth == 'sLORETA':
+        gain, gain_info, whitener, source_weighting, mask = \
+                _prepare_gain_sloreta(forward, evoked[0].info, noise_cov, pca,
+                                      depth, loose, weights, weights_min)
+    else:
+        raise Exception('Invalid depth parameter.')
 
     if window is not None:
         evoked = _window_evoked(evoked, window)
@@ -391,7 +489,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
     alpha_max *= 0.01
     gain /= alpha_max
-    source_weighting *= alpha_max
 
     X, active_set, E = tf_mixed_norm_solver(M, gain,
                                             alpha_space, alpha_time,
@@ -400,6 +497,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                                             verbose=verbose,
                                             n_orient=n_dip_per_pos,
                                             debias=debias)
+    X /= alpha_max
 
     if active_set.sum() == 0:
         raise Exception("No active dipoles found. alpha is too big.")
@@ -411,13 +509,21 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         del active_set_tmp
 
     # Reapply weights to have correct unit
-    X /= source_weighting[active_set][:, None]
+    if depth == 'sLORETA':
+        for i in range(np.sum(active_set) / n_dip_per_pos):
+            idx_s = i * n_dip_per_pos
+            idx_e = (i + 1) * n_dip_per_pos
+            X[idx_s:idx_e] = np.dot(source_weighting[active_set][idx_s:idx_e],
+                                    X[idx_s:idx_e])
+    else:
+        X /= source_weighting[active_set][:, None]
 
     if return_residual:
         sel = [forward['sol']['row_names'].index(c)
                                             for c in gain_info['ch_names']]
         residual = deepcopy(evoked)
-        residual = pick_channels_evoked(residual, include=gain_info['ch_names'])
+        residual = pick_channels_evoked(residual,
+                                        include=gain_info['ch_names'])
         residual.data -= np.dot(forward['sol']['data'][sel, :][:, active_set],
                                 X)
 
