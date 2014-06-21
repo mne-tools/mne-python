@@ -8,6 +8,7 @@ from __future__ import division
 
 import numpy as np
 from numpy import sort
+from functools import partial
 
 
 def singletrial(num_trials, skipstep):
@@ -29,7 +30,8 @@ def singletrial(num_trials, skipstep):
     """
     for t in range(0, num_trials, skipstep):
         trainset = [t]
-        testset = [i for i in range(trainset[0])] + [i for i in range(trainset[-1] + 1, num_trials)]
+        testset = [i for i in range(trainset[0])] + \
+                  [i for i in range(trainset[-1] + 1, num_trials)]
         testset = sort([t % num_trials for t in testset])
         yield trainset, testset
 
@@ -53,7 +55,8 @@ def multitrial(num_trials, skipstep):
     """
     for t in range(0, num_trials, skipstep):
         testset = [t]
-        trainset = [i for i in range(testset[0])] + [i for i in range(testset[-1] + 1, num_trials)]
+        trainset = [i for i in range(testset[0])] + \
+                   [i for i in range(testset[-1] + 1, num_trials)]
         trainset = sort([t % num_trials for t in trainset])
         yield trainset, testset
 
@@ -99,11 +102,14 @@ def make_nfold(n):
     gengen : func
         a function that returns the generator
     """
-    def nfold(num_trials, skipstep):
-        blocksize = int(np.ceil(num_trials / n))
-        for i in range(0, num_trials, blocksize):
-            testset = [k for k in (i + np.arange(blocksize)) if k < num_trials]
-            trainset = [i for i in range(testset[0])] + [i for i in range(testset[-1] + 1, num_trials)]
-            trainset = sort([t % num_trials for t in trainset])
-            yield trainset, testset
-    return nfold
+    return partial(_nfold, n=n)
+
+
+def _nfold(num_trials, skipstep, n):
+    blocksize = int(np.ceil(num_trials / n))
+    for i in range(0, num_trials, blocksize):
+        testset = [k for k in (i + np.arange(blocksize)) if k < num_trials]
+        trainset = [i for i in range(testset[0])] + \
+                   [i for i in range(testset[-1] + 1, num_trials)]
+        trainset = sort([t % num_trials for t in trainset])
+        yield trainset, testset

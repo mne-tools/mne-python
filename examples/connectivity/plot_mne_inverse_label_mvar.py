@@ -77,8 +77,9 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['PDC', 'COH']
 con, freqs, order, p_vals = mvar_connectivity(label_ts, con_methods,
                                               sfreq=sfreq, fmin=fmin,
-                                              fmax=fmax, ridge=100,
-                                              n_surrogates=10)
+                                              fmax=fmax, ridge=10,
+                                              n_surrogates=100, n_jobs=4,
+                                              verbose=1)
 
 print('MVAR order selected:', order)
 

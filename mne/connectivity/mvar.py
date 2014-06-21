@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from __future__ import division
 import numpy as np
 
 from ..parallel import parallel_func
@@ -44,7 +45,6 @@ def _fit_mvar_lsq(data, pmin, pmax, delta, n_jobs, verbose):
     var = VAR(pmin, delta, xvschema=make_nfold(10))
     if pmin != pmax:
         logger.info('MVAR order selection...')
-        #todo: joblib!
         var.optimize_order(data, pmin, pmax, n_jobs=n_jobs, verbose=verbose)
     #todo: only convert if data is a generator
     data = np.asarray(list(data)).transpose([2, 1, 0])

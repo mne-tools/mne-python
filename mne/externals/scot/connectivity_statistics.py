@@ -56,13 +56,13 @@ def surrogate_connectivity(measure_names, data, var, nfft=512, repeats=100,
            method of surrogate data", Physica D, vol 58, pp. 77-94, 1992
     """
     par, func = parallel_loop(_calc_surrogate, n_jobs=n_jobs, verbose=verbose)
-    output = par(func(data, var, measure_names, nfft) for _ in range(repeats))
+    output = par(func(randomize_phase(data), var, measure_names, nfft)
+                 for _ in range(repeats))
     return convert_output_(output, measure_names)
 
 
 def _calc_surrogate(data, var, measure_names, nfft):
-    surrogate_data = randomize_phase(data)
-    var.fit(surrogate_data)
+    var.fit(data)
     return connectivity(measure_names, var.coef, var.rescov, nfft)
 
 
@@ -172,16 +172,16 @@ def bootstrap_connectivity(measures, data, var, nfft=512, repeats=100,
     if num_samples is None:
         num_samples = t
 
+    mask = lambda r: np.random.random_integers(0, data.shape[2]-1, num_samples)
+
     par, func = parallel_loop(_calc_bootstrap, n_jobs=n_jobs, verbose=verbose)
-    output = par(func(data, var, measures, nfft, num_samples)
-                 for _ in range(repeats))
+    output = par(func(data[:, :, mask(r)], var, measures, nfft, num_samples)
+                 for r in range(repeats))
     return convert_output_(output, measures)
 
 
 def _calc_bootstrap(data, var, measures, nfft, num_samples):
-    mask = np.random.random_integers(0, data.shape[2]-1, num_samples)
-    data_used = data[:, :, mask]
-    var.fit(data_used)
+    var.fit(data)
     return connectivity(measures, var.coef, var.rescov, nfft)
 
 
