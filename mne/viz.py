@@ -3002,7 +3002,7 @@ def plot_connectivity_inoutcircles(con, seed, node_names, textcolor='white',
 
     n_nodes = len(node_names)
 
-    if type(seed) in six.string_types:
+    if any(isinstance(seed, t) for t in six.string_types):
         try:
             seed = node_names.index(seed)
         except ValueError:
