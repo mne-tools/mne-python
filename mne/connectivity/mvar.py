@@ -146,9 +146,11 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         Frequency points at which the connectivity was computed.
     var_order : int
         MVAR model order that was used for fitting the model.
-    p_values : optional, array | list of arrays
+    p_values : array | list of arrays | None
         *p*-values of connectivity measure(s). The shape of each array is
-        (n_signals, n_signals, n_frequencies)
+        (n_signals, n_signals, n_frequencies). `p_values` is returned as  None
+        if no statistics are calculated (i.e. `n_surrogates` evaluates to
+        False).
 
     References
     ----------
@@ -215,7 +217,8 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
                     p_vals.append(p)
                 else:
                     p_vals[m] += p
+    else:
+        p_vals = None
 
-        return results, freqs, var.p, p_vals
+    return results, freqs, var.p, p_vals
 
-    return results, freqs, var.p
