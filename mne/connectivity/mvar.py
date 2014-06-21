@@ -40,12 +40,12 @@ def _get_n_epochs(epochs, n):
     yield epochs_out
 
 
-def _fit_mvar_lsq(data, pmin, pmax, delta):
+def _fit_mvar_lsq(data, pmin, pmax, delta, n_jobs, verbose):
     var = VAR(pmin, delta, xvschema=make_nfold(10))
     if pmin != pmax:
         logger.info('MVAR order selection...')
         #todo: joblib!
-        var.optimize_order(data, pmin, pmax)
+        var.optimize_order(data, pmin, pmax, n_jobs=n_jobs, verbose=verbose)
     #todo: only convert if data is a generator
     data = np.asarray(list(data)).transpose([2, 1, 0])
     var.fit(data)
@@ -80,8 +80,8 @@ def _fit_mvar_yw(data, pmin, pmax, n_jobs=1, verbose=None):
 
 
 def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
-                      ridge=0, sfreq=2 * np.pi, fmin=0, fmax=np.inf, nfft=512,
-                      n_surrogates=None):
+                      ridge=0, sfreq=2 * np.pi, fmin=0, fmax=np.inf, nfft=64,
+                      n_surrogates=None, n_jobs=1, verbose=0):
     """Estimate connectivity from multivariate autoregressive (MVAR) models.
 
     This function uses routines from SCoT [1] to fit MVAR models and compute
@@ -136,6 +136,11 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         details on the procedure.
         **Warning**: Correction for multiple testing is required if the
         *p*-values are used as basis for significance testing.
+    n_jobs : int
+        Number of jobs to run in parallel. This is used for model order
+        selection and statistics calculations.
+    verbose : int
+        verbosity level passed to joblib
 
     Returns
     -------
@@ -177,7 +182,8 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
     if fitting_mode == 'yw':
         var = _fit_mvar_yw(data, pmin, pmax)
     elif fitting_mode == 'lsq':
-        var = _fit_mvar_lsq(data, pmin, pmax, ridge)
+        var = _fit_mvar_lsq(data, pmin, pmax, ridge, n_jobs=n_jobs,
+                            verbose=verbose)
     else:
         raise ValueError('Unknown fitting mode: %s' % fitting_mode)
 
@@ -198,13 +204,15 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         logger.info('Computing connectivity statistics...')
         data = np.asarray(list(data)).transpose([2, 1, 0])
 
-        blocksize = 10
+        blocksize = 8
         n_blocks = n_surrogates // blocksize
 
         p_vals = []
+        # do them in junks, in order to save memory
         for i in range(n_blocks):
-            #todo: joblib!
-            scon = surrogate_connectivity(method, data, var, nfft, blocksize)
+            scon = surrogate_connectivity(method, data, var, nfft=nfft,
+                                          repeats=blocksize, n_jobs=n_jobs,
+                                          verbose=verbose)
 
             for m, mth in enumerate(method):
                 c, sc = np.abs(con[mth]), np.abs(scon[mth])
