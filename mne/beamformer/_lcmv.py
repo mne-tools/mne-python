@@ -10,6 +10,7 @@ import warnings
 
 import numpy as np
 from scipy import linalg
+from scipy.stats import ranksums
 
 from ..io.constants import FIFF
 from ..io.proj import make_projector
@@ -549,7 +550,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.01, label=None,
-            pick_ori=None, n_jobs=1, verbose=None):
+            pick_ori=None, baseline_mode=None, n_jobs=1, verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -591,6 +592,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
+    baseline_mode: None | 'ranksums'
+        # XXX
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
@@ -611,6 +614,8 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     NeuroImage (2008) vol. 40 (4) pp. 1686-1700
     """
 
+    # XXX: Check baseline_mode input options, i.e. to avoid typing in ranksum
+    # instead of ranksums
     if pick_ori not in [None, 'normal']:
         raise ValueError('Unrecognized orientation option in pick_ori, '
                          'available choices are None and normal')
@@ -638,6 +643,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
 
+    # XXX Would be nice to assign array to sol_final here for readability
     sol_final = []
     for (l_freq, h_freq), win_length, noise_cov in \
             zip(freq_bins, win_lengths, noise_covs):
@@ -654,8 +660,16 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         if subtract_evoked:
             epochs_band.subtract_evoked()
 
-        sol_single = []
-        sol_overlap = []
+        # XXX: Where can we cleanly get the 33 from? Hardcoded to work with the
+        # example.
+        n_vert = 33
+        if baseline_mode == 'ranksums':
+            n_epochs = epochs_band.get_data().shape[0]
+        else:
+            n_epochs = 1
+        sol_time_windows = np.zeros((n_time_steps, n_epochs, n_vert))
+        sol_smoothed = np.zeros((n_time_steps, n_epochs, n_vert))
+
         for i_time in range(n_time_steps):
             win_tmin = tmin + i_time * tstep
             win_tmax = win_tmin + win_length
@@ -686,28 +700,58 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                 data_cov = compute_covariance(epochs_band, tmin=win_tmin,
                                               tmax=win_tmax)
 
-                stc = _lcmv_source_power(epochs_band.info, forward, noise_cov,
-                                         data_cov, reg=reg, label=label,
-                                         pick_ori=pick_ori, verbose=verbose)
-                sol_single.append(stc.data[:, 0])
+                if baseline_mode == 'ranksums':
+                    # XXX: Crop and average epochs instead of stc
+                    stcs = lcmv_epochs(epochs_band, forward, noise_cov,
+                                       data_cov, reg=reg, label=label,
+                                       pick_ori=pick_ori, verbose=verbose)
+                    for i_epoch, stc in enumerate(stcs):
+                        stc.crop(win_tmin, win_tmax)
+                        sol_time_windows[i_time, i_epoch] =\
+                            stc.mean().data[:, 0]
+                else:
+                    stc = _lcmv_source_power(epochs_band.info, forward,
+                                             noise_cov, data_cov, reg=reg,
+                                             label=label, pick_ori=pick_ori,
+                                             verbose=verbose)
+                    sol_time_windows[i_time, 0] = stc.data[:, 0]
+
+            # sol_time_windows = np.array(sol_time_windows)
 
             # Average over all time windows that contain the current time
             # point, which is the current time window along with
             # n_overlap - 1 previous ones
             if i_time - n_overlap < 0:
-                curr_sol = np.mean(sol_single[0:i_time + 1], axis=0)
+                sol_tf_bin = np.mean(sol_time_windows[0:i_time + 1], axis=0)
             else:
-                curr_sol = np.mean(sol_single[i_time - n_overlap + 1:
-                                              i_time + 1], axis=0)
+                sol_tf_bin = np.mean(sol_time_windows[i_time - n_overlap + 1:
+                                                      i_time + 1], axis=0)
 
             # The final result for the current time point in the current
             # frequency bin
-            sol_overlap.append(curr_sol)
+            sol_smoothed[i_time] = sol_tf_bin
 
         # Gathering solutions for all time points for current frequency bin
-        sol_final.append(sol_overlap)
+        sol_final.append(sol_smoothed)
 
     sol_final = np.array(sol_final)
+
+    if baseline_mode == 'ranksums':
+        z_scores = np.zeros((len(freq_bins), n_time_steps, n_vert))
+        # NEXT: This loop is not working correctly at all
+        for i_freq, i_time, i_vert in\
+                [(i_freq, i_time, i_vert) for i_freq in range(len(freq_bins))
+                 for i_time in range(n_time_steps)
+                 for i_vert in range(n_vert)]:
+            # XXX Baseline choice is hardcoded here
+            (z_score, p_value) = ranksums(sol_final[i_freq, i_time, :, i_vert],
+                                          sol_final[i_freq, 5, :, i_vert])
+            z_scores[i_freq, i_time, i_vert] = z_score
+
+    if baseline_mode == 'ranksums':
+        sol_final = z_scores
+    else:
+        sol_final = np.squeeze(sol_final, 2)
 
     # Creating stc objects containing all time points for each frequency bin
     stcs = []
