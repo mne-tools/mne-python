@@ -76,3 +76,5 @@ plt.show()
 # blinks were likely to blame for most epochs being dropped
 epochs.drop_bad_epochs()
 epochs.plot_drop_log(subject='sample')
+
+csd = mne.splines.current_source_density(evoked)

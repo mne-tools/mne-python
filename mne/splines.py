@@ -1,10 +1,18 @@
 
 import numpy as np
 from numpy.polynomial.legendre import legval
-from numpy.linalg import solve
+from numpy.linalg import solve, pinv
 
-from ..epochs import _BaseEpochs
-from ..evoked import Evoked
+from .epochs import _BaseEpochs
+from .evoked import Evoked
+
+from .io.pick import pick_types
+
+
+def _get_positions(info, picks):
+    """Helper to get positions"""
+    positions = np.array([c['loc'][:3] for c in info['chs']])[picks]
+    return positions
 
 
 def _calc_g(cosang, stiffnes=4, num_lterms=50):
@@ -44,7 +52,33 @@ def _calc_h(cosang, stiffnes=4, num_lterms=50):
     return legval(cosang, factors)
 
 
-def current_source_density(inst, g_matrix=None, h_matrix=None, lambda=1.0e-5):
+def _compute_csd(data, G, H, lambda2, head):
+    """compute the CSD"""
+    n_channels, n_times = data.shape
+    Z = data - np.mean(data)  # XXX? compute average reference
+    X = data
+    head **= 2  # or rescale data to head sphere
+
+    # regularize if desired
+    if lambda2 is None:
+        G.flat[::len(G) + 1] += lambda2
+
+    # compute the CSD
+    TC = G.sum(0)
+    sgi = np.sum(TC)  # compute sum total
+    Gi = pinv(G)
+    for this_time in range(n_times):
+        Cp = np.dot(Gi, Z[:, this_time])  # compute preliminary C vector
+        c0 = np.sum(Cp) / sgi  # common constant across electrodes
+        C = Cp - np.dot(c0, TC.T)  # compute final C vector
+        for this_chan in range(n_channels):  # compute all CSDs ...
+        # ... and scale to head size
+            X[this_chan, this_time] = np.sum(C * H[this_chan].T) / head
+    return X
+
+
+def current_source_density(inst, ch_type='eeg', g_matrix=None, h_matrix=None,
+                           lambda2=1e-5, head=1.0, copy=True):
     """ Current Source Density (CSD) transformation
 
     Transormation based on spherical spline surface Laplacian as suggested by
@@ -59,29 +93,52 @@ def current_source_density(inst, g_matrix=None, h_matrix=None, lambda=1.0e-5):
     ----------
     inst : instance of Epochs or Evoked
         The data to be transformed.
+    ch_type : str
+        The channel type.
     g_matrix : ndarray, shape (n_channels, n_channels) | None
         The matrix oncluding the channel pairwise g function. If None,
         the g_function will be computed from the data (default).
     h_matrix : ndarray, shape (n_channels, n_channels) | None
         The matrix oncluding the channel pairwise g function. If None,
         the h_function will be computed from the data (default).
-    lambda : float
+    lambda2 : float
+        Regularization parameter, produces smoothnes. Defaults to 1e-5.
+    head : float
+        The head radius (unit sphere). Defaults to 1.
+    copy : bool
+        Whether to overwrite instance data or create a copy.
 
+    Returns
+    -------
+    inst_csd : instance of Epochs or Evoked
+        The transformed data. Output type will match input type.
     """
+
     if copy is True:
         out = inst.copy()
     else:
         out = inst
+    if ch_type == 'eeg':
+        picks = pick_types(inst.info, meg=False, eeg=True)
+    else:
+        raise ValueError('currently only eeg is supportedd')
+
+    if g_matrix is None or h_matrix is None:
+        pos = _get_positions(inst.info, picks)
+
+    G = _calc_g(np.dot(pos, pos.T)) if g_matrix is None else g_matrix
+    H = _calc_h(np.dot(pos, pos.T)) if h_matrix is None else h_matrix
+    import pdb;pdb.set_trace()
+
     if isinstance(out, _BaseEpochs):
-        data = np.zeros(len(out.events), out.info['nchan'], len(out.times))
+        data = np.zeros(len(out.events), len(picks), len(out.times))
         for ii, e in enumerate(out):
-            data[ii] = _compute_csd(e, g_matrix=g_matrix, h_matrix=h_matrix,
-                                    lambda=lambda)
+            data[ii] = _compute_csd(e[picks], G=G, H=H, lambda2=lambda2,
+                                    head=head)
             out._data = data
             out.preload = True
     elif isinstance(out, Evoked):
-        out.data = _compute_csd(out.data, g_matrix=g_matrix, h_matrix=h_matrix,
-                                lambda=lambda)
+        out.data = _compute_csd(out.data[picks], G=G, H=H, lambda2=lambda2, head=head)
     return out
 
 
