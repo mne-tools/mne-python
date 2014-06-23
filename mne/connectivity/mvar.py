@@ -6,7 +6,7 @@ from __future__ import division
 import numpy as np
 
 from ..parallel import parallel_func
-from ..utils import logger
+from ..utils import logger, verbose
 from ..externals.scot.varbase import VARBase
 from ..externals.scot.var import VAR
 from ..externals.scot.connectivity import connectivity
@@ -79,9 +79,10 @@ def _fit_mvar_yw(data, pmin, pmax, n_jobs=1, verbose=None):
     return var
 
 
+@verbose
 def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
-                      ridge=0, sfreq=2 * np.pi, fmin=0, fmax=np.inf, nfft=64,
-                      n_surrogates=None, n_jobs=1, verbose=0):
+                      ridge=0, sfreq=2 * np.pi, fmin=0, fmax=np.inf, n_fft=64,
+                      n_surrogates=None, buffer_size=8, n_jobs=1, verbose=0):
     """Estimate connectivity from multivariate autoregressive (MVAR) models.
 
     This function uses routines from SCoT [1] to fit MVAR models and compute
@@ -104,7 +105,7 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         'dDTF' : "direct" directed transfer function
         'GDTF' : generalized directed transfer function
     order : int | (int, int)
-        order (length) of the underlying MVAR model. If order is a tuple
+        Order (length) of the underlying MVAR model. If order is a tuple
         (p0, p1) of two ints, the function selects the best model order between
         p0 and p1. p1 can be None, which causes the order selection to stop at
         the lowest candidate.
@@ -127,6 +128,8 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
     fmax : float | tuple of floats
         The upper frequency of interest. Multiple bands are defined using
         a tuple, e.g. (12., 24.) for two band with 12Hz and 24Hz upper freq.
+    n_fft : int
+        Number of FFT bins to calculate.
     n_surrogates : int | None
         If set to None, no statistics are calculated. Otherwise, `surrogates`
         is the number of surrogate datasets on which the chance level is
@@ -136,11 +139,15 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         details on the procedure.
         **Warning**: Correction for multiple testing is required if the
         *p*-values are used as basis for significance testing.
+    buffer_size : int
+        Surrogates are calculated in `n_surrogates // buffer_size` blocks.
+        Lower buffer_size takes less memory but has more computational
+        overhead than higher buffer_size.
     n_jobs : int
         Number of jobs to run in parallel. This is used for model order
         selection and statistics calculations.
-    verbose : int
-        verbosity level passed to joblib
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -188,30 +195,29 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         raise ValueError('Unknown fitting mode: %s' % fitting_mode)
 
     freqs, fmask = [], []
-    freq_range = np.linspace(0, sfreq/2, nfft)
+    freq_range = np.linspace(0, sfreq / 2, n_fft)
     for fl, fh in zip(fmin, fmax):
         fmask.append(np.logical_and(fl <= freq_range, freq_range <= fh))
         freqs.append(freq_range[fmask[-1]])
 
     logger.info('Connectivity computation...')
     results = []
-    con = connectivity(method, var.coef, var.rescov, nfft)
+    con = connectivity(method, var.coef, var.rescov, n_fft)
     for mth in method:
         bands = [np.mean(np.abs(con[mth][:, :, fm]), axis=2) for fm in fmask]
         results.append(np.transpose(bands, (1, 2, 0)))
 
-    if n_surrogates:
+    if n_surrogates is not None and n_surrogates > 0:
         logger.info('Computing connectivity statistics...')
         data = np.asarray(list(data)).transpose([2, 1, 0])
 
-        blocksize = 8
-        n_blocks = n_surrogates // blocksize
+        n_blocks = n_surrogates // buffer_size
 
         p_vals = []
         # do them in junks, in order to save memory
         for i in range(n_blocks):
-            scon = surrogate_connectivity(method, data, var, nfft=nfft,
-                                          repeats=blocksize, n_jobs=n_jobs,
+            scon = surrogate_connectivity(method, data, var, nfft=n_fft,
+                                          repeats=buffer_size, n_jobs=n_jobs,
                                           verbose=verbose)
 
             for m, mth in enumerate(method):
@@ -220,7 +226,7 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
                 sbands = [np.mean(sc[:, :, :, fm], axis=-1) for fm in fmask]
 
                 p = [np.sum(bs >= b, axis=0) for b, bs in zip(bands, sbands)]
-                p = np.array(p).transpose(1, 2, 0) / (n_blocks * blocksize)
+                p = np.array(p).transpose(1, 2, 0) / (n_blocks * buffer_size)
                 if i == 0:
                     p_vals.append(p)
                 else:
