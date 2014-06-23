@@ -30,7 +30,7 @@ def _calc_g(cosang, stiffnes=4, num_lterms=50):
     """
     factors = [(2 * n + 1) / (n ** stiffnes * (n + 1) ** stiffnes * 4 * np.pi)
                for n in range(1, num_lterms + 1)]
-    return legval(cosang, factors)
+    return legval(cosang, [0] + factors)
 
 
 def _calc_h(cosang, stiffnes=4, num_lterms=50):
@@ -49,7 +49,7 @@ def _calc_h(cosang, stiffnes=4, num_lterms=50):
     factors = [(2 * n + 1) /
                (n ** (stiffnes - 1) * (n + 1) ** (stiffnes - 1) * 4 * np.pi)
                for n in range(1, num_lterms + 1)]
-    return legval(cosang, factors)
+    return legval(cosang, [0] + factors)
 
 
 def _compute_csd(data, G, H, lambda2, head):
