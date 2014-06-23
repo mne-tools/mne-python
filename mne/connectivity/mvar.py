@@ -95,15 +95,15 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         The data from which to compute connectivity.
     method : string | list of string
         Connectivity measure(s) to compute. Supported measures:
-        'COH' : coherence
-        'pCOH' : partial coherence
-        'PDC' : partial directed coherence
-        'PDCF' : partial directed coherence factor
-        'GPDC' : generalized partial directed coherence
-        'DTF' : directed transfer function
-        'ffDTF' : full-frequency directed transfer function
-        'dDTF' : "direct" directed transfer function
-        'GDTF' : generalized directed transfer function
+        'COH' : coherence [2]
+        'pCOH' : partial coherence [3]
+        'PDC' : partial directed coherence [4]
+        'PDCF' : partial directed coherence factor [4]
+        'GPDC' : generalized partial directed coherence [5]
+        'DTF' : directed transfer function [6]
+        'ffDTF' : full-frequency directed transfer function [7]
+        'dDTF' : "direct" directed transfer function [7]
+        'GDTF' : generalized directed transfer function [5]
     order : int | (int, int)
         Order (length) of the underlying MVAR model. If order is a tuple
         (p0, p1) of two ints, the function selects the best model order between
@@ -168,6 +168,33 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
     ----------
     [1] M. Billinger, C.Brunner, G. R. Mueller-Putz. "SCoT: a Python toolbox
         for EEG source connectivity", Frontiers in Neuroinformatics, 8:22, 2014
+
+    [2] P. L. Nunez, R. Srinivasan, A. F. Westdorp, R. S. Wijesinghe,
+        D. M. Tucker, R. B. Silverstein, P. J. Cadusch. EEG coherency: I:
+        statistics, reference electrode, volume conduction, Laplacians,
+        cortical imaging, and interpretation at multiple scales. Electroenceph.
+        Clin. Neurophysiol. 103(5): 499-515, 1997.
+
+    [3] P. J. Franaszczuk, K. J. Blinowska, M. Kowalczyk. The application of
+        parametric multichannel spectral estimates in the study of electrical
+        brain activity. Biol. Cybernetics 51(4): 239-247, 1985.
+
+    [4] L. A. Baccala, K. Sameshima. Partial directed coherence: a new concept
+        in neural structure determination. Biol. Cybernetics 84(6):463-474,
+        2001.
+
+    [5] L. Faes, S. Erla, G. Nollo. Measuring Connectivity in Linear
+        Multivariate Processes: Definitions, Interpretation, and Practical
+        Analysis. Comput. Math. Meth. Med. 2012:140513, 2012.
+
+    [6] M. J. Kaminski, K. J. Blinowska. A new method of the description of the
+        information flow in the brain structures. Biol. Cybernetics 65(3):
+        203-210, 1991.
+
+    [7] A. Korzeniewska, M. Mańczak, M. Kaminski, K. J. Blinowska, S. Kasicki.
+        Determination of information flow direction among brain structures by a
+        modified directed transfer function (dDTF) method. J. Neurosci. Meth.
+        125(1-2): 195-207, 2003.
     """
 
     if not isinstance(method, (list, tuple)):
