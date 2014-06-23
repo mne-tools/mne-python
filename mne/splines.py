@@ -1,3 +1,7 @@
+# Authors: Denis A. Engemann <denis.engemann@gmail.com>
+#          Martin Billinger <martin.billinger@tugraz.at>
+#
+# License: BSD (3-clause)
 
 import numpy as np
 from numpy.polynomial.legendre import legval
@@ -5,14 +9,39 @@ from numpy.linalg import solve, pinv
 
 from .epochs import _BaseEpochs
 from .evoked import Evoked
-
 from .io.pick import pick_types
+
+
+def _sphere_to_cartesian(theta, phi, r):
+    """Transform spherical coordinates to cartesian"""
+    z = r * np.sin(phi)
+    rcos_phi = r * np.cos(phi)
+    x = rcos_phi * np.cos(theta)
+    y = rcos_phi * np.sin(theta)
+    return x, y, z
 
 
 def _get_positions(info, picks):
     """Helper to get positions"""
     positions = np.array([c['loc'][:3] for c in info['chs']])[picks]
-    return positions
+    phi, theta, _ = _get_polar_coords(positions)
+    theta_rad = (2 * np.pi * theta) / 360.
+    phi_rad = (2 * np.pi * phi) / 360.
+    X, Y, Z = _sphere_to_cartesian(theta_rad, phi_rad, 1.0)
+    # XXX still not sure what is right
+    return np.c_[X, Y, Z]
+
+
+def _get_polar_coords(positions):
+    """Aux function"""
+    x, y, z = positions.T
+    theta = np.arctan2(x, y)
+    hypotxy = np.hypot(y, x)
+    phi = np.arctan2(z, hypotxy)
+    theta = theta / np.pi * 180.0
+    phi = phi / np.pi * 180.0
+    radius = 0.5 - phi / 180.0
+    return theta, phi, radius
 
 
 def _calc_g(cosang, stiffnes=4, num_lterms=50):
@@ -57,7 +86,7 @@ def _compute_csd(data, G, H, lambda2, head):
     n_channels, n_times = data.shape
     Z = data - np.mean(data, 0)[None]  # XXX? compute average reference
     X = data
-    head **= 2  # or rescale data to head sphere
+    head **= 2
 
     # regularize if desired
     if lambda2 is None:
@@ -72,12 +101,12 @@ def _compute_csd(data, G, H, lambda2, head):
         c0 = np.sum(Cp) / sgi  # common constant across electrodes
         C = Cp - np.dot(c0, TC.T)  # compute final C vector
         for this_chan in range(n_channels):  # compute all CSDs ...
-        # ... and scale to head size
+            # ... and scale to head size
             X[this_chan, this_time] = np.sum(C * H[this_chan].T) / head
     return X
 
 
-def current_source_density(inst, ch_type='eeg', g_matrix=None, h_matrix=None,
+def current_source_density(inst, picks=None, g_matrix=None, h_matrix=None,
                            lambda2=1e-5, head=1.0, copy=True):
     """ Current Source Density (CSD) transformation
 
@@ -118,10 +147,10 @@ def current_source_density(inst, ch_type='eeg', g_matrix=None, h_matrix=None,
         out = inst.copy()
     else:
         out = inst
-    if ch_type == 'eeg':
+    if picks is None:
         picks = pick_types(inst.info, meg=False, eeg=True)
-    else:
-        raise ValueError('currently only eeg is supportedd')
+    if len(picks) == 0:
+        raise ValueError('No EEG channels found.')
 
     if g_matrix is None or h_matrix is None:
         pos = _get_positions(inst.info, picks)
@@ -140,46 +169,3 @@ def current_source_density(inst, ch_type='eeg', g_matrix=None, h_matrix=None,
         out.data = _compute_csd(out.data[picks], G=G, H=H, lambda2=lambda2,
                                 head=head)
     return out
-
-
-def interpolate(data, datapos, targetpos, stiffnes=4, num_lterms=50):
-    """Spherical spline interpolation of time series.
-
-    Parameters
-    ----------
-    data : array-like, shape = [n_epochs, n_channels, n_samples]
-        Time series data
-    datapos : array-like, shape = [n_channels, 3]
-        3D positions of the data channels. Each position vector is assumed to
-        lie on the unit sphere (must me normalized to 1).
-    targetpos : array-like, shape = [n_channels, 3]
-        3D positions of interpolation points. Each position vector is assumed
-        to lie on the unit sphere (must me normalized to 1).
-    stiffnes : float
-        stiffnes of the spline
-    num_lterms : int
-        number of Legendre terms to evaluate
-    """
-
-    data = np.asarray(data)
-    datapos = np.asarray(datapos)
-    targetpos = np.asarray(targetpos)
-
-    _, n_channels, n_samples = data.shape
-
-    source_cosangles = np.dot(datapos, datapos.T)
-    source_splines = _calc_g(source_cosangles, stiffnes, num_lterms)
-
-    source_splines = np.ones((1 + n_channels, 1 + n_channels))
-    source_splines[-1, 0] = 0
-    source_splines[0:-1, 1:] = _calc_g(source_cosangles, stiffnes, num_lterms)
-
-    transfer_cosangles = np.dot(targetpos, datapos.T)
-    transfer_splines = _calc_g(transfer_cosangles, stiffnes, num_lterms)
-
-    output = []
-    for epoch in data:
-        z = np.concatenate((epoch, np.zeros((1, n_samples))))
-        coefficients = solve(source_splines, z)
-        output.append(np.dot(transfer_splines, coefficients[1:, :]) + coefficients[0, :])
-    return np.array(output)
