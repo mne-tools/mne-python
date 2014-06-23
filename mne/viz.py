@@ -2563,7 +2563,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         node. Right-click shows all connections.
     show_names : bool
         Enable or disable display of node names in the plot. The names are
-        always displayed in the status bar when mousing over them.
+        always displayed in the status bar when hovering over them.
 
     Returns
     -------
@@ -2845,7 +2845,7 @@ def plot_connectivity_matrix(con, node_names, indices=None,
         matplotlib.pyplot.subplot.
     show_names : bool
         Enable or disable display of node names in the plot. The names are
-        always displayed in the status bar when mousing over them.
+        always displayed in the status bar when hovering over them.
 
     Returns
     -------
@@ -2891,7 +2891,6 @@ def plot_connectivity_matrix(con, node_names, indices=None,
     if fig is None:
         fig = plt.figure(figsize=(8, 8), facecolor=facecolor)
 
-    # Use a polar axes
     if not isinstance(subplot, tuple):
         subplot = (subplot,)
     axes = plt.subplot(*subplot, axisbg=facecolor)
