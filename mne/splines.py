@@ -55,7 +55,7 @@ def _calc_h(cosang, stiffnes=4, num_lterms=50):
 def _compute_csd(data, G, H, lambda2, head):
     """compute the CSD"""
     n_channels, n_times = data.shape
-    Z = data - np.mean(data)  # XXX? compute average reference
+    Z = data - np.mean(data, 0)[None]  # XXX? compute average reference
     X = data
     head **= 2  # or rescale data to head sphere
 
@@ -64,9 +64,9 @@ def _compute_csd(data, G, H, lambda2, head):
         G.flat[::len(G) + 1] += lambda2
 
     # compute the CSD
-    TC = G.sum(0)
-    sgi = np.sum(TC)  # compute sum total
     Gi = pinv(G)
+    TC = Gi.sum(0)
+    sgi = np.sum(TC)  # compute sum total
     for this_time in range(n_times):
         Cp = np.dot(Gi, Z[:, this_time])  # compute preliminary C vector
         c0 = np.sum(Cp) / sgi  # common constant across electrodes
@@ -128,7 +128,6 @@ def current_source_density(inst, ch_type='eeg', g_matrix=None, h_matrix=None,
 
     G = _calc_g(np.dot(pos, pos.T)) if g_matrix is None else g_matrix
     H = _calc_h(np.dot(pos, pos.T)) if h_matrix is None else h_matrix
-    import pdb;pdb.set_trace()
 
     if isinstance(out, _BaseEpochs):
         data = np.zeros(len(out.events), len(picks), len(out.times))
@@ -138,7 +137,8 @@ def current_source_density(inst, ch_type='eeg', g_matrix=None, h_matrix=None,
             out._data = data
             out.preload = True
     elif isinstance(out, Evoked):
-        out.data = _compute_csd(out.data[picks], G=G, H=H, lambda2=lambda2, head=head)
+        out.data = _compute_csd(out.data[picks], G=G, H=H, lambda2=lambda2,
+                                head=head)
     return out
 
 
