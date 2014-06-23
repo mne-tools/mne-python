@@ -85,7 +85,7 @@ Changelog
 
    - New ICA methods for visualizing unmixing quality, artifact detection and rejection by `Denis Engemann`_
 
-   - Add 'pick_channels' and 'drop_channels' mixin class to pick and drop channels from Raw, Epochs, and Evoked objects by 'Andrew Dykstra'_ and 'Denis Engemann'_
+   - Add 'pick_channels' and 'drop_channels' mixin class to pick and drop channels from Raw, Epochs, and Evoked objects by `Andrew Dykstra`_ and `Denis Engemann`_
 
    - Add 'EvokedArray' class to create an Evoked object from an array by 'Andrew Dykstra'_
 
@@ -93,7 +93,7 @@ Changelog
 
    - Add automated ECG detection using cross-trial phase statistics by `Denis Engemann`_ and `Juergen Dammers`_
 
-   - Add Forward class to succintly display gain matrix info by 'Andrew Dykstra'_
+   - Add Forward class to succintly display gain matrix info by `Andrew Dykstra`_
 
    - Add reading and writing of split raw files by `Martin Luessi`_
 
