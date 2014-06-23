@@ -24,7 +24,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
 
     Compute point-spread functions (PSF) in labels for a combination of inverse
     operator and forward solution. PSFs are computed for test sources that are
-    perpendicular to cortical surface
+    perpendicular to cortical surface.
 
     Parameters
     ----------
@@ -57,7 +57,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     n_svd_comp : integer
         Number of SVD components for which PSFs will be computed and output
         (irrelevant for 'sum' and 'mean'). Explained variances within
-        sub-leadfields are shown in screen output
+        sub-leadfields are shown in screen output.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -191,7 +191,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
 
     Currently works only for fixed/loose orientation constraints
     For loose orientation constraint, the CTFs are computed for the radial
-    component (pick_ori='normal')
+    component (pick_ori='normal').
 
     Parameters
     ----------
