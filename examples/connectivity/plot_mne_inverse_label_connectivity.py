@@ -3,13 +3,19 @@
 Compute source space connectivity and visualize it using a circular graph
 =========================================================================
 
-This example computes the all-to-all connectivity between 68 regions in
-source space based on dSPM inverse solutions and a FreeSurfer cortical
-parcellation. The connectivity is visualized using a circular graph which
-is ordered based on the locations of the regions.
+This example computes connectivity between 68 regions in source space based on
+dSPM inverse solutions and a FreeSurfer cortical parcellation. All-to-all
+functional and effective connectivity measures are obtained from two different
+methods: non-parametric spectral estimates and multivariate autoregressive
+(MVAR) models. The connectivity is visualized using a circular graph which is
+ordered based on the locations of the regions.
+
+MVAR connectivity is computed with the Source Connectivity Toolbox (SCoT), see
+http://scot-dev.github.io/scot-doc/index.html for details.
 """
 
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Martin Billinger <martin.billinger@tugraz.at>
 #          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
@@ -18,12 +24,15 @@ is ordered based on the locations of the regions.
 print(__doc__)
 
 import numpy as np
+
 import mne
 from mne.datasets import sample
 from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
-from mne.connectivity import spectral_connectivity
-from mne.viz import circular_layout, plot_connectivity_circle
+from mne.connectivity import spectral_connectivity, mvar_connectivity
+from mne.viz import (circular_layout, plot_connectivity_circle,
+                     plot_connectivity_inoutcircles)
+from mne.externals.scot.connectivity_statistics import significance_fdr
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -62,33 +71,41 @@ labels = mne.read_annot('sample', parc='aparc', subjects_dir=subjects_dir)
 label_colors = [label.color for label in labels]
 
 # Average the source estimates within each label using sign-flips to reduce
-# signal cancellations, also here we return a generator
+# signal cancellations. We do not return a generator, because we want to use
+# the estimates repeatedly.
 src = inverse_operator['src']
 label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
-                                         return_generator=True)
+                                         return_generator=False)
 
-# Now we are ready to compute the connectivity in the alpha band. Notice
-# from the status messages, how mne-python: 1) reads an epoch from the raw
-# file, 2) applies SSP and baseline correction, 3) computes the inverse to
-# obtain a source estimate, 4) averages the source estimate to obtain a
-# time series for each label, 5) includes the label time series in the
-# connectivity computation, and then moves to the next epoch. This
-# behaviour is because we are using generators and allows us to
-# compute connectivity in computationally efficient manner where the amount
-# of memory (RAM) needed is independent from the number of epochs.
+# First, compute connectivity from spectral estimates in the alpha band.
 fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
-con_methods = ['pli', 'wpli2_debiased']
+
+spec_methods = ['pli', 'wpli2_debiased', 'coh']
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
-        method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
+        method=spec_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
         fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
 # for each method
-con_res = dict()
-for method, c in zip(con_methods, con):
-    con_res[method] = c[:, :, 0]
+con_spec = dict()
+for method, c in zip(spec_methods, con):
+    con_spec[method] = c[:, :, 0]
+
+# Second, compute connectivity from multivariate autoregressive models.
+mvar_methods = ['PDC', 'COH']
+con, freqs, order, p_vals = mvar_connectivity(label_ts, mvar_methods,
+                                              sfreq=sfreq, fmin=fmin,
+                                              fmax=fmax, ridge=10,
+                                              n_surrogates=100, n_jobs=-1)
+
+# Get connectivity for the first frequency band. Set connectivity to 0 if not
+# significant, while compensating for multiple testing by controlling the false
+# discovery rate.
+con_mvar = dict()
+for method, c, p in zip(mvar_methods, con, p_vals):
+    con_mvar[method] = c[:, :, 0] * significance_fdr(p[:, :, 0], 0.01)
 
 # Now, we visualize the connectivity using a circular graph layout
 
@@ -120,19 +137,27 @@ node_angles = circular_layout(label_names, node_order, start_pos=90,
 
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.
-plot_connectivity_circle(con_res['pli'], label_names, n_lines=300,
+plot_connectivity_circle(con_spec['pli'], label_names, n_lines=300,
                          node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
                                'Condition (PLI)')
 import matplotlib.pyplot as plt
 plt.savefig('circle.png', facecolor='black')
 
-# Plot connectivity for both methods in the same plot
+# Compare coherence from both estimation methods
 fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
-for ii, method in enumerate(con_methods):
-    plot_connectivity_circle(con_res[method], label_names, n_lines=300,
+for ii, (con, method) in enumerate(zip([con_spec['coh'], con_mvar['COH']],
+                                       ['Spectral', 'MVAR'])):
+    plot_connectivity_circle(con, label_names, n_lines=300,
                              node_angles=node_angles, node_colors=label_colors,
                              title=method, padding=0, fontsize_colorbar=6,
                              fig=fig, subplot=(1, 2, ii + 1), show_names=False)
+plt.suptitle('All-to-all coherence', color='white', fontsize=14)
+
+# Show effective (directed) connectivity for one node
+plot_connectivity_inoutcircles(con_mvar['PDC'], 'temporalpole-rh',
+                               label_names, node_angles=node_angles, padding=0,
+                               node_colors=label_colors, show_names=False,
+                               title='Effective connectivity (PDC)')
 
 plt.show()
