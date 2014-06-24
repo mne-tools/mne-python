@@ -9,7 +9,7 @@ MNE-sample-data/MEG/sample/sample_audvis-ave.fif -d MNE-sample-data/subjects/ \
 
 """
 
-from mne.report import Reporter
+from mne.report import Report
 
 
 if __name__ == '__main__':
@@ -34,7 +34,6 @@ if __name__ == '__main__':
     subjects_dir = options.subjects_dir
     subject = options.subject
 
-    rep = Reporter(path, info_fname, subjects_dir, subject)
-    rep.init_render()
-    rep.render_folder()
-    rep.finish_render()
+    report = Report(path, info_fname, subjects_dir, subject)
+    report.render_folder()
+    report.save()

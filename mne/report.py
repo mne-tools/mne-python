@@ -14,15 +14,7 @@ import StringIO
 import numpy as np
 import time
 import glob
-from PIL import Image
 import webbrowser
-import mayavi
-
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-from matplotlib.figure import Figure
-
-import nibabel as nib
 
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
@@ -39,12 +31,17 @@ tempdir = _TempDir()
 
 def _build_image(data, dpi=1, cmap='gray'):
     """ Build an image encoded in base64 """
+
+    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+
     figsize = data.shape[::-1]
     if figsize[0] == 1:
         figsize = tuple(figsize[1:])
         data = data[:, :, 0]
     fig = Figure(figsize=figsize, dpi=dpi, frameon=False)
-    canvas = FigureCanvas(fig)
+    FigureCanvas(fig)
     cmap = getattr(plt.cm, cmap, plt.cm.gray)
     fig.figimage(data, cmap=cmap)
     output = StringIO.StringIO()
@@ -265,16 +262,12 @@ image_template = HTMLTemplate(u"""
 """)
 
 
-class Reporter(object):
+class Report(object):
     """Object for rendering HTML"""
 
-    def __init__(self, path, info_fname, subjects_dir=None, subject=None,
+    def __init__(self, info_fname, subjects_dir=None, subject=None,
                  title=None, dpi=1):
         """
-        Parameters
-        ----------
-        path : str
-            Path of folder for which the HTML report will be created.
         info_fname : str
             Name of the file containing the info dictionary
         subjects_dir : str | None
@@ -285,7 +278,6 @@ class Reporter(object):
         title : str
             Title of the report.
         """
-        self.path = path
         self.info_fname = info_fname
         self.subjects_dir = subjects_dir
         self.subject = subject
@@ -296,11 +288,13 @@ class Reporter(object):
         self.html = []
         self.fnames = []  # List of file names rendered
 
+        self.init_render()  # Initialize the renderer
+
     def get_id(self):
         self.initial_id += 1
         return self.initial_id
 
-    def append(self, figs, captions):
+    def add_section(self, figs, captions):
         """Append custom user-defined figures.
 
         Parameters
@@ -376,26 +370,32 @@ class Reporter(object):
             f.close()
 
         if self.title is None:
-            self.title = 'MNE Report for ...%s' % self.path[-20:]
+            self.title = 'MNE Report for ...%s' % self.data_path[-20:]
 
         html = header_template.substitute(title=self.title,
                                           include=''.join(include))
         self.html.append(html)
 
-    def render_folder(self):
+    def render_folder(self, data_path):
         """Renders all the files in the folder.
-        """
 
+        Parameters
+        ----------
+        data_path : str
+            Path to the folder containing data whose HTML report will be
+            created.
+        """
+        self.data_path = data_path
         folders = []
 
-        fnames = _recursive_search(self.path, '*.fif')
+        fnames = _recursive_search(self.data_path, '*.fif')
         fnames += glob.glob(op.join(self.subjects_dir, self.subject,
                             'mri', 'T1.mgz'))
 
         info = read_info(self.info_fname)
 
         for fname in fnames:
-            print "Rendering : %s" % op.join('...' + self.path[-20:], fname)
+            print "Rendering : %s" % op.join('...' + self.data_path[-20:], fname)
             try:
                 if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
                     cmap = 'gray'
@@ -416,7 +416,7 @@ class Reporter(object):
                     self.render_cov(fname)
                     self.fnames.append(fname)
                 elif fname.endswith(('-trans.fif')):
-                    self.render_trans(fname, self.path, info,
+                    self.render_trans(fname, self.data_path, info,
                                       self.subject, self.subjects_dir)
                     self.fnames.append(fname)
                 elif op.isdir(fname):
@@ -430,11 +430,11 @@ class Reporter(object):
                         orientation='coronal')
         self.fnames.append('bem')
 
-    def finish_render(self, report_fname='report.html'):
+    def save(self, fname='report.html'):
         """
         Parameters
         ----------
-        report_fname : str
+        fname : str
             File name of the report.
         """
 
@@ -444,14 +444,14 @@ class Reporter(object):
         html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
         self.html.append(html)
 
-        report_fname = op.join(self.path, report_fname)
-        fobj = open(report_fname, 'w')
+        fname = op.join(self.data_path, fname)
+        fobj = open(fname, 'w')
         fobj.write(''.join(self.html))
         fobj.close()
 
-        webbrowser.open_new_tab(report_fname)
+        webbrowser.open_new_tab(fname)
 
-        return report_fname
+        return fname
 
     def render_toc(self):
         html = u'<div id="container">'
@@ -557,7 +557,11 @@ class Reporter(object):
         return '\n'.join(html)
 
     def render_image(self, image, surfaces=True, cmap='gray'):
+
+        import nibabel as nib
+
         global_id = self.get_id()
+
         nim = nib.load(image)
         data = nim.get_data()
         shape = data.shape
@@ -614,6 +618,9 @@ class Reporter(object):
         self.html.append('\n'.join(html))
 
     def render_eve(self, eve_fname, info):
+
+        import matplotlib.pyplot as plt
+
         global_id = self.get_id()
         events = read_events(eve_fname)
         sfreq = info['sfreq']
@@ -632,6 +639,9 @@ class Reporter(object):
         self.html.append(html)
 
     def render_cov(self, cov_fname):
+
+        import matplotlib.pyplot as plt
+
         global_id = self.get_id()
         cov = Covariance(cov_fname)
         plt.matshow(cov.data)
@@ -650,6 +660,8 @@ class Reporter(object):
 
     def render_trans(self, trans_fname, path, info, subject,
                      subjects_dir):
+        from PIL import Image
+        import mayavi
 
         fig = plot_trans(info, trans_fname=trans_fname,
                          subject=subject, subjects_dir=subjects_dir)
@@ -675,6 +687,8 @@ class Reporter(object):
             self.html.append(html)
 
     def render_bem(self, subject, subjects_dir, orientation='coronal'):
+
+        import matplotlib.pyplot as plt
 
         global_id = self.get_id()
         plt.close("all")
