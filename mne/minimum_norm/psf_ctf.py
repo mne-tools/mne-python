@@ -131,10 +131,10 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
         # compute summary data for labels
         if mode == 'sum':  # sum across forward solutions in label
             logger.info("Computing sums within labels")
-            this_label_psf_summary = sub_leadfield.sum(axis=1, keepdims=True).T
+            this_label_psf_summary = sub_leadfield.sum(axis=1)[np.newaxis, :]
         elif mode == 'mean':
             logger.info("Computing means within labels")
-            this_label_psf_summary = sub_leadfield.mean(axis=1, keepdims=True).T
+            this_label_psf_summary = sub_leadfield.mean(axis=1)[np.newaxis, :]
         elif mode == 'svd':  # takes svd of forward solutions in label
             logger.info("Computing SVD within labels, using %d component(s)"
                         % n_svd_comp)
@@ -169,7 +169,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
     label_psf_summary = np.concatenate(label_psf_summary, axis=0)
     # compute sum across forward solutions for labels, append to end
     label_psf_summary = np.r_[label_psf_summary,
-                              label_psf_summary.sum(axis=0, keepdims=True)].T
+                              label_psf_summary.sum(axis=0)[np.newaxis, :]].T
 
     # convert sub-leadfield matrix to evoked data type (a bit of a hack)
     evoked_fwd = EvokedArray(label_psf_summary, info=info, tmin=0.)
