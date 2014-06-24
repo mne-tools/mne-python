@@ -12,6 +12,17 @@ from .evoked import Evoked
 from .io.pick import pick_types
 
 
+def _cartesian_to_sphere(positions):
+    """Aux function"""
+    x, y, z = positions.T
+    hypotxy = np.hypot(x, y)
+    radius = np.hypot(hypotxy, z)
+    phi = np.arctan2(z, hypotxy)
+    theta = np.arctan2(y, x)
+
+    return theta, phi, radius
+
+
 def _sphere_to_cartesian(theta, phi, r):
     """Transform spherical coordinates to cartesian"""
     z = r * np.sin(phi)
@@ -24,29 +35,10 @@ def _sphere_to_cartesian(theta, phi, r):
 def _get_positions(info, picks):
     """Helper to get positions"""
     positions = np.array([c['loc'][:3] for c in info['chs']])[picks]
-    # positions[:, 2] -= 3.35
-    # positions[:, 1] += 24.5
-    # positions[:, 0] -= 1.342
-
-    # positions = positions / np.sqrt(np.sum(positions ** 2))
     phi, theta, _ = _cartesian_to_sphere(positions)
-    theta_rad = (2 * np.pi * theta) / 360.
-    phi_rad = (2 * np.pi * phi) / 360.
-    X, Y, Z = _sphere_to_cartesian(theta_rad, phi_rad, 1.0)
-    # XXX still not sure what is right
-    # return np.c_[X, Y, Z]
-    return positions
+    X, Y, Z = _sphere_to_cartesian(theta, phi, 1.0)
+    return np.c_[X, Y, Z]
 
-
-def _cartesian_to_sphere(positions):
-    """Aux function"""
-    x, y, z = positions.T
-    hypotxy = np.hypot(x, y)
-    radius = np.hypot(hypotxy, z)
-    phi = np.arctan2(z, hypotxy)
-    theta = np.arctan2(y, x)
-
-    return theta, phi, radius
 
 
 def _calc_g(cosang, stiffnes=4, num_lterms=50):
