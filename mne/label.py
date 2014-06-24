@@ -103,16 +103,18 @@ def _split_colors(color, n):
     return tuple(rgba_colors)
 
 
-def _n_colors(n, bytes_=False):
-    """Produce a list of n unique RGBA color tuples based on the hsv colormap
+def _n_colors(n, bytes_=False, cmap='hsv'):
+    """Produce a list of n unique RGBA color tuples based on a colormap
 
     Parameters
     ----------
     n : int
-        NUmber of colors.
+        Number of colors.
     bytes : bool
         Return colors as integers values between 0 and 255 (instead of floats
         between 0 and 1).
+    cmap : str
+        Which colormap to use.
 
     Returns
     -------
@@ -125,9 +127,16 @@ def _n_colors(n, bytes_=False):
         raise NotImplementedError(err)
 
     from matplotlib.cm import get_cmap
-    cm = get_cmap('hsv', n_max)
+    cm = get_cmap(cmap, n_max)
     pos = np.linspace(0, 1, n, False)
     colors = cm(pos, bytes=bytes_)
+    if bytes_:
+        # make sure colors are unique
+        for ii, c in enumerate(colors):
+            if np.any(np.all(colors[:ii] == c, 1)):
+                raise RuntimeError('Could not get %d unique colors from %s '
+                                   'colormap. Try using a different colormap.'
+                                   % (n, cmap))
     return colors
 
 
@@ -1716,7 +1725,8 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
 
 @verbose
 def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
-                          subjects_dir=None, annot_fname=None, verbose=None):
+                          subjects_dir=None, annot_fname=None,
+                          colormap='hsv', verbose=None):
     """Create a FreeSurfer annotation from a list of labels
 
     Parameters
@@ -1734,6 +1744,9 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     annot_fname : str | None
         Filename of the .annot file. If not None, only this file is written
         and 'parc' and 'subject' are ignored.
+    colormap : str
+        Colormap to use to generate label colors for labels that do not
+        have a color specified.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -1802,7 +1815,8 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
         # replace None values (labels with unspecified color)
         if labels_by_color[no_color_rgb]:
-            default_colors = _n_colors(n_hemi_labels, True)
+            default_colors = _n_colors(n_hemi_labels, bytes_=True,
+                                       cmap=colormap)
             safe_color_i = 0  # keep track of colors known to be in hemi_colors
             for i in xrange(n_hemi_labels):
                 if ctab[i, 0] == -1:
