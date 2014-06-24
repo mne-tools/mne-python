@@ -18,7 +18,7 @@ import numpy as np
 import mne
 from mne import io
 from mne.datasets import sample
-from mne.report import Reporter
+from mne.report import Report
 
 data_path = sample.data_path()
 
@@ -102,10 +102,9 @@ plt.title('Sensor space decoding')
 # Make an MNE Report
 
 fig = plt.gcf()
-rep = Reporter(path=data_path, info_fname=raw_fname,
-               subjects_dir=data_path + '/subjects', subject='sample',
-               title='MNE Report for sample dataset')
-rep.init_render()
-rep.render_folder()
-rep.append([fig], ['Sensor space decoding'])
-rep.finish_render()
+report = Report(path=data_path, info_fname=raw_fname,
+                subjects_dir=data_path + '/subjects', subject='sample',
+                title='MNE Report for sample dataset')
+report.render_folder()
+report.add_section([fig], ['Sensor space decoding'])
+report.save()
