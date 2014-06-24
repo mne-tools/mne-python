@@ -2945,9 +2945,9 @@ def plot_connectivity_matrix(con, node_names, indices=None,
     return fig, axes
 
 
-def plot_connectivity_inoutcircles(con, seed, node_names, textcolor='white',
-                                   colormap='hot', title=None,
-                                   fontsize_suptitle=14, fig=None,
+def plot_connectivity_inoutcircles(con, seed, node_names, facecolor='black',
+                                   textcolor='white', colormap='hot',
+                                   title=None, fontsize_suptitle=14, fig=None,
                                    subplot=(121, 122), **kwargs):
     """Visualize effective connectivity with two circular graphs, one for
     incoming, and one for outgoing connections.
@@ -2967,6 +2967,8 @@ def plot_connectivity_inoutcircles(con, seed, node_names, textcolor='white',
         interactive mode.
     node_names : list of str
         Node names. The order corresponds to the order in con.
+    facecolor : str
+        Color to use for background. See matplotlib.colors.
     textcolor : str
         Color to use for text. See matplotlib.colors.
     colormap : str | (str, str)
@@ -3016,6 +3018,10 @@ def plot_connectivity_inoutcircles(con, seed, node_names, textcolor='white',
 
     if type(colormap) not in (tuple, list):
         colormap = (colormap, colormap)
+
+    # Default figure size accomodates two horizontally arranged circles
+    if fig is None:
+        fig = plt.figure(figsize=(8, 4), facecolor=facecolor)
 
     index_in = (np.array([seed] * n_nodes), np.array([i for i in range(n_nodes)]))
     index_out = index_in[::-1]
