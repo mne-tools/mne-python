@@ -4,6 +4,7 @@
 
 from __future__ import division
 import numpy as np
+import logging
 
 from ..parallel import parallel_func
 from ..utils import logger, verbose
@@ -82,7 +83,8 @@ def _fit_mvar_yw(data, pmin, pmax, n_jobs=1, verbose=None):
 @verbose
 def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
                       ridge=0, sfreq=2 * np.pi, fmin=0, fmax=np.inf, n_fft=64,
-                      n_surrogates=None, buffer_size=8, n_jobs=1, verbose=0):
+                      n_surrogates=None, buffer_size=8, n_jobs=1,
+                      verbose=None):
     """Estimate connectivity from multivariate autoregressive (MVAR) models.
 
     This function uses routines from SCoT [1] to fit MVAR models and compute
@@ -196,6 +198,7 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         modified directed transfer function (dDTF) method. J. Neurosci. Meth.
         125(1-2): 195-207, 2003.
     """
+    scot_verbosity = 5 if logger.level <= logging.INFO else 0
 
     if not isinstance(method, (list, tuple)):
         method = [method]
@@ -217,7 +220,7 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         var = _fit_mvar_yw(data, pmin, pmax)
     elif fitting_mode == 'lsq':
         var = _fit_mvar_lsq(data, pmin, pmax, ridge, n_jobs=n_jobs,
-                            verbose=verbose)
+                            verbose=scot_verbosity)
     else:
         raise ValueError('Unknown fitting mode: %s' % fitting_mode)
 
