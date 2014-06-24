@@ -99,6 +99,9 @@ Changelog
 
    - Add OLS regression function by `Tal Linzen`_, `Teon Brooks`_ and `Denis Engemann`_
 
+   - Add computation of point spread and cross-talk functions for MNE type solutions by `Alex Gramfort`_ and `Olaf Hauk`_
+
+
 BUG
 ~~~
 
@@ -746,3 +749,5 @@ of commits):
 .. _JR King: https://github.com/kingjr
 
 .. _Juergen Dammers: https://github.com/jdammers
+
+.. _Olaf Hauk: http://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
