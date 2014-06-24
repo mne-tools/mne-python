@@ -8,9 +8,9 @@ from scipy import linalg
 
 from ..forward import is_fixed_orient, _to_fixed_ori
 from ..io.pick import pick_channels_evoked
-from ..minimum_norm.inverse import _prepare_forward
 from ..utils import logger, verbose
-from .mxne_inverse import _make_sparse_stc, _prepare_gain
+from .mxne_inverse import (_make_sparse_stc, _prepare_gain_mne,
+                           _prepare_gain_sloreta)
 
 
 @verbose
@@ -241,18 +241,23 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     else:
         group_size = 3
 
-    gain_info, gain, _, whitener, _ = _prepare_forward(forward, evoked.info,
-                                                       noise_cov, pca)
+    if depth == 'sLORETA':
+        gain, gain_info, whitener, source_weighting, mask = \
+                _prepare_gain_sloreta(forward, evoked[0].info, noise_cov, pca,
+                                      depth, loose, weights, weights_min)
+    else:
+        if depth < 0.0:
+            raise Exception('Invalid depth parameter.')
+        gain, gain_info, whitener, source_weighting, mask = \
+                _prepare_gain_mne(forward, evoked[0].info, noise_cov, pca,
+                                  depth, loose, weights, weights_min)
 
     # get the data
     sel = [evoked.ch_names.index(name) for name in gain_info['ch_names']]
     M = evoked.data[sel]
 
-    # whiten and prepare gain matrix
-    gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
-                                                 depth, loose, None,
-                                                 None)
     # whiten the data
+    logger.info('Whitening data matrix.')
     M = np.dot(whitener, M)
 
     # run the optimization
@@ -263,8 +268,15 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     if len(active_set) == 0:
         raise Exception("No active dipoles found. alpha is too big.")
 
-    # reapply weights to have correct unit
-    X /= source_weighting[active_set][:, None]
+    # Reapply weights to have correct unit
+    if depth == 'sLORETA':
+        for i in range(np.sum(active_set) / n_dip_per_pos):
+            idx_s = i * n_dip_per_pos
+            idx_e = (i + 1) * n_dip_per_pos
+            X[idx_s:idx_e] = np.dot(source_weighting[active_set][idx_s:idx_e],
+                                    X[idx_s:idx_e])
+    else:
+        X /= source_weighting[active_set][:, None]
 
     if return_residual:
         sel = [forward['sol']['row_names'].index(c)

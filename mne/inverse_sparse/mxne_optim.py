@@ -339,7 +339,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
                       solver='auto'):
-    """Solves L21 inverse solver with active set strategy
+    """Solves L1/L2 mixed-norm inverse problem with active set strategy
 
     Algorithm is detailed in:
     Gramfort A., Kowalski M. and Hamalainen, M,
@@ -401,13 +401,13 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     if solver == 'cd':
         if n_orient == 1 and not has_sklearn:
             warnings.warn("Scikit-learn >= 0.12 cannot be found. "
-                          "Using proximal iterations instead of coordinate "
-                          "descent.")
+                          "Using block coordinate descent instead of "
+                          "coordinate descent.")
             solver = 'bcd'
         if n_orient > 1:
             warnings.warn("Coordinate descent is only available for fixed "
-                          "orientation. Using proximal iterations instead of "
-                          "coordinate descent")
+                          "orientation. Using block coordinate descent "
+                          "instead of coordinate descent")
             solver = 'bcd'
 
     if solver == 'cd':
@@ -480,7 +480,50 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
                                 tol=1e-8, verbose=None, active_set_size=50,
                                 debias=True, n_orient=1, solver='auto'):
+    """Solves L0.5/L2 mixed-norm inverse problem with active set strategy
 
+    Algorithm is detailed in:
+    Strohmeier D., Haueisen J., and Gramfort A.:
+    Improved MEG/EEG source localization with reweighted mixed-norms,
+    4th International Workshop on Pattern Recognition in Neuroimaging,
+    Tuebingen, 2014
+
+    Parameters
+    ----------
+    M : array
+        The data
+    G : array
+        The forward operator
+    alpha : float
+        The regularization parameter. It should be between 0 and 100.
+        A value of 100 will lead to an empty active set (no active source).
+    n_mxne_iter : int
+        The number of MxNE iterations. If > 1, iterative reweighting
+        is applied.
+    maxit : int
+        The number of iterations
+    tol : float
+        Tolerance on dual gap for convergence checking
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    active_set_size : int
+        Size of active set increase at each iteration.
+    debias : bool
+        Debias source estimates
+    n_orient : int
+        The number of orientation (1 : fixed or 3 : free or loose).
+    solver : 'prox' | 'cd' | 'bcd' | 'auto'
+        The algorithm to use for the optimization.
+
+    Returns
+    -------
+    X : array
+        The source estimates.
+    active_set : array
+        The mask of active sources.
+    E : list
+        The value of the objective function over the iterations.
+    """
     g = lambda w: np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
     gprime = lambda w: 2. * np.repeat(g(w), n_orient).ravel()
 

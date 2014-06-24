@@ -8,8 +8,8 @@ from scipy import linalg, signal
 
 from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
-from ..forward import (compute_orient_prior, is_fixed_orient, _to_fixed_ori,
-                       compute_depth_prior)
+from ..forward import (compute_orient_prior, is_fixed_orient,
+                       _to_fixed_ori)
 from ..io.pick import pick_channels_evoked
 from ..utils import logger, verbose
 
@@ -22,18 +22,23 @@ def _prepare_gain_mne(forward, info, noise_cov, pca, depth, loose, weights,
                       weights_min, limit_depth_chs=True, verbose=None):
     gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
                                                        noise_cov, pca)
-    is_fixed_ori = is_fixed_orient(forward)
+
+    logger.info('Whitening lead field matrix.')
+    gain = np.dot(whitener, gain)
+
     if depth is not None:
-        patch_areas = forward.get('patch_areas', None)
-        depth_prior = compute_depth_prior(gain, gain_info, is_fixed_ori,
-                                          exp=depth, patch_areas=patch_areas,
-                                          limit_depth_chs=limit_depth_chs)
+        if is_fixed_orient(forward):
+            depth_prior = np.sum(gain ** 2, axis=0) ** depth
+        else:
+            depth_prior = np.sum(gain ** 2, axis=0)
+            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1)
+            depth_prior = np.repeat(depth_prior ** depth, 3)
     else:
         depth_prior = np.ones(gain.shape[1], dtype=gain.dtype)
 
     orient_prior = compute_orient_prior(forward, loose)
 
-    source_weighting = np.sqrt(depth_prior * orient_prior)
+    source_weighting = np.sqrt(depth_prior / orient_prior)
     gain /= source_weighting[None, :]
 
     # Handle weights
@@ -63,9 +68,6 @@ def _prepare_gain_mne(forward, info, noise_cov, pca, depth, loose, weights,
             n_sources = np.sum(mask) / n_dip_per_pos
             logger.info("Reducing source space to %d sources" % n_sources)
 
-    logger.info('Whitening lead field matrix.')
-    gain = np.dot(whitener, gain)
-
     return gain, gain_info, whitener, source_weighting, mask
 
 
@@ -75,6 +77,9 @@ def _prepare_gain_sloreta(forward, info, noise_cov, pca, depth, loose,
                           verbose=None):
     gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
                                                        noise_cov, pca)
+
+    logger.info('Whitening lead field matrix.')
+    gain = np.dot(whitener, gain)
 
     n_orient = 1 if is_fixed_orient(forward) else 3
     n_dipoles = gain.shape[1]
@@ -113,7 +118,7 @@ def _prepare_gain_sloreta(forward, info, noise_cov, pca, depth, loose,
             raise ValueError('weights do not have the correct dimension '
                              ' (%d != %d)' % (len(weights), gain.shape[1]))
         nz_idx = np.where(weights != 0.0)[0]
-        source_weighting[nz_idx] /= weights[nz_idx]
+        source_weighting[nz_idx] *= weights[nz_idx][:, None]
         gain *= weights[None, :]
 
         if weights_min is not None:
@@ -122,8 +127,8 @@ def _prepare_gain_sloreta(forward, info, noise_cov, pca, depth, loose,
             n_sources = np.sum(mask) / n_dip_per_pos
             logger.info("Reducing source space to %d sources" % n_sources)
 
-    logger.info('Whitening lead field matrix.')
-    gain = np.dot(whitener, gain)
+    # logger.info('Whitening lead field matrix.')
+    # gain = np.dot(whitener, gain)
 
     return gain, gain_info, whitener, source_weighting, mask
 
@@ -161,15 +166,21 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
                verbose=None):
-    """Mixed-norm estimate (MxNE)
+    """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE)
 
-    Compute L1/L2 mixed-norm solution on evoked data.
+    Compute L1/L2 mixed-norm solution or L0.5/L2 mixed-norm solution
+    on evoked data.
 
     References:
-    Gramfort A., Kowalski M. and Hamalainen, M,
+    Gramfort A., Kowalski M. and Hamalainen, M.,
     Mixed-norm estimates for the M/EEG inverse problem using accelerated
     gradient methods, Physics in Medicine and Biology, 2012
     http://dx.doi.org/10.1088/0031-9155/57/7/1937
+
+    Strohmeier D., Haueisen J., and Gramfort A.,
+    Improved MEG/EEG source localization with reweighted mixed-norms,
+    4th International Workshop on Pattern Recognition in Neuroimaging,
+    Tuebingen, 2014
 
     Parameters
     ----------
@@ -216,10 +227,10 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     n_mxne_iter : int
         The number of MxNE iterations. If > 1, iterative reweighting
         is applied.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -245,16 +256,16 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         forward = deepcopy(forward)
         _to_fixed_ori(forward)
 
-    if type(depth) is float:
-        gain, gain_info, whitener, source_weighting, mask = \
-                _prepare_gain_mne(forward, evoked[0].info, noise_cov, pca,
-                                  depth, loose, weights, weights_min)
-    elif depth == 'sLORETA':
+    if depth == 'sLORETA':
         gain, gain_info, whitener, source_weighting, mask = \
                 _prepare_gain_sloreta(forward, evoked[0].info, noise_cov, pca,
                                       depth, loose, weights, weights_min)
     else:
-        raise Exception('Invalid depth parameter.')
+        if depth < 0.0:
+            raise Exception('Invalid depth parameter.')
+        gain, gain_info, whitener, source_weighting, mask = \
+                _prepare_gain_mne(forward, evoked[0].info, noise_cov, pca,
+                                  depth, loose, weights, weights_min)
 
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
@@ -463,16 +474,16 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         forward = deepcopy(forward)
         _to_fixed_ori(forward)
 
-    if type(depth) is float:
+    if depth == 'sLORETA':
         gain, gain_info, whitener, source_weighting, mask = \
-                _prepare_gain_mne(forward, evoked[0].info, noise_cov, pca,
-                                  depth, loose, weights, weights_min)
-    elif depth == 'sLORETA':
-        gain, gain_info, whitener, source_weighting, mask = \
-                _prepare_gain_sloreta(forward, evoked[0].info, noise_cov, pca,
+                _prepare_gain_sloreta(forward, evoked.info, noise_cov, pca,
                                       depth, loose, weights, weights_min)
     else:
-        raise Exception('Invalid depth parameter.')
+        if depth < 0.0:
+            raise Exception('Invalid depth parameter.')
+        gain, gain_info, whitener, source_weighting, mask = \
+                _prepare_gain_mne(forward, evoked.info, noise_cov, pca,
+                                  depth, loose, weights, weights_min)
 
     if window is not None:
         evoked = _window_evoked(evoked, window)
