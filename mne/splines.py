@@ -5,7 +5,7 @@
 
 import numpy as np
 from numpy.polynomial.legendre import legval
-from numpy.linalg import solve, pinv
+from numpy.linalg import inv
 
 from .epochs import _BaseEpochs
 from .evoked import Evoked
@@ -24,23 +24,28 @@ def _sphere_to_cartesian(theta, phi, r):
 def _get_positions(info, picks):
     """Helper to get positions"""
     positions = np.array([c['loc'][:3] for c in info['chs']])[picks]
-    phi, theta, _ = _get_polar_coords(positions)
+    # positions[:, 2] -= 3.35
+    # positions[:, 1] += 24.5
+    # positions[:, 0] -= 1.342
+
+    # positions = positions / np.sqrt(np.sum(positions ** 2))
+    phi, theta, _ = _cartesian_to_sphere(positions)
     theta_rad = (2 * np.pi * theta) / 360.
     phi_rad = (2 * np.pi * phi) / 360.
     X, Y, Z = _sphere_to_cartesian(theta_rad, phi_rad, 1.0)
     # XXX still not sure what is right
-    return np.c_[X, Y, Z]
+    # return np.c_[X, Y, Z]
+    return positions
 
 
-def _get_polar_coords(positions):
+def _cartesian_to_sphere(positions):
     """Aux function"""
     x, y, z = positions.T
-    theta = np.arctan2(x, y)
-    hypotxy = np.hypot(y, x)
+    hypotxy = np.hypot(x, y)
+    radius = np.hypot(hypotxy, z)
     phi = np.arctan2(z, hypotxy)
-    theta = theta / np.pi * 180.0
-    phi = phi / np.pi * 180.0
-    radius = 0.5 - phi / 180.0
+    theta = np.arctan2(y, x)
+
     return theta, phi, radius
 
 
@@ -85,15 +90,17 @@ def _compute_csd(data, G, H, lambda2, head):
     """compute the CSD"""
     n_channels, n_times = data.shape
     Z = data - np.mean(data, 0)[None]  # XXX? compute average reference
-    X = data
+    X = np.zeros_like(data)
     head **= 2
 
     # regularize if desired
     if lambda2 is None:
-        G.flat[::len(G) + 1] += lambda2
+        lambda2 = 1e-5
+
+    G.flat[::len(G) + 1] += lambda2
 
     # compute the CSD
-    Gi = pinv(G)
+    Gi = inv(G)
     TC = Gi.sum(0)
     sgi = np.sum(TC)  # compute sum total
     for this_time in range(n_times):
