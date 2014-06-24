@@ -14,7 +14,7 @@ from ..utils import logger, verbose
 @verbose
 def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             anneal_deg=60., anneal_step=0.9, extended=False, max_iter=200,
-            verbose=None):
+            random_state=None, verbose=None):
 
     """Run the (extended) Infomax ICA decomposition on raw data
 
@@ -58,8 +58,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     unmixing_matrix : np.ndarray of float, shape (n_features, n_features)
         The linear unmixing operator.
     """
-
-    random_state = None
     if random_state is None:
         seed = 42
         rng = np.random.RandomState(seed=seed)
