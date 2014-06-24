@@ -248,7 +248,7 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         for i in range(n_blocks):
             scon = surrogate_connectivity(method, data, var, nfft=n_fft,
                                           repeats=buffer_size, n_jobs=n_jobs,
-                                          verbose=verbose)
+                                          verbose=scot_verbosity)
 
             for m, mth in enumerate(method):
                 c, sc = np.abs(con[mth]), np.abs(scon[mth])
