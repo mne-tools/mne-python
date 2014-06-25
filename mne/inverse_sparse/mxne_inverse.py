@@ -71,9 +71,8 @@ def _prepare_gain_mne(forward, info, noise_cov, pca, depth, loose, weights,
     else:
         source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
 
-    if loose is not None:
-        if  loose != 1.0:
-            source_weighting *= np.sqrt(compute_orient_prior(forward, loose))
+    if loose is not None and loose != 1.0:
+        source_weighting *= np.sqrt(compute_orient_prior(forward, loose))
 
     gain *= source_weighting[None, :]
 
@@ -105,9 +104,8 @@ def _prepare_gain_sloreta(forward, info, noise_cov, pca, depth, loose,
 
     source_weighting = np.zeros((n_dipoles, n_orient))
 
-    if loose is not None:
-        if  loose != 1.0:
-            orient_prior = np.sqrt(compute_orient_prior(forward, loose))
+    if loose is not None and loose != 1.0:
+        orient_prior = np.sqrt(compute_orient_prior(forward, loose))
 
     for i in range(n_positions):
         idx_s = i * n_orient
@@ -118,12 +116,11 @@ def _prepare_gain_sloreta(forward, info, noise_cov, pca, depth, loose,
             Wtmp = np.sqrt(1. / Wtmp)
         else:
             U, S, Vh = linalg.svd(Wtmp)
-            Wtmp = np.dot(U, np.dot(np.diag(np.sqrt(1. / S)), Vh))
-            if loose is not None:
-                if  loose != 1.0:
-                    Wtmp *= orient_prior[idx_s:idx_e][None, :]
+            Wtmp = np.dot(U * np.sqrt(1. / S)[None, :], Vh)
+            if loose is not None and loose != 1.0:
+                Wtmp *= orient_prior[idx_s:idx_e][None, :]
 
-        source_weighting[idx_s:idx_e] = Wtmp.copy()
+        source_weighting[idx_s:idx_e] = Wtmp
         gain[:, idx_s:idx_e] = np.dot(gain[:, idx_s:idx_e],
                                       source_weighting[idx_s:idx_e])
 
@@ -141,14 +138,15 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
                   weights_min, limit_depth_chs=True, verbose=None):
     if depth == 'sLORETA':
         gain, gain_info, whitener, source_weighting, mask = \
-                        _prepare_gain_sloreta(forward, info, noise_cov, pca,
-                                      depth, loose, weights, weights_min)
+            _prepare_gain_sloreta(forward, info, noise_cov, pca,
+                                  depth, loose, weights,
+                                  weights_min)
     elif isinstance(depth, float):
         if depth < 0.0:
             raise Exception('Invalid depth parameter. Got depth = %f' % depth)
         gain, gain_info, whitener, source_weighting, mask = \
-                _prepare_gain_mne(forward, info, noise_cov, pca,
-                                  depth, loose, weights, weights_min)
+            _prepare_gain_mne(forward, info, noise_cov, pca, depth, loose,
+                              weights, weights_min)
     else:
         raise Exception('Invalid depth parameter.')
 
@@ -167,6 +165,21 @@ def _reapply_source_weighting(X, source_weighting, depth, active_set,
         X *= source_weighting[active_set][:, None]
 
     return X
+
+
+def _compute_residual(forward, evoked, X, active_set, info):
+    sel = [forward['sol']['row_names'].index(c) for c in info['ch_names']]
+    residual = evoked.copy()
+    residual = pick_channels_evoked(residual, include=info['ch_names'])
+    r_tmp = residual.copy()
+    r_tmp.data = np.dot(forward['sol']['data'][sel, :][:, active_set], X)
+    if evoked.proj:
+        r_tmp.info['projs'] = deactivate_proj(r_tmp.info['projs'], copy=False)
+        r_tmp.proj = False
+        r_tmp.apply_proj()
+    residual.data -= r_tmp.data
+
+    return residual
 
 
 @verbose
@@ -190,7 +203,7 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
     n_lh_points = len(src[0]['vertno'])
     lh_vertno = src[0]['vertno'][active_idx[active_idx < n_lh_points]]
     rh_vertno = src[1]['vertno'][active_idx[active_idx >= n_lh_points]
-                                             - n_lh_points]
+                                 - n_lh_points]
     vertices = [lh_vertno, rh_vertno]
     stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
     return stc
@@ -286,7 +299,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     all_ch_names = evoked[0].ch_names
     if not all(all_ch_names == evoked[i].ch_names
-                                            for i in range(1, len(evoked))):
+               for i in range(1, len(evoked))):
         raise Exception('All the datasets must have the same good channels.')
 
     # put the forward solution in fixed orientation if it's not already
@@ -294,9 +307,9 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         forward = deepcopy(forward)
         _to_fixed_ori(forward)
 
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(forward,
-                        evoked[0].info, noise_cov, pca, depth, loose, weights,
-                        weights_min)
+    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+        forward, evoked[0].info, noise_cov, pca, depth, loose, weights,
+        weights_min)
 
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
@@ -321,19 +334,15 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     source_weighting /= alpha_max
 
     if n_mxne_iter == 1:
-        X, active_set, E = mixed_norm_solver(M, gain, alpha,
-                                             maxit=maxit, tol=tol,
-                                             active_set_size=active_set_size,
-                                             n_orient=n_dip_per_pos,
-                                             debias=debias, solver=solver,
-                                             verbose=verbose)
+        X, active_set, E = mixed_norm_solver(
+            M, gain, alpha, maxit=maxit, tol=tol,
+            active_set_size=active_set_size, n_orient=n_dip_per_pos,
+            debias=debias, solver=solver, verbose=verbose)
     else:
-        X, active_set, E = iterative_mixed_norm_solver(M, gain, alpha,
-                                             n_mxne_iter, maxit=maxit,
-                                             tol=tol, n_orient=n_dip_per_pos,
-                                             active_set_size=active_set_size,
-                                             debias=debias, solver=solver,
-                                             verbose=verbose)
+        X, active_set, E = iterative_mixed_norm_solver(
+            M, gain, alpha, n_mxne_iter, maxit=maxit, tol=tol,
+            n_orient=n_dip_per_pos, active_set_size=active_set_size,
+            debias=debias, solver=solver, verbose=verbose)
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=np.bool)
@@ -363,20 +372,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         cnt += len(e.times)
 
         if return_residual:
-            sel = [forward['sol']['row_names'].index(c)
-                                                for c in gain_info['ch_names']]
-            r = deepcopy(e)
-            r = pick_channels_evoked(r, include=gain_info['ch_names'])
-            r_tmp = deepcopy(r)
-            r_tmp.data = np.dot(forward['sol']['data'][sel, :][:,
-                                    active_set], Xe)
-            if e.proj == True:
-                r_tmp.info['projs'] = deactivate_proj(r_tmp.info['projs'],
-                                                    copy=False)
-                r_tmp.proj = False
-                r_tmp.apply_proj()
-            r.data -= r_tmp.data
-            residual.append(r)
+            residual.append(_compute_residual(forward, e, Xe, active_set,
+                            gain_info))
 
     logger.info('[done]')
 
@@ -399,7 +396,7 @@ def _window_evoked(evoked, size):
         lsize = rsize = float(size)
     else:
         lsize, rsize = size
-    evoked = deepcopy(evoked)
+    evoked = evoked.copy()
     sfreq = float(evoked.info['sfreq'])
     lsize = int(lsize * sfreq)
     rsize = int(rsize * sfreq)
@@ -506,9 +503,9 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         forward = deepcopy(forward)
         _to_fixed_ori(forward)
 
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(forward,
-                        evoked.info, noise_cov, pca, depth, loose, weights,
-                        weights_min)
+    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+        forward, evoked.info, noise_cov, pca, depth, loose, weights,
+        weights_min)
 
     if window is not None:
         evoked = _window_evoked(evoked, window)
@@ -549,21 +546,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                                   n_dip_per_pos)
 
     if return_residual:
-        sel = [forward['sol']['row_names'].index(c)
-                                            for c in gain_info['ch_names']]
-        residual = deepcopy(evoked)
-        residual = pick_channels_evoked(residual,
-                                        include=gain_info['ch_names'])
-        r_tmp = deepcopy(residual)
-        r_tmp.data = np.dot(forward['sol']['data'][sel, :][:, active_set],
-                            X)
-        if evoked.proj == True:
-            r_tmp.info['projs'] = deactivate_proj(r_tmp.info['projs'],
-                                                copy=False)
-            r_tmp.proj = False
-            r_tmp.apply_proj()
-
-        residual.data -= r_tmp.data
+        residual = _compute_residual(forward, evoked, X, active_set,
+                                     gain_info)
 
     tmin = evoked.times[0]
     tstep = 1.0 / info['sfreq']

@@ -59,28 +59,28 @@ def test_mxne_inverse():
     alpha = 60  # spatial regularization parameter
 
     stc_cd, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
-                        depth=0.9, maxit=1000, tol=1e-8,
-                        active_set_size=10, return_residual=True,
-                        solver='cd')
+                           depth=0.9, maxit=1000, tol=1e-8,
+                           active_set_size=10, return_residual=True,
+                           solver='cd')
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
     assert_true(stc_cd.vertno[1][0] in label.vertices)
 
     stc_prox = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
-                        depth=0.9, maxit=1000, tol=1e-8, active_set_size=10,
-                        weights=stc_dspm, weights_min=weights_min,
-                        solver='prox')
+                          depth=0.9, maxit=1000, tol=1e-8, active_set_size=10,
+                          weights=stc_dspm, weights_min=weights_min,
+                          solver='prox')
     stc_cd = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
                         depth=0.9, maxit=1000, tol=1e-8, active_set_size=10,
                         weights=stc_dspm, weights_min=weights_min,
                         solver='cd')
     stc_bcd = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
-                        depth=0.9, maxit=1000, tol=1e-8, active_set_size=10,
-                        weights=stc_dspm, weights_min=weights_min,
-                        solver='bcd')
+                         depth=0.9, maxit=1000, tol=1e-8, active_set_size=10,
+                         weights=stc_dspm, weights_min=weights_min,
+                         solver='bcd')
     stc_bcd_sloreta = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
-                        depth='sLORETA', maxit=1000, tol=1e-8,
-                        active_set_size=10, weights=stc_dspm,
-                        weights_min=weights_min, solver='cd')
+                                 depth='sLORETA', maxit=1000, tol=1e-8,
+                                 active_set_size=10, weights=stc_dspm,
+                                 weights_min=weights_min, solver='cd')
     assert_array_almost_equal(stc_prox.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_bcd.times, evoked_l21.times, 5)
@@ -105,8 +105,9 @@ def test_mxne_inverse():
     alpha_time = 1.  # temporal regularization parameter
 
     stc_prox, _ = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
-                            loose=loose, depth=depth, maxit=100, tol=1e-4,
-                            tstep=4, wsize=16, window=0.1, weights=stc_dspm,
-                            weights_min=weights_min, return_residual=True)
+                                loose=loose, depth=depth, maxit=100, tol=1e-4,
+                                tstep=4, wsize=16, window=0.1,
+                                weights=stc_dspm, weights_min=weights_min,
+                                return_residual=True)
     assert_array_almost_equal(stc_prox.times, evoked.times, 5)
     assert_true(stc_prox.vertno[1][0] in label.vertices)

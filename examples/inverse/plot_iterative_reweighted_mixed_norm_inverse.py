@@ -54,17 +54,18 @@ loose, depth = 0.2, 'sLORETA'  # loose orientation & depth weighting
 
 # Compute MxNE inverse solution
 stc_mxne, residual_mxne = mixed_norm(evoked, forward, cov, alpha, loose=loose,
-                           depth=depth, maxit=1000, tol=1e-4,
-                           active_set_size=10, debias=True, weights=None,
-                           weights_min=None, n_mxne_iter=1,
-                           return_residual=True)
+                                     depth=depth, maxit=1000, tol=1e-4,
+                                     active_set_size=10, debias=True,
+                                     weights=None, weights_min=None,
+                                     n_mxne_iter=1, return_residual=True)
 residual_mxne.plot(ylim=ylim, proj=True)
 
 stc_irmxne, residual_irmxne = mixed_norm(evoked, forward, cov, alpha,
-                           loose=loose, depth=depth, maxit=1000, tol=1e-4,
-                           active_set_size=10, debias=True, weights=None,
-                           weights_min=None, n_mxne_iter=50,
-                           return_residual=True)
+                                         loose=loose, depth=depth, maxit=1000,
+                                         tol=1e-4, active_set_size=10,
+                                         debias=True, weights=None,
+                                         weights_min=None, n_mxne_iter=50,
+                                         return_residual=True)
 residual_irmxne.plot(ylim=ylim, proj=True)
 
 ###############################################################################
@@ -78,7 +79,8 @@ plot_sparse_source_estimates(forward['src'], [stc_irmxne, stc_mxne],
 
 # and on the fsaverage brain after morphing
 stc_fsaverage = stc_irmxne.morph(subject_from='sample', subject_to='fsaverage',
-                          grade=None, sparse=True, subjects_dir=subjects_dir)
+                                 grade=None, sparse=True,
+                                 subjects_dir=subjects_dir)
 src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
 src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
 

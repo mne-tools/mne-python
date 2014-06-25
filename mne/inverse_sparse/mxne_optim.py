@@ -138,9 +138,9 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     Parameters
     ----------
     M : array of shape [n_sensors, n_times]
-        data
+        The data.
     G : array of shape [n_sensors, n_active]
-        Gain matrix a.k.a. lead field
+        The gain matrix a.k.a. lead field.
     X : array of shape [n_active, n_times]
         Sources
     active_set : array of bool
@@ -280,7 +280,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
         for j in xrange(n_positions):
             G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
             lipschitz_constant[j] = 1.1 * linalg.norm(np.dot(G_tmp.T, G_tmp),
-                                                ord=2)
+                                                      ord=2)
 
     if init is None:
         X = np.zeros((n_sources, n_times))
@@ -324,7 +324,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
                                       n_orient)
         E.append(pobj)
         logger.debug("Iteration %d :: pobj %f :: dgap %f :: n_active %d" % (
-                        i + 1, pobj, gap, np.sum(active_set) / n_orient))
+                     i + 1, pobj, gap, np.sum(active_set) / n_orient))
 
         if gap < tol:
             logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
@@ -349,23 +349,23 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     Parameters
     ----------
-    M : array
-        The data
-    G : array
-        The forward operator
+    M : array of shape [n_sensors, n_times]
+        The data.
+    G : array of shape [n_sensors, n_dipoles]
+        The gain matrix a.k.a. lead field.
     alpha : float
         The regularization parameter. It should be between 0 and 100.
         A value of 100 will lead to an empty active set (no active source).
     maxit : int
-        The number of iterations
+        The number of iterations.
     tol : float
-        Tolerance on dual gap for convergence checking
+        Tolerance on dual gap for convergence checking.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
-        Debias source estimates
+        Debias source estimates.
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
     solver : 'prox' | 'cd' | 'bcd' | 'auto'
@@ -373,7 +373,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     Returns
     -------
-    X : array
+    X : array of shape [n_active, n_times]
         The source estimates.
     active_set : array
         The mask of active sources.
@@ -490,10 +490,10 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
     Parameters
     ----------
-    M : array
-        The data
-    G : array
-        The forward operator
+    M : array of shape [n_sensors, n_times]
+        The data.
+    G : array of shape [n_sensors, n_dipoles]
+        The gain matrix a.k.a. lead field.
     alpha : float
         The regularization parameter. It should be between 0 and 100.
         A value of 100 will lead to an empty active set (no active source).
@@ -501,15 +501,15 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         The number of MxNE iterations. If > 1, iterative reweighting
         is applied.
     maxit : int
-        The number of iterations
+        The number of iterations.
     tol : float
-        Tolerance on dual gap for convergence checking
+        Tolerance on dual gap for convergence checking.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
-        Debias source estimates
+        Debias source estimates.
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
     solver : 'prox' | 'cd' | 'bcd' | 'auto'
@@ -517,7 +517,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
     Returns
     -------
-    X : array
+    X : array of shape [n_active, n_times]
         The source estimates.
     active_set : array
         The mask of active sources.
@@ -552,7 +552,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
             X *= weights[_active_set][:, np.newaxis]
             weights = gprime(X)
             p_obj = 0.5 * linalg.norm(M - np.dot(G[:, active_set],  X),
-                                 'fro') ** 2. + alpha * np.sum(g(X))
+                                      'fro') ** 2. + alpha * np.sum(g(X))
             E.append(p_obj)
 
             # Check convergence
@@ -669,10 +669,10 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     Parameters
     ----------
-    M : array
+    M : array of shape [n_sensors, n_times]
         The data.
-    G : array
-        The forward operator.
+    G : array of shape [n_sensors, n_dipoles]
+        The gain matrix a.k.a. lead field.
     alpha_space : float
         The spatial regularization parameter. It should be between 0 and 100.
     alpha_time : float
@@ -703,7 +703,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     Returns
     -------
-    X : array
+    X : array of shape [n_active, n_times]
         The source estimates.
     active_set : array
         The mask of active sources.
@@ -791,9 +791,9 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
             X = phiT(Z)
             RZ = M - np.dot(G[:, active_set], X)
             pobj = 0.5 * linalg.norm(RZ, ord='fro') ** 2 \
-               + alpha_space * norm_l21(X, n_orient) \
-               + alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1, n_orient),
-                                             axis=1)).sum()
+                + alpha_space * norm_l21(X, n_orient) \
+                + alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1, n_orient),
+                                       axis=1)).sum()
             E.append(pobj)
             logger.info("Iteration %d :: pobj %f :: n_active %d" % (i + 1,
                         pobj, np.sum(active_set)))

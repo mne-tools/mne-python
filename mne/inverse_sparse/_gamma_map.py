@@ -7,10 +7,9 @@ import numpy as np
 from scipy import linalg
 
 from ..forward import is_fixed_orient, _to_fixed_ori
-from ..io.pick import pick_channels_evoked
 from ..utils import logger, verbose
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
-                           _reapply_source_weighting)
+                           _reapply_source_weighting, _compute_residual)
 
 
 @verbose
@@ -241,8 +240,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     else:
         group_size = 3
 
-    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(forward,
-                        evoked.info, noise_cov, pca, depth, loose, None, None)
+    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+        forward, evoked.info, noise_cov, pca, depth, loose, None, None)
 
     # get the data
     sel = [evoked.ch_names.index(name) for name in gain_info['ch_names']]
@@ -266,21 +265,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                                   n_dip_per_pos)
 
     if return_residual:
-        sel = [forward['sol']['row_names'].index(c)
-                                            for c in gain_info['ch_names']]
-        residual = deepcopy(evoked)
-        residual = pick_channels_evoked(residual,
-                                        include=gain_info['ch_names'])
-        r_tmp = deepcopy(residual)
-        r_tmp.data = np.dot(forward['sol']['data'][sel, :][:, active_set],
-                            X)
-        if evoked.proj == True:
-            r_tmp.info['projs'] = deactivate_proj(r_tmp.info['projs'],
-                                                copy=False)
-            r_tmp.proj = False
-            r_tmp.apply_proj()
-
-        residual.data -= r_tmp.data
+        residual = _compute_residual(forward, evoked, X, active_set,
+                                     gain_info)
 
     if group_size == 1 and not is_fixed_orient(forward):
         # make sure each source has 3 components

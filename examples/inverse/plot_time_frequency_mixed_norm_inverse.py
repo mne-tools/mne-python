@@ -55,6 +55,8 @@ cov = mne.read_cov(cov_fname)
 # Handling average file
 condition = 'Left visual'
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
+if all([p['active'] for p in evoked.info['projs']]):
+    evoked.proj = True
 evoked = mne.pick_channels_evoked(evoked)
 # We make the window slightly larger than what you'll eventually be interested
 # in ([-0.05, 0.3]) to avoid edge effects.
@@ -96,13 +98,19 @@ evoked.crop(tmin=-0.05, tmax=0.3)
 residual.crop(tmin=-0.05, tmax=0.3)
 
 ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-picks = mne.pick_types(evoked.info, meg='grad', exclude='bads')
-evoked.plot(picks=picks, ylim=ylim, proj=True,
-            titles=dict(grad='Evoked Response (grad)'))
+# picks = mne.pick_types(evoked.info, meg='grad', exclude='bads')
+# evoked.plot(picks=picks, ylim=ylim, proj=True,
+#             titles=dict(grad='Evoked Response (grad)'))
+#
+# picks = mne.pick_types(residual.info, meg='grad', exclude='bads')
+# residual.plot(picks=picks, ylim=ylim, proj=True,
+#               titles=dict(grad='Residual (grad)'))
 
-picks = mne.pick_types(residual.info, meg='grad', exclude='bads')
-residual.plot(picks=picks, ylim=ylim, proj=True,
-              titles=dict(grad='Residual (grad)'))
+evoked.plot(ylim=ylim, proj=True, titles=dict(grad='Evoked Response (grad)',
+            mag='Evoked Response (mag)', eeg='Evoked Response (eeg)'))
+
+residual.plot(ylim=ylim, proj=True, titles=dict(grad='Residual (grad)',
+              mag='Residual (mag)', eeg='Residual (eeg)'))
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)

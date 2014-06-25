@@ -29,6 +29,8 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 condition = 'Left visual'
 evoked = mne.read_evokeds(evoked_fname, condition=condition,
                           baseline=(None, 0))
+if all([p['active'] for p in evoked.info['projs']]):
+    evoked.proj = True
 evoked.crop(tmin=-50e-3, tmax=300e-3)
 
 # Read the forward solution
@@ -51,8 +53,9 @@ scale_factors = np.max(np.abs(stc.data), axis=1)
 scale_factors = 0.5 * (1 + scale_factors / np.max(scale_factors))
 
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-    modes=['sphere'], opacity=0.1, scale_factors=(scale_factors, None),
-    fig_name="Gamma-MAP")
+                             modes=['sphere'], opacity=0.1,
+                             scale_factors=(scale_factors, None),
+                             fig_name="Gamma-MAP")
 
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
