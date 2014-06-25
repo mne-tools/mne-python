@@ -82,7 +82,7 @@ fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
 
-spec_methods = ['pli', 'wpli2_debiased', 'coh']
+spec_methods = ['wpli2_debiased', 'coh']
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
         method=spec_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
         fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
@@ -137,10 +137,10 @@ node_angles = circular_layout(label_names, node_order, start_pos=90,
 
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.
-plot_connectivity_circle(con_spec['pli'], label_names, n_lines=300,
+plot_connectivity_circle(con_spec['wpli2_debiased'], label_names, n_lines=300,
                          node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
-                               'Condition (PLI)')
+                               'Condition (WPLI², debiased)')
 import matplotlib.pyplot as plt
 plt.savefig('circle.png', facecolor='black')
 
@@ -155,7 +155,7 @@ for ii, (con, method) in enumerate(zip([con_spec['coh'], con_mvar['COH']],
 plt.suptitle('All-to-all coherence', color='white', fontsize=14)
 
 # Show effective (directed) connectivity for one node
-plot_connectivity_inoutcircles(con_mvar['PDC'], 'temporalpole-rh',
+plot_connectivity_inoutcircles(con_mvar['PDC'], 'superiortemporal-lh',
                                label_names, node_angles=node_angles, padding=0,
                                node_colors=label_colors, show_names=False,
                                title='Effective connectivity (PDC)')
