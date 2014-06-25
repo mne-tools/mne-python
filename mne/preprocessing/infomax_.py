@@ -90,9 +90,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
     # check data shape
     n_samples, n_features = data.shape
-
-    if n_features < 2 or n_samples < n_features:
-        raise ValueError('Data size too small!')
     n_features_square = n_features ** 2
 
     # check input parameter
@@ -285,4 +282,4 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                                  'might not be invertible!')
 
     # prepare return values
-    return weights
+    return weights.T
