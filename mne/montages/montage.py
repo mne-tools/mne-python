@@ -7,12 +7,13 @@ import numpy as np
 
 from ..externals.six import BytesIO
 from ..utils import _sphere_to_cartesian
+from ..channels import _contains_ch_type
 
 
 class Montage(object):
     """Sensor layouts
 
-    Layouts are typically loaded from a file using read_layout. Only use this
+    Montages are typically loaded from a file using read_montage. Only use this
     class directly if you're constructing a new layout.
 
     Parameters
@@ -21,10 +22,8 @@ class Montage(object):
         The positions of the channels in 3d.
     names : list
         The channel names
-    ids : list
-        The channel ids
     kind : str
-        The type of Layout (e.g. 'Vectorview-all')
+        The type of Layout (e.g. 'standard_1005')
     """
     def __init__(self, pos, names, kind):
         self.pos = pos
@@ -32,8 +31,9 @@ class Montage(object):
         self.kind = kind
 
     def __repr__(self):
-        return '<Montage | %s - Channels: %s ...>' % (self.kind,
-                                                      ', '.join(self.names[:3]))
+        s = '<Montage | %s - Channels: %s ...>' % (self.kind,
+                                                   ', '.join(self.names[:3]))
+        return s
 
 
 def read_montage(kind, names=None, path=None, scale=True):
@@ -110,3 +110,28 @@ def read_montage(kind, names=None, path=None, scale=True):
         pos = pos[sel]
     kind = op.split(kind)[-1]
     return Montage(pos=pos, names=names_, kind=kind)
+
+
+def apply_montage(info, montage):
+    """Apply montage to EEG data.
+
+    This function will replace the eeg channel names and locations with
+    the values specified for the particular montage.
+    Note. You have to rename your object to correclty map
+    the montage names.
+    Note. This function will change the info in place.
+
+    Parameters
+    ----------
+    inst : instance of Info
+        The info to update.
+    montage : instance of Montage
+        The montage to apply.
+    """
+    if not _contains_ch_type(info, 'eeg'):
+        raise ValueError('No eeg channels found')
+    for pos, name in zip(montage.pos, montage.names):
+        ch_idx = info['ch_names'].index(name)
+        info['ch_names'][ch_idx] = name
+        info['chs'][ch_idx]['eeg_loc'] = np.c_[pos, [0, 0, 0]]
+        info['chs'][ch_idx]['loc'][:3] = pos
