@@ -33,7 +33,7 @@ def center_and_norm(x, axis=-1):
     x /= x.std(axis=0)
 
 
-def test_fastica_simple(add_noise=False):
+def test_infomax_simple(add_noise=False):
     """ Test the infomax algorithm on very simple data.
     """
     from sklearn.decomposition import RandomizedPCA
@@ -59,11 +59,11 @@ def test_fastica_simple(add_noise=False):
 
     center_and_norm(m)
 
-    algos = [True, False]
+    algos = [True]
     for algo in algos:
         X = RandomizedPCA(n_components=2, whiten=True).fit_transform(m.T)
         k_ = infomax(X, extended=algo)
-        s_ = np.dot(X, k_)
+        s_ = np.dot(k_, X.T)
 
         center_and_norm(s_)
         s1_, s2_ = s_
@@ -86,7 +86,7 @@ def test_fastica_simple(add_noise=False):
 def test_non_square_infomax(add_noise=False):
     """ Test the infomax algorithm on very simple data.
     """
-    from sklearn.decomposition import RandomizedPCA, fastica
+    from sklearn.decomposition import RandomizedPCA
 
     rng = np.random.RandomState(0)
 
@@ -110,18 +110,13 @@ def test_non_square_infomax(add_noise=False):
     center_and_norm(m)
     pca = RandomizedPCA(n_components=2, whiten=True, random_state=rng)
     m = m.T
-    m = pca.fit_transform(m).T
-    unmixing_ = infomax(m, random_state=rng, block=2)
-
-    # S_ = H.dot(unmixing)
-    # A_ = linalg.pinv(unmixing.T)
-
-    # XXX compare / debug
-    # _, mixing_, s_ = fastica(m.T, random_state=rng, whiten=False)
-    s_ = np.dot(m, unmixing_)
-
+    m = pca.fit_transform(m)
+    unmixing_ = infomax(m, random_state=rng, extended=True)
+    s_ = np.dot(unmixing_, m.T)
     # Check that the mixing model described in the docstring holds:
-    assert_almost_equal(s_, np.dot(m, unmixing_))
+    mixing_ = linalg.pinv(unmixing_.T)
+
+    assert_almost_equal(m, s_.T.dot(mixing_))
 
     center_and_norm(s_)
     s1_, s2_ = s_
