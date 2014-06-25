@@ -1,5 +1,6 @@
 from __future__ import print_function
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #
 # License: Simplified BSD
 
@@ -270,17 +271,16 @@ def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
 
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
-    n_positions = n_sources / n_orient
+    n_positions = n_sources // n_orient
 
-    lipschitz_constant = np.empty(n_positions)
     if n_orient == 1:
-        for j in xrange(n_positions):
-            lipschitz_constant[j] = np.dot(G[:, j].T, G[:, j]) * 1.1
+        lipschitz_constant = 1.1 * np.sum(G * G, axis=0)
     else:
+        lipschitz_constant = np.empty(n_positions)
         for j in xrange(n_positions):
             G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
-            lipschitz_constant[j] = linalg.norm(np.dot(G_tmp.T, G_tmp),
-                                                ord=2) * 1.1
+            lipschitz_constant[j] = 1.1 * linalg.norm(np.dot(G_tmp.T, G_tmp),
+                                                ord=2)
 
     if init is None:
         X = np.zeros((n_sources, n_times))
@@ -548,6 +548,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
         if _active_set.sum() > 0:
             active_set[active_set] = _active_set
+            # Reapply weights to have correct unit
             X *= weights[_active_set][:, np.newaxis]
             weights = gprime(X)
             p_obj = 0.5 * linalg.norm(M - np.dot(G[:, active_set],  X),

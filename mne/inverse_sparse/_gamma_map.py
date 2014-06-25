@@ -9,8 +9,8 @@ from scipy import linalg
 from ..forward import is_fixed_orient, _to_fixed_ori
 from ..io.pick import pick_channels_evoked
 from ..utils import logger, verbose
-from .mxne_inverse import (_make_sparse_stc, _prepare_gain_mne,
-                           _prepare_gain_sloreta)
+from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
+                           _reapply_source_weighting)
 
 
 @verbose
@@ -241,16 +241,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     else:
         group_size = 3
 
-    if depth == 'sLORETA':
-        gain, gain_info, whitener, source_weighting, mask = \
-                _prepare_gain_sloreta(forward, evoked[0].info, noise_cov, pca,
-                                      depth, loose, weights, weights_min)
-    else:
-        if depth < 0.0:
-            raise Exception('Invalid depth parameter.')
-        gain, gain_info, whitener, source_weighting, mask = \
-                _prepare_gain_mne(forward, evoked[0].info, noise_cov, pca,
-                                  depth, loose, weights, weights_min)
+    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(forward,
+                        evoked.info, noise_cov, pca, depth, loose, None, None)
 
     # get the data
     sel = [evoked.ch_names.index(name) for name in gain_info['ch_names']]
@@ -269,23 +261,26 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         raise Exception("No active dipoles found. alpha is too big.")
 
     # Reapply weights to have correct unit
-    if depth == 'sLORETA':
-        for i in range(np.sum(active_set) / n_dip_per_pos):
-            idx_s = i * n_dip_per_pos
-            idx_e = (i + 1) * n_dip_per_pos
-            X[idx_s:idx_e] = np.dot(source_weighting[active_set][idx_s:idx_e],
-                                    X[idx_s:idx_e])
-    else:
-        X /= source_weighting[active_set][:, None]
+    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
+    X = _reapply_source_weighting(X, source_weighting, depth, active_set,
+                                  n_dip_per_pos)
 
     if return_residual:
         sel = [forward['sol']['row_names'].index(c)
-               for c in gain_info['ch_names']]
-        residual = evoked.copy()
+                                            for c in gain_info['ch_names']]
+        residual = deepcopy(evoked)
         residual = pick_channels_evoked(residual,
                                         include=gain_info['ch_names'])
-        residual.data -= np.dot(forward['sol']['data'][sel, :][:, active_set],
-                                X)
+        r_tmp = deepcopy(residual)
+        r_tmp.data = np.dot(forward['sol']['data'][sel, :][:, active_set],
+                            X)
+        if evoked.proj == True:
+            r_tmp.info['projs'] = deactivate_proj(r_tmp.info['projs'],
+                                                copy=False)
+            r_tmp.proj = False
+            r_tmp.apply_proj()
+
+        residual.data -= r_tmp.data
 
     if group_size == 1 and not is_fixed_orient(forward):
         # make sure each source has 3 components

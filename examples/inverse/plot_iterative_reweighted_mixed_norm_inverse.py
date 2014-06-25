@@ -1,7 +1,11 @@
 """
-==================================================================
-Compute sparse inverse solution based on L0.5/L2 mixed norm (MxNE)
-==================================================================
+====================================================================
+Compute sparse inverse solution based on L0.5/L2 mixed norm (irMxNE)
+====================================================================
+
+Compared to MxNE (L1/L2 mixed norm), irMxNE allows for sparser
+source estimates with less amplitude bias due to the non-convexity
+of the L0.5/L2 mixed norm penalty.
 
 See
 Strohmeier D., Haueisen J., and Gramfort A.:
@@ -10,7 +14,7 @@ Improved MEG/EEG source localization with reweighted mixed-norms,
 Tuebingen, 2014
 """
 # Author: Daniel Strohmeier <daniel.strohmeier@gmail.com>
-#		  Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
@@ -30,6 +34,8 @@ subjects_dir = data_path + '/subjects'
 # Handling average file
 condition = 'Left Auditory'
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
+if all([p['active'] for p in evoked.info['projs']]):
+    evoked.proj = True
 evoked.crop(tmin=0, tmax=0.3)
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
 evoked.plot(ylim=ylim, proj=True)
