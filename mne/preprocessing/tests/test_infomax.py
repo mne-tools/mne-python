@@ -33,24 +33,6 @@ def center_and_norm(x, axis=-1):
     x /= x.std(axis=0)
 
 
-def test_gs():
-    """
-    Test gram schmidt orthonormalization
-    """
-    from sklearn.decomposition.fastica_ import _gs_decorrelation
-
-    # generate a random orthogonal  matrix
-    rng = np.random.RandomState(0)
-    W, _, _ = np.linalg.svd(rng.randn(10, 10))
-    w = rng.randn(10)
-    _gs_decorrelation(w, W, 10)
-    assert_true((w ** 2).sum() < 1.e-10)
-    w = rng.randn(10)
-    u = _gs_decorrelation(w, W, 5)
-    tmp = np.dot(u, W.T)
-    assert_true((tmp[:5] ** 2).sum() < 1.e-10)
-
-
 def test_fastica_simple(add_noise=False):
     """ Test the infomax algorithm on very simple data.
     """
@@ -76,10 +58,6 @@ def test_fastica_simple(add_noise=False):
         m += 0.1 * rng.randn(2, 1000)
 
     center_and_norm(m)
-
-    # function as fun arg
-    def g_test(x):
-        return x ** 3, (3 * x ** 2).mean(axis=-1)
 
     algos = [True, False]
     for algo in algos:
@@ -131,15 +109,19 @@ def test_non_square_infomax(add_noise=False):
 
     center_and_norm(m)
     pca = RandomizedPCA(n_components=2, whiten=True, random_state=rng)
-    m = pca.fit_transform(m.T).T
-    unmixing_ = infomax(m.T, random_state=rng)
+    m = m.T
+    m = pca.fit_transform(m).T
+    unmixing_ = infomax(m, random_state=rng, block=2)
+
+    # S_ = H.dot(unmixing)
+    # A_ = linalg.pinv(unmixing.T)
+
     # XXX compare / debug
     # _, mixing_, s_ = fastica(m.T, random_state=rng, whiten=False)
-    s_ = np.dot(m.T, unmixing_.T)
-    s_ = s_.T
+    s_ = np.dot(m, unmixing_)
 
     # Check that the mixing model described in the docstring holds:
-    assert_almost_equal(s_, np.dotun(mixing_, m))
+    assert_almost_equal(s_, np.dot(m, unmixing_))
 
     center_and_norm(s_)
     s1_, s2_ = s_
