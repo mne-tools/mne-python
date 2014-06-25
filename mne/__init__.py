@@ -80,6 +80,7 @@ from . import time_frequency
 from . import viz
 from . import decoding
 from . import realtime
+from . import montages
 
 # initialize logging
 set_log_level(None, False)
