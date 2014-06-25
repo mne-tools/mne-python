@@ -16,7 +16,7 @@ def test_montage():
     FidT9 -7.82694 0.45386 -3.76056
     FidT10 7.82694 0.45386 -3.76056""",
     """// MatLab   Sphere coordinates [degrees]         Cartesian coordinates
-// Label       Theta       Phi    Radius         X         Y         Z       off sphere surface
+    // Label       Theta       Phi    Radius         X         Y         Z       off sphere surface
       E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011
       E2      44.600      -0.880       1.000    0.7119    0.7021   -0.0154   0.00000000000000000
       E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000""",
