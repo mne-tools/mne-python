@@ -11,8 +11,6 @@ import numpy as np
 from scipy import stats
 from scipy import linalg
 
-from nose.tools import assert_true
-
 from numpy.testing import assert_almost_equal
 from mne.preprocessing.infomax_ import infomax
 
@@ -59,7 +57,7 @@ def test_infomax_simple(add_noise=False):
 
     center_and_norm(m)
 
-    algos = [True]
+    algos = [True, False]
     for algo in algos:
         X = RandomizedPCA(n_components=2, whiten=True).fit_transform(m.T)
         k_ = infomax(X, extended=algo)
@@ -111,6 +109,7 @@ def test_non_square_infomax(add_noise=False):
     pca = RandomizedPCA(n_components=2, whiten=True, random_state=rng)
     m = m.T
     m = pca.fit_transform(m)
+    # we need extended since input signals are sub-gaussian
     unmixing_ = infomax(m, random_state=rng, extended=True)
     s_ = np.dot(unmixing_, m.T)
     # Check that the mixing model described in the docstring holds:

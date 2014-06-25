@@ -159,8 +159,8 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
                 # extended ICA update
                 y = np.tanh(u)
                 weights += l_rate * np.dot(weights,
-                                           BI - np.dot(np.dot(u.T, y),
-                                                       np.dot(u.T, u)))
+                                           BI - np.dot(np.dot(u.T, y), signs) -
+                                           np.dot(u.T, u))
                 bias += l_rate * np.reshape(np.sum(y, axis=0,
                                             dtype=np.float64) * -2.0,
                                             (n_features, 1))
