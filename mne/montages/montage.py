@@ -2,6 +2,7 @@
 #
 # License: Simplified BSD
 
+import os
 import os.path as op
 import numpy as np
 
@@ -25,10 +26,11 @@ class Montage(object):
     kind : str
         The type of Layout (e.g. 'standard_1005')
     """
-    def __init__(self, pos, names, kind):
+    def __init__(self, pos, names, kind, ids):
         self.pos = pos
         self.names = names
         self.kind = kind
+        self.ids = ids
 
     def __repr__(self):
         s = '<Montage | %s - Channels: %s ...>' % (self.kind,
@@ -58,6 +60,15 @@ def read_montage(kind, names=None, path=None, scale=True):
     """
     if path is None:
         path = op.dirname(__file__)
+    if not op.isabs(kind):
+        supported = ['.elc', '.txt', '.csd', '.sfp']
+        montages = [f for f in os.listdir(path) if f[-4:] in supported]
+        kind = [f for f in montages if kind in f]
+        if len(kind) != 1:
+            raise ValueError('Could not find the montage. Please provide the'
+                             'full path')
+        kind = kind[0]
+
     if kind.endswith('.sfp'):
         # EGI geodesic
         dtype = np.dtype('S4, f8, f8, f8')
@@ -90,7 +101,7 @@ def read_montage(kind, names=None, path=None, scale=True):
         data = np.loadtxt(fname, dtype=dtype, skiprows=1)
         theta, phi = data['f1'], data['f2']
         x, y, z = _sphere_to_cartesian(np.deg2rad(theta),
-                                       np.deg2rad(theta), 1.0)
+                                       np.deg2rad(phi), 1.0)
         pos = np.c_[x, y, z]
         names_ = data['f0']
     elif kind.endswith('.csd'):
@@ -104,12 +115,17 @@ def read_montage(kind, names=None, path=None, scale=True):
         names_ = table['label']
     else:
         raise ValueError('Currently %s is not supported.' % kind)
-
+    ids = np.arange(len(pos))
     if names is not None:
-        sel, names_ = zip(*[(i, e) for i, e in enumerate(names) if e in names])
+        sel, names_ = zip(*[(i, e) for i, e in enumerate(names_)
+                            if e in names])
+        sel = list(sel)
         pos = pos[sel]
+        ids = ids[sel]
+    else:
+        names_ = list(names)
     kind = op.split(kind)[-1]
-    return Montage(pos=pos, names=names_, kind=kind)
+    return Montage(pos=pos, names=names_, kind=kind, ids=ids)
 
 
 def apply_montage(info, montage):
