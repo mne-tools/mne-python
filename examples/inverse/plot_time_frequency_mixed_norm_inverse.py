@@ -60,6 +60,8 @@ if all([p['active'] for p in evoked.info['projs']]):
 evoked = mne.pick_channels_evoked(evoked)
 # We make the window slightly larger than what you'll eventually be interested
 # in ([-0.05, 0.3]) to avoid edge effects.
+if all([p['active'] for p in evoked.info['projs']]):
+    evoked.proj = True
 evoked.crop(tmin=-0.1, tmax=0.4)
 
 # Handling forward solution
@@ -72,7 +74,7 @@ cov = mne.cov.regularize(cov, evoked.info)
 # Run solver
 
 # alpha_space regularization parameter is between 0 and 100 (100 is high)
-alpha_space = 50.  # spatial regularization parameter
+alpha_space = 40.  # spatial regularization parameter
 # alpha_time parameter promotes temporal smoothness
 # (0 means no temporal regularization)
 alpha_time = 1.  # temporal regularization parameter
@@ -98,14 +100,6 @@ evoked.crop(tmin=-0.05, tmax=0.3)
 residual.crop(tmin=-0.05, tmax=0.3)
 
 ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-# picks = mne.pick_types(evoked.info, meg='grad', exclude='bads')
-# evoked.plot(picks=picks, ylim=ylim, proj=True,
-#             titles=dict(grad='Evoked Response (grad)'))
-#
-# picks = mne.pick_types(residual.info, meg='grad', exclude='bads')
-# residual.plot(picks=picks, ylim=ylim, proj=True,
-#               titles=dict(grad='Residual (grad)'))
-
 evoked.plot(ylim=ylim, proj=True, titles=dict(grad='Evoked Response (grad)',
             mag='Evoked Response (mag)', eeg='Evoked Response (eeg)'))
 
