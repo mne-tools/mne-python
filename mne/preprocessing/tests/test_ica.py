@@ -65,10 +65,10 @@ def requires_sklearn(function):
 def test_ica_full_data_recovery():
     """Test recovery of full data when no source is rejected"""
     # Most basic recovery
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(0.5)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads')
+                       eog=False, exclude='bads')[:10]
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     evoked = epochs.average()

@@ -39,7 +39,8 @@ raw.filter(1, 45, n_jobs=2)
 ###############################################################################
 # 1) Fit ICA model using the FastICA algorithm
 
-ica = ICA(n_components=0.95, method='fastica')  # you can also use `infomax`
+# you can also use `infomax` or `extended-infomax`
+ica = ICA(n_components=0.95, method='fastica')
 
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                        stim=False, exclude='bads')
