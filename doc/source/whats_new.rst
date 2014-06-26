@@ -101,7 +101,7 @@ Changelog
 
    - Add computation of point spread and cross-talk functions for MNE type solutions by `Alex Gramfort`_ and `Olaf Hauk`_
 
-   - Add mask parameter to `plot_evoked_topomap` and `evoked.plot_topomap` by `Denis Engemann`_ and `Alexandre Gramfort`_
+   - Add mask parameter to `plot_evoked_topomap` and `evoked.plot_topomap` by `Denis Engemann`_ and `Alex Gramfort`_
 
 BUG
 ~~~
