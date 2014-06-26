@@ -140,7 +140,7 @@ def read_montage(kind, names=None, path=None, scale=True):
         pos = pos[sel]
         ids = ids[sel]
     else:
-        names_ = list(names)
+        names_ = list(names_)
     kind = op.split(kind)[-1]
     return Montage(pos=pos, names=names_, kind=kind, ids=ids)
 

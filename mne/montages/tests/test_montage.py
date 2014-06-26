@@ -2,9 +2,12 @@ import os.path as op
 
 from nose.tools import assert_equal
 
-from mne.montages import read_montage
-from mne.utils import _TempDir
+import numpy as np
+from numpy.testing import assert_array_equal
 
+from mne.montages import read_montage, apply_montage
+from mne.utils import _TempDir
+from mne import create_info
 
 tempdir = _TempDir()
 
@@ -48,3 +51,11 @@ def test_montage():
         assert_equal(len(montage.names), len(montage.pos))
         assert_equal(montage.pos.shape, (3, 3))
         assert_equal(montage.kind, kind)
+    # test with last
+    info = create_info(montage.names, 1e3, ['eeg'] * len(montage.names))
+    apply_montage(info, montage)
+    pos2 = np.array([c['loc'][:3] for c in info['chs']])
+    pos3 = np.array([c['eeg_loc'][:, 0] for c in info['chs']])
+    assert_array_equal(pos2, montage.pos)
+    assert_array_equal(pos3, montage.pos)
+    assert_equal(montage.names, info['ch_names'])
