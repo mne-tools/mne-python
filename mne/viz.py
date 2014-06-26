@@ -72,6 +72,7 @@ DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                                  markerfacecolor='w',
                                  markeredgecolor='k',
                                  linewidth=0,
+                                 markeredgewidth=1,
                                  markersize=4))
 
 
@@ -914,6 +915,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         scale = DEFAULTS['scalings'][key]
         unit = DEFAULTS['units'][key]
 
+    if mask_params is None:
+        mask_params = DEFAULTS['mask_params']
+        mask_params['markersize'] *= size / 2.
+        mask_params['markeredgewidth'] *= size / 2.
+
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     elif np.isscalar(times):
@@ -985,6 +991,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax], format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
+        if size <= 1:
+            cpos.x0 = 1 - (.7 + .1 / size) / nax
         cpos.x1 = cpos.x0 + .1 / nax
         cpos.y0 = .1
         cpos.y1 = .7

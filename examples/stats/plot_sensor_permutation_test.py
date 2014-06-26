@@ -69,10 +69,7 @@ evoked = mne.evoked.EvokedArray(-np.log10(p_values)[:, np.newaxis],
 stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
 mask = p_values[:, np.newaxis] <= 0.05
 
-evoked.plot_topomap(ch_type='grad', times=[0],
-                    scale=1, scale_time=1, time_format=None,
+evoked.plot_topomap(ch_type='grad', times=[0], scale=1, time_format=None,
                     cmap='Reds', vmin=0., vmax=np.max,
                     unit='-log10(p)', format='-%0.1f', mask=mask,
-                    size=3, res=1024,
-                    mask_params=dict(markersize=7, markeredgewidth=2),
-                    show_names=lambda x: x[4:] + ' ' * 20)
+                    size=3, show_names=lambda x: x[4:] + ' ' * 20)
