@@ -81,12 +81,12 @@ plt.show()
 # use standard locations for plotting
 from mne.montages import read_montage, apply_montage
 
-names = ['%i' % int(k[-3:]) for k in evoked.ch_names]
-montage = read_montage('M10', names)
+picks = [int(k[-3:]) - 1 for k in evoked.ch_names]
+montage = read_montage('M1', names)
 
 mapping = dict((k, v) for k, v in zip(evoked.ch_names, names))
 mne.rename_channels(evoked.info, mapping)
 
 apply_montage(evoked.info, montage)
 
-evoked.plot_topomap(times=[-.1], size=2, ch_type='eeg')
+evoked.plot_topomap(size=2, ch_type='eeg')

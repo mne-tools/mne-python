@@ -7,8 +7,8 @@ import os.path as op
 import numpy as np
 
 from ..externals.six import BytesIO
-from ..utils import _sphere_to_cartesian
 from ..channels import _contains_ch_type
+from ..viz import plot_montage
 
 
 class Montage(object):
@@ -37,6 +37,21 @@ class Montage(object):
                                                    ', '.join(self.names[:3]))
         return s
 
+    def plot(self, scale_factor=1.5):
+        """Plot EEG sensor montage
+
+        Parameters
+        ----------
+        scale_factor : float
+            Detemrines the size of the points. defaults to 1.5
+
+        Returns
+        -------
+        fig : isntance of mayavi.Scene
+            The malab scene object.
+        """
+        return plot_montage(self, scale_factor=scale_factor)
+
 
 def read_montage(kind, names=None, path=None, scale=True):
     """Read layout from a file
@@ -61,7 +76,7 @@ def read_montage(kind, names=None, path=None, scale=True):
     if path is None:
         path = op.dirname(__file__)
     if not op.isabs(kind):
-        supported = ['.elc', '.txt', '.csd', '.sfp']
+        supported = ('.elc', '.txt', '.csd', '.sfp')
         montages = [f for f in os.listdir(path) if f[-4:] in supported]
         kind = [f for f in montages if kind in f]
         if len(kind) != 1:
@@ -100,8 +115,9 @@ def read_montage(kind, names=None, path=None, scale=True):
         fname = op.join(path, kind)
         data = np.loadtxt(fname, dtype=dtype, skiprows=1)
         theta, phi = data['f1'], data['f2']
-        x, y, z = _sphere_to_cartesian(np.deg2rad(theta),
-                                       np.deg2rad(phi), 1.0)
+        x = 85. * np.cos(np.deg2rad(phi)) * np.sin(np.deg2rad(theta))
+        y = 85. * np.sin(np.deg2rad(theta)) * np.sin(np.deg2rad(phi))
+        z = 85. * np.cos(np.deg2rad(theta))
         pos = np.c_[x, y, z]
         names_ = data['f0']
     elif kind.endswith('.csd'):
@@ -114,7 +130,8 @@ def read_montage(kind, names=None, path=None, scale=True):
         pos = np.c_[table['x'], table['y'], table['z']]
         names_ = table['label']
     else:
-        raise ValueError('Currently %s is not supported.' % kind)
+        raise ValueError('Currently the "%s" template is not supported.' %
+                         kind)
     ids = np.arange(len(pos))
     if names is not None:
         sel, names_ = zip(*[(i, e) for i, e in enumerate(names_)
