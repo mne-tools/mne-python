@@ -65,9 +65,11 @@ def _prepare_gain_mne(forward, info, noise_cov, pca, depth, loose, weights,
             depth_prior = np.sum(gain ** 2, axis=0) ** depth
             source_weighting = np.sqrt(depth_prior ** -1.)
         else:
-            depth_prior = np.sum(gain ** 2, axis=0)
-            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1) ** depth
-            source_weighting = np.repeat(np.sqrt(depth_prior ** -1.), 3)
+            # depth_prior = np.sum(gain ** 2, axis=0)
+            # depth_prior = depth_prior.reshape(-1, 3).sum(axis=1) ** depth
+            # source_weighting = np.repeat(np.sqrt(depth_prior ** -1.), 3)
+            depth_prior = np.sum(gain ** 2, axis=0) ** depth
+            source_weighting = np.sqrt(depth_prior ** -1.)
     else:
         source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
 

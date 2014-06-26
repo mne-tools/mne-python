@@ -36,7 +36,7 @@ def test_gamma_map():
                     xyz_same_gamma=True, update_mode=1)
     assert_array_almost_equal(stc.times, evoked.times, 5)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
-    assert_true(np.concatenate(stc.vertno)[idx] == 74206)
+    assert_true(np.concatenate(stc.vertno)[idx] == 96397)
 
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
                     xyz_same_gamma=False, update_mode=1)
