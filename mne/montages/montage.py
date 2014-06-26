@@ -166,5 +166,5 @@ def apply_montage(info, montage):
     for pos, name in zip(montage.pos, montage.names):
         ch_idx = info['ch_names'].index(name)
         info['ch_names'][ch_idx] = name
-        info['chs'][ch_idx]['eeg_loc'] = np.c_[pos, [0, 0, 0]]
-        info['chs'][ch_idx]['loc'][:3] = pos
+        info['chs'][ch_idx]['eeg_loc'] = np.c_[pos, [0] * 3]
+        info['chs'][ch_idx]['loc'] = np.r_[pos, [0] * 9]
