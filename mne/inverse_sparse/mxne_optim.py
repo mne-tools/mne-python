@@ -12,6 +12,7 @@ from scipy import linalg
 from .mxne_debiasing import compute_bias
 from ..utils import logger, verbose, sum_squared
 from ..time_frequency.stft import stft_norm2, stft, istft
+from ..externals.six.moves import xrange as range
 
 
 def groups_norm2(A, n_orient):
@@ -277,7 +278,7 @@ def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
         lipschitz_constant = 1.1 * np.sum(G * G, axis=0)
     else:
         lipschitz_constant = np.empty(n_positions)
-        for j in xrange(n_positions):
+        for j in range(n_positions):
             G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
             lipschitz_constant[j] = 1.1 * linalg.norm(np.dot(G_tmp.T, G_tmp),
                                                       ord=2)
@@ -295,8 +296,8 @@ def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
 
     alpha_lc = alpha / lipschitz_constant
 
-    for i in xrange(maxit):
-        for j in xrange(n_positions):
+    for i in range(maxit):
+        for j in range(n_positions):
             ids = j * n_orient
             ide = ids + n_orient
 

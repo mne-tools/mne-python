@@ -14,6 +14,7 @@ from ..forward import (compute_orient_prior, is_fixed_orient,
 from ..io.pick import pick_channels_evoked
 from ..io.proj import deactivate_proj
 from ..utils import logger, verbose
+from ..externals.six.moves import xrange as range
 
 from .mxne_optim import (mixed_norm_solver, iterative_mixed_norm_solver,
                          norm_l2inf, tf_mixed_norm_solver)

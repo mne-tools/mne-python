@@ -8,6 +8,7 @@ from scipy import linalg
 
 from ..forward import is_fixed_orient, _to_fixed_ori
 from ..utils import logger, verbose
+from ..externals.six.moves import xrange as range
 from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
                            _reapply_source_weighting, _compute_residual)
 
@@ -85,7 +86,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         # do nothing
         denom_fun = lambda x: x
 
-    for itno in np.arange(maxit):
+    for itno in range(maxit):
         gammas[np.isnan(gammas)] = 0.0
 
         gidx = (np.abs(gammas) > eps)
