@@ -8,11 +8,13 @@ Parts of this code are taken from scikit-learn
 """
 
 import numpy as np
+from numpy.testing import assert_almost_equal
+
 from scipy import stats
 from scipy import linalg
 
-from numpy.testing import assert_almost_equal
 from mne.preprocessing.infomax_ import infomax
+from mne.utils import requires_sklearn
 
 
 def center_and_norm(x, axis=-1):
@@ -31,6 +33,7 @@ def center_and_norm(x, axis=-1):
     x /= x.std(axis=0)
 
 
+@requires_sklearn
 def test_infomax_simple(add_noise=False):
     """ Test the infomax algorithm on very simple data.
     """
@@ -81,6 +84,7 @@ def test_infomax_simple(add_noise=False):
             assert_almost_equal(np.dot(s2_, s2) / n_samples, 1, decimal=1)
 
 
+@requires_sklearn
 def test_non_square_infomax(add_noise=False):
     """ Test the infomax algorithm on very simple data.
     """
