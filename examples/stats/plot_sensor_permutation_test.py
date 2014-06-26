@@ -62,9 +62,8 @@ print("Sensors names : %s" % significant_sensors_names)
 ###############################################################################
 # View location of significantly active sensors
 
-evoked = epochs.average()   # create evoked
-evoked.times = np.array([0])
-evoked.data = T0[:, np.newaxis]
+evoked = mne.evoked.EvokedArray(-np.log10(p_values)[:, np.newaxis],
+                                epochs.info, tmin=0.)
 
 # Extract mask and indices of active sensors in layout
 stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
@@ -74,8 +73,8 @@ mask[stats_picks] = True
 
 evoked.plot_topomap(ch_type='grad', times=[0],
                     scale=1, scale_time=1, time_format=None,
-                    cmap='RdBu_r', vmin=np.min, vmax=np.max,
-                    unit='T', format='-%0.1f', mask=mask,
+                    cmap='Reds', vmin=0., vmax=np.max,
+                    unit='-log10(p)', format='-%0.1f', mask=mask,
                     size=3, res=1024,
                     mask_params=dict(markersize=7, markeredgewidth=2),
-                    show_names=lambda x: x[4:] + ' ' * 12)
+                    show_names=lambda x: x[4:] + ' ' * 20)
