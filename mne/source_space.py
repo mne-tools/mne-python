@@ -10,14 +10,14 @@ import os.path as op
 from scipy import sparse, linalg
 from copy import deepcopy
 
-from .constants import FIFF
+from .io.constants import FIFF
 from .io.tree import dir_tree_find
 from .io.tag import find_tag, read_tag
 from .io.open import fiff_open
 from .io.write import (start_block, end_block, write_int,
-                         write_float_sparse_rcs, write_string,
-                         write_float_matrix, write_int_matrix,
-                         write_coord_trans, start_file, end_file, write_id)
+                       write_float_sparse_rcs, write_string,
+                       write_float_matrix, write_int_matrix,
+                       write_coord_trans, start_file, end_file, write_id)
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, read_bem_surfaces,
                       _read_surface_geom, _normalize_vectors,
@@ -25,7 +25,8 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       fast_cross_3d)
 from .source_estimate import mesh_dist
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
-                    has_nibabel, logger, verbose, check_scipy_version)
+                    has_nibabel, check_fname, logger, verbose,
+                    check_scipy_version)
 from .fixes import in1d, partial
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
@@ -186,7 +187,8 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     Parameters
     ----------
     fname : str
-        The name of the file.
+        The name of the file, which should end with -src.fif or
+        -src.fif.gz.
     add_geom : bool, optional (default False)
         Add geometry information to the surfaces.
     verbose : bool, str, int, or None
@@ -197,6 +199,8 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     src : SourceSpaces
         The source spaces.
     """
+    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
+
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
         src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
@@ -551,12 +555,15 @@ def write_source_spaces(fname, src, verbose=None):
     Parameters
     ----------
     fname : str
-        File to write.
+        The name of the file, which should end with -src.fif or
+        -src.fif.gz.
     src : SourceSpaces
         The source spaces (as returned by read_source_spaces).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
+
     fid = start_file(fname)
     start_block(fid, FIFF.FIFFB_MNE)
 
@@ -809,7 +816,8 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 
 @verbose
 def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
-                       overwrite=False, subjects_dir=None, verbose=None):
+                       overwrite=False, subjects_dir=None, add_dist=None,
+                       verbose=None):
     """Setup a source space with subsampling
 
     Parameters
@@ -829,6 +837,10 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
         If True, overwrite output file (if it exists).
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    add_dist : bool
+        Add distance and patch information to the source space. This takes some
+        time so precomputing it is recommended. The default is currently False
+        but will change to True in release 0.9.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -837,10 +849,17 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     src : list
         The source space for each hemisphere.
     """
+    if add_dist is None:
+        msg = ("The add_dist parameter to mne.setup_source_space currently "
+               "defaults to False, but the default will change to True in "
+               "release 0.9. Specify the parameter explicitly to avoid this "
+               "warning.")
+        logger.warning(msg)
+
     cmd = ('setup_source_space(%s, fname=%s, spacing=%s, surface=%s, '
-           'overwrite=%s, subjects_dir=%s, verbose=%s)'
+           'overwrite=%s, subjects_dir=%s, add_dist=%s, verbose=%s)'
            % (subject, fname, spacing, surface, overwrite,
-              subjects_dir, verbose))
+              subjects_dir, add_dist, verbose))
     # check to make sure our parameters are good, parse 'spacing'
     space_err = ('"spacing" must be a string with values '
                  '"ico#", "oct#", or "all", and "ico" and "oct"'
@@ -943,6 +962,9 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
 
     # upconvert to object format from lists
     src = SourceSpaces(src, dict(working_dir=os.getcwd(), command_line=cmd))
+
+    if add_dist:
+        add_source_space_distances(src, verbose=verbose)
 
     # write out if requested, then return the data
     if fname is not None:
@@ -1274,7 +1296,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
     idx3 = np.logical_and(idx2, y > minn[1])
     neigh[11, idx3] = k[idx3] - 1 - nrow - nplane
 
-    idx2 = np.logical_and(idx1,  y > minn[1])
+    idx2 = np.logical_and(idx1, y > minn[1])
     neigh[12, idx2] = k[idx2] - nrow - nplane
     idx3 = np.logical_and(idx2, x < maxn[0])
     neigh[13, idx3] = k[idx3] + 1 - nrow - nplane

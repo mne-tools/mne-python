@@ -13,7 +13,6 @@ print(__doc__)
 import matplotlib.pyplot as plt
 import mne
 from mne.viz import tight_layout
-from mne.io import read_evokeds
 from mne.datasets import sample
 
 data_path = sample.data_path()
@@ -22,7 +21,8 @@ fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 # Reading evoked data
 condition = 'Left Auditory'
-evoked = read_evokeds(fname, condition=condition, baseline=(None, 0), proj=True)
+evoked = mne.read_evokeds(fname, condition=condition, baseline=(None, 0),
+                          proj=True)
 
 ch_names = evoked.info['ch_names']
 picks = mne.pick_channels(ch_names=ch_names, include="MEG 2332", exclude="bad")

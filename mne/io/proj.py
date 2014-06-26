@@ -12,8 +12,8 @@ from itertools import count
 
 from .tree import dir_tree_find
 from .tag import find_tag
-from ..constants import FIFF
-from ..pick import pick_types
+from .constants import FIFF
+from .pick import pick_types
 from ..utils import logger, verbose
 
 
@@ -51,7 +51,7 @@ class ProjMixin(object):
             projs = [projs]
 
         if (not isinstance(projs, list) and
-            not all([isinstance(p, Projection) for p in projs])):
+                not all([isinstance(p, Projection) for p in projs])):
             raise ValueError('Only projs can be added. You supplied '
                              'something else.')
 
@@ -103,7 +103,7 @@ class ProjMixin(object):
 
         if all([p['active'] for p in self.info['projs']]):
             logger.info('Projections have already been applied. Doing '
-                         'nothing.')
+                        'nothing.')
             return self
 
         _projector, info = setup_proj(deepcopy(self.info), activate=True,
@@ -127,7 +127,7 @@ class ProjMixin(object):
                     data = np.empty_like(self._data)
                     for ii, e in enumerate(self._data):
                         data[ii] = self._preprocess(np.dot(self._projector, e),
-                            self.verbose)
+                                                    self.verbose)
                 else:  # get data knows what to do.
                     data = data()
             else:
@@ -168,20 +168,19 @@ class ProjMixin(object):
 def proj_equal(a, b):
     """ Test if two projectors are equal """
 
-    equal = a['active'] == b['active']\
-            and a['kind'] == b['kind']\
-            and a['desc'] == b['desc']\
-            and a['data']['col_names'] == b['data']['col_names']\
-            and a['data']['row_names'] == b['data']['row_names']\
-            and a['data']['ncol'] == b['data']['ncol']\
-            and a['data']['nrow'] == b['data']['nrow']\
-            and np.all(a['data']['data'] == b['data']['data'])
-
+    equal = (a['active'] == b['active'] and
+             a['kind'] == b['kind'] and
+             a['desc'] == b['desc'] and
+             a['data']['col_names'] == b['data']['col_names'] and
+             a['data']['row_names'] == b['data']['row_names'] and
+             a['data']['ncol'] == b['data']['ncol'] and
+             a['data']['nrow'] == b['data']['nrow'] and
+             np.all(a['data']['data'] == b['data']['data']))
     return equal
 
 
 @verbose
-def read_proj(fid, node, verbose=None):
+def _read_proj(fid, node, verbose=None):
     """Read spatial projections from a FIF file.
 
     Parameters
@@ -302,7 +301,7 @@ from .write import (write_int, write_float, write_string, write_name_list,
                     write_float_matrix, end_block, start_block)
 
 
-def write_proj(fid, projs):
+def _write_proj(fid, projs):
     """Write a projection operator to a file.
 
     Parameters
@@ -318,7 +317,7 @@ def write_proj(fid, projs):
         start_block(fid, FIFF.FIFFB_PROJ_ITEM)
         write_int(fid, FIFF.FIFF_NCHAN, proj['data']['ncol'])
         write_name_list(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
-                             proj['data']['col_names'])
+                        proj['data']['col_names'])
         write_string(fid, FIFF.FIFF_NAME, proj['desc'])
         write_int(fid, FIFF.FIFF_PROJ_ITEM_KIND, proj['kind'])
         if proj['kind'] == FIFF.FIFFV_PROJ_ITEM_FIELD:
@@ -388,8 +387,8 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
     nonzero = 0
     for k, p in enumerate(projs):
         if not p['active'] or include_active:
-            if len(p['data']['col_names']) != \
-                        len(np.unique(p['data']['col_names'])):
+            if (len(p['data']['col_names']) !=
+                    len(np.unique(p['data']['col_names']))):
                 raise ValueError('Channel name list in projection item %d'
                                  ' contains duplicate items' % k)
 
@@ -552,8 +551,8 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     eeg_proj_data = dict(col_names=eeg_names, row_names=None,
                          data=vec, nrow=1, ncol=n_eeg)
     eeg_proj = Projection(active=activate, data=eeg_proj_data,
-                    desc='Average EEG reference',
-                    kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF)
+                          desc='Average EEG reference',
+                          kind=FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF)
     return eeg_proj
 
 
@@ -568,7 +567,7 @@ def _has_eeg_average_ref_proj(projs):
 
 @verbose
 def setup_proj(info, add_eeg_ref=True, activate=True,
-              verbose=None):
+               verbose=None):
     """Set up projection for Raw and Epochs
 
     Parameters
@@ -607,7 +606,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         projector = None
     else:
         logger.info('Created an SSP operator (subspace dimension = %d)'
-                                                               % nproj)
+                    % nproj)
 
     #   The projection items have been activated
     if activate:
@@ -622,9 +621,9 @@ def _uniquify_projs(projs):
     for proj in projs:  # flatten
         if not any([proj_equal(p, proj) for p in final_projs]):
             final_projs.append(proj)
-    
+
     my_count = count(len(final_projs))
-    
+
     def sorter(x):
         """sort in a nice way"""
         digits = [s for s in x['desc'] if s.isdigit()]
@@ -633,5 +632,5 @@ def _uniquify_projs(projs):
         else:
             sort_idx = next(my_count)
         return (sort_idx, x['desc'])
-        
+
     return sorted(final_projs, key=sorter)

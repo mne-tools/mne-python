@@ -13,7 +13,7 @@ print(__doc__)
 
 import matplotlib.pyplot as plt
 
-from mne.io import read_evokeds
+from mne import read_evokeds
 from mne.viz import plot_topo
 from mne.datasets import sample
 data_path = sample.data_path()

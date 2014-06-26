@@ -106,7 +106,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     events : ndarray
         Detected events.
     """
-    if not raw._preloaded:
+    if not raw.preload:
         raise ValueError('raw needs to be preloaded, '
                          'use preload=True in constructor')
 

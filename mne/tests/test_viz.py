@@ -6,20 +6,20 @@ from nose.tools import assert_true, assert_equal
 import warnings
 
 from mne import io, read_events, Epochs, SourceEstimate, read_cov, read_proj
-from mne import make_field_map, pick_types
+from mne import make_field_map, pick_types, pick_channels_evoked, read_evokeds
 from mne.layouts import read_layout
-from mne.pick import pick_channels_evoked
 from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
                      plot_topo_phase_lock, plot_topo_image_epochs,
                      plot_evoked_topomap, plot_projs_topomap,
                      plot_sparse_source_estimates, plot_source_estimates,
                      plot_cov, mne_analyze_colormap, plot_image_epochs,
                      plot_connectivity_circle, circular_layout, plot_drop_log,
-                     compare_fiff, plot_source_spectrogram, plot_events)
+                     compare_fiff, plot_source_spectrogram, plot_events,
+                     plot_trans, plot_bem)
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
-from mne.preprocessing import ICA
-from mne.constants import FIFF
+from mne.io.constants import FIFF
+from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import check_sklearn_version
 
 
@@ -95,7 +95,7 @@ def _get_events():
 
 def _get_picks(raw):
     return pick_types(raw.info, meg=True, eeg=False, stim=False,
-                           ecg=False, eog=False, exclude='bads')
+                      ecg=False, eog=False, exclude='bads')
 
 
 def _get_epochs():
@@ -208,6 +208,11 @@ def test_plot_evoked():
                       proj='interactive')
         assert_raises(RuntimeError, evoked_delayed_ssp.plot,
                       proj='interactive', axes='foo')
+
+        evoked.plot_image(proj=True)
+        # plot with bad channels excluded
+        evoked.plot_image(exclude='bads')
+        evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing
         plt.close('all')
 
 
@@ -277,16 +282,76 @@ def test_plot_cov():
 
 
 @requires_sklearn
-def test_plot_ica_panel():
+def test_plot_ica_components():
+    """Test plotting of ICA solutions
+    """
+    raw = _get_raw()
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+                           ecg=False, eog=False, exclude='bads')
+    ica.fit(raw, picks=ica_picks)
+    warnings.simplefilter('always', UserWarning)
+    with warnings.catch_warnings(record=True):
+        for components in [0, [0], [0, 1], [0, 1] * 7, None]:
+            ica.plot_components(components)
+    ica.info = None
+    assert_raises(RuntimeError, ica.plot_components, 1)
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_ica_sources():
     """Test plotting of ICA panel
+    """
+    raw = io.Raw(raw_fname, preload=True)
+    picks = _get_picks(raw)
+    epochs = _get_epochs()
+    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    raw.pick_channels([raw.ch_names[k] for k in picks])
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+                           ecg=False, eog=False, exclude='bads')
+    ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
+    ica.fit(raw, picks=ica_picks)
+    ica.plot_sources(raw)
+    ica.plot_sources(epochs)
+    ica.plot_sources(epochs.average())
+    assert_raises(ValueError, ica.plot_sources, 'meeow')
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_ica_overlay():
+    """Test plotting of ICA cleaning
+    """
+    raw = _get_raw()
+    picks = _get_picks(raw)
+    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
+                           ecg=False, eog=False, exclude='bads')
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica.fit(raw, picks=ica_picks)
+    # don't test raw, needs preload ...
+    ecg_epochs = create_ecg_epochs(raw, picks=picks)
+    ica.plot_overlay(ecg_epochs.average())
+    eog_epochs = create_eog_epochs(raw, picks=picks)
+    ica.plot_overlay(eog_epochs.average())
+    assert_raises(ValueError, ica.plot_overlay, raw[:2, :3][0])
+    plt.close('all')
+
+
+@requires_sklearn
+def test_plot_ica_scores():
+    """Test plotting of ICA scores
     """
     raw = _get_raw()
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
-                                ecg=False, eog=False, exclude='bads')
+                           ecg=False, eog=False, exclude='bads')
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica.decompose_raw(raw, picks=ica_picks)
-    ica.plot_sources_raw(raw)
+    ica.fit(raw, picks=ica_picks)
+    ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
+    assert_raises(ValueError, ica.plot_scores, [0.2])
     plt.close('all')
 
 
@@ -453,16 +518,19 @@ def test_plot_topomap():
     # evoked
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
-        evoked = io.read_evokeds(evoked_fname, 'Left Auditory',
-                                  baseline=(None, 0))
+        evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                              baseline=(None, 0))
         evoked.plot_topomap(0.1, 'mag', layout=layout)
+        mask = np.zeros_like(evoked.data, dtype=bool)
+        mask[[1, 5], :] = True
         plot_evoked_topomap(evoked, None, ch_type='mag')
         times = [0.1, 0.2]
         plot_evoked_topomap(evoked, times, ch_type='eeg')
-        plot_evoked_topomap(evoked, times, ch_type='grad')
+        plot_evoked_topomap(evoked, times, ch_type='grad', mask=mask)
         plot_evoked_topomap(evoked, times, ch_type='planar1')
         plot_evoked_topomap(evoked, times, ch_type='planar2')
-        plot_evoked_topomap(evoked, times, ch_type='grad', show_names=True)
+        plot_evoked_topomap(evoked, times, ch_type='grad', mask=mask,
+                            show_names=True, mask_params={'marker': 'x'})
 
         p = plot_evoked_topomap(evoked, times, ch_type='grad',
                                 show_names=lambda x: x.replace('MEG', ''))
@@ -489,14 +557,17 @@ def test_plot_topomap():
             plot_evoked_topomap(evoked, times, ch_type='mag', layout='auto')
         assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                       proj='interactive')  # projs have already been applied
-        evoked.proj = False  # let's fake it like they haven't been applied
+
+        # change to no-proj mode
+        evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                              baseline=(None, 0), proj=False)
         plot_evoked_topomap(evoked, 0.1, 'mag', proj='interactive')
         assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                       np.repeat(.1, 50))
         assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
 
         projs = read_proj(ecg_fname)
-        projs = [p for p in projs if p['desc'].lower().find('eeg') < 0]
+        projs = [pp for pp in projs if pp['desc'].lower().find('eeg') < 0]
         plot_projs_topomap(projs)
         plt.close('all')
         for ch in evoked.info['chs']:
@@ -523,7 +594,7 @@ def test_plot_ica_topomap():
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
-                                ecg=False, eog=False, exclude='bads')
+                           ecg=False, eog=False, exclude='bads')
     ica.decompose_raw(raw, picks=ica_picks)
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
@@ -549,15 +620,21 @@ def test_plot_source_spectrogram():
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_source_spectrogram([stc, stc], [[1, 2], [3, 4]])
     assert_raises(ValueError, plot_source_spectrogram, [], [])
+    assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
+                  [[1, 2], [3, 4]], tmin=0)
+    assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
+                  [[1, 2], [3, 4]], tmax=7)
 
 
 @requires_mayavi
 @sample.requires_sample_data
 def test_plot_evoked_field():
+    """Test plotting evoked field
+    """
     trans_fname = op.join(data_dir, 'MEG', 'sample',
                           'sample_audvis_raw-trans.fif')
-    evoked = io.read_evokeds(evoked_fname, condition='Left Auditory',
-                               baseline=(-0.2, 0.0))
+    evoked = read_evokeds(evoked_fname, condition='Left Auditory',
+                          baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
     for t in ['meg', None]:
         maps = make_field_map(evoked, trans_fname=trans_fname,
@@ -567,7 +644,37 @@ def test_plot_evoked_field():
         evoked.plot_field(maps, time=0.1)
 
 
+@requires_mayavi
+@sample.requires_sample_data
+def test_plot_trans():
+    """Test plotting of -trans.fif files
+    """
+    trans_fname = op.join(data_dir, 'MEG', 'sample',
+                          'sample_audvis_raw-trans.fif')
+    evoked = read_evokeds(evoked_fname, condition='Left Auditory',
+                          baseline=(-0.2, 0.0))
+    plot_trans(evoked.info, trans_fname=trans_fname, subject='sample',
+               subjects_dir=subjects_dir)
+    assert_raises(ValueError, plot_trans, evoked.info, trans_fname=trans_fname,
+                  subject='sample', subjects_dir=subjects_dir,
+                  ch_type='bad-chtype')
+
+
+@sample.requires_sample_data
+def test_plot_bem():
+    """Test plotting of BEM contours
+    """
+    assert_raises(IOError, plot_bem, subject='bad-subject',
+                  subjects_dir=subjects_dir)
+    assert_raises(ValueError, plot_bem, subject='sample',
+                  subjects_dir=subjects_dir, orientation='bad-ori')
+    plot_bem(subject='sample', subjects_dir=subjects_dir,
+             orientation='sagittal', slices=[50, 100])
+
+
 def test_plot_events():
+    """Test plotting events
+    """
     event_labels = {'aud_l': 1, 'aud_r': 2, 'vis_l': 3, 'vis_r': 4}
     color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c'}
     raw = _get_raw()

@@ -49,6 +49,8 @@ Changelog
 
    - Add  `compute_ems` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
 
+   - Add option to expand Labels defined in a source space to the original surface (`Label.fill()`) by `Christian Brodbeck`_
+
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
    - Add `add_channels_epochs` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
@@ -67,9 +69,39 @@ Changelog
 
    - Add `events_list` parameter to `mne.concatenate_raws` to concatenate events corresponding to runs by `Denis Engemann`_
 
-   - Add `read_ch_connectivity` function and `ch_neighbor_connectivity`
-   to read FieldTrip neighbor template .mat files and compute between
-   sensor adjacency matrices by `Denis Engemann`_
+   - Add `read_ch_connectivity` function and `ch_neighbor_connectivity` to read FieldTrip neighbor template .mat files and compute between sensor adjacency matrices by `Denis Engemann`_
+
+   - Add display of head in helmet from -trans.fif file to check coregistration quality by `Mainak Jas`_
+
+   - Add `raw.add_events` to allow adding events to a raw file by `Eric Larson`_
+
+   - Add `plot_image` method to Evoked object to display data as images by `JR King`_ and `Alex Gramfort`_ and `Denis Engemann`_
+
+   - Add BCI demo with CSP on motor imagery by `Martin Billinger`_
+
+   - New ICA API with unified methods for processing Raw, Epochs and Evoked objects by `Denis Engemann`_
+
+   - Apply ICA at the evoked stage by `Denis Engemann`_
+
+   - New ICA methods for visualizing unmixing quality, artifact detection and rejection by `Denis Engemann`_
+
+   - Add 'pick_channels' and 'drop_channels' mixin class to pick and drop channels from Raw, Epochs, and Evoked objects by `Andrew Dykstra`_ and `Denis Engemann`_
+
+   - Add 'EvokedArray' class to create an Evoked object from an array by 'Andrew Dykstra'_
+
+   - Add `plot_bem` method to visualize BEM contours on MRI anatomical images by `Mainak Jas`_ and `Alex Gramfort`_
+
+   - Add automated ECG detection using cross-trial phase statistics by `Denis Engemann`_ and `Juergen Dammers`_
+
+   - Add Forward class to succintly display gain matrix info by `Andrew Dykstra`_
+
+   - Add reading and writing of split raw files by `Martin Luessi`_
+
+   - Add OLS regression function by `Tal Linzen`_, `Teon Brooks`_ and `Denis Engemann`_
+
+   - Add computation of point spread and cross-talk functions for MNE type solutions by `Alex Gramfort`_ and `Olaf Hauk`_
+
+   - Add mask parameter to `plot_evoked_topomap` and `evoked.plot_topomap` by `Denis Engemann`_ and `Alex Gramfort`_
 
 BUG
 ~~~
@@ -78,12 +110,13 @@ BUG
 
    - Fix corner case error for step-down-in-jumps permutation test (when step-down threshold was high enough to include all clusters) by `Eric Larson`_
 
-  - Fix selection of total number of components via float when picking ICA sources by `Denis Engemann`_ and `Qunxi Dong`_
+   - Fix selection of total number of components via float when picking ICA sources by `Denis Engemann`_ and `Qunxi Dong`_
 
-  - Fix writing and reading transforms after modification in measurment info by `Denis Engemann`_ and `Martin Luessi`_ and `Eric Larson`_
+   - Fix writing and reading transforms after modification in measurment info by `Denis Engemann`_ and `Martin Luessi`_ and `Eric Larson`_
 
-  - Fix pre-whitening / rescaling when estimating ICA on multiple channels without covariance by `Denis Engemann`_
+   - Fix pre-whitening / rescaling when estimating ICA on multiple channels without covariance by `Denis Engemann`_
 
+   - Fix ICA pre-whitening, avoid recomputation when applying ICA to new data by `Denis Engemann`_
 
 API
 ~~~
@@ -96,6 +129,8 @@ API
 
    - Deprecate `labels_from_parc` and `parc_from_labels` in favor of `read_annot` and `write_annot`
 
+   - The default of the new add_dist option of `setup_source_space` to add patch information will change from False to True in MNE-Python 0.9
+
    - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`.
 read_evokeds will return all Evoked instances in a file by default.
 
@@ -105,6 +140,10 @@ affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
    - Deprecate `mne.fiff` module, use `mne.io` instead e.g. `mne.io.Raw` instead of `mne.fiff.Raw`.
 
    - Pick functions (e.g., `pick_types`) are now in the mne namespace (e.g. use `mne.pick_types`).
+
+   - Deprecated ICA methods specfific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
+
+   - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
 
 .. _changes_0_7:
 
@@ -707,3 +746,9 @@ of commits):
 .. _Federico Raimondo: https://github.com/fraimondo
 
 .. _Cathy Nangini: https://github.com/KatiRG
+
+.. _JR King: https://github.com/kingjr
+
+.. _Juergen Dammers: https://github.com/jdammers
+
+.. _Olaf Hauk: http://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk

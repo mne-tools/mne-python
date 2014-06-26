@@ -16,22 +16,23 @@ import numpy as np
 from scipy.signal import hilbert
 from scipy import linalg
 
-from ..constants import FIFF
-from ..pick import pick_types, channel_type
+from .constants import FIFF
+from .pick import pick_types, channel_type, pick_channels
 from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
-from .channels import ContainsMixin, PickDropChannelsMixin
+from ..channels import ContainsMixin, PickDropChannelsMixin
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
                     write_complex64, write_complex128, write_int,
-                    write_id)
+                    write_id, write_string)
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
+                     check_fname, _get_stim_channel, object_hash,
                      logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 from ..externals.six import string_types
@@ -66,6 +67,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             self.close()
         except:
             return exception_type, exception_val, trace
+
+    def __hash__(self):
+        if not self.preload:
+            raise RuntimeError('Cannot hash raw unless preloaded')
+        return object_hash(dict(info=self.info, data=self._data))
 
     def _add_eeg_ref(self, add_eeg_ref):
         """Helper to add an average EEG reference"""
@@ -124,7 +130,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     def __getitem__(self, item):
         """getting raw data content with python slicing"""
         sel, start, stop = self._parse_get_set_params(item)
-        if self._preloaded:
+        if self.preload:
             data, times = self._data[sel, start:stop], self._times[start:stop]
         else:
             data, times = self._read_segment(start=start, stop=stop, sel=sel,
@@ -134,7 +140,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
     def __setitem__(self, item, value):
         """setting raw data content with python slicing"""
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Modifying data of Raw is only supported '
                                'when preloading is used. Use preload=True '
                                '(or string) in the constructor.')
@@ -190,7 +196,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         **kwargs :
             Keyword arguments to pass to fun.
         """
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
 
@@ -341,7 +347,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         if h_freq is not None and not isinstance(h_freq, float):
             h_freq = float(h_freq)
 
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
         if picks is None:
@@ -476,7 +482,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                 raise RuntimeError('Could not find any valid channels for '
                                    'your Raw object. Please contact the '
                                    'MNE-Python developers.')
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Raw data needs to be preloaded to filter. Use '
                                'preload=True (or string) in the constructor.')
 
@@ -530,7 +536,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         For some data, it may be more accurate to use npad=0 to reduce
         artifacts. This is dataset dependent -- check your data!
         """
-        if not self._preloaded:
+        if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
         sfreq = float(sfreq)
         o_sfreq = float(self.info['sfreq'])
@@ -614,7 +620,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         smin = raw.time_as_index(tmin)[0]
         smax = raw.time_as_index(tmax)[0]
         cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths,
-                                     dtype='int')))
+                                                   dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)
         keepers = np.logical_and(np.less(smin, cumul_lens[1:]),
                                  np.greater_equal(smax, cumul_lens[:-1]))
@@ -629,7 +635,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                        if ri in keepers]
         raw.first_samp = raw._first_samps[0]
         raw.last_samp = raw.first_samp + (smax - smin)
-        if raw._preloaded:
+        if raw.preload:
             raw._data = raw._data[:, smin:smax + 1]
             raw._times = np.arange(raw.n_times) / raw.info['sfreq']
         return raw
@@ -637,14 +643,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False, proj=False, format='single',
-             overwrite=False, verbose=None):
+             overwrite=False, split_size='2GB', verbose=None):
         """Save raw data to file
 
         Parameters
         ----------
         fname : string
             File name of the new dataset. This has to be a new filename
-            unless data have been preloaded.
+            unless data have been preloaded. Filenames should end with
+            raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz, raw_tsss.fif
+            or raw_tsss.fif.gz.
         picks : array-like of int | None
             Indices of channels to include. If None all channels are kept.
         tmin : float | None
@@ -676,6 +684,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.
+        split_size : string | int
+            Large raw files are automatically split into multiple pieces. This
+            parameter specifies the maximum size of each piece. If the
+            parameter is an integer, it specifies the size in Bytes. It is
+            also possible to pass a human-readable string, e.g., 100MB.
+            Note: Due to FIFF file limitations, the maximum split size is 2GB.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
@@ -689,12 +703,26 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
+        check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
+                                   'raw.fif.gz', 'raw_sss.fif.gz',
+                                   'raw_tsss.fif.gz'))
+
+        if isinstance(split_size, string_types):
+            exp = dict(MB=20, GB=30).get(split_size[-2:], None)
+            if exp is None:
+                raise ValueError('split_size has to end with either'
+                                 '"MB" or "GB"')
+            split_size = int(float(split_size[:-2]) * 2 ** exp)
+
+        if split_size > 2147483648:
+            raise ValueError('split_size cannot be larger than 2GB')
+
         fname = op.realpath(fname)
-        if not self._preloaded and fname in self._filenames:
+        if not self.preload and fname in self._filenames:
             raise ValueError('You cannot save data to the same file.'
                              ' Please use a different filename.')
 
-        if self._preloaded:
+        if self.preload:
             if np.iscomplexobj(self._data):
                 warnings.warn('Saving raw file with complex data. Loading '
                               'with command-line MNE tools will not work.')
@@ -707,6 +735,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             raise ValueError('format must be "short", "int", "single", '
                              'or "double"')
         reset_dict = dict(short=False, int=False, single=True, double=True)
+        reset_range = reset_dict[format]
+        data_type = type_dict[format]
 
         data_test = self[0, 0][0]
         if format == 'short' and np.iscomplexobj(data_test):
@@ -730,15 +760,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             inv_comp = linalg.inv(self.comp)
             set_current_comp(info, self._orig_comp_grade)
 
-        outfid, cals = start_writing_raw(fname, info, picks, type_dict[format],
-                                         reset_range=reset_dict[format])
         #
         #   Set up the reading parameters
         #
 
         #   Convert to samples
         start = int(floor(tmin * self.info['sfreq']))
-        first_samp = self.first_samp + start
 
         if tmax is None:
             stop = self.last_samp + 1 - self.first_samp
@@ -751,34 +778,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             else:
                 buffer_size_sec = 10.0
         buffer_size = int(ceil(buffer_size_sec * self.info['sfreq']))
-        #
-        #   Read and write all the data
-        #
-        if first_samp != 0:
-            write_int(outfid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
-        for first in range(start, stop, buffer_size):
-            last = first + buffer_size
-            if last >= stop:
-                last = stop + 1
 
-            if picks is None:
-                data, times = self[:, first:last]
-            else:
-                data, times = self[picks, first:last]
-
-            if projector is not None:
-                data = np.dot(projector, data)
-
-            if ((drop_small_buffer and (first > start)
-                 and (len(times) < buffer_size))):
-                logger.info('Skipping data chunk due to small buffer ... '
-                            '[done]')
-                break
-            logger.info('Writing ...')
-            write_raw_buffer(outfid, data, cals, format, inv_comp)
-            logger.info('[done]')
-
-        finish_writing_raw(outfid)
+        # write the raw file
+        _write_raw(fname, self, info, picks, format, data_type, reset_range,
+                   start, stop, buffer_size, projector, inv_comp,
+                   drop_small_buffer, split_size, 0, None)
 
     def plot(raw, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
@@ -911,7 +915,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                               use_first_samp)
 
     def index_as_time(self, index, use_first_samp=False):
-        """Convert time to indices
+        """Convert indices to time
 
         Parameters
         ----------
@@ -940,7 +944,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         Parameters
         ----------
         tstart : float
-            Start time to use for rank estimation. Defaul is 0.0.
+            Start time to use for rank estimation. Default is 0.0.
         tstop : float | None
             End time to use for rank estimation. Default is 30.0.
             If None, the end time of the raw file is used.
@@ -954,7 +958,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             to determine the rank.
         picks : array_like of int, shape (n_selected_channels,)
             The channels to be considered for rank estimation.
-            If None (default) meg and eeg channels are indcluded.
+            If None (default) meg and eeg channels are included.
 
         Returns
         -------
@@ -1071,7 +1075,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         _check_raw_compatibility(all_raws)
 
         # deal with preloading data first (while files are separate)
-        all_preloaded = self._preloaded and all(r._preloaded for r in raws)
+        all_preloaded = self.preload and all(r.preload for r in raws)
         if preload is None:
             if all_preloaded:
                 preload = True
@@ -1079,17 +1083,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                 preload = False
 
         if preload is False:
-            if self._preloaded:
+            if self.preload:
                 self._data = None
                 self._times = None
-            self._preloaded = False
+            self.preload = False
         else:
             # do the concatenation ourselves since preload might be a string
             nchan = self.info['nchan']
             c_ns = np.cumsum([rr.n_times for rr in ([self] + raws)])
             nsamp = c_ns[-1]
 
-            if not self._preloaded:
+            if not self.preload:
                 this_data = self._read_segment()[0]
             else:
                 this_data = self._data
@@ -1104,14 +1108,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             _data[:, 0:c_ns[0]] = this_data
 
             for ri in range(len(raws)):
-                if not raws[ri]._preloaded:
+                if not raws[ri].preload:
                     # read the data directly into the buffer
                     data_buffer = _data[:, c_ns[ri]:c_ns[ri + 1]]
                     raws[ri]._read_segment(data_buffer=data_buffer)
                 else:
                     _data[:, c_ns[ri]:c_ns[ri + 1]] = raws[ri]._data
             self._data = _data
-            self._preloaded = True
+            self.preload = True
 
         # now combine information from each raw file to construct new self
         for r in raws:
@@ -1123,7 +1127,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
 
         # this has to be done after first and last sample are set appropriately
-        if self._preloaded:
+        if self.preload:
             self._times = np.arange(self.n_times) / self.info['sfreq']
 
     def close(self):
@@ -1261,6 +1265,44 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                                 self.n_times)
         return "<Raw  |  %s>" % s
 
+    def add_events(self, events, stim_channel=None):
+        """Add events to stim channel
+
+        Parameters
+        ----------
+        events : ndarray, shape (n_events, 3)
+            Events to add. The first column specifies the sample number of
+            each event, the second column is ignored, and the third column
+            provides the event value. If events already exist in the Raw
+            instance at the given sample numbers, the event values will be
+            added together.
+        stim_channel : str | None
+            Name of the stim channel to add to. If None, the config variable
+            'MNE_STIM_CHANNEL' is used. If this is not found, it will default
+            to 'STI 014'.
+
+        Notes
+        -----
+        Data must be preloaded in order to add events.
+        """
+        if not self.preload:
+            raise RuntimeError('cannot add events unless data are preloaded')
+        events = np.asarray(events)
+        if events.ndim != 2 or events.shape[1] != 3:
+            raise ValueError('events must be shape (n_events, 3)')
+        stim_channel = _get_stim_channel(stim_channel)
+        pick = pick_channels(self.ch_names, stim_channel)
+        if len(pick) == 0:
+            raise ValueError('Channel %s not found' % stim_channel)
+        pick = pick[0]
+        idx = events[:, 0].astype(int)
+        if np.any(idx < self.first_samp) or np.any(idx > self.last_samp):
+            raise ValueError('event sample numbers must be between %s and %s'
+                             % (self.first_samp, self.last_samp))
+        if not all(idx == events[:, 0]):
+            raise ValueError('event sample numbers must be integers')
+        self._data[pick, idx - self.first_samp] += events[:, 2]
+
 
 def set_eeg_reference(raw, ref_channels, copy=True):
     """Rereference eeg channels to new reference channel(s).
@@ -1287,7 +1329,7 @@ def set_eeg_reference(raw, ref_channels, copy=True):
         Array of reference data subtracted from eeg channels.
     """
     # Check to see that raw data is preloaded
-    if not raw._preloaded:
+    if not raw.preload:
         raise RuntimeError('Raw data needs to be preloaded. Use '
                            'preload=True (or string) in the constructor.')
     # Make sure that reference channels are loaded as list of string
@@ -1350,7 +1392,7 @@ def _time_as_index(times, sfreq, first_samp=0, use_first_samp=False):
 
 
 def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
-    """Convert time to indices
+    """Convert indices to time
 
     Parameters
     ----------
@@ -1371,6 +1413,7 @@ def _index_as_time(index, sfreq, first_samp=0, use_first_samp=False):
 
 class _RawShell():
     """Used for creating a temporary raw object"""
+
     def __init__(self):
         self.first_samp = None
         self.last_samp = None
@@ -1385,9 +1428,102 @@ class _RawShell():
 
 ###############################################################################
 # Writing
+def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
+               stop, buffer_size, projector, inv_comp, drop_small_buffer,
+               split_size, part_idx, prev_fname):
+    """Write raw file with splitting
+    """
 
-def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
-                      reset_range=True):
+    if part_idx > 0:
+        # insert index in filename
+        path, base = op.split(fname)
+        idx = base.find('.')
+        use_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
+                                                base[idx + 1:]))
+    else:
+        use_fname = fname
+    logger.info('Writing %s' % use_fname)
+
+    meas_id = info['meas_id']
+    if meas_id is None:
+        meas_id = 0
+
+    fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
+                                   reset_range)
+
+    first_samp = raw.first_samp + start
+    if first_samp != 0:
+        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first_samp)
+
+    # previous file name and id
+    if part_idx > 0 and prev_fname is not None:
+        start_block(fid, FIFF.FIFFB_REF)
+        write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
+        write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
+        write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+        write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
+        end_block(fid, FIFF.FIFFB_REF)
+
+    pos_prev = None
+    for first in range(start, stop, buffer_size):
+        last = first + buffer_size
+        if last >= stop:
+            last = stop + 1
+
+        if picks is None:
+            data, times = raw[:, first:last]
+        else:
+            data, times = raw[picks, first:last]
+
+        if projector is not None:
+            data = np.dot(projector, data)
+
+        if ((drop_small_buffer and (first > start)
+             and (len(times) < buffer_size))):
+            logger.info('Skipping data chunk due to small buffer ... '
+                        '[done]')
+            break
+        logger.info('Writing ...')
+
+        if pos_prev is None:
+            pos_prev = fid.tell()
+
+        _write_raw_buffer(fid, data, cals, format, inv_comp)
+
+        pos = fid.tell()
+        this_buff_size_bytes = pos - pos_prev
+        if this_buff_size_bytes > split_size / 2:
+            raise ValueError('buffer size is too large for the given split'
+                             'size: decrease "buffer_size_sec" or increase'
+                             '"split_size".')
+        if pos > split_size:
+            raise logger.warning('file is larger than "split_size"')
+
+        # Split files if necessary, leave some space for next file info
+        if pos >= split_size - this_buff_size_bytes - 2 ** 20:
+            next_fname, next_idx = _write_raw(fname, raw, info, picks, format,
+                data_type, reset_range, first + buffer_size, stop, buffer_size,
+                projector, inv_comp, drop_small_buffer, split_size,
+                part_idx + 1, use_fname)
+
+            start_block(fid, FIFF.FIFFB_REF)
+            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
+            write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+            write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
+            end_block(fid, FIFF.FIFFB_REF)
+            break
+
+        pos_prev = pos
+
+    logger.info('Closing %s [done]' % use_fname)
+    _finish_writing_raw(fid)
+
+    return use_fname, part_idx
+
+
+def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
+                       reset_range=True):
     """Start write raw data in file
 
     Data will be written in float
@@ -1462,7 +1598,7 @@ def start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     return fid, cals
 
 
-def write_raw_buffer(fid, buf, cals, format, inv_comp):
+def _write_raw_buffer(fid, buf, cals, format, inv_comp):
     """Write raw buffer
 
     Parameters
@@ -1512,14 +1648,8 @@ def write_raw_buffer(fid, buf, cals, format, inv_comp):
 
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
 
-    # make sure we didn't go over the 2GB file size limit
-    pos = fid.tell()
-    if pos >= 2147483647:  # np.iinfo(np.int32).max
-        raise IOError('2GB file size limit reached. Support for larger '
-                      'raw files will be added in the future.')
 
-
-def finish_writing_raw(fid):
+def _finish_writing_raw(fid):
     """Finish writing raw FIF file
 
     Parameters
@@ -1672,8 +1802,8 @@ def _quart_to_rot(q):
     q2 = q[:, 1]
     q3 = q[:, 2]
     rotation = np.array((np.c_[(q0 ** 2 + q1 ** 2 - q2 ** 2 - q3 ** 2,
-                               2 * (q1 * q2 - q0 * q3),
-                               2 * (q1 * q3 + q0 * q2))],
+                                2 * (q1 * q2 - q0 * q3),
+                                2 * (q1 * q3 + q0 * q2))],
                          np.c_[(2 * (q1 * q2 + q0 * q3),
                                 q0 ** 2 + q2 ** 2 - q1 ** 2 - q3 ** 2,
                                 2 * (q2 * q3 - q0 * q1))],

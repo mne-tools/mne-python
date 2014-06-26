@@ -11,18 +11,27 @@ from scipy import linalg
 from ..externals.six import BytesIO, string_types
 from datetime import datetime as dt
 
-from ..constants import FIFF
+from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
-from .tag import read_tag
-from .proj import read_proj, write_proj, _uniquify_projs
+from .tag import read_tag, find_tag
+from .proj import _read_proj, _write_proj, _uniquify_projs
 from .ctf import read_ctf_comp, write_ctf_comp
-from .channels import read_bad_channels
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian)
 from ..utils import logger, verbose
+
+_kind_dict = dict(
+    eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    mag=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFF_UNIT_T),
+    grad=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_PLANAR_T1, FIFF.FIFF_UNIT_T_M),
+    misc=(FIFF.FIFFV_MISC_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_NONE),
+    stim=(FIFF.FIFFV_STIM_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    eog=(FIFF.FIFFV_EOG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    ecg=(FIFF.FIFFV_ECG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+)
 
 
 def _summarize_str(st):
@@ -86,7 +95,7 @@ def read_fiducials(fname):
         List of digitizer points (each point in a dict).
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.constants.FIFF.FIFFV_COORD_...)
+        mne.io.constants.FIFF.FIFFV_COORD_...)
     """
     fid, tree, _ = fiff_open(fname)
     with fid:
@@ -128,7 +137,7 @@ def write_fiducials(fname, pts, coord_frame=0):
         the keys 'kind', 'ident' and 'r'.
     coord_frame : int
         The coordinate frame of the points (one of
-        mne.constants.FIFF.FIFFV_COORD_...)
+        mne.io.constants.FIFF.FIFFV_COORD_...)
     """
     pts_frames = set((pt.get('coord_frame', coord_frame) for pt in pts))
     bad_frames = pts_frames - set((coord_frame,))
@@ -167,6 +176,33 @@ def read_info(fname, verbose=None):
     with f as fid:
         info = read_meas_info(fid, tree)[0]
     return info
+
+
+def read_bad_channels(fid, node):
+    """Read bad channels
+
+    Parameters
+    ----------
+    fid : file
+        The file descriptor.
+
+    node : dict
+        The node of the FIF tree that contains info on the bad channels.
+
+    Returns
+    -------
+    bads : list
+        A list of bad channel's names.
+    """
+    nodes = dir_tree_find(node, FIFF.FIFFB_MNE_BAD_CHANNELS)
+
+    bads = []
+    if len(nodes) > 0:
+        for node in nodes:
+            tag = find_tag(fid, node, FIFF.FIFF_MNE_CH_NAME_LIST)
+            if tag is not None and tag.data is not None:
+                bads = tag.data.split(':')
+    return bads
 
 
 @verbose
@@ -332,7 +368,7 @@ def read_meas_info(fid, tree, verbose=None):
                 acq_stim = tag.data
 
     #   Load the SSP data
-    projs = read_proj(fid, meas_info)
+    projs = _read_proj(fid, meas_info)
 
     #   Load the CTF compensation data
     comps = read_ctf_comp(fid, meas_info, chs)
@@ -452,15 +488,15 @@ def read_extra_meas_info(fid, tree, info):
     # just storing it for later)
     blocks = [FIFF.FIFFB_EVENTS, FIFF.FIFFB_HPI_RESULT, FIFF.FIFFB_HPI_MEAS,
               FIFF.FIFFB_PROCESSING_HISTORY]
-    info['orig_blocks'] = blocks
-
-    fid_str = BytesIO()
-    fid_str = start_file(fid_str)
-    start_block(fid_str, FIFF.FIFFB_MEAS_INFO)
-    for block in blocks:
+    info['orig_blocks'] = dict(blocks=blocks)
+    fid_bytes = BytesIO()
+    start_file(fid_bytes, tree['id'])
+    start_block(fid_bytes, FIFF.FIFFB_MEAS_INFO)
+    for block in info['orig_blocks']['blocks']:
         nodes = dir_tree_find(tree, block)
-        copy_tree(fid, tree['id'], nodes, fid_str)
-    info['orig_fid_str'] = fid_str
+        copy_tree(fid, tree['id'], nodes, fid_bytes)
+    end_block(fid_bytes, FIFF.FIFFB_MEAS_INFO)
+    info['orig_blocks']['bytes'] = fid_bytes.getvalue()
 
 
 def write_extra_meas_info(fid, info):
@@ -468,11 +504,10 @@ def write_extra_meas_info(fid, info):
     # uses BytesIO fake file to read the appropriate blocks
     if 'orig_blocks' in info and info['orig_blocks'] is not None:
         # Blocks from the original
-        blocks = info['orig_blocks']
-        fid_str, tree, _ = fiff_open(info['orig_fid_str'])
-        for block in blocks:
+        fid_bytes, tree, _ = fiff_open(BytesIO(info['orig_blocks']['bytes']))
+        for block in info['orig_blocks']['blocks']:
             nodes = dir_tree_find(tree, block)
-            copy_tree(fid_str, tree['id'], nodes, fid)
+            copy_tree(fid_bytes, tree['id'], nodes, fid)
 
 
 def write_meas_info(fid, info, data_type=None, reset_range=True):
@@ -529,7 +564,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_coord_trans(fid, info['ctf_head_t'])
 
     #   Projectors
-    write_proj(fid, info['projs'])
+    _write_proj(fid, info['projs'])
 
     #   CTF compensation info
     write_ctf_comp(fid, info['comps'])
@@ -742,12 +777,73 @@ def _merge_info(infos, verbose=None):
             raise ValueError(err)
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'description', 'dig', 'experimenter', 'file_id',
-                    'filename', 'highpass', 'line_freq',
-                    'lowpass', 'meas_date', 'meas_id', 'orig_blocks',
-                    'orig_fid_str', 'proj_id', 'proj_name', 'projs',
-                    'sfreq', 'subject_info', 'sfreq']
+                    'filename', 'highpass', 'line_freq', 'lowpass',
+                    'meas_date', 'meas_id', 'orig_blocks', 'proj_id',
+                    'proj_name', 'projs', 'sfreq', 'subject_info', 'sfreq']
 
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
 
+    return info
+
+
+def create_info(ch_names, sfreq, ch_types=None):
+    """Create a basic Info instance suitable for use with create_raw
+
+    Parameters
+    ----------
+    ch_names : list of str
+        Channel names.
+    sfreq : float
+        Sample rate of the data.
+    ch_types : list of str
+        Channel types. If None, data are assumed to be misc.
+        Currently supported fields are "mag", "grad", "eeg", and "misc".
+
+    Notes
+    -----
+    The info dictionary will be sparsely populated to enable functionality
+    within the rest of the package. Advanced functionality such as source
+    localization can only be obtained through substantial, proper
+    modifications of the info structure (not recommended).
+    """
+    if not isinstance(ch_names, (list, tuple)):
+        raise TypeError('ch_names must be a list or tuple')
+    sfreq = float(sfreq)
+    if sfreq <= 0:
+        raise ValueError('sfreq must be positive')
+    nchan = len(ch_names)
+    if ch_types is None:
+        ch_types = ['misc'] * nchan
+    if len(ch_types) != nchan:
+        raise ValueError('ch_types and ch_names must be the same length')
+    info = Info()
+    info['meas_date'] = [0, 0]
+    info['sfreq'] = sfreq
+    for key in ['bads', 'projs', 'comps']:
+        info[key] = list()
+    for key in ['meas_id', 'file_id', 'highpass', 'lowpass', 'acq_pars',
+                'acq_stim', 'filename', 'dig']:
+        info[key] = None
+    info['ch_names'] = ch_names
+    info['nchan'] = nchan
+    info['chs'] = list()
+    loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
+    for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
+        if not isinstance(name, string_types):
+            raise TypeError('each entry in ch_names must be a string')
+        if not isinstance(kind, string_types):
+            raise TypeError('each entry in ch_types must be a string')
+        if kind not in _kind_dict:
+            raise KeyError('kind must be one of %s, not %s'
+                           % (list(_kind_dict.keys()), kind))
+        kind = _kind_dict[kind]
+        chan_info = dict(loc=loc, eeg_loc=None, unit_mul=0, range=1., cal=1.,
+                         coil_trans=None, kind=kind[0], coil_type=kind[1],
+                         unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
+                         ch_name=name, scanno=ci + 1, logno=ci + 1)
+        info['chs'].append(chan_info)
+    info['dev_head_t'] = None
+    info['dev_ctf_t'] = None
+    info['ctf_head_t'] = None
     return info

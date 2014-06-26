@@ -48,40 +48,28 @@ data = epochs.get_data()
 times = epochs.times
 
 temporal_mask = np.logical_and(0.04 <= times, times <= 0.06)
-data = np.squeeze(np.mean(data[:, :, temporal_mask], axis=2))
+data = np.mean(data[:, :, temporal_mask], axis=2)
 
 n_permutations = 50000
 T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=2)
 
 significant_sensors = picks[p_values <= 0.05]
-significant_sensors_names = [raw.info['ch_names'][k]
-                             for k in significant_sensors]
+significant_sensors_names = [raw.ch_names[k] for k in significant_sensors]
 
 print("Number of significant sensors : %d" % len(significant_sensors))
 print("Sensors names : %s" % significant_sensors_names)
 
 ###############################################################################
 # View location of significantly active sensors
-import matplotlib.pyplot as plt
 
-# load sensor layout
-layout = mne.find_layout(epochs.info)
+evoked = mne.EvokedArray(-np.log10(p_values)[:, np.newaxis],
+                         epochs.info, tmin=0.)
 
 # Extract mask and indices of active sensors in layout
-idx_of_sensors = [layout.names.index(name)
-                  for name in significant_sensors_names
-                  if name in layout.names]
-mask_significant_sensors = np.zeros(len(layout.pos), dtype=np.bool)
-mask_significant_sensors[idx_of_sensors] = True
-mask_non_significant_sensors = mask_significant_sensors == False
+stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
+mask = p_values[:, np.newaxis] <= 0.05
 
-# plot it
-plt.figure(figsize=(5, 3.5), facecolor='k')
-plt.axis('off')
-plt.scatter(layout.pos[mask_significant_sensors, 0],
-            layout.pos[mask_significant_sensors, 1], s=50, c='r')
-plt.scatter(layout.pos[mask_non_significant_sensors, 0],
-            layout.pos[mask_non_significant_sensors, 1], c='w')
-title = 'Left auditory between 40 and 60 ms'
-plt.figtext(0.03, 0.93, title, color='w', fontsize=18)
-plt.show()
+evoked.plot_topomap(ch_type='grad', times=[0], scale=1, time_format=None,
+                    cmap='Reds', vmin=0., vmax=np.max,
+                    unit='-log10(p)', format='-%0.1f', mask=mask,
+                    size=3, show_names=lambda x: x[4:] + ' ' * 20)

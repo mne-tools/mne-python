@@ -1,5 +1,6 @@
 # Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #         Denis Engemann <d.engemann@fz-juelich.de>
+#         Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -10,19 +11,39 @@ import warnings
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_not_equal
 
-from mne import equalize_channels, pick_types
-from mne.io import read_evoked, write_evoked, read_evokeds, write_evokeds
-from mne.io.evoked import _get_peak
+from mne import (equalize_channels, pick_types, read_evoked, write_evoked,
+                 read_evokeds, write_evokeds)
+from mne.evoked import _get_peak, EvokedArray
+from mne.epochs import EpochsArray
+
 from mne.utils import _TempDir, requires_pandas, requires_nitime
+
+from mne.io.meas_info import create_info
+from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')
 
-fname = op.join(op.dirname(__file__), 'data', 'test-ave.fif')
-fname_gz = op.join(op.dirname(__file__), 'data', 'test-ave.fif.gz')
+fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
+                'test-ave.fif')
+fname_gz = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
+                   'test-ave.fif.gz')
 
 tempdir = _TempDir()
+
+
+def test_hash_evoked():
+    """Test evoked hashing
+    """
+    ave = read_evokeds(fname, 0)
+    ave_2 = read_evokeds(fname, 0)
+    assert_equal(hash(ave), hash(ave_2))
+    # do NOT use assert_equal here, failing output is terrible
+    assert_true(pickle.dumps(ave) == pickle.dumps(ave_2))
+
+    ave_2.data[0, 0] -= 1
+    assert_not_equal(hash(ave), hash(ave_2))
 
 
 def test_io_evoked():
@@ -30,8 +51,8 @@ def test_io_evoked():
     """
     ave = read_evokeds(fname, 0)
 
-    write_evokeds(op.join(tempdir, 'evoked.fif'), ave)
-    ave2 = read_evokeds(op.join(tempdir, 'evoked.fif'))[0]
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
+    ave2 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))[0]
 
     # This not being assert_array_equal due to windows rounding
     assert_true(np.allclose(ave.data, ave2.data, atol=1e-16, rtol=1e-3))
@@ -62,7 +83,7 @@ def test_io_evoked():
         assert_true(w[0].category == DeprecationWarning)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        write_evoked(op.join(tempdir, 'evoked.fif'), ave)
+        write_evoked(op.join(tempdir, 'evoked-ave.fif'), ave)
         assert_true(w[0].category == DeprecationWarning)
 
     # test read_evokeds and write_evokeds
@@ -70,8 +91,8 @@ def test_io_evoked():
     aves1 = read_evokeds(fname)
     aves2 = read_evokeds(fname, [0, 1, 2, 3])
     aves3 = read_evokeds(fname, types)
-    write_evokeds(op.join(tempdir, 'evoked.fif'), aves1)
-    aves4 = read_evokeds(op.join(tempdir, 'evoked.fif'))
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), aves1)
+    aves4 = read_evokeds(op.join(tempdir, 'evoked-ave.fif'))
     for aves in [aves2, aves3, aves4]:
         for [av1, av2] in zip(aves1, aves):
             assert_array_almost_equal(av1.data, av2.data)
@@ -83,6 +104,14 @@ def test_io_evoked():
             assert_equal(av1.first, av2.first)
             assert_equal(av1.comment, av2.comment)
 
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        fname2 = op.join(tempdir, 'test-bad-name.fif')
+        write_evokeds(fname2, ave)
+        read_evokeds(fname2)
+    assert_true(len(w) == 2)
+
 
 def test_shift_time_evoked():
     """ Test for shifting of time scale
@@ -90,20 +119,20 @@ def test_shift_time_evoked():
     # Shift backward
     ave = read_evokeds(fname, 0)
     ave.shift_time(-0.1, relative=True)
-    write_evokeds(op.join(tempdir, 'evoked.fif'), ave)
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
 
     # Shift forward twice the amount
-    ave_bshift = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
+    ave_bshift = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
     ave_bshift.shift_time(0.2, relative=True)
-    write_evokeds(op.join(tempdir, 'evoked.fif'), ave_bshift)
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave_bshift)
 
     # Shift backward again
-    ave_fshift = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
+    ave_fshift = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
     ave_fshift.shift_time(-0.1, relative=True)
-    write_evokeds(op.join(tempdir, 'evoked.fif'), ave_fshift)
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave_fshift)
 
     ave_normal = read_evokeds(fname, 0)
-    ave_relative = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
+    ave_relative = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
     assert_true(np.allclose(ave_normal.data, ave_relative.data,
                             atol=1e-16, rtol=1e-3))
@@ -115,9 +144,9 @@ def test_shift_time_evoked():
     # Absolute time shift
     ave = read_evokeds(fname, 0)
     ave.shift_time(-0.3, relative=False)
-    write_evokeds(op.join(tempdir, 'evoked.fif'), ave)
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
 
-    ave_absolute = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
+    ave_absolute = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
     assert_true(np.allclose(ave_normal.data, ave_absolute.data,
                             atol=1e-16, rtol=1e-3))
@@ -131,14 +160,14 @@ def test_evoked_resample():
     ave = read_evokeds(fname, 0)
     sfreq_normal = ave.info['sfreq']
     ave.resample(2 * sfreq_normal)
-    write_evokeds(op.join(tempdir, 'evoked.fif'), ave)
-    ave_up = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
+    write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
+    ave_up = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
 
     # compare it to the original
     ave_normal = read_evokeds(fname, 0)
 
     # and compare the original to the downsampled upsampled version
-    ave_new = read_evokeds(op.join(tempdir, 'evoked.fif'), 0)
+    ave_new = read_evokeds(op.join(tempdir, 'evoked-ave.fif'), 0)
     ave_new.resample(sfreq_normal)
 
     assert_array_almost_equal(ave_normal.data, ave_new.data, 2)
@@ -310,3 +339,46 @@ def test_equalize_channels():
     equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
+
+
+def test_array_epochs():
+    """Test creating evoked from array
+    """
+
+    # creating
+    rng = np.random.RandomState(42)
+    data1 = rng.randn(20, 60)
+    sfreq = 1e3
+    ch_names = ['EEG %03d' % (i + 1) for i in range(20)]
+    types = ['eeg'] * 20
+    info = create_info(ch_names, sfreq, types)
+    evoked1 = EvokedArray(data1, info, tmin=-0.01)
+
+    # save, read, and compare evokeds
+    tmp_fname = op.join(tempdir, 'evkdary-ave.fif')
+    evoked1.save(tmp_fname)
+    evoked2 = read_evokeds(tmp_fname)[0]
+    data2 = evoked2.data
+    assert_allclose(data1, data2)
+    assert_allclose(evoked1.times, evoked2.times)
+    assert_equal(evoked1.first, evoked2.first)
+    assert_equal(evoked1.last, evoked2.last)
+    assert_equal(evoked1.kind, evoked2.kind)
+    assert_equal(evoked1.nave, evoked2.nave)
+
+    # now compare with EpochsArray (with single epoch)
+    data3 = data1[np.newaxis, :, :]
+    events = np.c_[10, 0, 1]
+    evoked3 = EpochsArray(data3, info, events=events, tmin=-0.01).average()
+    assert_allclose(evoked1.data, evoked3.data)
+    assert_allclose(evoked1.times, evoked3.times)
+    assert_equal(evoked1.first, evoked3.first)
+    assert_equal(evoked1.last, evoked3.last)
+    assert_equal(evoked1.kind, evoked3.kind)
+    assert_equal(evoked1.nave, evoked3.nave)
+
+    # test match between channels info and data
+    ch_names = ['EEG %03d' % (i + 1) for i in range(19)]
+    types = ['eeg'] * 19
+    info = create_info(ch_names, sfreq, types)
+    assert_raises(ValueError, EvokedArray, data1, info, tmin=-0.01)

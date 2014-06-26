@@ -452,7 +452,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
 @verbose
 def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                   adaptive=False, low_bias=True, n_jobs=1, verbose=None):
+                   adaptive=False, low_bias=True, n_jobs=1,
+                   normalization='length', verbose=None):
     """Compute power spectrum density (PSD) using a multi-taper method
 
     Parameters
@@ -475,6 +476,10 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -485,6 +490,9 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
     freqs : array
         The frequency points in Hz of the PSD.
     """
+    if normalization not in ('length', 'full'):
+        raise ValueError('Normalization must be "length" or "full", not %s'
+                         % normalization)
     if x.ndim > 2:
         raise ValueError('x can only be 1d or 2d')
 
@@ -531,5 +539,7 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         psd = psd[0, :]
 
     freqs = freqs[freq_mask]
+    if normalization == 'full':
+        psd /= sfreq
 
     return psd, freqs

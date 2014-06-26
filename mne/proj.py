@@ -6,8 +6,8 @@ import numpy as np
 from scipy import linalg
 
 from . import io, Epochs
-from .utils import logger, verbose
-from .pick import pick_types, pick_types_forward
+from .utils import check_fname, logger, verbose
+from .io.pick import pick_types, pick_types_forward
 from .io.proj import Projection, _has_eeg_average_ref_proj
 from .event import make_fixed_length_events
 from .parallel import parallel_func
@@ -24,16 +24,19 @@ def read_proj(fname):
     Parameters
     ----------
     fname : string
-        The name of file containing the projections vectors.
+        The name of file containing the projections vectors. It should end with
+        -proj.fif or -proj.fif.gz.
 
     Returns
     -------
     projs : list
         The list of projection vectors.
     """
+    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
+
     ff, tree, _ = io.fiff_open(fname)
     with ff as fid:
-        projs = io.proj.read_proj(fid, tree)
+        projs = io.proj._read_proj(fid, tree)
     return projs
 
 
@@ -43,13 +46,16 @@ def write_proj(fname, projs):
     Parameters
     ----------
     fname : string
-        The name of file containing the projections vectors.
+        The name of file containing the projections vectors. It should end with
+        -proj.fif or -proj.fif.gz.
 
     projs : list
         The list of projection vectors.
     """
+    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
+
     fid = io.write.start_file(fname)
-    io.proj.write_proj(fid, projs)
+    io.proj._write_proj(fid, projs)
     io.write.end_file(fid)
 
 

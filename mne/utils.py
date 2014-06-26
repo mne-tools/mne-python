@@ -20,10 +20,10 @@ import tempfile
 import shutil
 from shutil import rmtree
 import atexit
-from math import log
+from math import log, ceil
 import json
 import ftplib
-import inspect
+import hashlib
 
 import numpy as np
 import scipy
@@ -31,9 +31,8 @@ from scipy import linalg
 
 
 from .externals.six.moves import urllib
-from .externals.six import string_types
+from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
-
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
@@ -41,6 +40,112 @@ logger.propagate = False  # don't propagate (in case of multiple imports)
 
 ###############################################################################
 # RANDOM UTILITIES
+
+def _sort_keys(x):
+    """Sort and return keys of dict"""
+    keys = list(x.keys())  # note: not thread-safe
+    idx = np.argsort([str(k) for k in keys])
+    keys = [keys[ii] for ii in idx]
+    return keys
+
+
+def object_hash(x, h=None):
+    """Hash a reasonable python object
+
+    Parameters
+    ----------
+    x : object
+        Object to hash. Can be anything comprised of nested versions of:
+        {dict, list, tuple, ndarray, str, bytes, float, int, None}.
+    h : hashlib HASH object | None
+        Optional, object to add the hash to. None creates an MD5 hash.
+
+    Returns
+    -------
+    digest : int
+        The digest resulting from the hash.
+    """
+    if h is None:
+        h = hashlib.md5()
+    if isinstance(x, dict):
+        keys = _sort_keys(x)
+        for key in keys:
+            object_hash(key, h)
+            object_hash(x[key], h)
+    elif isinstance(x, (list, tuple)):
+        h.update(str(type(x)).encode('utf-8'))
+        for xx in x:
+            object_hash(xx, h)
+    elif isinstance(x, bytes):
+        # must come before "str" below
+        h.update(x)
+    elif isinstance(x, (string_types, float, int, type(None))):
+        h.update(str(type(x)).encode('utf-8'))
+        h.update(str(x).encode('utf-8'))
+    elif isinstance(x, np.ndarray):
+        x = np.asarray(x)
+        h.update(str(x.shape).encode('utf-8'))
+        h.update(str(x.dtype).encode('utf-8'))
+        h.update(x.tostring())
+    else:
+        raise RuntimeError('unsupported type: %s (%s)' % (type(x), x))
+    return int(h.hexdigest(), 16)
+
+
+def object_diff(a, b, pre=''):
+    """Compute all differences between two python variables
+
+    Parameters
+    ----------
+    a : object
+        Currently supported: dict, list, tuple, ndarray, int, str, bytes,
+        float, StringIO, BytesIO.
+    b : object
+        Must be same type as x1.
+    pre : str
+        String to prepend to each line.
+
+    Returns
+    -------
+    diffs : str
+        A string representation of the differences.
+    """
+    out = ''
+    if type(a) != type(b):
+        out += pre + ' type mismatch (%s, %s)\n' % (type(a), type(b))
+    elif isinstance(a, dict):
+        k1s = _sort_keys(a)
+        k2s = _sort_keys(b)
+        m1 = set(k2s) - set(k1s)
+        if len(m1):
+            out += pre + ' x1 missing keys %s\n' % (m1)
+        for key in k1s:
+            if key not in k2s:
+                out += pre + ' x2 missing key %s\n' % key
+            else:
+                out += object_diff(a[key], b[key], pre + 'd1[%s]' % repr(key))
+    elif isinstance(a, (list, tuple)):
+        if len(a) != len(b):
+            out += pre + ' length mismatch (%s, %s)\n' % (len(a), len(b))
+        else:
+            for xx1, xx2 in zip(a, b):
+                out += object_diff(xx1, xx2, pre='')
+    elif isinstance(a, (string_types, int, float, bytes)):
+        if a != b:
+            out += pre + ' value mismatch (%s, %s)\n' % (a, b)
+    elif a is None:
+        if b is not None:
+            out += pre + ' a is None, b is not (%s)\n' % (b)
+    elif isinstance(a, np.ndarray):
+        if not np.array_equal(a, b):
+            out += pre + ' array mismatch\n'
+    elif isinstance(a, (StringIO, BytesIO)):
+        if a.getvalue() != b.getvalue():
+            out += pre + ' StringIO mismatch\n'
+    else:
+        raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
+    return out
+
 
 def check_random_state(seed):
     """Turn seed into a np.random.RandomState instance
@@ -97,6 +202,25 @@ def sum_squared(X):
     """
     X_flat = X.ravel(order='F' if np.isfortran(X) else 'C')
     return np.dot(X_flat, X_flat)
+
+
+def check_fname(fname, filetype, endings):
+    """Enforce MNE filename conventions
+
+    Parameters
+    ----------
+    fname : str
+        Name of the file.
+    filetype : str
+        Type of file. e.g., ICA, Epochs etc.
+    endings : tuple
+        Acceptable endings for the filename.
+    """
+    print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
+    if not fname.endswith(endings):
+        warnings.warn('This filename does not conform to mne naming convention'
+                      's. All %s files should end with '
+                      '%s' % (filetype, print_endings))
 
 
 class WrapStdOut(object):
@@ -171,6 +295,41 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         return rank, s
     else:
         return rank
+
+
+def _reject_data_segments(data, reject, flat, decim, info, tstep):
+    """Reject data segments using peak-to-peak amplitude
+    """
+    from .epochs import _is_good
+    from .io.pick import channel_indices_by_type
+
+    data_clean = np.empty_like(data)
+    idx_by_type = channel_indices_by_type(info)
+    step = int(ceil(tstep * info['sfreq']))
+    if decim is not None:
+        step = int(ceil(step / float(decim)))
+    this_start = 0
+    this_stop = 0
+    drop_inds = []
+    for first in range(0, data.shape[1], step):
+        last = first + step
+        data_buffer = data[:, first:last]
+        if data_buffer.shape[1] < (last - first):
+            break  # end of the time segment
+        if _is_good(data_buffer, info['ch_names'], idx_by_type, reject,
+                    flat, ignore_chs=info['bads']):
+            this_stop = this_start + data_buffer.shape[1]
+            data_clean[:, this_start:this_stop] = data_buffer
+            this_start += data_buffer.shape[1]
+        else:
+            logger.info("Artifact detected in [%d, %d]" % (first, last))
+            drop_inds.append((first, last))
+    data = data_clean[:, :this_stop]
+    if not data.any():
+        raise RuntimeError('No clean segment found. Please '
+                           'consider updating your rejection '
+                           'thresholds.')
+    return data, drop_inds
 
 
 def run_subprocess(command, *args, **kwargs):
@@ -527,7 +686,7 @@ def requires_statsmodels(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            import statsmodels
+            import statsmodels  # noqa, analysis:ignore
         except ImportError:
             skip = True
 
@@ -552,7 +711,7 @@ def requires_patsy(function):
     def dec(*args, **kwargs):
         skip = False
         try:
-            import patsy
+            import patsy  # noqa, analysis:ignore
         except ImportError:
             skip = True
 
@@ -846,7 +1005,7 @@ def set_memmap_min_size(memmap_min_size):
     Parameters
     ----------
     memmap_min_size: str or None
-        Threshold on the minimum size of arrays that triggers automated memmory
+        Threshold on the minimum size of arrays that triggers automated memory
         mapping for parallel processing, e.g., '1M' for 1 megabyte.
         Use None to disable memmaping of large arrays.
     """
@@ -864,9 +1023,11 @@ def set_memmap_min_size(memmap_min_size):
 known_config_types = [
     'MNE_BROWSE_RAW_SIZE',
     'MNE_CUDA_IGNORE_PRECISION',
+    'MNE_DATA',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SPM_FACE_PATH',
+    'MNE_DATASETS_EEGBCI_PATH',
     'MNE_LOGGING_LEVEL',
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
@@ -923,7 +1084,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
             config = json.load(fid)
             if key is None:
                 return config
-        key_found = True if key in config else False
+        key_found = key in config
         val = config.get(key, default)
 
     if not key_found and raise_error is True:
@@ -1179,6 +1340,7 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     # chunk and will write it to file and update the progress bar
     chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
+    data.close()
 
 
 def _chunk_write(chunk, local_file, progress):
@@ -1214,7 +1376,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         try:
             file_size = int(u.headers['Content-Length'].strip())
         finally:
-            u.close()
+            del u
         print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
@@ -1237,7 +1399,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
                     _fetch_file(url, resume=False)
                 else:
                     _chunk_read(data, local_file, initial_size=local_file_size)
-                    data.close()
+                    del data  # should auto-close
             else:
                 _chunk_read_ftp_resume(url, temp_file_name, local_file)
         else:
@@ -1246,7 +1408,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
             try:
                 _chunk_read(data, local_file, initial_size=initial_size)
             finally:
-                data.close()
+                del data  # should auto-close
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
@@ -1291,6 +1453,29 @@ def _url_to_local_path(url, path):
     destination = os.path.join(path,
                                urllib.request.url2pathname(destination)[1:])
     return destination
+
+
+def _get_stim_channel(stim_channel):
+    """Helper to determine the appropriate stim_channel"""
+    if stim_channel is not None:
+        if not isinstance(stim_channel, list):
+            if not isinstance(stim_channel, string_types):
+                raise ValueError('stim_channel must be a str, list, or None')
+            stim_channel = [stim_channel]
+        if not all([isinstance(s, string_types) for s in stim_channel]):
+            raise ValueError('stim_channel list must contain all strings')
+        return stim_channel
+
+    stim_channel = list()
+    ch_count = 0
+    ch = get_config('MNE_STIM_CHANNEL')
+    while(ch is not None):
+        stim_channel.append(ch)
+        ch_count += 1
+        ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
+    if ch_count == 0:
+        stim_channel = ['STI 014']
+    return stim_channel
 
 
 def _check_fname(fname, overwrite):

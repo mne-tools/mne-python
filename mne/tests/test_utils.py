@@ -1,17 +1,20 @@
 from numpy.testing import assert_equal, assert_array_equal
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true, assert_raises, assert_not_equal
+from copy import deepcopy
 import os.path as op
 import numpy as np
 import os
 import warnings
-from ..externals.six.moves import urllib
+from mne.externals.six.moves import urllib
 
-from ..utils import (set_log_level, set_log_file, _TempDir,
-                     get_config, set_config, deprecated, _fetch_file,
-                     sum_squared, requires_mem_gb, estimate_rank,
-                     _url_to_local_path, sizeof_fmt,
-                     _check_type_picks)
-from ..io import Evoked, show_fiff
+from mne.utils import (set_log_level, set_log_file, _TempDir,
+                       get_config, set_config, deprecated, _fetch_file,
+                       sum_squared, requires_mem_gb, estimate_rank,
+                       _url_to_local_path, sizeof_fmt,
+                       _check_type_picks, object_hash, object_diff)
+from mne.io import show_fiff
+from mne import Evoked
+
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -27,6 +30,40 @@ test_name = op.join(tempdir, 'test.log')
 def clean_lines(lines):
     # Function to scrub filenames for checking logging output (in test_logging)
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+
+
+def test_hash():
+    """Test dictionary hashing and comparison functions"""
+    # does hashing all of these types work:
+    # {dict, list, tuple, ndarray, str, float, int, None}
+    d0 = dict(a=dict(a=0.1, b='fo', c=1), b=[1, 'b'], c=(), d=np.ones(3))
+    d0[1] = None
+    d0[2.] = b'123'
+
+    d1 = deepcopy(d0)
+    print(object_diff(d0, d1))
+    assert_equal(object_hash(d0), object_hash(d1))
+
+    # change values slightly
+    d1['data'] = np.ones(3, int)
+    assert_not_equal(object_hash(d0), object_hash(d1))
+
+    d1 = deepcopy(d0)
+    print(object_diff(d0, d1))
+    assert_equal(object_hash(d0), object_hash(d1))
+    d1['a']['a'] = 0.11
+    object_diff(d0, d1)
+    assert_not_equal(object_hash(d0), object_hash(d1))
+
+    d1 = deepcopy(d0)
+    print(object_diff(d0, d1))
+    assert_equal(object_hash(d0), object_hash(d1))
+    d1[1] = 2
+    object_diff(d0, d1)
+    assert_not_equal(object_hash(d0), object_hash(d1))
+    # generators (and other types) not supported
+    d1[1] = (x for x in d0)
+    assert_raises(RuntimeError, object_hash, d1)
 
 
 def test_tempdir():
@@ -277,4 +314,3 @@ def test_check_type_picks():
     assert_raises(ValueError, _check_type_picks, picks)
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
-

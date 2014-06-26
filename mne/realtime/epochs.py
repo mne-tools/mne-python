@@ -362,19 +362,8 @@ class RtEpochs(_BaseEpochs):
         if self.proj and self._projector is not None:
             epoch = np.dot(self._projector, epoch)
 
-        # Detrend
-        if self.detrend is not None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False, ref_meg=False)
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
-
-        # Baseline correct
-        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
-                        copy=False, verbose='ERROR')
-
-        # Decimate
-        if self.decim > 1:
-            epoch = epoch[:, self._decim_idx]
+        # Detrend, baseline correct, decimate
+        epoch = self._preprocess(epoch, verbose='ERROR')
 
         # Decide if this is a good epoch
         is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')

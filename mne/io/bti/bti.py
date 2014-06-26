@@ -12,7 +12,7 @@ from itertools import count
 import numpy as np
 
 from ...utils import logger, verbose, sum_squared
-from ...constants import FIFF
+from ..constants import FIFF
 from ..base import _BaseRaw
 from .constants import BTI
 from .read import (read_int32, read_int16, read_str, read_float, read_double,
@@ -1159,7 +1159,7 @@ class RawBTi(_BaseRaw):
         self.proj = None
         self.comp = None
         self._filenames = list()
-        self._preloaded = True
+        self.preload = True
         self._projector_hashes = [None]
         self.info = info
 

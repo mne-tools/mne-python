@@ -16,9 +16,8 @@ and less than 2 standard deviations.
 
 print(__doc__)
 
-from mne import read_cov, whiten_evoked, pick_types
+from mne import read_cov, whiten_evoked, pick_types, read_evokeds
 from mne.cov import regularize
-from mne.io import read_evokeds
 from mne.datasets import sample
 
 data_path = sample.data_path()

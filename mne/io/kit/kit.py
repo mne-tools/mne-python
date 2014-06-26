@@ -16,13 +16,13 @@ import time
 import numpy as np
 from scipy import linalg
 
-from mne import pick_types
+from ..pick import pick_types
 from ...coreg import (read_elp, fit_matched_points, _decimate_points,
                       get_ras_to_neuromag_trans)
 from ...utils import verbose, logger
-from ...constants import FIFF
 from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
 from ..base import _BaseRaw
+from ..constants import FIFF
 from ..meas_info import Info
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
@@ -84,7 +84,7 @@ class RawKIT(_BaseRaw):
 
         # Raw attributes
         self.verbose = verbose
-        self._preloaded = False
+        self.preload = False
         self._projector = None
         self.first_samp = 0
         self.last_samp = self._sqd_params['nsamples'] - 1
@@ -210,7 +210,7 @@ class RawKIT(_BaseRaw):
 
         self._set_stimchannels(stim, slope)
         if preload:
-            self._preloaded = preload
+            self.preload = preload
             logger.info('Reading raw data from %s...' % input_fname)
             self._data, _ = self._read_segment()
             assert len(self._data) == self.info['nchan']
@@ -497,7 +497,7 @@ class RawKIT(_BaseRaw):
             '-' means a negative slope (high-to-low) on the event channel(s)
             is used to trigger an event.
         """
-        if self._preloaded:
+        if self.preload:
             err = "Can't change stim channel after preloading data"
             raise NotImplementedError(err)
 

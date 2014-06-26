@@ -15,7 +15,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 import mne
 from mne.utils import _TempDir
 from mne import pick_types
-from mne.constants import FIFF
+from mne.io.constants import FIFF
 from mne.io import Raw
 from mne.io import read_raw_brainvision
 
@@ -104,7 +104,7 @@ def test_events():
     assert_equal(raw.info['nchan'], nchan - 1)
     assert_equal(len(raw._data), nchan - 1)
     assert_equal(raw.info['chs'][-1]['ch_name'], ch_name)
-    fname = op.join(tempdir, 'raw_evt.fif')
+    fname = op.join(tempdir, 'evt_raw.fif')
     raw.save(fname)
 
     # add events back in
@@ -119,7 +119,7 @@ def test_read_segment():
     """Test writing raw eeg files when preload is False
     """
     raw1 = read_raw_brainvision(vhdr_path, preload=False)
-    raw1_file = op.join(tempdir, 'raw1.fif')
+    raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True)
     raw11 = Raw(raw1_file, preload=True)
     data1, times1 = raw1[:, :]
@@ -129,7 +129,7 @@ def test_read_segment():
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
     raw2 = read_raw_brainvision(vhdr_path, preload=True)
-    raw2_file = op.join(tempdir, 'raw2.fif')
+    raw2_file = op.join(tempdir, 'test2-raw.fif')
     raw2.save(raw2_file, overwrite=True)
     data2, times2 = raw2[:, :]
     assert_array_equal(data1, data2)
@@ -140,14 +140,14 @@ def test_read_segment():
     assert_array_equal(raw1._data, raw2._data)
 
     # save with buffer size smaller than file
-    raw3_file = op.join(tempdir, 'raw3.fif')
+    raw3_file = op.join(tempdir, 'test3-raw.fif')
     raw3 = read_raw_brainvision(vhdr_path)
     raw3.save(raw3_file, buffer_size_sec=2)
     raw3 = Raw(raw3_file, preload=True)
     assert_array_equal(raw3._data, raw1._data)
 
     # add reference channel
-    raw4_file = op.join(tempdir, 'raw4.fif')
+    raw4_file = op.join(tempdir, 'test4-raw.fif')
     raw4 = read_raw_brainvision(vhdr_path, reference='A1')
     raw4.save(raw4_file, buffer_size_sec=2)
     raw4 = Raw(raw4_file, preload=True)

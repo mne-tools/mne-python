@@ -12,7 +12,7 @@ import os.path as op
 
 import numpy as np
 
-from ...constants import FIFF
+from ..constants import FIFF
 from ..open import fiff_open, _fiff_get_fid
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
@@ -21,7 +21,7 @@ from ..proj import proj_equal
 from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw
 
-from ...utils import logger, verbose
+from ...utils import check_fname, logger, verbose
 from ...externals.six import string_types
 
 
@@ -32,7 +32,10 @@ class RawFIFF(_BaseRaw):
     ----------
     fnames : list, or string
         A list of the raw files to treat as a Raw instance, or a single
-        raw file.
+        raw file. For files that have automatically been split, only the
+        name of the first file has to be specified. Filenames should end
+        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
+        raw_tsss.fif or raw_tsss.fif.gz.
     allow_maxshield : bool, (default False)
         allow_maxshield if True, allow loading of data that has been
         processed with Maxshield. Maxshield-processed data should generally
@@ -68,6 +71,8 @@ class RawFIFF(_BaseRaw):
         List of channels' names.
     n_times : int
         Total number of time points in the raw file.
+    preload : bool
+        Indicates whether raw data are in memory.
     verbose : bool, str, int, or None
         See above.
     """
@@ -79,9 +84,32 @@ class RawFIFF(_BaseRaw):
         if not isinstance(fnames, list):
             fnames = [fnames]
         fnames = [op.realpath(f) for f in fnames]
+        split_fnames = []
 
-        raws = [self._read_raw_file(fname, allow_maxshield, preload,
-                                    compensation) for fname in fnames]
+        raws = []
+        for ii, fname in enumerate(fnames):
+            do_check_fname = fname not in split_fnames
+            raw, next_fname = self._read_raw_file(fname, allow_maxshield,
+                                                  preload, compensation,
+                                                  do_check_fname)
+            raws.append(raw)
+            if next_fname is not None:
+                if not op.exists(next_fname):
+                    logger.warning('Split raw file detected but next file %s '
+                                   'does not exist.' % next_fname)
+                    continue
+                if next_fname in fnames:
+                    # the user manually specified the split files
+                    logger.info('Note: %s is part of a split raw file. It is '
+                                'not necessary to manually specify the parts '
+                                'in this case; simply construct Raw using '
+                                'the name of the first file.' % next_fname)
+                    continue
+
+                # process this file next
+                fnames.insert(ii + 1, next_fname)
+                split_fnames.append(next_fname)
+
         _check_raw_compatibility(raws)
 
         # combine information from each raw file to construct self
@@ -104,7 +132,7 @@ class RawFIFF(_BaseRaw):
         if preload:
             self._preload_data(preload)
         else:
-            self._preloaded = False
+            self.preload = False
 
         self._projector = None
         # setup the SSP projector
@@ -121,15 +149,20 @@ class RawFIFF(_BaseRaw):
             data_buffer = None
 
         self._data, self._times = self._read_segment(data_buffer=data_buffer)
-        self._preloaded = True
+        self.preload = True
         # close files once data are preloaded
         self.close()
 
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload, compensation,
-                       verbose=None):
+                       do_check_fname=True, verbose=None):
         """Read in header information from a raw file"""
         logger.info('Opening raw data file %s...' % fname)
+
+        if do_check_fname:
+            check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif',
+                                       'raw_tsss.fif', 'raw.fif.gz',
+                                       'raw_sss.fif.gz', 'raw_tsss.fif.gz'))
 
         #   Read in the whole file if preload is on and .fif.gz (saves time)
         ext = os.path.splitext(fname)[1].lower()
@@ -176,12 +209,6 @@ class RawFIFF(_BaseRaw):
                 # This first skip can be applied only after we know the bufsize
                 tag = read_tag(fid, directory[first].pos)
                 first_skip = int(tag.data)
-                first += 1
-
-            #  Get first sample tag if it is there
-            if directory[first].kind == FIFF.FIFF_FIRST_SAMPLE:
-                tag = read_tag(fid, directory[first].pos)
-                first_samp += int(tag.data)
                 first += 1
 
             raw = _RawShell()
@@ -252,6 +279,43 @@ class RawFIFF(_BaseRaw):
                                        nsamp=nsamp))
                     first_samp += nsamp
 
+            # Try to get the next filename tag for split files
+            nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
+            next_fname = None
+            for nodes in nodes_list:
+                next_fname = None
+                for ent in nodes['directory']:
+                    if ent.kind == FIFF.FIFF_REF_ROLE:
+                        tag = read_tag(fid, ent.pos)
+                        role = int(tag.data)
+                        if role != FIFF.FIFFV_ROLE_NEXT_FILE:
+                            next_fname = None
+                            break
+                    if ent.kind == FIFF.FIFF_REF_FILE_NAME:
+                        tag = read_tag(fid, ent.pos)
+                        next_fname = op.join(op.dirname(fname), tag.data)
+                    if ent.kind == FIFF.FIFF_REF_FILE_NUM:
+                        # Some files don't have the name, just the number. So
+                        # we construct the name from the current name.
+                        if next_fname is not None:
+                            continue
+                        next_num = read_tag(fid, ent.pos).data
+                        path, base = op.split(fname)
+                        idx = base.find('.')
+                        idx2 = base.rfind('-')
+                        if idx2 < 0 and next_num == 1:
+                            # this is the first file, which may not be numbered
+                            next_fname = op.join(path, '%s-%d.%s' % (base[:idx],
+                                next_num, base[idx + 1:]))
+                            continue
+                        num_str = base[idx2 + 1:idx]
+                        if not num_str.isdigit():
+                            continue
+                        next_fname = op.join(path, '%s-%d.%s' % (base[:idx2],
+                                             next_num, base[idx + 1:]))
+                if next_fname is not None:
+                    break
+
         raw.last_samp = first_samp - 1
         raw.orig_format = orig_format
 
@@ -292,7 +356,7 @@ class RawFIFF(_BaseRaw):
 
         logger.info('Ready.')
 
-        return raw
+        return raw, next_fname
 
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
                       verbose=None, projector=None):

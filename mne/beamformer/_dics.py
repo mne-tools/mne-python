@@ -12,7 +12,7 @@ import numpy as np
 from scipy import linalg
 
 from ..utils import logger, verbose
-from ..pick import pick_types
+from ..io.pick import pick_types
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz
 from ..source_estimate import SourceEstimate
@@ -541,6 +541,12 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                             'time window %d to %d ms, in frequency range '
                             '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
                                              freq_bin[0], freq_bin[1]))
+
+                # Counteracts unsafe floating point arithmetic ensuring all
+                # relevant samples will be taken into account when selecting
+                # data in time windows
+                win_tmin = win_tmin - 1e-10
+                win_tmax = win_tmax + 1e-10
 
                 # Calculating data CSD in current time window
                 data_csd = compute_epochs_csd(epochs, mode=mode,

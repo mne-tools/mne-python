@@ -62,7 +62,7 @@ except:
 
 
 from ..coreg import bem_fname, trans_fname
-from ..constants import FIFF
+from ..io.constants import FIFF
 from ..forward import prepare_bem_model
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles)

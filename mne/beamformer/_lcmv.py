@@ -11,9 +11,9 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from ..constants import FIFF
+from ..io.constants import FIFF
 from ..io.proj import make_projector
-from ..pick import pick_types, pick_channels_forward, pick_channels_cov
+from ..io.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener, compute_covariance
@@ -646,8 +646,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         raw_band = raw.copy()
         raw_band.filter(l_freq, h_freq, picks=raw_picks, method='iir',
                         n_jobs=n_jobs)
+        raw_band.info['highpass'] = l_freq
+        raw_band.info['lowpass'] = h_freq
         epochs_band = Epochs(raw_band, epochs.events, epochs.event_id,
-                             tmin=epochs.tmin, tmax=epochs.tmax,
+                             tmin=epochs.tmin, tmax=epochs.tmax, baseline=None,
                              picks=raw_picks, proj=epochs.proj, preload=True)
         del raw_band
 
@@ -674,6 +676,12 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                             'time window %d to %d ms, in frequency range '
                             '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
                                              l_freq, h_freq))
+
+                # Counteracts unsafe floating point arithmetic ensuring all
+                # relevant samples will be taken into account when selecting
+                # data in time windows
+                win_tmin = win_tmin - 1e-10
+                win_tmax = win_tmax + 1e-10
 
                 # Calculating data covariance from filtered epochs in current
                 # time window

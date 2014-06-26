@@ -3,16 +3,17 @@
 #
 # License: BSD (3-clause)
 
-import warnings
+import os
+import glob
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
 
-from .constants import FIFF
+from .io.constants import FIFF
 from .io.open import fiff_open
 from .io.tag import read_tag
 from .io.write import start_file, end_file, write_coord_trans
-from .utils import logger
+from .utils import check_fname, logger
 from .externals.six import string_types
 
 
@@ -51,6 +52,24 @@ def _print_coord_trans(t, prefix='Coordinate transformation: '):
     for tt in t['trans']:
         logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f mm' %
                     (tt[0], tt[1], tt[2], 1000 * tt[3]))
+
+
+def _find_trans(subject, subjects_dir=None):
+    if subject is None:
+        if 'SUBJECT' in os.environ:
+            subject = os.environ['SUBJECT']
+        else:
+            raise ValueError('SUBJECT environment variable not set')
+
+    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
+                                          '*-trans.fif'))
+    if len(trans_fnames) < 1:
+        raise RuntimeError('Could not find the transformation for '
+                           '{subject}'.format(subject=subject))
+    elif len(trans_fnames) > 1:
+        raise RuntimeError('Found multiple transformations for '
+                           '{subject}'.format(subject=subject))
+    return trans_fnames[0]
 
 
 def apply_trans(trans, pts, move=True):
@@ -281,9 +300,8 @@ def write_trans(fname, trans):
     trans : dict
         Trans file data, as returned by read_trans.
     """
-    if not fname[-10:] == '-trans.fif':
-        warnings.warn("This filename does not conform to mne naming "
-                      "conventions. All trans files should end in -trans.fif.")
+    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
+
     fid = start_file(fname)
     write_coord_trans(fid, trans)
     end_file(fid)

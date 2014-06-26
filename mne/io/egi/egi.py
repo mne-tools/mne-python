@@ -10,11 +10,11 @@ import numpy as np
 
 from ..base import _BaseRaw
 from ..meas_info import Info
-from ...constants import FIFF
+from ..constants import FIFF
 from ...utils import verbose, logger
 
 _other_fields = [
-    'orig_fid_str', 'lowpass', 'buffer_size_sec', 'dev_ctf_t',
+    'lowpass', 'buffer_size_sec', 'dev_ctf_t',
     'meas_id', 'subject_info',
     'dev_head_t', 'line_freq', 'acq_stim', 'proj_id', 'description',
     'highpass', 'experimenter', 'file_id', 'proj_name',
@@ -287,7 +287,7 @@ class _RawEGI(_BaseRaw):
                 ch_info.update(u)
             info['chs'].append(ch_info)
 
-        self._preloaded = True
+        self.preload = True
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         self._times = np.arange(self.first_samp, self.last_samp + 1,
                                 dtype=np.float64)

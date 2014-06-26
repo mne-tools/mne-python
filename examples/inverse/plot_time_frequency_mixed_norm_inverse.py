@@ -39,7 +39,6 @@ http://dx.doi.org/10.1007/978-3-642-22092-0_49
 print(__doc__)
 
 import mne
-from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.inverse_sparse import tf_mixed_norm
@@ -55,7 +54,7 @@ cov = mne.read_cov(cov_fname)
 
 # Handling average file
 condition = 'Left visual'
-evoked = io.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
+evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked = mne.pick_channels_evoked(evoked)
 # We make the window slightly larger than what you'll eventually be interested
 # in ([-0.05, 0.3]) to avoid edge effects.

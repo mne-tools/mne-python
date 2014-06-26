@@ -1,32 +1,35 @@
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <d.engemann@fz-juelich.de>
+#          Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types
 from copy import deepcopy
 import numpy as np
 import warnings
 
-from ..constants import FIFF
-from .open import fiff_open
-from .tag import read_tag
-from .tree import dir_tree_find
-from ..pick import channel_type, pick_types
-from .meas_info import read_meas_info, write_meas_info
-from .proj import ProjMixin
+from .baseline import rescale
 from .channels import ContainsMixin, PickDropChannelsMixin
-from ..baseline import rescale
-from ..filter import resample, detrend
-from ..fixes import in1d
-from ..utils import _check_pandas_installed, logger, verbose, deprecated
-from .write import (start_file, start_block, end_file, end_block,
-                    write_int, write_string, write_float_matrix,
-                    write_id)
+from .filter import resample, detrend
+from .fixes import in1d
+from .utils import (_check_pandas_installed, check_fname, logger, verbose,
+                    deprecated, object_hash)
+from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
+from .viz import plot_evoked_field
+from .viz import plot_evoked_image
+from .externals.six import string_types
 
-from ..viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
-from ..viz import plot_evoked_field
+from .io.constants import FIFF
+from .io.open import fiff_open
+from .io.tag import read_tag
+from .io.tree import dir_tree_find
+from .io.pick import channel_type, pick_types
+from .io.meas_info import read_meas_info, write_meas_info
+from .io.proj import ProjMixin
+from .io.write import (start_file, start_block, end_file, end_block,
+                       write_int, write_string, write_float_matrix,
+                       write_id)
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
@@ -89,12 +92,12 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                  kind='average', verbose=None, setno=None):
 
         if fname is None:
-            return
+            raise ValueError('No evoked filename specified')
 
         if condition is None and setno is not None:
             condition = setno
             msg = ("'setno' will be deprecated in 0.9. Use 'condition' "
-                    "instead.")
+                   "instead.")
             warnings.warn(msg, DeprecationWarning)
 
         self.verbose = verbose
@@ -345,7 +348,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
              proj=False, xlim='tight', hline=None, units=None, scalings=None,
              titles=None, axes=None):
-        """Plot evoked data
+        """Plot evoked data as butterfly plots
 
         Note: If bad channels are not excluded they are shown in red.
 
@@ -390,11 +393,56 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                            hline=hline, units=units, scalings=scalings,
                            titles=titles, axes=axes)
 
+    def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
+                   clim=None, proj=False, xlim='tight', units=None,
+                   scalings=None, titles=None, axes=None):
+        """Plot evoked data as images
+
+        Parameters
+        ----------
+        picks : array-like of int | None
+            The indices of channels to plot. If None show all.
+        exclude : list of str | 'bads'
+            Channels names to exclude from being shown. If 'bads', the
+            bad channels are excluded.
+        unit : bool
+            Scale plot with channel (SI) unit.
+        show : bool
+            Call pyplot.show() at the end or not.
+        clim : dict
+            clim for images. e.g. clim = dict(eeg=[-200e-6, 200e6])
+            Valid keys are eeg, mag, grad
+        xlim : 'tight' | tuple | None
+            xlim for plots.
+        proj : bool | 'interactive'
+            If true SSP projections are applied before display. If
+            'interactive', a check box for reversible selection of SSP
+            projection vectors will be shown.
+        units : dict | None
+            The units of the channel types used for axes lables. If None,
+            defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+        scalings : dict | None
+            The scalings of the channel types to be applied for plotting.
+            If None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+        titles : dict | None
+            The titles associated with the channels. If None, defaults to
+            `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
+        axes : instance of Axes | list | None
+            The axes to plot to. If list, the list must be a list of Axes of
+            the same length as the number of channel types. If instance of
+            Axes, there must be only one channel type plotted.
+        """
+        return plot_evoked_image(self, picks=picks, exclude=exclude, unit=unit,
+                                 show=show, clim=clim, proj=proj, xlim=xlim,
+                                 units=units, scalings=scalings,
+                                 titles=titles, axes=axes)
+
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=256, size=1,
                      format="%3.1f", time_format='%01d ms', proj=False,
-                     show=True, show_names=False, title=None):
+                     show=True, show_names=False, title=None, mask=None,
+                     mask_params=None):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -453,11 +501,20 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             Call pyplot.show() at the end.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g.,
-            to delete the prefix 'MEG ' from all channel names, pass the
-            function lambda x: x.replace('MEG ', '')
+            passed, channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
+            sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
+        mask : ndarray of bool, shape (n_channels, n_times) | None
+            The channels to be marked as significant at a given time point.
+            Indicies set to `True` will be considered. Defaults to None.
+        mask_params : dict | None
+            Additional plotting parameters for plotting significant sensors.
+            Default (None) equals:
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
+                 markersize=4)
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
@@ -467,7 +524,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                    unit=unit,
                                    res=res, proj=proj, size=size,
                                    format=format, time_format=time_format,
-                                   show_names=show_names, title=title)
+                                   show_names=show_names, title=title,
+                                   mask=mask, mask_params=mask_params)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
@@ -656,6 +714,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         out.comment = self.comment + " - " + this_evoked.comment
         return out
 
+    def __hash__(self):
+        return object_hash(dict(info=self.info, data=self.data))
+
     def get_peak(self, ch_type=None, tmin=None, tmax=None, mode='abs',
                  time_as_index=False):
         """Get location and latency of peak amplitude
@@ -728,6 +789,66 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
         return (self.ch_names[ch_idx],
                 time_idx if time_as_index else self.times[time_idx])
+
+
+class EvokedArray(Evoked):
+    """Evoked object from numpy array
+
+    Parameters
+    ----------
+    data : array of shape (n_channels, n_times)
+        The channels' evoked response.
+    info : instance of Info
+        Info dictionary. Consider using ``create_info`` to populate
+        this structure.
+    tmin : float
+        Start time before event.
+    comment : string
+        Comment on dataset. Can be the condition. Defaults to ''.
+    nave : int
+        Number of averaged epochs. Defaults to 1.
+    kind : str
+        Type of data, either average or standard_error. Defaults to 'average'.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+    """
+
+    @verbose
+    def __init__(self, data, info, tmin, comment='', nave=1, kind='average',
+                 verbose=None):
+
+        dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
+        data = np.asanyarray(data, dtype=dtype)
+
+        if data.ndim != 2:
+            raise ValueError('Data must be a 2D array of shape (n_channels, '
+                             'n_samples)')
+
+        if len(info['ch_names']) != np.shape(data)[0]:
+            raise ValueError('Info and data must have same number of '
+                             'channels.')
+
+        self.data = data
+
+        # XXX: this should use round and be tested
+        self.first = int(tmin * info['sfreq'])
+        self.last = self.first + np.shape(data)[-1] - 1
+        self.times = np.arange(self.first, self.last + 1, dtype=np.float)
+        self.times /= info['sfreq']
+
+        self.info = info
+        self.nave = nave
+        self.kind = kind
+        self.comment = comment
+        self.proj = None
+        self.picks = None
+        self.verbose = verbose
+        self._projector = None
+        if self.kind == 'average':
+            self._aspect_kind = aspect_dict['average']
+        else:
+            self._aspect_kind = aspect_dict['standard_error']
 
 
 def _get_entries(fid, evoked_node):
@@ -862,7 +983,7 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     Parameters
     ----------
     fname : string
-        The file name.
+        The file name, which should end with -ave.fif or -ave.fif.gz.
     condition : int or str | list of int or str | None
         The index or list of indices of the evoked dataset to read. FIF files
         can contain multiple datasets. If None, all datasets are returned as a
@@ -886,6 +1007,8 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
         condition is None or list)
         The evoked dataset(s).
     """
+    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
+
     return_list = True
     if condition is None:
         evoked_node = _get_evoked_node(fname)
@@ -967,12 +1090,13 @@ def write_evokeds(fname, evoked):
     Parameters
     ----------
     fname : string
-        The file name.
+        The file name, which should end with -ave.fif or -ave.fif.gz.
     evoked : Evoked instance, or list of Evoked instances
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
     """
+    check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
 
     if not isinstance(evoked, list):
         evoked = [evoked]

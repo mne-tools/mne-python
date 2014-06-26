@@ -11,10 +11,10 @@ from os import path as op
 import numpy as np
 
 from .. import pick_types, pick_info
-from ..pick import _has_kit_refs
+from ..io.pick import _has_kit_refs
 from ..io import read_info
-from ..constants import FIFF
-from .forward import write_forward_solution, _merge_meg_eeg_fwds
+from ..io.constants import FIFF
+from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (invert_transform, transform_surface_to,
                           read_trans, _get_mri_head_t_from_trans_file,
@@ -212,8 +212,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     Returns
     -------
-    fwd : dict
-        The generated forward solution.
+    fwd : instance of Forward
+        The forward solution.
 
     Notes
     -----
@@ -446,7 +446,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     megfwd, eegfwd = _compute_forwards(src, bem, coils, cfs, ccoils, ccfs,
                                        infos, coil_types, n_jobs)
 
-    # merge forwards into one
+    # merge forwards into one (creates two Forward objects)
     megfwd = _to_forward_dict(megfwd, None, megnames, coord_frame,
                               FIFF.FIFFV_MNE_FREE_ORI)
     eegfwd = _to_forward_dict(eegfwd, None, eegnames, coord_frame,
@@ -487,10 +487,10 @@ def _to_forward_dict(fwd, fwd_grad, names, coord_frame, source_ori):
     if fwd is not None:
         sol = dict(data=fwd.T, nrow=fwd.shape[1], ncol=fwd.shape[0],
                    row_names=names, col_names=[])
-        fwd = dict(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
-                   coord_frame=coord_frame, sol_grad=None,
-                   nchan=sol['nrow'], _orig_source_ori=source_ori,
-                   _orig_sol=sol['data'].copy(), _orig_sol_grad=None)
+        fwd = Forward(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
+                      coord_frame=coord_frame, sol_grad=None,
+                      nchan=sol['nrow'], _orig_source_ori=source_ori,
+                      _orig_sol=sol['data'].copy(), _orig_sol_grad=None)
         if fwd_grad is not None:
             sol_grad = dict(data=fwd_grad.T, nrow=fwd_grad.shape[1],
                             ncol=fwd_grad.shape[0], row_names=names,

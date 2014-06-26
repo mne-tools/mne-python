@@ -7,15 +7,17 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
+import warnings
 
 from mne.datasets import sample
 from mne import read_label, read_forward_solution
 from mne.time_frequency import morlet
 from mne.simulation import generate_sparse_stc, generate_evoked
 from mne import read_cov
-from mne.io import Raw, read_evokeds
-from mne.pick import pick_types_evoked, pick_types_forward
+from mne.io import Raw
+from mne import pick_types_evoked, pick_types_forward, read_evokeds
 
+warnings.simplefilter('always')
 
 data_path = sample.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
@@ -65,8 +67,10 @@ def test_simulate_evoked():
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
-    evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
-                             tmin=0.0, tmax=0.2, iir_filter=iir_filter)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')  # positive semidefinite warning
+        evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
+                                 tmin=0.0, tmax=0.2, iir_filter=iir_filter)
     assert_array_almost_equal(evoked.times, stc.times)
     assert_true(len(evoked.data) == len(fwd['sol']['data']))
 

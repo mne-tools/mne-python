@@ -12,9 +12,8 @@ from mne.label import read_label, label_sign_flip
 from mne.event import read_events
 from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
-from mne import read_cov, read_forward_solution
-from mne import pick_types
-from mne.io import read_evokeds, Raw
+from mne import read_cov, read_forward_solution, read_evokeds, pick_types
+from mne.io import Raw
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
@@ -314,6 +313,14 @@ def test_io_inverse_operator():
     inverse_operator = read_inverse_operator(fname_inv)
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
+
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        inv_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        write_inverse_operator(inv_badname, inverse_operator)
+        read_inverse_operator(inv_badname)
+    assert_true(len(w) == 2)
 
 
 @sample.requires_sample_data

@@ -7,22 +7,25 @@ from __future__ import print_function
 
 import os
 import os.path as op
+import glob
 from copy import deepcopy
 import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
-from nose.tools import assert_true, assert_raises, assert_equal
+from nose.tools import (assert_true, assert_raises, assert_equal,
+                        assert_not_equal)
 
 from mne import pick_types, pick_channels
-from mne.constants import FIFF
+from mne.io.constants import FIFF
 from mne.io import (Raw, concatenate_raws,
                     get_chpi_positions, set_eeg_reference)
 from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess)
 from mne.externals.six.moves import zip
+from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -38,6 +41,21 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 tempdir = _TempDir()
+
+
+def test_hash_raw():
+    """Test hashing raw objects
+    """
+    raw = Raw(fif_fname)
+    assert_raises(RuntimeError, raw.__hash__)
+    raw = Raw(fif_fname, preload=True).crop(0, 0.5)
+    raw_2 = Raw(fif_fname, preload=True).crop(0, 0.5)
+    assert_equal(hash(raw), hash(raw_2))
+    # do NOT use assert_equal here, failing output is terrible
+    assert_true(pickle.dumps(raw) == pickle.dumps(raw_2))
+
+    raw_2._data[0, 0] -= 1
+    assert_not_equal(hash(raw), hash(raw_2))
 
 
 def test_subject_info():
@@ -204,14 +222,14 @@ def test_multiple_files():
     # with all data preloaded, result should be preloaded
     raw_combo = Raw(fif_fname, preload=True)
     raw_combo.append(Raw(fif_fname, preload=True))
-    assert_true(raw_combo._preloaded is True)
+    assert_true(raw_combo.preload is True)
     assert_true(len(raw_combo._times) == raw_combo._data.shape[1])
     _compare_combo(raw, raw_combo, times, n_times)
 
     # with any data not preloaded, don't set result as preloaded
     raw_combo = concatenate_raws([Raw(fif_fname, preload=True),
                                   Raw(fif_fname, preload=False)])
-    assert_true(raw_combo._preloaded is False)
+    assert_true(raw_combo.preload is False)
     assert_array_equal(find_events(raw_combo, stim_channel='STI 014'),
                        find_events(raw_combo0, stim_channel='STI 014'))
     _compare_combo(raw, raw_combo, times, n_times)
@@ -220,7 +238,7 @@ def test_multiple_files():
     raw_combo = concatenate_raws([Raw(fif_fname, preload=False),
                                   Raw(fif_fname, preload=True)],
                                  preload=True)
-    assert_true(raw_combo._preloaded is True)
+    assert_true(raw_combo.preload is True)
     _compare_combo(raw, raw_combo, times, n_times)
 
     raw_combo = concatenate_raws([Raw(fif_fname, preload=False),
@@ -254,6 +272,30 @@ def test_multiple_files():
     # check out the len method
     assert_true(len(raw) == raw.n_times)
     assert_true(len(raw) == raw.last_samp - raw.first_samp + 1)
+
+
+def test_split_files():
+    """Test writing and reading of split raw files
+    """
+    raw_1 = Raw(fif_fname, preload=True)
+    split_fname = op.join(tempdir, 'split_raw.fif')
+    raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
+
+    raw_2 = Raw(split_fname)
+    data_1, times_1 = raw_1[:, :]
+    data_2, times_2 = raw_2[:, :]
+    assert_array_equal(data_1, data_2)
+    assert_array_equal(times_1, times_2)
+
+    # test the case where the silly user specifies the split files
+    fnames = [split_fname]
+    fnames.extend(sorted(glob.glob(op.join(tempdir, 'split_raw-*.fif'))))
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        raw_2 = Raw(fnames)
+    data_2, times_2 = raw_2[:, :]
+    assert_array_equal(data_1, data_2)
+    assert_array_equal(times_1, times_2)
 
 
 def test_load_bad_channels():
@@ -397,6 +439,14 @@ def test_io_raw():
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
+
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        raw_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        raw.save(raw_badname)
+        Raw(raw_badname)
+    assert_true(len(w) > 0)  # len(w) should be 2 but Travis sometimes has more
 
 
 def test_io_complex():
@@ -662,8 +712,8 @@ def test_resample():
     # test parallel on upsample
     raw_resamp.resample(sfreq * 2, n_jobs=2)
     assert_true(raw_resamp.n_times == len(raw_resamp._times))
-    raw_resamp.save(op.join(tempdir, 'raw_resamp.fif'))
-    raw_resamp = Raw(op.join(tempdir, 'raw_resamp.fif'), preload=True)
+    raw_resamp.save(op.join(tempdir, 'raw_resamp-raw.fif'))
+    raw_resamp = Raw(op.join(tempdir, 'raw_resamp-raw.fif'), preload=True)
     assert_true(sfreq == raw_resamp.info['sfreq'] / 2)
     assert_true(raw.n_times == raw_resamp.n_times / 2)
     assert_true(raw_resamp._data.shape[1] == raw_resamp.n_times)
@@ -820,7 +870,7 @@ def test_save():
     assert_raises(IOError, raw.save, fif_fname)
 
     # test abspath support
-    new_fname = op.join(op.abspath(op.curdir), 'break.fif')
+    new_fname = op.join(op.abspath(op.curdir), 'break-raw.fif')
     raw.save(op.join(tempdir, new_fname), overwrite=True)
     new_raw = Raw(op.join(tempdir, new_fname), preload=False)
     assert_raises(ValueError, new_raw.save, new_fname)
@@ -947,38 +997,30 @@ def test_pick_channels_mixin():
     """Test channel-picking functionality
     """
     # preload is True
+
     raw = Raw(fif_fname, preload=True)
     ch_names = raw.ch_names[:3]
 
     ch_names_orig = raw.ch_names
-    dummy = raw.pick_channels(ch_names, copy=True) # copy is True
+    dummy = raw.pick_channels(ch_names, copy=True)  # copy is True
     assert_equal(ch_names, dummy.ch_names)
     assert_equal(ch_names_orig, raw.ch_names)
     assert_equal(len(ch_names_orig), raw._data.shape[0])
 
-    raw.pick_channels(ch_names, copy=False) # copy is False
+    raw.pick_channels(ch_names, copy=False)  # copy is False
     assert_equal(ch_names, raw.ch_names)
     assert_equal(len(ch_names), len(raw.cals))
     assert_equal(len(ch_names), raw._data.shape[0])
 
-    # preload is False
     raw = Raw(fif_fname, preload=False)
-    ch_names = raw.ch_names[:3]
-
-    ch_names_orig = raw.ch_names
-    dummy = raw.pick_channels(ch_names, copy=True) # copy is True
-    assert_equal(ch_names, dummy.ch_names)
-    assert_equal(ch_names_orig, raw.ch_names)
-
-    raw.pick_channels(ch_names, copy=False) # copy is False
-    assert_equal(ch_names, raw.ch_names)
-    assert_equal(len(ch_names), len(raw.cals))
+    assert_raises(RuntimeError, raw.pick_channels, ch_names)
+    assert_raises(RuntimeError, raw.drop_channels, ch_names)
 
 
 def test_equalize_channels():
     """Test equalization of channels
     """
-    raw1 = Raw(fif_fname)
+    raw1 = Raw(fif_fname, preload=True)
 
     raw2 = raw1.copy()
     ch_names = raw1.ch_names[2:]

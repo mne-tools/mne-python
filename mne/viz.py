@@ -3,14 +3,17 @@
 from __future__ import print_function
 
 # Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
+#          Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: Simplified BSD
 from .externals.six import string_types
+from glob import glob
 import os
+import os.path as op
 import warnings
 from itertools import cycle
 from functools import partial
@@ -36,16 +39,17 @@ from collections import deque
 from .fixes import tril_indices, Counter
 from .baseline import rescale
 from .utils import (get_subjects_dir, get_config, set_config, _check_subject,
-                    logger, verbose)
+                    logger, verbose, deprecated)
 from .io import show_fiff
-from .constants import FIFF
-from .pick import channel_type, pick_types
+from .io.constants import FIFF
+from .io.pick import channel_type, pick_types
 from .io.proj import make_projector, setup_proj
 from .fixes import normalize_colors
 from .utils import create_chunks, _clean_names
 from .time_frequency import compute_raw_psd
 from .externals import six
-
+from .transforms import read_trans, _find_trans, apply_trans
+from .surface import get_head_surf, get_meg_helmet_surf, read_surface
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
@@ -63,7 +67,13 @@ DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
                 ylim=dict(mag=(-600., 600.), grad=(-200., 200.),
                           eeg=(-200., 200.), misc=(-5., 5.)),
                 titles=dict(eeg='EEG', grad='Gradiometers',
-                            mag='Magnetometers', misc='misc'))
+                            mag='Magnetometers', misc='misc'),
+                mask_params=dict(marker='o',
+                                 markerfacecolor='w',
+                                 markeredgecolor='k',
+                                 linewidth=0,
+                                 markeredgewidth=1,
+                                 markersize=4))
 
 
 def _mutable_defaults(*mappings):
@@ -87,7 +97,8 @@ def _mutable_defaults(*mappings):
 def _check_delayed_ssp(container):
     """ Aux function to be used for interactive SSP selection
     """
-    if container.proj is True:
+    if container.proj is True or\
+       all([p['active'] for p in container.info['projs']]):
         raise RuntimeError('Projs are already applied. Please initialize'
                            ' the data with proj set to False.')
     elif len(container.info['projs']) < 1:
@@ -818,7 +829,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=256, size=1, format='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
-                        show_names=False, title=None):
+                        show_names=False, title=None, mask=None,
+                        mask_params=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -879,9 +891,18 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', '')
+        lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
+        sensors will be shown.
     title : str | None
         Title. If None (default), no title is displayed.
+    mask : ndarray of bool, shape (n_channels, n_times) | None
+        The channels to be marked as significant at a given time point.
+        Indicies set to `True` will be considered. Defaults to None.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals:
+        dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
+             markersize=4)
     """
     import matplotlib.pyplot as plt
 
@@ -893,6 +914,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if scale is None:
         scale = DEFAULTS['scalings'][key]
         unit = DEFAULTS['units'][key]
+
+    if mask_params is None:
+        mask_params = DEFAULTS['mask_params']
+        mask_params['markersize'] *= size / 2.
+        mask_params['markeredgewidth'] *= size / 2.
 
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
@@ -945,22 +971,28 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             vmax = vmax(data)
         elif vmin is None:
             vmax = np.max(data)
-
     images = []
+    if mask is not None:
+        _picks = picks[::2 if ch_type not in ['mag', 'eeg'] else 1]
+        mask_ = mask[np.ix_(_picks, time_idx)]
     for i, t in enumerate(times):
         plt.subplot(1, nax, i + 1)
-        tp = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax, cmap=cmap,
+        tp = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax,
                           sensors=sensors, res=res, names=names,
-                          show_names=show_names)
+                          show_names=show_names, cmap=cmap,
+                          mask=mask_[:, i] if mask is not None else None,
+                          mask_params=mask_params)
         images.append(tp)
-        plt.title(time_format % (t * scale_time))
+        if time_format is not None:
+            plt.title(time_format % (t * scale_time))
 
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
-        plt.colorbar(cax=cax, ticks=[vmin, 0, vmax], format=format)
+        plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax], format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
-        cpos.x0 = 1 - (.7 + .1 / size) / nax
+        if size <= 1:
+            cpos.x0 = 1 - (.7 + .1 / size) / nax
         cpos.x1 = cpos.x0 + .1 / nax
         cpos.y0 = .1
         cpos.y1 = .7
@@ -1113,8 +1145,9 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     return fig
 
 
-def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,', 
-                 res=100, axis=None, names=None, show_names=False):
+def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
+                 res=100, axis=None, names=None, show_names=False, mask=None,
+                 mask_params=None):
     """Plot a topographic map as image
 
     Parameters
@@ -1147,7 +1180,16 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', '')
+        lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
+        sensors will be shown.
+    mask : ndarray of bool, shape (n_channels, n_times) | None
+        The channels to be marked as significant at a given time point.
+        Indices set to `True` will be considered. Defaults to None.
+    mask_params : dict | None
+        Additional plotting parameters for plotting significant sensors.
+        Default (None) equals:
+        dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
+             markersize=4)
     """
     import matplotlib.pyplot as plt
     from matplotlib import delaunay
@@ -1180,19 +1222,36 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
 
     plt.xticks(())
     plt.yticks(())
-
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
+
     ax = axis if axis else plt
-    if sensors:
-        if sensors is True:
-            sensors = 'k,'
+    if mask_params is None:
+        mask_params = DEFAULTS['mask_params']
+    elif isinstance(mask_params, dict):
+        params = dict((k, v) for k, v in DEFAULTS['mask_params'].items()
+                      if k not in mask_params)
+        mask_params.update(params)
+    else:
+        raise ValueError('`mask_params` must be of dict-type '
+                         'or None')
+    if sensors is True:
+        sensors = 'k,'
+    if sensors and mask is None:
         ax.plot(pos_x, pos_y, sensors)
+    elif sensors and mask is not None:
+        idx = np.where(mask)[0]
+        ax.plot(pos_x[idx], pos_y[idx], **mask_params)
+        idx = np.where(~mask)[0]
+        ax.plot(pos_x[idx], pos_y[idx], sensors)
 
     if show_names:
         if show_names is True:
             show_names = lambda x: x
-        for p, ch_id in zip(pos, names):
+        show_idx = np.arange(len(names)) if mask is None else np.where(mask)[0]
+        for ii, (p, ch_id) in enumerate(zip(pos, names)):
+            if ii not in show_idx:
+                continue
             ch_id = show_names(ch_id)
             ax.text(p[0], p[1], ch_id, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
@@ -1211,57 +1270,26 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
 
     im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
                 xi.min():xi.max():complex(0, xi.shape[1])]
+
     im = np.ma.masked_array(im, im == np.nan)
     im = ax.imshow(im, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax))
     return im
 
 
-def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
-                ylim=None, proj=False, xlim='tight', hline=None, units=None,
-                scalings=None, titles=None, axes=None):
-    """Plot evoked data
+def _plot_evoked(evoked, picks, exclude, unit, show,
+                 ylim, proj, xlim, hline, units,
+                 scalings, titles, axes, plot_type):
+    """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
-    Note: If bad channels are not excluded they are shown in red.
+    Extra param is:
 
-    Parameters
-    ----------
-    evoked : instance of Evoked
-        The evoked data
-    picks : array-like of int | None
-        The indices of channels to plot. If None show all.
-    exclude : list of str | 'bads'
-        Channels names to exclude from being shown. If 'bads', the
-        bad channels are excluded.
-    unit : bool
-        Scale plot with channel (SI) unit.
-    show : bool
-        Call pyplot.show() as the end or not.
-    ylim : dict | None
-        ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
-        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
-        for each channel equals the pyplot default.
-    xlim : 'tight' | tuple | None
-        xlim for plots.
-    proj : bool | 'interactive'
-        If true SSP projections are applied before display. If 'interactive',
-        a check box for reversible selection of SSP projection vectors will
-        be shown.
-    hline : list of floats | None
-        The values at which to show an horizontal line.
-    units : dict | None
-        The units of the channel types used for axes lables. If None,
-        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
-    scalings : dict | None
-        The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
-    titles : dict | None
-        The titles associated with the channels. If None, defaults to
-        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
-    axes : instance of Axes | list | None
-        The axes to plot to. If list, the list must be a list of Axes of
-        the same length as the number of channel types. If instance of
-        Axes, there must be only one channel type plotted.
+    plot_type : str, value ('butterfly' | 'image')
+        The type of graph to plot: 'butterfly' plots each channel as a line
+        (x axis: time, y axis: amplitude). 'image' plots a 2D image where
+        color depicts the amplitude of each channel at a given time point
+        (x axis: time, y axis: channel). In 'image' mode, the plot is not
+        interactive.
     """
     import matplotlib.pyplot as plt
     if axes is not None and proj == 'interactive':
@@ -1273,6 +1301,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                                                 ('units', units))
 
     channel_types = set(key for d in [scalings, titles, units] for key in d)
+    channel_types = sorted(channel_types)  # to guarantee consistent order
+
     if picks is None:
         picks = list(range(evoked.info['nchan']))
 
@@ -1330,31 +1360,48 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
             ch_unit = 'NA'  # no unit
         idx = [picks[i] for i in range(len(picks)) if types[i] == t]
         if len(idx) > 0:
-            if any([i in bad_ch_idx for i in idx]):
-                colors = ['k'] * len(idx)
-                for i in bad_ch_idx:
-                    if i in idx:
-                        colors[idx.index(i)] = 'r'
+            # Parameters for butterfly interactive plots
+            if plot_type == 'butterfly':
+                if any([i in bad_ch_idx for i in idx]):
+                    colors = ['k'] * len(idx)
+                    for i in bad_ch_idx:
+                        if i in idx:
+                            colors[idx.index(i)] = 'r'
 
-                ax._get_lines.color_cycle = iter(colors)
-            else:
-                ax._get_lines.color_cycle = cycle(['k'])
-
+                    ax._get_lines.color_cycle = iter(colors)
+                else:
+                    ax._get_lines.color_cycle = cycle(['k'])
+            # Set amplitude scaling
             D = this_scaling * evoked.data[idx, :]
             # plt.axes(ax)
-            ax.plot(times, D.T)
+            if plot_type == 'butterfly':
+                ax.plot(times, D.T)
+            elif plot_type == 'image':
+                im = ax.imshow(D, interpolation='nearest', origin='lower',
+                               extent=[times[0], times[-1], 0, D.shape[0]],
+                               aspect='auto')
+                plt.colorbar(im, ax=ax)
             if xlim is not None:
                 if xlim == 'tight':
                     xlim = (times[0], times[-1])
                 ax.set_xlim(xlim)
             if ylim is not None and t in ylim:
-                ax.set_ylim(ylim[t])
+                if plot_type == 'butterfly':
+                    ax.set_ylim(ylim[t])
+                elif plot_type == 'image':
+                    im.set_clim(ylim[t])
             ax.set_title(titles[t] + ' (%d channel%s)' % (
                          len(D), 's' if len(D) > 1 else ''))
             ax.set_xlabel('time (ms)')
-            ax.set_ylabel('data (%s)' % ch_unit)
+            if plot_type == 'butterfly':
+                ax.set_ylabel('data (%s)' % ch_unit)
+            elif plot_type == 'image':
+                ax.set_ylabel('channels (%s)' % ch_unit)
+            else:
+                raise ValueError("plot_type has to be 'butterfly' or 'image'."
+                                 "Got %s." % plot_type)
 
-            if hline is not None:
+            if (plot_type == 'butterfly') and (hline is not None):
                 for h in hline:
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
 
@@ -1366,7 +1413,8 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
         params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
                       axes=axes, types=types, units=units, scalings=scalings,
                       unit=unit, ch_types_used=ch_types_used, picks=picks,
-                      plot_update_proj_callback=_plot_update_evoked)
+                      plot_update_proj_callback=_plot_update_evoked,
+                      plot_type=plot_type)
         _draw_proj_checkbox(None, params)
 
     if show and plt.get_backend() != 'agg':
@@ -1375,6 +1423,106 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     tight_layout(fig=fig)
 
     return fig
+
+
+def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
+                ylim=None, proj=False, xlim='tight', hline=None, units=None,
+                scalings=None, titles=None, axes=None, plot_type="butterfly"):
+    """Plot evoked data
+
+    Note: If bad channels are not excluded they are shown in red.
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data
+    picks : array-like of int | None
+        The indices of channels to plot. If None show all.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
+    unit : bool
+        Scale plot with channel (SI) unit.
+    show : bool
+        Call pyplot.show() as the end or not.
+    ylim : dict | None
+        ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
+        Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
+        for each channel equals the pyplot default.
+    xlim : 'tight' | tuple | None
+        xlim for plots.
+    proj : bool | 'interactive'
+        If true SSP projections are applied before display. If 'interactive',
+        a check box for reversible selection of SSP projection vectors will
+        be shown.
+    hline : list of floats | None
+        The values at which to show an horizontal line.
+    units : dict | None
+        The units of the channel types used for axes lables. If None,
+        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    titles : dict | None
+        The titles associated with the channels. If None, defaults to
+        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
+    axes : instance of Axes | list | None
+        The axes to plot to. If list, the list must be a list of Axes of
+        the same length as the number of channel types. If instance of
+        Axes, there must be only one channel type plotted.
+    """
+    return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
+                        show=show, ylim=ylim, proj=proj, xlim=xlim,
+                        hline=hline, units=units, scalings=scalings,
+                        titles=titles, axes=axes, plot_type="butterfly")
+
+
+def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
+                      clim=None, proj=False, xlim='tight', units=None,
+                      scalings=None, titles=None, axes=None):
+    """Plot evoked data as images
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked data
+    picks : array-like of int | None
+        The indices of channels to plot. If None show all.
+    exclude : list of str | 'bads'
+        Channels names to exclude from being shown. If 'bads', the
+        bad channels are excluded.
+    unit : bool
+        Scale plot with channel (SI) unit.
+    show : bool
+        Call pyplot.show() as the end or not.
+    clim : dict | None
+        clim for plots. e.g. clim = dict(eeg=[-200e-6, 200e6])
+        Valid keys are eeg, mag, grad, misc. If None, the clim parameter
+        for each channel equals the pyplot default.
+    xlim : 'tight' | tuple | None
+        xlim for plots.
+    proj : bool | 'interactive'
+        If true SSP projections are applied before display. If 'interactive',
+        a check box for reversible selection of SSP projection vectors will
+        be shown.
+    units : dict | None
+        The units of the channel types used for axes lables. If None,
+        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    titles : dict | None
+        The titles associated with the channels. If None, defaults to
+        `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
+    axes : instance of Axes | list | None
+        The axes to plot to. If list, the list must be a list of Axes of
+        the same length as the number of channel types. If instance of
+        Axes, there must be only one channel type plotted.
+    """
+    return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
+                        show=show, ylim=clim, proj=proj, xlim=xlim,
+                        hline=None, units=units, scalings=scalings,
+                        titles=titles, axes=axes, plot_type="image")
 
 
 def _plot_update_evoked(params, bools):
@@ -1393,7 +1541,10 @@ def _plot_update_evoked(params, bools):
         this_scaling = params['scalings'][t]
         idx = [picks[i] for i in range(len(picks)) if params['types'][i] == t]
         D = this_scaling * new_evoked.data[idx, :]
-        [line.set_data(times, di) for line, di in zip(ax.lines, D)]
+        if params['plot_type'] == 'butterfly':
+            [line.set_data(times, di) for line, di in zip(ax.lines, D)]
+        else:
+            ax.images[0].set_data(D)
     params['fig'].canvas.draw()
 
 
@@ -1856,7 +2007,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     return brain
 
 
-def _plot_ica_panel_onpick(event, sources=None, ylims=None):
+def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
     """Onpick callback for plot_ica_panel"""
 
     # make sure that the swipe gesture in OS-X doesn't open many figures
@@ -1869,10 +2020,10 @@ def _plot_ica_panel_onpick(event, sources=None, ylims=None):
         plt.figure()
         src_idx = artist._mne_src_idx
         component = artist._mne_component
-        plt.plot(sources[src_idx], 'r')
+        plt.plot(sources[src_idx], 'r' if artist._mne_is_bad else 'k')
         plt.ylim(ylims)
         plt.grid(linestyle='-', color='gray', linewidth=.25)
-        plt.title(component)
+        plt.title('ICA #%i' % component)
     except Exception as err:
         # matplotlib silently ignores exceptions in event handlers, so we print
         # it here to know what went wrong
@@ -1880,10 +2031,244 @@ def _plot_ica_panel_onpick(event, sources=None, ylims=None):
         raise err
 
 
-@verbose
-def plot_ica_panel(sources, start=None, stop=None, n_components=None,
-                   source_idx=None, ncol=3, nrow=10, verbose=None,
+@deprecated('`plot_ica_topomap` is deprecated and will be removed in '
+            'MNE 1.0. Use `plot_ica_components` instead')
+def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
+                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                     show=True):
+    """This functoin is deprecated
+
+    See ``plot_ica_components``.
+    """
+    return plot_ica_components(ica, source_idx, ch_type, res, layout,
+                               vmax, cmap, sensors, colorbar)
+
+
+def plot_ica_components(ica, picks=None, ch_type='mag', res=500,
+                        layout=None,
+                        vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                        title=None, show=True):
+    """Project unmixing matrix on interpolated sensor topogrpahy.
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA solution.
+    picks : int | array-like | None
+        The indices of the sources to be plotted.
+        If None all are plotted in batches of 20.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        The channel type to plot. For 'grad', the gradiometers are
+        collected in pairs and the RMS for each pair is plotted.
+    layout : None | Layout
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout is
+        inferred from the data.
+    vmax : scalar
+        The value specfying the range of the color scale (-vmax to +vmax).
+        If None, the largest absolute value in the data is used.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib
+        plot format string (e.g., 'r+' for red plusses).
+    colorbar : bool
+        Plot a colorbar.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    show : bool
+        Call pyplot.show() at the end.
+
+    Returns
+    -------
+    fig : instance of matplotlib.pyplot.Figure or list
+        The figure object(s).
+    """
+    import matplotlib.pyplot as plt
+
+    if picks is None:  # plot components by sets of 20
+        n_components = ica.mixing_matrix_.shape[1]
+        p = 20
+        figs = []
+        for k in range(0, n_components, p):
+            picks = range(k, min(k + p, n_components))
+            fig = plot_ica_components(ica, picks=picks,
+                                      ch_type=ch_type, res=res, layout=layout,
+                                      vmax=vmax, cmap=cmap, sensors=sensors,
+                                      colorbar=colorbar, title=title,
+                                      show=show)
+            figs.append(fig)
+        return figs
+    elif np.isscalar(picks):
+        picks = [picks]
+
+    data = np.dot(ica.mixing_matrix_[:, picks].T,
+                  ica.pca_components_[:ica.n_components_])
+
+    if ica.info is None:
+        raise RuntimeError('The ICA\'s measurement info is missing. Please '
+                           'fit the ICA or add the corresponding info object.')
+
+    data_picks, pos, merge_grads, names = _prepare_topo_plot(ica, ch_type,
+                                                             layout)
+    data = np.atleast_2d(data)
+    data = data[:, data_picks]
+
+    # prepare data for iteration
+    fig, axes = _prepare_trellis(len(data), max_col=5)
+    if title is None:
+        title = 'ICA components'
+    fig.suptitle(title)
+
+    if vmax is None:
+        vrange = np.array([f(data) for f in (np.min, np.max)])
+        vmax = max(abs(vrange))
+
+    if merge_grads:
+        from .layouts.layout import _merge_grad_data
+    for ii, data_, ax in zip(picks, data, axes):
+        data_ = _merge_grad_data(data_) if merge_grads else data_
+        plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
+                     res=res, axis=ax)
+        ax.set_title('IC #%03d' % ii, fontsize=12)
+        ax.set_yticks([])
+        ax.set_xticks([])
+        ax.set_frame_on(False)
+
+    tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.9)
+    fig.canvas.draw()
+    if colorbar:
+        vmax_ = normalize_colors(vmin=-vmax, vmax=vmax)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=vmax_)
+        sm.set_array(np.linspace(-vmax, vmax))
+        fig.subplots_adjust(right=0.8)
+        cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        fig.colorbar(sm, cax=cax)
+        cax.set_title('AU')
+
+    if show is True:
+        plt.show()
+    return fig
+
+
+@deprecated('`plot_ica_panel` is deprecated and will be removed in '
+            'MNE 1.0. Use `plot_ica_sources` instead')
+def plot_ica_panel(sources, start=None, stop=None,
+                   source_idx=None, ncol=3, verbose=None,
                    title=None, show=True):
+    """Create panel plots of ICA sources
+
+    Clicking on the plot of an individual source opens a new figure showing
+    the source.
+
+    Parameters
+    ----------
+    sources : ndarray
+        Sources as drawn from ica.get_sources.
+    start : int
+        x-axis start index. If None from the beginning.
+    stop : int
+        x-axis stop index. If None to the end.
+    source_idx : array-like
+        Indices for subsetting the sources.
+    ncol : int
+        Number of panel-columns.
+    title : str
+        The figure title. If None a default is provided.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    show : bool
+        If True, plot will be shown, else just the figure is returned.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+    """
+
+    return _plot_ica_grid(sources=sources, start=start, stop=stop,
+                          source_idx=source_idx, ncol=ncol, verbose=verbose,
+                          title=title, show=show)
+
+
+def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
+                     stop=None, show=True, title=None):
+    """Plot estimated latent sources given the unmixing matrix.
+
+    Typical usecases:
+
+    1. plot evolution of latent sources over time based on (Raw input)
+    2. plot latent source around event related time windows (Epochs input)
+    3. plot time-locking in ICA space (Evoked input)
+
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA solution.
+    inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
+        The object to plot the sources from.
+    picks : ndarray | None.
+        The components to be displayed. If None, plot will show the
+        sources in the order as fitted.
+    start : int
+        X-axis start index. If None from the beginning.
+    stop : int
+        X-axis stop index. If None to the end.
+    exclude : array_like of int
+        The components marked for exclusion. If None (default), ICA.exclude
+        will be used.
+    title : str | None
+        The figure title. If None a default is provided.
+    show : bool
+        If True, plot will be shown, else just the figure is returned.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+        The figure.
+    """
+
+    from .io.base import _BaseRaw
+    from .evoked import Evoked
+    from .epochs import _BaseEpochs
+
+    if exclude is None:
+        exclude = ica.exclude
+
+    if isinstance(inst, (_BaseRaw, _BaseEpochs)):
+        if isinstance(inst, _BaseRaw):
+            sources = ica._transform_raw(inst, start, stop)
+        else:
+            if start is not None or stop is not None:
+                inst = inst.crop(start, stop, copy=True)
+            sources = ica._transform_epochs(inst, concatenate=True)
+        if picks is not None:
+            if np.isscalar(picks):
+                picks = [picks]
+            sources = np.atleast_2d(sources[picks])
+
+        fig = _plot_ica_grid(sources, start=start, stop=stop,
+                             ncol=len(sources) // 10 or 1,
+                             exclude=exclude,
+                             source_idx=picks,
+                             title=title, show=show)
+    elif isinstance(inst, Evoked):
+        sources = ica.get_sources(inst)
+        if start is not None or stop is not None:
+            inst = inst.crop(start, stop, copy=True)
+        fig = _plot_ica_sources_evoked(evoked=sources,
+                                       exclude=exclude,
+                                       title=title)
+    else:
+        raise ValueError('Data input must be of Raw or Epochs type')
+
+    return fig
+
+
+def _plot_ica_grid(sources, start, stop,
+                   source_idx, ncol, exclude,
+                   title, show):
     """Create panel plots of ICA sources
 
     Clicking on the plot of an individual source opens a new figure showing
@@ -1903,53 +2288,39 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         Indices for subsetting the sources.
     ncol : int
         Number of panel-columns.
-    nrow : int
-        Number of panel-rows.
     title : str
         The figure title. If None a default is provided.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     show : bool
         If True, plot will be shown, else just the figure is returned.
-
-    Returns
-    -------
-    fig : instance of pyplot.Figure
     """
     import matplotlib.pyplot as plt
 
     if source_idx is None:
         source_idx = np.arange(len(sources))
-    else:
+    elif isinstance(source_idx, list):
         source_idx = np.array(source_idx)
-
-    for param in ['nrow', 'n_components']:
-        if eval(param) is not None:
-            warnings.warn('The `%s` parameter is deprecated and will be'
-                          'removed in MNE-Python 0.8' % param,
-                          DeprecationWarning)
+    if exclude is None:
+        exclude = []
 
     n_components = len(sources)
-    sources = sources[source_idx, start:stop]
     ylims = sources.min(), sources.max()
     xlims = np.arange(sources.shape[-1])[[0, -1]]
     fig, axes = _prepare_trellis(n_components, ncol)
     if title is None:
-        fig.suptitle('MEG signal decomposition'
-                     ' -- %i components.' % n_components, size=16)
+        fig.suptitle('Reconstructed latent sources', size=16)
     elif title:
         fig.suptitle(title, size=16)
 
     plt.subplots_adjust(wspace=0.05, hspace=0.05)
-
-    for idx, (ax, source) in enumerate(zip(axes, sources)):
-        ax.grid(linestyle='-', color='gray', linewidth=.25)
-        component = '[%i]' % idx
-
+    my_iter = enumerate(zip(source_idx, axes, sources))
+    for i_source, (i_selection, ax, source) in my_iter:
+        component = '[%i]' % i_selection
         # plot+ emebed idx and comp. name to use in callback
-        line = ax.plot(source, linewidth=0.5, color='red', picker=1e9)[0]
-        vars(line)['_mne_src_idx'] = idx
-        vars(line)['_mne_component'] = component
+        color = 'r' if i_selection in exclude else 'k'
+        line = ax.plot(source, linewidth=0.5, color=color, picker=1e9)[0]
+        vars(line)['_mne_src_idx'] = i_source
+        vars(line)['_mne_component'] = i_selection
+        vars(line)['_mne_is_bad'] = i_selection in exclude
         ax.set_xlim(xlims)
         ax.set_ylim(ylims)
         ax.text(0.05, .95, component, transform=ax.transAxes,
@@ -1957,7 +2328,7 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
         plt.setp(ax.get_xticklabels(), visible=False)
         plt.setp(ax.get_yticklabels(), visible=False)
     # register callback
-    callback = partial(_plot_ica_panel_onpick, sources=sources, ylims=ylims)
+    callback = partial(_ica_plot_sources_onpick_, sources=sources, ylims=ylims)
     fig.canvas.mpl_connect('pick_event', callback)
 
     if show:
@@ -1966,86 +2337,263 @@ def plot_ica_panel(sources, start=None, stop=None, n_components=None,
     return fig
 
 
-def plot_ica_topomap(ica, source_idx, ch_type='mag', res=500, layout=None,
-                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                     show=True):
-    """ Plot topographic map from ICA component.
+def _plot_ica_sources_evoked(evoked, exclude, title):
+    """Plot average over epochs in ICA space
 
     Parameters
     ----------
     ica : instance of mne.prerocessing.ICA
-        The ica object to plot from.
-    source_idx : int | array-like
-        The indices of the sources to be plotted.
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
-        The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted.
-    layout : None | Layout
-        Layout instance specifying sensor positions (does not need to
-        be specified for Neuromag data). If possible, the correct layout is
-        inferred from the data.
-    vmax : scalar
-        The value specfying the range of the color scale (-vmax to +vmax). If
-        None, the largest absolute value in the data is used.
-    cmap : matplotlib colormap
-        Colormap.
-    sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses).
-    colorbar : bool
-        Plot a colorbar.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
-    show : bool
-        Call pyplot.show() at the end.
+        The ICA object.
+    epochs : instance of mne.Epochs
+        The Epochs to be regarded.
+    title : str
+        The figure title.
     """
     import matplotlib.pyplot as plt
+    if title is None:
+        title = 'Reconstructed latent sources, time-locked'
 
-    if np.isscalar(source_idx):
-        source_idx = [source_idx]
+    fig = plt.figure()
+    times = evoked.times * 1e3
 
-    data = np.dot(ica.mixing_matrix_[:, source_idx].T,
-                  ica.pca_components_[:ica.n_components_])
+    # plot unclassified sources
+    plt.plot(times, evoked.data.T, 'k')
+    for ii in exclude:
+        # use indexing to expose event related sources
+        color, label = ('r', 'ICA %02d' % ii)
+        plt.plot(times, evoked.data[ii].T, color='r', label=label)
 
-    if ica.info is None:
-        raise RuntimeError('The ICA\'s measurement info is missing. Please '
-                           'fit the ICA or add the corresponding info object.')
-
-    picks, pos, merge_grads, names = _prepare_topo_plot(ica, ch_type, layout)
-    data = np.atleast_2d(data)
-    data = data[:, picks]
-
-    # prepare data for iteration
-    fig, axes = _prepare_trellis(len(data), max_col=5)
-
-    if vmax is None:
-        vrange = np.array([f(data) for f in (np.min, np.max)])
-        vmax = max(abs(vrange))
-
-    if merge_grads:
-        from .layouts.layout import _merge_grad_data
-    for ii, data_, ax in zip(source_idx, data, axes):
-        data_ = _merge_grad_data(data_) if merge_grads else data_
-        plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
-                     res=res, axis=ax)
-        ax.set_title('IC #%03d' % ii, fontsize=12)
-        ax.set_yticks([])
-        ax.set_xticks([])
-        ax.set_frame_on(False)
-
+    plt.title(title)
+    plt.xlim(times[[0, -1]])
+    plt.xlabel('Time (ms)')
+    plt.ylabel('(NA)')
+    plt.legend(loc='best')
     tight_layout(fig=fig)
-    if colorbar:
-        vmax_ = normalize_colors(vmin=-vmax, vmax=vmax)
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=vmax_)
-        sm.set_array(np.linspace(-vmax, vmax))
-        fig.subplots_adjust(right=0.8)
-        cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        fig.colorbar(sm, cax=cax)
-        cax.set_title('AU')
+    return fig
 
+
+def plot_ica_scores(ica, scores, exclude=None, axhline=None,
+                    title='ICA component scores',
+                    figsize=(12, 6)):
+    """Plot scores related to detected components.
+
+    Use this function to asses how well your score describes outlier
+    sources and how well you were detecting them.
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA object.
+    scores : array_like of float, shape (n ica components) | list of arrays
+        Scores based on arbitrary metric to characterize ICA components.
+    exclude : array_like of int
+        The components marked for exclusion. If None (default), ICA.exclude
+        will be used.
+    axhline : float
+        Draw horizontal line to e.g. visualize rejection threshold.
+    title : str
+        The figure title.
+    figsize : tuple of int
+        The figure size. Defaults to (12, 6)
+
+    Returns
+    -------
+    fig : instance of matplotlib.pyplot.Figure
+        The figure object
+    """
+    import matplotlib.pyplot as plt
+    my_range = np.arange(ica.n_components_)
+    if exclude is None:
+        exclude = ica.exclude
+    exclude = np.unique(exclude)
+    if not isinstance(scores[0], (list, np.ndarray)):
+        scores = [scores]
+    n_rows = len(scores)
+    figsize = (12, 6) if figsize is None else figsize
+    fig, axes = plt.subplots(n_rows, figsize=figsize, sharex=True, sharey=True)
+    if isinstance(axes, np.ndarray):
+        axes = axes.flatten()
+    else:
+        axes = [axes]
+    plt.suptitle(title)
+    for this_scores, ax in zip(scores, axes):
+        if len(my_range) != len(this_scores):
+            raise ValueError('The length ofr `scores` must equal the '
+                             'number of ICA components.')
+        ax.bar(my_range, this_scores, color='w')
+        for excl in exclude:
+            ax.bar(my_range[excl], this_scores[excl], color='r')
+        if axhline is not None:
+            if np.isscalar(axhline):
+                axhline = [axhline]
+            for axl in axhline:
+                ax.axhline(axl, color='r', linestyle='--')
+        ax.set_ylabel('score')
+        ax.set_xlabel('ICA components')
+        ax.set_xlim(0, len(this_scores))
+    plt.show()
+    tight_layout(fig=fig)
+    if len(axes) > 1:
+        plt.subplots_adjust(top=0.9)
+    return fig
+
+
+def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
+                     stop=None, title=None, show=True):
+    """Overlay of raw and cleaned signals given the unmixing matrix.
+
+    This method helps visualizing signal quality and arficat rejection.
+
+    Parameters
+    ----------
+    inst : instance of mne.io.Raw or mne.Evoked
+        The signals to be compared given the ICA solution. If Raw input,
+        The raw data are displayed before and after cleaning. In a second
+        panel the cross channel average will be displayed. Since dipolar
+        sources will be canceled out this display is sensitive to
+        artifacts. If evoked input, butterfly plots for clean and raw
+        signals will be superimposed.
+    exclude : array_like of int
+        The components marked for exclusion. If None (default), ICA.exclude
+        will be used.
+    picks : array-like of int | None (default)
+        Indices of channels to include (if None, all channels
+        are used that were included on fitting).
+    start : int
+        X-axis start index. If None from the beginning.
+    stop : int
+        X-axis stop index. If None to the end.
+    title : str
+        The figure title.
+
+    Returns
+    -------
+        fig : instance of pyplot.Figure
+        The figure.
+    """
+    # avoid circular imports
+    from .io.base import _BaseRaw
+    from .evoked import Evoked
+    from .preprocessing.ica import _check_start_stop
+    import matplotlib.pyplot as plt
+
+    if not isinstance(inst, (_BaseRaw, Evoked)):
+        raise ValueError('Data input must be of Raw or Epochs type')
+    if title is None:
+        title = 'Signals before (red) and after (black) cleaning'
+    if picks is None:
+        picks = [inst.ch_names.index(k) for k in ica.ch_names]
+    if exclude is None:
+        exclude = ica.exclude
+    if isinstance(inst, _BaseRaw):
+        if start is None:
+            start = 0.0
+        if stop is None:
+            stop = 3.0
+        ch_types_used = [k for k in ['mag', 'grad', 'eeg'] if k in ica]
+        start_compare, stop_compare = _check_start_stop(inst, start, stop)
+        data, times = inst[picks, start_compare:stop_compare]
+
+        raw_cln = ica.apply(inst, exclude=exclude, start=start, stop=stop,
+                            copy=True)
+        data_cln, _ = raw_cln[picks, start_compare:stop_compare]
+        fig = _plot_ica_overlay_raw(data=data, data_cln=data_cln,
+                                    times=times * 1e3, title=title,
+                                    ch_types_used=ch_types_used)
+    elif isinstance(inst, Evoked):
+        if start is not None and stop is not None:
+            inst = inst.crop(start, stop, copy=True)
+        if picks is not None:
+            inst.pick_channels([inst.ch_names[p] for p in picks])
+        evoked_cln = ica.apply(inst, exclude=exclude, copy=True)
+        fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
+                                       title=title)
     if show is True:
         plt.show()
+    return fig
 
+
+def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used):
+    """Plot evoked after and before ICA cleaning
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA object.
+    epochs : instance of mne.Epochs
+        The Epochs to be regarded.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+    """
+    import matplotlib.pyplot as plt
+        # Restore sensor space data and keep all PCA components
+    # let's now compare the date before and after cleaning.
+    # first the raw data
+    assert data.shape == data_cln.shape
+    fig, (ax1, ax2) = plt.subplots(2, 1, sharex=True)
+    plt.suptitle(title)
+    ax1.plot(times, data.T, color='r')
+    ax1.plot(times, data_cln.T, color='k')
+    ax1.set_xlabel('time (s)')
+    ax1.set_xlim(times[0], times[-1])
+    ax1.set_xlim(times[0], times[-1])
+    ax1.set_title('Raw data')
+
+    _ch_types = {'mag': 'Magnetometers',
+                 'grad': 'Gradiometers',
+                 'eeg': 'EEG'}
+    ch_types = ', '.join([_ch_types[k] for k in ch_types_used])
+    ax2.set_title('Average across channels ({})'.format(ch_types))
+    ax2.plot(times, data.mean(0), color='r')
+    ax2.plot(times, data_cln.mean(0), color='k')
+    ax2.set_xlim(100, 106)
+    ax2.set_xlabel('time (ms)')
+    ax2.set_xlim(times[0], times[-1])
+    tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.90)
+    fig.canvas.draw()
+
+    return fig
+
+
+def _plot_ica_overlay_evoked(evoked, evoked_cln, title):
+    """Plot evoked after and before ICA cleaning
+
+    Parameters
+    ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA object.
+    epochs : instance of mne.Epochs
+        The Epochs to be regarded.
+
+    Returns
+    -------
+    fig : instance of pyplot.Figure
+    """
+    import matplotlib.pyplot as plt
+    ch_types_used = [c for c in ['mag', 'grad', 'eeg'] if c in evoked]
+    n_rows = len(ch_types_used)
+    ch_types_used_cln = [c for c in ['mag', 'grad', 'eeg'] if
+                         c in evoked_cln]
+
+    if len(ch_types_used) != len(ch_types_used_cln):
+        raise ValueError('Raw and clean evokeds must match. '
+                         'Found different channels.')
+
+    fig, axes = plt.subplots(n_rows, 1)
+    fig.suptitle('Average signal before (red) and after (black) ICA)')
+    axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
+
+    evoked.plot(axes=axes)
+    for ax in fig.axes:
+        [l.set_color('r') for l in ax.get_lines()]
+    fig.canvas.draw()
+    evoked_cln.plot(axes=axes)
+    tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.90)
+    fig.canvas.draw()
     return fig
 
 
@@ -2085,8 +2633,9 @@ def _prepare_topo_plot(obj, ch_type, layout):
             from .layouts.layout import _find_topomap_coords
             pos = _find_topomap_coords(chs, layout)
         else:
-            pos = [layout.pos[layout.names.index(info['ch_names'][k])] for k in
-                   picks]
+            names = [n.upper() for n in layout.names]
+            pos = [layout.pos[names.index(info['ch_names'][k].upper())]
+                   for k in picks]
 
     return picks, pos, merge_grads, info['ch_names']
 
@@ -3651,9 +4200,9 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     return fig
 
 
-def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
-                            show=True):
-    """Plot source power in time-freqency grid
+def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
+                            source_index=None, colorbar=False, show=True):
+    """Plot source power in time-freqency grid.
 
     Parameters
     ----------
@@ -3662,6 +4211,10 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
         should be provided for each frequency bin.
     freq_bins : list of tuples of float
         Start and end points of frequency bins of interest.
+    tmin : float
+        Minimum time instant to show.
+    tmax : float
+        Maximum time instant to show.
     source_index : int | None
         Index of source for which the spectrogram will be plotted. If None,
         the source with the largest activation will be selected.
@@ -3672,21 +4225,39 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     """
     import matplotlib.pyplot as plt
 
-    # Gathering results for each time window
+    # Input checks
     if len(stcs) == 0:
         raise ValueError('cannot plot spectrogram if len(stcs) == 0')
+
+    stc = stcs[0]
+    if tmin is not None and tmin < stc.times[0]:
+        raise ValueError('tmin cannot be smaller than the first time point '
+                         'provided in stcs')
+    if tmax is not None and tmax > stc.times[-1] + stc.tstep:
+        raise ValueError('tmax cannot be larger than the sum of the last time '
+                         'point and the time step, which are provided in stcs')
+
+    # Preparing time-frequency cell boundaries for plotting
+    if tmin is None:
+        tmin = stc.times[0]
+    if tmax is None:
+        tmax = stc.times[-1] + stc.tstep
+    time_bounds = np.arange(tmin, tmax + stc.tstep, stc.tstep)
+    freq_bounds = sorted(set(np.ravel(freq_bins)))
+    freq_ticks = deepcopy(freq_bounds)
+
+    # Rejecting time points that will not be plotted
+    for stc in stcs:
+        # Using 1e-10 to improve numerical stability
+        stc.crop(tmin - 1e-10, tmax - stc.tstep + 1e-10)
+
+    # Gathering results for each time window
     source_power = np.array([stc.data for stc in stcs])
 
     # Finding the source with maximum source power
     if source_index is None:
         source_index = np.unravel_index(source_power.argmax(),
                                         source_power.shape)[1]
-
-    # Preparing time-frequency cell boundaries for plotting
-    stc = stcs[0]
-    time_bounds = np.append(stc.times, stc.times[-1] + stc.tstep)
-    freq_bounds = sorted(set(np.ravel(freq_bins)))
-    freq_ticks = deepcopy(freq_bounds)
 
     # If there is a gap in the frequency bins record its locations so that it
     # can be covered with a gray horizontal bar
@@ -3741,13 +4312,96 @@ def plot_source_spectrogram(stcs, freq_bins, source_index=None, colorbar=False,
     return fig
 
 
+def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
+               ch_type=None):
+    """Plot MEG/EEG head surface and helmet in 3D.
+
+    Parameters
+    ----------
+    info : dict
+        The measurement info.
+    trans_fname : str | 'auto'
+        The full path to the `*-trans.fif` file produced during
+        coregistration.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    ch_type : None | 'eeg' | 'meg'
+        If None, both the MEG helmet and EEG electrodes will be shown.
+        If 'meg', only the MEG helmet will be shown. If 'eeg', only the
+        EEG electrodes will be shown.
+
+    Returns
+    -------
+    fig : instance of mlab.Figure
+        The mayavi figure.
+    """
+
+    if ch_type not in [None, 'eeg', 'meg']:
+        raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
+                         % ch_type)
+
+    if trans_fname == 'auto':
+        # let's try to do this in MRI coordinates so they're easy to plot
+        trans_fname = _find_trans(subject, subjects_dir)
+
+    trans = read_trans(trans_fname)
+
+    surfs = [get_head_surf(subject, subjects_dir=subjects_dir)]
+    if ch_type is None or ch_type == 'meg':
+        surfs.append(get_meg_helmet_surf(info, trans))
+
+    # Plot them
+    from mayavi import mlab
+    alphas = [1.0, 0.5]
+    colors = [(0.6, 0.6, 0.6), (0.0, 0.0, 0.6)]
+
+    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
+
+    for ii, surf in enumerate(surfs):
+
+        x, y, z = surf['rr'].T
+        nn = surf['nn']
+        # make absolutely sure these are normalized for Mayavi
+        nn = nn / np.sum(nn * nn, axis=1)[:, np.newaxis]
+
+        # Make a solid surface
+        alpha = alphas[ii]
+        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+        mesh.data.point_data.normals = nn
+        mesh.data.cell_data.normals = None
+        mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
+
+    if ch_type is None or ch_type == 'eeg':
+        eeg_locs = [l['eeg_loc'][:, 0] for l in info['chs']
+                    if l['eeg_loc'] is not None]
+
+        if len(eeg_locs) > 0:
+            eeg_loc = np.array(eeg_locs)
+
+            # Transform EEG electrodes to MRI coordinates
+            eeg_loc = apply_trans(trans['trans'], eeg_loc)
+
+            mlab.points3d(eeg_loc[:, 0], eeg_loc[:, 1], eeg_loc[:, 2],
+                          color=(1.0, 0.0, 0.0), scale_factor=0.005)
+        else:
+            raise warnings.warn('EEG electrode locations not found.'
+                                'Cannot plot EEG electrodes.')
+
+    mlab.view(90, 90)
+    return fig
+
+
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                       n_jobs=1):
     """Plot MEG/EEG fields on head surface and helmet in 3D
 
     Parameters
     ----------
-    evoked : instance of mne.io.Evoked
+    evoked : instance of mne.Evoked
         The evoked object.
     surf_maps : list
         The surface mapping information obtained with make_field_map.
@@ -3850,6 +4504,155 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
     mlab.text(0.01, 0.01, time_label, width=0.4)
     mlab.view(10, 60)
     return fig
+
+
+def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
+                       slices=None, show=True):
+    """Plot BEM contours on anatomical slices.
+
+    Parameters
+    ----------
+    mri_fname : str
+        The name of the file containing anatomical data.
+    surf_fnames : list of str
+        The filenames for the BEM surfaces in the format
+        ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
+    orientation : str
+        'coronal' or 'transverse' or 'sagittal'
+    slices : list of int
+        Slice indices.
+    show : bool
+        Call pyplot.show() at the end.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
+    """
+    import matplotlib.pyplot as plt
+    import nibabel as nib
+
+    if orientation not in ['coronal', 'axial', 'sagittal']:
+        raise ValueError("Orientation must be 'coronal', 'axial' or "
+                         "'sagittal'. Got %s." % orientation)
+
+    # Load the T1 data
+    nim = nib.load(mri_fname)
+    data = nim.get_data()
+    affine = nim.get_affine()
+
+    n_sag, n_axi, n_cor = data.shape
+    orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
+    orientation_axis = orientation_name2axis[orientation]
+
+    if slices is None:
+        n_slices = data.shape[orientation_axis]
+        slices = np.linspace(0, n_slices, 12, endpoint=False).astype(np.int)
+
+    # create of list of surfaces
+    surfs = list()
+
+    trans = linalg.inv(affine)
+    # XXX : next line is a hack don't ask why
+    trans[:3, -1] = [n_sag // 2, n_axi // 2, n_cor // 2]
+
+    for surf_fname in surf_fnames:
+        surf = dict()
+        surf['rr'], surf['tris'] = read_surface(surf_fname)
+        # move back surface to MRI coordinate system
+        surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
+        surfs.append(surf)
+
+    fig, axs = _prepare_trellis(len(slices), 4)
+
+    for ax, sl in zip(axs, slices):
+
+        # adjust the orientations for good view
+        if orientation == 'coronal':
+            dat = data[:, :, sl].transpose()
+        elif orientation == 'axial':
+            dat = data[:, sl, :]
+        elif orientation == 'sagittal':
+            dat = data[sl, :, :]
+
+        # First plot the anatomical data
+        ax.imshow(dat, cmap=plt.cm.gray)
+        ax.axis('off')
+
+        # and then plot the contours on top
+        for surf in surfs:
+            if orientation == 'coronal':
+                ax.tricontour(surf['rr'][:, 0], surf['rr'][:, 1],
+                              surf['tris'], surf['rr'][:, 2],
+                              levels=[sl], colors='yellow', linewidths=2.0)
+            elif orientation == 'axial':
+                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 0],
+                              surf['tris'], surf['rr'][:, 1],
+                              levels=[sl], colors='yellow', linewidths=2.0)
+            elif orientation == 'sagittal':
+                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 1],
+                              surf['tris'], surf['rr'][:, 0],
+                              levels=[sl], colors='yellow', linewidths=2.0)
+
+    if show:
+        plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+                            hspace=0.)
+        plt.show()
+
+    return fig
+
+
+def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
+             slices=None, show=True):
+    """Plot BEM contours on anatomical slices.
+
+    Parameters
+    ----------
+    subject : str
+        Subject name.
+    subjects_dir : str | None
+        Path to the SUBJECTS_DIR. If None, the path is obtained by using
+        the environment variable SUBJECTS_DIR.
+    orientation : str
+        'coronal' or 'transverse' or 'sagittal'.
+    slices : list of int
+        Slice indices.
+    show : bool
+        Call pyplot.show() at the end.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+
+    # Get the MRI filename
+    mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+    if not op.isfile(mri_fname):
+        raise IOError('MRI file "%s" does not exist' % mri_fname)
+
+    # Get the BEM surface filenames
+    bem_path = op.join(subjects_dir, subject, 'bem')
+
+    if not op.isdir(bem_path):
+        raise IOError('Subject bem directory "%s" does not exist' % bem_path)
+
+    surf_fnames = []
+    for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
+        surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
+        if len(surf_name) > 0:
+            surf_fname = surf_fname[0]
+            logger.info("Using surface: %s" % surf_fname)
+        else:
+            raise IOError('No surface found for %s.' % surf_name)
+        if not op.isfile(surf_fname):
+            raise IOError('Surface file "%s" does not exist' % surf_fname)
+        surf_fnames.append(surf_fname)
+
+    # Plot the contours
+    return _plot_mri_contours(mri_fname, surf_fnames, orientation=orientation,
+                              slices=slices, show=show)
 
 
 def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,

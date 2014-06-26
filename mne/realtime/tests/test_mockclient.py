@@ -16,7 +16,7 @@ raw = mne.io.Raw(raw_fname, preload=True, verbose=False)
 events = read_events(event_name)
 
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                            stim=True, exclude=raw.info['bads'])
+                       stim=True, exclude=raw.info['bads'])
 
 
 def test_mockclient():

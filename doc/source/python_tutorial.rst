@@ -111,7 +111,7 @@ Read data from file:
     >>> print(raw)
     <Raw  |  n_channels x n_times : 376 x 41700>
     >>> print(raw.info) # doctest:+ELLIPSIS
-    <Info | 18 non-empty ...
+    <Info | 17 non-empty ...
 
 Look at the channels in raw:
 
@@ -255,7 +255,7 @@ Compute evoked responses for auditory responses by averaging and plot it:
 It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-    >>> evoked1 = mne.io.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
+    >>> evoked1 = mne.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
     Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
@@ -271,7 +271,7 @@ It is also possible to read evoked data stored in a fif file:
 
 Or another one stored in the same file:
 
-    >>> evoked2 = mne.io.read_evokeds(evoked_fname, condition='Right Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
+    >>> evoked2 = mne.read_evokeds(evoked_fname, condition='Right Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
     Reading ...
 
 Compute a contrast:

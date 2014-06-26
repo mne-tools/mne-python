@@ -8,14 +8,15 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 
 from mne.datasets import sample
-from mne.io import Raw, read_evokeds
+from mne.io import Raw
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
                  convert_forward_solution)
-from mne import SourceEstimate, pick_types_forward
+from mne import SourceEstimate, pick_types_forward, read_evokeds
 from mne.label import read_label
 from mne.utils import requires_mne, run_subprocess, _TempDir
-from mne.forward import restrict_forward_to_stc, restrict_forward_to_label
+from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
+                         Forward)
 
 data_path = sample.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
@@ -56,21 +57,29 @@ def test_convert_forward():
     """Test converting forward solution between different representations
     """
     fwd = read_forward_solution(fname_meeg)
+    print(fwd)  # __repr__
+    assert_true(isinstance(fwd, Forward))
     # look at surface orientation
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
     fwd_surf_io = read_forward_solution(fname_meeg, surf_ori=True)
     compare_forwards(fwd_surf, fwd_surf_io)
     # go back
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
+    print(fwd_new)
+    assert_true(isinstance(fwd, Forward))
     compare_forwards(fwd, fwd_new)
     # now go to fixed
     fwd_fixed = convert_forward_solution(fwd_surf, surf_ori=False,
                                          force_fixed=True)
+    print(fwd_fixed)
+    assert_true(isinstance(fwd_fixed, Forward))
     fwd_fixed_io = read_forward_solution(fname_meeg, surf_ori=False,
                                          force_fixed=True)
     compare_forwards(fwd_fixed, fwd_fixed_io)
     # now go back to cartesian (original condition)
     fwd_new = convert_forward_solution(fwd_fixed)
+    print(fwd_new)
+    assert_true(isinstance(fwd_new, Forward))
     compare_forwards(fwd, fwd_new)
 
 
@@ -80,10 +89,11 @@ def test_io_forward():
     """
     # test M/EEG
     fwd_meeg = read_forward_solution(fname_meeg)
+    assert_true(isinstance(fwd_meeg, Forward))
     leadfield = fwd_meeg['sol']['data']
     assert_equal(leadfield.shape, (366, 22494))
     assert_equal(len(fwd_meeg['sol']['row_names']), 366)
-    fname_temp = op.join(temp_dir, 'fwd.fif')
+    fname_temp = op.join(temp_dir, 'test-fwd.fif')
     write_forward_solution(fname_temp, fwd_meeg, overwrite=True)
 
     fwd_meeg = read_forward_solution(fname_temp)
@@ -96,7 +106,7 @@ def test_io_forward():
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (306, 22494))
     assert_equal(len(fwd['sol']['row_names']), 306)
-    fname_temp = op.join(temp_dir, 'fwd.fif')
+    fname_temp = op.join(temp_dir, 'test-fwd.fif')
     write_forward_solution(fname_temp, fwd, overwrite=True)
 
     fwd = read_forward_solution(fname, surf_ori=True)
@@ -118,6 +128,14 @@ def test_io_forward():
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])
 
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
+        write_forward_solution(fwd_badname, fwd_meeg)
+        read_forward_solution(fwd_badname)
+    assert_true(len(w) == 2)
+
 
 @sample.requires_sample_data
 def test_apply_forward():
@@ -131,6 +149,7 @@ def test_apply_forward():
 
     fwd = read_forward_solution(fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True)
+    assert_true(isinstance(fwd, Forward))
 
     vertno = [fwd['src'][0]['vertno'], fwd['src'][1]['vertno']]
     stc_data = np.ones((len(vertno[0]) + len(vertno[1]), n_times))
@@ -182,6 +201,7 @@ def test_restrict_forward_to_stc():
     stc = SourceEstimate(stc_data, vertno, tmin=t_start, tstep=1.0 / sfreq)
 
     fwd_out = restrict_forward_to_stc(fwd, stc)
+    assert_true(isinstance(fwd_out, Forward))
 
     assert_equal(fwd_out['sol']['ncol'], 20)
     assert_equal(fwd_out['src'][0]['nuse'], 15)
@@ -278,11 +298,12 @@ def test_average_forward_solution():
 
     # try an easy case
     fwd_copy = average_forward_solutions([fwd])
+    assert_true(isinstance(fwd_copy, Forward))
     assert_array_equal(fwd['sol']['data'], fwd_copy['sol']['data'])
 
     # modify a fwd solution, save it, use MNE to average with old one
     fwd_copy['sol']['data'] *= 0.5
-    fname_copy = op.join(temp_dir, 'fwd.fif')
+    fname_copy = op.join(temp_dir, 'copy-fwd.fif')
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
     cmd = ('mne_average_forward_solutions', '--fwd', fname, '--fwd',
            fname_copy, '--out', fname_copy)

@@ -46,7 +46,7 @@ except:
 
 from ..coreg import fid_fname, fid_fname_general, head_bem_fname
 from ..io import write_fiducials
-from ..constants import FIFF
+from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
 from ._file_traits import (BemSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)

@@ -4,13 +4,14 @@
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 from copy import deepcopy
 import re
 
 import numpy as np
-from .utils import logger, verbose
+
 from .constants import FIFF
+from ..utils import logger, verbose
+from ..externals.six import string_types
 
 
 def channel_type(info, idx):
@@ -194,7 +195,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     if isinstance(ref_meg, string_types):
         if ref_meg != 'auto':
             raise ValueError('ref_meg has to be either a bool or \'auto\'')
-        ref_meg = info['comps'] is not None and len(info['comps']) > 0
+
+        ref_meg = ('comps' in info and info['comps'] is not None and
+                   len(info['comps']) > 0)
 
     for k in range(nchan):
         kind = info['chs'][k]['kind']
@@ -398,6 +401,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
                      ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
                      resp=resp, chpi=chpi, exci=exci, ias=ias, syst=syst,
                      include=include, exclude=exclude)
+
     include_ch_names = [orig.ch_names[k] for k in sel]
     return pick_channels_evoked(orig, include_ch_names)
 

@@ -11,7 +11,7 @@ import os.path as op
 import re
 import uuid
 
-from ..constants import FIFF
+from .constants import FIFF
 from ..utils import logger
 from ..externals.jdcal import jcal2jd
 from ..fixes import gzip_open
@@ -211,7 +211,7 @@ def end_block(fid, kind):
     write_int(fid, FIFF.FIFF_BLOCK_END, kind)
 
 
-def start_file(fname):
+def start_file(fname, id_=None):
     """Opens a fif file for writing and writes the compulsory header tags
 
     Parameters
@@ -220,6 +220,8 @@ def start_file(fname):
         The name of the file to open. It is recommended
         that the name ends with .fif or .fif.gz. Can also be an
         already opened file.
+    id_ : dict | None
+        ID to use for the FIFF_FILE_ID.
     """
     if isinstance(fname, string_types):
         if op.splitext(fname)[1].lower() == '.gz':
@@ -235,7 +237,7 @@ def start_file(fname):
         fid = fname
         fid.seek(0)
     #   Write the compulsory items
-    write_id(fid, FIFF.FIFF_FILE_ID)
+    write_id(fid, FIFF.FIFF_FILE_ID, id_)
     write_int(fid, FIFF.FIFF_DIR_POINTER, -1)
     write_int(fid, FIFF.FIFF_FREE_LIST, -1)
     return fid
