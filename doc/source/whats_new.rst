@@ -103,6 +103,8 @@ Changelog
 
    - Add mask parameter to `plot_evoked_topomap` and `evoked.plot_topomap` by `Denis Engemann`_ and `Alex Gramfort`_
 
+   - Add infomax and extended infomax ICA by `Denis Engemann`_, `Juergen Dammers`_ and `Lukas Breuer`_
+
 BUG
 ~~~
 
@@ -752,3 +754,5 @@ of commits):
 .. _Juergen Dammers: https://github.com/jdammers
 
 .. _Olaf Hauk: http://www.neuroscience.cam.ac.uk/directory/profile.php?olafhauk
+
+.. _Jukas Breuer: http://www.researchgate.net/profile/Lukas_Breuer

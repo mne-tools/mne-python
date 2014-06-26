@@ -338,6 +338,7 @@ Projections:
    ica_find_eog_events
    read_ica
    run_ica
+   infomax
 
 :py:mod:`mne.filter`:
 
