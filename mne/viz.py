@@ -1184,7 +1184,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         sensors will be shown.
     mask : ndarray of bool, shape (n_channels, n_times) | None
         The channels to be marked as significant at a given time point.
-        Indicies set to `True` will be considered. Defaults to None.
+        Indices set to `True` will be considered. Defaults to None.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
         Default (None) equals:
