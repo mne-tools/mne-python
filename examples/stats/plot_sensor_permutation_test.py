@@ -62,8 +62,8 @@ print("Sensors names : %s" % significant_sensors_names)
 ###############################################################################
 # View location of significantly active sensors
 
-evoked = mne.evoked.EvokedArray(-np.log10(p_values)[:, np.newaxis],
-                                epochs.info, tmin=0.)
+evoked = mne.EvokedArray(-np.log10(p_values)[:, np.newaxis],
+                         epochs.info, tmin=0.)
 
 # Extract mask and indices of active sensors in layout
 stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
