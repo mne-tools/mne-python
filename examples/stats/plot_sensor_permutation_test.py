@@ -48,14 +48,13 @@ data = epochs.get_data()
 times = epochs.times
 
 temporal_mask = np.logical_and(0.04 <= times, times <= 0.06)
-data = np.squeeze(np.mean(data[:, :, temporal_mask], axis=2))
+data = np.mean(data[:, :, temporal_mask], axis=2)
 
 n_permutations = 50000
 T0, p_values, H0 = permutation_t_test(data, n_permutations, n_jobs=2)
 
 significant_sensors = picks[p_values <= 0.05]
-significant_sensors_names = [raw.info['ch_names'][k]
-                             for k in significant_sensors]
+significant_sensors_names = [raw.ch_names[k] for k in significant_sensors]
 
 print("Number of significant sensors : %d" % len(significant_sensors))
 print("Sensors names : %s" % significant_sensors_names)
@@ -68,11 +67,10 @@ evoked.times = np.array([0])
 evoked.data = T0[:, np.newaxis]
 
 # Extract mask and indices of active sensors in layout
-idx_of_sensors = [evoked.ch_names.index(name)
-                  for name in significant_sensors_names]
+stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
 
-mask = np.zeros_like(T0).astype(bool)[:, np.newaxis]
-mask[idx_of_sensors] = True
+mask = np.zeros((T0.shape[0], 1), dtype=bool)
+mask[stats_picks] = True
 
 evoked.plot_topomap(ch_type='grad', times=[0],
                     scale=1, scale_time=1, time_format=None,
