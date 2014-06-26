@@ -268,7 +268,8 @@ class ICA(ContainsMixin):
         else:
             s = 'epochs'
         s += ' decomposition, '
-        s += 'fit: %s samples, ' % str(getattr(self, 'n_samples_', ''))
+        s += 'fit (%s): %s samples, ' % (self.method,
+                                         str(getattr(self, 'n_samples_', '')))
         s += ('%s components' % str(self.n_components_) if
               hasattr(self, 'n_components_') else
               'no dimension reduction')
