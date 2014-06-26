@@ -16,7 +16,6 @@ from ..utils import logger, verbose, check_random_state
 def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             anneal_deg=60., anneal_step=0.9, extended=False, max_iter=200,
             random_state=None, verbose=None):
-
     """Run the (extended) Infomax ICA decomposition on raw data
 
     based on the publications of Bell & Sejnowski 1995 (Infomax)
