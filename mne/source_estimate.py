@@ -342,14 +342,6 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
             and len(vertices) == 1:
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
-                                
-    # Added by Alan Leggitt <alan.leggitt@ucsf.edu> for merging cortical and
-    # subcortical source spaces
-    elif isinstance(vertices, list) and len(vertices) == 3:
-        # treat the combined source space as a surface
-        stc = SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep,
-                             subject=subject)
-    
     else:
         raise ValueError('vertices has to be either a list with one or two '
                          'arrays or an array')
@@ -420,10 +412,10 @@ class _BaseSourceEstimate(object):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            #if not (len(vertices) == 2 or len(vertices) == 1) or \
-            #        not all([isinstance(v, np.ndarray) for v in vertices]):
-            #    raise ValueError('Vertices, if a list, must contain one or '
-            #                     'two numpy arrays')
+            if not (len(vertices) == 2 or len(vertices) == 1) or \
+                    not all([isinstance(v, np.ndarray) for v in vertices]):
+                raise ValueError('Vertices, if a list, must contain one or '
+                                 'two numpy arrays')
 
             if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
                 raise ValueError('Vertices must be ordered in increasing '
@@ -990,9 +982,9 @@ class SourceEstimate(_BaseSourceEstimate):
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):
 
-        #if not (isinstance(vertices, list) and len(vertices) == 2):
-        #    raise ValueError('Vertices, if a list, must contain two '
-        #                     'numpy arrays')
+        if not (isinstance(vertices, list) and len(vertices) == 2):
+            raise ValueError('Vertices, if a list, must contain two '
+                             'numpy arrays')
 
         _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
                                      tstep=tstep, subject=subject,
