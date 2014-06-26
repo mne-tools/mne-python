@@ -67,9 +67,7 @@ evoked = mne.evoked.EvokedArray(-np.log10(p_values)[:, np.newaxis],
 
 # Extract mask and indices of active sensors in layout
 stats_picks = mne.pick_channels(evoked.ch_names, significant_sensors_names)
-
-mask = np.zeros((T0.shape[0], 1), dtype=bool)
-mask[stats_picks] = True
+mask = p_values[:, np.newaxis] <= 0.05
 
 evoked.plot_topomap(ch_type='grad', times=[0],
                     scale=1, scale_time=1, time_format=None,
