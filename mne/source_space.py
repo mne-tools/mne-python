@@ -1701,3 +1701,66 @@ def _do_src_distances(con, vertno, run_inds, limit):
     min_idx = min_idx[midx, range_idx]
     d[d == np.inf] = 0  # scipy will give us np.inf for uncalc. distances
     return d, min_idx, min_dist
+
+def add_subcortical_volumes(src, volume_labels, subjects_dir=None):
+    """Adds a subcortical volume to a cortical source space
+
+    Parameters
+    ----------
+    src : dict
+        Source space
+    volume_labels : list
+        Names of desired volumes
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+
+    Returns
+    -------
+    src : SourceSpaces
+        The source spaces.    
+    """
+
+    # Get the subject
+    subject = src[0]['subject_his_id']
+   
+    # Get the subjects directory
+    subjects_dir = get_subjects_dir(subjects_dir)
+
+    # Find the segmentation file
+    aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
+
+    # Read the segmentation data using nibabel
+    aseg = nib.load(aseg_fname)
+    aseg_hdr = aseg.get_header()
+    aseg_data = aseg.get_data()
+
+    # Get the indices to the desired labels
+    ix = np.zeros(aseg_data.shape)
+    for label in volume_labels:
+        ix += aseg_data == label
+    pts = np.array(np.where(ix)).T
+
+    # Transform data to RAS coordinates
+    trans = aseg_hdr.get_vox2ras_tkr()
+    pts = apply_trans(trans, pts)
+
+    # Convert to meters
+    pts /= 1000.
+
+    # Set orientations
+    ori = np.zeros(pts.shape)
+    ori[:, 2] = 1.0
+
+    # Store coordinates and orientations as dict
+    pos = dict(rr=pts, nn=ori)
+
+    # Setup a volume source
+    vol_src = setup_volume_source_space(subject, pos=pos)
+    
+    # Combine source spaces 
+    src.append(vol_src[0])
+
+    # Flag SourceSpace
+    src.info['flag'] = 'combined'
+
+    return src
