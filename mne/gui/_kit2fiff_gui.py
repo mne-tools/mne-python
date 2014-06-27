@@ -18,7 +18,7 @@ try:
     from pyface.api import confirm, error, FileDialog, OK, YES, information
     from traits.api import (HasTraits, HasPrivateTraits, cached_property,
                             Instance, Property, Bool, Button, Enum, File, Int,
-                            List, Str, DelegatesTo)
+                            List, Str, Array, DelegatesTo)
     from traitsui.api import (View, Item, HGroup, VGroup, spring,
                               CheckListEditor, EnumEditor, Handler)
     from traitsui.menu import NoButtons
@@ -41,6 +41,7 @@ except:
     List = trait_wraith
     Property = trait_wraith
     Str = trait_wraith
+    Array = trait_wraith
     spring = trait_wraith
     View = trait_wraith
     Item = trait_wraith
@@ -88,7 +89,8 @@ class Kit2FiffModel(HasPrivateTraits):
                     "head shape")
     fid_file = File(exists=True, filter=hsp_fid_wildcard, desc="Digitizer "
                     "fiducials")
-    stim_chs = Enum(">", "<")
+    stim_chs = Enum(">", "<", "man")
+    stim_chs_manual = Array(int, (8,), range(168, 176))
     stim_slope = Enum("-", "+")
     # Marker Points
     use_mrk = List(list(range(5)), desc="Which marker points to use for the device "
@@ -286,12 +288,17 @@ class Kit2FiffModel(HasPrivateTraits):
         if not self.sqd_file:
             raise ValueError("sqd file not set")
 
-        raw = RawKIT(self.sqd_file, preload=preload)
-        raw._set_stimchannels(self.stim_chs, self.stim_slope)
+        if self.stim_chs == 'man':
+            stim = self.stim_chs_manual
+        else:
+            stim = self.stim_chs
+
+        raw = RawKIT(self.sqd_file, preload=preload, stim=stim,
+                     slope=self.stim_slope)
 
         if np.any(self.fid):
             raw._set_dig_neuromag(self.fid, self.elp, self.hsp,
-                                 self.dev_head_trans)
+                                  self.dev_head_trans)
         return raw
 
 
@@ -319,6 +326,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     hsp_file = DelegatesTo('model')
     fid_file = DelegatesTo('model')
     stim_chs = DelegatesTo('model')
+    stim_chs_manual = DelegatesTo('model')
     stim_slope = DelegatesTo('model')
 
     # info
@@ -360,16 +368,7 @@ class Kit2FiffPanel(HasPrivateTraits):
                               Item('use_mrk', editor=use_editor,
                                    style='custom'),
                               label="Sources", show_border=True),
-                    VGroup(Item('stim_chs', label="Binary Coding",
-                                style='custom',
-                                editor=EnumEditor(values={'>': '1:1 ... 128',
-                                                          '<': '2:128 ... 1',
-                                                          },
-                                                  cols=2),
-                                help="Specifies the bit order in event "
-                                "channels. Assign the first bit (1) to the "
-                                "first or the last trigger channel."),
-                           Item('stim_slope', label="Event Onset",
+                    VGroup(Item('stim_slope', label="Event Onset",
                                 style='custom',
                                 editor=EnumEditor(
                                            values={'+': '2:Peak (0 to 5 V)',
@@ -378,6 +377,18 @@ class Kit2FiffPanel(HasPrivateTraits):
                                 help="Whether events are marked by a decrease "
                                 "(trough) or an increase (peak) in trigger "
                                 "channel values"),
+                           Item('stim_chs', label="Binary Coding",
+                                style='custom',
+                                editor=EnumEditor(values={'>': '1:1 ... 128',
+                                                          '<': '3:128 ... 1',
+                                                          'man': '2:Manual'},
+                                                  cols=2),
+                                help="Specifies the bit order in event "
+                                "channels. Assign the first bit (1) to the "
+                                "first or the last trigger channel."),
+                           Item('stim_chs_manual', label='Stim Channels',
+                                style='custom',
+                                visible_when="stim_chs == 'man'"),
                            label='Events', show_border=True),
                        HGroup(Item('save_as', enabled_when='can_save'), spring,
                               'clear_all', show_labels=False),
