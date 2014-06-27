@@ -17,7 +17,7 @@ from scipy import stats
 import matplotlib.pyplot as plt
 import mne
 from mne import io
-from mne.preprocessing import ICA
+from mne.preprocessing import ICA, create_eog_epochs
 from mne.datasets import spm_face
 from mne.minimum_norm import make_inverse_operator, apply_inverse_epochs
 
@@ -29,13 +29,16 @@ data_path = spm_face.data_path()
 subjects_dir = data_path + '/subjects'
 subject_dir = subjects_dir + '/spm'
 meg_dir = data_path + '/MEG/spm'
+fstring = meg_dir + '/SPM_CTF_MEG_example_faces1_3D'
 
-# get the data files
+# get the meg data files
+trans_fname = fstring + '_raw-trans.fif'
+epo_fname = fstring + '-epo.fif'
+fwd_fname = fstring + '-oct-6-amyg-vol-fwd.fif'
+evo_fname = fstring + '-ave.fif'
+
+# get the freesurfer data files
 bem_fname = subject_dir + '/bem/spm-5120-5120-5120-bem-sol.fif'
-mri_fname = meg_dir + '/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
-epo_fname = meg_dir + '/SPM_CTF_MEG_example_faces1_3D_epo.fif'
-fwd_fname = meg_dir + '/SPM_CTF_MEG_example_faces1_3D_' + \
-                      'oct-6-rh-amyg-vol-fwd.fif'
 
 ##############################################################################
 # get the epoch data
@@ -45,46 +48,47 @@ if os.path.exists(epo_fname):
 
     # read the epoch data
     epochs = mne.read_epochs(epo_fname)
+    event_ids = {"faces": 1, "scrambled": 2}
 
-else:  # must generate epochs from raw
+else:  # generate evoked from raw
 
-    # Load and filter data, set up epochs
-    raw_fname = meg_dir + '/SPM_CTF_MEG_example_faces1_3D_raw.fif'
+    raw_fname = fstring + '_raw.fif'
 
     raw = io.Raw(raw_fname, preload=True)  # Take first run
 
-    # use the meg channels
     picks = mne.pick_types(raw.info, meg=True, exclude='bads')
+    raw.filter(1, 30, method='iir')
 
-    # bandpass filter
-    raw.filter(1, 45, method='iir')
-
-    # find the events
     events = mne.find_events(raw, stim_channel='UPPT001')
     event_ids = {"faces": 1, "scrambled": 2}
 
-    # setup epoch parameters
     tmin, tmax = -0.2, 0.6
     baseline = None  # no baseline as high-pass is applied
-    reject = dict(mag=1.5e-12)
+    reject = dict(mag=5e-12)
 
-    # epoch the data
     epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
-                        baseline=baseline, preload=True, reject=reject)
+                    baseline=baseline, preload=True, reject=reject)
 
     # Fit ICA, find and remove major artifacts
-    ica = ICA(None, 50).decompose_epochs(epochs, decim=2)
+    ica = ICA(n_components=0.95).fit(raw, decim=6, reject=reject)
 
-    # exclude sources that resemble ECG or EOG data
-    for ch_name in ['MRT51-2908', 'MLF14-2908']:  # ECG, EOG contaminated chs
-        scores = ica.find_sources_epochs(epochs, ch_name, 'pearsonr')
-        ica.exclude += list(np.argsort(np.abs(scores))[-2:])
+    # compute correlation scores, get bad indices sorted by score
+    eog_epochs = create_eog_epochs(raw, ch_name='MRT31-2908', reject=reject)
+    eog_inds, eog_scores = ica.find_bads_eog(eog_epochs, ch_name='MRT31-2908')
+    ica.exclude += eog_inds[:1]  # we saw the 2nd ECG component looked too dipolar
+    ica.apply(epochs)  # clean data
 
-    # select ICA sources and reconstruct MEG signals, compute clean ERFs
-    epochs = ica.pick_sources_epochs(epochs)
-
-    # save the epoched data
+    # save the epoch data
     epochs.save(epo_fname)
+
+
+# calculate the evoked data
+evoked = [epochs[k].average() for k in event_ids]
+contrast = evoked[1] - evoked[0]
+evoked.append(contrast)
+
+# estimate noise covarariance
+noise_cov = mne.compute_covariance(epochs, tmax=0)
 
 ##############################################################################
 # get the forward operator
@@ -97,22 +101,14 @@ if os.path.exists(fwd_fname):
 
 else:  # merge cortical and subcortical sources and computer forward solution
 
-    # get positions and orientations of subcortical space
-    pos = mne.source_space.get_segment_positions('spm', 'Right-Amygdala',
-                                                 random_ori=True,
-                                                 subjects_dir=subjects_dir)
-
-    # setup the right amygdala volume source space
-    vol_src = mne.setup_volume_source_space('spm', pos=pos)
-
     # setup the cortical surface source space
     src = mne.setup_source_space('spm', overwrite=True)
 
-    # combine the source spaces
-    src.append(vol_src[0])
+    # add a subcortical volumes
+    src = mne.source_space.add_subcortical_volumes(src, [18, 54])
 
     # setup the forward model
-    forward = mne.make_forward_solution(epochs.info, mri=mri_fname, src=src,
+    forward = mne.make_forward_solution(epochs.info, mri=trans_fname, src=src,
                                         bem=bem_fname)
 
     # save the forward solution
