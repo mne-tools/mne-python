@@ -13,13 +13,13 @@ import re
 import StringIO
 import numpy as np
 import time
-import glob
+from glob import glob
 import webbrowser
 
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
 from .utils import _TempDir
-from .viz import plot_events, plot_bem, plot_trans
+from .viz import plot_events, _plot_mri_contours, plot_trans
 
 from tempita import HTMLTemplate, Template
 
@@ -369,9 +369,6 @@ class Report(object):
                                + f.read() + u'</style>')
             f.close()
 
-        if self.title is None:
-            self.title = 'MNE Report for ...%s' % self.data_path[-20:]
-
         html = header_template.substitute(title=self.title,
                                           include=''.join(include))
         self.html.append(html)
@@ -386,16 +383,21 @@ class Report(object):
             created.
         """
         self.data_path = data_path
+
+        if self.title is None:
+            self.title = 'MNE Report for ...%s' % self.data_path[-20:]
+
         folders = []
 
         fnames = _recursive_search(self.data_path, '*.fif')
-        fnames += glob.glob(op.join(self.subjects_dir, self.subject,
-                            'mri', 'T1.mgz'))
+        fnames += glob(op.join(self.subjects_dir, self.subject,
+                       'mri', 'T1.mgz'))
 
         info = read_info(self.info_fname)
 
         for fname in fnames:
-            print "Rendering : %s" % op.join('...' + self.data_path[-20:], fname)
+            print "Rendering : %s" % op.join('...' + self.data_path[-20:],
+                                             fname)
             try:
                 if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
                     cmap = 'gray'
@@ -403,6 +405,7 @@ class Report(object):
                         cmap = 'spectral'
                     self.render_image(fname, surfaces=True, cmap=cmap)
                     self.fnames.append(fname)
+                    pass
                 elif fname.endswith(('raw.fif', 'sss.fif')):
                     self.render_raw(fname)
                     self.fnames.append(fname)
@@ -556,6 +559,48 @@ class Report(object):
         html.append(u'</div>')
         return '\n'.join(html)
 
+    def render_one_bem_axe(self, mri_fname, surf_fnames, global_id,
+                           shape, orientation='coronal'):
+
+        orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
+        orientation_axis = orientation_name2axis[orientation]
+        n_slices = shape[orientation_axis]
+        orig_size = np.roll(shape, orientation_axis)[[1, 2]]
+
+        name = orientation
+        html, img = [], []
+        slices, slices_range = [], []
+        first = True
+        html.append(u'<div class="col-xs-6 col-md-4">')
+        slides_klass = '%s-%s' % (name, global_id)
+        img_klass = 'slideimg-%s' % name
+        for sl in range(n_slices // 3, n_slices // 2):
+            print('Rendering BEM contours : orientation = %s, '
+                  'slice = %d' % (orientation, sl))
+            slices_range.append(sl)
+            caption = u'Slice %s %s' % (name, sl)
+            slice_id = '%s-%s-%s' % (name, global_id, sl)
+            div_klass = 'span12 %s' % slides_klass
+
+            fig = _plot_mri_contours(mri_fname, surf_fnames,
+                                     orientation=orientation,
+                                     slices=[sl], show=False)
+            img = fig2im('test', fig, orig_size)
+            slices.append(build_html_image(img, slice_id, div_klass, img_klass,
+                                           caption, first))
+            first = False
+
+        # Render the slider
+        slider_id = 'select-%s-%s' % (name, global_id)
+        html.append(build_html_slider(slices_range, slides_klass, slider_id))
+        html.append(u'<ul class="thumbnails">')
+        # Render the slices
+        html.append(u'\n'.join(slices))
+        html.append(u'</ul>')
+        html.append(u'</div>')
+
+        return '\n'.join(html)
+
     def render_image(self, image, surfaces=True, cmap='gray'):
 
         import nibabel as nib
@@ -688,24 +733,71 @@ class Report(object):
 
     def render_bem(self, subject, subjects_dir, orientation='coronal'):
 
-        import matplotlib.pyplot as plt
+        import nibabel as nib
 
         global_id = self.get_id()
-        plt.close("all")
-        fig = plot_bem(subject=subject, subjects_dir=subjects_dir,
-                       orientation=orientation, show=False)
-        img = _fig_to_img(fig)
+        name, caption = 'BEM', 'BEM contours'
 
-        caption = 'BEM Contours : ' + orientation
-        div_klass = 'bem'
-        img_klass = 'bem'
-        show = True
-        html = image_template.substitute(img=img, id=global_id,
-                                         div_klass=div_klass,
-                                         img_klass=img_klass,
-                                         caption=caption,
-                                         show=show)
-        self.html.append(html)
+        # Get the MRI filename
+        mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+        if not op.isfile(mri_fname):
+            raise IOError('MRI file "%s" does not exist' % mri_fname)
+
+        # Get the BEM surface filenames
+        bem_path = op.join(subjects_dir, subject, 'bem')
+
+        if not op.isdir(bem_path):
+            raise IOError('Subject bem directory "%s" does not exist' %
+                          bem_path)
+
+        surf_fnames = []
+        for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
+            surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
+            if len(surf_name) > 0:
+                surf_fname = surf_fname[0]
+            else:
+                raise IOError('No surface found for %s.' % surf_name)
+            if not op.isfile(surf_fname):
+                raise IOError('Surface file "%s" does not exist' % surf_fname)
+            surf_fnames.append(surf_fname)
+
+        # XXX : find a better way to get max range of slices
+        nim = nib.load(mri_fname)
+        data = nim.get_data()
+
+        html = []
+        html += u'<h2>%s</h2>\n' % name
+        html += u'<li class="bem-slices" id="%d">\n' % global_id
+        html += u'<div class="row">'
+        html += self.render_one_bem_axe(mri_fname, surf_fnames, global_id,
+                                        data.shape, orientation='sagittal')
+        html += self.render_one_bem_axe(mri_fname, surf_fnames, global_id,
+                                        data.shape, orientation='axial')
+        html += u'</div><div class="row">'
+        html += self.render_one_bem_axe(mri_fname, surf_fnames, global_id,
+                                        data.shape, orientation='coronal')
+        html += u'</div>'
+        html += u'</li>\n'
+        self.html.append(''.join(html))
+
+
+def fig2im(fname, fig, orig_size):
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    fig_size = fig.get_size_inches()
+    w, h = orig_size[0], orig_size[1]
+    w2, h2 = fig_size[0], fig_size[1]
+    fig.set_size_inches([(w2 / w) * w, (w2 / w) * h])
+    a = fig.gca()
+    a.set_xticks([]), a.set_yticks([])
+    plt.xlim(0, h), plt.ylim(w, 0)
+    fig.savefig(tempdir + fname, bbox_inches='tight',
+                pad_inches=0, format='png')
+    Image.open(tempdir + fname).resize((w, h)).save(fname, format='png')
+    output = StringIO.StringIO()
+    Image.open(tempdir + fname).save(output, format='png')
+    return output.getvalue().encode('base64')
 
 
 def _fig_to_img(fig):
