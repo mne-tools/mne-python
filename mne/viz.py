@@ -293,13 +293,13 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
                 freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False):
+                colorbar=False, picker=True):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
 
     extent = (tmin, tmax, freq[0], freq[-1])
     ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-              vmin=vmin, vmax=vmax, picker=True)
+              vmin=vmin, vmax=vmax, picker=picker)
     if x_label is not None:
         plt.xlabel(x_label)
     if y_label is not None:
