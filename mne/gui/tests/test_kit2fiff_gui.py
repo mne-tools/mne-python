@@ -74,14 +74,15 @@ def test_kit2fiff_model():
     events = mne.find_events(raw)
     assert_array_equal(events, events_bin)
 
-    events_bin[:, 2] = 1
+    events_rev = events_bin.copy()
+    events_rev[:, 2] = 1
     model.stim_chs = '>'
     raw = model.get_raw()
     events = mne.find_events(raw)
-    assert_array_equal(events, events_bin)
+    assert_array_equal(events, events_rev)
 
     model.stim_chs = 'man'
-    model.stim_chs_manual = list(range(160, 168))
+    model.stim_chs_manual = list(range(167, 159, -1))
     raw = model.get_raw()
     events = mne.find_events(raw)
     assert_array_equal(events, events_bin)
