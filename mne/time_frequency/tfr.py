@@ -587,7 +587,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        from ..viz import _imshow_tfr, _plot_topo
+        from ..viz import _imshow_tfr
         import matplotlib.pyplot as plt
         times, freqs = self.times, self.freqs
         data = self.data[picks]
@@ -781,7 +781,7 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
     picks = pick_types(epochs.info, meg=True, eeg=True)
     info = pick_info(epochs.info, picks)
     data = data[:, picks, :]
-    power, itc = induced_power(data, Fs=info['sfreq'], frequencies=freqs,
+    power, itc = _induced_power(data, Fs=info['sfreq'], frequencies=freqs,
                                n_cycles=n_cycles, n_jobs=n_jobs,
                                use_fft=use_fft, decim=decim,
                                zero_mean=True)
