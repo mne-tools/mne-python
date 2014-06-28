@@ -5,9 +5,10 @@
 import os
 
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal
 
+import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io import Raw
 from mne.utils import _TempDir, requires_traits
@@ -63,3 +64,25 @@ def test_kit2fiff_model():
     assert_false(np.all(model.dev_head_trans == trans_transform))
     assert_false(np.all(model.dev_head_trans == trans_avg))
     assert_false(np.all(model.dev_head_trans == np.eye(4)))
+
+    # test setting stim channels
+    model.stim_slope = '+'
+    events_bin = mne.find_events(raw_bin)
+
+    model.stim_chs = '<'
+    raw = model.get_raw()
+    events = mne.find_events(raw)
+    assert_array_equal(events, events_bin)
+
+    events_rev = events_bin.copy()
+    events_rev[:, 2] = 1
+    model.stim_chs = '>'
+    raw = model.get_raw()
+    events = mne.find_events(raw)
+    assert_array_equal(events, events_rev)
+
+    model.stim_chs = 'man'
+    model.stim_chs_manual = list(range(167, 159, -1))
+    raw = model.get_raw()
+    events = mne.find_events(raw)
+    assert_array_equal(events, events_bin)
