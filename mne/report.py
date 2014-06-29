@@ -20,6 +20,7 @@ from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
 from .utils import _TempDir
 from .viz import plot_events, _plot_mri_contours, plot_trans
+from .forward import read_forward_solution
 
 from tempita import HTMLTemplate, Template
 
@@ -220,6 +221,9 @@ div.footer {
     <li class="active evoked-btn">
         <a href="#"  onclick="togglebutton('.evoked')">Ave</a>
     </li>
+    <li class="active forward-btn">
+        <a href="#" onclick="togglebutton('.forward')">Forward</a>
+    </li>
     <li class="active covariance-btn">
         <a href="#" onclick="togglebutton('.covariance')">Cov</a>
     </li>
@@ -259,6 +263,13 @@ image_template = HTMLTemplate(u"""
 <img alt="" style="width:50%;" src="data:image/png;base64,{{img}}">
 </div>
 </li>
+""")
+
+repr_template = Template(u"""
+<li class="{{div_klass}}" id="{{id}}">
+<h4>{{caption}}</h4><hr>
+{{repr}}
+<hr></li>
 """)
 
 
@@ -409,6 +420,9 @@ class Report(object):
                 elif fname.endswith(('raw.fif', 'sss.fif')):
                     self.render_raw(fname)
                     self.fnames.append(fname)
+                elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+                    self.render_forward(fname)
+                    self.fnames.append(fname)
                 elif fname.endswith(('-ave.fif')):
                     self.render_evoked(fname)
                     self.fnames.append(fname)
@@ -485,12 +499,14 @@ class Report(object):
                 class_name = 'raw'
             elif fname.endswith(('-trans.fif')):
                 class_name = 'trans'
+            elif fname.endswith(('-fwd.fif')):
+                class_name = 'forward'
             elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
                 class_name = 'slices-images'
 
             if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz', 'raw.fif',
                                'sss.fif', '-eve.fif', '-cov.fif',
-                               '-trans.fif')):
+                               '-trans.fif', '-fwd.fif')):
                 html += (u'\n\t<li class="%s"><a href="#%d"><span title="%s" '
                          'style="color:%s"> %s </span>'
                          '</a></li>' % (class_name, global_id, fname,
@@ -623,22 +639,38 @@ class Report(object):
 
     def render_raw(self, raw_fname):
         global_id = self.get_id()
+        div_klass = 'raw'
+        caption = u'Raw : %s' % raw_fname
+
         raw = Raw(raw_fname)
 
-        html = u'<li class="raw" id="%d">' % global_id
-        html += u'<h4>Raw : %s</h4>\n<hr>' % raw_fname
+        repr_raw = re.sub('>', '', re.sub('<', '', repr(raw)))
+        repr_info = re.sub('\\n', '\\n</br>',
+                           re.sub('>', '',
+                                  re.sub('<', '',
+                                         repr(raw.info))))
 
-        repr_raw = re.sub('<', '', repr(raw))
-        repr_raw = re.sub('>', '', repr_raw)
+        repr_html = repr_raw + '%s<br/>%s' % (repr_raw, repr_info)
 
-        html += '%s<br/>' % repr_raw
+        html = repr_template.substitute(div_klass=div_klass,
+                                        id=global_id,
+                                        caption=caption,
+                                        repr=repr_html)
+        self.html.append(html)
 
-        repr_info = re.sub('<', '', repr(raw.info))
-        repr_info = re.sub('>', '', repr_info)
+    def render_forward(self, fwd_fname):
+        global_id = self.get_id()
+        div_klass = 'forward'
+        caption = u'Forward: %s' % fwd_fname
 
-        html += re.sub('\\n', '\\n<br/>', repr_info)
+        fwd = read_forward_solution(fwd_fname)
 
-        html += u'<hr></li>'
+        repr_fwd = re.sub('>', '', re.sub('<', '', repr(fwd)))
+
+        html = repr_template.substitute(div_klass=div_klass,
+                                        id=global_id,
+                                        caption=caption,
+                                        repr=repr_fwd)
 
         self.html.append(html)
 
