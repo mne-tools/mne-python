@@ -592,7 +592,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         """
         from ..viz import _imshow_tfr
         import matplotlib.pyplot as plt
-        times, freqs = self.times, self.freqs
+        times, freqs = self.times.copy(), self.freqs.copy()
         data = self.data[picks]
         data, times, freqs = _preproc_tfr(data, times, freqs, tmin, tmax,
                                           fmin, fmax, mode, baseline, vmin,
@@ -750,6 +750,86 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         s += ", nave : %d" % self.nave
         s += ', channels : %d' % self.data.shape[1]
         return "<AverageTFR  |  %s>" % s
+
+    def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
+                     ch_type='mag', layout=None, vmax=None, vmin=None,
+                     cmap='RdBu_r', sensors='k,', colorbar=True, unit=None,
+                     res=256, size=2, format='%1.1e', show=True,
+                     show_names=False, title=None):
+        """Plot topographic maps of specific time-frequency intervals of TFR data
+
+        Parameters
+        ----------
+        tfr : AvereageTFR
+            The AvereageTFR object.
+        tmin : None | float
+            The first time instant to display. If None the first time point
+            available is used.
+        tmax : None | float
+            The last time instant to display. If None the last time point
+            available is used.
+        fmin : None | float
+            The first frequency to display. If None the first frequency
+            available is used.
+        fmax : None | float
+            The last frequency to display. If None the last frequency
+            available is used.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+            The channel type to plot. For 'grad', the gradiometers are collected in
+            pairs and the RMS for each pair is plotted.
+        layout : None | Layout
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct layout file
+            is inferred from the data; if no appropriate layout file was found, the
+            layout is automatically generated from the sensor locations.
+        vmin : float | callable
+            The value specfying the lower bound of the color range.
+            If None, and vmax is None, -vmax is used. Else np.min(data).
+            If callable, the output equals vmin(data).
+        vmax : float | callable
+            The value specfying the upper bound of the color range.
+            If None, the maximum absolute value is used. If vmin is None,
+            but vmax is not, defaults to np.min(data).
+            If callable, the output equals vmax(data).
+        cmap : matplotlib colormap
+            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+            'Reds'.
+        sensors : bool | str
+            Add markers for sensor locations to the plot. Accepts matplotlib plot
+            format string (e.g., 'r+' for red plusses).
+        colorbar : bool
+            Plot a colorbar.
+        unit : str | None
+            The unit of the channel type used for colorbar labels.
+        res : int
+            The resolution of the topomap image (n pixels along each side).
+        size : float
+            Side length per topomap in inches.
+        format : str
+            String format for colorbar values.
+        show : bool
+            Call pyplot.show() at the end.
+        show_names : bool | callable
+            If True, show channel names on top of the map. If a callable is
+            passed, channel names will be formatted using the callable; e.g., to
+            delete the prefix 'MEG ' from all channel names, pass the function
+            lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
+            sensors will be shown.
+        title : str | None
+            Title. If None (default), no title is displayed.
+
+        Returns
+        -------
+        fig : pyplot Figure
+            The figure containing the topography.
+        """
+        from ..viz import plot_tfr_topomap
+        return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
+                                fmax=fmax, ch_type=ch_type, layout=layout,
+                                vmax=vmax, vmin=vmin, cmap=cmap, sensors=sensors,
+                                colorbar=colorbar, unit=unit, res=res, size=size,
+                                format=format, show=show, show_names=show_names,
+                                title=title)
 
 
 def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,

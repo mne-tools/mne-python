@@ -46,8 +46,11 @@ n_cycles = freqs / 7.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=False,
                         return_itc=True, decim=3, n_jobs=1)
 
+# Inspect power
 power.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
                 vmin=0., vmax=14.)
 power.plot([92], baseline=(None, 0), mode='ratio')
+power.plot_topomap(ch_type='grad', tmin=0.05, tmax=0.150, fmin=0, fmax=10)
 
+# Inspect ITC
 itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1.)
