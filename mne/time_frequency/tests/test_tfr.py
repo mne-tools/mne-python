@@ -1,7 +1,7 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true, assert_false
+from nose.tools import assert_true, assert_false, assert_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.time_frequency import single_trial_power
@@ -46,6 +46,7 @@ def test_time_frequency():
                     baseline=(None, 0))
     data = epochs.get_data()
     times = epochs.times
+    nave = len(data)
 
     freqs = np.arange(6, 20, 5)  # define frequencies of interest
     n_cycles = freqs / 4.
@@ -65,6 +66,8 @@ def test_time_frequency():
     assert_false('mag' in power)
     assert_false('eeg' in power)
 
+    assert_equal(power.nave, nave)
+    assert_equal(itc.nave, nave)
     assert_true(power.data.shape == (len(picks), len(freqs), len(times)))
     assert_true(power.data.shape == itc.data.shape)
     assert_true(np.sum(itc.data >= 1) == 0)
