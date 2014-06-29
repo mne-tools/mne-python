@@ -9,11 +9,11 @@ inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 
 from math import sqrt
 from copy import deepcopy
-from functools import partial
 import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
 
+from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import logger, verbose
