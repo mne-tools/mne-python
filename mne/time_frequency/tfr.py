@@ -499,6 +499,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         The time values in seconds.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
+    nave : int
+        The number of averaged TFRs.
 
     Attributes
     ----------
@@ -506,7 +508,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         The names of the channels.
     """
     @verbose
-    def __init__(self, info, data, times, freqs, verbose=None):
+    def __init__(self, info, data, times, freqs, nave, verbose=None):
         self.info = info
         if data.ndim != 3:
             raise ValueError('data should be 3d. Got %d.' % data.ndim)
@@ -523,6 +525,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         self.data = data
         self.times = times
         self.freqs = freqs
+        self.nave = nave
 
     @property
     def ch_names(self):
@@ -744,7 +747,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     def __repr__(self):
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
-        s += ', channels: %d' % self.data.shape[1]
+        s += ", nave : %d" % self.nave
+        s += ', channels : %d' % self.data.shape[1]
         return "<AverageTFR  |  %s>" % s
 
 
@@ -786,7 +790,8 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
                                use_fft=use_fft, decim=decim,
                                zero_mean=True)
     times = epochs.times[::decim].copy()
-    out = AverageTFR(info, power, times, freqs)
+    nave = len(data)
+    out = AverageTFR(info, power, times, freqs, nave)
     if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs))
+        out = (out, AverageTFR(info, itc, times, freqs, nave))
     return out
