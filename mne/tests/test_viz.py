@@ -21,6 +21,7 @@ from mne.source_space import read_source_spaces
 from mne.io.constants import FIFF
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import check_sklearn_version
+from mne.time_frequency.tfr import AverageTFR
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -679,3 +680,17 @@ def test_plot_events():
                       raw.first_samp, event_id={'aud_l': 1}, color=color)
         assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
                       raw.first_samp, event_id={'aud_l': 111}, color=color)
+
+
+def test_plot_tfr():
+    """Test plotting of TFR data
+    """
+    epochs = _get_epochs()
+    n_freqs = 3
+    nave = 1
+    data = np.random.randn(len(epochs.ch_names), n_freqs, len(epochs.times))
+    tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
+    tfr.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
+                  vmin=0., vmax=14.)
+    tfr.plot([4], baseline=(None, 0), mode='ratio')
+    tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10)
