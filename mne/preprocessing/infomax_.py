@@ -115,10 +115,11 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
 
     # for extended Infomax
     if extended is True:
-        signs = np.diag(-1. * np.ones(n_features))
+        nsub = default_nsub
+        signs = np.identity(n_features)
+        signs.flat[slice(0, n_features * nsub, n_features)]
         extblocks = 1
         signcount = 0
-        nsub = default_nsub
         if default_kurtsize < n_samples:
             kurtsize = default_kurtsize
         else:
@@ -260,7 +261,7 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
             # for extended Infomax
             if extended:
                 signs = np.identity(n_features)
-                signs.flat[::nsub + 1] = -1
+                signs.flat[slice(0, n_features * nsub, n_features)]
                 oldsigns = np.zeros((n_features, n_features))
 
             if l_rate > default_min_l_rate:
