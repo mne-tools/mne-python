@@ -78,9 +78,10 @@ def test_mxne_inverse():
                          weights=stc_dspm, weights_min=weights_min,
                          solver='bcd')
     stc_bcd_sloreta = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
-                                 depth='sLORETA', maxit=1000, tol=1e-8,
+                                 depth=0.9, maxit=1000, tol=1e-8,
                                  active_set_size=10, weights=stc_dspm,
-                                 weights_min=weights_min, solver='cd')
+                                 weights_min=weights_min, solver='cd',
+                                 depth_method='sloreta')
     assert_array_almost_equal(stc_prox.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_bcd.times, evoked_l21.times, 5)

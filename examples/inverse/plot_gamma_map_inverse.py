@@ -29,8 +29,6 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 condition = 'Left visual'
 evoked = mne.read_evokeds(evoked_fname, condition=condition,
                           baseline=(None, 0))
-if all([p['active'] for p in evoked.info['projs']]):
-    evoked.proj = True
 evoked.crop(tmin=-50e-3, tmax=300e-3)
 
 # Read the forward solution
@@ -60,9 +58,9 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
 evoked = mne.pick_types_evoked(evoked, meg='grad', exclude='bads')
-evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
+evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
             proj=True)
 
 residual = mne.pick_types_evoked(residual, meg='grad', exclude='bads')
-residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
+residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
               proj=True)

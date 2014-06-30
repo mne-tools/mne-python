@@ -45,6 +45,7 @@ from mne.inverse_sparse import tf_mixed_norm
 from mne.viz import plot_sparse_source_estimates
 
 data_path = sample.data_path()
+subjects_dir = data_path + '/subjects'
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
@@ -60,8 +61,6 @@ if all([p['active'] for p in evoked.info['projs']]):
 evoked = mne.pick_channels_evoked(evoked)
 # We make the window slightly larger than what you'll eventually be interested
 # in ([-0.05, 0.3]) to avoid edge effects.
-if all([p['active'] for p in evoked.info['projs']]):
-    evoked.proj = True
 evoked.crop(tmin=-0.1, tmax=0.4)
 
 # Handling forward solution
@@ -99,12 +98,15 @@ stc.crop(tmin=-0.05, tmax=0.3)
 evoked.crop(tmin=-0.05, tmax=0.3)
 residual.crop(tmin=-0.05, tmax=0.3)
 
-ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-evoked.plot(ylim=ylim, proj=True, titles=dict(grad='Evoked Response (grad)',
-            mag='Evoked Response (mag)', eeg='Evoked Response (eeg)'))
+# Show the evoked response and the residual for gradiometers
+ylim = dict(grad=[-120, 120])
+evoked = mne.pick_types_evoked(evoked, meg='grad', exclude='bads')
+evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
+            proj=True)
 
-residual.plot(ylim=ylim, proj=True, titles=dict(grad='Residual (grad)',
-              mag='Residual (mag)', eeg='Residual (eeg)'))
+residual = mne.pick_types_evoked(residual, meg='grad', exclude='bads')
+residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
+              proj=True)
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)

@@ -32,8 +32,6 @@ cov = mne.read_cov(cov_fname)
 # Handling average file
 condition = 'Left Auditory'
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
-if all([p['active'] for p in evoked.info['projs']]):
-    evoked.proj = True
 evoked.crop(tmin=0, tmax=0.3)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True)

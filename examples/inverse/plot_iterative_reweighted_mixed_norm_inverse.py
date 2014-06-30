@@ -34,8 +34,6 @@ subjects_dir = data_path + '/subjects'
 # Handling average file
 condition = 'Left Auditory'
 evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
-if all([p['active'] for p in evoked.info['projs']]):
-    evoked.proj = True
 evoked.crop(tmin=0, tmax=0.3)
 ylim = dict(eeg=[-10, 10], grad=[-400, 400], mag=[-600, 600])
 evoked.plot(ylim=ylim, proj=True)
@@ -50,14 +48,16 @@ cov = mne.cov.regularize(cov, evoked.info)
 ###############################################################################
 # Run solver
 alpha = 50  # regularization parameter between 0 and 100 (100 is high)
-loose, depth = 0.2, 'sLORETA'  # loose orientation & depth weighting
+loose, depth = 0.2, 0.9  # loose orientation & depth weighting
+depth_method = 'sloreta'
 
 # Compute MxNE inverse solution
 stc_mxne, residual_mxne = mixed_norm(evoked, forward, cov, alpha, loose=loose,
                                      depth=depth, maxit=1000, tol=1e-4,
                                      active_set_size=10, debias=True,
                                      weights=None, weights_min=None,
-                                     n_mxne_iter=1, return_residual=True)
+                                     n_mxne_iter=1, return_residual=True,
+                                     depth_method=depth_method)
 residual_mxne.plot(ylim=ylim, proj=True)
 
 stc_irmxne, residual_irmxne = mixed_norm(evoked, forward, cov, alpha,
@@ -65,7 +65,8 @@ stc_irmxne, residual_irmxne = mixed_norm(evoked, forward, cov, alpha,
                                          tol=1e-4, active_set_size=10,
                                          debias=True, weights=None,
                                          weights_min=None, n_mxne_iter=50,
-                                         return_residual=True)
+                                         return_residual=True,
+                                         depth_method=depth_method)
 residual_irmxne.plot(ylim=ylim, proj=True)
 
 ###############################################################################
