@@ -3239,6 +3239,8 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
 
     Returns
     -------
+    perc : float
+        Total percentage of epochs dropped.
     fig : Instance of matplotlib.figure.Figure
         The figure.
     """
@@ -3268,7 +3270,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     if show:
         plt.show()
 
-    return fig
+    return perc, fig
 
 
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,

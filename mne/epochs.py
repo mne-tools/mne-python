@@ -801,6 +801,8 @@ class Epochs(_BaseEpochs):
 
         Returns
         -------
+        perc : float
+            Total percentage of epochs dropped.
         fig : Instance of matplotlib.figure.Figure
             The figure.
         """
