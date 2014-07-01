@@ -777,7 +777,8 @@ class Epochs(_BaseEpochs):
         self._get_data_from_disk(out=False)
 
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
-                      color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED']):
+                      color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
+                      show=True):
         """Show the channel stats based on a drop_log from Epochs
 
         Parameters
@@ -795,11 +796,13 @@ class Epochs(_BaseEpochs):
             Width of the bars.
         ignore : list
             The drop reasons to ignore.
+        show : bool
+            Show figure if True.
 
         Returns
         -------
-        perc : float
-            Total percentage of epochs dropped.
+        fig : Instance of matplotlib.figure.Figure
+            The figure.
         """
         if not self._bad_dropped:
             print("Bad epochs have not yet been dropped.")
@@ -807,7 +810,8 @@ class Epochs(_BaseEpochs):
 
         from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
-                             color=color, width=width, ignore=ignore)
+                             color=color, width=width, ignore=ignore,
+                             show=show)
 
     def _check_delayed(self):
         """ Aux method

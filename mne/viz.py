@@ -3213,7 +3213,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
-                  color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED']):
+                  color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
+                  show=True):
     """Show the channel stats based on a drop_log from Epochs
 
     Parameters
@@ -3233,11 +3234,13 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
         Width of the bars.
     ignore : list
         The drop reasons to ignore.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
-    perc : float
-        Total percentage of epochs dropped.
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
     """
     if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
         raise ValueError('drop_log must be a list of lists')
@@ -3251,7 +3254,7 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     counts = 100 * np.array(list(scores.values()), dtype=float) / len(drop_log)
     n_plot = min(n_max_plot, len(ch_names))
     order = np.flipud(np.argsort(counts))
-    plt.figure()
+    fig = plt.figure()
     plt.title('%s: %0.1f%%' % (subject, perc))
     x = np.arange(n_plot)
     plt.bar(x, counts[order[:n_plot]], color=color, width=width)
@@ -3261,8 +3264,11 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     plt.ylabel('% of epochs rejected')
     plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
     plt.grid(True, axis='y')
-    plt.show()
-    return perc
+
+    if show:
+        plt.show()
+
+    return fig
 
 
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
