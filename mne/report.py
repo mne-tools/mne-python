@@ -21,6 +21,7 @@ from .io import Raw, read_info
 from .utils import _TempDir
 from .viz import plot_events, _plot_mri_contours, plot_trans
 from .forward import read_forward_solution
+from .epochs import read_epochs
 
 from tempita import HTMLTemplate, Template
 
@@ -170,12 +171,17 @@ li{
     position: relative;
 }
 
+#content{
+    margin-left: 22%;
+    margin-top: 3%;
+}
+
 #toc {
+  margin-top: -1.3%;
   background: #a8a599;
   position: fixed;
   width: 20%;
   height: 100%;
-  margin-top: 45px;
   overflow: auto;
 }
 
@@ -429,6 +435,9 @@ class Report(object):
                 elif fname.endswith(('-eve.fif')):
                     self.render_eve(fname, info)
                     self.fnames.append(fname)
+                elif fname.endswith(('-epo.fif')):
+                    self.render_epochs(fname)
+                    self.fnames.append(fname)
                 elif fname.endswith(('-cov.fif')):
                     self.render_cov(fname)
                     self.fnames.append(fname)
@@ -483,7 +492,7 @@ class Report(object):
             if not fname.endswith(('-eve.fif', '-ave.fif', '-cov.fif',
                                    '-sol.fif', '-fwd.fif', '-inv.fif',
                                    '-src.fif', '-trans.fif', 'raw.fif',
-                                   'T1.mgz')):
+                                   '-epo.fif', 'T1.mgz')):
                 color = 'red'
             else:
                 color = ''
@@ -501,12 +510,14 @@ class Report(object):
                 class_name = 'trans'
             elif fname.endswith(('-fwd.fif')):
                 class_name = 'forward'
+            elif fname.endswith(('-epo.fif')):
+                class_name = 'epochs'
             elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
                 class_name = 'slices-images'
 
             if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz', 'raw.fif',
                                'sss.fif', '-eve.fif', '-cov.fif',
-                               '-trans.fif', '-fwd.fif')):
+                               '-trans.fif', '-fwd.fif', '-epo.fif')):
                 html += (u'\n\t<li class="%s"><a href="#%d"><span title="%s" '
                          'style="color:%s"> %s </span>'
                          '</a></li>' % (class_name, global_id, fname,
@@ -544,7 +555,7 @@ class Report(object):
 
         html += u'\n</ul></div>'
 
-        html += u'<div style="margin-left: 22%;">'
+        html += u'<div id="content">'
 
         self.html.insert(1, html)  # insert TOC just after header
 
@@ -715,6 +726,25 @@ class Report(object):
                                          show=show)
         self.html.append(html)
 
+    def render_epochs(self, epo_fname):
+
+        global_id = self.get_id()
+
+        epochs = read_epochs(epo_fname)
+        fig = epochs.plot_drop_log(subject=self.subject, show=False,
+                                   return_fig=True)
+        img = _fig_to_img(fig)
+        caption = 'Epochs : ' + epo_fname
+        div_klass = 'epochs'
+        img_klass = 'epochs'
+        show = True
+        html = image_template.substitute(img=img, id=global_id,
+                                         div_klass=div_klass,
+                                         img_klass=img_klass,
+                                         caption=caption,
+                                         show=show)
+        self.html.append(html)
+
     def render_cov(self, cov_fname):
 
         import matplotlib.pyplot as plt
@@ -826,7 +856,8 @@ def fig2im(fname, fig, orig_size):
     plt.xlim(0, h), plt.ylim(w, 0)
     fig.savefig(tempdir + fname, bbox_inches='tight',
                 pad_inches=0, format='png')
-    Image.open(tempdir + fname).resize((w, h)).save(fname, format='png')
+    Image.open(tempdir + fname).resize((w, h)).save(tempdir + fname,
+                                                    format='png')
     output = StringIO.StringIO()
     Image.open(tempdir + fname).save(output, format='png')
     return output.getvalue().encode('base64')
