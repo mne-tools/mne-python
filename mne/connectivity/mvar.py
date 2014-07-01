@@ -193,7 +193,7 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         information flow in the brain structures. Biol. Cybernetics 65(3):
         203-210, 1991.
 
-    [7] A. Korzeniewska, M. Mańczak, M. Kaminski, K. J. Blinowska, S. Kasicki.
+    [7] A. Korzeniewska, M. Manczak, M. Kaminski, K. J. Blinowska, S. Kasicki.
         Determination of information flow direction among brain structures by a
         modified directed transfer function (dDTF) method. J. Neurosci. Meth.
         125(1-2): 195-207, 2003.
