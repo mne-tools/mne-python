@@ -265,4 +265,3 @@ def mvar_connectivity(data, method, order=(1, None), fitting_mode='lsq',
         p_vals = None
 
     return results, freqs, var.p, p_vals
-
