@@ -140,7 +140,7 @@ node_angles = circular_layout(label_names, node_order, start_pos=90,
 plot_connectivity_circle(con_spec['wpli2_debiased'], label_names, n_lines=300,
                          node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
-                               'Condition (WPLI², debiased)')
+                               'Condition (WPLI^2, debiased)')
 import matplotlib.pyplot as plt
 plt.savefig('circle.png', facecolor='black')
 
