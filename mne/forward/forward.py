@@ -56,14 +56,18 @@ class Forward(dict):
         nchan = len(pick_types(self['info'], meg=False, eeg=True))
         entr += ' | ' + 'EEG channels: %d' % nchan
 
-        if self['src'][0]['type'] == 'surf':
+        src_types = np.array([src['type'] for src in self['src']])
+        if (src_types == 'surf').all():
             entr += (' | Source space: Surface with %d vertices'
                      % self['nsource'])
-        elif self['src'][0]['type'] == 'vol':
+        elif (src_types == 'vol').all():
             entr += (' | Source space: Volume with %d grid points'
                      % self['nsource'])
-        elif self['src'][0]['type'] == 'discrete':
+        elif (src_types == 'discrete').all():
             entr += (' | Source space: Discrete with %d dipoles'
+                     % self['nsource'])
+        else:
+            entr += (' | Source space: Mixed with %d vertices'
                      % self['nsource'])
 
         if self['source_ori'] == FIFF.FIFFV_MNE_UNKNOWN_ORI:

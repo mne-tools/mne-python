@@ -1702,27 +1702,30 @@ def _do_src_distances(con, vertno, run_inds, limit):
     d[d == np.inf] = 0  # scipy will give us np.inf for uncalc. distances
     return d, min_idx, min_dist
 
-def add_subcortical_volumes(src, volume_labels, subjects_dir=None):
+
+def add_subcortical_volumes(src, seg_labels, spacing=5., subjects_dir=None):
     """Adds a subcortical volume to a cortical source space
 
     Parameters
     ----------
     src : dict
         Source space
-    volume_labels : list
-        Names of desired volumes
+    seg_labels : list of int, or list of strings
+        Names or indices of desired segments
+    spacing : float
+        Spacing between vertices in millimeters
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
 
     Returns
     -------
     src : SourceSpaces
-        The source spaces.    
+        The source spaces.
     """
 
     # Get the subject
     subject = src[0]['subject_his_id']
-   
+
     # Get the subjects directory
     subjects_dir = get_subjects_dir(subjects_dir)
 
@@ -1734,33 +1737,58 @@ def add_subcortical_volumes(src, volume_labels, subjects_dir=None):
     aseg_hdr = aseg.get_header()
     aseg_data = aseg.get_data()
 
+    # Read the freesurfer lookup table
+    lut_fname = op.join(os.environ['FREESURFER_HOME'],
+                        'FreeSurferColorLUT.txt')
+    lut = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
+                        names=['id', 'name'])
+
+    # Generate a grid using spacing
+    kernel = np.zeros((int(spacing), int(spacing), int(spacing)))
+    kernel[0, 0, 0] = 1
+    sx, sy, sz = aseg_data.shape
+    nx, ny, nz = np.ceil((sx/spacing, sy/spacing, sz/spacing))
+    grid = np.tile(kernel, (nx, ny, nz))
+    grid = grid[:sx, :sy, :sz]
+    grid = grid.astype('bool')
+
     # Get the indices to the desired labels
-    ix = np.zeros(aseg_data.shape)
-    for label in volume_labels:
-        ix += aseg_data == label
-    pts = np.array(np.where(ix)).T
+    for label in seg_labels:
 
-    # Transform data to RAS coordinates
-    trans = aseg_hdr.get_vox2ras_tkr()
-    pts = apply_trans(trans, pts)
+        # Get numeric index to label
+        if type(label) == str:
+            seg_name = label
+            seg_id = lut['id'][lut['name'] == seg_name]
+        elif type(label) == int:
+            seg_id = label
+            seg_name = lut['name'][lut['id'] == seg_id]
 
-    # Convert to meters
-    pts /= 1000.
+        # Get indices to label
+        ix = aseg_data == seg_id
+        ix *= grid  # downsample to grid
+        pts = np.array(np.where(ix)).T
 
-    # Set orientations
-    ori = np.zeros(pts.shape)
-    ori[:, 2] = 1.0
+        # Transform data to RAS coordinates
+        trans = aseg_hdr.get_vox2ras_tkr()
+        pts = apply_trans(trans, pts)
 
-    # Store coordinates and orientations as dict
-    pos = dict(rr=pts, nn=ori)
+        # Convert to meters
+        pts /= 1000.
 
-    # Setup a volume source
-    vol_src = setup_volume_source_space(subject, pos=pos)
-    
-    # Combine source spaces 
-    src.append(vol_src[0])
+        # Set orientations
+        ori = np.zeros(pts.shape)
+        ori[:, 2] = 1.0
 
-    # Flag SourceSpace
-    src.info['flag'] = 'combined'
+        # Store coordinates and orientations as dict
+        pos = dict(rr=pts, nn=ori)
+
+        # Setup a discrete source
+        sp = _make_discrete_source_space(pos)
+        sp.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
+                       dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
+                       nuse_tri=None, tris=None, type='discrete'))
+
+        # Combine source spaces
+        src.append(sp)
 
     return src

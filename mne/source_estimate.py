@@ -342,6 +342,10 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
             and len(vertices) == 1:
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
+    elif isinstance(vertices, list) and len(vertices) > 2:
+        # make a mixed source estimate
+        stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin, 
+                                  tstep=tstep, subject=subject)
     else:
         raise ValueError('vertices has to be either a list with one or two '
                          'arrays or an array')
@@ -412,10 +416,9 @@ class _BaseSourceEstimate(object):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            if not (len(vertices) == 2 or len(vertices) == 1) or \
-                    not all([isinstance(v, np.ndarray) for v in vertices]):
-                raise ValueError('Vertices, if a list, must contain one or '
-                                 'two numpy arrays')
+            if not all([isinstance(v, np.ndarray) for v in vertices]):
+                raise ValueError('Vertices, if a list, must contain numpy '
+                                 'arrays')
 
             if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
                 raise ValueError('Vertices must be ordered in increasing '
@@ -1688,8 +1691,53 @@ class VolSourceEstimate(_BaseSourceEstimate):
         return (vert_idx if vert_as_index else self.vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
 
+
+class MixedSourceEstimate(_BaseSourceEstimate):
+    """Container for mixed surface and volume source estimates
+
+    Parameters
+    ----------
+    data : array of shape (n_dipoles, n_times) | 2-tuple (kernel, sens_data)
+        The data in source space. The data can either be a single array or
+        a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
+        "sens_data" shape (n_sensors, n_times). In this case, the source
+        space data corresponds to "numpy.dot(kernel, sens_data)".
+    vertices : list of arrays
+        Vertex numbers corresponding to the data.
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str | None
+        The subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Attributes
+    ----------
+    subject : str | None
+        The subject name.
+    times : array of shape (n_times,)
+        The time vector.
+    vertno : list of arrays of shape (n_dipoles,)
+        The indices of the dipoles in each source space.
+    data : array of shape (n_dipoles, n_times)
+        The data in source space.
+    shape : tuple
+        The shape of the data. A tuple of int (n_dipoles, n_times).
+    """
+    @verbose
+    def __init__(self, data, vertices=None, tmin=None, tstep=None,
+                 subject=None, verbose=None):
+
+        _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
+                                     tstep=tstep, subject=subject,
+                                     verbose=verbose)
+
 ###############################################################################
 # Morphing
+
 
 def mesh_edges(tris):
     """Returns sparse matrix with edges as an adjacency matrix
@@ -1918,7 +1966,6 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
         cnt += n_active_hemi
 
     return stc_morph
-
 
 
 @verbose
@@ -2610,10 +2657,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     if mode == 'mean':
         pass  # we have this here to catch invalid values for mode
     elif mode == 'mean_flip':
-       # get the sign-flip vector for every label
+        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'pca_flip':
-       # get the sign-flip vector for every label
+        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'max':
         pass  # we calculate the maximum value later
