@@ -3214,7 +3214,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
                   color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
-                  show=True):
+                  show=True, return_fig=False):
     """Show the channel stats based on a drop_log from Epochs
 
     Parameters
@@ -3236,6 +3236,8 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
         The drop reasons to ignore.
     show : bool
         Show figure if True.
+    return_fig : bool
+        Return only figure handle if True.
 
     Returns
     -------
@@ -3244,13 +3246,10 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     fig : Instance of matplotlib.figure.Figure
         The figure.
     """
-    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
-        raise ValueError('drop_log must be a list of lists')
     import matplotlib.pyplot as plt
+    perc = _drop_log_stats(drop_log, ignore)
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
-    perc = 100 * np.mean([len(d) > 0 for d in drop_log
-                          if not any([r in ignore for r in d])])
     if perc < threshold or len(ch_names) == 0:
         return perc
     counts = 100 * np.array(list(scores.values()), dtype=float) / len(drop_log)
@@ -3270,7 +3269,13 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     if show:
         plt.show()
 
-    return perc, fig
+    if return_fig:
+        return fig
+    else:
+        msg = ("The 'perc' return parameter will be deprecated in v0.9. "
+               "Use 'Epochs.drop_log_stats' instead.")
+        warnings.warn(msg, DeprecationWarning)
+        return perc, fig
 
 
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
@@ -4771,3 +4776,27 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         ax.show()
 
     return ax
+
+
+def _drop_log_stats(drop_log, ignore=['IGNORED']):
+        """
+        Parameters
+        ----------
+        drop_log : list of lists
+            Epoch drop log from Epochs.drop_log.
+        ignore : list
+            The drop reasons to ignore.
+
+        Returns
+        -------
+        perc : float
+            Total percentage of epochs dropped.
+        """
+
+        if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
+            raise ValueError('drop_log must be a list of lists')
+
+        perc = 100 * np.mean([len(d) > 0 for d in drop_log
+                              if not any([r in ignore for r in d])])
+
+        return perc
