@@ -4779,24 +4779,26 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
 
 
 def _drop_log_stats(drop_log, ignore=['IGNORED']):
-        """
-        Parameters
-        ----------
-        drop_log : list of lists
-            Epoch drop log from Epochs.drop_log.
-        ignore : list
-            The drop reasons to ignore.
+    """
+    Parameters
+    ----------
+    drop_log : list of lists
+        Epoch drop log from Epochs.drop_log.
+    ignore : list
+        The drop reasons to ignore.
 
-        Returns
-        -------
-        perc : float
-            Total percentage of epochs dropped.
-        """
+    Returns
+    -------
+    perc : float
+        Total percentage of epochs dropped.
+    """
+    # NOTE: This function should be moved to epochs.py after
+    # removal of perc return parameter in plot_drop_log()
 
-        if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
-            raise ValueError('drop_log must be a list of lists')
+    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
+        raise ValueError('drop_log must be a list of lists')
 
-        perc = 100 * np.mean([len(d) > 0 for d in drop_log
-                              if not any([r in ignore for r in d])])
+    perc = 100 * np.mean([len(d) > 0 for d in drop_log
+                          if not any([r in ignore for r in d])])
 
-        return perc
+    return perc

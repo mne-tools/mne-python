@@ -776,13 +776,11 @@ class Epochs(_BaseEpochs):
         """
         self._get_data_from_disk(out=False)
 
-    def drop_log_stats(drop_log, ignore=['IGNORED']):
+    def drop_log_stats(self, ignore=['IGNORED']):
         """Compute the channel stats based on a drop_log from Epochs.
 
         Parameters
         ----------
-        drop_log : list of lists
-            Epoch drop log from Epochs.drop_log.
         ignore : list
             The drop reasons to ignore.
 
@@ -791,7 +789,7 @@ class Epochs(_BaseEpochs):
         perc : float
             Total percentage of epochs dropped.
         """
-        return _drop_log_stats(drop_log, ignore)
+        return _drop_log_stats(self.drop_log, ignore)
 
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
                       color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
