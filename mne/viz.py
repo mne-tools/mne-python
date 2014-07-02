@@ -3237,7 +3237,8 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     show : bool
         Show figure if True.
     return_fig : bool
-        Return only figure handle if True.
+        Return only figure handle if True. This argument will default
+        to True in v0.9 and then be removed.
 
     Returns
     -------
@@ -4792,7 +4793,7 @@ def _drop_log_stats(drop_log, ignore=['IGNORED']):
     perc : float
         Total percentage of epochs dropped.
     """
-    # NOTE: This function should be moved to epochs.py after
+    # XXX: This function should be moved to epochs.py after
     # removal of perc return parameter in plot_drop_log()
 
     if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):

@@ -814,7 +814,8 @@ class Epochs(_BaseEpochs):
         show : bool
             Show figure if True.
         return_fig : bool
-            Return only figure handle if True.
+            Return only figure handle if True. This argument will default
+            to True in v0.9 and then be removed.
 
         Returns
         -------
