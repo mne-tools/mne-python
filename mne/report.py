@@ -153,8 +153,15 @@ h4 {
     text-align: center;
 }
 
-a, a:hover{
-    color: #333333;
+@link-color:       @brand-primary;
+@link-hover-color: darken(@link-color, 15%);
+
+a{
+    color: @link-color;
+    &:hover {
+        color: @link-hover-color;
+        text-decoration: underline;
+  }
 }
 
 li{
@@ -174,11 +181,11 @@ li{
 #content{
     margin-left: 22%;
     margin-top: 3%;
+    width: 75%;
 }
 
 #toc {
-  margin-top: -1.3%;
-  background: #a8a599;
+  margin-top: -0.3%;
   position: fixed;
   width: 20%;
   height: 100%;
@@ -223,6 +230,9 @@ div.footer {
 
     <li class="active raw-btn">
         <a href="#" onclick="togglebutton('.raw')">Raw</a>
+    </li>
+    <li class="active epochs-btn">
+        <a href="#" onclick="togglebutton('.epochs')">Epochs</a>
     </li>
     <li class="active evoked-btn">
         <a href="#"  onclick="togglebutton('.evoked')">Ave</a>
@@ -370,8 +380,8 @@ class Report(object):
     def init_render(self):
         """ Initialize the renderer
         """
-        inc_fnames = ['bootstrap.min.js', 'jquery-1.10.2.min.js',
-                      'jquery-ui.js', 'bootstrap.min.css', 'jquery-ui.css']
+        inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.js',
+                      'bootstrap.min.js', 'jquery-ui.css', 'bootstrap.min.css']
 
         include = list()
         for inc_fname in inc_fnames:
@@ -422,7 +432,6 @@ class Report(object):
                         cmap = 'spectral'
                     self.render_image(fname, surfaces=True, cmap=cmap)
                     self.fnames.append(fname)
-                    pass
                 elif fname.endswith(('raw.fif', 'sss.fif')):
                     self.render_raw(fname)
                     self.fnames.append(fname)
@@ -481,7 +490,7 @@ class Report(object):
 
     def render_toc(self):
         html = u'<div id="container">'
-        html += u'<div id="toc"><h1>Table of Contents</h1>'
+        html += u'<div id="toc"><center><h4>CONTENTS</h4></center>'
 
         global_id = 1
         for fname in self.fnames:
@@ -531,8 +540,8 @@ class Report(object):
                                        verbose=False)
 
                 html += (u'\n\t<li class="evoked"><span title="%s" '
-                         'style="color:%s"> %s </span>'
-                         % (fname, color, os.path.basename(fname)))
+                         'style="color:#428bca"> %s </span>'
+                         % (fname, os.path.basename(fname)))
 
                 html += u'<li class="evoked"><ul>'
                 for ev in evokeds:
