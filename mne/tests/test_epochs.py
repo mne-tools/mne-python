@@ -924,7 +924,7 @@ def test_drop_epochs():
     selection = epochs.selection.copy()
     n_events = len(epochs.events)
     epochs.drop_epochs([2, 4], reason='d')
-    assert_equal(epochs.drop_log_stats(), float(2)/n_events*100)
+    assert_equal(epochs.drop_log_stats(), 2. / n_events * 100)
     assert_equal(len(epochs.drop_log), len(events))
     assert_equal([epochs.drop_log[k]
                   for k in selection[[2, 4]]], [['d'], ['d']])
