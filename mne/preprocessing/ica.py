@@ -791,54 +791,56 @@ class ICA(ContainsMixin):
         """
         if isinstance(inst, _BaseRaw):
             sources = self._transform_raw(inst, start, stop)
-            if target is not None:
-                start, stop = _check_start_stop(inst, start, stop)
-                if hasattr(target, 'ndim'):
-                    if target.ndim < 2:
-                        target = target.reshape(1, target.shape[-1])
-                if isinstance(target, string_types):
-                    pick = _get_target_ch(inst, target)
-                    target, _ = inst[pick, start:stop]
-
-                if sources.shape[-1] != target.shape[-1]:
-                    raise ValueError('Sources and target do not have the same'
-                                     'number of time slices.')
-
         elif isinstance(inst, _BaseEpochs):
             sources = self._transform_epochs(inst, concatenate=True)
-            if target is not None:
-                if isinstance(target, string_types):
-                    pick = _get_target_ch(inst, target)
-                    target = inst.get_data()[:, pick]
-                if hasattr(target, 'ndim'):
-                    if target.ndim == 3 and min(target.shape) == 1:
-                        target = target.ravel()
-
-                if sources.shape[-1] != target.shape[-1]:
-                    raise ValueError('Sources and target do not have the same'
-                                     'number of time slices.')
         elif isinstance(inst, Evoked):
             sources = self._transform_evoked(inst)
-            if target is not None:
-                if isinstance(target, string_types):
-                    pick = _get_target_ch(inst, target)
-                    target = inst.data[pick]
-                if sources.shape[-1] != target.shape[-1]:
-                    raise ValueError('Sources and target do not have the same'
-                                     'number of time slices.')
         else:
             raise ValueError('Input must be of Raw, Epochs or Evoked type')
 
-        # auto target selection
-        if verbose is None:
-            verbose = self.verbose
-        if isinstance(inst, (_BaseRaw, _BaseRaw)):
-            sources, target = _band_pass_filter(self, sources, target, l_freq,
-                                                h_freq, verbose)
+        if target is not None:  # we can have univariate metrics without target
+            target = self._check_target(target, inst, start, stop)
+
+            if sources.shape[-1] != target.shape[-1]:
+                raise ValueError('Sources and target do not have the same'
+                                 'number of time slices.')
+            # auto target selection
+            if verbose is None:
+                verbose = self.verbose
+            if isinstance(inst, (_BaseRaw, _BaseRaw)):
+                sources, target = _band_pass_filter(self, sources, target, l_freq,
+                                                    h_freq, verbose)
 
         scores = _find_sources(sources, target, score_func)
 
         return scores
+
+    def _check_target(self, target, inst, start, stop):
+        """Aux Method"""
+        if isinstance(inst, _BaseRaw):
+            start, stop = _check_start_stop(inst, start, stop)
+            if hasattr(target, 'ndim'):
+                if target.ndim < 2:
+                    target = target.reshape(1, target.shape[-1])
+            if isinstance(target, string_types):
+                pick = _get_target_ch(inst, target)
+                target, _ = inst[pick, start:stop]
+
+        elif isinstance(inst, _BaseEpochs):
+            if isinstance(target, string_types):
+                pick = _get_target_ch(inst, target)
+                target = inst.get_data()[:, pick]
+
+            if hasattr(target, 'ndim'):
+                if target.ndim == 3 and min(target.shape) == 1:
+                    target = target.ravel()
+
+        elif isinstance(inst, Evoked):
+            if isinstance(target, string_types):
+                pick = _get_target_ch(inst, target)
+                target = inst.data[pick]
+
+        return target
 
     @verbose
     def find_bads_ecg(self, inst, ch_name=None, threshold=None,
@@ -913,6 +915,11 @@ class ICA(ContainsMixin):
             ch_name = 'ECG'
         else:
             ecg = inst.ch_names[idx_ecg]
+
+        # some magic we need inevitably ...
+        if inst.ch_names != self.ch_names:
+            inst = inst.pick_channels(self.ch_names, copy=True)
+
         if method == 'ctps':
             if threshold is None:
                 threshold = 0.25
@@ -993,8 +1000,16 @@ class ICA(ContainsMixin):
             logger.info('Using EOG channel %s' % inst.ch_names[eog_inds[0]])
         scores, eog_idx = [], []
         eog_chs = [inst.ch_names[k] for k in eog_inds]
-        for eog_ch in eog_chs:  # implement later
-            scores += [self.score_sources(inst, target=eog_ch,
+
+        # some magic we need inevitably ...
+        # get targets befor equalizing
+        targets = [self._check_target(k, inst, start, stop) for k in eog_chs]
+
+        if inst.ch_names != self.ch_names:
+            inst = inst.pick_channels(self.ch_names, copy=True)
+
+        for eog_ch, target in zip(eog_chs, targets):
+            scores += [self.score_sources(inst, target=target,
                                           score_func='pearsonr',
                                           start=start, stop=stop,
                                           l_freq=l_freq, h_freq=h_freq,

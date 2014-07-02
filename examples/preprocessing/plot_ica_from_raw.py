@@ -4,7 +4,7 @@ Compute ICA components on raw data
 ==================================
 
 ICA is fit to MEG raw data.
-The sources matching the eog are automatically found and displayed.
+The sources matching the ECG and EOG are automatically found and displayed.
 Subsequently, artifact detection and rejection quality are assessed.
 """
 print(__doc__)
@@ -18,7 +18,7 @@ import numpy as np
 import mne
 from mne.io import Raw
 from mne.preprocessing import ICA
-from mne.preprocessing import create_eog_epochs
+from mne.preprocessing import create_ecg_epochs, create_eog_epochs
 from mne.datasets import sample
 
 ###############################################################################
@@ -31,15 +31,12 @@ raw = Raw(raw_fname, preload=True)
 raw.filter(1, 45, n_jobs=2)
 
 ###############################################################################
-# Setup ICA seed decompose data, then access and plot sources.
+# 1) Fit ICA model using the FastICA algorithm
 
+# Other available choices are `infomax` or `extended-infomax`
 # We pass a float value between 0 and 1 to select n_components based on the
 # percentage of variance explained by the PCA components.
 
-###############################################################################
-# 1) Fit ICA model using the FastICA algorithm
-
-# you can also use `infomax` or `extended-infomax`
 ica = ICA(n_components=0.95, method='fastica')
 
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
@@ -47,32 +44,53 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
 
 ica.fit(raw, picks=picks, decim=3, reject=dict(mag=4e-12, grad=4000e-13))
 
+# maximum number of components to reject
+n_max_ecg, n_max_eog = 3, 1  # here we don't expect horizontal EOG components
+
 ###############################################################################
 # 2) identify bad components by analyzing latent sources.
 
-# create EOG epochs to improve detection by correlation
-picks = mne.pick_types(raw.info, meg=True, eog=True)
-eog_epochs = create_eog_epochs(raw, picks=picks)
+title = 'Sources related to %s artifacts (red)'
 
-eog_inds, scores = ica.find_bads_eog(eog_epochs)  # inds sorted!
+# generate ECG epochs use detection via phase statistics
 
-ica.plot_scores(scores, exclude=eog_inds)  # inspect metrics used
+ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5, picks=picks)
 
-show_picks = np.abs(scores).argsort()[::-1][:5]  # indices of top five scores
+ecg_inds, scores = ica.find_bads_ecg(ecg_epochs, method='ctps')
+ica.plot_scores(scores, exclude=ecg_inds, title=title % 'ecg')
 
-# detected artifacts drawn in red (via exclude)
-ica.plot_sources(raw, show_picks, exclude=eog_inds, start=0., stop=3.0)
-ica.plot_components(eog_inds, colorbar=False)  # show component sensitivites
+show_picks = np.abs(scores).argsort()[::-1][:5]
 
-ica.exclude += eog_inds[:1]  # mark first for exclusion
+ica.plot_sources(raw, show_picks, exclude=ecg_inds, title=title % 'ecg')
+ica.plot_components(ecg_inds, title=title % 'ecg')
+
+ecg_inds = ecg_inds[:n_max_ecg]
+ica.exclude += ecg_inds
+
+# detect EOG by correlation
+
+eog_inds, scores = ica.find_bads_eog(raw)
+ica.plot_scores(scores, exclude=eog_inds, title=title % 'ocg')
+
+show_picks = np.abs(scores).argsort()[::-1][:5]
+
+ica.plot_sources(raw, show_picks, exclude=ecg_inds, title=title % 'eog')
+ica.plot_components(eog_inds, title=title % 'ecg')
+
+eog_inds = eog_inds[:n_max_eog]
+ica.exclude += eog_inds
 
 ###############################################################################
-# 3) check detection and visualize artifact rejection
+# 3) Assess component selection and unmixing quality
 
 # estimate average artifact
-eog_evoked = eog_epochs.average()
-ica.plot_sources(eog_evoked)  # latent EOG sources + selction
-ica.plot_overlay(eog_evoked)  # overlay raw and clean EOG artifacts
+ecg_evoked = ecg_epochs.average()
+ica.plot_sources(ecg_evoked, exclude=ecg_inds)  # plot ECG sources + selection
+ica.plot_overlay(ecg_evoked, exclude=ecg_inds)  # plot ECG cleaning
+
+eog_evoked = create_eog_epochs(raw, tmin=-.5, tmax=.5, picks=picks).average()
+ica.plot_sources(eog_evoked, exclude=eog_inds)  # plot EOG sources + selection
+ica.plot_overlay(eog_evoked, exclude=eog_inds)  # plot EOG cleaning
 
 # check the amplitudes do not change
 ica.plot_overlay(raw)  # EOG artifacts remain
