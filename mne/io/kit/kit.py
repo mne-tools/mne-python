@@ -513,6 +513,10 @@ class RawKIT(_BaseRaw):
             else:
                 raise ValueError("stim needs to be list of int, '>' or "
                                  "'<', not %r" % str(stim))
+        elif np.max(stim) >= self._sqd_params['nchan']:
+            msg = ("Tried to set stim channel %i, but squid file only has %i"
+                   " channels" % (np.max(stim), self._sqd_params['nchan']))
+            raise ValueError(msg)
 
         self._sqd_params['stim'] = stim
 

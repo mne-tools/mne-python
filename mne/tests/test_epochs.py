@@ -903,6 +903,8 @@ def test_epochs_proj_mixin():
 
 
 def test_drop_epochs():
+    """Test dropping of epochs.
+    """
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     events1 = events[events[:, 2] == event_id]
@@ -920,7 +922,9 @@ def test_drop_epochs():
                 for k in set(range(len(events))) - set(epochs.selection)))
 
     selection = epochs.selection.copy()
+    n_events = len(epochs.events)
     epochs.drop_epochs([2, 4], reason='d')
+    assert_equal(epochs.drop_log_stats(), 2. / n_events * 100)
     assert_equal(len(epochs.drop_log), len(events))
     assert_equal([epochs.drop_log[k]
                   for k in selection[[2, 4]]], [['d'], ['d']])

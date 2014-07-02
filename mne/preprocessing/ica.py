@@ -4,7 +4,8 @@
 #
 # License: BSD (3-clause)
 
-from ..externals.six import string_types, text_type
+import warnings
+
 from copy import deepcopy
 from inspect import getargspec, isfunction
 from collections import namedtuple
@@ -20,6 +21,7 @@ from scipy import linalg
 from .ecg import (qrs_detector, _get_ecg_channel_index, _make_ecg,
                   create_ecg_epochs)
 from .eog import _find_eog_events, _get_eog_channel_index
+from .infomax_ import infomax
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
@@ -43,6 +45,7 @@ from ..utils import (check_sklearn_version, logger, check_fname, verbose,
 from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
+from ..externals.six import string_types, text_type
 
 try:
     from sklearn.utils.extmath import fast_dot
@@ -127,19 +130,28 @@ class ICA(ContainsMixin):
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results.
+    method : {'fastica', 'infomax', 'extended-infomax'}
+        The ICA method to use. Defaults to 'fastica'.
     algorithm : {'parallel', 'deflation'}
-        Apply parallel or deflational algorithm for FastICA.
+        Apply parallel or deflational algorithm for FastICA. This parameter
+        belongs to FastICA and is deprecated. Please use `fit_params` instead.
     fun : string or function, optional. Default: 'logcosh'
         The functional form of the G function used in the
         approximation to neg-entropy. Could be either 'logcosh', 'exp',
         or 'cube'.
         You can also provide your own function. It should return a tuple
         containing the value of the function, and of its derivative, in the
-        point.
+        point. This parameter belongs to FastICA and is deprecated.
+        Please use `fit_params` instead.
     fun_args: dictionary, optional
         Arguments to send to the functional form.
         If empty and if fun='logcosh', fun_args will take value
-        {'alpha' : 1.0}
+        {'alpha' : 1.0}. This parameter belongs to FastICA and is deprecated.
+        Please use `fit_params` instead.
+    fit_params : dict | None.
+        Additional parameters passed to the ICA estimator chosen by `method`.
+    max_iter : int, optional
+        Maximum number of iterations during fit.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -183,11 +195,15 @@ class ICA(ContainsMixin):
         the number of samples used on fit.
     """
     @verbose
-    def __init__(self, n_components=None, max_pca_components=100,
+    def __init__(self, n_components=None, max_pca_components=None,
                  n_pca_components=None, noise_cov=None, random_state=None,
-                 algorithm='parallel', fun='logcosh', fun_args=None,
-                 verbose=None):
-
+                 method='fastica',
+                 algorithm=None, fun=None, fun_args=None,
+                 fit_params=None, max_iter=200, verbose=None):
+        methods = ('fastica', 'infomax', 'extended-infomax')
+        if method not in methods:
+            raise ValueError('`method` must be "%s". You passed: "%s"' %
+                             ('" or "'.join(methods), method))
         if not check_sklearn_version(min_version='0.12'):
             raise RuntimeError('the scikit-learn package (version >= 0.12)'
                                'is required for ICA')
@@ -211,11 +227,37 @@ class ICA(ContainsMixin):
         self.n_pca_components = n_pca_components
         self.ch_names = None
         self.random_state = random_state if random_state is not None else 42
+
+        for attr in ['algorithm', 'fun', 'fun_args']:
+            if eval(attr) is not None:
+                warnings.warn('The parameter `%s` is deprecated and will be'
+                              'removed in MNE 0.9. Please use '
+                              '`fit_params` instead' % attr,
+                              DeprecationWarning)
+
         self.algorithm = algorithm
         self.fun = fun
         self.fun_args = fun_args
+
+        if fit_params is None:
+            fit_params = {}
+        if method == 'fastica':
+            update = {'algorithm': 'parallel', 'fun': 'logcosh',
+                      'fun_args': None}
+            fit_params.update(dict((k, v) for k, v in update.items() if k
+                              not in fit_params))
+        elif method == 'infomax':
+            fit_params.update({'extended': False})
+        elif method == 'extended-infomax':
+            fit_params.update({'extended': True})
+        if 'max_iter' not in fit_params:
+            fit_params['max_iter'] = max_iter
+        self.max_iter = max_iter
+        self.fit_params = fit_params
+
         self.exclude = []
         self.info = None
+        self.method = method
 
     def __repr__(self):
         """ICA fit information"""
@@ -226,7 +268,8 @@ class ICA(ContainsMixin):
         else:
             s = 'epochs'
         s += ' decomposition, '
-        s += 'fit: %s samples, ' % str(getattr(self, 'n_samples_', ''))
+        s += 'fit (%s): %s samples, ' % (self.method,
+                                         str(getattr(self, 'n_samples_', '')))
         s += ('%s components' % str(self.n_components_) if
               hasattr(self, 'n_components_') else
               'no dimension reduction')
@@ -468,14 +511,16 @@ class ICA(ContainsMixin):
                 self.n_pca_components = len(self.pca_components_)
 
         # Take care of ICA
-        from sklearn.decomposition import FastICA  # to avoid strong dep.
-        ica = FastICA(algorithm=self.algorithm, fun=self.fun,
-                      fun_args=self.fun_args, whiten=False,
-                      random_state=self.random_state)
-        ica.fit(data[:, sel])
-
-        # get unmixing and add scaling
-        self.unmixing_matrix_ = getattr(ica, 'components_', 'unmixing_matrix_')
+        if self.method == 'fastica':
+            from sklearn.decomposition import FastICA  # to avoid strong dep.
+            ica = FastICA(whiten=False,
+                          random_state=self.random_state, **self.fit_params)
+            ica.fit(data[:, sel])
+            # get unmixing and add scaling
+            self.unmixing_matrix_ = getattr(ica, 'components_',
+                                            'unmixing_matrix_')
+        elif self.method in ('infomax', 'extended-infomax'):
+            self.unmixing_matrix_ = infomax(data[:, sel], **self.fit_params)
         self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
@@ -746,54 +791,56 @@ class ICA(ContainsMixin):
         """
         if isinstance(inst, _BaseRaw):
             sources = self._transform_raw(inst, start, stop)
-            if target is not None:
-                start, stop = _check_start_stop(inst, start, stop)
-                if hasattr(target, 'ndim'):
-                    if target.ndim < 2:
-                        target = target.reshape(1, target.shape[-1])
-                if isinstance(target, string_types):
-                    pick = _get_target_ch(inst, target)
-                    target, _ = inst[pick, start:stop]
-
-                if sources.shape[-1] != target.shape[-1]:
-                    raise ValueError('Sources and target do not have the same'
-                                     'number of time slices.')
-
         elif isinstance(inst, _BaseEpochs):
             sources = self._transform_epochs(inst, concatenate=True)
-            if target is not None:
-                if isinstance(target, string_types):
-                    pick = _get_target_ch(inst, target)
-                    target = inst.get_data()[:, pick]
-                if hasattr(target, 'ndim'):
-                    if target.ndim == 3 and min(target.shape) == 1:
-                        target = target.ravel()
-
-                if sources.shape[-1] != target.shape[-1]:
-                    raise ValueError('Sources and target do not have the same'
-                                     'number of time slices.')
         elif isinstance(inst, Evoked):
             sources = self._transform_evoked(inst)
-            if target is not None:
-                if isinstance(target, string_types):
-                    pick = _get_target_ch(inst, target)
-                    target = inst.data[pick]
-                if sources.shape[-1] != target.shape[-1]:
-                    raise ValueError('Sources and target do not have the same'
-                                     'number of time slices.')
         else:
             raise ValueError('Input must be of Raw, Epochs or Evoked type')
 
-        # auto target selection
-        if verbose is None:
-            verbose = self.verbose
-        if isinstance(inst, (_BaseRaw, _BaseRaw)):
-            sources, target = _band_pass_filter(self, sources, target, l_freq,
-                                                h_freq, verbose)
+        if target is not None:  # we can have univariate metrics without target
+            target = self._check_target(target, inst, start, stop)
+
+            if sources.shape[-1] != target.shape[-1]:
+                raise ValueError('Sources and target do not have the same'
+                                 'number of time slices.')
+            # auto target selection
+            if verbose is None:
+                verbose = self.verbose
+            if isinstance(inst, (_BaseRaw, _BaseRaw)):
+                sources, target = _band_pass_filter(self, sources, target, l_freq,
+                                                    h_freq, verbose)
 
         scores = _find_sources(sources, target, score_func)
 
         return scores
+
+    def _check_target(self, target, inst, start, stop):
+        """Aux Method"""
+        if isinstance(inst, _BaseRaw):
+            start, stop = _check_start_stop(inst, start, stop)
+            if hasattr(target, 'ndim'):
+                if target.ndim < 2:
+                    target = target.reshape(1, target.shape[-1])
+            if isinstance(target, string_types):
+                pick = _get_target_ch(inst, target)
+                target, _ = inst[pick, start:stop]
+
+        elif isinstance(inst, _BaseEpochs):
+            if isinstance(target, string_types):
+                pick = _get_target_ch(inst, target)
+                target = inst.get_data()[:, pick]
+
+            if hasattr(target, 'ndim'):
+                if target.ndim == 3 and min(target.shape) == 1:
+                    target = target.ravel()
+
+        elif isinstance(inst, Evoked):
+            if isinstance(target, string_types):
+                pick = _get_target_ch(inst, target)
+                target = inst.data[pick]
+
+        return target
 
     @verbose
     def find_bads_ecg(self, inst, ch_name=None, threshold=None,
@@ -868,6 +915,11 @@ class ICA(ContainsMixin):
             ch_name = 'ECG'
         else:
             ecg = inst.ch_names[idx_ecg]
+
+        # some magic we need inevitably ...
+        if inst.ch_names != self.ch_names:
+            inst = inst.pick_channels(self.ch_names, copy=True)
+
         if method == 'ctps':
             if threshold is None:
                 threshold = 0.25
@@ -948,8 +1000,16 @@ class ICA(ContainsMixin):
             logger.info('Using EOG channel %s' % inst.ch_names[eog_inds[0]])
         scores, eog_idx = [], []
         eog_chs = [inst.ch_names[k] for k in eog_inds]
-        for eog_ch in eog_chs:  # implement later
-            scores += [self.score_sources(inst, target=eog_ch,
+
+        # some magic we need inevitably ...
+        # get targets befor equalizing
+        targets = [self._check_target(k, inst, start, stop) for k in eog_chs]
+
+        if inst.ch_names != self.ch_names:
+            inst = inst.pick_channels(self.ch_names, copy=True)
+
+        for eog_ch, target in zip(eog_chs, targets):
+            scores += [self.score_sources(inst, target=target,
                                           score_func='pearsonr',
                                           start=start, stop=stop,
                                           l_freq=l_freq, h_freq=h_freq,
@@ -1347,7 +1407,7 @@ class ICA(ContainsMixin):
         return plot_ica_overlay(self, inst=inst, exclude=exclude, start=start,
                                 stop=stop, title=title)
 
-    @deprecated('`decompose_raw` is deprecated and will be removed in MNE 1.0.'
+    @deprecated('`decompose_raw` is deprecated and will be removed in MNE 0.9.'
                 ' Use `fit` instead')
     @verbose
     def decompose_raw(self, raw, picks=None, start=None, stop=None,
@@ -1369,7 +1429,7 @@ class ICA(ContainsMixin):
         return self._fit_epochs(epochs, picks, decim, verbose)
 
     @deprecated('`get_sources_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `get_sources` instead')
+                'MNE 0.9. Use `get_sources` instead')
     def get_sources_raw(self, raw, start=None, stop=None):
         """This method is deprecated.
         See ``ICA.fit``
@@ -1377,7 +1437,7 @@ class ICA(ContainsMixin):
         return self._transform_raw(raw, start, stop)
 
     @deprecated('`get_sources_epochs` is deprecated and will be removed in '
-                'MNE 1.0. Use `get_sources` instead')
+                'MNE 0.9. Use `get_sources` instead')
     def get_sources_epochs(self, epochs, concatenate=False):
         """This method is deprecated.
         See ``ICA.get_sources``
@@ -1385,7 +1445,7 @@ class ICA(ContainsMixin):
         return self._transform_epochs(epochs, concatenate)
 
     @deprecated('`sources_as_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `get_sources` instead')
+                'MNE 0.9. Use `get_sources` instead')
     def sources_as_raw(self, raw, picks=None, start=None, stop=None):
         """This method is deprecated
 
@@ -1399,7 +1459,7 @@ class ICA(ContainsMixin):
         return self.get_sources(raw, add_channels, start, stop)
 
     @deprecated('`sources_as_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `get_sources` instead')
+                'MNE 0.9. Use `get_sources` instead')
     def sources_as_epochs(self, epochs, picks=None):
         """This method is deprecated
 
@@ -1413,7 +1473,7 @@ class ICA(ContainsMixin):
         return self.get_sources(epochs, add_channels, False)
 
     @deprecated('`find_sources_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `find_bads` instead')
+                'MNE 0.9. Use `find_bads` instead')
     def find_sources_raw(self, raw, target=None, score_func='pearsonr',
                          start=None, stop=None, l_freq=None, h_freq=None):
         """Find sources based on own distribution or based on similarity to
@@ -1458,7 +1518,7 @@ class ICA(ContainsMixin):
                                   h_freq=h_freq)
 
     @deprecated('`find_sources_epochs` is deprecated and will be removed in '
-                'MNE 1.0. Use `find_bads` instead')
+                'MNE 0.9. Use `find_bads` instead')
     def find_sources_epochs(self, epochs, target=None, score_func='pearsonr',
                             l_freq=None, h_freq=None):
         """Find sources based on relations between source and target
@@ -1493,7 +1553,7 @@ class ICA(ContainsMixin):
                                   h_freq=h_freq)
 
     @deprecated('`pick_sources_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `apply` instead')
+                'MNE 0.9. Use `apply` instead')
     def pick_sources_raw(self, raw, include=None, exclude=None,
                          n_pca_components=None, start=None, stop=None,
                          copy=True):
@@ -1535,7 +1595,7 @@ class ICA(ContainsMixin):
                           stop=stop, copy=copy)
 
     @deprecated('`pick_sources_epochs` is deprecated and will be removed in '
-                'MNE 1.0. Use `apply` instead')
+                'MNE 0.9. Use `apply` instead')
     def pick_sources_epochs(self, epochs, include=None, exclude=None,
                             n_pca_components=None, copy=True):
         """Recompose epochs
@@ -1571,7 +1631,7 @@ class ICA(ContainsMixin):
                           copy=copy)
 
     @deprecated('`pick_topomap` is deprecated and will be removed in '
-                'MNE 1.0. Use `plot_components` instead')
+                'MNE 0.9. Use `plot_components` instead')
     def plot_topomap(self, source_idx, ch_type='mag', res=500, layout=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
                      show=True):
@@ -1587,7 +1647,7 @@ class ICA(ContainsMixin):
                                     show=show)
 
     @deprecated('`plot_sources_raw` is deprecated and will be removed in '
-                'MNE 1.0. Use `plot_sources` instead')
+                'MNE 0.9. Use `plot_sources` instead')
     def plot_sources_raw(self, raw, order=None, start=None, stop=None,
                          n_components=None, source_idx=None, ncol=3, nrow=None,
                          title=None, show=True):
@@ -1601,7 +1661,7 @@ class ICA(ContainsMixin):
         return fig
 
     @deprecated('`plot_sources_epochs` is deprecated and will be removed in '
-                'MNE 1.0. Use `plot_sources` instead')
+                'MNE 0.9. Use `plot_sources` instead')
     def plot_sources_epochs(self, epochs, order=None, epoch_idx=None,
                             start=None, stop=None, n_components=None,
                             source_idx=None, ncol=3, nrow=None, title=None,

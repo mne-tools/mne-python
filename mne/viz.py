@@ -3213,7 +3213,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
-                  color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED']):
+                  color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
+                  show=True, return_fig=False):
     """Show the channel stats based on a drop_log from Epochs
 
     Parameters
@@ -3233,25 +3234,29 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
         Width of the bars.
     ignore : list
         The drop reasons to ignore.
+    show : bool
+        Show figure if True.
+    return_fig : bool
+        Return only figure handle if True. This argument will default
+        to True in v0.9 and then be removed.
 
     Returns
     -------
     perc : float
         Total percentage of epochs dropped.
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
     """
-    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
-        raise ValueError('drop_log must be a list of lists')
     import matplotlib.pyplot as plt
+    perc = _drop_log_stats(drop_log, ignore)
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
-    perc = 100 * np.mean([len(d) > 0 for d in drop_log
-                          if not any([r in ignore for r in d])])
     if perc < threshold or len(ch_names) == 0:
         return perc
     counts = 100 * np.array(list(scores.values()), dtype=float) / len(drop_log)
     n_plot = min(n_max_plot, len(ch_names))
     order = np.flipud(np.argsort(counts))
-    plt.figure()
+    fig = plt.figure()
     plt.title('%s: %0.1f%%' % (subject, perc))
     x = np.arange(n_plot)
     plt.bar(x, counts[order[:n_plot]], color=color, width=width)
@@ -3261,8 +3266,17 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     plt.ylabel('% of epochs rejected')
     plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
     plt.grid(True, axis='y')
-    plt.show()
-    return perc
+
+    if show:
+        plt.show()
+
+    if return_fig:
+        return fig
+    else:
+        msg = ("The 'perc' return parameter will be deprecated in v0.9. "
+               "Use 'Epochs.drop_log_stats' instead.")
+        warnings.warn(msg, DeprecationWarning)
+        return perc, fig
 
 
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
@@ -4763,3 +4777,29 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
         ax.show()
 
     return ax
+
+
+def _drop_log_stats(drop_log, ignore=['IGNORED']):
+    """
+    Parameters
+    ----------
+    drop_log : list of lists
+        Epoch drop log from Epochs.drop_log.
+    ignore : list
+        The drop reasons to ignore.
+
+    Returns
+    -------
+    perc : float
+        Total percentage of epochs dropped.
+    """
+    # XXX: This function should be moved to epochs.py after
+    # removal of perc return parameter in plot_drop_log()
+
+    if not isinstance(drop_log, list) or not isinstance(drop_log[0], list):
+        raise ValueError('drop_log must be a list of lists')
+
+    perc = 100 * np.mean([len(d) > 0 for d in drop_log
+                          if not any([r in ignore for r in d])])
+
+    return perc

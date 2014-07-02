@@ -37,7 +37,7 @@ raw.info['bads'] += ['MEG 2443']  # bads
 
 # picks MEG gradiometers
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                        stim=False, include=include, exclude='bads')
+                       stim=False, include=include, exclude='bads')
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=True,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))

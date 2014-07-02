@@ -652,9 +652,15 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         the output freqs will be a list with arrays of the frequencies
         that were averaged.
     tmin : float | None
-        Time to start connectivity estimation.
+        Time to start connectivity estimation. Note: when "data" is an array,
+        the first sample is assumed to be at time 0. For other types
+        (Epochs, etc.), the time information contained in the object is used
+        to compute the time indices.
     tmax : float | None
-        Time to end connectivity estimation.
+        Time to end connectivity estimation. Note: when "data" is an array,
+        the first sample is assumed to be at time 0. For other types
+        (Epochs, etc.), the time information contained in the object is used
+        to compute the time indices.
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'multitaper' mode.
