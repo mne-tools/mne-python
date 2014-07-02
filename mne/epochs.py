@@ -36,7 +36,7 @@ from .channels import ContainsMixin, PickDropChannelsMixin
 from .filter import resample, detrend
 from .event import _read_events_fif
 from .fixes import in1d
-from .viz import _mutable_defaults, plot_epochs
+from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
 from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
@@ -776,8 +776,24 @@ class Epochs(_BaseEpochs):
         """
         self._get_data_from_disk(out=False)
 
+    def drop_log_stats(self, ignore=['IGNORED']):
+        """Compute the channel stats based on a drop_log from Epochs.
+
+        Parameters
+        ----------
+        ignore : list
+            The drop reasons to ignore.
+
+        Returns
+        -------
+        perc : float
+            Total percentage of epochs dropped.
+        """
+        return _drop_log_stats(self.drop_log, ignore)
+
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
-                      color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED']):
+                      color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
+                      show=True, return_fig=False):
         """Show the channel stats based on a drop_log from Epochs
 
         Parameters
@@ -795,11 +811,18 @@ class Epochs(_BaseEpochs):
             Width of the bars.
         ignore : list
             The drop reasons to ignore.
+        show : bool
+            Show figure if True.
+        return_fig : bool
+            Return only figure handle if True. This argument will default
+            to True in v0.9 and then be removed.
 
         Returns
         -------
         perc : float
             Total percentage of epochs dropped.
+        fig : Instance of matplotlib.figure.Figure
+            The figure.
         """
         if not self._bad_dropped:
             print("Bad epochs have not yet been dropped.")
@@ -807,7 +830,8 @@ class Epochs(_BaseEpochs):
 
         from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
-                             color=color, width=width, ignore=ignore)
+                             color=color, width=width, ignore=ignore,
+                             show=show, return_fig=return_fig)
 
     def _check_delayed(self):
         """ Aux method
