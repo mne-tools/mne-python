@@ -67,7 +67,7 @@ else:  # generate evoked from raw
     reject = dict(mag=5e-12)
 
     epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
-                    baseline=baseline, preload=True, reject=reject)
+                        baseline=baseline, preload=True, reject=reject)
 
     # Fit ICA, find and remove major artifacts
     ica = ICA(n_components=0.95).fit(raw, decim=6, reject=reject)
@@ -75,7 +75,7 @@ else:  # generate evoked from raw
     # compute correlation scores, get bad indices sorted by score
     eog_epochs = create_eog_epochs(raw, ch_name='MRT31-2908', reject=reject)
     eog_inds, eog_scores = ica.find_bads_eog(eog_epochs, ch_name='MRT31-2908')
-    ica.exclude += eog_inds[:1]  # we saw the 2nd ECG component looked too dipolar
+    ica.exclude += eog_inds[:1]
     ica.apply(epochs)  # clean data
 
     # save the epoch data
@@ -105,7 +105,8 @@ else:  # merge cortical and subcortical sources and computer forward solution
     src = mne.setup_source_space('spm', overwrite=True)
 
     # add a subcortical volumes
-    src = mne.source_space.add_subcortical_volumes(src, [18, 54])
+    src = mne.source_space.add_subcortical_volumes(src, ['Left-Amygdala',
+                                                         'Right-Amygdala'])
 
     # setup the forward model
     forward = mne.make_forward_solution(epochs.info, mri=trans_fname, src=src,
@@ -124,9 +125,6 @@ method = 'dSPM'
 # estimate noise covarariance
 noise_cov = mne.compute_covariance(epochs.crop(None, 0, copy=True))
 
-# crop the data
-epochs.crop(0, None, copy=False)
-
 # make the inverse operator
 inverse_operator = make_inverse_operator(epochs.info, forward, noise_cov,
                                          loose=None, depth=None)
@@ -140,39 +138,39 @@ stc_scrambled = apply_inverse_epochs(epochs['scrambled'], inverse_operator,
 ##############################################################################
 # compare face vs. scrambled trials
 
-# empty array
-X = np.zeros((len(epochs.events), len(epochs.times)))
+# empty arrays
+s1 = np.zeros((len(stc_faces), len(epochs.times)))
+s2 = np.zeros((len(stc_scrambled), len(epochs.times)))
 
 # loop through the epochs
 for i, s in enumerate(stc_faces):
-    # extract the right amygdala vertices
-    x = s.data[8196:].mean(0)
-    X[i] = x
-for i, s in enumerate(stc_scrambled):
-    # extract the right amygdala vertices
-    x = s.data[8196:].mean(0)
-    X[i+83] = x
+    # extract the amygdala vertices
+    x = s.data[len(s.vertno[0])+len(s.vertno[1]):].mean(0)
+    s1[i] = x
 
-t, p = stats.ttest_ind(X[:83], X[83:])
+for i, s in enumerate(stc_scrambled):
+    # extract the amygdala vertices
+    x = s.data[len(s.vertno[0])+len(s.vertno[1]):].mean(0)
+    s2[i] = x
+
+t, p = stats.ttest_ind(s1, s2)
 sig, p = mne.stats.fdr_correction(p)  # apply fdr correction
 
+###############################################################################
 # plot the results
 t = epochs.times
-s1 = X[:83]
-s2 = X[83:]
 
 ax = plt.axes()
 
 l1, = ax.plot(t, s1.mean(0), 'b')  # faces
 l2, = ax.plot(t, s2.mean(0), 'g')  # scrambled
 
-ylim = ax.get_ylim()
 ax.fill_between(t, ylim[1]*np.ones(t.shape), ylim[0]*np.ones(t.shape), sig,
                 facecolor='k', alpha=0.3)
 ax.set_xlim((t.min(), t.max()))
 ax.set_xlabel('Time (s)')
 ax.set_title('Right Amygdala Activation')
 ax.legend((l1, l2), ('Faces', 'Scrambled'))
-ax.set_ylim(ylim)
+ax.set_ylim(t[0, -1])
 
 plt.show()
