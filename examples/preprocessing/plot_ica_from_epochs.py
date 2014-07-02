@@ -4,8 +4,8 @@ Compute ICA components on epochs
 ================================
 
 ICA is fit to MEG raw data.
-The sources matching the ECG are automatically found and displayed.
 We assume that the non-stationary EOG artifacts have already been removed.
+The sources matching the ECG are automatically found and displayed.
 Subsequently, artefact detection and rejection quality are assessed.
 Finally, the impact on the evoked ERF is visualized.
 """
@@ -60,7 +60,7 @@ show_picks = np.abs(scores).argsort()[::-1][:5]
 ica.plot_sources(epochs, show_picks, exclude=ecg_inds, title=title % 'ecg')
 ica.plot_components(ecg_inds, title=title % 'ecg')
 
-ica.exclude += ecg_inds[:3]  # typically 3 reliable ECG components
+ica.exclude += ecg_inds[:3]  # by default we expect 3 reliable ECG components
 
 ###############################################################################
 # 3) Assess component selection and unmixing quality
