@@ -22,8 +22,7 @@ from .utils import _TempDir
 from .viz import plot_events, _plot_mri_contours, plot_trans
 from .forward import read_forward_solution
 from .epochs import read_epochs
-
-from tempita import HTMLTemplate, Template
+from .externals.tempita import HTMLTemplate, Template
 
 tempdir = _TempDir()
 
