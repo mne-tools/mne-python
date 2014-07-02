@@ -35,5 +35,5 @@ if __name__ == '__main__':
     subject = options.subject
 
     report = Report(info_fname, subjects_dir, subject)
-    report.render_folder(path)
+    report.parse_folder(path)
     report.save()

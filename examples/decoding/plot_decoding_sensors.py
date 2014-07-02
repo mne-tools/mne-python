@@ -102,9 +102,9 @@ plt.title('Sensor space decoding')
 # Make an MNE Report
 
 fig = plt.gcf()
-report = Report(path=data_path, info_fname=raw_fname,
+report = Report(info_fname=raw_fname,
                 subjects_dir=data_path + '/subjects', subject='sample',
                 title='MNE Report for sample dataset')
-report.render_folder()
+report.parse_folder(data_path)
 report.add_section([fig], ['Sensor space decoding'])
 report.save()

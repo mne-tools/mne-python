@@ -15,10 +15,11 @@ import numpy as np
 import time
 from glob import glob
 import webbrowser
+import warnings
 
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
-from .utils import _TempDir
+from .utils import _TempDir, logger
 from .viz import plot_events, _plot_mri_contours, plot_trans
 from .forward import read_forward_solution
 from .epochs import read_epochs
@@ -56,25 +57,25 @@ def iterate_sagittal_slices(array, limits=None):
     for ind in xrange(shape):
         if limits and ind not in limits:
             continue
-        yield ind, np.rot90(array[ind, :, :])
-
-
-def iterate_coronal_slices(array, limits=None):
-    """ Iterate coronal slice """
-    shape = array.shape[1]
-    for ind in xrange(shape):
-        if limits and ind not in limits:
-            continue
-        yield ind, np.rot90(array[:, ind, :])
+        yield ind, array[ind, :, :]
 
 
 def iterate_axial_slices(array, limits=None):
     """ Iterate axial slice """
+    shape = array.shape[1]
+    for ind in xrange(shape):
+        if limits and ind not in limits:
+            continue
+        yield ind, array[:, ind, :]
+
+
+def iterate_coronal_slices(array, limits=None):
+    """ Iterate coronal slice """
     shape = array.shape[2]
     for ind in xrange(shape):
         if limits and ind not in limits:
             continue
-        yield ind, np.rot90(array[:, :, ind])
+        yield ind, np.flipud(np.rot90(array[:, :, ind]))
 
 
 ###############################################################################
@@ -102,6 +103,7 @@ slider_template = HTMLTemplate(u"""
                        /*orientation: "vertical",*/
                        min: {{minvalue}},
                        max: {{maxvalue}},
+                       step: 2,
                        stop: function(event, ui) {
                        var list_value = $("#{{slider_id}}").slider("value");
                        $(".{{klass}}").hide();
@@ -234,7 +236,7 @@ div.footer {
         <a href="#" onclick="togglebutton('.epochs')">Epochs</a>
     </li>
     <li class="active evoked-btn">
-        <a href="#"  onclick="togglebutton('.evoked')">Ave</a>
+        <a href="#"  onclick="togglebutton('.evoked')">Average</a>
     </li>
     <li class="active forward-btn">
         <a href="#" onclick="togglebutton('.forward')">Forward</a>
@@ -243,13 +245,13 @@ div.footer {
         <a href="#" onclick="togglebutton('.covariance')">Cov</a>
     </li>
     <li class="active events-btn">
-        <a href="#" onclick="togglebutton('.events')">Eve</a>
+        <a href="#" onclick="togglebutton('.events')">Events</a>
     </li>
     <li class="active trans-btn">
         <a href="#" onclick="togglebutton('.trans')">Trans</a>
     </li>
     <li class="active slices-images-btn">
-        <a href="#" onclick="togglebutton('.slices-images')">Slices</a>
+        <a href="#" onclick="togglebutton('.slices-images')">MRI</a>
     </li>
 </ul>
 
@@ -314,7 +316,7 @@ class Report(object):
         self.html = []
         self.fnames = []  # List of file names rendered
 
-        self.init_render()  # Initialize the renderer
+        self._init_render()  # Initialize the renderer
 
     def get_id(self):
         self.initial_id += 1
@@ -346,7 +348,7 @@ class Report(object):
 
     ###########################################################################
     # HTML rendering
-    def render_one_axe(self, slices_iter, name, global_id=None, cmap='gray'):
+    def _render_one_axe(self, slices_iter, name, global_id=None, cmap='gray'):
         """ Render one axe of the array """
         global_id = global_id or name
         html = []
@@ -376,7 +378,7 @@ class Report(object):
 
     ###########################################################################
     # global rendering functions
-    def init_render(self):
+    def _init_render(self):
         """ Initialize the renderer
         """
         inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.js',
@@ -384,7 +386,7 @@ class Report(object):
 
         include = list()
         for inc_fname in inc_fnames:
-            print('Embedding : %s' % inc_fname)
+            logger.info('Embedding : %s' % inc_fname)
             f = open(op.join(op.dirname(__file__), 'html', inc_fname),
                      'r')
             if inc_fname.endswith('.js'):
@@ -399,7 +401,7 @@ class Report(object):
                                           include=''.join(include))
         self.html.append(html)
 
-    def render_folder(self, data_path):
+    def parse_folder(self, data_path):
         """Renders all the files in the folder.
 
         Parameters
@@ -422,21 +424,19 @@ class Report(object):
         info = read_info(self.info_fname)
 
         for fname in fnames:
-            print "Rendering : %s" % op.join('...' + self.data_path[-20:],
-                                             fname)
+            logger.info("Rendering : %s"
+                        % op.join('...' + self.data_path[-20:],
+                                  fname))
             try:
-                if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
-                    cmap = 'gray'
-                    if 'aseg' in fname:
-                        cmap = 'spectral'
-                    self.render_image(fname, surfaces=True, cmap=cmap)
-                    self.fnames.append(fname)
+                if fname.endswith(('.mgz')):
+                    self.render_bem(subject=self.subject,
+                                    subjects_dir=self.subjects_dir)
+                    self.fnames.append('bem')
                 elif fname.endswith(('raw.fif', 'sss.fif')):
                     self.render_raw(fname)
                     self.fnames.append(fname)
                 elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
                     self.render_forward(fname)
-                    self.fnames.append(fname)
                 elif fname.endswith(('-ave.fif')):
                     self.render_evoked(fname)
                     self.fnames.append(fname)
@@ -455,14 +455,9 @@ class Report(object):
                     self.fnames.append(fname)
                 elif op.isdir(fname):
                     folders.append(fname)
-                    print folders
+                    logger.info(folders)
             except Exception, e:
-                print e
-
-        self.render_bem(subject=self.subject,
-                        subjects_dir=self.subjects_dir,
-                        orientation='coronal')
-        self.fnames.append('bem')
+                logger.info(e)
 
     def save(self, fname='report.html'):
         """
@@ -472,8 +467,8 @@ class Report(object):
             File name of the report.
         """
 
-        print('Rendering : Table of Contents')
-        self.render_toc()
+        logger.info('Rendering : Table of Contents')
+        self._render_toc()
 
         html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
         self.html.append(html)
@@ -487,14 +482,14 @@ class Report(object):
 
         return fname
 
-    def render_toc(self):
+    def _render_toc(self):
         html = u'<div id="container">'
         html += u'<div id="toc"><center><h4>CONTENTS</h4></center>'
 
         global_id = 1
         for fname in self.fnames:
 
-            print('\t... %s' % fname[-20:])
+            logger.info('\t... %s' % fname[-20:])
 
             # identify bad file naming patterns and highlight them
             if not fname.endswith(('-eve.fif', '-ave.fif', '-cov.fif',
@@ -553,7 +548,7 @@ class Report(object):
 
             elif fname == 'bem':
                 html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
-                         (global_id, 'BEM contours'))
+                         (global_id, 'MRI'))
                 global_id += 1
 
             else:
@@ -567,7 +562,7 @@ class Report(object):
 
         self.html.insert(1, html)  # insert TOC just after header
 
-    def render_array(self, array, global_id=None, surfaces=True, cmap='gray',
+    def render_array(self, array, global_id=None, cmap='gray',
                      limits=None):
         html = []
         html.append(u'<div class="row">')
@@ -576,11 +571,11 @@ class Report(object):
         axial_limit = limits.get('axial')
         axial_slices_gen = iterate_axial_slices(array, axial_limit)
         html.append(
-            self.render_one_axe(axial_slices_gen, 'axial', global_id, cmap))
+            self._render_one_axe(axial_slices_gen, 'axial', global_id, cmap))
         # Sagittal
         sagittal_limit = limits.get('sagittal')
         sagittal_slices_gen = iterate_sagittal_slices(array, sagittal_limit)
-        html.append(self.render_one_axe(sagittal_slices_gen, 'sagittal',
+        html.append(self._render_one_axe(sagittal_slices_gen, 'sagittal',
                     global_id, cmap))
         html.append(u'</div>')
         html.append(u'<div class="row">')
@@ -588,8 +583,8 @@ class Report(object):
         coronal_limit = limits.get('coronal')
         coronal_slices_gen = iterate_coronal_slices(array, coronal_limit)
         html.append(
-            self.render_one_axe(coronal_slices_gen, 'coronal',
-                                global_id, cmap))
+            self._render_one_axe(coronal_slices_gen, 'coronal',
+                                 global_id, cmap))
         # Close section
         html.append(u'</div>')
         return '\n'.join(html)
@@ -609,9 +604,9 @@ class Report(object):
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
         img_klass = 'slideimg-%s' % name
-        for sl in range(n_slices // 3, n_slices // 2):
-            print('Rendering BEM contours : orientation = %s, '
-                  'slice = %d' % (orientation, sl))
+        for sl in range(0, n_slices, 2):
+            logger.info('Rendering BEM contours : orientation = %s, '
+                        'slice = %d' % (orientation, sl))
             slices_range.append(sl)
             caption = u'Slice %s %s' % (name, sl)
             slice_id = '%s-%s-%s' % (name, global_id, sl)
@@ -636,7 +631,7 @@ class Report(object):
 
         return '\n'.join(html)
 
-    def render_image(self, image, surfaces=True, cmap='gray'):
+    def render_image(self, image, cmap='gray'):
 
         import nibabel as nib
 
@@ -645,16 +640,17 @@ class Report(object):
         nim = nib.load(image)
         data = nim.get_data()
         shape = data.shape
-        limits = {'sagittal': range(shape[0] // 3, shape[0] // 2),
-                  'axial': range(shape[1] // 3, shape[1] // 2),
-                  'coronal': range(shape[2] // 3, shape[2] // 2)}
+        limits = {'sagittal': range(0, shape[0], 2),
+                  'axial': range(0, shape[1], 2),
+                  'coronal': range(0, shape[2], 2)}
         name = op.basename(image)
         html = u'<li class="slices-images" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name
         html += self.render_array(data, global_id=global_id,
-                                  surfaces=True, cmap=cmap, limits=limits)
+                                  cmap=cmap, limits=limits)
         html += u'</li>\n'
         self.html.append(html)
+        return html
 
     def render_raw(self, raw_fname):
         global_id = self.get_id()
@@ -678,20 +674,18 @@ class Report(object):
         self.html.append(html)
 
     def render_forward(self, fwd_fname):
-        global_id = self.get_id()
+
         div_klass = 'forward'
         caption = u'Forward: %s' % fwd_fname
-
         fwd = read_forward_solution(fwd_fname)
-
         repr_fwd = re.sub('>', '', re.sub('<', '', repr(fwd)))
-
+        global_id = self.get_id()
         html = repr_template.substitute(div_klass=div_klass,
                                         id=global_id,
                                         caption=caption,
                                         repr=repr_fwd)
-
         self.html.append(html)
+        self.fnames.append(fwd_fname)
 
     def render_evoked(self, evoked_fname, figsize=None):
         evokeds = read_evokeds(evoked_fname, baseline=(None, 0),
@@ -801,34 +795,31 @@ class Report(object):
                                              show=show)
             self.html.append(html)
 
-    def render_bem(self, subject, subjects_dir, orientation='coronal'):
+    def render_bem(self, subject, subjects_dir):
 
         import nibabel as nib
-
-        global_id = self.get_id()
-        name, caption = 'BEM', 'BEM contours'
 
         # Get the MRI filename
         mri_fname = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
         if not op.isfile(mri_fname):
-            raise IOError('MRI file "%s" does not exist' % mri_fname)
+            warnings.warn('MRI file "%s" does not exist' % mri_fname)
 
         # Get the BEM surface filenames
         bem_path = op.join(subjects_dir, subject, 'bem')
 
         if not op.isdir(bem_path):
-            raise IOError('Subject bem directory "%s" does not exist' %
+            warnings.warn('Subject bem directory "%s" does not exist' %
                           bem_path)
+            return self.render_image(mri_fname, cmap='gray')
 
         surf_fnames = []
         for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
             surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
-            if len(surf_name) > 0:
+            if len(surf_fname) > 0:
                 surf_fname = surf_fname[0]
             else:
-                raise IOError('No surface found for %s.' % surf_name)
-            if not op.isfile(surf_fname):
-                raise IOError('Surface file "%s" does not exist' % surf_fname)
+                warnings.warn('No surface found for %s.' % surf_name)
+                return self.render_image(mri_fname, cmap='gray')
             surf_fnames.append(surf_fname)
 
         # XXX : find a better way to get max range of slices
@@ -836,19 +827,24 @@ class Report(object):
         data = nim.get_data()
 
         html = []
+
+        global_id = self.get_id()
+        name, caption = 'BEM', 'BEM contours'
+
         html += u'<h2>%s</h2>\n' % name
         html += u'<li class="bem-slices" id="%d">\n' % global_id
         html += u'<div class="row">'
         html += self.render_one_bem_axe(mri_fname, surf_fnames, global_id,
-                                        data.shape, orientation='sagittal')
-        html += self.render_one_bem_axe(mri_fname, surf_fnames, global_id,
                                         data.shape, orientation='axial')
+        html += self.render_one_bem_axe(mri_fname, surf_fnames, global_id,
+                                        data.shape, orientation='sagittal')
         html += u'</div><div class="row">'
         html += self.render_one_bem_axe(mri_fname, surf_fnames, global_id,
                                         data.shape, orientation='coronal')
         html += u'</div>'
         html += u'</li>\n'
         self.html.append(''.join(html))
+        return html
 
 
 def fig2im(fname, fig, orig_size):
