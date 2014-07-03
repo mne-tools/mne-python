@@ -267,6 +267,7 @@ Visualization
    circular_layout
    mne_analyze_colormap
    plot_connectivity_circle
+   plot_connectivity_matrix
    plot_cov
    plot_drop_log
    plot_evoked
@@ -642,6 +643,7 @@ Connectivity Estimation
    :toctree: generated/
    :template: function.rst
 
+   mvar_connectivity
    seed_target_indices
    spectral_connectivity
    phase_slope_index

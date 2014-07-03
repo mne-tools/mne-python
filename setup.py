@@ -67,6 +67,7 @@ if __name__ == "__main__":
                     'mne.datasets.spm_face',
                     'mne.datasets.eegbci',
                     'mne.externals',
+                    'mne.externals.scot',
                     'mne.fiff',
                     'mne.io', 'mne.io.tests',
                     'mne.io.array', 'mne.io.array.tests',
