@@ -165,12 +165,13 @@ ax = plt.axes()
 l1, = ax.plot(t, s1.mean(0), 'b')  # faces
 l2, = ax.plot(t, s2.mean(0), 'g')  # scrambled
 
+ylim = ax.get_ylim()
 ax.fill_between(t, ylim[1]*np.ones(t.shape), ylim[0]*np.ones(t.shape), sig,
                 facecolor='k', alpha=0.3)
-ax.set_xlim((t.min(), t.max()))
+ax.set_xlim((t[0], t[-1]))
 ax.set_xlabel('Time (s)')
 ax.set_title('Right Amygdala Activation')
 ax.legend((l1, l2), ('Faces', 'Scrambled'))
-ax.set_ylim(t[0, -1])
+ax.set_ylim(ylim)
 
 plt.show()
