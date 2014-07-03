@@ -418,6 +418,12 @@ def _read_one_source_space(fid, this, verbose=None):
     if tag is not None:
         res['subject_his_id'] = tag.data
 
+    #   Segmentation
+    if res['type'] == 'discrete':
+        tag = find_tag(fid, this, FIFF.FIFF_COMMENT)
+        if tag is not None:
+            res['seg_name'] = tag.data
+
     return res
 
 
@@ -672,6 +678,11 @@ def _write_one_source_space(fid, this, verbose=None):
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT,
                            this['dist_limit'])
+
+    #   Segmentation data
+    if this['type'] == 'discrete' and ('seg_name' in this):
+        # Save the name of the segment
+        write_string(fid, FIFF.FIFF_COMMENT, this['seg_name'])
 
 
 ##############################################################################
@@ -1786,7 +1797,8 @@ def add_subcortical_volumes(src, seg_labels, spacing=5., subjects_dir=None):
         sp = _make_discrete_source_space(pos)
         sp.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
                        dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
-                       nuse_tri=None, tris=None, type='discrete'))
+                       nuse_tri=None, tris=None, type='discrete',
+                       seg_name=seg_name))
 
         # Combine source spaces
         src.append(sp)
