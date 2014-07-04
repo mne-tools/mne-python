@@ -11,7 +11,7 @@ Dalal et al. Five-dimensional neuroimaging: Localization of the time-frequency
 dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 """
 
-# XXX: the ranksums option should be documented above
+# XXX: the wilcoxon option should be documented above
 # XXX: Maybe this example could replace the tf_lcmv example?
 
 # Author: Roman Goj <roman.goj@gmail.com>
@@ -134,15 +134,18 @@ for (l_freq, h_freq) in freq_bins:
 
 # Computing LCMV solutions for time-frequency windows in a label in source
 # space for faster computation, use label=None for full solution
-# XXX: the ranksums option should be commented on
+# XXX: the wilcoxon option should be commented on
 stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, subtract_evoked=subtract_evoked,
-               baseline_mode='ranksums', reg=data_reg, label=label)
+               baseline_mode='wilcoxon', reg=data_reg, label=label)
+#               baseline_mode=None, reg=data_reg, label=label)
 
 # Plotting source spectrogram for source with maximum activity.
 # Note that tmin and tmax are set to display a time range that is smaller than
 # the one for which beamforming estimates were calculated. This ensures that
 # all time bins shown are a result of smoothing across an identical number of
 # time windows.
+# XXX: The colorbar should be symmetrical when displaying z-scores (although
+# note z scores now returned are always negative)
 plot_source_spectrogram(stcs, freq_bins, tmin=tmin_plot, tmax=tmax_plot,
                         source_index=None, colorbar=True)

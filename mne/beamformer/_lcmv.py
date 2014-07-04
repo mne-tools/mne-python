@@ -10,7 +10,6 @@ import warnings
 
 import numpy as np
 from scipy import linalg
-from scipy.stats import ranksums
 
 from ..io.constants import FIFF
 from ..io.proj import make_projector
@@ -592,8 +591,12 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
-    baseline_mode: None | 'ranksums'
-        # XXX
+    baseline:
+        # XXX Allow baseline to be chosen
+    baseline_mode: None | 'wilcoxon'
+        # XXX: 'dB' to be implemented, then add it here as an option
+        # XXX: look into current tfr PR's API and make sure this is similar
+        # XXX: write description
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
@@ -614,8 +617,6 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     NeuroImage (2008) vol. 40 (4) pp. 1686-1700
     """
 
-    # XXX: Check baseline_mode input options, i.e. to avoid typing in ranksum
-    # instead of ranksums
     if pick_ori not in [None, 'normal']:
         raise ValueError('Unrecognized orientation option in pick_ori, '
                          'available choices are None and normal')
@@ -627,6 +628,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     if any(win_length < tstep for win_length in win_lengths):
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
+    if baseline_mode not in [None, 'wilcoxon']:
+        # XXX: Add 'dB' option once implemented
+        raise ValueError('Unrecognized baseline_mode option, available '
+                         'choices are None and "wilcoxon"')
 
     # Extract raw object from the epochs object
     raw = epochs.raw
@@ -643,10 +648,15 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
 
-    # XXX Would be nice to assign array to sol_final here for readability
-    sol_final = []
-    for (l_freq, h_freq), win_length, noise_cov in \
-            zip(freq_bins, win_lengths, noise_covs):
+    if baseline_mode == 'wilcoxon':
+        n_epochs = epochs.get_data().shape[0]
+    else:
+        n_epochs = 1
+    n_vert = len(label_src_vertno_sel(label, forward['src'])[0][0])
+
+    sol_final = np.zeros((len(freq_bins), n_time_steps, n_epochs, n_vert))
+    for i_freq, ((l_freq, h_freq), win_length, noise_cov) in \
+            enumerate(zip(freq_bins, win_lengths, noise_covs)):
         n_overlap = int((win_length * 1e3) // (tstep * 1e3))
 
         raw_band = raw.copy()
@@ -660,13 +670,6 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         if subtract_evoked:
             epochs_band.subtract_evoked()
 
-        # XXX: Where can we cleanly get the 33 from? Hardcoded to work with the
-        # example.
-        n_vert = 33
-        if baseline_mode == 'ranksums':
-            n_epochs = epochs_band.get_data().shape[0]
-        else:
-            n_epochs = 1
         sol_time_windows = np.zeros((n_time_steps, n_epochs, n_vert))
         sol_smoothed = np.zeros((n_time_steps, n_epochs, n_vert))
 
@@ -700,8 +703,9 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                 data_cov = compute_covariance(epochs_band, tmin=win_tmin,
                                               tmax=win_tmax)
 
-                if baseline_mode == 'ranksums':
-                    # XXX: Crop and average epochs instead of stc
+                if baseline_mode == 'wilcoxon':
+                    # XXX: Crop and average epochs instead of stc? Maybe not,
+                    # would this require copying the epochs object every time?
                     stcs = lcmv_epochs(epochs_band, forward, noise_cov,
                                        data_cov, reg=reg, label=label,
                                        pick_ori=pick_ori, verbose=verbose)
@@ -716,8 +720,6 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                                              verbose=verbose)
                     sol_time_windows[i_time, 0] = stc.data[:, 0]
 
-            # sol_time_windows = np.array(sol_time_windows)
-
             # Average over all time windows that contain the current time
             # point, which is the current time window along with
             # n_overlap - 1 previous ones
@@ -728,27 +730,30 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                                                       i_time + 1], axis=0)
 
             # The final result for the current time point in the current
-            # frequency bin
-            sol_smoothed[i_time] = sol_tf_bin
+            # frequency bin for all epochs and sources
+            sol_smoothed[i_time, :, :] = sol_tf_bin
 
         # Gathering solutions for all time points for current frequency bin
-        sol_final.append(sol_smoothed)
+        sol_final[i_freq, :, :, :] = sol_smoothed
 
-    sol_final = np.array(sol_final)
-
-    if baseline_mode == 'ranksums':
+    if baseline_mode == 'wilcoxon':
         z_scores = np.zeros((len(freq_bins), n_time_steps, n_vert))
-        # NEXT: This loop is not working correctly at all
         for i_freq, i_time, i_vert in\
                 [(i_freq, i_time, i_vert) for i_freq in range(len(freq_bins))
                  for i_time in range(n_time_steps)
                  for i_vert in range(n_vert)]:
             # XXX Baseline choice is hardcoded here
-            (z_score, p_value) = ranksums(sol_final[i_freq, i_time, :, i_vert],
-                                          sol_final[i_freq, 5, :, i_vert])
+            # XXX The wilcoxon test should be performed before smoothing
+            baseline_time = 5
+            if i_time != baseline_time:
+                (z_score, p_value) = wilcoxon(
+                    sol_final[i_freq, baseline_time, :, i_vert],
+                    sol_final[i_freq, i_time, :, i_vert], return_stat='z')
+            else:
+                z_score = -1.0
             z_scores[i_freq, i_time, i_vert] = z_score
 
-    if baseline_mode == 'ranksums':
+    if baseline_mode == 'wilcoxon':
         sol_final = z_scores
     else:
         sol_final = np.squeeze(sol_final, 2)
@@ -761,3 +766,128 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         stcs.append(stc)
 
     return stcs
+
+
+from numpy import asarray, compress, not_equal, sqrt, sum
+from scipy import stats
+from scipy.stats import distributions
+from scipy.stats import find_repeats
+
+
+# XXX: The below code is adopted from scipy.stats.wilcoxon because that version
+# does not return the desired z-score, instead returning the 'T' statistic (see
+# below). Ideally this change should be passed on to scipy (esp. since an issue
+# is open about this already) and placed at a more suitable location in
+# MNE-Python in the mean time?
+def wilcoxon(x, y=None, zero_method="wilcox", correction=False,
+             return_stat='T'):
+    """
+    Calculate the Wilcoxon signed-rank test.
+
+    The Wilcoxon signed-rank test tests the null hypothesis that two
+    related paired samples come from the same distribution. In particular,
+    it tests whether the distribution of the differences x - y is symmetric
+    about zero. It is a non-parametric version of the paired T-test.
+
+    Adopted from scipy.stats (morestats.py) to allow returning of z scores
+    instead of T.
+
+    Parameters
+    ----------
+    x : array_like
+        The first set of measurements.
+    y : array_like, optional
+        The second set of measurements.  If `y` is not given, then the `x`
+        array is considered to be the differences between the two sets of
+        measurements.
+    zero_method : string, {"pratt", "wilcox", "zsplit"}, optional
+        "pratt":
+            Pratt treatment: includes zero-differences in the ranking process
+            (more conservative)
+        "wilcox":
+            Wilcox treatment: discards all zero-differences
+        "zsplit":
+            Zero rank split: just like Pratt, but spliting the zero rank
+            between positive and negative ones
+    correction : bool, optional
+        If True, apply continuity correction by adjusting the Wilcoxon rank
+        statistic by 0.5 towards the mean value when computing the
+        z-statistic.  Default is False.
+    return_stat : string, {"T", "z"}, optional
+        Select which test statistic should be returned.
+
+    Returns
+    -------
+    test_stat : float
+        When return_stat is set to 'T' (default), the sum of the ranks of the
+        differences above or below zero, whichever is smaller, is returned.
+        When return_stat is set to 'z', the z score is returned.
+    p-value : float
+        The two-sided p-value for the test.
+
+    Notes
+    -----
+    Because the normal approximation is used for the calculations, the
+    samples used should be large.  A typical rule is to require that
+    n > 20.
+
+    References
+    ----------
+    .. [1] http://en.wikipedia.org/wiki/Wilcoxon_signed-rank_test
+
+    """
+
+    if zero_method not in ["wilcox", "pratt", "zsplit"]:
+        raise ValueError("Zero method should be either 'wilcox' \
+                          or 'pratt' or 'zsplit'")
+    if return_stat not in ["T", "z"]:
+        raise ValueError("Test statistic to be returned should be either 'T' \
+                          or 'z'")
+
+    if y is None:
+        d = x
+    else:
+        x, y = map(asarray, (x, y))
+        if len(x) != len(y):
+            raise ValueError('Unequal N in wilcoxon.  Aborting.')
+        d = x-y
+
+    if zero_method == "wilcox":
+        d = compress(not_equal(d, 0), d, axis=-1)  # Reject zero differences
+
+    count = len(d)
+    if (count < 10):
+        warnings.warn("Warning: sample size too small for normal \
+                       approximation.")
+    r = stats.rankdata(abs(d))
+    r_plus = sum((d > 0) * r, axis=0)
+    r_minus = sum((d < 0) * r, axis=0)
+
+    if zero_method == "zsplit":
+        r_zero = sum((d == 0) * r, axis=0)
+        r_plus += r_zero / 2.
+        r_minus += r_zero / 2.
+
+    T = min(r_plus, r_minus)
+    mn = count*(count + 1.) * 0.25
+    se = count*(count + 1.) * (2. * count + 1.)
+
+    if zero_method == "pratt":
+        r = r[d != 0]
+
+    replist, repnum = find_repeats(r)
+    if repnum.size != 0:
+        # Correction for repeated elements.
+        se -= 0.5 * (repnum * (repnum * repnum - 1)).sum()
+
+    se = sqrt(se / 24)
+    correction = 0.5 * int(bool(correction)) * np.sign(T - mn)
+    z = (T - mn - correction) / se
+    prob = 2. * distributions.norm.sf(abs(z))
+
+    if return_stat == 'T':
+        test_stat = T
+    elif return_stat == 'z':
+        test_stat = z
+
+    return test_stat, prob
