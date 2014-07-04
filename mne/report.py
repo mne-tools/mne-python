@@ -97,13 +97,16 @@ def build_html_image(img, id, div_klass, img_klass, caption=None, show=True):
     return '\n'.join(html)
 
 slider_template = HTMLTemplate(u"""
-<div id="{{slider_id}}"></div>
 <script>$("#{{slider_id}}").slider({
                        range: "min",
                        /*orientation: "vertical",*/
                        min: {{minvalue}},
                        max: {{maxvalue}},
                        step: 2,
+                       value: {{startvalue}},
+                       create: function(event, ui) {
+                       $(".{{klass}}").hide();
+                       $("#{{klass}}-{{startvalue}}").show();},
                        stop: function(event, ui) {
                        var list_value = $("#{{slider_id}}").slider("value");
                        $(".{{klass}}").hide();
@@ -114,10 +117,13 @@ slider_template = HTMLTemplate(u"""
 
 def build_html_slider(slices_range, slides_klass, slider_id):
     """ Build an html slider for a given slices range and a slices klass """
+    startvalue = (slices_range[0] + slices_range[-1]) / 2 + 1
     return slider_template.substitute(slider_id=slider_id,
                                       klass=slides_klass,
                                       minvalue=slices_range[0],
-                                      maxvalue=slices_range[-1])
+                                      maxvalue=slices_range[-1],
+                                      startvalue=startvalue)
+
 
 ###############################################################################
 # HTML scan renderer
@@ -181,12 +187,12 @@ li{
 
 #content{
     margin-left: 22%;
-    margin-top: 3%;
+    margin-top: 60px;
     width: 75%;
 }
 
 #toc {
-  margin-top: -0.3%;
+  margin-top: navbar-height;
   position: fixed;
   width: 20%;
   height: 100%;
@@ -194,7 +200,7 @@ li{
 }
 
 #toc li {
-    overflow: hidden;
+    overflow: auto;
     padding-bottom: 2px;
     margin-left: 20px;
 }
@@ -236,7 +242,7 @@ div.footer {
         <a href="#" onclick="togglebutton('.epochs')">Epochs</a>
     </li>
     <li class="active evoked-btn">
-        <a href="#"  onclick="togglebutton('.evoked')">Average</a>
+        <a href="#"  onclick="togglebutton('.evoked')">Evoked</a>
     </li>
     <li class="active forward-btn">
         <a href="#" onclick="togglebutton('.forward')">Forward</a>
@@ -368,11 +374,12 @@ class Report(object):
             first = False
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
-        html.append(build_html_slider(slices_range, slides_klass, slider_id))
+        html.append(u'<div id="%s"></div>' % slider_id)
         html.append(u'<ul class="thumbnails">')
         # Render the slices
         html.append(u'\n'.join(slices))
         html.append(u'</ul>')
+        html.append(build_html_slider(slices_range, slides_klass, slider_id))
         html.append(u'</div>')
         return '\n'.join(html)
 
@@ -547,8 +554,8 @@ class Report(object):
                 html += u'</ul></li>'
 
             elif fname == 'bem':
-                html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
-                         (global_id, 'MRI'))
+                html += (u'\n\t<li class="slices-images"><a href="#%d"><span>'
+                         ' %s</span></a></li>' % (global_id, 'MRI'))
                 global_id += 1
 
             else:
@@ -622,11 +629,12 @@ class Report(object):
 
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
-        html.append(build_html_slider(slices_range, slides_klass, slider_id))
+        html.append(u'<div id="%s"></div>' % slider_id)
         html.append(u'<ul class="thumbnails">')
         # Render the slices
         html.append(u'\n'.join(slices))
         html.append(u'</ul>')
+        html.append(build_html_slider(slices_range, slides_klass, slider_id))
         html.append(u'</div>')
 
         return '\n'.join(html)
@@ -831,8 +839,8 @@ class Report(object):
         global_id = self.get_id()
         name, caption = 'BEM', 'BEM contours'
 
+        html += u'<li class="slices-images" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name
-        html += u'<li class="bem-slices" id="%d">\n' % global_id
         html += u'<div class="row">'
         html += self.render_one_bem_axe(mri_fname, surf_fnames, global_id,
                                         data.shape, orientation='axial')
