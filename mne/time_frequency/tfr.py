@@ -449,6 +449,8 @@ def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
 
 def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                  baseline, vmin, vmax, dB):
+    from ..viz import _setup_vmin_vmax
+
     if mode is not None and baseline is not None:
         logger.info("Applying baseline correction '%s' during %s" %
                     (mode, baseline))
@@ -475,11 +477,9 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     times *= 1e3
     if dB:
         data = 20 * np.log10(data)
-    if vmin is None:
-        vmin = data.min()
-    if vmax is None:
-        vmax = data.max()
-    return data, times, freqs
+
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    return data, times, freqs, vmin, vmax
 
 
 # XXX : todo IO of TFRs
@@ -576,8 +576,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         layout : Layout | None
             Layout instance specifying sensor positions. If possible, the
             correct layout is inferred from the data.
-        cmap : matplotlib colormap
-            The colormap to use.
+        cmap : matplotlib colormap | str
+            The colormap to use. Defaults to 'RdBu_r'.
         dB : bool
             If True, 20*log10 is applied to the data to get dB.
         colorbar : bool
@@ -594,27 +594,19 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         import matplotlib.pyplot as plt
         times, freqs = self.times.copy(), self.freqs.copy()
         data = self.data[picks]
-        data, times, freqs = _preproc_tfr(data, times, freqs, tmin, tmax,
-                                          fmin, fmax, mode, baseline, vmin,
-                                          vmax, dB)
 
-        if mode is not None and baseline is not None:
-            logger.info("Applying baseline correction '%s' during %s" %
-                        (mode, baseline))
-            data = rescale(data, times, baseline, mode)
+        data, times, freqs, vmin, vmax = \
+                _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
+                             baseline, vmin, vmax, dB)
 
         tmin, tmax = times[0], times[-1]
-        if vmin is None:
-            vmin = np.min(data)
-        if vmax is None:
-            vmax = np.max(data)
 
         for k, p in zip(range(len(data)), picks):
             plt.figure()
             _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
                         tfr=data[k: k + 1], freq=freqs, x_label='Time (ms)',
                         y_label='Frequency (Hz)', colorbar=colorbar,
-                        picker=False)
+                        picker=False, cmap=cmap)
 
         if show:
             import matplotlib.pyplot as plt
@@ -622,7 +614,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
-                  layout=None, cmap=None, title=None, dB=False, colorbar=True,
+                  layout=None, cmap='RdBu_r', title=None, dB=False, colorbar=True,
                   layout_scale=0.945, show=True):
         """Plot TFRs in a topography with images
 
@@ -666,8 +658,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         layout : Layout | None
             Layout instance specifying sensor positions. If possible, the
             correct layout is inferred from the data.
-        cmap : matplotlib colormap
-            The colormap to use.
+        cmap : matplotlib colormap | str
+            The colormap to use. Defaults to 'RdBu_r'.
         title : str
             Title of the figure.
         dB : bool
@@ -692,15 +684,15 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             data = data[picks]
             info = pick_info(info, picks)
 
-        data, times, freqs = _preproc_tfr(data, times, freqs, tmin, tmax,
-                                          fmin, fmax, mode, baseline, vmin,
-                                          vmax, dB)
+        data, times, freqs, vmin, vmax = \
+                _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
+                             mode, baseline, vmin, vmax, dB)
 
         if layout is None:
             from mne.layouts.layout import find_layout
             layout = find_layout(self.info)
 
-        imshow = partial(_imshow_tfr, tfr=data, freq=freqs)
+        imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap)
 
         fig = _plot_topo(info=info, times=times,
                          show_func=imshow, layout=layout,
@@ -752,7 +744,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         return "<AverageTFR  |  %s>" % s
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
-                     ch_type='mag', layout=None, vmax=None, vmin=None,
+                     ch_type='mag', baseline=None, mode='mean',
+                     layout=None, vmin=None, vmax=None,
                      cmap='RdBu_r', sensors='k,', colorbar=True, unit=None,
                      res=256, size=2, format='%1.1e', show=True,
                      show_names=False, title=None):
@@ -777,6 +770,20 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. For 'grad', the gradiometers are collected in
             pairs and the RMS for each pair is plotted.
+        baseline : tuple or list of length 2
+            The time interval to apply rescaling / baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal to (None, None) all the time
+            interval is used.
+        mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or z-score (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline))
+            If None, baseline no correction will be performed.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout file
@@ -825,11 +832,11 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         """
         from ..viz import plot_tfr_topomap
         return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
-                                fmax=fmax, ch_type=ch_type, layout=layout,
-                                vmax=vmax, vmin=vmin, cmap=cmap, sensors=sensors,
-                                colorbar=colorbar, unit=unit, res=res, size=size,
-                                format=format, show=show, show_names=show_names,
-                                title=title)
+                                fmax=fmax, ch_type=ch_type, baseline=baseline,
+                                mode=mode, layout=layout, vmin=vmin, vmax=vmax,
+                                cmap=cmap, sensors=sensors, colorbar=colorbar,
+                                unit=unit, res=res, size=size, format=format,
+                                show=show, show_names=show_names, title=title)
 
 
 def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,

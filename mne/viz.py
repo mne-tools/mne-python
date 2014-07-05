@@ -293,13 +293,15 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
                 freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True):
+                colorbar=False, picker=True, cmap=None):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
+    if cmap is None:
+        cmap = plt.cm.jet
 
     extent = (tmin, tmax, freq[0], freq[-1])
     ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-              vmin=vmin, vmax=vmax, picker=picker)
+              vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
     if x_label is not None:
         plt.xlabel(x_label)
     if y_label is not None:
@@ -503,7 +505,7 @@ def _plot_update_evoked_topo(params, bools):
 
 
 def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
-                  vmax=None, cmap=None, layout_scale=0.945, title=None):
+                  vmax=None, cmap='RdBu_r', layout_scale=0.945, title=None):
     """Plot time-frequency data on sensor layout
 
     Clicking on the time-frequency map of an individual sensor opens a
@@ -527,8 +529,8 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
         Minimum value mapped to lowermost color
     vmax : float
         Minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pyplot.colormap
-        Colors to be mapped to the values
+    cmap : instance of matplotlib.pyplot.colormap | str
+        Colors to be mapped to the values. Default 'RdBu_r'.
     layout_scale : float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
@@ -550,7 +552,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
         from .layouts.layout import find_layout
         layout = find_layout(epochs.info)
 
-    tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
+    tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq, cmap=cmap)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,
                      show_func=tfr_imshow, layout=layout, border='w',
@@ -969,19 +971,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         from .layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
-    if vmax is None and vmin is None:
-        vmax = np.abs(data).max()
-        vmin = -vmax
-    else:
-        if callable(vmin):
-            vmin = vmin(data)
-        elif vmin is None:
-            vmin = np.min(data)
-        if callable(vmax):
-            vmax = vmax(data)
-        elif vmin is None:
-            vmax = np.max(data)
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+
     images, contours_ = [], []
+
     if mask is not None:
         _picks = picks[::2 if ch_type not in ['mag', 'eeg'] else 1]
         mask_ = mask[np.ix_(_picks, time_idx)]
@@ -1347,18 +1340,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     axes = plt.gca()
     axes.set_frame_on(False)
 
-    if vmax is None and vmin is None:
-        vmax = np.abs(data).max()
-        vmin = -vmax
-    else:
-        if callable(vmin):
-            vmin = vmin(data)
-        elif vmin is None:
-            vmin = np.min(data)
-        if callable(vmax):
-            vmax = vmax(data)
-        elif vmin is None:
-            vmax = np.max(data)
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     plt.xticks(())
     plt.yticks(())
@@ -5034,8 +5016,25 @@ def _drop_log_stats(drop_log, ignore=['IGNORED']):
     return perc
 
 
+def _setup_vmin_vmax(data, vmin, vmax):
+    if vmax is None and vmin is None:
+        vmax = np.abs(data).max()
+        vmin = -vmax
+    else:
+        if callable(vmin):
+            vmin = vmin(data)
+        elif vmin is None:
+            vmin = np.min(data)
+        if callable(vmax):
+            vmax = vmax(data)
+        elif vmin is None:
+            vmax = np.max(data)
+    return vmin, vmax
+
+
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
-                     ch_type='mag', layout=None, vmax=None, vmin=None,
+                     ch_type='mag', baseline=None, mode='mean',
+                     layout=None, vmax=None, vmin=None,
                      cmap='RdBu_r', sensors='k,', colorbar=True, unit=None,
                      res=256, size=2, format='%1.1e', show=True,
                      show_names=False, title=None):
@@ -5060,6 +5059,20 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
+    baseline : tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or z-score (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+        If None, baseline no correction will be performed.
     layout : None | Layout
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout file
@@ -5124,6 +5137,9 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     data = tfr.data
 
+    if mode is not None and baseline is not None:
+        data = rescale(data, tfr.times, baseline, mode, copy=True)
+
     # crop time
     itmin, itmax = None, None
     if tmin is not None:
@@ -5145,18 +5161,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         from .layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
-    if vmax is None and vmin is None:
-        vmax = np.abs(data).max()
-        vmin = -vmax
-    else:
-        if callable(vmin):
-            vmin = vmin(data)
-        elif vmin is None:
-            vmin = np.min(data)
-        if callable(vmax):
-            vmax = vmax(data)
-        elif vmin is None:
-            vmax = np.max(data)
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     plt.subplot(1, nax, 1)
     tp = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
