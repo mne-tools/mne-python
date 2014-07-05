@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2011-2013 Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+
+# Copyright (C) 2011-2014 Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 
 import os
 from os import path as op
@@ -66,6 +67,7 @@ if __name__ == "__main__":
                     'mne.datasets.megsim',
                     'mne.datasets.spm_face',
                     'mne.datasets.eegbci',
+                    'mne.datasets.somato',
                     'mne.externals',
                     'mne.fiff',
                     'mne.io', 'mne.io.tests',
