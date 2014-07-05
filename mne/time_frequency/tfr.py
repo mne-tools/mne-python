@@ -533,8 +533,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
     @verbose
     def plot(self, picks, baseline=None, mode='mean', tmin=None, tmax=None,
-             fmin=None, fmax=None, vmin=None, vmax=None, cmap=None, dB=False,
-             colorbar=True, show=True, verbose=None):
+             fmin=None, fmax=None, vmin=None, vmax=None, cmap='RdBu_r',
+             dB=False, colorbar=True, show=True, verbose=None):
         """Plot TFRs in a topography with images
 
         Parameters
