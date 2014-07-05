@@ -976,19 +976,20 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         _picks = picks[::2 if ch_type not in ['mag', 'eeg'] else 1]
         mask_ = mask[np.ix_(_picks, time_idx)]
     for i, t in enumerate(times):
-        plt.subplot(1, nax, i + 1)
+        ax = plt.subplot(1, nax, i + 1)
         tp = plot_topomap(data[:, i], pos, vmin=vmin, vmax=vmax,
                           sensors=sensors, res=res, names=names,
                           show_names=show_names, cmap=cmap,
                           mask=mask_[:, i] if mask is not None else None,
-                          mask_params=mask_params)
+                          mask_params=mask_params, axis=ax)
         images.append(tp)
         if time_format is not None:
             plt.title(time_format % (t * scale_time))
 
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
-        plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax], format=format)
+        plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
+                     format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         if size <= 1:
@@ -1145,8 +1146,89 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     return fig
 
 
+def make_default_outlines(pos, head_scale=.9):
+    rmax = 0.5
+    step = 2 * np.pi / 102
+    l = np.arange(0, 2 * np.pi + step, step)
+    head_x = np.cos(l) * rmax
+    head_y = np.sin(l) * rmax
+    nose_x = np.array([0.18, 0, -0.18]) * rmax
+    nose_y = np.array([rmax - .004, rmax * 1.15, rmax - .004])
+    ear_x = np.array([.497, .510, .518, .5299, .5419, .54, .547,
+                     .532, .510, .489])
+    ear_y = np.array([.0555, .0775, .0783, .0746, .0555, -.0055, -.0932,
+                      -.1313, -.1384, -.1199])
+    x, y, width, height = pos.T
+    x_range = np.max(x) - np.min(x)
+    y_range = np.max(y) - np.min(y)
+    # First scale the width and height of the box for multiplotting
+    width = width / x_range
+    height = height / y_range
+    # Then shift and scale the electrode positions
+    pos[:, 0] = head_scale * ((pos[:, 0] - np.min(x)) / x_range - 0.5)
+    pos[:, 1] = head_scale * ((pos[:, 1] - np.min(y)) / y_range - 0.5)
+    # Define the outline of the head, ears and nose
+    outline = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
+                   ear_left=(ear_x,  ear_y), ear_right=(-ear_x,  ear_y))
+
+    # Define the anatomical mask based on a circular head
+    mask = np.c_[head_x, head_y]
+
+    return pos, width, height, outline, mask
+
+
+def inside_contour(pos, contour):
+
+    npos, ncnt = len(pos), len(contour)
+    x, y = pos[:, :2].T
+
+    check_mask = np.ones((npos), dtype=bool)
+    check_mask[((x < np.min(x)) | (y < np.min(y)) |
+                (x > np.max(x)) | (y > np.max(y)))] = False
+
+    critval = 0.1
+    sel = np.where(check_mask)[0]
+    for this_sel in sel:
+        contourx = contour[:, 0] - pos[this_sel, 0]
+        contoury = contour[:, 1] - pos[this_sel, 1]
+        angle = np.arctan2(contoury, contourx)
+        angle = np.unwrap(angle)
+        total = np.sum(np.diff(angle))
+        check_mask[this_sel] = np.abs(total) > critval
+
+    return check_mask
+
+
+def griddata(x, y, v, xi, yi):
+    xy = x.flatten() + y.flatten() * -1j
+    d = xy[None, :] * np.ones((len(xy), 1))
+    d = np.abs(d - d.T)
+    n = d.shape[0]
+    d.flat[::n + 1] = 1.
+
+    g = (d ** 2) * (np.log(d) - 1)
+    g.flat[::n + 1] = 0.
+    weights = linalg.solve(g, v.flatten())
+
+    m, n = xi.shape
+    zi = np.zeros_like(xi)
+    xy = xy.T
+
+    for i in range(m):
+        for j in range(n):
+            d = np.abs(xi[i, j] + -1j * yi[i, j] - xy)
+            mask = np.where(d == 0)
+            if np.any(mask):
+                d[mask] = 1
+            g = (d ** 2) * (np.log(d) - 1)
+            if np.any(mask):
+                g[mask] = 0
+            zi[i, j] = g.dot(weights)
+    return zi
+
+
 def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
-                 res=100, axis=None, names=None, show_names=False, mask=None,
+                 res=50, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None):
     """Plot a topographic map as image
 
@@ -1192,7 +1274,6 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
              markersize=4)
     """
     import matplotlib.pyplot as plt
-    from matplotlib import delaunay
 
     data = np.asarray(data)
     pos = np.asarray(pos)
@@ -1256,24 +1337,47 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
             ax.text(p[0], p[1], ch_id, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
 
-    xmin, xmax = pos_x.min(), pos_x.max()
-    ymin, ymax = pos_y.min(), pos_y.max()
     if any([not pos_y.any(), not pos_x.any()]):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
+    xmin, xmax = pos_x.min(), pos_x.max()
+    ymin, ymax = pos_y.min(), pos_y.max()
 
-    triang = delaunay.Triangulation(pos_x, pos_y)
-    interp = triang.linear_interpolator(data)
-    x = np.linspace(xmin, xmax, res)
-    y = np.linspace(ymin, ymax, res)
-    xi, yi = np.meshgrid(x, y)
+    pos, width, height, outline, mask_ = make_default_outlines(pos)
+    outlier_points = []
 
-    im = interp[yi.min():yi.max():complex(0, yi.shape[0]),
-                xi.min():xi.max():complex(0, xi.shape[1])]
+    # prepare masking
+    inside = inside_contour(pos, mask_)
+    outside = np.invert(inside)
+    outlier_points = pos_x[outside], pos_y[outside]
+    im_mask = np.zeros((res, res), dtype=bool)
+    xi_mask = np.linspace(xmin, xmax, res)
+    yi_mask = np.linspace(ymax, ymax, res)
+    Xi_mask, Yi_mask = np.meshgrid(xi_mask, yi_mask)
+    if any([k.any() for k in outlier_points]):
+        raise RuntimeError('Found points outside the outline.'
+                           'Use another layout')
+    pos_ = np.c_[Xi_mask.flatten(), Yi_mask.flatten()]
+    inds = inside_contour(pos_, mask)
+    im_mask[inds.reshape(im_mask.shape)] = True
 
-    im = np.ma.masked_array(im, im == np.nan)
-    im = ax.imshow(im, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                   aspect='equal', extent=(xmin, xmax, ymin, ymax))
+    # interpolate data
+    yi = np.linspace(ymin, ymax, res)
+    xi = np.linspace(xmin, xmax, res)
+    Xi, Yi = np.meshgrid(xi, yi)
+    Zi = griddata(pos_x, pos_y, data, Xi, Yi)
+    Zi[im_mask] = np.nan
+
+    # plot outline
+    for k, (x, y) in outline.items():
+        ax.plot(x * 0.99, y * 0.99, color='k', linewidth=1.5)
+
+    # plot map and countour
+    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
+                   aspect='equal', extent=(xmin, xmax, ymin, ymax),
+                   interpolation='nearest')
+    ax.contour(Xi, Yi, Zi, 6, colors='k')
+
     return im
 
 
