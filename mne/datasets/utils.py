@@ -67,7 +67,8 @@ def _data_path(path=None, force_update=False, update_path=True,
     """Aux function
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
-           'spm': 'MNE_DATASETS_SPM_FACE_PATH'}[name]
+           'spm': 'MNE_DATASETS_SPM_FACE_PATH',
+           'somato': 'MNE_DATASETS_SOMATO_PATH',}[name]
 
     if path is None:
         # use an intelligent guess if it's not defined
@@ -86,7 +87,7 @@ def _data_path(path=None, force_update=False, update_path=True,
                 os.mkdir(path)
             except OSError:
                 try:
-                    logger.info("Checking for sample data in '~/mne_data'...")
+                    logger.info("Checking for dataset in '~/mne_data'...")
                     path = op.join(op.expanduser("~"), "mne_data")
                     if not op.exists(path):
                         logger.info("Trying to create "
@@ -110,6 +111,11 @@ def _data_path(path=None, force_update=False, update_path=True,
         archive_name = 'MNE-spm-face.tar.bz2'
         url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         folder_name = "MNE-spm-face"
+        folder_path = op.join(path, folder_name)
+    elif name == 'somato':
+        archive_name = 'MNE-somato-data.tar.bz2'
+        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
+        folder_name = "MNE-somato-data"
         folder_path = op.join(path, folder_name)
     else:
         raise ValueError('Sorry, the dataset "%s" is not known.' % name)
@@ -195,6 +201,7 @@ def _data_path(path=None, force_update=False, update_path=True,
 def has_dataset(name):
     """Helper for sample dataset presence"""
     endswith = {'sample': 'MNE-sample-data',
-                'spm': 'MNE-spm-face'}[name]
+                'spm': 'MNE-spm-face',
+                'somato': 'MNE-somato-data'}[name]
     dp = _data_path(download=False, name=name, check_version=False)
     return dp.endswith(endswith)
