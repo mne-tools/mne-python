@@ -743,6 +743,28 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         s += ', channels : %d' % self.data.shape[1]
         return "<AverageTFR  |  %s>" % s
 
+    def apply_baseline(self, baseline, mode='mean'):
+        """Baseline correct the data
+
+        Parameters
+        ----------
+        baseline : tuple or list of length 2
+            The time interval to apply rescaling / baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal to (None, None) all the time
+            interval is used.
+        mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or z-score (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline))
+            If None, baseline no correction will be performed.
+        """
+        self.data = rescale(self.data, self.times, baseline, mode, copy=False)
+
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean',
                      layout=None, vmin=None, vmax=None,
