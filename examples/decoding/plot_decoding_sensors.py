@@ -18,7 +18,6 @@ import numpy as np
 import mne
 from mne import io
 from mne.datasets import sample
-from mne.report import Report
 
 data_path = sample.data_path()
 
@@ -97,14 +96,4 @@ plt.xlabel('Times (ms)')
 plt.ylabel('CV classification score (% correct)')
 plt.ylim([30, 100])
 plt.title('Sensor space decoding')
-
-###############################################################################
-# Make an MNE Report
-
-fig = plt.gcf()
-report = Report(info_fname=raw_fname,
-                subjects_dir=data_path + '/subjects', subject='sample',
-                title='MNE Report for sample dataset')
-report.parse_folder(data_path)
-report.add_section([fig], ['Sensor space decoding'])
-report.save()
+plt.show()

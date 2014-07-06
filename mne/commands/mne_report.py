@@ -28,15 +28,19 @@ if __name__ == '__main__':
     parser.add_option("-s", "--subject", dest="subject",
                       help="The subject name")
     parser.add_option("-x", "--interactive", dest="interactive",
-                      help="Output interactive html if True")
+                      action='store_true', help="interactive html plots")
+    parser.add_option("-v", "--verbose", dest="verbose",
+                      action='store_true', help="run in verbose mode")
 
     options, args = parser.parse_args()
     path = options.path
     info_fname = options.info_fname
     subjects_dir = options.subjects_dir
     subject = options.subject
-    interactive = options.interactive
+    interactive = True if options.interactive else False
+    verbose = True if options.verbose else False
 
-    report = Report(info_fname, subjects_dir, subject)
-    report.parse_folder(path, interactive)
-    report.save()
+    report = Report(info_fname, subjects_dir=subjects_dir, subject=subject,
+                    verbose=verbose)
+    report.parse_folder(path, interactive=interactive, verbose=verbose)
+    report.save('report.html')
