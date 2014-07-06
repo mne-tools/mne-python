@@ -61,6 +61,8 @@ def test_time_frequency():
     itc -= power
     itc += power
 
+    power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
+
     assert_true('meg' in power)
     assert_true('grad' in power)
     assert_false('mag' in power)

@@ -43,6 +43,10 @@ n_cycles = freqs / 2.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=False,
                         return_itc=True, decim=3, n_jobs=-1)
 
+# Baseline correction can be applied to power or done in plots
+# To illustrate the baseline correction in plots the next line is commented
+# power.apply_baseline(baseline=(-0.5, 0), mode='logratio')
+
 # Inspect power
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
 power.plot([82], baseline=(-0.5, 0), mode='logratio')
