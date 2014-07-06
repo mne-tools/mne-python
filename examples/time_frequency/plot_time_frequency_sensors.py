@@ -41,7 +41,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 freqs = np.arange(7, 30, 3)  # define frequencies of interest
 n_cycles = freqs / 2.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=False,
-                        return_itc=True, decim=3, n_jobs=-1)
+                        return_itc=True, decim=3, n_jobs=1)
 
 # Baseline correction can be applied to power or done in plots
 # To illustrate the baseline correction in plots the next line is commented
