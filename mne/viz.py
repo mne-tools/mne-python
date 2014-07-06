@@ -504,7 +504,9 @@ def _plot_update_evoked_topo(params, bools):
     fig.canvas.draw()
 
 
-def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
+@deprecated('`plot_tfr_topo` is deprecated and will be removed in '
+            'MNE 0.9. Use `plot_topo` method on TFR objects.')
+def plot_tfr_topo(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
                   vmax=None, cmap='RdBu_r', layout_scale=0.945, title=None):
     """Plot time-frequency data on sensor layout
 
@@ -563,6 +565,8 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
     return fig
 
 
+@deprecated('`plot_topo_power` is deprecated and will be removed in '
+            'MNE 0.9. Use `plot_topo` method on TFR objects.')
 def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
                     mode='mean', decim=1, colorbar=True, vmin=None, vmax=None,
                     cmap=None, layout_scale=0.945, dB=True, title=None):
@@ -647,6 +651,8 @@ def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
     return fig
 
 
+@deprecated('`plot_topo_phase_lock` is deprecated and will be removed in '
+            'MNE 0.9. Use `plot_topo` method on TFR objects.')
 def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
                          mode='mean', decim=1, colorbar=True, vmin=None,
                          vmax=None, cmap=None, layout_scale=0.945,

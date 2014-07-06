@@ -8,8 +8,7 @@ import warnings
 from mne import io, read_events, Epochs, SourceEstimate, read_cov, read_proj
 from mne import make_field_map, pick_types, pick_channels_evoked, read_evokeds
 from mne.layouts import read_layout
-from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
-                     plot_topo_phase_lock, plot_topo_image_epochs,
+from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_image_epochs,
                      plot_evoked_topomap, plot_projs_topomap,
                      plot_sparse_source_estimates, plot_source_estimates,
                      plot_cov, mne_analyze_colormap, plot_image_epochs,
@@ -155,25 +154,6 @@ def test_plot_topo_tfr():
     freqs = np.arange(n_freqs)
     # Show topography of connectivity from seed
     plot_topo_tfr(epochs, con, freqs, layout)
-    plt.close('all')
-
-
-def test_plot_topo_power():
-    """Test plotting of power
-    """
-    epochs = _get_epochs()
-    decim = 3
-    frequencies = np.arange(7, 30, 3)  # define frequencies of interest
-    power = np.abs(np.random.randn(n_chan, 7, 141))
-    phase_lock = np.random.randn(n_chan, 7, 141)
-    baseline = (None, 0)  # set the baseline for induced power
-    title = 'Induced power - MNE sample data'
-    plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
-                    mode='ratio', decim=decim, vmin=0., vmax=14, title=title)
-    title = 'Phase locking value - MNE sample data'
-    plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
-                         baseline=baseline, mode='mean', decim=decim,
-                         title=title)
     plt.close('all')
 
 
