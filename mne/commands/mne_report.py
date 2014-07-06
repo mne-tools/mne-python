@@ -27,13 +27,16 @@ if __name__ == '__main__':
                       help="The subjects directory")
     parser.add_option("-s", "--subject", dest="subject",
                       help="The subject name")
+    parser.add_option("-x", "--interactive", dest="interactive",
+                      help="Output interactive html if True")
 
     options, args = parser.parse_args()
     path = options.path
     info_fname = options.info_fname
     subjects_dir = options.subjects_dir
     subject = options.subject
+    interactive = options.interactive
 
     report = Report(info_fname, subjects_dir, subject)
-    report.parse_folder(path)
+    report.parse_folder(path, interactive)
     report.save()

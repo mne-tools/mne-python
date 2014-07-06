@@ -276,14 +276,18 @@ footer_template = HTMLTemplate(u"""
 </html>
 """)
 
-image_template = HTMLTemplate(u"""
+image_template = Template(u"""
 <li class="{{div_klass}}" id="{{id}}" {{if not show}}style="display: none"
 {{endif}}>
 {{if caption}}
 <h4>{{caption}}</h4>
 {{endif}}
 <div class="thumbnail">
+{{if not interactive}}
 <img alt="" style="width:50%;" src="data:image/png;base64,{{img}}">
+{{else}}
+<center>{{interactive}}</center>
+{{endif}}
 </div>
 </li>
 """)
@@ -408,7 +412,7 @@ class Report(object):
                                           include=''.join(include))
         self.html.append(html)
 
-    def parse_folder(self, data_path):
+    def parse_folder(self, data_path, interactive):
         """Renders all the files in the folder.
 
         Parameters
@@ -448,7 +452,7 @@ class Report(object):
                     self.render_evoked(fname)
                     self.fnames.append(fname)
                 elif fname.endswith(('-eve.fif')):
-                    self.render_eve(fname, info)
+                    self.render_eve(fname, info, interactive=interactive)
                     self.fnames.append(fname)
                 elif fname.endswith(('-epo.fif')):
                     self.render_epochs(fname)
@@ -707,33 +711,56 @@ class Report(object):
             div_klass = 'evoked'
             img_klass = 'evoked'
             show = True
+            interactive = False
             html.append(image_template.substitute(img=img, id=global_id,
                                                   div_klass=div_klass,
                                                   img_klass=img_klass,
                                                   caption=caption,
+                                                  interactive=interactive,
                                                   show=show))
 
         self.html.append('\n'.join(html))
 
-    def render_eve(self, eve_fname, info):
+    def render_eve(self, eve_fname, info, interactive=True):
 
         import matplotlib.pyplot as plt
+
+        if interactive:
+            import mpld3  # XXX : include mpld3 js libraries in html folder
 
         global_id = self.get_id()
         events = read_events(eve_fname)
         sfreq = info['sfreq']
         plt.close("all")  # close figures to avoid weird plot
         ax = plot_events(events, sfreq=sfreq, show=False)
-        img = _fig_to_img(ax.gcf())
+        fig = ax.gcf()
+
+        if interactive:
+
+            # Add tooltips
+            line2Ds = ax.gca().get_lines()
+            for line2D in line2Ds:
+                xy = line2D.get_xydata()
+                label = ['t = %0.2f, event_id = %d' % (x, y) for (x, y) in xy]
+                tooltip = mpld3.plugins.PointHTMLTooltip(line2D, label)
+                mpld3.plugins.connect(fig, tooltip)
+
+            html = mpld3.fig_to_html(fig)
+            img = False
+        else:
+            img = _fig_to_img(fig)
+            html = False
+
         caption = 'Events : ' + eve_fname
         div_klass = 'events'
         img_klass = 'events'
         show = True
+
         html = image_template.substitute(img=img, id=global_id,
                                          div_klass=div_klass,
                                          img_klass=img_klass,
                                          caption=caption,
-                                         show=show)
+                                         interactive=html, show=show)
         self.html.append(html)
 
     def render_epochs(self, epo_fname):
@@ -748,10 +775,12 @@ class Report(object):
         div_klass = 'epochs'
         img_klass = 'epochs'
         show = True
+        interactive = False
         html = image_template.substitute(img=img, id=global_id,
                                          div_klass=div_klass,
                                          img_klass=img_klass,
                                          caption=caption,
+                                         interactive=interactive,
                                          show=show)
         self.html.append(html)
 
@@ -768,10 +797,12 @@ class Report(object):
         div_klass = 'covariance'
         img_klass = 'covariance'
         show = True
+        interactive = False
         html = image_template.substitute(img=img, id=global_id,
                                          div_klass=div_klass,
                                          img_klass=img_klass,
                                          caption=caption,
+                                         interactive=interactive,
                                          show=show)
         self.html.append(html)
 
@@ -796,10 +827,12 @@ class Report(object):
             div_klass = 'trans'
             img_klass = 'trans'
             show = True
+            interactive = False
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
+                                             interactive=interactive,
                                              show=show)
             self.html.append(html)
 
