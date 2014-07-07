@@ -32,10 +32,12 @@ If there are syntax errors ``TemplateError`` will be raised.
 import re
 import sys
 import cgi
-from urllib import quote as url_quote
 import os
 import tokenize
-from cStringIO import StringIO
+
+from .six.moves import cStringIO
+from .six.moves.urllib_parse import quote as url_quote
+
 
 __all__ = ['PY3', 'b', 'basestring_', 'bytes', 'next', 'is_unicode']
 
@@ -1325,7 +1327,7 @@ def parse_def(tokens, name, context):
 
 
 def parse_signature(sig_text, name, pos):
-    tokens = tokenize.generate_tokens(StringIO(sig_text).readline)
+    tokens = tokenize.generate_tokens(cStringIO(sig_text).readline)
     sig_args = []
     var_arg = None
     var_kw = None

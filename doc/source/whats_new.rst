@@ -115,6 +115,7 @@ Changelog
 
    - Add InverseOperator class to display inverse operator info by `Mainak Jas`_
 
+   - Add `$ mne report` command to generate html reports of MEG/EEG data analysis pipelines by `Mainak Jas`_, `Alex Gramfort`_ and `Denis Engemann`_
 
 BUG
 ~~~

@@ -10,7 +10,6 @@ import os
 import os.path as op
 import fnmatch
 import re
-import StringIO
 import numpy as np
 import time
 from glob import glob
@@ -23,6 +22,7 @@ from .viz import plot_events, _plot_mri_contours, plot_trans
 from .forward import read_forward_solution
 from .epochs import read_epochs
 from .externals.tempita import HTMLTemplate, Template
+from .externals.six import BytesIO
 
 tempdir = _TempDir()
 
@@ -45,7 +45,7 @@ def _build_image(data, cmap='gray'):
     FigureCanvas(fig)
     cmap = getattr(plt.cm, cmap, plt.cm.gray)
     fig.figimage(data, cmap=cmap)
-    output = StringIO.StringIO()
+    output = BytesIO()
     fig.savefig(output, dpi=1.0, format='png')
     return output.getvalue().encode('base64')
 
@@ -838,7 +838,7 @@ class Report(object):
 
             # XXX: save_bmp / save_png / ...
             fig.scene.save_bmp(tempdir + 'test')
-            output = StringIO.StringIO()
+            output = BytesIO()
             Image.open(tempdir + 'test').save(output, format='bmp')
             img = output.getvalue().encode('base64')
 
@@ -927,7 +927,7 @@ def _fig2im(fname, fig, orig_size):
                 pad_inches=0, format='png')
     Image.open(tempdir + fname).resize((w, h)).save(tempdir + fname,
                                                     format='png')
-    output = StringIO.StringIO()
+    output = BytesIO()
     Image.open(tempdir + fname).save(output, format='png')
     return output.getvalue().encode('base64')
 
@@ -935,7 +935,7 @@ def _fig2im(fname, fig, orig_size):
 def _fig_to_img(fig):
     """Auxiliary function for fig <-> binary image.
     """
-    output = StringIO.StringIO()
+    output = BytesIO()
     fig.savefig(output, format='png')
 
     return output.getvalue().encode('base64')
