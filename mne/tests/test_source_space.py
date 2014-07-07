@@ -391,7 +391,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 elif mode == 'approx':
                     assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4)
                 else:
-                    raise RuntimeError('unknown mode')        
+                    raise RuntimeError('unknown mode')
         for name in ['seg_name']:
             if name in s0 or name in s1:
                 print(name)
@@ -486,11 +486,12 @@ def test_vertex_to_mni_fs_nibabel():
         # less than 0.1 mm error
         assert_allclose(coords, coords_2, atol=0.1)
 
+
 def test_subcortical_volumes():
     """Test subcortical volumes
     """
     src = read_source_spaces(fname)
-   
+
     # ensure you get the same source space whether you use names or indices
     seg_names = ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex']
     seg_ids = [8, 47]
@@ -506,8 +507,9 @@ def test_subcortical_volumes():
     write_source_spaces(fname_mixed, src_mixed_from_names)
 
     src_mixed_from_file = read_source_spaces(fname_mixed)
-    
-    _compare_source_spaces(src_mixed_from_file, src_mixed_from_ids, mode='approx')
+
+    _compare_source_spaces(src_mixed_from_file, src_mixed_from_ids,
+                           mode='approx')
 
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,
