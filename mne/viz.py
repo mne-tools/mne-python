@@ -1147,7 +1147,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
             break
 
         ax = plt.subplot(nrows, ncols, k + 1)
-        ax.set_title(proj['desc'])
+        ax.set_title(proj['desc'][:10] + '...')
         if len(idx):
             plot_topomap(data, pos, vmax=None, cmap=cmap,
                          sensors=sensors, res=res, outlines=outlines)
@@ -1159,6 +1159,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     fig = ax.get_figure()
     if show and plt.get_backend() != 'agg':
         fig.show()
+    tight_layout(fig=fig)
 
     return fig
 
