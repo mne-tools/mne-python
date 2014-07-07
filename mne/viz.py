@@ -830,7 +830,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         res=64, size=1, format='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
-                        mask_params=None, outlines='head'):
+                        mask_params=None, outlines='head', colntours=6):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -908,6 +908,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         dict, each key refers to a tuple of x and y positions. The values in
         'mask_pos' will serve as image mask. If None, nothing will be drawn.
         Defaults to 'head'.
+    contours : int | False | None
+        The number of contour lines to draw. If 0, no contours will be drawn.
     """
     import matplotlib.pyplot as plt
 
@@ -983,7 +985,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     pos, outlines = _check_outlines(pos, outlines)
     if outlines is not None:
-        image_mask = _make_image_mask(outlines, pos, res)
+        image_mask, pos = _make_image_mask(outlines, pos, res)
     else:
         image_mask = None
 
@@ -994,9 +996,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                               show_names=show_names, cmap=cmap,
                               mask=mask_[:, i] if mask is not None else None,
                               mask_params=mask_params, axis=ax,
-                              outlines=outlines, image_mask=image_mask)
+                              outlines=outlines, image_mask=image_mask,
+                              contours=contours)
         images.append(tp)
-        contours.append(cn)
+        if cn is not None:
+            contours.append(cn)
         if time_format is not None:
             plt.title(time_format % (t * scale_time))
 
@@ -1068,7 +1072,7 @@ def _plot_update_evoked_topomap(params, bools):
 
 def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
                        colorbar=False, res=64, size=1, show=True,
-                       outlines='head'):
+                       outlines='head', contours=6):
     """Plot topographic maps of SSP projections
 
     Parameters
@@ -1098,6 +1102,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         dict, each key refers to a tuple of x and y positions. The values in
         'mask_pos' will serve as image mask. If None, nothing will be drawn.
         Defaults to 'head'.
+    contours : int | False | None
+        The number of contour lines to draw. If 0, no contours will be drawn.
 
     Returns
     -------
@@ -1164,11 +1170,13 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     return fig
 
 
-def _check_outlines(pos, outlines, head_scale=0.9):
+def _check_outlines(pos, outlines, head_scale=0.85):
+    """c
+    """
     pos = np.asarray(pos)
     if outlines in ('head', None):
         rmax = 0.5
-        step = 2 * np.pi / 102
+        step = 2 * np.pi / 101
         l = np.arange(0, 2 * np.pi + step, step)
         head_x = np.cos(l) * rmax
         head_y = np.sin(l) * rmax
@@ -1179,12 +1187,13 @@ def _check_outlines(pos, outlines, head_scale=0.9):
         ear_y = np.array([.0555, .0775, .0783, .0746, .0555, -.0055, -.0932,
                           -.1313, -.1384, -.1199])
         x, y = pos[:, :2].T
-        x_range = np.max(x) - np.min(x)
-        y_range = np.max(y) - np.min(y)
+        x_range = np.abs(x.max() - x.min())
+        y_range = np.abs(y.max() - y.min())
 
-        # Then shift and scale the electrode positions
-        pos[:, 0] = head_scale * ((pos[:, 0] - np.min(x)) / x_range - 0.5)
-        pos[:, 1] = head_scale * ((pos[:, 1] - np.min(y)) / y_range - 0.5)
+        # shift and scale the electrode positions
+        pos[:, 0] = head_scale * ((pos[:, 0] - x.min()) / x_range - 0.5)
+        pos[:, 1] = head_scale * ((pos[:, 1] - y.min()) / y_range - 0.5)
+
         # Define the outline of the head, ears and nose
         if outlines is not None:
             outlines = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
@@ -1193,7 +1202,6 @@ def _check_outlines(pos, outlines, head_scale=0.9):
         else:
             outlines = dict()
 
-        # Define the anatomical mask based on a circular head
         outlines['mask_pos'] = head_x, head_y
     elif isinstance(outlines, dict):
         if 'mask_pos' not in outlines:
@@ -1261,7 +1269,8 @@ def _griddata(x, y, v, xi, yi):
 
 def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
                  res=64, axis=None, names=None, show_names=False, mask=None,
-                 mask_params=None, outlines='head', image_mask=None):
+                 mask_params=None, outlines='head', image_mask=None,
+                 contours=6):
     """Plot a topographic map as image
 
     Parameters
@@ -1312,6 +1321,8 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     image_mask : ndarray of bool, shape (res, res) | None
         The image mask to cover the interpolated surface. If None, it will be
         computed from the outline.
+    contour : int | False | None
+        The number of contour lines to draw. If 0, no contours will be drawn.
     """
     import matplotlib.pyplot as plt
 
@@ -1370,7 +1381,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
 
     if outlines is not None and image_mask is None:
         # prepare masking
-        image_mask = _make_image_mask(outlines, pos, res)
+        image_mask, pos = _make_image_mask(outlines, pos, res)
 
     if image_mask is not None:
         Zi[~image_mask] = np.nan
@@ -1397,7 +1408,11 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation='nearest')
-    cont = ax.contour(Xi, Yi, Zi, 6, colors='k', linewidths=linewidth)
+    if isinstance(contours, int):
+        cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
+                          linewidths=linewidth)
+    else:
+        cont = None
 
     if sensors is True:
         sensors = 'k,'
@@ -1427,28 +1442,31 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
 def _make_image_mask(outlines, pos, res):
     """Aux function
     """
-    xlim = np.inf, -np.inf,
-    ylim = np.inf, -np.inf,
+
     mask_ = np.c_[outlines['mask_pos']]
-    xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
-                  np.max(np.r_[xlim[1], mask_[:, 0]]))
-    ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
-                  np.max(np.r_[ylim[1], mask_[:, 1]]))
+    xmin, xmax = (np.min(np.r_[np.inf, mask_[:, 0]]),
+                  np.max(np.r_[-np.inf, mask_[:, 0]]))
+    ymin, ymax = (np.min(np.r_[np.inf, mask_[:, 1]]),
+                  np.max(np.r_[-np.inf, mask_[:, 1]]))
+
     inside = _inside_contour(pos, mask_)
     outside = np.invert(inside)
-    outlier_points = pos[outside, 0], pos[outside, 1]
+    outlier_points = pos[outside]
+    while np.any(outlier_points):  # auto shrink
+        pos *= 0.99
+        inside = _inside_contour(pos, mask_)
+        outside = np.invert(inside)
+        outlier_points = pos[outside]
     image_mask = np.zeros((res, res), dtype=bool)
     xi_mask = np.linspace(xmin, xmax, res)
     yi_mask = np.linspace(ymin, ymax, res)
     Xi_mask, Yi_mask = np.meshgrid(xi_mask, yi_mask)
-    if any([k.any() for k in outlier_points]):
-        raise RuntimeError('Found points outside the outline.'
-                           'Use another layout')
+
     pos_ = np.c_[Xi_mask.flatten(), Yi_mask.flatten()]
     inds = _inside_contour(pos_, mask_)
     image_mask[inds.reshape(image_mask.shape)] = True
 
-    return image_mask
+    return image_mask, pos
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -2221,7 +2239,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=64, layout=None,
 def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
                         layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        title=None, show=True, outlines='head'):
+                        title=None, show=True, outlines='head', contours=6):
     """Project unmixing matrix on interpolated sensor topogrpahy.
 
     Parameters
@@ -2257,6 +2275,8 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
             If dict, each key refers to a tuple of x and y positions. The
             values in 'mask_pos' will serve as image mask. If None,
             nothing will be drawn. defaults to 'head'.
+    contours : int | False | None
+        The number of contour lines to draw. If 0, no contours will be drawn.
 
     Returns
     -------
@@ -2292,7 +2312,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
                                                              layout)
     pos, outlines = _check_outlines(pos, outlines)
     if outlines is not None:
-        image_mask = _make_image_mask(outlines, pos, res)
+        image_mask, pos = _make_image_mask(outlines, pos, res)
     else:
         image_mask = None
 

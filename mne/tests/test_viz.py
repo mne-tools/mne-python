@@ -523,8 +523,8 @@ def test_plot_topomap():
         evoked.plot_topomap(0.1, 'mag', layout=layout)
         mask = np.zeros_like(evoked.data, dtype=bool)
         mask[[1, 5], :] = True
-        plot_evoked_topomap(evoked, None, ch_type='mag')
-        times = [0.1, 0.2]
+        plot_evoked_topomap(evoked, None, ch_type='mag', outlines=None)
+        times = [0.1]
         plot_evoked_topomap(evoked, times, ch_type='eeg')
         plot_evoked_topomap(evoked, times, ch_type='grad', mask=mask)
         plot_evoked_topomap(evoked, times, ch_type='planar1')

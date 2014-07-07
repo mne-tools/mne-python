@@ -1261,7 +1261,7 @@ class ICA(ContainsMixin):
 
     def plot_components(self, picks=None, ch_type='mag', res=64, layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        title=None, show=True, outlines='head'):
+                        title=None, show=True, outlines='head', contours=6):
         """Project unmixing matrix on interpolated sensor topogrpahy.
 
         Parameters
@@ -1295,6 +1295,8 @@ class ICA(ContainsMixin):
             If dict, each key refers to a tuple of x and y positions. The
             values in 'mask_pos' will serve as image mask. If None,
             nothing will be drawn. Defaults to 'head'.
+        contours : int | False | None
+            The number of contour lines to draw. If 0, no contours will be drawn.
         Returns
         -------
         fig : instance of matplotlib.pyplot.Figure
@@ -1306,7 +1308,7 @@ class ICA(ContainsMixin):
                                    cmap=cmap,
                                    sensors=sensors, colorbar=colorbar,
                                    title=title, show=show,
-                                   outlines=outlines)
+                                   outlines=outlines, contours=contours)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, show=True, title=None):

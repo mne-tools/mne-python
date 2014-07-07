@@ -352,7 +352,7 @@ def find_layout(info=None, ch_type=None, chs=None):
                     (FIFF.FIFFV_MEG_CH in channel_types and
                      any([k in ctf_other_types for k in coil_types])))
                     # hack due to MNE-C bug in IO of CTF
-    n_kit_grads = len([ch for ch in chs 
+    n_kit_grads = len([ch for ch in chs
                        if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD])
 
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad])
@@ -427,6 +427,22 @@ def _find_topomap_coords(chs, layout=None):
     return pos
 
 
+def _cart_to_sph(x, y, z):
+    """Aux function"""
+    hypotxy = np.hypot(x, y)
+    r = np.hypot(hypotxy, z)
+    elev = np.arctan2(z, hypotxy)
+    az = np.arctan2(y, x)
+    return az, elev, r
+
+
+def _pol_to_cart(th, r):
+    """Aux function"""
+    x = r * np.cos(th)
+    y = r * np.sin(th)
+    return x, y
+
+
 def _auto_topomap_coords(chs):
     """Make a 2 dimensional sensor map from sensor positions in an info dict
 
@@ -443,33 +459,11 @@ def _auto_topomap_coords(chs):
     locs3d = np.array([ch['loc'][:3] for ch in chs
                        if ch['kind'] in [FIFF.FIFFV_MEG_CH,
                                          FIFF.FIFFV_EEG_CH]])
-    if len(locs3d) < 1:
-        raise RuntimeError('No MEG or EEG channels found.')
-    # fit the 3d sensor locations to a sphere with center (cx, cy, cz)
-    # and radius r
-
-    # error function
-    def err(params):
-        r, cx, cy, cz = params
-        return np.sum((locs3d - [cx, cy, cz]) ** 2, 1) - r ** 2
-
-    (r, cx, cy, cz), _ = leastsq(err, (1, 0, 0, 0))
-
-    # center the sensor locations based on the sphere and scale to
-    # radius 1
-    sphere_center = np.array((cx, cy, cz))
-    locs3d -= sphere_center
-    locs3d /= r
-
-    # implement projection
-    locs2d = np.copy(locs3d[:, :2])
-    z = max(locs3d[:, 2]) - locs3d[:, 2]  # distance form top
-    r = np.sqrt(z)  # desired 2d radius
-    r_xy = np.sqrt(np.sum(locs3d[:, :2] ** 2, 1))  # current radius in xy
-    idx = (r_xy != 0)  # avoid zero division
-    F = r[idx] / r_xy[idx]  # stretching factor accounting for current r
-    locs2d[idx, :] *= F[:, None]
-
+    if not np.any(locs3d):
+        raise RuntimeError('Cannot compute layout, no positions found')
+    x, y, z = locs3d[:, :3].T
+    az, el, r = _cart_to_sph(x, y, z)
+    locs2d = np.c_[_pol_to_cart(az, np.pi / 2 - el)]
     return locs2d
 
 
@@ -519,7 +513,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     if topomap_coords:
         shape = (len(pairs), 2, -1)
         coords = (_find_topomap_coords(grad_chs, layout)
-                                      .reshape(shape).mean(axis=1))
+                  .reshape(shape).mean(axis=1))
         return picks, coords
     else:
         return picks
