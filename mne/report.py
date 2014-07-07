@@ -743,7 +743,7 @@ class Report(object):
         import matplotlib.pyplot as plt
 
         if interactive:
-            import mpld3  # XXX : include mpld3 js libraries in html folder
+            import mpld3
 
         global_id = self._get_id()
         events = read_events(eve_fname)
@@ -762,7 +762,9 @@ class Report(object):
                 tooltip = mpld3.plugins.PointHTMLTooltip(line2D, label)
                 mpld3.plugins.connect(fig, tooltip)
 
-            html = mpld3.fig_to_html(fig)
+            d3_url = op.join(op.dirname(__file__), 'html', 'd3.v3.min.js')
+            mpld3_url = op.join(op.dirname(__file__), 'html', 'mpld3.v0.2.js')
+            html = mpld3.fig_to_html(fig, d3_url=d3_url, mpld3_url=mpld3_url)
             img = False
         else:
             img = _fig_to_img(fig)
