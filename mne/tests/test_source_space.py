@@ -18,6 +18,7 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_mne, requires_scipy_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.externals.six.moves import zip
+from mne.source_space import add_subcortical_volumes
 
 warnings.simplefilter('always')
 
@@ -390,7 +391,11 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 elif mode == 'approx':
                     assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4)
                 else:
-                    raise RuntimeError('unknown mode')
+                    raise RuntimeError('unknown mode')        
+        for name in ['seg_name']:
+            if name in s0 or name in s1:
+                print(name)
+                assert_equal(s0[name], s1[name])
         if mode == 'exact':
             for name in ['inuse', 'vertno', 'use_tris']:
                 assert_array_equal(s0[name], s1[name])
@@ -481,6 +486,28 @@ def test_vertex_to_mni_fs_nibabel():
         # less than 0.1 mm error
         assert_allclose(coords, coords_2, atol=0.1)
 
+def test_subcortical_volumes():
+    """Test subcortical volumes
+    """
+    src = read_source_spaces(fname)
+   
+    # ensure you get the same source space whether you use names or indices
+    seg_names = ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex']
+    seg_ids = [8, 47]
+
+    src_mixed_from_names = add_subcortical_volumes(src, seg_names, copy=True,
+                                                   subjects_dir=subjects_dir)
+    src_mixed_from_ids = add_subcortical_volumes(src, seg_ids, copy=True,
+                                                 subjects_dir=subjects_dir)
+    _compare_source_spaces(src_mixed_from_names, src_mixed_from_ids)
+
+    # test reading and writing
+    fname_mixed = fname.replace('-src.fif', '-cerebellum-src.fif')
+    write_source_spaces(fname_mixed, src_mixed_from_names)
+
+    src_mixed_from_file = read_source_spaces(fname_mixed)
+    
+    _compare_source_spaces(src_mixed_from_file, src_mixed_from_ids, mode='approx')
 
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,

@@ -71,6 +71,8 @@ class SourceSpaces(list):
                      % (repr(ss['shape']), ss['nuse']))
             elif ss_type == 'surf':
                 r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
+            elif 'seg_name' in ss:
+                r = "'discrete', %s" % ss['seg_name']
             else:
                 r = "%r" % ss_type
             ss_repr.append('<%s>' % r)
@@ -1714,19 +1716,22 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-def add_subcortical_volumes(src, seg_labels, spacing=5., subjects_dir=None):
-    """Adds a subcortical volume to a cortical source space
+def add_subcortical_volumes(src, seg_labels, spacing=5., subjects_dir=None,
+                            copy=False):
+    """Adds subcortical volumes to a cortical source space
 
     Parameters
     ----------
     src : dict
-        Source space
+        Source space with left and right hemisphere surfaces
     seg_labels : list of int, or list of strings
-        Names or indices of desired segments
+        Names or indices of desired segments corresponding to aseg.mgz
     spacing : float
         Spacing between vertices in millimeters
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    copy : bool
+        If True, copies the source space instead of modifying in place
 
     Returns
     -------
@@ -1763,16 +1768,20 @@ def add_subcortical_volumes(src, seg_labels, spacing=5., subjects_dir=None):
     grid = grid[:sx, :sy, :sz]
     grid = grid.astype('bool')
 
-    # Get the indices to the desired labels
+    # Copy original source space
+    if copy:
+        src = src.copy()
+
+    # Loop through the labels
     for label in seg_labels:
 
-        # Get numeric index to label
+        # Get numeric index or name of label
         if type(label) == str:
             seg_name = label
             seg_id = lut['id'][lut['name'] == seg_name]
         elif type(label) == int:
             seg_id = label
-            seg_name = lut['name'][lut['id'] == seg_id]
+            seg_name = lut['name'][lut['id'] == seg_id][0]
 
         # Get indices to label
         ix = aseg_data == seg_id
@@ -1797,7 +1806,7 @@ def add_subcortical_volumes(src, seg_labels, spacing=5., subjects_dir=None):
         sp = _make_discrete_source_space(pos)
         sp.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
                        dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
-                       nuse_tri=None, tris=None, type='discrete',
+                       nuse_tri=0, tris=None, type='discrete',
                        seg_name=seg_name))
 
         # Combine source spaces
