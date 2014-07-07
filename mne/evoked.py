@@ -439,10 +439,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                     scale=None, scale_time=1e3, unit=None, res=256, size=1,
+                     scale=None, scale_time=1e3, unit=None, res=64, size=1,
                      format="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
-                     mask_params=None):
+                     mask_params=None, outlines='head'):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -501,10 +501,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             Call pyplot.show() at the end.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g., to
-            delete the prefix 'MEG ' from all channel names, pass the function
-            lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
-            sensors will be shown.
+            passed, channel names will be formatted using the callable; e.g.,
+            to delete the prefix 'MEG ' from all channel names, pass the
+            function
+            lambda x: x.replace('MEG ', ''). If `mask` is not None, only
+            significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
         mask : ndarray of bool, shape (n_channels, n_times) | None
@@ -513,19 +514,24 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         mask_params : dict | None
             Additional plotting parameters for plotting significant sensors.
             Default (None) equals:
-            dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
-                 markersize=4)
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                 linewidth=0, markersize=4)
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', a head scheme will be drawn.
+            If dict, each key refers to a tuple of x and y positions. The
+            values in 'mask_pos' will serve as image mask. If None,
+            nothing will be drawn. defaults to 'head'.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
                                    colorbar=colorbar, scale=scale,
                                    scale_time=scale_time,
-                                   unit=unit,
-                                   res=res, proj=proj, size=size,
+                                   unit=unit, res=res, proj=proj, size=size,
                                    format=format, time_format=time_format,
                                    show_names=show_names, title=title,
-                                   mask=mask, mask_params=mask_params)
+                                   mask=mask, mask_params=mask_params,
+                                   outlines=outlines)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
