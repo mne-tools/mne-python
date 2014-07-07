@@ -14,7 +14,6 @@ import StringIO
 import numpy as np
 import time
 from glob import glob
-import webbrowser
 import warnings
 
 from . import read_evokeds, read_events, Covariance
@@ -31,7 +30,7 @@ tempdir = _TempDir()
 # IMAGE FUNCTIONS
 
 
-def _build_image(data, dpi=1, cmap='gray'):
+def _build_image(data, cmap='gray'):
     """ Build an image encoded in base64 """
 
     import matplotlib.pyplot as plt
@@ -42,12 +41,12 @@ def _build_image(data, dpi=1, cmap='gray'):
     if figsize[0] == 1:
         figsize = tuple(figsize[1:])
         data = data[:, :, 0]
-    fig = Figure(figsize=figsize, dpi=dpi, frameon=False)
+    fig = Figure(figsize=figsize, dpi=1.0, frameon=False)
     FigureCanvas(fig)
     cmap = getattr(plt.cm, cmap, plt.cm.gray)
     fig.figimage(data, cmap=cmap)
     output = StringIO.StringIO()
-    fig.savefig(output, dpi=dpi, format='png')
+    fig.savefig(output, dpi=1.0, format='png')
     return output.getvalue().encode('base64')
 
 
@@ -304,7 +303,7 @@ class Report(object):
     """Object for rendering HTML"""
 
     def __init__(self, info_fname, subjects_dir=None, subject=None,
-                 title=None, dpi=1, verbose=None):
+                 title=None, verbose=None):
         """
         info_fname : str
             Name of the file containing the info dictionary
@@ -322,7 +321,6 @@ class Report(object):
         self.subjects_dir = subjects_dir
         self.subject = subject
         self.title = title
-        self.dpi = dpi
         self.verbose = verbose
 
         self.initial_id = 0
@@ -375,7 +373,7 @@ class Report(object):
             caption = u'Slice %s %s' % (name, ind)
             slice_id = '%s-%s-%s' % (name, global_id, ind)
             div_klass = 'span12 %s' % slides_klass
-            img = _build_image(data, dpi=self.dpi, cmap=cmap)
+            img = _build_image(data, cmap=cmap)
             slices.append(_build_html_image(img, slice_id, div_klass,
                                             img_klass, caption,
                                             first))
@@ -479,15 +477,17 @@ class Report(object):
                 elif op.isdir(fname):
                     folders.append(fname)
                     logger.info(folders)
-            except Exception, e:
+            except Exception as e:
                 logger.info(e)
 
-    def save(self, fname='report.html'):
+    def save(self, fname='report.html', open_browser=True):
         """
         Parameters
         ----------
         fname : str
             File name of the report.
+        open_browser : bool
+            Open html browser after saving if True.
         """
 
         self._render_toc(verbose=self.verbose)
@@ -495,12 +495,14 @@ class Report(object):
         html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
         self.html.append(html)
 
-        fname = op.join(self.data_path, fname)
-        fobj = open(fname, 'w')
+        fobj = open(op.join(self.data_path, fname), 'w')
         fobj.write(''.join(self.html))
         fobj.close()
 
-        webbrowser.open_new_tab(fname)
+        if open_browser:
+            import webbrowser
+            path = op.abspath(self.data_path)
+            webbrowser.open_new_tab('file://' + op.join(path, fname))
 
         return fname
 
