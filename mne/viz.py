@@ -903,6 +903,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Default (None) equals:
         dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
              markersize=4)
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', a head scheme will be drawn. If
+        dict, each key refers to a tuple of x and y positions. The values in
+        'mask_pos' will serve as image mask. If None, nothing will be drawn.
+        Defaults to 'head'.
     """
     import matplotlib.pyplot as plt
 
@@ -1088,6 +1093,11 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         multiple topomaps at a time).
     show : bool
         Show figures if True
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', a head scheme will be drawn. If
+        dict, each key refers to a tuple of x and y positions. The values in
+        'mask_pos' will serve as image mask. If None, nothing will be drawn.
+        Defaults to 'head'.
 
     Returns
     -------
@@ -2210,7 +2220,7 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=64, layout=None,
 def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
                         layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        title=None, show=True, outlines=None):
+                        title=None, show=True, outlines='head'):
     """Project unmixing matrix on interpolated sensor topogrpahy.
 
     Parameters

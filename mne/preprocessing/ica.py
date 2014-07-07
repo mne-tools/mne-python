@@ -1259,9 +1259,9 @@ class ICA(ContainsMixin):
 
         return self
 
-    def plot_components(self, picks=None, ch_type='mag', res=500, layout=None,
+    def plot_components(self, picks=None, ch_type='mag', res=64, layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        title=None, show=True):
+                        title=None, show=True, outlines='head'):
         """Project unmixing matrix on interpolated sensor topogrpahy.
 
         Parameters
@@ -1290,7 +1290,11 @@ class ICA(ContainsMixin):
             The resolution of the topomap image (n pixels along each side).
         show : bool
             Call pyplot.show() at the end.
-
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', a head scheme will be drawn.
+            If dict, each key refers to a tuple of x and y positions. The
+            values in 'mask_pos' will serve as image mask. If None,
+            nothing will be drawn. Defaults to 'head'.
         Returns
         -------
         fig : instance of matplotlib.pyplot.Figure
@@ -1301,7 +1305,8 @@ class ICA(ContainsMixin):
                                    res=res, layout=layout, vmax=vmax,
                                    cmap=cmap,
                                    sensors=sensors, colorbar=colorbar,
-                                   title=title, show=show)
+                                   title=title, show=show,
+                                   outlines=outlines)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, show=True, title=None):
@@ -1632,7 +1637,7 @@ class ICA(ContainsMixin):
 
     @deprecated('`pick_topomap` is deprecated and will be removed in '
                 'MNE 0.9. Use `plot_components` instead')
-    def plot_topomap(self, source_idx, ch_type='mag', res=500, layout=None,
+    def plot_topomap(self, source_idx, ch_type='mag', res=64, layout=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
                      show=True):
         """This method is deprecatd

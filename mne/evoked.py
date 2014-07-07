@@ -520,7 +520,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             The outlines to be drawn. If 'head', a head scheme will be drawn.
             If dict, each key refers to a tuple of x and y positions. The
             values in 'mask_pos' will serve as image mask. If None,
-            nothing will be drawn. defaults to 'head'.
+            nothing will be drawn. Defaults to 'head'.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
