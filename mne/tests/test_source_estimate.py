@@ -392,6 +392,19 @@ def test_morph_data():
     assert_equal(stc_from.tmin, stc_from.tmin)
     assert_equal(stc_from.tstep, stc_from.tstep)
 
+    stc_from.vertno[0] = np.array([], dtype=np.int64)
+    stc_from._data = stc_from._data[:1]
+
+    stc_to_sparse = stc_from.morph(subject_to, grade=None, sparse=True,
+                                   subjects_dir=subjects_dir)
+    assert_array_almost_equal(np.sort(stc_from.data.sum(axis=1)),
+                              np.sort(stc_to_sparse.data.sum(axis=1)))
+    assert_equal(len(stc_from.rh_vertno), len(stc_to_sparse.rh_vertno))
+    assert_equal(len(stc_from.lh_vertno), len(stc_to_sparse.lh_vertno))
+    assert_equal(stc_to_sparse.subject, subject_to)
+    assert_equal(stc_from.tmin, stc_from.tmin)
+    assert_equal(stc_from.tstep, stc_from.tstep)
+
 
 def _my_trans(data):
     """FFT that adds an additional dimension by repeating result"""
