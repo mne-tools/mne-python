@@ -396,8 +396,9 @@ class Report(object):
     def _init_render(self, verbose=None):
         """Initialize the renderer."""
 
-        inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.js',
-                      'bootstrap.min.js', 'jquery-ui.css', 'bootstrap.min.css']
+        inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.min.js',
+                      'bootstrap.min.js', 'jquery-ui.min.css',
+                      'bootstrap.min.css']
 
         include = list()
         for inc_fname in inc_fnames:
@@ -773,7 +774,8 @@ class Report(object):
                 mpld3.plugins.connect(fig, tooltip)
 
             d3_url = op.join(op.dirname(__file__), 'html', 'd3.v3.min.js')
-            mpld3_url = op.join(op.dirname(__file__), 'html', 'mpld3.v0.2.js')
+            mpld3_url = op.join(op.dirname(__file__), 'html',
+                                'mpld3.v0.2.min.js')
             html = mpld3.fig_to_html(fig, d3_url=d3_url, mpld3_url=mpld3_url)
             img = False
         else:
