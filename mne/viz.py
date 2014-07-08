@@ -504,9 +504,9 @@ def _plot_update_evoked_topo(params, bools):
     fig.canvas.draw()
 
 
-@deprecated('`plot_tfr_topo` is deprecated and will be removed in '
+@deprecated('`plot_topo_tfr` is deprecated and will be removed in '
             'MNE 0.9. Use `plot_topo` method on TFR objects.')
-def plot_tfr_topo(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
+def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
                   vmax=None, cmap='RdBu_r', layout_scale=0.945, title=None):
     """Plot time-frequency data on sensor layout
 
