@@ -15,6 +15,7 @@ Load evoked data and plot topomaps for selected time points.
 print(__doc__)
 
 import numpy as np
+import matplotlib.pyplot as plt
 from mne.datasets import sample
 from mne import read_evokeds
 
@@ -38,4 +39,5 @@ evoked.plot_topomap(times, ch_type='grad')
 # plot magnetometer data as topomap at 1 time point : 100ms
 # and add channel labels and title
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
-                    size=8, res=128, title='Auditory response')
+                    size=6, res=128, title='Auditory response')
+plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)
