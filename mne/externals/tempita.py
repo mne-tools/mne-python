@@ -894,15 +894,15 @@ Lex a string into chunks:
     >>> lex('hey {{')
     Traceback (most recent call last):
         ...
-    tempita.TemplateError: No }} to finish last expression at line 1 column 7
+    mne.externals.tempita.TemplateError: No }} to finish last expression at line 1 column 7
     >>> lex('hey }}')
     Traceback (most recent call last):
         ...
-    tempita.TemplateError: }} outside expression at line 1 column 7
+    mne.externals.tempita.TemplateError: }} outside expression at line 1 column 7
     >>> lex('hey {{ {{')
     Traceback (most recent call last):
         ...
-    tempita.TemplateError: {{ inside expression at line 1 column 10
+    mne.externals.tempita.TemplateError: {{ inside expression at line 1 column 10
 
 """ if PY3 else """
 Lex a string into chunks:
@@ -1054,32 +1054,31 @@ parse.__doc__ = r"""
         >>> parse('{{continue}}')
         Traceback (most recent call last):
             ...
-        tempita.TemplateError: continue outside of for loop at line 1 column 3
+        mne.externals.tempita.TemplateError: continue outside of for loop at line 1 column 3
         >>> parse('{{if x}}foo')
         Traceback (most recent call last):
             ...
-        tempita.TemplateError: No {{endif}} at line 1 column 3
+        mne.externals.tempita.TemplateError: No {{endif}} at line 1 column 3
         >>> parse('{{else}}')
         Traceback (most recent call last):
             ...
-        tempita.TemplateError: else outside of an if block at line 1 column 3
+        mne.externals.tempita.TemplateError: else outside of an if block at line 1 column 3
         >>> parse('{{if x}}{{for x in y}}{{endif}}{{endfor}}')
         Traceback (most recent call last):
             ...
-        tempita.TemplateError: Unexpected endif at line 1 column 25
+        mne.externals.tempita.TemplateError: Unexpected endif at line 1 column 25
         >>> parse('{{if}}{{endif}}')
         Traceback (most recent call last):
             ...
-        tempita.TemplateError: if with no expression at line 1 column 3
+        mne.externals.tempita.TemplateError: if with no expression at line 1 column 3
         >>> parse('{{for x y}}{{endfor}}')
         Traceback (most recent call last):
             ...
-        tempita.TemplateError: Bad for (no "in") in 'x y' at line 1 column 3
+        mne.externals.tempita.TemplateError: Bad for (no "in") in 'x y' at line 1 column 3
         >>> parse('{{py:x=1\ny=2}}')  #doctest: +NORMALIZE_WHITESPACE
         Traceback (most recent call last):
             ...
-        tempita.TemplateError: Multi-line py blocks must start
-            with a newline at line 1 column 3
+        mne.externals.tempita.TemplateError: Multi-line py blocks must start with a newline at line 1 column 3
     """ if PY3 else r"""
     Parses a string into a kind of AST
 
