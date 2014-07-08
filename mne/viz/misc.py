@@ -578,3 +578,78 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     if show:
         fig.show()
     return fig
+
+
+def plot_phase_amplitude_plot(phase_bins, normalized_amplitude):
+    """
+    Plot Phase Amplitude Plot
+
+    Parameters
+    ----------
+    phase_bins : Binned phase time series of phase modulating signal.
+    normalized_amplitude : Normalised phase amplitude time
+                           series of amplitude modulated signal.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+          Figure
+
+    """
+    import matplotlib.pyplot as plt
+    fig = plt.figure()
+    for i in range(len(phase_bins) - 1):  # the bins are always more
+        plt.bar(np.rad2deg(phase_bins[i]), normalized_amplitude[i],
+                width=1, align='center')
+        plt.xlabel('Phase bins (deg)')
+        plt.ylabel('Normalized Mean Amplitude')
+        plt.title('Phase Amplitude Plot')
+    plt.show()
+    return fig
+
+
+def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
+                                  z_threshold, erp):
+    """
+    Plot Cross Frequency Coupling
+
+    Parameters
+    ----------
+    times : Time points for signal plotting.
+    freqs : Frequencies.
+    traces : Normalized amplitude traces.
+    ztraces : Statistically significant amplitude traces.
+    z_threshold : Threshold of statistically significant amplitude traces.
+    erp : ERPs
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+          Figure
+
+    """
+    import matplotlib.pyplot as plt
+    plt.close('all')
+
+    fig = plt.figure()
+    ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
+    ax2 = plt.subplot2grid((3, 1), (2, 0), rowspan=1)
+    vmax = np.max(np.abs(traces))
+    vmin = -vmax
+    traces_plot = np.ma.masked_array(traces, np.abs(ztraces) < z_threshold)
+
+    ax1.pcolor(times, freqs, traces, vmin=vmin, vmax=vmax,
+               cmap=plt.cm.gray)
+    ax1.pcolor(times, freqs, traces_plot, vmin=vmin, vmax=vmax,
+               cmap=plt.cm.jet)
+    ax1.axis('tight')
+    ax1.set_ylabel('Freq (Hz)')
+
+    ax2.plot(times, erp, 'k')
+    ax2.set_ylim([np.min(erp), np.max(erp)])
+    ax2.set_xlabel('Times (s)')
+    ax2.set_ylabel('ERP')
+    plt.tight_layout()
+    plt.show()
+    return fig
+
