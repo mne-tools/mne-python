@@ -830,7 +830,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         res=64, size=1, format='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
-                        mask_params=None, outlines='head', colntours=6):
+                        mask_params=None, outlines='head', contours=6):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -978,7 +978,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             vmax = vmax(data)
         elif vmin is None:
             vmax = np.max(data)
-    images, contours = [], []
+    images, contours_ = [], []
     if mask is not None:
         _picks = picks[::2 if ch_type not in ['mag', 'eeg'] else 1]
         mask_ = mask[np.ix_(_picks, time_idx)]
@@ -1000,7 +1000,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                               contours=contours)
         images.append(tp)
         if cn is not None:
-            contours.append(cn)
+            contours_.append(cn)
         if time_format is not None:
             plt.title(time_format % (t * scale_time))
 
@@ -1368,10 +1368,10 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         xlim = np.inf, -np.inf,
         ylim = np.inf, -np.inf,
         mask_ = np.c_[outlines['mask_pos']]
-        xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
-                      np.max(np.r_[xlim[1], mask_[:, 0]]))
-        ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
-                      np.max(np.r_[ylim[1], mask_[:, 1]]))
+        xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0] * 1.01]),
+                      np.max(np.r_[xlim[1], mask_[:, 0] * 1.01]))
+        ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1] * 1.01]),
+                      np.max(np.r_[ylim[1], mask_[:, 1] * 1.01]))
 
     # interpolate data
     xi = np.linspace(xmin, xmax, res)

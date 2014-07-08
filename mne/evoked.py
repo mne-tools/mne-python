@@ -442,7 +442,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
                      format="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
-                     mask_params=None, outlines='head'):
+                     mask_params=None, outlines='head', contours=6):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -531,7 +531,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                    format=format, time_format=time_format,
                                    show_names=show_names, title=title,
                                    mask=mask, mask_params=mask_params,
-                                   outlines=outlines)
+                                   outlines=outlines,
+                                   contours=contours)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
