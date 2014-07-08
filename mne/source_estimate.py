@@ -1918,7 +1918,7 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
             stc_morph.vertno[k] = vertno_k[order]
             cnt += n_active_hemi
         else:
-            stc_morph.vertno[k] = np.array([], dytpe=np.int64)
+            stc_morph.vertno[k] = np.array([], dtype=np.int64)
 
     return stc_morph
 
