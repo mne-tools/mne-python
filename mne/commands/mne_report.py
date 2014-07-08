@@ -34,6 +34,8 @@ if __name__ == '__main__':
                       action='store_true', help="run in verbose mode")
     parser.add_option("--no-browser", dest="no_browser", action='store_false',
                       help="Do not open MNE-Report in browser")
+    parser.add_option("--overwrite", dest="overwrite", action='store_false',
+                      help="Overwrite html report if it already exists")
 
     options, args = parser.parse_args()
     path = options.path
@@ -43,8 +45,9 @@ if __name__ == '__main__':
     interactive = True if options.interactive is not None else False
     verbose = True if options.verbose is not None else False
     open_browser = False if options.no_browser is not None else True
+    overwrite = True if options.overwrite is not None else False
 
     report = Report(info_fname, subjects_dir=subjects_dir, subject=subject,
                     verbose=verbose)
     report.parse_folder(path, interactive=interactive, verbose=verbose)
-    report.save('report.html', open_browser=open_browser)
+    report.save('report.html', open_browser=open_browser, overwrite=overwrite)

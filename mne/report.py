@@ -23,6 +23,7 @@ from .forward import read_forward_solution
 from .epochs import read_epochs
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
+from .externals.six.moves import builtins
 
 tempdir = _TempDir()
 
@@ -480,7 +481,7 @@ class Report(object):
             except Exception as e:
                 logger.info(e)
 
-    def save(self, fname='report.html', open_browser=True):
+    def save(self, fname='report.html', open_browser=True, overwrite=False):
         """
         Parameters
         ----------
@@ -488,6 +489,8 @@ class Report(object):
             File name of the report.
         open_browser : bool
             Open html browser after saving if True.
+        overwrite : bool
+            If True, overwrite report if it already exists.
         """
 
         self._render_toc(verbose=self.verbose)
@@ -495,9 +498,16 @@ class Report(object):
         html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
         self.html.append(html)
 
-        fobj = open(op.join(self.data_path, fname), 'w')
-        fobj.write(''.join(self.html))
-        fobj.close()
+        if not overwrite and op.isfile(op.join(self.data_path, fname)):
+            msg = ('Report already exists. Overwrite it (y/[n])? ')
+            answer = builtins.raw_input(msg)
+            if answer.lower() == 'y':
+                overwrite = True
+
+        if overwrite or not op.isfile(op.join(self.data_path, fname)):
+            fobj = open(op.join(self.data_path, fname), 'w')
+            fobj.write(''.join(self.html))
+            fobj.close()
 
         if open_browser:
             import webbrowser
