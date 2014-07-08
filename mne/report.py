@@ -398,7 +398,8 @@ class Report(object):
 
         inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.min.js',
                       'bootstrap.min.js', 'jquery-ui.min.css',
-                      'bootstrap.min.css']
+                      'bootstrap.min.css', 'd3.v3.min.js',
+                      'mpld3.v0.2.min.js']
 
         include = list()
         for inc_fname in inc_fnames:
