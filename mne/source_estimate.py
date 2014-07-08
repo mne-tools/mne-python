@@ -1908,14 +1908,17 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 
     cnt = 0
     for k, hemi in enumerate(['lh', 'rh']):
-        map_hemi = maps[k]
-        vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertno[k]])
-        order = np.argsort(vertno_k)
-        n_active_hemi = len(vertno_k)
-        data_hemi = stc_morph._data[cnt:cnt + n_active_hemi]
-        stc_morph._data[cnt:cnt + n_active_hemi] = data_hemi[order]
-        stc_morph.vertno[k] = vertno_k[order]
-        cnt += n_active_hemi
+        if stc.vertno[k].size > 0:
+            map_hemi = maps[k]
+            vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertno[k]])
+            order = np.argsort(vertno_k)
+            n_active_hemi = len(vertno_k)
+            data_hemi = stc_morph._data[cnt:cnt + n_active_hemi]
+            stc_morph._data[cnt:cnt + n_active_hemi] = data_hemi[order]
+            stc_morph.vertno[k] = vertno_k[order]
+            cnt += n_active_hemi
+        else:
+            stc_morph.vertno[k] = stc.vertno[k]
 
     return stc_morph
 
