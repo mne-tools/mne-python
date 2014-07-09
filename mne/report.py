@@ -299,6 +299,12 @@ repr_template = Template(u"""
 <hr></li>
 """)
 
+toc_list = Template(u"""
+<li class="{{div_klass}}">{{if id}}<a href="#{{id}}">{{endif}}
+<span title="{{tooltip}}" style="color:{{color}}"> {{text}}</span>
+{{if id}}</a>{{endif}}</li>
+""")
+
 
 class Report(object):
     """Object for rendering HTML
@@ -530,8 +536,8 @@ class Report(object):
         html += u'<div id="toc"><center><h4>CONTENTS</h4></center>'
 
         global_id = 1
-        for fname in self.fnames:
 
+        for fname in self.fnames:
             logger.info('\t... %s' % fname[-20:])
 
             # identify bad file naming patterns and highlight them
@@ -545,62 +551,71 @@ class Report(object):
 
             # assign class names to allow toggling with buttons
             if fname.endswith(('-eve.fif')):
-                class_name = 'events'
+                div_klass = 'events'
+                tooltip = fname
+                text = op.basename(fname)
             elif fname.endswith(('-ave.fif')):
-                class_name = 'evoked'
+                div_klass = 'evoked'
+                tooltip = fname
+                text = op.basename(fname)
             elif fname.endswith(('-cov.fif')):
-                class_name = 'covariance'
+                div_klass = 'covariance'
+                tooltip = fname
             elif fname.endswith(('raw.fif', 'sss.fif')):
-                class_name = 'raw'
+                div_klass = 'raw'
+                tooltip = fname
+                text = op.basename(fname)
             elif fname.endswith(('-trans.fif')):
-                class_name = 'trans'
+                div_klass = 'trans'
+                tooltip = fname
+                text = op.basename(fname)
             elif fname.endswith(('-fwd.fif')):
-                class_name = 'forward'
+                div_klass = 'forward'
+                tooltip = fname
+                text = op.basename(fname)
             elif fname.endswith(('-epo.fif')):
-                class_name = 'epochs'
+                div_klass = 'epochs'
+                tooltip = fname
+                text = op.basename(fname)
             elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
-                class_name = 'slices-images'
+                div_klass = 'slices-images'
+                tooltip = 'MRI'
+                text = 'MRI'
+            else:
+                div_klass = 'custom'
+                tooltip = 'custom'
+                text = 'custom'
 
             if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz', 'raw.fif',
                                'sss.fif', '-eve.fif', '-cov.fif',
-                               '-trans.fif', '-fwd.fif', '-epo.fif')):
-                html += (u'\n\t<li class="%s"><a href="#%d"><span title="%s" '
-                         'style="color:%s"> %s </span>'
-                         '</a></li>' % (class_name, global_id, fname,
-                                        color, os.path.basename(fname)))
+                               '-trans.fif', '-fwd.fif', '-epo.fif',
+                               'bem', 'custom')):
+                html += toc_list.substitute(div_klass=div_klass,
+                                            id=global_id,
+                                            tooltip=tooltip, color=color,
+                                            text=text)
                 global_id += 1
 
             # loop through conditions for evoked
             elif fname.endswith(('-ave.fif')):
-                # XXX: remove redundant read_evokeds
-                evokeds = read_evokeds(fname, baseline=(None, 0),
-                                       verbose=False)
+               # XXX: remove redundant read_evokeds
+                evokeds = read_evokeds(fname, verbose=False)
 
-                html += (u'\n\t<li class="evoked"><span title="%s" '
-                         'style="color:#428bca"> %s </span>'
-                         % (fname, os.path.basename(fname)))
+                html += toc_list.substitute(div_klass=div_klass,
+                                            id=None, tooltip=fname,
+                                            color='#428bca',
+                                            text=os.path.basename(fname))
 
                 html += u'<li class="evoked"><ul>'
                 for ev in evokeds:
-                    html += (u'\n\t<li class="evoked"><a href="#%d">'
-                             '<span title="%s" style="color:%s"> %s'
-                             '</span></a></li>'
-                             % (global_id, fname, color, ev.comment))
+                    html += toc_list.substitute(div_klass=div_klass,
+                                                id=global_id,
+                                                tooltip=fname, color=color,
+                                                text=ev.comment)
                     global_id += 1
                 html += u'</ul></li>'
 
-            elif fname == 'bem':
-                html += (u'\n\t<li class="slices-images"><a href="#%d"><span>'
-                         ' %s</span></a></li>' % (global_id, 'MRI'))
-                global_id += 1
-
-            else:
-                html += (u'\n\t<li><a href="#%d"><span> %s</span></a></li>' %
-                         (global_id, 'custom'))
-                global_id += 1
-
         html += u'\n</ul></div>'
-
         html += u'<div id="content">'
 
         self.html.insert(1, html)  # insert TOC just after header
@@ -733,8 +748,7 @@ class Report(object):
         self.fnames.append(fwd_fname)
 
     def _render_evoked(self, evoked_fname, figsize=None):
-        evokeds = read_evokeds(evoked_fname, baseline=(None, 0),
-                               verbose=False)
+        evokeds = read_evokeds(evoked_fname, verbose=False)
 
         html = []
         for ev in evokeds:
