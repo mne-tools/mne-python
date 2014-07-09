@@ -113,7 +113,7 @@ def _data_path(path=None, force_update=False, update_path=True,
         folder_name = "MNE-spm-face"
         folder_path = op.join(path, folder_name)
     elif name == 'somato':
-        archive_name = 'MNE-somato-data.tar.bz2'
+        archive_name = 'MNE-somato-data.tar.gz'
         url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         folder_name = "MNE-somato-data"
         folder_path = op.join(path, folder_name)
