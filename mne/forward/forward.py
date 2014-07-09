@@ -67,8 +67,17 @@ class Forward(dict):
             entr += (' | Source space: Discrete with %d dipoles'
                      % self['nsource'])
         else:
-            entr += (' | Source space: Mixed with %d vertices'
-                     % self['nsource'])
+            count_string = ''
+            if (src_types == 'surf').any():
+                count_string += '%d surface, ' % (src_types == 'surf').sum()
+            if (src_types == 'vol').any():
+                count_string += '%d volume, ' % (src_types == 'vol').sum()
+            if (src_types == 'discrete').any():
+                count_string += '%d discrete, ' \
+                                % (src_types == 'discrete').sum()
+            count_string = count_string.rstrip(', ')            
+            entr += (' | Source space: Mixed (%s) with %d vertices'
+                     % (count_string, self['nsource']))
 
         if self['source_ori'] == FIFF.FIFFV_MNE_UNKNOWN_ORI:
             entr += (' | Source orientation: Unknown')

@@ -18,7 +18,7 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_mne, requires_scipy_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.externals.six.moves import zip
-from mne.source_space import add_subcortical_volumes
+from mne.source_space import get_volume_label_names
 
 warnings.simplefilter('always')
 
@@ -487,29 +487,38 @@ def test_vertex_to_mni_fs_nibabel():
         assert_allclose(coords, coords_2, atol=0.1)
 
 
-def test_subcortical_volumes():
-    """Test subcortical volumes
+@sample.requires_sample_data
+@requires_freesurfer
+@requires_nibabel()
+def test_get_volume_label_names():
+    """Test reading volume label names
     """
-    src = read_source_spaces(fname)
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 
-    # ensure you get the same source space whether you use names or indices
-    seg_names = ['Left-Cerebellum-Cortex', 'Right-Cerebellum-Cortex']
-    seg_ids = [8, 47]
+    label_names = get_volume_label_names(aseg_fname)
 
-    src_mixed_from_names = add_subcortical_volumes(src, seg_names, copy=True,
-                                                   subjects_dir=subjects_dir)
-    src_mixed_from_ids = add_subcortical_volumes(src, seg_ids, copy=True,
-                                                 subjects_dir=subjects_dir)
-    _compare_source_spaces(src_mixed_from_names, src_mixed_from_ids)
+    assert label_names.count('Brain-Stem') == 1
+
+
+@sample.requires_sample_data
+@requires_freesurfer
+@requires_nibabel()
+def test_source_space_from_label():
+    """Test generating a source space from volume label
+    """
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+    label_names = get_volume_label_names(aseg_fname)
+    volume_label = np.random.choice(label_names, 1)[0]
+    src = setup_volume_source_space('sample', subjects_dir=subjects_dir,
+                                    volume_label=volume_label, mri=aseg_fname)
+    assert volume_label == src[0]['seg_name']
 
     # test reading and writing
-    fname_mixed = fname.replace('-src.fif', '-cerebellum-src.fif')
-    write_source_spaces(fname_mixed, src_mixed_from_names)
-
-    src_mixed_from_file = read_source_spaces(fname_mixed)
-
-    _compare_source_spaces(src_mixed_from_file, src_mixed_from_ids,
-                           mode='approx')
+    fname_temp = 'temp.fif'
+    write_source_spaces(fname_temp, src)
+    src_from_file = read_source_spaces(fname_temp)
+    os.remove(fname_temp)
+    _compare_source_spaces(src, src_from_file, mode='approx')
 
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,

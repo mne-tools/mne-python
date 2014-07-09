@@ -67,12 +67,14 @@ class SourceSpaces(list):
         for ss in self:
             ss_type = ss['type']
             if ss_type == 'vol':
-                r = ("'vol', shape=%s, n_used=%i"
-                     % (repr(ss['shape']), ss['nuse']))
+                if 'seg_name' in ss:
+                    r = ("'vol' (%s), n_used=%i"
+                         % (ss['seg_name'], ss['nuse']))
+                else:
+                    r = ("'vol', shape=%s, n_used=%i"
+                         % (repr(ss['shape']), ss['nuse']))
             elif ss_type == 'surf':
                 r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
-            elif 'seg_name' in ss:
-                r = "'discrete', %s" % ss['seg_name']
             else:
                 r = "%r" % ss_type
             ss_repr.append('<%s>' % r)
@@ -682,7 +684,7 @@ def _write_one_source_space(fid, this, verbose=None):
                            this['dist_limit'])
 
     #   Segmentation data
-    if this['type'] == 'discrete' and ('seg_name' in this):
+    if this['type'] == 'vol' and ('seg_name' in this):
         # Save the name of the segment
         write_string(fid, FIFF.FIFF_COMMENT, this['seg_name'])
 
@@ -992,7 +994,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                               sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               overwrite=False, subjects_dir=None,
-                              verbose=None):
+                              verbose=None, volume_label=None):
     """Setup a volume source space with grid spacing or discrete source space
 
     Parameters
@@ -1036,6 +1038,8 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         Path to SUBJECTS_DIR if it is not set in the environment.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    volume_labels : str
+        Region of interest corresponding with aseg.mgz
 
     Returns
     -------
@@ -1051,6 +1055,9 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     source space is created, then `mri` is optional (can be None), whereas
     for a volume source space, `mri` must be provided.
     """
+
+    subjects_dir = get_subjects_dir(subjects_dir)
+
     if bem is not None and surface is not None:
         raise ValueError('Only one of "bem" and "surface" should be '
                          'specified')
@@ -1065,12 +1072,22 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             raise RuntimeError('nibabel with "vox2ras_tkr" property is '
                                'required to process mri data, consider '
                                'installing and/or updating nibabel')
-    elif not isinstance(pos, dict):
+    elif not isinstance(pos, dict) and volume_label is None:
         # "pos" will create a discrete src, so we don't need "mri"
         # if "pos" is None, we must have "mri" b/c it will be vol src
         raise RuntimeError('"mri" must be provided if "pos" is not a dict '
                            '(i.e., if a volume instead of discrete source '
                            'space is desired)')
+
+    if volume_label is not None:
+        if mri is None:
+            raise ValueError('"mri" must be provided if you segmented volumes')
+        else:
+            label_names = get_volume_label_names(mri)
+            if len(label_names) < 1:
+                raise ValueError('The mri file provided does not contain any '
+                                 'values recognized by the freesurfer lookup '
+                                 'table.')
 
     sphere = np.asarray(sphere)
     if sphere.size != 4:
@@ -1126,7 +1143,10 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     logger.info('')
 
     # Explicit list of points
-    if not isinstance(pos, float):
+    if volume_label is not None:
+        # Make a volume source restricted to label
+        sp = _make_volume_from_label(pos, volume_label, mri)
+    elif not isinstance(pos, float):
         # Make the grid of sources
         sp = _make_discrete_source_space(pos)
     else:
@@ -1380,7 +1400,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
     neigh.shape = old_shape
     neigh = neigh.T
     # Thought we would need this, but C code keeps -1 vertices, so we will:
-    #neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]
+    # neigh = [n[n >= 0] for n in enumerate(neigh[vertno])]
     sp['neighbor_vert'] = neigh
 
     # Set up the volume data (needed for creating the interpolation matrix)
@@ -1389,6 +1409,75 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
     ras = np.eye(3)
     sp['src_mri_t'] = _make_voxel_ras_trans(r0, ras, voxel_size)
     sp['vol_dims'] = maxn - minn + 1
+    return sp
+
+
+def _make_volume_from_label(pos, volume_label, mgz_fname):
+
+    # Convert to voxels
+    pos *= 1000.
+
+    # Read the segmentation data using nibabel
+    mgz = nib.load(mgz_fname)
+    mgz_hdr = mgz.get_header()
+    mgz_data = mgz.get_data()
+
+    # Read the freesurfer look up table
+    lut_fname = op.join(os.environ['FREESURFER_HOME'],
+                        'FreeSurferColorLUT.txt')
+    lut_data = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
+                             names=['id', 'name'])
+
+    # Generate a grid using pos
+    spacing = int(pos)
+    kernel = np.zeros((spacing, spacing, spacing))
+    kernel[0, 0, 0] = 1
+    sx, sy, sz = mgz_data.shape
+    nx, ny, nz = np.ceil((sz/pos, sy/pos, sz/pos)).astype('int')
+    grid = np.tile(kernel, (nx, ny, nz))
+    grid = grid[:sx, :sy, :sz]
+    grid = grid.astype('bool')
+
+    # Get the numeric label
+    vol_id = lut_data['id'][lut_data['name'] == volume_label]
+
+    # Get indices
+    vol_ix = mgz_data == vol_id
+    vol_ix *= grid  # downsample using grid
+
+    # Get voxels
+    rr = np.array(np.where(vol_ix)).T
+    shape = rr.max(0) - rr.min(0) + 1
+
+    # Transform to RAS
+    trans = mgz_hdr.get_vox2ras_tkr()
+    rr = apply_trans(trans, rr)
+
+    # Convert to meters
+    rr /= 1000.
+
+    # Calculate parameters for source space
+    npts = rr.shape[0]
+    coord_frame = FIFF.FIFFV_COORD_MRI
+
+    # Orientation is immaterial
+    nn = np.zeros((npts, 3))
+    nn[:, 2] = 1.
+
+    # Setup the source space
+    sp = dict(coord_frame=coord_frame, type='vol', nuse=npts, np=npts,
+              inuse=np.ones(npts, int), vertno=np.arange(npts), rr=rr, nn=nn,
+              id=-1, seg_name=volume_label)
+
+    # Setup volume data
+    grid = pos / 1000.
+    r0 = rr.min(0) * grid
+    voxel_size = grid * np.ones(3)
+    ras = np.eye(3)
+    sp['src_mri_t'] = _make_voxel_ras_trans(r0, ras, voxel_size)
+    sp['vol_dims'] = rr.max(0) - rr.min(0) + 1
+    sp['shape'] = shape
+
     return sp
 
 
@@ -1716,100 +1805,26 @@ def _do_src_distances(con, vertno, run_inds, limit):
     return d, min_idx, min_dist
 
 
-def add_subcortical_volumes(src, seg_labels, spacing=5., subjects_dir=None,
-                            copy=False):
-    """Adds subcortical volumes to a cortical source space
-
-    Parameters
-    ----------
-    src : dict
-        Source space with left and right hemisphere surfaces
-    seg_labels : list of int, or list of strings
-        Names or indices of desired segments corresponding to aseg.mgz
-    spacing : float
-        Spacing between vertices in millimeters
-    subjects_dir : string, or None
-        Path to SUBJECTS_DIR if it is not set in the environment.
-    copy : bool
-        If True, copies the source space instead of modifying in place
-
-    Returns
-    -------
-    src : SourceSpaces
-        The source spaces.
-    """
-
-    # Get the subject
-    subject = src[0]['subject_his_id']
-
-    # Get the subjects directory
-    subjects_dir = get_subjects_dir(subjects_dir)
-
-    # Find the segmentation file
-    aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
-
-    # Read the segmentation data using nibabel
-    aseg = nib.load(aseg_fname)
-    aseg_hdr = aseg.get_header()
-    aseg_data = aseg.get_data()
+def get_volume_label_names(mgz_fname):
+    """Returns a list of names of segmented volumes in a .mgz file"""
+    # Read the mgz file using nibabel
+    mgz_data = nib.load(mgz_fname).get_data()
 
     # Read the freesurfer lookup table
     lut_fname = op.join(os.environ['FREESURFER_HOME'],
                         'FreeSurferColorLUT.txt')
-    lut = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
-                        names=['id', 'name'])
+    lut_data = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
+                             names=['id', 'name'])
 
-    # Generate a grid using spacing
-    kernel = np.zeros((int(spacing), int(spacing), int(spacing)))
-    kernel[0, 0, 0] = 1
-    sx, sy, sz = aseg_data.shape
-    nx, ny, nz = np.ceil((sx/spacing, sy/spacing, sz/spacing))
-    grid = np.tile(kernel, (nx, ny, nz))
-    grid = grid[:sx, :sy, :sz]
-    grid = grid.astype('bool')
+    # Get a list of unique ids from the mgz file
+    ids = np.unique(mgz_data)
 
-    # Copy original source space
-    if copy:
-        src = src.copy()
+    # Create an empty list to store names
+    label_names = []
 
-    # Loop through the labels
-    for label in seg_labels:
+    # Loop through unique ids
+    for i in ids:
+        name = lut_data[i]['name']
+        label_names.append(name)
 
-        # Get numeric index or name of label
-        if type(label) == str:
-            seg_name = label
-            seg_id = lut['id'][lut['name'] == seg_name]
-        elif type(label) == int:
-            seg_id = label
-            seg_name = lut['name'][lut['id'] == seg_id][0]
-
-        # Get indices to label
-        ix = aseg_data == seg_id
-        ix *= grid  # downsample to grid
-        pts = np.array(np.where(ix)).T
-
-        # Transform data to RAS coordinates
-        trans = aseg_hdr.get_vox2ras_tkr()
-        pts = apply_trans(trans, pts)
-
-        # Convert to meters
-        pts /= 1000.
-
-        # Set orientations
-        ori = np.zeros(pts.shape)
-        ori[:, 2] = 1.0
-
-        # Store coordinates and orientations as dict
-        pos = dict(rr=pts, nn=ori)
-
-        # Setup a discrete source
-        sp = _make_discrete_source_space(pos)
-        sp.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
-                       dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
-                       nuse_tri=0, tris=None, type='discrete',
-                       seg_name=seg_name))
-
-        # Combine source spaces
-        src.append(sp)
-
-    return src
+    return label_names
