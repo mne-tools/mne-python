@@ -553,7 +553,8 @@ class Report(object):
                                    '-trans.fif', '-trans.fif.gz',
                                    'raw.fif', 'raw.fif.gz',
                                    'sss.fif', 'sss.fif.gz',
-                                   '-epo.fif', 'T1.mgz')):
+                                   '-epo.fif', 'T1.mgz',
+                                   'bem')):
                 color = 'red'
             else:
                 color = ''

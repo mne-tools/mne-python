@@ -98,5 +98,7 @@ if __name__ == "__main__":
                                 op.join('data', 'coil_def.dat'),
                                 op.join('data', 'helmets', '*.fif.gz'),
                                 op.join('layouts', '*.lout'),
-                                op.join('layouts', '*.lay')]},
+                                op.join('layouts', '*.lay'),
+                                op.join('html', '*.js'),
+                                op.join('html', '*.css')]},
           scripts=['bin/mne'])
