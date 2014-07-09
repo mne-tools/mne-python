@@ -423,7 +423,7 @@ def _read_one_source_space(fid, this, verbose=None):
         res['subject_his_id'] = tag.data
 
     #   Segmentation
-    if res['type'] == 'discrete':
+    if res['type'] == 'vol':
         tag = find_tag(fid, this, FIFF.FIFF_COMMENT)
         if tag is not None:
             res['seg_name'] = tag.data
@@ -994,7 +994,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                               sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               overwrite=False, subjects_dir=None,
-                              verbose=None, volume_label=None):
+                              volume_label=None, verbose=None):
     """Setup a volume source space with grid spacing or discrete source space
 
     Parameters
@@ -1036,11 +1036,11 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         If True, overwrite output file (if it exists).
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
+    volume_label : str
+        Region of interest corresponding with freesurfer lookup table.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    volume_labels : str
-        Region of interest corresponding with aseg.mgz
-
+    
     Returns
     -------
     src : list
@@ -1081,7 +1081,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
 
     if volume_label is not None:
         if mri is None:
-            raise ValueError('"mri" must be provided if you segmented volumes')
+            raise ValueError('"mri" must be provided for segmented volumes')
         else:
             label_names = get_volume_label_names(mri)
             if len(label_names) < 1:
@@ -1806,7 +1806,18 @@ def _do_src_distances(con, vertno, run_inds, limit):
 
 
 def get_volume_label_names(mgz_fname):
-    """Returns a list of names of segmented volumes in a .mgz file"""
+    """Returns a list of names of segmented volumes in a .mgz file
+
+    Parameters
+    ----------
+    mgz_fname : str
+        Filename to read.
+
+    Returns
+    -------
+    label_names : list of str
+        The names of segmented volumes included in this mgz file.    
+    """
     # Read the mgz file using nibabel
     mgz_data = nib.load(mgz_fname).get_data()
 
