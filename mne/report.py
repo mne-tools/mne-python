@@ -301,23 +301,26 @@ repr_template = Template(u"""
 
 
 class Report(object):
-    """Object for rendering HTML"""
+    """Object for rendering HTML
+
+    Parameters
+    ----------
+    info_fname : str
+        Name of the file containing the info dictionary.
+    subjects_dir : str | None
+        Path to the SUBJECTS_DIR. If None, the path is obtained by using
+        the environment variable SUBJECTS_DIR.
+    subject : str | None
+        Subject name.
+    title : str
+        Title of the report.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
 
     def __init__(self, info_fname, subjects_dir=None, subject=None,
                  title=None, verbose=None):
-        """
-        info_fname : str
-            Name of the file containing the info dictionary
-        subjects_dir : str | None
-            Path to the SUBJECTS_DIR. If None, the path is obtained by using
-            the environment variable SUBJECTS_DIR.
-        subject : str | None
-            Subject name.
-        title : str
-            Title of the report.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-        """
+
         self.info_fname = info_fname
         self.subjects_dir = subjects_dir
         self.subject = subject
@@ -484,7 +487,8 @@ class Report(object):
                 logger.info(e)
 
     def save(self, fname='report.html', open_browser=True, overwrite=False):
-        """
+        """Save html report and open it in browser.
+
         Parameters
         ----------
         fname : str
