@@ -8,12 +8,14 @@ Load evoked data and plot topomaps for selected time points.
 """
 # Authors: Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Tal Linzen <linzen@nyu.edu>
+#          Denis A. Engeman <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
 print(__doc__)
 
 import numpy as np
+import matplotlib.pyplot as plt
 from mne.datasets import sample
 from mne import read_evokeds
 
@@ -23,9 +25,6 @@ fname = path + '/MEG/sample/sample_audvis-ave.fif'
 # load evoked and subtract baseline
 condition = 'Left Auditory'
 evoked = read_evokeds(fname, condition=condition, baseline=(None, 0))
-
-# plot magnetometer data as topomap at 1 time point : 100ms
-evoked.plot_topomap(0.1, ch_type='mag', size=3, colorbar=False)
 
 # set time instants in seconds (from 50 to 150ms in a step of 10ms)
 times = np.arange(0.05, 0.15, 0.01)
@@ -37,6 +36,8 @@ evoked.plot_topomap(times, ch_type='mag')
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
 evoked.plot_topomap(times, ch_type='grad')
 
-# add channel labels and title
+# plot magnetometer data as topomap at 1 time point : 100ms
+# and add channel labels and title
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
-                    size=8, title='Auditory response')
+                    size=6, res=128, title='Auditory response')
+plt.subplots_adjust(left=0.01, right=0.99, bottom=0.01, top=0.88)

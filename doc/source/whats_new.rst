@@ -105,6 +105,8 @@ Changelog
 
    - Add infomax and extended infomax ICA by `Denis Engemann`_, `Juergen Dammers`_ and `Lukas Breuer`_ and `Federico Raimondo`_
 
+   - Aesthetically redesign interpolated topography plots by `Denis Engemann`_ and `Alex Gramfort`_
+
 BUG
 ~~~
 
