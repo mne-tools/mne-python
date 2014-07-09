@@ -580,56 +580,65 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     return fig
 
 
-def plot_phase_amplitude_plot(phase_bins, normalized_amplitude):
-    """
-    Plot Phase Amplitude Plot
-
+def plot_phase_amplitude_coupling(phase_bins, normalized_amplitude,
+                                  title=None, show=True):
+    """Plot the phase amplitude plot.
     Parameters
     ----------
-    phase_bins : Binned phase time series of phase modulating signal.
-    normalized_amplitude : Normalised phase amplitude time
-                           series of amplitude modulated signal.
-
+    phase_bins : array, shape (number of bins + 1,)
+        Binned phase time series of phase modulating signal.
+    normalized_amplitude : ndarray, shape (n_epochs, bin_num)
+        The normalized amplitude values across each bin.
+    title : str, None
+        Title, default is 'Phase amplitude plot'.
+    show : bool
+        Call pyplot.show() at the end. Default is True.
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
           Figure
-
     """
+    if title is None:
+        title = 'Phase amplitude plot'
     import matplotlib.pyplot as plt
-    fig = plt.figure()
     for i in range(len(phase_bins) - 1):  # the bins are always more
+        plt.locator_params(axis='x', nbins=4)
         plt.bar(np.rad2deg(phase_bins[i]), normalized_amplitude[i],
-                width=1, align='center')
+                width=10, align='edge')
         plt.xlabel('Phase bins (deg)')
         plt.ylabel('Normalized Mean Amplitude')
-        plt.title('Phase Amplitude Plot')
-    plt.show()
-    return fig
+        plt.title(title)
+
+    if show:
+        plt.show()
+    return
 
 
 def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
-                                  z_threshold, erp):
-    """
-    Plot Cross Frequency Coupling
-
+                                  z_threshold, avg, show=True):
+    """Plot cross frequency coupling.
     Parameters
     ----------
-    times : Time points for signal plotting.
-    freqs : Frequencies.
-    traces : Normalized amplitude traces.
-    ztraces : Statistically significant amplitude traces.
-    z_threshold : Threshold of statistically significant amplitude traces.
-    erp : ERPs
-
+    times : array, shape (n_times,)
+        Time points for signal plotting.
+    freqs : array, shape (n_freqs,)
+        Frequency points across range at which amplitudes are computed.
+    traces : ndarray, shape (n_epochs, n_times)
+        Normalized amplitude traces.
+    ztraces : ndarray, shape (n_epochs, n_times)
+        Statistically significant amplitude traces.
+    z_threshold : float
+        Threshold of statistically significant amplitude traces.
+    avg : array, shape (n_times,)
+        Average (or evoked) signal.
+    show : bool
+        Call pyplot.show() at the end. Default True.
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
           Figure
-
     """
     import matplotlib.pyplot as plt
-    plt.close('all')
 
     fig = plt.figure()
     ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
@@ -645,11 +654,12 @@ def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
     ax1.axis('tight')
     ax1.set_ylabel('Freq (Hz)')
 
-    ax2.plot(times, erp, 'k')
-    ax2.set_ylim([np.min(erp), np.max(erp)])
+    ax2.plot(times, avg, 'k')
+    ax2.set_ylim([np.min(avg), np.max(avg)])
     ax2.set_xlabel('Times (s)')
-    ax2.set_ylabel('ERP')
-    plt.tight_layout()
-    plt.show()
+    ax2.set_ylabel('Average')
+    tight_layout()
+    if show:
+        plt.show()
     return fig
 

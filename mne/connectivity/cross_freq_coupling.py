@@ -7,9 +7,9 @@
 
 import numpy as np
 from scipy.signal import hilbert
+from scipy import stats
 
-import mne
-
+from ..stats import fdr_correction
 from ..time_frequency import morlet
 from ..time_frequency.tfr import cwt
 from ..preprocessing.peak_finder import peak_finder
@@ -18,32 +18,55 @@ from ..parallel import parallel_func
 from ..utils import logger
 
 
-def abs_cwt(x, W):
+def _abs_cwt(x, W):
     return np.abs(cwt(x, [W], use_fft=False).ravel()).astype(np.float32)
 
 
-def cross_frequency_coupling(x, sfreq, phase_freq, n_samples,
-                             n_cycles, fa_high, fa_low,
-                             f_n, n_jobs=1, alpha=0.001, n_surrogates=10 ** 4):
-    ''' Compute the cross frequency coupling.
+def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
+                             fa_low=60., fa_high=100., f_n=100, alpha=0.001,
+                             n_surrogates=10 ** 4, n_jobs=1):
+    """
+    Compute the cross frequency coupling.
+
+    data : array
+        Signal time series.
+    sfreq : float
+        Sampling frequency.
+    phase_freq : float
+        The phase modulating frequency. Default of 10Hz is used.
+    n_cycles : float | array of float
+        Number of cycles used to compute morlet wavelets. Default 10.
+    fa_low : float
+        Lower edge of amplitude modulated frequency band. Default 60 Hz.
+    fa_high : float
+        Upper edge of amplitude modulated frequency band. Default 100 Hz.
+    f_n : int
+        Number of frequency points to compute. Default 100.
+    alpha : float
+        Error rate allowed. Default 0.001.
+    n_surrogates : int
+        Number of surrogates.
+    n_jobs : int
+        Number of jobs to run in parallel. Default 1.
 
     References:
     High gamma power is phase-locked to theta oscillations in human neocortex.
     Canolty RT1, Edwards E, Dalal SS, Soltani M, Nagarajan SS, Kirsch HE,
     Berger MS, Barbaro NM, Knight RT.
     (Science. 2006)
-    '''
+    """
 
     Ws = morlet(sfreq, [phase_freq], n_cycles=n_cycles,
                 sigma=None, zero_mean=True)
-    x_low = cwt(x, Ws, use_fft=False).ravel()
+    x_low = cwt(data, Ws, use_fft=False).ravel()
 
     phases = np.angle(x_low)
     trigger_inds, _ = peak_finder(phases)
 
-    # freqs = np.logspace(1., 250., 70)
     freqs = np.logspace(np.log10(fa_low), np.log10(fa_high), f_n)
     n_freqs = len(freqs)
+
+    n_samples = data.size
 
     # define epoch for averaging:
     n_times = np.round(sfreq)  # +/- 1 second around trigger
@@ -56,14 +79,14 @@ def cross_frequency_coupling(x, sfreq, phase_freq, n_samples,
     Ws = morlet(sfreq, freqs, n_cycles=n_cycles, sigma=None,
                 zero_mean=True)
 
-    parallel, my_abs_cwt, _ = parallel_func(abs_cwt, n_jobs)
+    parallel, my_abs_cwt, _ = parallel_func(_abs_cwt, n_jobs)
     ampmat = np.empty((n_freqs, n_samples), dtype=np.float)
 
     if n_jobs == 1:
         for e, W in enumerate(Ws):
-            ampmat[e] = np.array(abs_cwt(x, W))
+            ampmat[e] = np.array(_abs_cwt(data, W))
     else:
-        ampmat = np.array(parallel(my_abs_cwt(x, W) for W in Ws))
+        ampmat = np.array(parallel(my_abs_cwt(data, W) for W in Ws))
 
     # zscore for normalization
     ampmat -= np.mean(ampmat, axis=1)[:, None]
@@ -74,7 +97,7 @@ def cross_frequency_coupling(x, sfreq, phase_freq, n_samples,
     erp = np.zeros(2 * n_times)
     traces = np.zeros((n_freqs, 2 * n_times), dtype=np.float32)
     for ind in trigger_inds:
-        erp += x[0, ind - n_times: ind + n_times]
+        erp += data[0, ind - n_times: ind + n_times]
         traces += ampmat[:, ind - n_times: ind + n_times]
     erp /= len(trigger_inds)
     traces /= len(trigger_inds)
@@ -103,9 +126,8 @@ def cross_frequency_coupling(x, sfreq, phase_freq, n_samples,
     ztraces = (traces - sur_fits_mean[:, None]) / sur_fits_std[:, None]
 
     # Compute FDR threshold
-    from scipy import stats
     p_values = stats.norm.pdf(ztraces)
-    accept, _ = mne.stats.fdr_correction(p_values, alpha=alpha)
+    accept, _ = fdr_correction(p_values, alpha=alpha)
     z_threshold = np.abs(ztraces[accept]).min()
 
     times = np.arange(-n_times, n_times, dtype=np.float) / sfreq
@@ -115,14 +137,31 @@ def cross_frequency_coupling(x, sfreq, phase_freq, n_samples,
 
 def phase_amplitude_coupling(data, fs, fp_low, fp_high,
                              fa_low, fa_high, bin_size_angle=18, n_jobs=1):
-    ''' Compute modulation index for the given data.
+    """
+    Compute modulation index for the given data.
 
+    data : array
+        Signal time series.
+    fs : float
+        Sampling frequency.
+    fp_low : float
+        Lower edge of phase modulating frequency.
+    fp_high : float
+        Upper edge of phase modulating frequency.
+    fa_low : float
+        Lower edge of amplitude modulated frequency.
+    fa_high : float
+        Upper edge of amplitude modulated frequency.
+    bin_size_angle : int
+        Angle in degrees used to make the bins. Default 18 degrees.
+    n_jobs : int
+        Number of jobs used for parallelization. Default 1.
 
     References:
     Measuring phase-amplitude coupling between neuronal oscillations
     of different frequencies.
     Tort ABL, Komorowski R, Eichenbaum H, Kopell N., (J Neurophysiol. 2010)
-    '''
+    """
 
     # Filter data into phase modulating freq and amplitude modulated freq.
     # Fp = 5-10 Hz and Fa = 30-100Hz
