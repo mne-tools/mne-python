@@ -363,6 +363,7 @@ class Report(object):
                                                   div_klass=div_klass,
                                                   img_klass=img_klass,
                                                   caption=caption,
+                                                  interactive=None,
                                                   show=True))
             self.fnames.append(img_klass)
         self.html.append(''.join(html))
@@ -465,24 +466,25 @@ class Report(object):
                     self._render_bem(subject=self.subject,
                                      subjects_dir=self.subjects_dir)
                     self.fnames.append('bem')
-                elif fname.endswith(('raw.fif', 'sss.fif')):
+                elif fname.endswith(('raw.fif', 'raw.fif.gz',
+                                     'sss.fif', 'sss.fif.gz')):
                     self._render_raw(fname)
                     self.fnames.append(fname)
                 elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
                     self._render_forward(fname)
-                elif fname.endswith(('-ave.fif')):
+                elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
                     self._render_evoked(fname)
                     self.fnames.append(fname)
-                elif fname.endswith(('-eve.fif')):
+                elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
                     self._render_eve(fname, info, interactive=interactive)
                     self.fnames.append(fname)
-                elif fname.endswith(('-epo.fif')):
+                elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
                     self._render_epochs(fname)
                     self.fnames.append(fname)
-                elif fname.endswith(('-cov.fif')):
+                elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
                     self._render_cov(fname)
                     self.fnames.append(fname)
-                elif fname.endswith(('-trans.fif')):
+                elif fname.endswith(('-trans.fif', '-trans.fif.gz')):
                     self._render_trans(fname, self.data_path, info,
                                        self.subject, self.subjects_dir)
                     self.fnames.append(fname)
@@ -541,43 +543,55 @@ class Report(object):
             logger.info('\t... %s' % fname[-20:])
 
             # identify bad file naming patterns and highlight them
-            if not fname.endswith(('-eve.fif', '-ave.fif', '-cov.fif',
-                                   '-sol.fif', '-fwd.fif', '-inv.fif',
-                                   '-src.fif', '-trans.fif', 'raw.fif',
+            if not fname.endswith(('-eve.fif', '-eve.fif.gz',
+                                   '-ave.fif', '-ave.fif.gz',
+                                   '-cov.fif', '-cov.fif.gz',
+                                   '-sol.fif',
+                                   '-fwd.fif', '-fwd.fif.gz',
+                                   '-inv.fif', '-inv.fif.gz',
+                                   '-src.fif',
+                                   '-trans.fif', '-trans.fif.gz',
+                                   'raw.fif', 'raw.fif.gz',
+                                   'sss.fif', 'sss.fif.gz',
                                    '-epo.fif', 'T1.mgz')):
                 color = 'red'
             else:
                 color = ''
 
             # assign class names to allow toggling with buttons
-            if fname.endswith(('-eve.fif')):
+            if fname.endswith(('-eve.fif', '-eve.fif.gz')):
                 div_klass = 'events'
                 tooltip = fname
                 text = op.basename(fname)
-            elif fname.endswith(('-ave.fif')):
+            elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
                 div_klass = 'evoked'
                 tooltip = fname
                 text = op.basename(fname)
-            elif fname.endswith(('-cov.fif')):
+            elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
                 div_klass = 'covariance'
                 tooltip = fname
-            elif fname.endswith(('raw.fif', 'sss.fif')):
+            elif fname.endswith(('raw.fif', 'raw.fif.gz',
+                                 'sss.fif', 'sss.fif.gz')):
                 div_klass = 'raw'
                 tooltip = fname
                 text = op.basename(fname)
-            elif fname.endswith(('-trans.fif')):
+            elif fname.endswith(('-trans.fif', '-trans.fif.gz')):
                 div_klass = 'trans'
                 tooltip = fname
                 text = op.basename(fname)
-            elif fname.endswith(('-fwd.fif')):
+            elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
                 div_klass = 'forward'
                 tooltip = fname
                 text = op.basename(fname)
-            elif fname.endswith(('-epo.fif')):
+            elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
                 div_klass = 'epochs'
                 tooltip = fname
                 text = op.basename(fname)
             elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
+                div_klass = 'slices-images'
+                tooltip = 'MRI'
+                text = 'MRI'
+            elif fname.endswith(('bem')):
                 div_klass = 'slices-images'
                 tooltip = 'MRI'
                 text = 'MRI'
