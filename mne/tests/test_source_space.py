@@ -380,7 +380,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
             if name in s0 or name in s1:
                 print(name)
                 diffs = (s0['interpolator'] - s1['interpolator']).data
-                if len(diffs)>0:
+                if len(diffs) > 0:
                     assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.05)  # 5%
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
             print(name)

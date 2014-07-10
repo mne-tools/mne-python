@@ -1040,7 +1040,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         Region of interest corresponding with freesurfer lookup table.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    
+
     Returns
     -------
     src : list
@@ -1414,8 +1414,10 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
 
 def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
 
-    # Convert to millimeters
+    # Calculate spacing in millimeters
     spacing_mm = spacing_m * 1000.
+    # Calculate spacing in voxels (assumes 1 voxel == 1 mm**3)
+    spacing_vox = int(spacing_mm)
 
     # Read the segmentation data using nibabel
     mgz = nib.load(mgz_fname)
@@ -1428,31 +1430,31 @@ def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
     lut_data = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
                              names=['id', 'name'])
 
-    # Generate a grid
-    spacing = int(spacing_mm)
-    # Create a downsampling kernel
-    kernel = np.zeros((spacing, spacing, spacing))
-    kernel[0, 0, 0] = 1
-    # Get the dimensions of the mri data
+    # Create a downsampling kernel in voxel space
+    kernel = np.zeros((spacing_vox, spacing_vox, spacing_vox))
+    kernel[0, 0, 0] = 1  # set only one true element
+
+    # Get the dimensions of the mri data in voxel space
     sx, sy, sz = mgz_data.shape
-    # Calculate the number of kernels for each dimension
+    # Calculate the number of kernels needed for each dimension
     nx, ny, nz = np.ceil((sz/spacing_mm, sy/spacing_mm,
                           sz/spacing_mm)).astype('int')
-    # Create a boolean the same shape as the mri data
+
+    # Create a boolean the same shape as the mri data for downsampling
     grid = np.tile(kernel, (nx, ny, nz))
     grid = grid[:sx, :sy, :sz]
     grid = grid.astype('bool')
 
-    # Get the numeric index for this volume
+    # Get the numeric index for this volume label
     vol_id = lut_data['id'][lut_data['name'] == volume_label]
 
-    # Get indices for this volume in mri space
+    # Get indices for this volume label in voxel space
     vol_ix = mgz_data == vol_id
-    
+
     # Downsample using grid
     vol_ix *= grid
 
-    # Get the 3 dimensional indices
+    # Get the 3 dimensional indices in voxel space
     xyz = np.array(np.where(vol_ix)).T
 
     # Transform to RAS coordinates
@@ -1462,44 +1464,58 @@ def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
     # Convert to meters
     rr /= 1000.
 
-    # Get the shape of the bounding grid
-    shape = (xyz.max(0) - xyz.min(0) + spacing)/spacing
+    # Get the shape of the source space
+    shape = (xyz.max(0) - xyz.min(0) + spacing_vox)/spacing_vox
+
+    # Convert boolean indices to source space
+    xmin, ymin, zmin = xyz.min(0)
+    xmax, ymax, zmax = xyz.max(0)
+    src_ix = vol_ix[xmin:xmax+spacing_vox:spacing_vox,
+                    ymin:ymax+spacing_vox:spacing_vox,
+                    zmin:zmax+spacing_vox:spacing_vox]
 
     # Calculate parameters for source space
-    nuse = rr.shape[0]
-    npts = shape[0]*shape[1]*shape[2]
-    coord_frame = FIFF.FIFFV_COORD_MRI
+    nuse = rr.shape[0]  # number of points in use
+    npts = shape[0]*shape[1]*shape[2]  # number of points in source space
+    coord_frame = FIFF.FIFFV_COORD_MRI  # coordinate frame
 
     # Calculate the inuse array
-    inuse = np.zeros(npts, int)
-    counter = 0
-    for i in range(xyz.min(0)[0], xyz.max(0)[0]+spacing, spacing):
-        for j in range(xyz.min(0)[1], xyz.max(0)[1]+spacing, spacing):
-            for k in range(xyz.min(0)[2], xyz.max(0)[2]+spacing, spacing):
-                if vol_ix[i, j, k]:
-                    inuse[counter] = 1
-                counter += 1
-    
-    # Calculate the src_mri transform            
-    r0 = rr.min(0)
-    voxel_size = spacing * np.ones(3)
-    ras = np.eye(3)
+    inuse = src_ix.flatten().astype('int')
+
+    # Calculate the src_mri transform
+    rmin = rr.min(0)
+    rmax = rr.max(0)
+    voxel_size = spacing_m * np.ones(3)
+    ras = np.linalg.inv(trans[:3, :3])
+    r0 = np.zeros(3)
+    for dim in range(3):
+        if ras[:, dim].sum() < 0:
+            r0[dim] = rmax[dim]
+        else:
+            r0[dim] = rmin[dim]
     src_mri_t = _make_voxel_ras_trans(r0, ras, voxel_size)
 
     # Populate the entire source space
-    rr = np.mgrid[0:shape[0], 0:shape[1], 0:shape[2]].reshape(3, -1).T
-    rr = apply_trans(src_mri_t['trans'], rr)
-    
+    xyz_new = np.mgrid[0:shape[0], 0:shape[1], 0:shape[2]].reshape(3, -1).T
+    rr_new = apply_trans(src_mri_t['trans'], xyz_new)
+
+    # Check that source indices are equal
+    assert (xyz_new[inuse.astype('bool')] ==
+            (xyz-xyz.min(0))/spacing_vox).all()
+
+    # Check that the positions are nearly equal
+    assert ((rr-rr_new[inuse.astype('bool')])**2).sum() < 1e-10
+
     # Populate the orientations
-    nn = np.zeros(rr.shape)
+    nn = np.zeros(rr_new.shape)
     nn[:, 2] = 1.
 
     # Setup the source space
     sp = dict(coord_frame=coord_frame, type='vol', nuse=nuse, np=npts,
-              inuse=inuse, vertno=np.arange(npts), rr=rr, nn=nn,
+              inuse=inuse, vertno=np.where(inuse)[0], rr=rr_new, nn=nn,
               id=-1, seg_name=volume_label, shape=shape, src_mri_t=src_mri_t)
 
-    sp['vol_dims'] = xyz.max(0) - xyz.min(0) + 1
+    sp['vol_dims'] = shape
 
     return sp
 
@@ -1839,7 +1855,7 @@ def get_volume_label_names(mgz_fname):
     Returns
     -------
     label_names : list of str
-        The names of segmented volumes included in this mgz file.    
+        The names of segmented volumes included in this mgz file.
     """
     # Read the mgz file using nibabel
     mgz_data = nib.load(mgz_fname).get_data()
