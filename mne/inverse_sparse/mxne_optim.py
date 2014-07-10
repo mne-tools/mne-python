@@ -453,7 +453,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         Debias source estimates.
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
-    solver : 'prox' | 'cd' | 'bcd' | 'auto'
+    solver : 'prox' | 'cd' | 'bcd' | 'gbcd' | 'auto'
         The algorithm to use for the optimization.
 
     Returns

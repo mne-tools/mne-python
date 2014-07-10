@@ -361,10 +361,11 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     weights_min : float
         Do not consider in the estimation sources for which weights
         is less than weights_min.
-    solver : 'prox' | 'cd' | 'bcd' | 'auto'
+    solver : 'prox' | 'cd' | 'bcd' | 'gbcd' | 'auto'
         The algorithm to use for the optimization. prox stands for
         proximal interations using the FISTA algorithm, cd uses
-        coordinate descent while bcd applies block coordinate descent.
+        coordinate descent, bcd applies block coordinate descent,
+        and gbcd uses greedy block coordinate descent.
         cd is only available for fixed orientation.
     n_mxne_iter : int
         The number of MxNE iterations. If > 1, iterative reweighting
