@@ -446,11 +446,14 @@ def test_plot_drop_log():
     """
     epochs = _get_epochs()
     epochs.drop_bad_epochs()
-    epochs.plot_drop_log()
 
-    plot_drop_log([['One'], [], []])
-    plot_drop_log([['One'], ['Two'], []])
-    plot_drop_log([['One'], ['One', 'Two'], []])
+    warnings.simplefilter('always', UserWarning)
+    with warnings.catch_warnings(record=True):
+        epochs.plot_drop_log()
+
+        plot_drop_log([['One'], [], []])
+        plot_drop_log([['One'], ['Two'], []])
+        plot_drop_log([['One'], ['One', 'Two'], []])
     plt.close('all')
 
 
