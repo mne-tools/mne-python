@@ -239,10 +239,11 @@ div.footer {
         <h3 class="navbar-text" style="color:white">{{title}}</h3>
         <ul class="nav nav-pills navbar-right" style="margin-top: 7px;">
 
-        {{for section, text in sections}}
+        {{for section in sections}}
 
         <li class="active {{section}}-btn">
-            <a href="#" onclick="togglebutton('.{{section}}')">{{text}}</a>
+            <a href="#" onclick="togglebutton('.{{section}}')">
+            {{section.capitalize() if section != 'mri' else 'MRI'}}</a>
         </li>
 
         {{endfor}}
@@ -344,8 +345,8 @@ class Report(object):
             will be appended to the end of the section
         """
 
-        if [section, section] not in self.sections:
-            self.sections.append([section, section])
+        if section not in self.sections:
+            self.sections.append(section)
 
         html = []
         for fig, caption in zip(figs, captions):
@@ -598,11 +599,11 @@ class Report(object):
                 tooltip = fname
                 text = op.basename(fname)
             elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
-                div_klass = 'slices-images'
+                div_klass = 'mri'
                 tooltip = 'MRI'
                 text = 'MRI'
             elif fname.endswith(('bem')):
-                div_klass = 'slices-images'
+                div_klass = 'mri'
                 tooltip = 'MRI'
                 text = 'MRI'
             else:
@@ -725,8 +726,8 @@ class Report(object):
 
         global_id = self._get_id()
 
-        if ['slices-images', 'MRI'] not in self.sections:
-            self.sections.append(['slices-images', 'MRI'])
+        if 'mri' not in self.sections:
+            self.sections.append('mri')
 
         nim = nib.load(image)
         data = nim.get_data()
@@ -735,7 +736,7 @@ class Report(object):
                   'axial': range(0, shape[1], 2),
                   'coronal': range(0, shape[2], 2)}
         name = op.basename(image)
-        html = u'<li class="slices-images" id="%d">\n' % global_id
+        html = u'<li class="mri" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name
         html += self._render_array(data, global_id=global_id,
                                    cmap=cmap, limits=limits)
@@ -745,8 +746,8 @@ class Report(object):
 
     def _render_raw(self, raw_fname):
 
-        if ['raw', 'Raw'] not in self.sections:
-            self.sections.append(['raw', 'Raw'])
+        if 'raw' not in self.sections:
+            self.sections.append('raw')
 
         global_id = self._get_id()
         div_klass = 'raw'
@@ -782,13 +783,13 @@ class Report(object):
         self.html.append(html)
         self.fnames.append(fwd_fname)
 
-        if ['forward', 'Forward'] not in self.sections:
-            self.sections.append(['forward', 'Forward'])
+        if 'forward' not in self.sections:
+            self.sections.append('forward')
 
     def _render_evoked(self, evoked_fname, figsize=None):
 
-        if ['evoked', 'Evoked'] not in self.sections:
-            self.sections.append(['evoked', 'Evoked'])
+        if 'evoked' not in self.sections:
+            self.sections.append('evoked')
 
         evokeds = read_evokeds(evoked_fname, verbose=False)
 
@@ -812,8 +813,8 @@ class Report(object):
 
     def _render_eve(self, eve_fname, sfreq=None, interactive=True):
 
-        if ['events', 'Events'] not in self.sections:
-            self.sections.append(['events', 'Events'])
+        if 'events' not in self.sections:
+            self.sections.append('events')
 
         import matplotlib.pyplot as plt
 
@@ -859,8 +860,8 @@ class Report(object):
 
     def _render_epochs(self, epo_fname):
 
-        if ['epochs', 'Epochs'] not in self.sections:
-            self.sections.append(['epochs', 'Epochs'])
+        if 'epochs' not in self.sections:
+            self.sections.append('epochs')
 
         global_id = self._get_id()
 
@@ -883,8 +884,8 @@ class Report(object):
 
     def _render_cov(self, cov_fname, info_fname):
 
-        if ['covariance', 'Cov'] not in self.sections:
-            self.sections.append(['covariance', 'Cov'])
+        if 'covariance' not in self.sections:
+            self.sections.append('covariance')
 
         global_id = self._get_id()
         cov = Covariance(cov_fname)
@@ -914,8 +915,8 @@ class Report(object):
 
         if isinstance(fig, mayavi.core.scene.Scene):
 
-            if ['trans', 'Trans'] not in self.sections:
-                self.sections.append(['trans', 'Trans'])
+            if 'trans' not in self.sections:
+                self.sections.append('trans')
 
             global_id = self._get_id()
 
@@ -977,12 +978,12 @@ class Report(object):
 
         global_id = self._get_id()
 
-        if ['slices-images', 'MRI'] not in self.sections:
-            self.sections.append(['slices-images', 'MRI'])
+        if 'mri' not in self.sections:
+            self.sections.append('mri')
 
         name, caption = 'BEM', 'BEM contours'
 
-        html += u'<li class="slices-images" id="%d">\n' % global_id
+        html += u'<li class="mri" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name
         html += u'<div class="row">'
         html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
