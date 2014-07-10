@@ -1412,10 +1412,10 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
     return sp
 
 
-def _make_volume_from_label(pos, volume_label, mgz_fname):
+def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
 
-    # Convert to voxels
-    pos *= 1000.
+    # Convert to millimeters
+    spacing_mm = spacing_m * 1000.
 
     # Read the segmentation data using nibabel
     mgz = nib.load(mgz_fname)
@@ -1428,55 +1428,78 @@ def _make_volume_from_label(pos, volume_label, mgz_fname):
     lut_data = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
                              names=['id', 'name'])
 
-    # Generate a grid using pos
-    spacing = int(pos)
+    # Generate a grid
+    spacing = int(spacing_mm)
+    # Create a downsampling kernel
     kernel = np.zeros((spacing, spacing, spacing))
     kernel[0, 0, 0] = 1
+    # Get the dimensions of the mri data
     sx, sy, sz = mgz_data.shape
-    nx, ny, nz = np.ceil((sz/pos, sy/pos, sz/pos)).astype('int')
+    # Calculate the number of kernels for each dimension
+    nx, ny, nz = np.ceil((sz/spacing_mm, sy/spacing_mm,
+                          sz/spacing_mm)).astype('int')
+    # Create a boolean the same shape as the mri data
     grid = np.tile(kernel, (nx, ny, nz))
     grid = grid[:sx, :sy, :sz]
     grid = grid.astype('bool')
 
-    # Get the numeric label
+    # Get the numeric index for this volume
     vol_id = lut_data['id'][lut_data['name'] == volume_label]
 
-    # Get indices
+    # Get indices for this volume in mri space
     vol_ix = mgz_data == vol_id
-    vol_ix *= grid  # downsample using grid
+    
+    # Downsample using grid
+    vol_ix *= grid
 
-    # Get voxels
-    rr = np.array(np.where(vol_ix)).T
-    shape = rr.max(0) - rr.min(0) + 1
+    # Get the 3 dimensional indices
+    xyz = np.array(np.where(vol_ix)).T
 
-    # Transform to RAS
+    # Transform to RAS coordinates
     trans = mgz_hdr.get_vox2ras_tkr()
-    rr = apply_trans(trans, rr)
+    rr = apply_trans(trans, xyz)
 
     # Convert to meters
     rr /= 1000.
 
+    # Get the shape of the bounding grid
+    shape = (xyz.max(0) - xyz.min(0) + spacing)/spacing
+
     # Calculate parameters for source space
-    npts = rr.shape[0]
+    nuse = rr.shape[0]
+    npts = shape[0]*shape[1]*shape[2]
     coord_frame = FIFF.FIFFV_COORD_MRI
 
-    # Orientation is immaterial
-    nn = np.zeros((npts, 3))
+    # Calculate the inuse array
+    inuse = np.zeros(npts, int)
+    counter = 0
+    for i in range(xyz.min(0)[0], xyz.max(0)[0]+spacing, spacing):
+        for j in range(xyz.min(0)[1], xyz.max(0)[1]+spacing, spacing):
+            for k in range(xyz.min(0)[2], xyz.max(0)[2]+spacing, spacing):
+                if vol_ix[i, j, k]:
+                    inuse[counter] = 1
+                counter += 1
+    
+    # Calculate the src_mri transform            
+    r0 = rr.min(0)
+    voxel_size = spacing * np.ones(3)
+    ras = np.eye(3)
+    src_mri_t = _make_voxel_ras_trans(r0, ras, voxel_size)
+
+    # Populate the entire source space
+    rr = np.mgrid[0:shape[0], 0:shape[1], 0:shape[2]].reshape(3, -1).T
+    rr = apply_trans(src_mri_t['trans'], rr)
+    
+    # Populate the orientations
+    nn = np.zeros(rr.shape)
     nn[:, 2] = 1.
 
     # Setup the source space
-    sp = dict(coord_frame=coord_frame, type='vol', nuse=npts, np=npts,
-              inuse=np.ones(npts, int), vertno=np.arange(npts), rr=rr, nn=nn,
-              id=-1, seg_name=volume_label)
+    sp = dict(coord_frame=coord_frame, type='vol', nuse=nuse, np=npts,
+              inuse=inuse, vertno=np.arange(npts), rr=rr, nn=nn,
+              id=-1, seg_name=volume_label, shape=shape, src_mri_t=src_mri_t)
 
-    # Setup volume data
-    grid = pos / 1000.
-    r0 = rr.min(0) * grid
-    voxel_size = grid * np.ones(3)
-    ras = np.eye(3)
-    sp['src_mri_t'] = _make_voxel_ras_trans(r0, ras, voxel_size)
-    sp['vol_dims'] = rr.max(0) - rr.min(0) + 1
-    sp['shape'] = shape
+    sp['vol_dims'] = xyz.max(0) - xyz.min(0) + 1
 
     return sp
 
