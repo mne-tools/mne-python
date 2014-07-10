@@ -680,6 +680,8 @@ def test_plot_events():
     raw = _get_raw()
     events = _get_events()
     plot_events(events, raw.info['sfreq'], raw.first_samp)
+    # Test plotting events without sfreq
+    plot_events(events, first_samp=raw.first_samp)
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
         plot_events(events, raw.info['sfreq'], raw.first_samp,
