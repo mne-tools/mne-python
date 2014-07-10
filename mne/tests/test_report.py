@@ -24,21 +24,18 @@ def test_parse_folder():
     """Test parsing of folders for MNE-Report.
     """
 
-    report = Report(info_fname=raw_fname, verbose=False)
-    report.parse_folder(data_path=base_dir, verbose=False)
+    report = Report(info_fname=raw_fname)
+    report.parse_folder(data_path=base_dir)
 
     # Check correct paths and filenames
     assert_true(raw_fname in report.fnames)
     assert_true(event_name in report.fnames)
     assert_true(report.data_path == base_dir)
 
-    # Check verbosity
-    assert_true(report.verbose is False)
-
     # Check if raw repr is printed correctly
     raw = Raw(raw_fname)
     raw_idx = [ii for ii, fname in enumerate(report.fnames)
-               if fname == raw_fname][0] + 1  # add one for header
+               if fname == raw_fname][0]
     raw_html = report.html[raw_idx]
     assert_true(raw_html.find(repr(raw)[1:-1]) != -1)
     assert_true(raw_html.find(str(raw.info['sfreq'])) != -1)
@@ -47,7 +44,7 @@ def test_parse_folder():
 
     c_evoked = read_evokeds(evoked_nf_name)
     evoked_idx = [ii for ii, fname in enumerate(report.fnames)
-                  if fname == evoked_nf_name][0] + 1  # add one for header
+                  if fname == evoked_nf_name][0]
     assert_true(report.html[evoked_idx].find(evoked_nf_name) != -1)
 
     # Check saving functionality
