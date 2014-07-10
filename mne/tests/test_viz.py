@@ -446,11 +446,14 @@ def test_plot_drop_log():
     """
     epochs = _get_epochs()
     epochs.drop_bad_epochs()
-    epochs.plot_drop_log()
 
-    plot_drop_log([['One'], [], []])
-    plot_drop_log([['One'], ['Two'], []])
-    plot_drop_log([['One'], ['One', 'Two'], []])
+    warnings.simplefilter('always', UserWarning)
+    with warnings.catch_warnings(record=True):
+        epochs.plot_drop_log()
+
+        plot_drop_log([['One'], [], []])
+        plot_drop_log([['One'], ['Two'], []])
+        plot_drop_log([['One'], ['One', 'Two'], []])
     plt.close('all')
 
 
@@ -662,6 +665,8 @@ def test_plot_events():
     raw = _get_raw()
     events = _get_events()
     plot_events(events, raw.info['sfreq'], raw.first_samp)
+    # Test plotting events without sfreq
+    plot_events(events, first_samp=raw.first_samp)
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
         plot_events(events, raw.info['sfreq'], raw.first_samp,

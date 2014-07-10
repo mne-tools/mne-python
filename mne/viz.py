@@ -4887,7 +4887,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
                               slices=slices, show=show)
 
 
-def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
+def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
                 axes=None, show=True):
     """Plot events to get a visual display of the paradigm
 
@@ -4895,8 +4895,9 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     ----------
     events : array, shape (n_events, 3)
         The events.
-    sfreq : float
-        The sample frequency.
+    sfreq : float | None
+        The sample frequency. If None, data will be displayed in samples (not
+        seconds).
     first_samp : int
         The index of the first sample. Typically the raw.first_samp
         attribute. It is needed for recordings on a Neuromag
@@ -4920,6 +4921,13 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
     ax : matplotlib.axes.AxesSubplot | matplotlib.pyplot
         The axis object containing the plot.
     """
+
+    if sfreq is None:
+        sfreq = 1.0
+        xlabel = 'samples'
+    else:
+        xlabel = 'Time (s)'
+
     events = np.asarray(events)
     unique_events = np.unique(events[:, 2])
 
@@ -4979,11 +4987,11 @@ def plot_events(events, sfreq, first_samp=0, color=None, event_id=None,
 
     if axes:
         ax.set_ylim([min_event - 1, max_event + 1])
-        ax.set_xlabel('Time (s)')
+        ax.set_xlabel(xlabel)
         ax.set_ylabel('Events id')
     else:
         ax.ylim([min_event - 1, max_event + 1])
-        ax.xlabel('Time (s)')
+        ax.xlabel(xlabel)
         ax.ylabel('Events id')
 
     ax.grid('on')
