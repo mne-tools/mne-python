@@ -9,7 +9,7 @@ data and then saved to disk.
 
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Denis A. Engemann <d.engemann@fz-juelich.de>
+#          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 

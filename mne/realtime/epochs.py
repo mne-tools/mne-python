@@ -2,7 +2,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 import time

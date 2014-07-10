@@ -9,7 +9,7 @@ related to the trade-off between denoising and preserving signal.
 In this example we demonstrate how to use topographic maps for delayed
 SSP application.
 """
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

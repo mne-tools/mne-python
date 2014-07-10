@@ -8,7 +8,7 @@ from functools import reduce
 from ..externals.six.moves import map  # analysis:ignore
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD

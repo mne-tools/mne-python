@@ -15,7 +15,7 @@ are present in your dataset but 'ECG 01' and 'EOG 01', 'EOG 02' don't
 appear in the channel names of the raw object.
 """
 
-# Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
+# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>

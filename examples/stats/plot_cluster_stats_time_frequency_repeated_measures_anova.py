@@ -18,7 +18,7 @@ performing a permutation clustering test using the ANOVA as
 clustering function. The results final will be compared to
 multiple comparisons using False Discovery Rate correction.
 """
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

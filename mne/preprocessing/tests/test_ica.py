@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-# Author: Denis Engemann <d.engemann@fz-juelich.de>
+# Author: Denis Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)

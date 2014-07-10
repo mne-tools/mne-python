@@ -8,7 +8,7 @@ compute average spectra to identify channels and
 frequencies of interest for subsequent TFR analyses.
 """
 
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 

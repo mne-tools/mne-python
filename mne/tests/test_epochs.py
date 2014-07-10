@@ -1,5 +1,5 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#         Denis Engemann <d.engemann@fz-juelich.de>
+#         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 

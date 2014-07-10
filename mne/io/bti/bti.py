@@ -1,5 +1,5 @@
 
-# Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
+# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>

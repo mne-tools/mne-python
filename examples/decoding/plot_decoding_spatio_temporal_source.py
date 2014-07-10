@@ -10,7 +10,7 @@ relevant features. The classifier then is trained to selected features of
 epochs in source space.
 """
 
-# Author: Denis A. Engemann <d.engemann@fz-juelich.de>
+# Author: Denis A. Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
