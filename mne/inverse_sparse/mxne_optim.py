@@ -1,5 +1,5 @@
 from __future__ import print_function
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #
 # License: Simplified BSD
@@ -275,13 +275,13 @@ def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
     n_positions = n_sources // n_orient
 
     if n_orient == 1:
-        lipschitz_constant = 1.1 * np.sum(G * G, axis=0)
+        lipschitz_constant = np.sum(G * G, axis=0)
     else:
         lipschitz_constant = np.empty(n_positions)
         for j in range(n_positions):
             G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
-            lipschitz_constant[j] = 1.1 * linalg.norm(np.dot(G_tmp.T, G_tmp),
-                                                      ord=2)
+            lipschitz_constant[j] = linalg.norm(np.dot(G_tmp.T, G_tmp),
+                                                ord=2)
 
     if init is None:
         X = np.zeros((n_sources, n_times))
@@ -348,13 +348,13 @@ def _mixed_norm_solver_gbcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
     n_positions = n_sources // n_orient
 
     if n_orient == 1:
-        lipschitz_constant = 1.1 * np.sum(G * G, axis=0)
+        lipschitz_constant = np.sum(G * G, axis=0)
     else:
         lipschitz_constant = np.empty(n_positions)
         for j in range(n_positions):
             G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
-            lipschitz_constant[j] = 1.1 * linalg.norm(np.dot(G_tmp.T, G_tmp),
-                                                      ord=2)
+            lipschitz_constant[j] = linalg.norm(np.dot(G_tmp.T, G_tmp),
+                                                ord=2)
 
     if init is None:
         X = np.zeros((n_sources, n_times))
@@ -379,21 +379,6 @@ def _mixed_norm_solver_gbcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
                             0.0)
         shrink = np.repeat(shrink, n_orient)
         X_tmp *= shrink[:, None]
-
-        # # ideally compute the difference of the cost function
-        # sel = np.zeros(n_positions)
-        # E_R = 0.5 * linalg.norm(R, 'fro') ** 2.
-        # for j in range(n_positions):
-        #     ids = j * n_orient
-        #     ide = ids + n_orient
-        #     G_j = G[:, ids:ide]
-        #     X_j = X[ids:ide]
-        #     X_tmp_j = X_tmp[ids:ide]
-        #     R_tmp = R + np.dot(G_j, X_j - X_tmp_j)
-        #     sel[j] = np.abs((E_R - 0.5 * linalg.norm(R_tmp, 'fro') ** 2. +
-        #                     alpha * (linalg.norm(X_tmp_j, 'fro') -
-        #                     linalg.norm(X_j, 'fro'))))
-        # idx_max = np.argmax(sel)
 
         sel = np.sum((np.abs(X - X_tmp) ** 2).reshape(n_positions, -1), axis=1)
         idx_max = np.argmax(sel)
