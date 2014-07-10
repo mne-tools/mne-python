@@ -10,7 +10,7 @@ Subsequently, artifact detection and rejection quality are assessed.
 print(__doc__)
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

@@ -8,7 +8,7 @@ phase-lock for a list of epochs read in a raw file given
 a list of events.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

@@ -6,7 +6,7 @@ Sensitivity map of SSP projections
 This example shows the sources that have a forward field
 similar to the first SSP vector correcting for ECG.
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

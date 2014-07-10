@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Denis Engemann <d.engemann@fz-juelich.de>
 #         Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #

@@ -10,7 +10,7 @@ of Gaussian whiten noise from which we expect values around
 and less than 2 standard deviations.
 
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

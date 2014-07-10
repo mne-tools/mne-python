@@ -1,5 +1,5 @@
 from __future__ import print_function
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: Simplified BSD
 

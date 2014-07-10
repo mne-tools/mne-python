@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 # Author: Denis Engemann <d.engemann@fz-juelich.de>
-#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

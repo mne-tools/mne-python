@@ -8,7 +8,7 @@ space and stores the solution in a nifti file for visualisation.
 
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

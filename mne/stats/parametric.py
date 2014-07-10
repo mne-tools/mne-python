@@ -7,7 +7,7 @@ from ..fixes import matrix_rank
 from functools import reduce
 from ..externals.six.moves import map  # analysis:ignore
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #          Eric Larson <larson.eric.d@gmail.com>
 #

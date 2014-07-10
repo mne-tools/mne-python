@@ -1,5 +1,5 @@
 # Authors: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

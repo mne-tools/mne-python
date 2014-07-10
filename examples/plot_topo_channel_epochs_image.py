@@ -11,7 +11,7 @@ the selected channels.
 """
 print(__doc__)
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)

@@ -17,7 +17,7 @@ appear in the channel names of the raw object.
 
 # Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Yuval Harpaz <yuvharpaz@gmail.com>
 #

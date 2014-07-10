@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Martin Luessi <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Martin Luessi <alexandre.gramfort@telecom-paristech.fr>
 # License: Simplified BSD
 from copy import deepcopy
 

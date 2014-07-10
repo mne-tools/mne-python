@@ -8,7 +8,7 @@ a list of events. The epochs are averaged to produce evoked
 data and then saved to disk.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis A. Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)

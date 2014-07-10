@@ -1,5 +1,5 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #
 # License: BSD (3-clause)

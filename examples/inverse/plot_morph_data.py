@@ -8,7 +8,7 @@ to the anatomy of another subject 'fsaverage'. The output
 is a source estimate defined on the anatomy of 'fsaverage'
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)

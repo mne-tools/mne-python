@@ -8,7 +8,7 @@ Then we estimate the noise covariance of prestimulus data,
 a.k.a. baseline.
 
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

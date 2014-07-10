@@ -11,7 +11,7 @@ epochs in source space.
 """
 
 # Author: Denis A. Engemann <d.engemann@fz-juelich.de>
-#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

@@ -12,7 +12,7 @@ Then we will explore the impact of the particular SSP projectors
 on the evoked data.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <d.engemann@fz-juelich.de>
 #
 # License: BSD (3-clause)

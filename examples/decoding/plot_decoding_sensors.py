@@ -7,7 +7,7 @@ Decoding, a.k.a MVPA or supervised machine learning applied to MEG
 data in sensor space. Here the classifier is applied to every time
 point.
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

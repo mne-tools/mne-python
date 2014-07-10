@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Authors: Thorsten Kranz <thorstenkranz@gmail.com>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Engemann <d.engemann@fz-juelich.de>
