@@ -294,7 +294,7 @@ def test_plot_ica_components():
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
         for components in [0, [0], [0, 1], [0, 1] * 7, None]:
-            ica.plot_components(components)
+            ica.plot_components(components, image_interp='bilinear')
     ica.info = None
     assert_raises(RuntimeError, ica.plot_components, 1)
     plt.close('all')
@@ -533,7 +533,8 @@ def test_plot_topomap():
                             show_names=True, mask_params={'marker': 'x'})
 
         p = plot_evoked_topomap(evoked, times, ch_type='grad',
-                                show_names=lambda x: x.replace('MEG', ''))
+                                show_names=lambda x: x.replace('MEG', ''),
+                                image_interp='bilinear')
         subplot = [x for x in p.get_children() if
                    isinstance(x, matplotlib.axes.Subplot)][0]
         assert_true(all('MEG' not in x.get_text()
@@ -583,25 +584,6 @@ def test_compare_fiff():
     """Test comparing fiff files
     """
     compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)
-    plt.close('all')
-
-
-@requires_sklearn
-def test_plot_ica_topomap():
-    """Test plotting of ICA solutions
-    """
-    raw = _get_raw()
-    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
-              max_pca_components=3, n_pca_components=3)
-    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
-                           ecg=False, eog=False, exclude='bads')
-    ica.decompose_raw(raw, picks=ica_picks)
-    warnings.simplefilter('always', UserWarning)
-    with warnings.catch_warnings(record=True):
-        for components in [0, [0], [0, 1], [0, 1] * 7]:
-            ica.plot_topomap(components)
-    ica.info = None
-    assert_raises(RuntimeError, ica.plot_topomap, 1)
     plt.close('all')
 
 

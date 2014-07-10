@@ -830,7 +830,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         res=64, size=1, format='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
-                        mask_params=None, outlines='head', contours=6):
+                        mask_params=None, outlines='head', contours=6,
+                        image_interp='nearest'):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -910,6 +911,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Defaults to 'head'.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
+    image_interp : str
+        The image interpolation to be used. All matplotlib options are accepted.
     """
     import matplotlib.pyplot as plt
 
@@ -997,7 +1000,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                               mask=mask_[:, i] if mask is not None else None,
                               mask_params=mask_params, axis=ax,
                               outlines=outlines, image_mask=image_mask,
-                              contours=contours)
+                              contours=contours, image_interp=image_interp)
         images.append(tp)
         if cn is not None:
             contours_.append(cn)
@@ -1072,7 +1075,7 @@ def _plot_update_evoked_topomap(params, bools):
 
 def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
                        colorbar=False, res=64, size=1, show=True,
-                       outlines='head', contours=6):
+                       outlines='head', contours=6, image_interp='nearest'):
     """Plot topographic maps of SSP projections
 
     Parameters
@@ -1104,6 +1107,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         Defaults to 'head'.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
+    image_interp : str
+        The image interpolation to be used. All matplotlib options are accepted.
 
     Returns
     -------
@@ -1156,7 +1161,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         ax.set_title(proj['desc'][:10] + '...')
         if len(idx):
             plot_topomap(data, pos, vmax=None, cmap=cmap,
-                         sensors=sensors, res=res, outlines=outlines)
+                         sensors=sensors, res=res, outlines=outlines,
+                         image_interp=image_interp)
             if colorbar:
                 plt.colorbar()
         else:
@@ -1270,7 +1276,7 @@ def _griddata(x, y, v, xi, yi):
 def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
-                 contours=6):
+                 contours=6, image_interp='nearest'):
     """Plot a topographic map as image
 
     Parameters
@@ -1323,6 +1329,9 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         computed from the outline.
     contour : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
+    image_interp : str
+        The image interpolation to be used. All matplotlib options are accepted.
+
     """
     import matplotlib.pyplot as plt
 
@@ -1407,8 +1416,8 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     # plot map and countour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
-                   interpolation='nearest')
-    if isinstance(contours, int):
+                   interpolation=image_interp)
+    if isinstance(contours, int) and contours not in (False, None):
         cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
                           linewidths=linewidth)
     else:
@@ -2239,7 +2248,8 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=64, layout=None,
 def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
                         layout=None,
                         vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        title=None, show=True, outlines='head', contours=6):
+                        title=None, show=True, outlines='head', contours=6,
+                        image_interp='nearest'):
     """Project unmixing matrix on interpolated sensor topogrpahy.
 
     Parameters
@@ -2277,6 +2287,8 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
             nothing will be drawn. defaults to 'head'.
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
+    image_interp : str
+        The image interpolation to be used. All matplotlib options are accepted.
 
     Returns
     -------
@@ -2335,7 +2347,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         data_ = _merge_grad_data(data_) if merge_grads else data_
         plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
                      res=res, axis=ax, outlines=outlines,
-                     image_mask=image_mask)
+                     image_mask=image_mask, image_interp=image_interp)
         ax.set_title('IC #%03d' % ii, fontsize=12)
         ax.set_yticks([])
         ax.set_xticks([])

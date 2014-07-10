@@ -442,7 +442,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
                      format="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
-                     mask_params=None, outlines='head', contours=6):
+                     mask_params=None, outlines='head', contours=6,
+                     image_interp='nearest'):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -521,6 +522,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             If dict, each key refers to a tuple of x and y positions. The
             values in 'mask_pos' will serve as image mask. If None,
             nothing will be drawn. Defaults to 'head'.
+        image_interp : str
+            The image interpolation to be used. All matplotlib options are
+            accepted.
+
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
@@ -531,8 +536,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                    format=format, time_format=time_format,
                                    show_names=show_names, title=title,
                                    mask=mask, mask_params=mask_params,
-                                   outlines=outlines,
-                                   contours=contours)
+                                   outlines=outlines, contours=contours,
+                                   image_interp=image_interp)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
