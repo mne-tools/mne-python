@@ -1,5 +1,6 @@
 from __future__ import print_function
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Daniel Strohmeier <daniel.strohmeier@gmail.com>
 #
 # License: Simplified BSD
 
@@ -11,6 +12,7 @@ from scipy import linalg
 from .mxne_debiasing import compute_bias
 from ..utils import logger, verbose, sum_squared
 from ..time_frequency.stft import stft_norm2, stft, istft
+from ..externals.six.moves import xrange as range
 
 
 def groups_norm2(A, n_orient):
@@ -137,9 +139,9 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
     Parameters
     ----------
     M : array of shape [n_sensors, n_times]
-        data
+        The data.
     G : array of shape [n_sensors, n_active]
-        Gain matrix a.k.a. lead field
+        The gain matrix a.k.a. lead field.
     X : array of shape [n_active, n_times]
         Sources
     active_set : array of bool
@@ -262,10 +264,152 @@ def _mixed_norm_solver_cd(M, G, alpha, maxit=10000, tol=1e-8,
 
 
 @verbose
+def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
+                           init=None, n_orient=1):
+    """Solves L21 inverse problem with block coordinate descent"""
+    # First make G fortran for faster access to blocks of columns
+    G = np.asfortranarray(G)
+
+    n_sensors, n_times = M.shape
+    n_sensors, n_sources = G.shape
+    n_positions = n_sources // n_orient
+
+    if n_orient == 1:
+        lipschitz_constant = np.sum(G * G, axis=0)
+    else:
+        lipschitz_constant = np.empty(n_positions)
+        for j in range(n_positions):
+            G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
+            lipschitz_constant[j] = linalg.norm(np.dot(G_tmp.T, G_tmp),
+                                                ord=2)
+
+    if init is None:
+        X = np.zeros((n_sources, n_times))
+        R = M.copy()
+    else:
+        X = init
+        R = M - np.dot(G, X)
+
+    E = []  # track cost function
+
+    active_set = np.zeros(n_sources, dtype=np.bool)  # start with full AS
+
+    alpha_lc = alpha / lipschitz_constant
+
+    for i in range(maxit):
+        for j in range(n_positions):
+            ids = j * n_orient
+            ide = ids + n_orient
+
+            G_j = G[:, ids:ide]
+            X_j = X[ids:ide]
+
+            X_j_new = np.dot(G_j.T, R) / lipschitz_constant[j]
+
+            was_non_zero = np.any(X_j)
+            if was_non_zero:
+                R += np.dot(G_j, X_j)
+                X_j_new += X_j
+
+            block_norm = linalg.norm(X_j_new, 'fro')
+            if block_norm <= alpha_lc[j]:
+                X_j.fill(0.)
+            else:
+                shrink = np.maximum(1.0 - alpha_lc[j] / block_norm, 0.0)
+                X_j_new *= shrink
+                R -= np.dot(G_j, X_j_new)
+                X_j[:] = X_j_new
+
+        active_set = np.any(X, axis=1)
+        gap, pobj, dobj, _ = dgap_l21(M, G, X[active_set], active_set, alpha,
+                                      n_orient)
+        E.append(pobj)
+        logger.debug("Iteration %d :: pobj %f :: dgap %f :: n_active %d" % (
+                     i + 1, pobj, gap, np.sum(active_set) / n_orient))
+
+        if gap < tol:
+            logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
+            break
+
+    X = X[active_set]
+
+    return X, active_set, E
+
+
+@verbose
+def _mixed_norm_solver_gbcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
+                            init=None, n_orient=1):
+    """Solves L21 inverse problem with greedy block coordinate descent"""
+    # First make G fortran for faster access to blocks of columns
+    G = np.asfortranarray(G)
+
+    n_sensors, n_times = M.shape
+    n_sensors, n_sources = G.shape
+    n_positions = n_sources // n_orient
+
+    if n_orient == 1:
+        lipschitz_constant = np.sum(G * G, axis=0)
+    else:
+        lipschitz_constant = np.empty(n_positions)
+        for j in range(n_positions):
+            G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
+            lipschitz_constant[j] = linalg.norm(np.dot(G_tmp.T, G_tmp),
+                                                ord=2)
+
+    if init is None:
+        X = np.zeros((n_sources, n_times))
+        R = M.copy()
+    else:
+        X = init
+        R = M - np.dot(G, X)
+
+    E = []   # track cost function
+
+    active_set = np.zeros(n_sources, dtype=np.bool)  # start with full AS
+
+    alpha_lc = alpha / lipschitz_constant
+
+    lipschitz_constant_repeat = np.repeat(lipschitz_constant, n_orient)
+
+    for i in range(maxit):
+        X_tmp = X + np.dot(G.T, R) / lipschitz_constant_repeat[:, None]
+        rows_norm = np.sqrt(np.sum((np.abs(X_tmp) ** 2).reshape(n_positions,
+                            -1), axis=1))
+        shrink = np.maximum(1.0 - alpha_lc / np.maximum(rows_norm, alpha_lc),
+                            0.0)
+        shrink = np.repeat(shrink, n_orient)
+        X_tmp *= shrink[:, None]
+
+        sel = np.sum((np.abs(X - X_tmp) ** 2).reshape(n_positions, -1), axis=1)
+        idx_max = np.argmax(sel)
+
+        ids = idx_max * n_orient
+        ide = ids + n_orient
+        R += np.dot(G[:, ids:ide], X[ids:ide] - X_tmp[ids:ide])
+        X[ids:ide] = X_tmp[ids:ide].copy()
+
+        active_set = np.any(X, axis=1)
+        gap, pobj, dobj, _ = dgap_l21(M, G, X[active_set], active_set, alpha,
+                                      n_orient)
+        E.append(pobj)
+
+        logger.debug("Iteration %d :: pobj %f :: dgap %f :: n_active %d" % (
+                     i + 1, pobj, gap, np.sum(active_set) / n_orient))
+
+        if gap < tol:
+            logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
+            break
+
+    X = X[active_set]
+
+    return X, active_set, E
+
+
+@verbose
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
                       solver='auto'):
-    """Solves L21 inverse solver with active set strategy
+    """Solves L1/L2 mixed-norm inverse problem with active set strategy
 
     Algorithm is detailed in:
     Gramfort A., Kowalski M. and Hamalainen, M,
@@ -275,31 +419,31 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     Parameters
     ----------
-    M : array
-        The data
-    G : array
-        The forward operator
+    M : array of shape [n_sensors, n_times]
+        The data.
+    G : array of shape [n_sensors, n_dipoles]
+        The gain matrix a.k.a. lead field.
     alpha : float
         The regularization parameter. It should be between 0 and 100.
         A value of 100 will lead to an empty active set (no active source).
     maxit : int
-        The number of iterations
+        The number of iterations.
     tol : float
-        Tolerance on dual gap for convergence checking
+        Tolerance on dual gap for convergence checking.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     active_set_size : int
         Size of active set increase at each iteration.
     debias : bool
-        Debias source estimates
+        Debias source estimates.
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
-    solver : 'prox' | 'cd' | 'auto'
+    solver : 'prox' | 'cd' | 'bcd' | 'gbcd' | 'auto'
         The algorithm to use for the optimization.
 
     Returns
     -------
-    X : array
+    X : array of shape [n_active, n_times]
         The source estimates.
     active_set : array
         The mask of active sources.
@@ -322,23 +466,29 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         if has_sklearn and (n_orient == 1):
             solver = 'cd'
         else:
-            solver = 'prox'
+            solver = 'bcd'
 
     if solver == 'cd':
         if n_orient == 1 and not has_sklearn:
             warnings.warn("Scikit-learn >= 0.12 cannot be found. "
-                          "Using proximal iterations instead of coordinate "
-                          "descent.")
-            solver = 'prox'
+                          "Using block coordinate descent instead of "
+                          "coordinate descent.")
+            solver = 'bcd'
         if n_orient > 1:
             warnings.warn("Coordinate descent is only available for fixed "
-                          "orientation. Using proximal iterations instead of "
-                          "coordinate descent")
-            solver = 'prox'
+                          "orientation. Using block coordinate descent "
+                          "instead of coordinate descent")
+            solver = 'bcd'
 
     if solver == 'cd':
         logger.info("Using coordinate descent")
         l21_solver = _mixed_norm_solver_cd
+    elif solver == 'bcd':
+        logger.info("Using block coordinate descent")
+        l21_solver = _mixed_norm_solver_bcd
+    elif solver == 'gbcd':
+        logger.info("Using greedy block coordinate descent")
+        l21_solver = _mixed_norm_solver_gbcd
     else:
         logger.info("Using proximal iterations")
         l21_solver = _mixed_norm_solver_prox
@@ -374,7 +524,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                 active_set_old = active_set.copy()
                 active_set[new_active_idx] = True
                 as_size = np.sum(active_set)
-                logger.info('active set size %s' % as_size)
+                logger.info('active set size %s' % (as_size // n_orient))
                 X_init = np.zeros((as_size, n_times), dtype=X.dtype)
                 idx_active_set = np.where(active_set)[0]
                 idx = np.searchsorted(idx_active_set, idx_old_active_set)
@@ -394,6 +544,106 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     if (active_set.sum() > 0) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
         X *= bias[:, np.newaxis]
+        # X, _, _, _ = linalg.lstsq(G[:, active_set], M)
+
+    return X, active_set, E
+
+
+@verbose
+def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
+                                tol=1e-8, verbose=None, active_set_size=50,
+                                debias=True, n_orient=1, solver='auto'):
+    """Solves L0.5/L2 mixed-norm inverse problem with active set strategy
+
+    Algorithm is detailed in:
+    Strohmeier D., Haueisen J., and Gramfort A.:
+    Improved MEG/EEG source localization with reweighted mixed-norms,
+    4th International Workshop on Pattern Recognition in Neuroimaging,
+    Tuebingen, 2014
+
+    Parameters
+    ----------
+    M : array of shape [n_sensors, n_times]
+        The data.
+    G : array of shape [n_sensors, n_dipoles]
+        The gain matrix a.k.a. lead field.
+    alpha : float
+        The regularization parameter. It should be between 0 and 100.
+        A value of 100 will lead to an empty active set (no active source).
+    n_mxne_iter : int
+        The number of MxNE iterations. If > 1, iterative reweighting
+        is applied.
+    maxit : int
+        The number of iterations.
+    tol : float
+        Tolerance on dual gap for convergence checking.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    active_set_size : int
+        Size of active set increase at each iteration.
+    debias : bool
+        Debias source estimates.
+    n_orient : int
+        The number of orientation (1 : fixed or 3 : free or loose).
+    solver : 'prox' | 'cd' | 'bcd' | 'auto'
+        The algorithm to use for the optimization.
+
+    Returns
+    -------
+    X : array of shape [n_active, n_times]
+        The source estimates.
+    active_set : array
+        The mask of active sources.
+    E : list
+        The value of the objective function over the iterations.
+    """
+    g = lambda w: np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
+    gprime = lambda w: 2. * np.repeat(g(w), n_orient).ravel()
+
+    E = list()
+
+    active_set = np.ones(G.shape[1], dtype=np.bool)
+    weights = np.ones(G.shape[1])
+    X = np.zeros((G.shape[1], M.shape[1]))
+
+    for k in range(n_mxne_iter):
+        X0 = X.copy()
+        active_set_0 = active_set.copy()
+        G_tmp = G[:, active_set] * weights[np.newaxis, :]
+
+        X, _active_set, _ = mixed_norm_solver(M, G_tmp, alpha, debias=False,
+                                              n_orient=n_orient,
+                                              maxit=maxit, tol=tol,
+                                              active_set_size=active_set_size,
+                                              solver=solver, verbose=verbose)
+
+        logger.info('active set size %d' % (_active_set.sum() / n_orient))
+
+        if _active_set.sum() > 0:
+            active_set[active_set] = _active_set
+            # Reapply weights to have correct unit
+            X *= weights[_active_set][:, np.newaxis]
+            weights = gprime(X)
+            p_obj = 0.5 * linalg.norm(M - np.dot(G[:, active_set],  X),
+                                      'fro') ** 2. + alpha * np.sum(g(X))
+            E.append(p_obj)
+
+            # Check convergence
+            if k >= 1:
+                if np.all(active_set == active_set_0):
+                    if np.all(np.abs(X - X0) < tol):
+                        print('Convergence reached after %d reweightings!' % k)
+                        break
+        else:
+            active_set = np.zeros_like(active_set)
+            p_obj = 0.5 * linalg.norm(M)
+            E.append(p_obj)
+            break
+
+    if (active_set.sum() > 0) and debias:
+        bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
+        X *= bias[:, np.newaxis]
+        # X, _, _, _ = linalg.lstsq(G[:, active_set], M)
 
     return X, active_set, E
 
@@ -492,10 +742,10 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     Parameters
     ----------
-    M : array
+    M : array of shape [n_sensors, n_times]
         The data.
-    G : array
-        The forward operator.
+    G : array of shape [n_sensors, n_dipoles]
+        The gain matrix a.k.a. lead field.
     alpha_space : float
         The spatial regularization parameter. It should be between 0 and 100.
     alpha_time : float
@@ -526,7 +776,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     Returns
     -------
-    X : array
+    X : array of shape [n_active, n_times]
         The source estimates.
     active_set : array
         The mask of active sources.
@@ -614,9 +864,9 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
             X = phiT(Z)
             RZ = M - np.dot(G[:, active_set], X)
             pobj = 0.5 * linalg.norm(RZ, ord='fro') ** 2 \
-               + alpha_space * norm_l21(X, n_orient) \
-               + alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1, n_orient),
-                                             axis=1)).sum()
+                + alpha_space * norm_l21(X, n_orient) \
+                + alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1, n_orient),
+                                       axis=1)).sum()
             E.append(pobj)
             logger.info("Iteration %d :: pobj %f :: n_active %d" % (i + 1,
                         pobj, np.sum(active_set)))
