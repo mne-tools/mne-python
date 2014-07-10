@@ -235,41 +235,20 @@ div.footer {
 <body>
 
 <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+    <div class="container">
+        <h3 class="navbar-text" style="color:white">{{title}}</h3>
+        <ul class="nav nav-pills navbar-right" style="margin-top: 7px;">
 
-<div class="container">
+        {{for section, text in sections}}
 
-<h3 class="navbar-text" style="color:white">{{title}}</h3>
+        <li class="active {{section}}-btn">
+            <a href="#" onclick="togglebutton('.{{section}}')">{{text}}</a>
+        </li>
 
-<ul class="nav nav-pills navbar-right" style="margin-top: 7px;">
+        {{endfor}}
 
-    <li class="active raw-btn">
-        <a href="#" onclick="togglebutton('.raw')">Raw</a>
-    </li>
-    <li class="active epochs-btn">
-        <a href="#" onclick="togglebutton('.epochs')">Epochs</a>
-    </li>
-    <li class="active evoked-btn">
-        <a href="#"  onclick="togglebutton('.evoked')">Evoked</a>
-    </li>
-    <li class="active forward-btn">
-        <a href="#" onclick="togglebutton('.forward')">Forward</a>
-    </li>
-    <li class="active covariance-btn">
-        <a href="#" onclick="togglebutton('.covariance')">Cov</a>
-    </li>
-    <li class="active events-btn">
-        <a href="#" onclick="togglebutton('.events')">Events</a>
-    </li>
-    <li class="active trans-btn">
-        <a href="#" onclick="togglebutton('.trans')">Trans</a>
-    </li>
-    <li class="active slices-images-btn">
-        <a href="#" onclick="togglebutton('.slices-images')">MRI</a>
-    </li>
-</ul>
-
-</div>
-
+        </ul>
+    </div>
 </nav>
 """)
 
@@ -343,6 +322,7 @@ class Report(object):
         self.initial_id = 0
         self.html = []
         self.fnames = []  # List of file names rendered
+        self.sections = []  # List of sections
 
         self._init_render(verbose=self.verbose)  # Initialize the renderer
 
@@ -350,7 +330,7 @@ class Report(object):
         self.initial_id += 1
         return self.initial_id
 
-    def add_section(self, figs, captions):
+    def add_section(self, figs, captions, section='custom'):
         """Append custom user-defined figures.
 
         Parameters
@@ -359,12 +339,19 @@ class Report(object):
             A list of figures to be included in the report.
         captions : list of str
             A list of captions to the figures.
+        section : str
+            Name of the section. If section already exists, the figures
+            will be appended to the end of the section
         """
+
+        if [section, section] not in self.sections:
+            self.sections.append([section, section])
+
         html = []
         for fig, caption in zip(figs, captions):
             global_id = self._get_id()
-            div_klass = 'custom'
-            img_klass = 'custom'
+            div_klass = section
+            img_klass = section
             img = _fig_to_img(fig)
             html.append(image_template.substitute(img=img, id=global_id,
                                                   div_klass=div_klass,
@@ -372,7 +359,7 @@ class Report(object):
                                                   caption=caption,
                                                   interactive=None,
                                                   show=True))
-            self.fnames.append(img_klass)
+            self.fnames.append('%s-#-%s-#-custom' % (caption, section))
         self.html.append(''.join(html))
 
     ###########################################################################
@@ -431,9 +418,7 @@ class Report(object):
                                + f.read() + u'</style>')
             f.close()
 
-        html = header_template.substitute(title=self.title,
-                                          include=''.join(include))
-        self.html.append(html)
+        self.include = ''.join(include)
 
     @verbose
     def parse_folder(self, data_path, interactive=True, verbose=None):
@@ -574,7 +559,7 @@ class Report(object):
                                    'raw.fif', 'raw.fif.gz',
                                    'sss.fif', 'sss.fif.gz',
                                    '-epo.fif', 'T1.mgz',
-                                   'bem')):
+                                   'bem', 'custom')):
                 color = 'red'
             else:
                 color = ''
@@ -617,9 +602,9 @@ class Report(object):
                 tooltip = 'MRI'
                 text = 'MRI'
             else:
-                div_klass = 'custom'
-                tooltip = 'custom'
-                text = 'custom'
+                div_klass = fname.split('-#-')[1]
+                tooltip = fname.split('-#-')[0]
+                text = fname.split('-#-')[0]
 
             if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz', 'raw.fif',
                                'sss.fif', '-eve.fif', '-cov.fif',
@@ -653,7 +638,11 @@ class Report(object):
         html += u'\n</ul></div>'
         html += u'<div id="content">'
 
-        self.html.insert(1, html)  # insert TOC just after header
+        html_header = header_template.substitute(title=self.title,
+                                                 include=self.include,
+                                                 sections=self.sections)
+        self.html.insert(0, html_header)  # Insert header at position 0
+        self.html.insert(1, html)  # insert TOC
 
     def _render_array(self, array, global_id=None, cmap='gray',
                       limits=None):
@@ -732,6 +721,9 @@ class Report(object):
 
         global_id = self._get_id()
 
+        if ['slices-images', 'MRI'] not in self.sections:
+            self.sections.append(['slices-images', 'MRI'])
+
         nim = nib.load(image)
         data = nim.get_data()
         shape = data.shape
@@ -748,6 +740,10 @@ class Report(object):
         return html
 
     def _render_raw(self, raw_fname):
+
+        if ['raw', 'Raw'] not in self.sections:
+            self.sections.append(['raw', 'Raw'])
+
         global_id = self._get_id()
         div_klass = 'raw'
         caption = u'Raw : %s' % raw_fname
@@ -782,7 +778,14 @@ class Report(object):
         self.html.append(html)
         self.fnames.append(fwd_fname)
 
+        if ['forward', 'Forward'] not in self.sections:
+            self.sections.append(['forward', 'Forward'])
+
     def _render_evoked(self, evoked_fname, figsize=None):
+
+        if ['evoked', 'Evoked'] not in self.sections:
+            self.sections.append(['evoked', 'Evoked'])
+
         evokeds = read_evokeds(evoked_fname, verbose=False)
 
         html = []
@@ -804,6 +807,9 @@ class Report(object):
         self.html.append('\n'.join(html))
 
     def _render_eve(self, eve_fname, info, interactive=True):
+
+        if ['events', 'Events'] not in self.sections:
+            self.sections.append(['events', 'Events'])
 
         import matplotlib.pyplot as plt
 
@@ -850,6 +856,9 @@ class Report(object):
 
     def _render_epochs(self, epo_fname):
 
+        if ['epochs', 'Epochs'] not in self.sections:
+            self.sections.append(['epochs', 'Epochs'])
+
         global_id = self._get_id()
 
         epochs = read_epochs(epo_fname)
@@ -870,6 +879,9 @@ class Report(object):
         self.html.append(html)
 
     def _render_cov(self, cov_fname):
+
+        if ['covariance', 'Cov'] not in self.sections:
+            self.sections.append(['covariance', 'Cov'])
 
         import matplotlib.pyplot as plt
 
@@ -900,6 +912,10 @@ class Report(object):
                          subject=subject, subjects_dir=subjects_dir)
 
         if isinstance(fig, mayavi.core.scene.Scene):
+
+            if ['trans', 'Trans'] not in self.sections:
+                self.sections.append(['trans', 'Trans'])
+
             global_id = self._get_id()
 
             # XXX: save_bmp / save_png / ...
@@ -959,6 +975,10 @@ class Report(object):
         html = []
 
         global_id = self._get_id()
+
+        if ['slices-images', 'MRI'] not in self.sections:
+            self.sections.append(['slices-images', 'MRI'])
+
         name, caption = 'BEM', 'BEM contours'
 
         html += u'<li class="slices-images" id="%d">\n' % global_id
