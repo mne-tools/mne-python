@@ -1,7 +1,7 @@
 """A module which implements the continuous wavelet transform
 with complex Morlet wavelets.
 
-Author : Alexandre Gramfort, gramfort@nmr.mgh.harvard.edu (2011)
+Author : Alexandre Gramfort, alexandre.gramfort@telecom-paristech.fr (2011)
 License : BSD 3-clause
 
 inspired by Matlab code from Sheraz Khan & Brainstorm & SPM

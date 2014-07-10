@@ -8,7 +8,7 @@ for different bands in the source space. The inverse method
 is linear based on dSPM inverse operator.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

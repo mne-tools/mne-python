@@ -1,4 +1,4 @@
-# Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
+# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
 #
 #          simplified BSD-3 license
 

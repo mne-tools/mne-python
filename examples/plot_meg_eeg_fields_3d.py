@@ -9,7 +9,7 @@ This process can be computationally intensive.
 """
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
-#          Denis A. Engemann <d.engemann@fz-juelich.de>
+#          Denis A. Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 
 # License: BSD (3-clause)

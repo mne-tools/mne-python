@@ -1,7 +1,7 @@
 """T-test with permutations
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Fernando Perez (bin_perm_rep function)
 #
 # License: Simplified BSD

@@ -1,7 +1,7 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Egnemann <d.engemann@fz-juelich.de>
+#          Denis Egnemann <denis.engemann@gmail.com>
 # License: BSD Style.
 
 from ..externals.six import string_types

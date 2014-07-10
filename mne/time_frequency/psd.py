@@ -1,5 +1,5 @@
-# Authors : Alexandre Gramfort, gramfort@nmr.mgh.harvard.edu (2011)
-#           Denis A. Engemann <d.engemann@fz-juelich.de>
+# Authors : Alexandre Gramfort, alexandre.gramfort@telecom-paristech.fr (2011)
+#           Denis A. Engemann <denis.engemann@gmail.com>
 # License : BSD 3-clause
 
 import numpy as np

@@ -13,7 +13,7 @@ visualize the evoked responses to both 'quickly-processed'
 and 'slowly-processed' face stimuli.
 
 """
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 

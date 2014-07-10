@@ -1,5 +1,5 @@
 # Authors: Romain Trachel <romain.trachel@inria.fr>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

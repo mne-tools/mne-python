@@ -7,7 +7,7 @@ This script shows how to compute the power spectral density (PSD)
 of measurements on a raw dataset. It also show the effect of applying SSP
 to the data to reduce ECG and EOG artifacts.
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)

@@ -85,7 +85,7 @@ Reference
 More information and additional introductory materials can be found at the
 pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
 """
-# Author: Denis Engemann <d.engemann@fz-juelich.de>
+# Author: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 

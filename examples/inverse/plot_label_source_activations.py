@@ -10,7 +10,7 @@ in a label. We compare a simple average, with an averaging
 using the dipoles normal (flip mode) and then a PCA,
 also using a sign flip.
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

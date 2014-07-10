@@ -13,7 +13,7 @@ See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
     and Clinical Neurophysiology, 79(6):440--447, December 1991.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Romain Trachel <romain.trachel@inria.fr>
 #
 # License: BSD (3-clause)

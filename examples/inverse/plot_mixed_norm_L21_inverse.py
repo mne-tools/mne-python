@@ -9,7 +9,7 @@ Mixed-norm estimates for the M/EEG inverse problem using accelerated
 gradient methods, Physics in Medicine and Biology, 2012
 http://dx.doi.org/10.1088/0031-9155/57/7/1937
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

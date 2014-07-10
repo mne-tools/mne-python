@@ -7,7 +7,7 @@ This script shows how to fit an AR model to data and use it
 to temporally whiten the signals.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
