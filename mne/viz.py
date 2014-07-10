@@ -4884,7 +4884,8 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     events : array, shape (n_events, 3)
         The events.
     sfreq : float | None
-        The sample frequency.
+        The sample frequency. If None, data will be displayed in samples (not
+        seconds).
     first_samp : int
         The index of the first sample. Typically the raw.first_samp
         attribute. It is needed for recordings on a Neuromag
