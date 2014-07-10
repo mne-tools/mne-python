@@ -143,6 +143,13 @@ header_template = Template(u"""
             else
                 $(class_name + '-btn').addClass('active');
         }
+
+        /* Scroll down on click to #id so that caption is not hidden
+        by navbar */
+        var shiftWindow = function() { scrollBy(0, -60) };
+        if (location.hash) shiftWindow();
+        window.addEventListener("hashchange", shiftWindow);
+
         </script>
 <style type="text/css">
 
@@ -324,7 +331,7 @@ class Report(object):
         If not None, override default verbose level (see mne.verbose).
     """
 
-    def __init__(self, info_fname, subjects_dir=None, subject=None,
+    def __init__(self, info_fname=None, subjects_dir=None, subject=None,
                  title=None, verbose=None):
 
         self.info_fname = info_fname
@@ -455,7 +462,11 @@ class Report(object):
             fnames += glob(op.join(self.subjects_dir, self.subject,
                            'mri', 'T1.mgz'))
 
-        info = read_info(self.info_fname)
+        if self.info_fname is not None:
+            info = read_info(self.info_fname)
+        else:
+            warnings.warn('`info_fname` not provided. Cannot render'
+                          '-eve.fif(.gz) and -trans.fif(.gz) files.')
 
         for fname in fnames:
             logger.info("Rendering : %s"
@@ -475,7 +486,8 @@ class Report(object):
                 elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
                     self._render_evoked(fname)
                     self.fnames.append(fname)
-                elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
+                elif (fname.endswith(('-eve.fif', '-eve.fif.gz'))
+                      and self.info_fname is not None):
                     self._render_eve(fname, info, interactive=interactive)
                     self.fnames.append(fname)
                 elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
@@ -484,7 +496,8 @@ class Report(object):
                 elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
                     self._render_cov(fname)
                     self.fnames.append(fname)
-                elif fname.endswith(('-trans.fif', '-trans.fif.gz')):
+                elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
+                      and self.info_fname is not None):
                     self._render_trans(fname, self.data_path, info,
                                        self.subject, self.subjects_dir)
                     self.fnames.append(fname)
@@ -507,13 +520,20 @@ class Report(object):
             If True, overwrite report if it already exists.
         """
 
+        if not hasattr(self, 'data_path'):
+            self.data_path = op.dirname(__file__)
+            warnings.warn('`data_path` not provided. Using %s instead'
+                          % self.data_path)
+
         self._render_toc(verbose=self.verbose)
 
         html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
         self.html.append(html)
 
         if not overwrite and op.isfile(op.join(self.data_path, fname)):
-            msg = ('Report already exists. Overwrite it (y/[n])? ')
+            msg = ('Report already exists at location %s. '
+                   'Overwrite it (y/[n])? '
+                   % op.join(op.abspath(self.data_path), fname))
             answer = builtins.raw_input(msg)
             if answer.lower() == 'y':
                 overwrite = True
