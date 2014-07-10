@@ -18,7 +18,7 @@ import warnings
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
 from .utils import _TempDir, logger, verbose, get_subjects_dir
-from .viz import plot_events, _plot_mri_contours, plot_trans
+from .viz import plot_events, _plot_mri_contours, plot_trans, plot_cov
 from .forward import read_forward_solution
 from .epochs import read_epochs
 from .externals.tempita import HTMLTemplate, Template
@@ -449,9 +449,11 @@ class Report(object):
 
         if self.info_fname is not None:
             info = read_info(self.info_fname)
+            sfreq = info['sfreq']
         else:
             warnings.warn('`info_fname` not provided. Cannot render'
-                          '-eve.fif(.gz) and -trans.fif(.gz) files.')
+                          '-cov.fif(.gz) and -trans.fif(.gz) files.')
+            sfreq = None
 
         for fname in fnames:
             logger.info("Rendering : %s"
@@ -471,15 +473,16 @@ class Report(object):
                 elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
                     self._render_evoked(fname)
                     self.fnames.append(fname)
-                elif (fname.endswith(('-eve.fif', '-eve.fif.gz'))
-                      and self.info_fname is not None):
-                    self._render_eve(fname, info, interactive=interactive)
+                elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
+                    self._render_eve(fname, sfreq,
+                                     interactive=interactive)
                     self.fnames.append(fname)
                 elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
                     self._render_epochs(fname)
                     self.fnames.append(fname)
-                elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
-                    self._render_cov(fname)
+                elif (fname.endswith(('-cov.fif', '-cov.fif.gz'))
+                      and self.info_fname is not None):
+                    self._render_cov(fname, info)
                     self.fnames.append(fname)
                 elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
                       and self.info_fname is not None):
@@ -576,6 +579,7 @@ class Report(object):
             elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
                 div_klass = 'covariance'
                 tooltip = fname
+                text = op.basename(fname)
             elif fname.endswith(('raw.fif', 'raw.fif.gz',
                                  'sss.fif', 'sss.fif.gz')):
                 div_klass = 'raw'
@@ -806,7 +810,7 @@ class Report(object):
 
         self.html.append('\n'.join(html))
 
-    def _render_eve(self, eve_fname, info, interactive=True):
+    def _render_eve(self, eve_fname, sfreq=None, interactive=True):
 
         if ['events', 'Events'] not in self.sections:
             self.sections.append(['events', 'Events'])
@@ -818,7 +822,6 @@ class Report(object):
 
         global_id = self._get_id()
         events = read_events(eve_fname)
-        sfreq = info['sfreq']
         plt.close("all")  # close figures to avoid weird plot
         ax = plot_events(events, sfreq=sfreq, show=False)
         fig = ax.gcf()
@@ -878,18 +881,16 @@ class Report(object):
                                          show=show)
         self.html.append(html)
 
-    def _render_cov(self, cov_fname):
+    def _render_cov(self, cov_fname, info_fname):
 
         if ['covariance', 'Cov'] not in self.sections:
             self.sections.append(['covariance', 'Cov'])
 
-        import matplotlib.pyplot as plt
-
         global_id = self._get_id()
         cov = Covariance(cov_fname)
-        plt.matshow(cov.data)
+        fig, _ = plot_cov(cov, info_fname, show=False)
 
-        img = _fig_to_img(plt.gcf())
+        img = _fig_to_img(fig)
         caption = 'Covariance : ' + cov_fname
         div_klass = 'covariance'
         img_klass = 'covariance'
