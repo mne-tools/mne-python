@@ -337,6 +337,90 @@ def _mixed_norm_solver_bcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
 
 
 @verbose
+def _mixed_norm_solver_gbcd(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
+                            init=None, n_orient=1):
+    """Solves L21 inverse problem with greedy block coordinate descent"""
+    # First make G fortran for faster access to blocks of columns
+    G = np.asfortranarray(G)
+
+    n_sensors, n_times = M.shape
+    n_sensors, n_sources = G.shape
+    n_positions = n_sources // n_orient
+
+    if n_orient == 1:
+        lipschitz_constant = 1.1 * np.sum(G * G, axis=0)
+    else:
+        lipschitz_constant = np.empty(n_positions)
+        for j in range(n_positions):
+            G_tmp = G[:, (j * n_orient):((j + 1) * n_orient)]
+            lipschitz_constant[j] = 1.1 * linalg.norm(np.dot(G_tmp.T, G_tmp),
+                                                      ord=2)
+
+    if init is None:
+        X = np.zeros((n_sources, n_times))
+        R = M.copy()
+    else:
+        X = init
+        R = M - np.dot(G, X)
+
+    E = []   # track cost function
+
+    active_set = np.zeros(n_sources, dtype=np.bool)  # start with full AS
+
+    alpha_lc = alpha / lipschitz_constant
+
+    lipschitz_constant_repeat = np.repeat(lipschitz_constant, n_orient)
+
+    for i in range(maxit):
+        X_tmp = X + np.dot(G.T, R) / lipschitz_constant_repeat[:, None]
+        rows_norm = np.sqrt(np.sum((np.abs(X_tmp) ** 2).reshape(n_positions,
+                            -1), axis=1))
+        shrink = np.maximum(1.0 - alpha_lc / np.maximum(rows_norm, alpha_lc),
+                            0.0)
+        shrink = np.repeat(shrink, n_orient)
+        X_tmp *= shrink[:, None]
+
+        # # ideally compute the difference of the cost function
+        # sel = np.zeros(n_positions)
+        # E_R = 0.5 * linalg.norm(R, 'fro') ** 2.
+        # for j in range(n_positions):
+        #     ids = j * n_orient
+        #     ide = ids + n_orient
+        #     G_j = G[:, ids:ide]
+        #     X_j = X[ids:ide]
+        #     X_tmp_j = X_tmp[ids:ide]
+        #     R_tmp = R + np.dot(G_j, X_j - X_tmp_j)
+        #     sel[j] = np.abs((E_R - 0.5 * linalg.norm(R_tmp, 'fro') ** 2. +
+        #                     alpha * (linalg.norm(X_tmp_j, 'fro') -
+        #                     linalg.norm(X_j, 'fro'))))
+        # idx_max = np.argmax(sel)
+
+        sel = np.sum((np.abs(X - X_tmp) ** 2).reshape(n_positions, -1), axis=1)
+        idx_max = np.argmax(sel)
+
+        ids = idx_max * n_orient
+        ide = ids + n_orient
+        R += np.dot(G[:, ids:ide], X[ids:ide] - X_tmp[ids:ide])
+        X[ids:ide] = X_tmp[ids:ide].copy()
+
+        active_set = np.any(X, axis=1)
+        gap, pobj, dobj, _ = dgap_l21(M, G, X[active_set], active_set, alpha,
+                                      n_orient)
+        E.append(pobj)
+
+        logger.debug("Iteration %d :: pobj %f :: dgap %f :: n_active %d" % (
+                     i + 1, pobj, gap, np.sum(active_set) / n_orient))
+
+        if gap < tol:
+            logger.debug('Convergence reached ! (gap: %s < %s)' % (gap, tol))
+            break
+
+    X = X[active_set]
+
+    return X, active_set, E
+
+
+@verbose
 def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                       active_set_size=50, debias=True, n_orient=1,
                       solver='auto'):
@@ -417,6 +501,9 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     elif solver == 'bcd':
         logger.info("Using block coordinate descent")
         l21_solver = _mixed_norm_solver_bcd
+    elif solver == 'gbcd':
+        logger.info("Using greedy block coordinate descent")
+        l21_solver = _mixed_norm_solver_gbcd
     else:
         logger.info("Using proximal iterations")
         l21_solver = _mixed_norm_solver_prox
@@ -452,7 +539,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                 active_set_old = active_set.copy()
                 active_set[new_active_idx] = True
                 as_size = np.sum(active_set)
-                logger.info('active set size %s' % as_size)
+                logger.info('active set size %s' % (as_size // n_orient))
                 X_init = np.zeros((as_size, n_times), dtype=X.dtype)
                 idx_active_set = np.where(active_set)[0]
                 idx = np.searchsorted(idx_active_set, idx_old_active_set)
