@@ -137,7 +137,7 @@ for (l_freq, h_freq) in freq_bins:
 # XXX: the wilcoxon option should be commented on
 stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                freq_bins=freq_bins, subtract_evoked=subtract_evoked,
-               baseline_mode='wilcoxon', reg=data_reg, label=label)
+               mode='wilcoxon', reg=data_reg, label=label)
 #               baseline_mode=None, reg=data_reg, label=label)
 
 # Plotting source spectrogram for source with maximum activity.

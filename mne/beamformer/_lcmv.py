@@ -549,7 +549,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.01, label=None,
-            pick_ori=None, baseline_mode=None, n_jobs=1, verbose=None):
+            pick_ori=None, baseline=None, mode='ratio', n_jobs=1,
+            verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -591,12 +592,22 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
-    baseline:
-        # XXX Allow baseline to be chosen
-    baseline_mode: None | 'wilcoxon'
-        # XXX: 'dB' to be implemented, then add it here as an option
-        # XXX: look into current tfr PR's API and make sure this is similar
-        # XXX: write description
+    baseline : tuple or list of length 2, or None
+        Time interval used as baseline period that will be used to normalize
+        source power in each time window. If None do not use a baseline period
+        and normalize source power using noise covariance. If baseline is (a,
+        b) the interval is between "a (s)" and "b (s)". If a is None the
+        beginning of the data is used and if b is None then b is set to the end
+        of the interval. If baseline is equal ot (None, None) all the time
+        interval is used.
+        XXX: Currently unused and baseline is always set to one of the tf bins
+    mode : 'ratio' | 'wilcoxon'
+        If mode is 'ratio', source power estimates returned will be normalized
+        by projected noise or baseline (if baseline is not None) power. If mode
+        is set to 'wilcoxon', a Wilcoxon signed-rank test is conducted
+        comparing data in each time window to baseline data across all epochs
+        and z scores are returned.
+        XXX: 'logratio' to be implemented, then add it here as an option
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
@@ -628,10 +639,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     if any(win_length < tstep for win_length in win_lengths):
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
-    if baseline_mode not in [None, 'wilcoxon']:
-        # XXX: Add 'dB' option once implemented
+    if mode not in ['ratio', 'wilcoxon']:
+        # XXX: Add 'logratio' option once implemented
         raise ValueError('Unrecognized baseline_mode option, available '
-                         'choices are None and "wilcoxon"')
+                         'choices are "ratio" and "wilcoxon"')
 
     # Extract raw object from the epochs object
     raw = epochs.raw
@@ -648,7 +659,9 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
 
-    if baseline_mode == 'wilcoxon':
+    if mode == 'wilcoxon':
+        # XXX: Maybe we should allow source power estimation on epochs and then
+        # average the results for other modes, like 'logratio'?
         n_epochs = epochs.get_data().shape[0]
     else:
         n_epochs = 1
@@ -703,7 +716,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                 data_cov = compute_covariance(epochs_band, tmin=win_tmin,
                                               tmax=win_tmax)
 
-                if baseline_mode == 'wilcoxon':
+                if mode == 'wilcoxon':
                     # XXX: Crop and average epochs instead of stc? Maybe not,
                     # would this require copying the epochs object every time?
                     stcs = lcmv_epochs(epochs_band, forward, noise_cov,
@@ -736,7 +749,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         # Gathering solutions for all time points for current frequency bin
         sol_final[i_freq, :, :, :] = sol_smoothed
 
-    if baseline_mode == 'wilcoxon':
+    if mode == 'wilcoxon':
         z_scores = np.zeros((len(freq_bins), n_time_steps, n_vert))
         for i_freq, i_time, i_vert in\
                 [(i_freq, i_time, i_vert) for i_freq in range(len(freq_bins))
@@ -750,10 +763,11 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                     sol_final[i_freq, baseline_time, :, i_vert],
                     sol_final[i_freq, i_time, :, i_vert], return_stat='z')
             else:
+                # XXX hardcoded value for tf bin used as baseline
                 z_score = -1.0
             z_scores[i_freq, i_time, i_vert] = z_score
 
-    if baseline_mode == 'wilcoxon':
+    if mode == 'wilcoxon':
         sol_final = z_scores
     else:
         sol_final = np.squeeze(sol_final, 2)
