@@ -12,8 +12,8 @@ from ..utils import logger, verbose
 
 @verbose
 def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
-                    fmin=0, fmax=np.inf, NFFT=2048, n_jobs=1,
-                    n_overlap=0, pat_to=None, plot=False, proj=False,
+                    fmin=0, fmax=np.inf, NFFT=2048, pat_to=None, n_overlap=0,
+                    n_jobs=1, plot=False, proj=False,
                     verbose=None):
     """Compute power spectral density with multi-taper
 
@@ -31,6 +31,12 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     NFFT : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
+    pad_to : int | None
+        The number of points to which the data segment is padded when
+        performing the FFT. If None, pad_to equals `NFFT`.
+    n_overlap : int
+        The number of points of overlap between blocks. The default value
+        is 0 (no overlap).
     n_jobs : int
         Number of CPUs to use in the computation.
     plot : bool
@@ -95,7 +101,7 @@ def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
 
 @verbose
 def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
-                       n_overlap=0, pad_to=None, n_jobs=1, verbose=None):
+                       pad_to=None, n_overlap=0, n_jobs=1, verbose=None):
     """Compute power spectral density with multi-taper
 
     Parameters
@@ -116,6 +122,12 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
+    pad_to : int | None
+        The number of points to which the data segment is padded when
+        performing the FFT. If None, pad_to equals `NFFT`.
+    n_overlap : int
+        The number of points of overlap between blocks. The default value
+        is 0 (no overlap).
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
