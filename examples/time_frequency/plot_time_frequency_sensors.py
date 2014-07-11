@@ -27,7 +27,7 @@ event_id, tmin, tmax = 1, -1., 3.
 # Setup for reading the raw data
 raw = io.Raw(raw_fname)
 baseline = (None, 0)
-events = mne.find_events(raw)
+events = mne.find_events(raw, stim_channel='STI 014')
 
 # picks MEG gradiometers
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True, stim=False)
