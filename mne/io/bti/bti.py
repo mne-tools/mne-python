@@ -1166,6 +1166,10 @@ class RawBTi(_BaseRaw):
         logger.info('Reading raw data from %s...' % pdf_fname)
         self._data = _read_data(bti_info)
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
+        self._raw_lengths = np.array([self._data.shape[1]])
+        self._first_samps = np.array([0])
+        self._last_samps = self._raw_lengths - 1
+        self.rawdirs = [[]]
 
         assert len(self._data) == len(self.info['ch_names'])
         self._times = np.arange(self.first_samp,
