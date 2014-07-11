@@ -25,7 +25,7 @@ def test_parse_folder():
     """
 
     report = Report(info_fname=raw_fname)
-    report.parse_folder(data_path=base_dir)
+    report.parse_folder(data_path=base_dir, interactive=False)
 
     # Check correct paths and filenames
     assert_true(raw_fname in report.fnames)
