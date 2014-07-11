@@ -18,7 +18,7 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_mne, requires_scipy_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.externals.six.moves import zip
-from mne.source_space import get_volume_label_names
+from mne.source_space import get_volume_label_names, SourceSpaces
 
 warnings.simplefilter('always')
 
@@ -520,6 +520,29 @@ def test_source_space_from_label():
     src_from_file = read_source_spaces(fname_temp)
     os.remove(fname_temp)
     _compare_source_spaces(src, src_from_file, mode='approx')
+
+
+@sample.requires_sample_data
+@requires_freesurfer
+@requires_nibabel()
+def test_combine_source_spaces():
+    """Test combining two source spaces
+    """
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+    label_names = get_volume_label_names(aseg_fname)
+    volume_labels = np.random.choice(label_names[1:], 2)
+
+    src1 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
+                                     volume_label=volume_labels[0],
+                                     mri=aseg_fname)
+    src2 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
+                                     volume_label=volume_labels[1],
+                                     mri=aseg_fname)
+    src = src1 + src2
+
+    assert type(src) == SourceSpaces
+    assert len(src) == 2
+
 
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,

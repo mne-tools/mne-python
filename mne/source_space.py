@@ -81,6 +81,9 @@ class SourceSpaces(list):
         ss_repr = ', '.join(ss_repr)
         return "<SourceSpaces: [{ss}]>".format(ss=ss_repr)
 
+    def __add__(self, other):
+        return SourceSpaces(list.__add__(self, other))
+
     def copy(self):
         """Make a copy of the source spaces
 
