@@ -1162,7 +1162,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         if len(idx):
             plot_topomap(data, pos, vmax=None, cmap=cmap,
                          sensors=sensors, res=res, outlines=outlines,
-                         image_interp=image_interp)
+                         contours=contours, image_interp=image_interp)
             if colorbar:
                 plt.colorbar()
         else:
@@ -2307,7 +2307,9 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
                                       ch_type=ch_type, res=res, layout=layout,
                                       vmax=vmax, cmap=cmap, sensors=sensors,
                                       colorbar=colorbar, title=title,
-                                      show=show)
+                                      show=show, outlines=outlines,
+                                      contours=contours,
+                                      image_interp=image_interp)
             figs.append(fig)
         return figs
     elif np.isscalar(picks):
@@ -2346,8 +2348,9 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     for ii, data_, ax in zip(picks, data, axes):
         data_ = _merge_grad_data(data_) if merge_grads else data_
         plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
-                     res=res, axis=ax, outlines=outlines,
-                     image_mask=image_mask, image_interp=image_interp)
+                     res=res, axis=ax, cmap=cmap, outlines=outlines,
+                     image_mask=image_mask, contours=contours,
+                     image_interp=image_interp)
         ax.set_title('IC #%03d' % ii, fontsize=12)
         ax.set_yticks([])
         ax.set_xticks([])
