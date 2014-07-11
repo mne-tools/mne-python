@@ -324,6 +324,7 @@ class Report(object):
         self.html = []
         self.fnames = []  # List of file names rendered
         self.sections = []  # List of sections
+        self._sectionlabels = []  # Section labels
 
         self._init_render(verbose=self.verbose)  # Initialize the renderer
 
@@ -361,6 +362,7 @@ class Report(object):
                                                   interactive=None,
                                                   show=True))
             self.fnames.append('%s-#-%s-#-custom' % (caption, section))
+            self._sectionlabels.append(section)
         self.html.append(''.join(html))
 
     ###########################################################################
@@ -465,31 +467,39 @@ class Report(object):
                     self._render_bem(subject=self.subject,
                                      subjects_dir=self.subjects_dir)
                     self.fnames.append('bem')
+                    self._sectionlabels.append('mri')
                 elif fname.endswith(('raw.fif', 'raw.fif.gz',
                                      'sss.fif', 'sss.fif.gz')):
                     self._render_raw(fname)
                     self.fnames.append(fname)
+                    self._sectionlabels.append('raw')
                 elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
                     self._render_forward(fname)
+                    self._sectionlabels.append('forward')
                 elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
                     self._render_evoked(fname)
                     self.fnames.append(fname)
+                    self._sectionlabels.append('evoked')
                 elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
                     self._render_eve(fname, sfreq,
                                      interactive=interactive)
                     self.fnames.append(fname)
+                    self._sectionlabels.append('events')
                 elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
                     self._render_epochs(fname)
                     self.fnames.append(fname)
+                    self._sectionlabels.append('epochs')
                 elif (fname.endswith(('-cov.fif', '-cov.fif.gz'))
                       and self.info_fname is not None):
                     self._render_cov(fname, info)
                     self.fnames.append(fname)
+                    self._sectionlabels.append('covariance')
                 elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
                       and self.info_fname is not None):
                     self._render_trans(fname, self.data_path, info,
                                        self.subject, self.subjects_dir)
                     self.fnames.append(fname)
+                    self._sectionlabels.append('trans')
                 elif op.isdir(fname):
                     folders.append(fname)
                     logger.info(folders)
@@ -529,7 +539,7 @@ class Report(object):
 
         if overwrite or not op.isfile(op.join(self.data_path, fname)):
             fobj = open(op.join(self.data_path, fname), 'w')
-            fobj.write(''.join(self.html))
+            fobj.write(_fix_global_ids(''.join(self.html)))
             fobj.close()
 
         if open_browser:
@@ -543,111 +553,71 @@ class Report(object):
     def _render_toc(self, verbose=None):
 
         logger.info('Rendering : Table of Contents')
-        html = u'<div id="container">'
-        html += u'<div id="toc"><center><h4>CONTENTS</h4></center>'
+
+        html_toc = u'<div id="container">'
+        html_toc += u'<div id="toc"><center><h4>CONTENTS</h4></center>'
 
         global_id = 1
 
-        for fname in self.fnames:
-            logger.info('\t... %s' % fname[-20:])
+        # Sort by section
+        html, fnames = [], []
+        for section in self.sections:
+            logger.info('%s' % section)
+            for sectionlabel, this_html, fname in (zip(self._sectionlabels,
+                                                   self.html, self.fnames)):
+                if section == sectionlabel:
+                    html.append(this_html)
+                    fnames.append(fname)
+                    logger.info('\t... %s' % fname[-20:])
+                    color = _is_bad_fname(fname)
+                    div_klass, tooltip, text = _get_toc_property(fname)
 
-            # identify bad file naming patterns and highlight them
-            if not fname.endswith(('-eve.fif', '-eve.fif.gz',
-                                   '-ave.fif', '-ave.fif.gz',
-                                   '-cov.fif', '-cov.fif.gz',
-                                   '-sol.fif',
-                                   '-fwd.fif', '-fwd.fif.gz',
-                                   '-inv.fif', '-inv.fif.gz',
-                                   '-src.fif',
-                                   '-trans.fif', '-trans.fif.gz',
-                                   'raw.fif', 'raw.fif.gz',
-                                   'sss.fif', 'sss.fif.gz',
-                                   '-epo.fif', 'T1.mgz',
-                                   'bem', 'custom')):
-                color = 'red'
-            else:
-                color = ''
+                    if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz',
+                                       'raw.fif',
+                                       'sss.fif', '-eve.fif', '-cov.fif',
+                                       '-trans.fif', '-fwd.fif', '-epo.fif',
+                                       'bem', 'custom')):
+                        html_toc += toc_list.substitute(div_klass=div_klass,
+                                                        id=global_id,
+                                                        tooltip=tooltip,
+                                                        color=color,
+                                                        text=text)
+                        global_id += 1
 
-            # assign class names to allow toggling with buttons
-            if fname.endswith(('-eve.fif', '-eve.fif.gz')):
-                div_klass = 'events'
-                tooltip = fname
-                text = op.basename(fname)
-            elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
-                div_klass = 'evoked'
-                tooltip = fname
-                text = op.basename(fname)
-            elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
-                div_klass = 'covariance'
-                tooltip = fname
-                text = op.basename(fname)
-            elif fname.endswith(('raw.fif', 'raw.fif.gz',
-                                 'sss.fif', 'sss.fif.gz')):
-                div_klass = 'raw'
-                tooltip = fname
-                text = op.basename(fname)
-            elif fname.endswith(('-trans.fif', '-trans.fif.gz')):
-                div_klass = 'trans'
-                tooltip = fname
-                text = op.basename(fname)
-            elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
-                div_klass = 'forward'
-                tooltip = fname
-                text = op.basename(fname)
-            elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
-                div_klass = 'epochs'
-                tooltip = fname
-                text = op.basename(fname)
-            elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
-                div_klass = 'mri'
-                tooltip = 'MRI'
-                text = 'MRI'
-            elif fname.endswith(('bem')):
-                div_klass = 'mri'
-                tooltip = 'MRI'
-                text = 'MRI'
-            else:
-                div_klass = fname.split('-#-')[1]
-                tooltip = fname.split('-#-')[0]
-                text = fname.split('-#-')[0]
+                    # loop through conditions for evoked
+                    elif fname.endswith(('-ave.fif')):
+                       # XXX: remove redundant read_evokeds
+                        evokeds = read_evokeds(fname, verbose=False)
 
-            if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz', 'raw.fif',
-                               'sss.fif', '-eve.fif', '-cov.fif',
-                               '-trans.fif', '-fwd.fif', '-epo.fif',
-                               'bem', 'custom')):
-                html += toc_list.substitute(div_klass=div_klass,
-                                            id=global_id,
-                                            tooltip=tooltip, color=color,
-                                            text=text)
-                global_id += 1
+                        html_toc += toc_list.substitute(div_klass=div_klass,
+                                                        id=None, tooltip=fname,
+                                                        color='#428bca',
+                                                        text=
+                                                        os.path.basename(fname)
+                                                        )
 
-            # loop through conditions for evoked
-            elif fname.endswith(('-ave.fif')):
-               # XXX: remove redundant read_evokeds
-                evokeds = read_evokeds(fname, verbose=False)
+                        html_toc += u'<li class="evoked"><ul>'
+                        for ev in evokeds:
+                            html_toc += toc_list.substitute(div_klass=
+                                                            div_klass,
+                                                            id=global_id,
+                                                            tooltip=fname,
+                                                            color=color,
+                                                            text=ev.comment)
+                            global_id += 1
+                        html_toc += u'</ul></li>'
 
-                html += toc_list.substitute(div_klass=div_klass,
-                                            id=None, tooltip=fname,
-                                            color='#428bca',
-                                            text=os.path.basename(fname))
+        self.html = html
+        self.fnames = fnames
 
-                html += u'<li class="evoked"><ul>'
-                for ev in evokeds:
-                    html += toc_list.substitute(div_klass=div_klass,
-                                                id=global_id,
-                                                tooltip=fname, color=color,
-                                                text=ev.comment)
-                    global_id += 1
-                html += u'</ul></li>'
-
-        html += u'\n</ul></div>'
-        html += u'<div id="content">'
+        html_toc += u'\n</ul></div>'
+        html_toc += u'<div id="content">'
 
         html_header = header_template.substitute(title=self.title,
                                                  include=self.include,
                                                  sections=self.sections)
         self.html.insert(0, html_header)  # Insert header at position 0
-        self.html.insert(1, html)  # insert TOC
+        self.html.insert(1, html_toc)  # insert TOC
 
     def _render_array(self, array, global_id=None, cmap='gray',
                       limits=None):
@@ -1038,3 +1008,79 @@ def _recursive_search(path, pattern):
             filtered_files.append(op.join(dirpath, f))
 
     return filtered_files
+
+
+def _fix_global_ids(html):
+    html = re.sub('id="\d+"', 'id="###"', html)
+    global_id = 1
+    while len(re.findall('id="###"', html)) > 0:
+        html = re.sub('id="###"', 'id="%s"' % global_id, html, count=1)
+        global_id += 1
+    return html
+
+
+def _is_bad_fname(fname):
+    # identify bad file naming patterns and highlight them
+    if not fname.endswith(('-eve.fif', '-eve.fif.gz',
+                           '-ave.fif', '-ave.fif.gz',
+                           '-cov.fif', '-cov.fif.gz',
+                           '-sol.fif',
+                           '-fwd.fif', '-fwd.fif.gz',
+                           '-inv.fif', '-inv.fif.gz',
+                           '-src.fif',
+                           '-trans.fif', '-trans.fif.gz',
+                           'raw.fif', 'raw.fif.gz',
+                           'sss.fif', 'sss.fif.gz',
+                           '-epo.fif', 'T1.mgz',
+                           'bem', 'custom')):
+        return 'red'
+    else:
+        return ''
+
+
+def _get_toc_property(fname):
+
+    # assign class names to allow toggling with buttons
+    if fname.endswith(('-eve.fif', '-eve.fif.gz')):
+        div_klass = 'events'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
+        div_klass = 'evoked'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
+        div_klass = 'covariance'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('raw.fif', 'raw.fif.gz',
+                         'sss.fif', 'sss.fif.gz')):
+        div_klass = 'raw'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-trans.fif', '-trans.fif.gz')):
+        div_klass = 'trans'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+        div_klass = 'forward'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
+        div_klass = 'epochs'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
+        div_klass = 'mri'
+        tooltip = 'MRI'
+        text = 'MRI'
+    elif fname.endswith(('bem')):
+        div_klass = 'mri'
+        tooltip = 'MRI'
+        text = 'MRI'
+    else:
+        div_klass = fname.split('-#-')[1]
+        tooltip = fname.split('-#-')[0]
+        text = fname.split('-#-')[0]
+
+    return div_klass, tooltip, text
