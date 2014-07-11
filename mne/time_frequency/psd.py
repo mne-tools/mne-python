@@ -12,8 +12,9 @@ from ..utils import logger, verbose
 
 @verbose
 def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
-                    fmin=0, fmax=np.inf, NFFT=2048, n_jobs=1,
-                    plot=False, proj=False, verbose=None):
+                    fmin=0, fmax=np.inf, NFFT=2048, pad_to=None, n_overlap=0,
+                    n_jobs=1, plot=False, proj=False,
+                    verbose=None):
     """Compute power spectral density with multi-taper
 
     Parameters
@@ -30,6 +31,12 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     NFFT : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
+    pad_to : int | None
+        The number of points to which the data segment is padded when
+        performing the FFT. If None, pad_to equals `NFFT`.
+    n_overlap : int
+        The number of points of overlap between blocks. The default value
+        is 0 (no overlap).
     n_jobs : int
         Number of CPUs to use in the computation.
     plot : bool
@@ -67,7 +74,8 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     import matplotlib.pyplot as plt
     parallel, my_psd, n_jobs = parallel_func(plt.psd, n_jobs)
     fig = plt.figure()
-    out = parallel(my_psd(d, Fs=Fs, NFFT=NFFT) for d in data)
+    out = parallel(my_psd(d, Fs=Fs, NFFT=NFFT, noverlap=n_overlap,
+                          pad_to=pad_to) for d in data)
     if not plot:
         plt.close(fig)
     freqs = out[0][1]
@@ -80,9 +88,10 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     return psd, freqs
 
 
-def _compute_psd(data, fmin, fmax, Fs, n_fft, psd):
+def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
     """Compute the PSD"""
-    out = [psd(d, Fs=Fs, NFFT=n_fft) for d in data]
+    out = [psd(d, Fs=Fs, NFFT=n_fft, noverlap=n_overlap, pad_to=pad_to)
+           for d in data]
     psd = np.array([o[0] for o in out])
     freqs = out[0][1]
     mask = (freqs >= fmin) & (freqs <= fmax)
@@ -92,7 +101,7 @@ def _compute_psd(data, fmin, fmax, Fs, n_fft, psd):
 
 @verbose
 def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
-                       n_jobs=1, verbose=None):
+                       pad_to=None, n_overlap=0, n_jobs=1, verbose=None):
     """Compute power spectral density with multi-taper
 
     Parameters
@@ -113,6 +122,12 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
+    pad_to : int | None
+        The number of points to which the data segment is padded when
+        performing the FFT. If None, pad_to equals `NFFT`.
+    n_overlap : int
+        The number of points of overlap between blocks. The default value
+        is 0 (no overlap).
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -137,7 +152,8 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     import matplotlib.pyplot as plt
     parallel, my_psd, n_jobs = parallel_func(_compute_psd, n_jobs)
     fig = plt.figure()  # threading will induce errors otherwise
-    out = parallel(my_psd(data[picks], fmin, fmax, Fs, n_fft, plt.psd)
+    out = parallel(my_psd(data[picks], fmin, fmax, Fs, n_fft, plt.psd,
+                          n_overlap, pad_to)
                    for data in epochs)
     plt.close(fig)
     psds = [o[0] for o in out]
