@@ -12,7 +12,7 @@ from ..utils import logger, verbose
 
 @verbose
 def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
-                    fmin=0, fmax=np.inf, NFFT=2048, pat_to=None, n_overlap=0,
+                    fmin=0, fmax=np.inf, NFFT=2048, pad_to=None, n_overlap=0,
                     n_jobs=1, plot=False, proj=False,
                     verbose=None):
     """Compute power spectral density with multi-taper
