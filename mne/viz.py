@@ -5173,7 +5173,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     tp = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                       sensors=sensors, res=res, names=names,
                       show_names=show_names, cmap=cmap,
-                      mask=None)
+                      mask=None)[0]
 
     if colorbar:
         cax = plt.subplot(1, 2, 2)
