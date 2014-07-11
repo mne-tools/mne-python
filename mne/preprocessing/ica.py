@@ -1065,7 +1065,7 @@ class ICA(ContainsMixin):
             time in seconds. If None, data will be used to the last sample.
         copy : bool
             Whether to return a copy or whether to apply the solution in place.
-            Defaults to True.
+            Defaults to False.
         """
         if isinstance(inst, _BaseRaw):
             out = self._apply_raw(raw=inst, include=include,
