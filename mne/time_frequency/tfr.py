@@ -80,6 +80,7 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
 
 
 def _centered(arr, newsize):
+    """Aux Function to center data"""
     # Return the center newsize portion of the array.
     newsize = np.asarray(newsize)
     currsize = np.array(arr.shape)
@@ -340,7 +341,7 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
 
 
 def _induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
-                  decim=1, n_jobs=1, zero_mean=False):
+                   decim=1, n_jobs=1, zero_mean=False):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -449,6 +450,7 @@ def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
 
 def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                  baseline, vmin, vmax, dB):
+    """Aux Function to prepare tfr computation"""
     from ..viz import _setup_vmin_vmax
 
     if mode is not None and baseline is not None:
@@ -596,8 +598,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         data = self.data[picks]
 
         data, times, freqs, vmin, vmax = \
-                _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
-                             baseline, vmin, vmax, dB)
+            _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
+                         baseline, vmin, vmax, dB)
 
         tmin, tmax = times[0], times[-1]
 
@@ -614,8 +616,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
-                  layout=None, cmap='RdBu_r', title=None, dB=False, colorbar=True,
-                  layout_scale=0.945, show=True):
+                  layout=None, cmap='RdBu_r', title=None, dB=False,
+                  colorbar=True, layout_scale=0.945, show=True):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -668,7 +670,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             If true, colorbar will be added to the plot
         layout_scale : float
             Scaling factor for adjusting the relative size of the layout
-            on the canvas
+            on the canvas.
         show : bool
             Call pyplot.show() at the end.
         verbose : bool, str, int, or None
@@ -685,8 +687,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             info = pick_info(info, picks)
 
         data, times, freqs, vmin, vmax = \
-                _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
-                             mode, baseline, vmin, vmax, dB)
+            _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
+                         mode, baseline, vmin, vmax, dB)
 
         if layout is None:
             from mne.layouts.layout import find_layout
@@ -772,7 +774,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                      sensors='k,', colorbar=True, unit=None, res=64, size=2,
                      format='%1.1e', show_names=False, title=None,
                      axes=None, show=True):
-        """Plot topographic maps of specific time-frequency intervals of TFR data
+        """Plot topographic maps of time-frequency intervals of TFR data
 
         Parameters
         ----------
@@ -791,8 +793,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             The last frequency to display. If None the last frequency
             available is used.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
-            The channel type to plot. For 'grad', the gradiometers are collected in
-            pairs and the RMS for each pair is plotted.
+            The channel type to plot. For 'grad', the gradiometers are
+            collected in pairs and the RMS for each pair is plotted.
         baseline : tuple or list of length 2
             The time interval to apply rescaling / baseline correction.
             If None do not apply it. If baseline is (a, b)
@@ -809,9 +811,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             If None, baseline no correction will be performed.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found, the
-            layout is automatically generated from the sensor locations.
+            be specified for Neuromag data). If possible, the correct layout
+            file is inferred from the data; if no appropriate layout file was
+            found, the layout is automatically generated from the sensor
+            locations.
         vmin : float | callable
             The value specfying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -825,8 +828,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
             'Reds'.
         sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib plot
-            format string (e.g., 'r+' for red plusses).
+            Add markers for sensor locations to the plot. Accepts matplotlib
+            plot format string (e.g., 'r+' for red plusses).
         colorbar : bool
             Plot a colorbar.
         unit : str | None
@@ -839,10 +842,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             String format for colorbar values.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g., to
-            delete the prefix 'MEG ' from all channel names, pass the function
-            lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
-            sensors will be shown.
+            passed, channel names will be formatted using the callable; e.g.,
+            to delete the prefix 'MEG ' from all channel names, pass the
+            function lambda x: x.replace('MEG ', ''). If `mask` is not None,
+            only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
         axes : instance of Axes | None
@@ -899,9 +902,9 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
     info = pick_info(epochs.info, picks)
     data = data[:, picks, :]
     power, itc = _induced_power(data, Fs=info['sfreq'], frequencies=freqs,
-                               n_cycles=n_cycles, n_jobs=n_jobs,
-                               use_fft=use_fft, decim=decim,
-                               zero_mean=True)
+                                n_cycles=n_cycles, n_jobs=n_jobs,
+                                use_fft=use_fft, decim=decim,
+                                zero_mean=True)
     times = epochs.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave)

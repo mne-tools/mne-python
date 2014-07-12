@@ -5023,6 +5023,7 @@ def _drop_log_stats(drop_log, ignore=['IGNORED']):
 
 
 def _setup_vmin_vmax(data, vmin, vmax):
+    """Aux function to handle vmin and vamx parameters"""
     if vmax is None and vmin is None:
         vmax = np.abs(data).max()
         vmin = -vmax
@@ -5062,8 +5063,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The last frequency to display. If None the last frequency
         available is used.
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
-        The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted.
+        The channel type to plot. For 'grad', the gradiometers are
+        collected in pairs and the RMS for each pair is plotted.
     baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -5080,9 +5081,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         If None, baseline no correction will be performed.
     layout : None | Layout
         Layout instance specifying sensor positions (does not need to
-        be specified for Neuromag data). If possible, the correct layout file
-        is inferred from the data; if no appropriate layout file was found, the
-        layout is automatically generated from the sensor locations.
+        be specified for Neuromag data). If possible, the correct layout
+        file is inferred from the data; if no appropriate layout file
+        was found, the layout is automatically generated from the sensor
+        locations.
     vmin : float | callable
         The value specfying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -5096,8 +5098,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
     sensors : bool | str
-        Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses).
+        Add markers for sensor locations to the plot. Accepts matplotlib
+        plot format string (e.g., 'r+' for red plusses).
     colorbar : bool
         Plot a colorbar.
     unit : str | None
@@ -5112,8 +5114,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
         delete the prefix 'MEG ' from all channel names, pass the function
-        lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
-        sensors will be shown.
+        lambda x: x.replace('MEG ', ''). If `mask` is not None, only
+        significant sensors will be shown.
     title : str | None
         Title. If None (default), no title is displayed.
     axes : instance of Axis | None
