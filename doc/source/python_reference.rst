@@ -614,8 +614,8 @@ Time-Frequency
    compute_raw_psd
    compute_epochs_psd
    iir_filter_raw
-   induced_power
    morlet
+   tfr_morlet
    single_trial_power
    yule_walker
    ar_raw
