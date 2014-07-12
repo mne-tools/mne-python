@@ -2254,7 +2254,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
-    vmax : scalar
+    vmax : float
         The value specfying the range of the color scale (-vmax to +vmax).
         If None, the largest absolute value in the data is used.
     cmap : matplotlib colormap
@@ -2329,7 +2329,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
 
     if vmax is None:
         vrange = np.array([f(data) for f in (np.min, np.max)])
-        vmax = max(abs(vrange))
+        vmax = np.max(np.abs(vrange))
 
     if merge_grads:
         from .layouts.layout import _merge_grad_data
