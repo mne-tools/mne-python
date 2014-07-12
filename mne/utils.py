@@ -635,6 +635,11 @@ def requires_mem_gb(requirement):
     return real_decorator
 
 
+def check_skip_network():
+    if int(os.environ.get('MNE_SKIP_NETWORK_TESTS', 0)):
+            raise SkipTest("Text tutorial requires large dataset download")
+
+
 def requires_pandas(function):
     """Decorator to skip test if pandas is not available"""
     @wraps(function)
@@ -744,6 +749,21 @@ def requires_sklearn(function):
             from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires sklearn (version >= %s)'
                            % (function.__name__, required_version))
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+def requires_good_network():
+    """Helper for testing"""
+
+    @wraps(function)
+    def dec(*args, **kwargs):
+        if int(os.environ.get('MNE_SKIP_NETWORK_TESTS', 0)):
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires a good network '
+                           'connection' % function.__name__)
         ret = function(*args, **kwargs)
 
         return ret
