@@ -751,7 +751,7 @@ def requires_sklearn(function):
     return dec
 
 
-def requires_good_network():
+def requires_good_network(function):
     """Helper for testing"""
 
     @wraps(function)
