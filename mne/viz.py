@@ -5123,8 +5123,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     Returns
     -------
-    axes : instance of matplotlib.axes.AxesSubplot
-        The axes containing the topography.
+    fig : matplotlib.figure.Figure
+        The figure containing the topography.
     """
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -5162,9 +5162,12 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
-    ax = axes
-    if ax is None:
-        ax = plt.figure().gca()
+    if axes is None:
+        fig = plt.figure()
+        ax = fig.gca()
+    else:
+        fig = axes.figure
+        ax = axes
 
     ax.set_yticks([])
     ax.set_xticks([])
@@ -5187,4 +5190,4 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     if show:
         plt.show()
 
-    return ax
+    return fig

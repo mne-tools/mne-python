@@ -852,7 +852,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
         Returns
         -------
-        fig : pyplot Figure
+        fig : matplotlib.figure.Figure
             The figure containing the topography.
         """
         from ..viz import plot_tfr_topomap
