@@ -1300,7 +1300,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         format string (e.g., 'r+' for red plusses).
     res : int
         The resolution of the topomap image (n pixels along each side).
-    axis : instance of Axes | None
+    axis : instance of Axis | None
         The axis to plot to. If None, the current axis will be used.
     names : list | None
         List of channel names. If None, channel names are not plotted.
@@ -1655,7 +1655,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
-    axes : instance of Axes | list | None
+    axes : instance of Axis | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
@@ -1703,7 +1703,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
-    axes : instance of Axes | list | None
+    axes : instance of Axis | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
@@ -5039,11 +5039,10 @@ def _setup_vmin_vmax(data, vmin, vmax):
 
 
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
-                     ch_type='mag', baseline=None, mode='mean',
-                     layout=None, vmax=None, vmin=None,
-                     cmap='RdBu_r', sensors='k,', colorbar=True, unit=None,
-                     res=256, size=2, format='%1.1e', show=True,
-                     show_names=False, title=None):
+                     ch_type='mag', baseline=None, mode='mean', layout=None,
+                     vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
+                     colorbar=True, unit=None, res=64, size=2, format='%1.1e',
+                     show_names=False, title=None, axes=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data
 
     Parameters
@@ -5109,8 +5108,6 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         Side length per topomap in inches.
     format : str
         String format for colorbar values.
-    show : bool
-        Call pyplot.show() at the end.
     show_names : bool | callable
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
@@ -5119,27 +5116,23 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         sensors will be shown.
     title : str | None
         Title. If None (default), no title is displayed.
+    axes : instance of Axis | None
+        The axes to plot to. If None the axes is defined automatically.
+    show : bool
+        Call pyplot.show() at the end.
 
     Returns
     -------
-    fig : pyplot Figure
-        The figure containing the topography.
+    axes : instance of matplotlib.axes.AxesSubplot
+        The axes containing the topography.
     """
     import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     picks, pos, merge_grads, names = _prepare_topo_plot(tfr, ch_type,
                                                         layout)
     if not show_names:
         names = None
-
-    nax = 1 + bool(colorbar)
-    width = size * nax
-    height = size * 1. + max(0, 0.1 * (4 - size))
-    fig = plt.figure(figsize=(width, height))
-    w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
-    top_frame = max((0.05 if title is None else 0.15), .2 / size)
-    fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
-                        top=1 - top_frame)
 
     data = tfr.data
 
@@ -5169,30 +5162,29 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
-    plt.subplot(1, nax, 1)
-    tp = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
-                      sensors=sensors, res=res, names=names,
-                      show_names=show_names, cmap=cmap,
-                      mask=None)[0]
+    ax = axes
+    if ax is None:
+        ax = plt.figure().gca()
 
-    if colorbar:
-        cax = plt.subplot(1, 2, 2)
-        plt.colorbar(tp, ax=cax, cax=cax, ticks=[vmin, 0, vmax], format=format)
-        # resize the colorbar (by default the color fills the whole axes)
-        cpos = cax.get_position()
-        if size <= 1:
-            cpos.x0 = 1 - (.7 + .1 / size) / nax
-        cpos.x1 = cpos.x0 + .1 / nax
-        cpos.y0 = .1
-        cpos.y1 = .7
-        cax.set_position(cpos)
-        if unit is not None:
-            cax.set_title(unit)
+    ax.set_yticks([])
+    ax.set_xticks([])
+    ax.set_frame_on(False)
 
     if title is not None:
-        plt.suptitle(title, verticalalignment='top', size='x-large')
-        tight_layout(pad=2.0, fig=fig)
+        ax.set_title(title)
+
+    im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
+                         axis=ax, cmap=cmap, image_interp='bilinear',
+                         contours=False, names=names)
+
+    if colorbar:
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(im, cax=cax, ticks=(vmin, vmax),
+                            format='%3.2f', cmap=cmap)
+        cbar.ax.tick_params(labelsize=12)
+
     if show:
         plt.show()
 
-    return fig
+    return ax
