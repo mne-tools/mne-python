@@ -707,6 +707,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         return fig
 
     def _check_compat(self, tfr):
+        """checks that self and tfr have the same time-frequency ranges"""
         assert np.all(tfr.times == self.times)
         assert np.all(tfr.freqs == self.freqs)
 
