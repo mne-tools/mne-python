@@ -11,7 +11,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
                        sum_squared, requires_mem_gb, estimate_rank,
                        _url_to_local_path, sizeof_fmt,
-                       _check_type_picks, object_hash, object_diff)
+                       _check_type_picks, object_hash, object_diff,
+                       requires_good_network)
 from mne.io import show_fiff
 from mne import Evoked
 
@@ -255,6 +256,7 @@ def test_requires_mem_gb():
         SkipTest(msg)
 
 
+@requires_good_network
 def test_fetch_file():
     """Test file downloading
     """

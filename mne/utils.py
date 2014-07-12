@@ -751,6 +751,22 @@ def requires_sklearn(function):
     return dec
 
 
+def requires_good_network(function):
+    """Helper for testing"""
+
+    @wraps(function)
+    def dec(*args, **kwargs):
+        if int(os.environ.get('MNE_SKIP_NETWORK_TESTS', 0)):
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires a good network '
+                           'connection' % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+
 def make_skipper_dec(module, skip_str):
     """Helper to make skipping decorators"""
     skip = False
