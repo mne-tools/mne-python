@@ -38,10 +38,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 ###############################################################################
 # Calculate power and intertrial coherence
 
-freqs = np.arange(7, 30, 3)  # define frequencies of interest
+freqs = np.arange(6, 30, 3)  # define frequencies of interest
 n_cycles = freqs / 2.  # different number of cycle per frequency
 power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=False,
-                        return_itc=True, decim=3, n_jobs=1)
+                        return_itc=True, decim=3, n_jobs=-1)
 
 # Baseline correction can be applied to power or done in plots
 # To illustrate the baseline correction in plots the next line is commented
@@ -50,8 +50,16 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=False,
 # Inspect power
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
 power.plot([82], baseline=(-0.5, 0), mode='logratio')
+
+import matplotlib.pyplot as plt
+fig, axis = plt.subplots(1, 2, figsize=(7, 4))
+power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=8, fmax=12,
+                   baseline=(-0.5, 0), mode='logratio', axes=axis[0],
+                   title='Alpha', vmin=-0.45, vmax=0.45)
 power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=13, fmax=25,
-                   baseline=(-0.5, 0), mode='logratio')
+                   baseline=(-0.5, 0), mode='logratio', axes=axis[1],
+                   title='Beta', vmin=-0.45, vmax=0.45)
+mne.viz.tight_layout()
 
 # Inspect ITC
 itc.plot_topo(title='Inter-Trial coherence', vmin=0., vmax=1., cmap='Reds')

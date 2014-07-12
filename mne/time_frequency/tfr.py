@@ -768,10 +768,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean',
-                     layout=None, vmin=None, vmax=None,
-                     cmap='RdBu_r', sensors='k,', colorbar=True, unit=None,
-                     res=256, size=2, format='%1.1e', show=True,
-                     show_names=False, title=None):
+                     layout=None, vmin=None, vmax=None, cmap='RdBu_r',
+                     sensors='k,', colorbar=True, unit=None, res=64, size=2,
+                     format='%1.1e', show_names=False, title=None,
+                     axes=None, show=True):
         """Plot topographic maps of specific time-frequency intervals of TFR data
 
         Parameters
@@ -837,8 +837,6 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             Side length per topomap in inches.
         format : str
             String format for colorbar values.
-        show : bool
-            Call pyplot.show() at the end.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
             passed, channel names will be formatted using the callable; e.g., to
@@ -847,6 +845,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
+        axes : instance of Axes | None
+            The axes to plot to. If None the axes is defined automatically.
+        show : bool
+            Call pyplot.show() at the end.
 
         Returns
         -------
@@ -859,7 +861,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 mode=mode, layout=layout, vmin=vmin, vmax=vmax,
                                 cmap=cmap, sensors=sensors, colorbar=colorbar,
                                 unit=unit, res=res, size=size, format=format,
-                                show=show, show_names=show_names, title=title)
+                                show_names=show_names, title=title, axes=axes,
+                                show=show)
 
 
 def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
