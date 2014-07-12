@@ -1,11 +1,11 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_false, assert_equal
 
 from mne import io, Epochs, read_events, pick_types
-from mne.time_frequency import induced_power, single_trial_power
-from mne.time_frequency.tfr import cwt_morlet, morlet
+from mne.time_frequency import single_trial_power
+from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -46,30 +46,48 @@ def test_time_frequency():
                     baseline=(None, 0))
     data = epochs.get_data()
     times = epochs.times
+    nave = len(data)
 
-    frequencies = np.arange(6, 20, 5)  # define frequencies of interest
+    freqs = np.arange(6, 20, 5)  # define frequencies of interest
+    n_cycles = freqs / 4.
+
+    power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
+                            use_fft=True, return_itc=True)
+
+    print(itc)  # test repr
+    print(itc.ch_names) # test property
+    itc = itc + power # test add
+    itc = itc - power # test add
+    itc -= power
+    itc += power
+
+    power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
+
+    assert_true('meg' in power)
+    assert_true('grad' in power)
+    assert_false('mag' in power)
+    assert_false('eeg' in power)
+
+    assert_equal(power.nave, nave)
+    assert_equal(itc.nave, nave)
+    assert_true(power.data.shape == (len(picks), len(freqs), len(times)))
+    assert_true(power.data.shape == itc.data.shape)
+    assert_true(np.sum(itc.data >= 1) == 0)
+    assert_true(np.sum(itc.data <= 0) == 0)
+
+    power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=2, use_fft=False,
+                            return_itc=True)
+
+    assert_true(power.data.shape == (len(picks), len(freqs), len(times)))
+    assert_true(power.data.shape == itc.data.shape)
+    assert_true(np.sum(itc.data >= 1) == 0)
+    assert_true(np.sum(itc.data <= 0) == 0)
+
     Fs = raw.info['sfreq']  # sampling in Hz
-    n_cycles = frequencies / float(4)
-    power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
-                                      n_cycles=n_cycles, use_fft=True)
+    tfr = cwt_morlet(data[0], Fs, freqs, use_fft=True, n_cycles=2)
+    assert_true(tfr.shape == (len(picks), len(freqs), len(times)))
 
-    assert_true(power.shape == (len(picks), len(frequencies), len(times)))
-    assert_true(power.shape == phase_lock.shape)
-    assert_true(np.sum(phase_lock >= 1) == 0)
-    assert_true(np.sum(phase_lock <= 0) == 0)
-
-    power, phase_lock = induced_power(data, Fs=Fs, frequencies=frequencies,
-                                      n_cycles=2, use_fft=False)
-
-    assert_true(power.shape == (len(picks), len(frequencies), len(times)))
-    assert_true(power.shape == phase_lock.shape)
-    assert_true(np.sum(phase_lock >= 1) == 0)
-    assert_true(np.sum(phase_lock <= 0) == 0)
-
-    tfr = cwt_morlet(data[0], Fs, frequencies, use_fft=True, n_cycles=2)
-    assert_true(tfr.shape == (len(picks), len(frequencies), len(times)))
-
-    single_power = single_trial_power(data, Fs, frequencies, use_fft=False,
+    single_power = single_trial_power(data, Fs, freqs, use_fft=False,
                                       n_cycles=2)
 
-    assert_array_almost_equal(np.mean(single_power), power)
+    assert_array_almost_equal(np.mean(single_power), power.data)

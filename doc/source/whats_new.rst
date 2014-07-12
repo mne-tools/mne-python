@@ -107,6 +107,9 @@ Changelog
 
    - Aesthetically redesign interpolated topography plots by `Denis Engemann`_ and `Alex Gramfort`_
 
+   - Simplify sensor space time-frequency analysis API with `tfr_morlet` function by `Alex Gramfort`_ and `Denis Engemann`_
+
+
 BUG
 ~~~
 

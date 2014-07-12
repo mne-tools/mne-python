@@ -8,8 +8,7 @@ import warnings
 from mne import io, read_events, Epochs, SourceEstimate, read_cov, read_proj
 from mne import make_field_map, pick_types, pick_channels_evoked, read_evokeds
 from mne.layouts import read_layout
-from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_power,
-                     plot_topo_phase_lock, plot_topo_image_epochs,
+from mne.viz import (plot_topo, plot_topo_tfr, plot_topo_image_epochs,
                      plot_evoked_topomap, plot_projs_topomap,
                      plot_sparse_source_estimates, plot_source_estimates,
                      plot_cov, mne_analyze_colormap, plot_image_epochs,
@@ -21,6 +20,7 @@ from mne.source_space import read_source_spaces
 from mne.io.constants import FIFF
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.utils import check_sklearn_version
+from mne.time_frequency.tfr import AverageTFR
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -154,25 +154,6 @@ def test_plot_topo_tfr():
     freqs = np.arange(n_freqs)
     # Show topography of connectivity from seed
     plot_topo_tfr(epochs, con, freqs, layout)
-    plt.close('all')
-
-
-def test_plot_topo_power():
-    """Test plotting of power
-    """
-    epochs = _get_epochs()
-    decim = 3
-    frequencies = np.arange(7, 30, 3)  # define frequencies of interest
-    power = np.abs(np.random.randn(n_chan, 7, 141))
-    phase_lock = np.random.randn(n_chan, 7, 141)
-    baseline = (None, 0)  # set the baseline for induced power
-    title = 'Induced power - MNE sample data'
-    plot_topo_power(epochs, power, frequencies, layout, baseline=baseline,
-                    mode='ratio', decim=decim, vmin=0., vmax=14, title=title)
-    title = 'Phase locking value - MNE sample data'
-    plot_topo_phase_lock(epochs, phase_lock, frequencies, layout,
-                         baseline=baseline, mode='mean', decim=decim,
-                         title=title)
     plt.close('all')
 
 
@@ -679,3 +660,17 @@ def test_plot_events():
                       raw.first_samp, event_id={'aud_l': 1}, color=color)
         assert_raises(ValueError, plot_events, events, raw.info['sfreq'],
                       raw.first_samp, event_id={'aud_l': 111}, color=color)
+
+
+def test_plot_tfr():
+    """Test plotting of TFR data
+    """
+    epochs = _get_epochs()
+    n_freqs = 3
+    nave = 1
+    data = np.random.randn(len(epochs.ch_names), n_freqs, len(epochs.times))
+    tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
+    tfr.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
+                  vmin=0., vmax=14.)
+    tfr.plot([4], baseline=(None, 0), mode='ratio')
+    tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10)

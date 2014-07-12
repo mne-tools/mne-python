@@ -293,13 +293,15 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
                 freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False):
+                colorbar=False, picker=True, cmap=None):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
+    if cmap is None:
+        cmap = plt.cm.jet
 
     extent = (tmin, tmax, freq[0], freq[-1])
     ax.imshow(tfr[ch_idx], extent=extent, aspect="auto", origin="lower",
-              vmin=vmin, vmax=vmax, picker=True)
+              vmin=vmin, vmax=vmax, picker=picker, cmap=cmap)
     if x_label is not None:
         plt.xlabel(x_label)
     if y_label is not None:
@@ -502,8 +504,10 @@ def _plot_update_evoked_topo(params, bools):
     fig.canvas.draw()
 
 
+@deprecated('`plot_topo_tfr` is deprecated and will be removed in '
+            'MNE 0.9. Use `plot_topo` method on TFR objects.')
 def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
-                  vmax=None, cmap=None, layout_scale=0.945, title=None):
+                  vmax=None, cmap='RdBu_r', layout_scale=0.945, title=None):
     """Plot time-frequency data on sensor layout
 
     Clicking on the time-frequency map of an individual sensor opens a
@@ -527,8 +531,8 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
         Minimum value mapped to lowermost color
     vmax : float
         Minimum value mapped to upppermost color
-    cmap : instance of matplotlib.pyplot.colormap
-        Colors to be mapped to the values
+    cmap : instance of matplotlib.pyplot.colormap | str
+        Colors to be mapped to the values. Default 'RdBu_r'.
     layout_scale : float
         Scaling factor for adjusting the relative size of the layout
         on the canvas
@@ -550,7 +554,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
         from .layouts.layout import find_layout
         layout = find_layout(epochs.info)
 
-    tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq)
+    tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq, cmap=cmap)
 
     fig = _plot_topo(info=epochs.info, times=epochs.times,
                      show_func=tfr_imshow, layout=layout, border='w',
@@ -561,6 +565,8 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
     return fig
 
 
+@deprecated('`plot_topo_power` is deprecated and will be removed in '
+            'MNE 0.9. Use `plot_topo` method on TFR objects.')
 def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
                     mode='mean', decim=1, colorbar=True, vmin=None, vmax=None,
                     cmap=None, layout_scale=0.945, dB=True, title=None):
@@ -645,6 +651,8 @@ def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
     return fig
 
 
+@deprecated('`plot_topo_phase_lock` is deprecated and will be removed in '
+            'MNE 0.9. Use `plot_topo` method on TFR objects.')
 def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
                          mode='mean', decim=1, colorbar=True, vmin=None,
                          vmax=None, cmap=None, layout_scale=0.945,
@@ -871,9 +879,9 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         for grad and 1e15 for mag.
     scale_time : float | None
         Scale the time labels. Defaults to 1e3 (ms).
-    units : str | None
-        The units of the channel types used for colorbar lables. If
-        scale == None the unit is automatically determined.
+    unit : str | None
+        The unit of the channel type used for colorbar label. If
+        scale is None the unit is automatically determined.
     res : int
         The resolution of the topomap image (n pixels along each side).
     size : float
@@ -969,19 +977,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         from .layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
-    if vmax is None and vmin is None:
-        vmax = np.abs(data).max()
-        vmin = -vmax
-    else:
-        if callable(vmin):
-            vmin = vmin(data)
-        elif vmin is None:
-            vmin = np.min(data)
-        if callable(vmax):
-            vmax = vmax(data)
-        elif vmin is None:
-            vmax = np.max(data)
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+
     images, contours_ = [], []
+
     if mask is not None:
         _picks = picks[::2 if ch_type not in ['mag', 'eeg'] else 1]
         mask_ = mask[np.ix_(_picks, time_idx)]
@@ -1301,7 +1300,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         format string (e.g., 'r+' for red plusses).
     res : int
         The resolution of the topomap image (n pixels along each side).
-    axis : instance of Axes | None
+    axis : instance of Axis | None
         The axis to plot to. If None, the current axis will be used.
     names : list | None
         List of channel names. If None, channel names are not plotted.
@@ -1347,18 +1346,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     axes = plt.gca()
     axes.set_frame_on(False)
 
-    if vmax is None and vmin is None:
-        vmax = np.abs(data).max()
-        vmin = -vmax
-    else:
-        if callable(vmin):
-            vmin = vmin(data)
-        elif vmin is None:
-            vmin = np.min(data)
-        if callable(vmax):
-            vmax = vmax(data)
-        elif vmin is None:
-            vmax = np.max(data)
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     plt.xticks(())
     plt.yticks(())
@@ -1667,7 +1655,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
-    axes : instance of Axes | list | None
+    axes : instance of Axis | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
@@ -1715,7 +1703,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
     titles : dict | None
         The titles associated with the channels. If None, defaults to
         `dict(eeg='EEG', grad='Gradiometers', mag='Magnetometers')`.
-    axes : instance of Axes | list | None
+    axes : instance of Axis | list | None
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
@@ -2266,7 +2254,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
-    vmax : scalar
+    vmax : float
         The value specfying the range of the color scale (-vmax to +vmax).
         If None, the largest absolute value in the data is used.
     cmap : matplotlib colormap
@@ -2341,7 +2329,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
 
     if vmax is None:
         vrange = np.array([f(data) for f in (np.min, np.max)])
-        vmax = max(abs(vrange))
+        vmax = np.max(np.abs(vrange))
 
     if merge_grads:
         from .layouts.layout import _merge_grad_data
@@ -5032,3 +5020,174 @@ def _drop_log_stats(drop_log, ignore=['IGNORED']):
                           if not any([r in ignore for r in d])])
 
     return perc
+
+
+def _setup_vmin_vmax(data, vmin, vmax):
+    if vmax is None and vmin is None:
+        vmax = np.abs(data).max()
+        vmin = -vmax
+    else:
+        if callable(vmin):
+            vmin = vmin(data)
+        elif vmin is None:
+            vmin = np.min(data)
+        if callable(vmax):
+            vmax = vmax(data)
+        elif vmin is None:
+            vmax = np.max(data)
+    return vmin, vmax
+
+
+def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
+                     ch_type='mag', baseline=None, mode='mean', layout=None,
+                     vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
+                     colorbar=True, unit=None, res=64, size=2, format='%1.1e',
+                     show_names=False, title=None, axes=None, show=True):
+    """Plot topographic maps of specific time-frequency intervals of TFR data
+
+    Parameters
+    ----------
+    tfr : AvereageTFR
+        The AvereageTFR object.
+    tmin : None | float
+        The first time instant to display. If None the first time point
+        available is used.
+    tmax : None | float
+        The last time instant to display. If None the last time point
+        available is used.
+    fmin : None | float
+        The first frequency to display. If None the first frequency
+        available is used.
+    fmax : None | float
+        The last frequency to display. If None the last frequency
+        available is used.
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        The channel type to plot. For 'grad', the gradiometers are collected in
+        pairs and the RMS for each pair is plotted.
+    baseline : tuple or list of length 2
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+        Do baseline correction with ratio (power is divided by mean
+        power during baseline) or z-score (power is divided by standard
+        deviation of power during baseline after subtracting the mean,
+        power = [power - mean(power_baseline)] / std(power_baseline))
+        If None, baseline no correction will be performed.
+    layout : None | Layout
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout file
+        is inferred from the data; if no appropriate layout file was found, the
+        layout is automatically generated from the sensor locations.
+    vmin : float | callable
+        The value specfying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data).
+    vmax : float | callable
+        The value specfying the upper bound of the color range.
+        If None, the maximum absolute value is used. If vmin is None,
+        but vmax is not, defaults to np.min(data).
+        If callable, the output equals vmax(data).
+    cmap : matplotlib colormap
+        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+        'Reds'.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses).
+    colorbar : bool
+        Plot a colorbar.
+    unit : str | None
+        The unit of the channel type used for colorbar labels.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
+    size : float
+        Side length per topomap in inches.
+    format : str
+        String format for colorbar values.
+    show_names : bool | callable
+        If True, show channel names on top of the map. If a callable is
+        passed, channel names will be formatted using the callable; e.g., to
+        delete the prefix 'MEG ' from all channel names, pass the function
+        lambda x: x.replace('MEG ', ''). If `mask` is not None, only significant
+        sensors will be shown.
+    title : str | None
+        Title. If None (default), no title is displayed.
+    axes : instance of Axis | None
+        The axes to plot to. If None the axes is defined automatically.
+    show : bool
+        Call pyplot.show() at the end.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure containing the topography.
+    """
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+    picks, pos, merge_grads, names = _prepare_topo_plot(tfr, ch_type,
+                                                        layout)
+    if not show_names:
+        names = None
+
+    data = tfr.data
+
+    if mode is not None and baseline is not None:
+        data = rescale(data, tfr.times, baseline, mode, copy=True)
+
+    # crop time
+    itmin, itmax = None, None
+    if tmin is not None:
+        itmin = np.where(tfr.times >= tmin)[0][0]
+    if tmax is not None:
+        itmax = np.where(tfr.times <= tmax)[0][-1]
+
+    # crop freqs
+    ifmin, ifmax = None, None
+    if fmin is not None:
+        ifmin = np.where(tfr.freqs >= fmin)[0][0]
+    if fmax is not None:
+        ifmax = np.where(tfr.freqs <= fmax)[0][-1]
+
+    data = data[picks, ifmin:ifmax, itmin:itmax]
+    data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
+
+    if merge_grads:
+        from .layouts.layout import _merge_grad_data
+        data = _merge_grad_data(data)
+
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+
+    if axes is None:
+        fig = plt.figure()
+        ax = fig.gca()
+    else:
+        fig = axes.figure
+        ax = axes
+
+    ax.set_yticks([])
+    ax.set_xticks([])
+    ax.set_frame_on(False)
+
+    if title is not None:
+        ax.set_title(title)
+
+    im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
+                         axis=ax, cmap=cmap, image_interp='bilinear',
+                         contours=False, names=names)
+
+    if colorbar:
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(im, cax=cax, ticks=(vmin, vmax),
+                            format='%3.2f', cmap=cmap)
+        cbar.ax.tick_params(labelsize=12)
+
+    if show:
+        plt.show()
+
+    return fig

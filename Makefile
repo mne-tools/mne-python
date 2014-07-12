@@ -21,7 +21,10 @@ clean-build:
 clean-ctags:
 	rm -f tags
 
-clean: clean-build clean-pyc clean-so clean-ctags
+clean-cache:
+	find . -name "__pycache__" | xargs rm -rf
+
+clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 
 in: inplace # just a shortcut
 inplace:
