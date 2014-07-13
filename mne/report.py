@@ -266,6 +266,7 @@ footer_template = HTMLTemplate(u"""
 image_template = Template(u"""
 
 {{default interactive = False}}
+{{default width = 50}}
 
 <li class="{{div_klass}}" id="{{id}}" {{if not show}}style="display: none"
 {{endif}}>
@@ -274,9 +275,10 @@ image_template = Template(u"""
 {{endif}}
 <div class="thumbnail">
 {{if not interactive}}
-<img alt="" style="width:50%;" src="data:image/png;base64,{{img}}">
+    <img alt="" style="width:{{width}}%;"
+    src="data:image/png;base64,{{img}}">
 {{else}}
-<center>{{interactive}}</center>
+    <center>{{interactive}}</center>
 {{endif}}
 </div>
 </li>
@@ -882,7 +884,6 @@ class Report(object):
 
     def _render_trans(self, trans_fname, path, info, subject,
                       subjects_dir):
-        from PIL import Image
         import mayavi
 
         fig = plot_trans(info, trans_fname=trans_fname,
@@ -895,11 +896,9 @@ class Report(object):
 
             global_id = self._get_id()
 
-            # XXX: save_bmp / save_png / ...
-            fig.scene.save_bmp(tempdir + 'test')
-            output = BytesIO()
-            Image.open(tempdir + 'test').save(output, format='bmp')
-            img = output.getvalue().encode('base64')
+            img = _iterate_trans_views(fig, mayavi.mlab)
+
+            mayavi.mlab.close(all=True)
 
             caption = 'Trans : ' + trans_fname
             div_klass = 'trans'
@@ -909,6 +908,7 @@ class Report(object):
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
+                                             width=75,
                                              show=show)
             self.html.append(html)
 
@@ -997,9 +997,28 @@ def _fig_to_img(fig):
     """Auxiliary function for fig <-> binary image.
     """
     output = BytesIO()
-    fig.savefig(output, format='png')
+    fig.savefig(output, format='png', bbox_inches='tight')
 
     return output.getvalue().encode('base64')
+
+
+def _iterate_trans_views(fig, mlab):
+
+    from PIL import Image
+    import matplotlib.pyplot as plt
+
+    views = [(90, 90), (0, 90), (0, -90)]
+    fig2, axes = plt.subplots(1, len(views))
+    for view, ax in zip(views, axes):
+        mlab.view(view[0], view[1])
+        # XXX: save_bmp / save_png / ...
+        fig.scene.save_bmp(tempdir + 'test')
+        im = Image.open(tempdir + 'test')
+        ax.imshow(im)
+        ax.axis('off')
+
+    img = _fig_to_img(fig2)
+    return img
 
 
 def _recursive_search(path, pattern):
