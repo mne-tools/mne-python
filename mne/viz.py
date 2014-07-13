@@ -839,7 +839,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
-                        image_interp='nearest'):
+                        image_interp='bilinear'):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -920,7 +920,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
-        The image interpolation to be used. All matplotlib options are accepted.
+        The image interpolation to be used. All matplotlib options are
+        accepted.
     """
     import matplotlib.pyplot as plt
 
@@ -1074,7 +1075,7 @@ def _plot_update_evoked_topomap(params, bools):
 
 def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
                        colorbar=False, res=64, size=1, show=True,
-                       outlines='head', contours=6, image_interp='nearest'):
+                       outlines='head', contours=6, image_interp='bilinear'):
     """Plot topographic maps of SSP projections
 
     Parameters
@@ -1107,7 +1108,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
-        The image interpolation to be used. All matplotlib options are accepted.
+        The image interpolation to be used. All matplotlib options are
+        accepted.
 
     Returns
     -------
@@ -1176,17 +1178,17 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
 
 
 def _check_outlines(pos, outlines, head_scale=0.85):
-    """c
+    """Check or create outlines for topoplot
     """
     pos = np.asarray(pos)
     if outlines in ('head', None):
-        rmax = 0.5
+        radius = 0.5
         step = 2 * np.pi / 101
         l = np.arange(0, 2 * np.pi + step, step)
-        head_x = np.cos(l) * rmax
-        head_y = np.sin(l) * rmax
-        nose_x = np.array([0.18, 0, -0.18]) * rmax
-        nose_y = np.array([rmax - .004, rmax * 1.15, rmax - .004])
+        head_x = np.cos(l) * radius
+        head_y = np.sin(l) * radius
+        nose_x = np.array([0.18, 0, -0.18]) * radius
+        nose_y = np.array([radius - .004, radius * 1.15, radius - .004])
         ear_x = np.array([.497, .510, .518, .5299, .5419, .54, .547,
                          .532, .510, .489])
         ear_y = np.array([.0555, .0775, .0783, .0746, .0555, -.0055, -.0932,
@@ -1275,7 +1277,7 @@ def _griddata(x, y, v, xi, yi):
 def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
-                 contours=6, image_interp='nearest'):
+                 contours=6, image_interp='bilinear'):
     """Plot a topographic map as image
 
     Parameters
@@ -1329,8 +1331,15 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     contour : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
-        The image interpolation to be used. All matplotlib options are accepted.
+        The image interpolation to be used. All matplotlib options are
+        accepted.
 
+    Returns
+    -------
+    im : matplotlib.image.AxesImage
+        The interpolated data.
+    cn : matplotlib.contour.ContourSet
+        The fieldlines.
     """
     import matplotlib.pyplot as plt
 
@@ -1376,11 +1385,16 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     Xi, Yi = np.meshgrid(xi, yi)
     Zi = _griddata(pos_x, pos_y, data, Xi, Yi)
 
-    if outlines is not None and image_mask is None:
+    if outlines is None:
+        _is_default_outlines = False
+    elif isinstance(outlines, dict):
+        _is_default_outlines = any([k.startswith('head') for k in outlines])
+
+    if _is_default_outlines and image_mask is None:
         # prepare masking
         image_mask, pos = _make_image_mask(outlines, pos, res)
 
-    if image_mask is not None:
+    if image_mask is not None and not _is_default_outlines:
         Zi[~image_mask] = np.nan
 
     if mask_params is None:
@@ -1393,6 +1407,10 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         raise ValueError('`mask_params` must be of dict-type '
                          'or None')
 
+    # plot map and countour
+    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
+                   aspect='equal', extent=(xmin, xmax, ymin, ymax),
+                   interpolation=image_interp)
     # plot outline
     linewidth = mask_params['markeredgewidth']
     if isinstance(outlines, dict):
@@ -1401,15 +1419,23 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
                 continue
             ax.plot(x, y, color='k', linewidth=linewidth)
 
-    # plot map and countour
-    im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
-                   aspect='equal', extent=(xmin, xmax, ymin, ymax),
-                   interpolation=image_interp)
     if isinstance(contours, int) and contours not in (False, None):
         cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
                           linewidths=linewidth)
     else:
         cont = None
+
+    if _is_default_outlines:
+        from matplotlib import patches
+        # remove nose offset and tweak
+        patch = patches.Circle((0.5, 0.4687), radius=.46,
+                               clip_on=True,
+                               transform=ax.transAxes)
+        im.set_clip_path(patch)
+        ax.set_clip_path(patch)
+        if cont is not None:
+            for col in cont.collections:
+                col.set_clip_path(patch)
 
     if sensors is True:
         sensors = 'k,'
@@ -1431,6 +1457,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
             ch_id = show_names(ch_id)
             ax.text(p[0], p[1], ch_id, horizontalalignment='center',
                     verticalalignment='center', size='x-small')
+
     plt.subplots_adjust(top=.95)
 
     return im, cont
@@ -2237,7 +2264,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                         sensors='k,', colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
-                        image_interp='nearest'):
+                        image_interp='bilinear'):
     """Project unmixing matrix on interpolated sensor topogrpahy.
 
     Parameters
@@ -2321,7 +2348,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     data_picks, pos, merge_grads, names = _prepare_topo_plot(ica, ch_type,
                                                              layout)
     pos, outlines = _check_outlines(pos, outlines)
-    if outlines is not None:
+    if outlines not in (None, 'head'):
         image_mask, pos = _make_image_mask(outlines, pos, res)
     else:
         image_mask = None
