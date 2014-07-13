@@ -4962,9 +4962,11 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
     import matplotlib.pyplot as plt
 
-    ax = axes if axes else plt
+    ax = axes if axes else plt.gca()
     min_event = np.min(unique_events_id)
     max_event = np.max(unique_events_id)
+
+    unique_events_id = np.array(unique_events_id)
 
     for idx, ev in enumerate(unique_events_id):
         ev_mask = events[:, 2] == ev
@@ -4974,26 +4976,21 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         if ev in color:
             kwargs['color'] = color[ev]
         ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                events[ev_mask, 2], '.', **kwargs)
+                (idx + 1) * np.ones(ev_mask.sum()), '.', **kwargs)
 
-    if axes:
-        ax.set_yticks(unique_events_id)
-        ax.set_ylim([min_event - 1, max_event + 1])
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel('Events id')
-    else:
-        ax.yticks(unique_events_id)
-        ax.ylim([min_event - 1, max_event + 1])
-        ax.xlabel(xlabel)
-        ax.ylabel('Events id')
+    ax.set_yticks(1 + np.arange(unique_events_id.size))
+    ax.set_ylim(0, unique_events_id.size + 1)
+    ax.set_yticklabels(unique_events_id)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel('Events id')
 
     ax.grid('on')
 
     if event_id is not None:
         ax.legend()
 
-    if show and not axes:
-        ax.show()
+    if show:
+        plt.show()
 
     return ax
 
