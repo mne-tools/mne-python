@@ -264,6 +264,9 @@ footer_template = HTMLTemplate(u"""
 """)
 
 image_template = Template(u"""
+
+{{default interactive = False}}
+
 <li class="{{div_klass}}" id="{{id}}" {{if not show}}style="display: none"
 {{endif}}>
 {{if caption}}
@@ -359,7 +362,6 @@ class Report(object):
                                                   div_klass=div_klass,
                                                   img_klass=img_klass,
                                                   caption=caption,
-                                                  interactive=None,
                                                   show=True))
             self.fnames.append('%s-#-%s-#-custom' % (caption, section))
             self._sectionlabels.append(section)
@@ -780,12 +782,10 @@ class Report(object):
             div_klass = 'evoked'
             img_klass = 'evoked'
             show = True
-            interactive = False
             html.append(image_template.substitute(img=img, id=global_id,
                                                   div_klass=div_klass,
                                                   img_klass=img_klass,
                                                   caption=caption,
-                                                  interactive=interactive,
                                                   show=show))
 
         self.html.append('\n'.join(html))
@@ -852,12 +852,10 @@ class Report(object):
         div_klass = 'epochs'
         img_klass = 'epochs'
         show = True
-        interactive = False
         html = image_template.substitute(img=img, id=global_id,
                                          div_klass=div_klass,
                                          img_klass=img_klass,
                                          caption=caption,
-                                         interactive=interactive,
                                          show=show)
         self.html.append(html)
 
@@ -875,12 +873,10 @@ class Report(object):
         div_klass = 'covariance'
         img_klass = 'covariance'
         show = True
-        interactive = False
         html = image_template.substitute(img=img, id=global_id,
                                          div_klass=div_klass,
                                          img_klass=img_klass,
                                          caption=caption,
-                                         interactive=interactive,
                                          show=show)
         self.html.append(html)
 
@@ -909,12 +905,10 @@ class Report(object):
             div_klass = 'trans'
             img_klass = 'trans'
             show = True
-            interactive = False
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
-                                             interactive=interactive,
                                              show=show)
             self.html.append(html)
 
