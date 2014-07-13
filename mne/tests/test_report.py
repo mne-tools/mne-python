@@ -4,6 +4,7 @@
 
 import os.path as op
 import glob
+import warnings
 
 from nose.tools import assert_true, assert_equal
 
@@ -12,10 +13,13 @@ from mne.report import Report
 from mne.io import Raw
 from mne.utils import _TempDir
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
+base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
+                               'data'))
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 tempdir = _TempDir()
 
@@ -25,7 +29,9 @@ def test_parse_folder():
     """
 
     report = Report(info_fname=raw_fname)
-    report.parse_folder(data_path=base_dir, interactive=False)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        report.parse_folder(data_path=base_dir, interactive=False)
 
     # Check correct paths and filenames
     assert_true(raw_fname in report.fnames)
@@ -49,7 +55,7 @@ def test_parse_folder():
 
     # Check saving functionality
     report.data_path = tempdir
-    report.save(fname='report.html', open_browser=False)
+    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False)
     assert_true(op.isfile(op.join(tempdir, 'report.html')))
 
     # Check if all files were rendered
@@ -69,9 +75,10 @@ def test_parse_folder():
     assert_equal(report.initial_id, len(report.html) + len(c_evoked) - 1)
 
     # Check saving same report to new filename
-    report.save(fname='report2.html', open_browser=False)
+    report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
     assert_true(op.isfile(op.join(tempdir, 'report2.html')))
 
     # Check overwriting file
-    report.save(fname='report.html', open_browser=False, overwrite=True)
+    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False,
+                overwrite=True)
     assert_true(op.isfile(op.join(tempdir, 'report2.html')))
