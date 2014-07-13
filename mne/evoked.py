@@ -443,7 +443,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                      format="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='nearest'):
+                     image_interp='bilinear'):
         """Plot topographic maps of specific time points
 
         Parameters

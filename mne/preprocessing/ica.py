@@ -1262,7 +1262,7 @@ class ICA(ContainsMixin):
     def plot_components(self, picks=None, ch_type='mag', res=64, layout=None,
                         vmin=None, vmax=None, cmap='RdBu_r', sensors='k,',
                         colorbar=False, title=None, show=True, outlines='head',
-                        contours=6, image_interp='nearest'):
+                        contours=6, image_interp='bilinear'):
         """Project unmixing matrix on interpolated sensor topogrpahy.
 
         Parameters
