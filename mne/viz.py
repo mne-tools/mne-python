@@ -4977,10 +4977,12 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
                 events[ev_mask, 2], '.', **kwargs)
 
     if axes:
+        ax.set_yticks(unique_events_id)
         ax.set_ylim([min_event - 1, max_event + 1])
         ax.set_xlabel(xlabel)
         ax.set_ylabel('Events id')
     else:
+        ax.yticks(unique_events_id)
         ax.ylim([min_event - 1, max_event + 1])
         ax.xlabel(xlabel)
         ax.ylabel('Events id')
