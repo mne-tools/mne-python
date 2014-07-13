@@ -449,6 +449,9 @@ class Report(object):
         if self.subjects_dir is not None and self.subject is not None:
             fnames += glob(op.join(self.subjects_dir, self.subject,
                            'mri', 'T1.mgz'))
+        else:
+            warnings.warn('`subjects_dir` and `subject` not provided.'
+                          ' Cannot render MRI and -trans.fif(.gz) files.')
 
         if self.info_fname is not None:
             info = read_info(self.info_fname)
@@ -495,7 +498,8 @@ class Report(object):
                     self.fnames.append(fname)
                     self._sectionlabels.append('covariance')
                 elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
-                      and self.info_fname is not None):
+                      and self.info_fname is not None and self.subjects_dir
+                      is not None and self.subject is not None):
                     self._render_trans(fname, self.data_path, info,
                                        self.subject, self.subjects_dir)
                     self.fnames.append(fname)
@@ -506,7 +510,7 @@ class Report(object):
             except Exception as e:
                 logger.info(e)
 
-    def save(self, fname='report.html', open_browser=True, overwrite=False):
+    def save(self, fname=None, open_browser=True, overwrite=False):
         """Save html report and open it in browser.
 
         Parameters
@@ -524,28 +528,33 @@ class Report(object):
             warnings.warn('`data_path` not provided. Using %s instead'
                           % self.data_path)
 
+        if fname is None:
+            fname = op.realpath(op.join(self.data_path, 'report.html'))
+        else:
+            fname = op.realpath(fname)
+
         self._render_toc(verbose=self.verbose)
 
         html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
         self.html.append(html)
 
-        if not overwrite and op.isfile(op.join(self.data_path, fname)):
+        if not overwrite and op.isfile(fname):
             msg = ('Report already exists at location %s. '
                    'Overwrite it (y/[n])? '
-                   % op.join(op.abspath(self.data_path), fname))
+                   % fname)
             answer = builtins.raw_input(msg)
             if answer.lower() == 'y':
                 overwrite = True
 
-        if overwrite or not op.isfile(op.join(self.data_path, fname)):
-            fobj = open(op.join(self.data_path, fname), 'w')
+        if overwrite or not op.isfile(fname):
+            logger.info('Saving to %s' % fname)
+            fobj = open(fname, 'w')
             fobj.write(_fix_global_ids(''.join(self.html)))
             fobj.close()
 
         if open_browser:
             import webbrowser
-            path = op.abspath(self.data_path)
-            webbrowser.open_new_tab('file://' + op.join(path, fname))
+            webbrowser.open_new_tab('file://' + fname)
 
         return fname
 
@@ -1005,7 +1014,7 @@ def _recursive_search(path, pattern):
     filtered_files = list()
     for dirpath, dirnames, files in os.walk(path):
         for f in fnmatch.filter(files, pattern):
-            filtered_files.append(op.join(dirpath, f))
+            filtered_files.append(op.realpath(op.join(dirpath, f)))
 
     return filtered_files
 

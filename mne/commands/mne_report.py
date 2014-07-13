@@ -50,4 +50,4 @@ if __name__ == '__main__':
     report = Report(info_fname, subjects_dir=subjects_dir, subject=subject,
                     verbose=verbose)
     report.parse_folder(path, interactive=interactive, verbose=verbose)
-    report.save('report.html', open_browser=open_browser, overwrite=overwrite)
+    report.save(open_browser=open_browser, overwrite=overwrite)
