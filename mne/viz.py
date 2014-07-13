@@ -1025,7 +1025,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
         params = dict(evoked=evoked, fig=fig, projs=evoked.info['projs'],
-                      picks=picks, images=images, contours=contours,
+                      picks=picks, images=images, contours=contours_,
                       time_idx=time_idx, scale=scale, merge_grads=merge_grads,
                       res=res, pos=pos, image_mask=image_mask,
                       plot_update_proj_callback=_plot_update_evoked_topomap)
