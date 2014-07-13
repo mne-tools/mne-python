@@ -109,6 +109,8 @@ Changelog
 
    - Simplify sensor space time-frequency analysis API with `tfr_morlet` function by `Alex Gramfort`_ and `Denis Engemann`_
 
+   - Add new somatosensory MEG dataset with nice time-frequency content by `Alex Gramfort`_
+
 
 BUG
 ~~~
