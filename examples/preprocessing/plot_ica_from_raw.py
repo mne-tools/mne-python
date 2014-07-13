@@ -62,7 +62,7 @@ ica.plot_scores(scores, exclude=ecg_inds, title=title % 'ecg')
 show_picks = np.abs(scores).argsort()[::-1][:5]
 
 ica.plot_sources(raw, show_picks, exclude=ecg_inds, title=title % 'ecg')
-ica.plot_components(ecg_inds, title=title % 'ecg')
+ica.plot_components(ecg_inds, title=title % 'ecg', colorbar=True)
 
 ecg_inds = ecg_inds[:n_max_ecg]
 ica.exclude += ecg_inds
@@ -75,7 +75,7 @@ ica.plot_scores(scores, exclude=eog_inds, title=title % 'ocg')
 show_picks = np.abs(scores).argsort()[::-1][:5]
 
 ica.plot_sources(raw, show_picks, exclude=ecg_inds, title=title % 'eog')
-ica.plot_components(eog_inds, title=title % 'ecg')
+ica.plot_components(eog_inds, title=title % 'ecg', colorbar=True)
 
 eog_inds = eog_inds[:n_max_eog]
 ica.exclude += eog_inds

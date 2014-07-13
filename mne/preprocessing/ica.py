@@ -1260,9 +1260,9 @@ class ICA(ContainsMixin):
         return self
 
     def plot_components(self, picks=None, ch_type='mag', res=64, layout=None,
-                        vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        title=None, show=True, outlines='head', contours=6,
-                        image_interp='nearest'):
+                        vmin=None, vmax=None, cmap='RdBu_r', sensors='k,',
+                        colorbar=False, title=None, show=True, outlines='head',
+                        contours=6, image_interp='nearest'):
         """Project unmixing matrix on interpolated sensor topogrpahy.
 
         Parameters
@@ -1277,9 +1277,15 @@ class ICA(ContainsMixin):
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout is
             inferred from the data.
-        vmax : scalar
-            The value specfying the range of the color scale (-vmax to +vmax).
-            If None, the largest absolute value in the data is used.
+        vmin : float | callable
+            The value specfying the lower bound of the color range.
+            If None, and vmax is None, -vmax is used. Else np.min(data).
+            If callable, the output equals vmin(data).
+        vmax : float | callable
+            The value specfying the upper bound of the color range.
+            If None, the maximum absolute value is used. If vmin is None,
+            but vmax is not, defaults to np.min(data).
+            If callable, the output equals vmax(data).
         cmap : matplotlib colormap
             Colormap.
         sensors : bool | str
