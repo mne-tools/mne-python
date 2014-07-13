@@ -58,7 +58,7 @@ title = 'Sources related to %s artifacts (red)'
 show_picks = np.abs(scores).argsort()[::-1][:5]
 
 ica.plot_sources(epochs, show_picks, exclude=ecg_inds, title=title % 'ecg')
-ica.plot_components(ecg_inds, title=title % 'ecg')
+ica.plot_components(ecg_inds, title=title % 'ecg', colorbar=True)
 
 ica.exclude += ecg_inds[:3]  # by default we expect 3 reliable ECG components
 

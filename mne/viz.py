@@ -2234,9 +2234,9 @@ def plot_ica_topomap(ica, source_idx, ch_type='mag', res=64, layout=None,
 
 
 def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
-                        layout=None,
-                        vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        title=None, show=True, outlines='head', contours=6,
+                        layout=None, vmin=None, vmax=None, cmap='RdBu_r',
+                        sensors='k,', colorbar=False, title=None,
+                        show=True, outlines='head', contours=6,
                         image_interp='nearest'):
     """Project unmixing matrix on interpolated sensor topogrpahy.
 
@@ -2254,9 +2254,15 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
         inferred from the data.
-    vmax : float
-        The value specfying the range of the color scale (-vmax to +vmax).
-        If None, the largest absolute value in the data is used.
+    vmin : float | callable
+        The value specfying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data).
+    vmax : float | callable
+        The value specfying the upper bound of the color range.
+        If None, the maximum absolute value is used. If vmin is None,
+        but vmax is not, defaults to np.min(data).
+        If callable, the output equals vmax(data).
     cmap : matplotlib colormap
         Colormap.
     sensors : bool | str
@@ -2276,7 +2282,8 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
-        The image interpolation to be used. All matplotlib options are accepted.
+        The image interpolation to be used. All matplotlib options are
+        accepted.
 
     Returns
     -------
@@ -2284,6 +2291,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         The figure object(s).
     """
     import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid import make_axes_locatable
 
     if picks is None:  # plot components by sets of 20
         n_components = ica.mixing_matrix_.shape[1]
@@ -2327,34 +2335,29 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         title = 'ICA components'
     fig.suptitle(title)
 
-    if vmax is None:
-        vrange = np.array([f(data) for f in (np.min, np.max)])
-        vmax = np.max(np.abs(vrange))
-
     if merge_grads:
         from .layouts.layout import _merge_grad_data
     for ii, data_, ax in zip(picks, data, axes):
-        data_ = _merge_grad_data(data_) if merge_grads else data_
-        plot_topomap(data_.flatten(), pos, vmax=vmax, vmin=-vmax,
-                     res=res, axis=ax, cmap=cmap, outlines=outlines,
-                     image_mask=image_mask, contours=contours,
-                     image_interp=image_interp)
         ax.set_title('IC #%03d' % ii, fontsize=12)
+        data_ = _merge_grad_data(data_) if merge_grads else data_
+        vmin_, vmax_ = _setup_vmin_vmax(data_, vmin, vmax)
+        im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
+                          res=res, axis=ax, cmap=cmap, outlines=outlines,
+                          image_mask=image_mask, contours=contours,
+                          image_interp=image_interp)[0]
+        if colorbar:
+            divider = make_axes_locatable(ax)
+            cax = divider.append_axes("right", size="5%", pad=0.05)
+            cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
+            cbar.ax.tick_params(labelsize=12)
+            cbar.set_ticks((vmin_, vmax_))
+            cbar.ax.set_title('AU', fontsize=10)
         ax.set_yticks([])
         ax.set_xticks([])
         ax.set_frame_on(False)
-
     tight_layout(fig=fig)
-    fig.subplots_adjust(top=0.9)
+    fig.subplots_adjust(top=0.95)
     fig.canvas.draw()
-    if colorbar:
-        vmax_ = normalize_colors(vmin=-vmax, vmax=vmax)
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=vmax_)
-        sm.set_array(np.linspace(-vmax, vmax))
-        fig.subplots_adjust(right=0.8)
-        cax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-        fig.colorbar(sm, cax=cax)
-        cax.set_title('AU')
 
     if show is True:
         plt.show()
@@ -2792,7 +2795,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title):
                          'Found different channels.')
 
     fig, axes = plt.subplots(n_rows, 1)
-    fig.suptitle('Average signal before (red) and after (black) ICA)')
+    fig.suptitle('Average signal before (red) and after (black) ICA')
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
 
     evoked.plot(axes=axes)
@@ -5042,7 +5045,7 @@ def _setup_vmin_vmax(data, vmin, vmax):
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean', layout=None,
                      vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
-                     colorbar=True, unit=None, res=64, size=2, format='%1.1e',
+                     colorbar=False, unit=None, res=64, size=2, format='%1.1e',
                      show_names=False, title=None, axes=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data
 
@@ -5185,9 +5188,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     if colorbar:
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar = plt.colorbar(im, cax=cax, ticks=(vmin, vmax),
-                            format='%3.2f', cmap=cmap)
+        cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
+        cbar.set_ticks((vmin, vmax))
         cbar.ax.tick_params(labelsize=12)
+        cbar.ax.set_title('AU')
 
     if show:
         plt.show()
