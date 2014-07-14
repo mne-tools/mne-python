@@ -18,14 +18,187 @@ import warnings
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
 from .utils import _TempDir, logger, verbose, get_subjects_dir
-from .viz import plot_events, _plot_mri_contours, plot_trans, plot_cov
+from .viz import plot_events, plot_trans, plot_cov
+from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
 from .epochs import read_epochs
+
+from .externals.decorator import decorator
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
 from .externals.six.moves import builtins
 
 tempdir = _TempDir()
+temp_fname = op.join(tempdir, 'test')
+
+###############################################################################
+# PLOTTING FUNCTIONS
+
+
+@decorator
+def _check_report_mode(function, *args, **kwargs):
+    """Check whether to actually render or not.
+
+    Parameters
+    ----------
+    function : function
+        Function to be decorated by setting the verbosity level.
+
+    Returns
+    -------
+    dec : function
+        The decorated function
+    """
+
+    if 'MNE_REPORT_TESTING' not in os.environ:
+        return function(*args, **kwargs)
+    else:
+        return ''
+
+
+@_check_report_mode
+def _fig_to_img(function=None, fig=None, **kwargs):
+    """Wrapper function to plot figure and
+       for fig <-> binary image.
+    """
+    import matplotlib.pyplot as plt
+
+    if function is not None:
+        plt.close('all')
+        fig = function(**kwargs)
+
+    output = BytesIO()
+    fig.savefig(output, format='png', bbox_inches='tight')
+    plt.close('all')
+
+    return output.getvalue().encode('base64')
+
+
+@_check_report_mode
+def _fig_to_mrislice(function, orig_size, **kwargs):
+    import matplotlib.pyplot as plt
+    from PIL import Image
+
+    plt.close('all')
+    fig = _plot_mri_contours(**kwargs)
+
+    fig_size = fig.get_size_inches()
+    w, h = orig_size[0], orig_size[1]
+    w2, h2 = fig_size[0], fig_size[1]
+    fig.set_size_inches([(w2 / w) * w, (w2 / w) * h])
+    a = fig.gca()
+    a.set_xticks([]), a.set_yticks([])
+    plt.xlim(0, h), plt.ylim(w, 0)
+    fig.savefig(temp_fname, bbox_inches='tight',
+                pad_inches=0, format='png')
+    Image.open(temp_fname).resize((w, h)).save(temp_fname,
+                                               format='png')
+    output = BytesIO()
+    Image.open(temp_fname).save(output, format='png')
+    return output.getvalue().encode('base64')
+
+
+@_check_report_mode
+def _iterate_trans_views(function, **kwargs):
+
+    from PIL import Image
+    import matplotlib.pyplot as plt
+    import mayavi
+
+    fig = function(**kwargs)
+
+    if isinstance(fig, mayavi.core.scene.Scene):
+
+        views = [(90, 90), (0, 90), (0, -90)]
+        fig2, axes = plt.subplots(1, len(views))
+        for view, ax in zip(views, axes):
+            mayavi.mlab.view(view[0], view[1])
+            # XXX: save_bmp / save_png / ...
+            fig.scene.save_bmp(temp_fname)
+            im = Image.open(temp_fname)
+            ax.imshow(im)
+            ax.axis('off')
+
+        img = _fig_to_img(fig=fig2)
+        mayavi.mlab.close(all=True)
+
+        return img
+    else:
+        return None
+
+###############################################################################
+# TOC FUNCTIONS
+
+
+def _is_bad_fname(fname):
+    """Auxiliary function for identifying bad file naming patterns
+       and highlighting them in red in the TOC.
+    """
+    if not fname.endswith(('-eve.fif', '-eve.fif.gz',
+                           '-ave.fif', '-ave.fif.gz',
+                           '-cov.fif', '-cov.fif.gz',
+                           '-sol.fif',
+                           '-fwd.fif', '-fwd.fif.gz',
+                           '-inv.fif', '-inv.fif.gz',
+                           '-src.fif',
+                           '-trans.fif', '-trans.fif.gz',
+                           'raw.fif', 'raw.fif.gz',
+                           'sss.fif', 'sss.fif.gz',
+                           '-epo.fif', 'T1.mgz',
+                           'bem', 'custom')):
+        return 'red'
+    else:
+        return ''
+
+
+def _get_toc_property(fname):
+    """Auxiliary function to assign class names to TOC
+       list elements to allow toggling with buttons.
+    """
+    if fname.endswith(('-eve.fif', '-eve.fif.gz')):
+        div_klass = 'events'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
+        div_klass = 'evoked'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
+        div_klass = 'covariance'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('raw.fif', 'raw.fif.gz',
+                         'sss.fif', 'sss.fif.gz')):
+        div_klass = 'raw'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-trans.fif', '-trans.fif.gz')):
+        div_klass = 'trans'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+        div_klass = 'forward'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
+        div_klass = 'epochs'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
+        div_klass = 'mri'
+        tooltip = 'MRI'
+        text = 'MRI'
+    elif fname.endswith(('bem')):
+        div_klass = 'mri'
+        tooltip = 'MRI'
+        text = 'MRI'
+    else:
+        div_klass = fname.split('-#-')[1]
+        tooltip = fname.split('-#-')[0]
+        text = fname.split('-#-')[0]
+
+    return div_klass, tooltip, text
+
 
 ###############################################################################
 # IMAGE FUNCTIONS
@@ -363,7 +536,7 @@ class Report(object):
             global_id = self._get_id()
             div_klass = section
             img_klass = section
-            img = _fig_to_img(fig)
+            img = _fig_to_img(fig=fig)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -431,7 +604,7 @@ class Report(object):
         self.include = ''.join(include)
 
     @verbose
-    def parse_folder(self, data_path, verbose=None):
+    def parse_folder(self, data_path, pattern='*.fif', verbose=None):
         """Renders all the files in the folder.
 
         Parameters
@@ -439,6 +612,9 @@ class Report(object):
         data_path : str
             Path to the folder containing data whose HTML report will be
             created.
+        pattern : str
+            Filename pattern to include in the report. e.g., -ave.fif will
+            include all evoked files.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
@@ -449,7 +625,7 @@ class Report(object):
 
         folders = []
 
-        fnames = _recursive_search(self.data_path, '*.fif')
+        fnames = _recursive_search(self.data_path, pattern)
 
         if self.subjects_dir is not None and self.subject is not None:
             fnames += glob(op.join(self.subjects_dir, self.subject,
@@ -687,10 +863,11 @@ class Report(object):
             slice_id = '%s-%s-%s' % (name, global_id, sl)
             div_klass = 'span12 %s' % slides_klass
 
-            fig = _plot_mri_contours(mri_fname, surf_fnames,
-                                     orientation=orientation,
-                                     slices=[sl], show=False)
-            img = _fig2im('test', fig, orig_size)
+            kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames,
+                          orientation=orientation, slices=[sl],
+                          show=False)
+            img = _fig_to_mrislice(function=_plot_mri_contours,
+                                   orig_size=orig_size, **kwargs)
             slices.append(_build_html_image(img, slice_id, div_klass,
                                             img_klass, caption,
                                             first))
@@ -779,16 +956,16 @@ class Report(object):
         if 'evoked' not in self.sections:
             self.sections.append('evoked')
 
-        import matplotlib.pyplot as plt
         evokeds = read_evokeds(evoked_fname, verbose=False)
 
         html = []
         for ev in evokeds:
             global_id = self._get_id()
 
-            img = _fig_to_img(ev.plot(show=False))
+            kwargs = dict(show=False)
+            img = _fig_to_img(function=ev.plot, **kwargs)
 
-            caption = 'Evoked : ' + evoked_fname + ' (' + ev.comment + ')'
+            caption = u'Evoked : %s (%s)' % (evoked_fname, ev.comment)
             div_klass = 'evoked'
             img_klass = 'evoked'
             show = True
@@ -799,15 +976,14 @@ class Report(object):
                                                   show=show))
 
             for ch_type in ['eeg', 'grad', 'mag']:
-                img = _fig_to_img(ev.plot_topomap(ch_type=ch_type,
-                                                  show=False))
+                kwargs = dict(ch_type=ch_type, show=False)
+                img = _fig_to_img(function=ev.plot_topomap, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(img=img,
                                                       div_klass=div_klass,
                                                       img_klass=img_klass,
                                                       caption=caption,
                                                       show=show))
-        plt.close('all')
 
         self.html.append('\n'.join(html))
 
@@ -816,14 +992,11 @@ class Report(object):
         if 'events' not in self.sections:
             self.sections.append('events')
 
-        import matplotlib.pyplot as plt
-
         global_id = self._get_id()
         events = read_events(eve_fname)
-        plt.close("all")  # close figures to avoid weird plot
-        ax = plot_events(events, sfreq=sfreq, show=False)
 
-        img = _fig_to_img(ax.get_figure())
+        kwargs = dict(events=events, sfreq=sfreq, show=False)
+        img = _fig_to_img(function=plot_events, **kwargs)
 
         caption = 'Events : ' + eve_fname
         div_klass = 'events'
@@ -845,9 +1018,8 @@ class Report(object):
         global_id = self._get_id()
 
         epochs = read_epochs(epo_fname)
-        fig = epochs.plot_drop_log(subject=self.subject, show=False,
-                                   return_fig=True)
-        img = _fig_to_img(fig)
+        kwargs = dict(subject=self.subject, show=False, return_fig=True)
+        img = _fig_to_img(function=epochs.plot_drop_log, **kwargs)
         caption = 'Epochs : ' + epo_fname
         div_klass = 'epochs'
         img_klass = 'epochs'
@@ -868,7 +1040,7 @@ class Report(object):
         cov = Covariance(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
 
-        img = _fig_to_img(fig)
+        img = _fig_to_img(fig=fig)
         caption = 'Covariance : ' + cov_fname
         div_klass = 'covariance'
         img_klass = 'covariance'
@@ -882,21 +1054,16 @@ class Report(object):
 
     def _render_trans(self, trans_fname, path, info, subject,
                       subjects_dir):
-        import mayavi
 
-        fig = plot_trans(info, trans_fname=trans_fname,
-                         subject=subject, subjects_dir=subjects_dir)
+        kwargs = dict(info=info, trans_fname=trans_fname, subject=subject,
+                      subjects_dir=subjects_dir)
+        img = _iterate_trans_views(function=plot_trans, **kwargs)
 
-        if isinstance(fig, mayavi.core.scene.Scene):
-
+        if img is not None:
             if 'trans' not in self.sections:
                 self.sections.append('trans')
 
             global_id = self._get_id()
-
-            img = _iterate_trans_views(fig, mayavi.mlab)
-
-            mayavi.mlab.close(all=True)
 
             caption = 'Trans : ' + trans_fname
             div_klass = 'trans'
@@ -970,55 +1137,6 @@ class Report(object):
         return html
 
 
-def _fig2im(fname, fig, orig_size):
-    import matplotlib.pyplot as plt
-    from PIL import Image
-
-    plt.close('all')
-    fig_size = fig.get_size_inches()
-    w, h = orig_size[0], orig_size[1]
-    w2, h2 = fig_size[0], fig_size[1]
-    fig.set_size_inches([(w2 / w) * w, (w2 / w) * h])
-    a = fig.gca()
-    a.set_xticks([]), a.set_yticks([])
-    plt.xlim(0, h), plt.ylim(w, 0)
-    fig.savefig(tempdir + fname, bbox_inches='tight',
-                pad_inches=0, format='png')
-    Image.open(tempdir + fname).resize((w, h)).save(tempdir + fname,
-                                                    format='png')
-    output = BytesIO()
-    Image.open(tempdir + fname).save(output, format='png')
-    return output.getvalue().encode('base64')
-
-
-def _fig_to_img(fig):
-    """Auxiliary function for fig <-> binary image.
-    """
-    output = BytesIO()
-    fig.savefig(output, format='png', bbox_inches='tight')
-
-    return output.getvalue().encode('base64')
-
-
-def _iterate_trans_views(fig, mlab):
-
-    from PIL import Image
-    import matplotlib.pyplot as plt
-
-    views = [(90, 90), (0, 90), (0, -90)]
-    fig2, axes = plt.subplots(1, len(views))
-    for view, ax in zip(views, axes):
-        mlab.view(view[0], view[1])
-        # XXX: save_bmp / save_png / ...
-        fig.scene.save_bmp(tempdir + 'test')
-        im = Image.open(tempdir + 'test')
-        ax.imshow(im)
-        ax.axis('off')
-
-    img = _fig_to_img(fig2)
-    return img
-
-
 def _recursive_search(path, pattern):
     """Auxiliary function for recursive_search of the directory.
     """
@@ -1031,76 +1149,12 @@ def _recursive_search(path, pattern):
 
 
 def _fix_global_ids(html):
+    """Auxiliary function for fixing the global_ids after reordering in
+       _render_toc().
+    """
     html = re.sub('id="\d+"', 'id="###"', html)
     global_id = 1
     while len(re.findall('id="###"', html)) > 0:
         html = re.sub('id="###"', 'id="%s"' % global_id, html, count=1)
         global_id += 1
     return html
-
-
-def _is_bad_fname(fname):
-    # identify bad file naming patterns and highlight them
-    if not fname.endswith(('-eve.fif', '-eve.fif.gz',
-                           '-ave.fif', '-ave.fif.gz',
-                           '-cov.fif', '-cov.fif.gz',
-                           '-sol.fif',
-                           '-fwd.fif', '-fwd.fif.gz',
-                           '-inv.fif', '-inv.fif.gz',
-                           '-src.fif',
-                           '-trans.fif', '-trans.fif.gz',
-                           'raw.fif', 'raw.fif.gz',
-                           'sss.fif', 'sss.fif.gz',
-                           '-epo.fif', 'T1.mgz',
-                           'bem', 'custom')):
-        return 'red'
-    else:
-        return ''
-
-
-def _get_toc_property(fname):
-
-    # assign class names to allow toggling with buttons
-    if fname.endswith(('-eve.fif', '-eve.fif.gz')):
-        div_klass = 'events'
-        tooltip = fname
-        text = op.basename(fname)
-    elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
-        div_klass = 'evoked'
-        tooltip = fname
-        text = op.basename(fname)
-    elif fname.endswith(('-cov.fif', '-cov.fif.gz')):
-        div_klass = 'covariance'
-        tooltip = fname
-        text = op.basename(fname)
-    elif fname.endswith(('raw.fif', 'raw.fif.gz',
-                         'sss.fif', 'sss.fif.gz')):
-        div_klass = 'raw'
-        tooltip = fname
-        text = op.basename(fname)
-    elif fname.endswith(('-trans.fif', '-trans.fif.gz')):
-        div_klass = 'trans'
-        tooltip = fname
-        text = op.basename(fname)
-    elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
-        div_klass = 'forward'
-        tooltip = fname
-        text = op.basename(fname)
-    elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
-        div_klass = 'epochs'
-        tooltip = fname
-        text = op.basename(fname)
-    elif fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz')):
-        div_klass = 'mri'
-        tooltip = 'MRI'
-        text = 'MRI'
-    elif fname.endswith(('bem')):
-        div_klass = 'mri'
-        tooltip = 'MRI'
-        text = 'MRI'
-    else:
-        div_klass = fname.split('-#-')[1]
-        tooltip = fname.split('-#-')[0]
-        text = fname.split('-#-')[0]
-
-    return div_klass, tooltip, text
