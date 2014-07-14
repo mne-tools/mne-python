@@ -4993,8 +4993,6 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     import matplotlib.pyplot as plt
 
     ax = axes if axes else plt.gca()
-    min_event = np.min(unique_events_id)
-    max_event = np.max(unique_events_id)
 
     unique_events_id = np.array(unique_events_id)
 
