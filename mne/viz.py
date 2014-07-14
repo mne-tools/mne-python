@@ -1363,7 +1363,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
 
-    ax = axis if axis else plt
+    ax = axis if axis else plt.gca()
     if any([not pos_y.any(), not pos_x.any()]):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
