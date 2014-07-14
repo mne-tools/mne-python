@@ -31,7 +31,7 @@ def test_parse_folder():
     report = Report(info_fname=raw_fname)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        report.parse_folder(data_path=base_dir, interactive=False)
+        report.parse_folder(data_path=base_dir)
 
     # Check correct paths and filenames
     assert_true(raw_fname in report.fnames)

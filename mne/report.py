@@ -414,8 +414,7 @@ class Report(object):
 
         inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.min.js',
                       'bootstrap.min.js', 'jquery-ui.min.css',
-                      'bootstrap.min.css', 'd3.v3.min.js',
-                      'mpld3.v0.2.min.js']
+                      'bootstrap.min.css']
 
         include = list()
         for inc_fname in inc_fnames:
@@ -433,7 +432,7 @@ class Report(object):
         self.include = ''.join(include)
 
     @verbose
-    def parse_folder(self, data_path, interactive=True, verbose=None):
+    def parse_folder(self, data_path, verbose=None):
         """Renders all the files in the folder.
 
         Parameters
@@ -441,8 +440,6 @@ class Report(object):
         data_path : str
             Path to the folder containing data whose HTML report will be
             created.
-        interactive : bool
-            Create interactive plots if True.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
@@ -493,8 +490,7 @@ class Report(object):
                     self.fnames.append(fname)
                     self._sectionlabels.append('evoked')
                 elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
-                    self._render_eve(fname, sfreq,
-                                     interactive=interactive)
+                    self._render_eve(fname, sfreq)
                     self.fnames.append(fname)
                     self._sectionlabels.append('events')
                 elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
@@ -799,8 +795,8 @@ class Report(object):
                                                   show=show))
 
             for ch_type in ['eeg', 'grad', 'mag']:
-                img = _fig_to_img(ev.plot_evoked_topomap(ch_type=ch_type,
-                                                         show=False))
+                img = _fig_to_img(ev.plot_topomap(ch_type=ch_type,
+                                                  show=False))
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(img=img,
                                                       div_klass=div_klass,
@@ -811,40 +807,19 @@ class Report(object):
 
         self.html.append('\n'.join(html))
 
-    def _render_eve(self, eve_fname, sfreq=None, interactive=True):
+    def _render_eve(self, eve_fname, sfreq=None):
 
         if 'events' not in self.sections:
             self.sections.append('events')
 
         import matplotlib.pyplot as plt
 
-        if interactive:
-            import mpld3
-
         global_id = self._get_id()
         events = read_events(eve_fname)
         plt.close("all")  # close figures to avoid weird plot
         ax = plot_events(events, sfreq=sfreq, show=False)
-        fig = ax.gcf()
 
-        if interactive:
-
-            # Add tooltips
-            line2Ds = ax.gca().get_lines()
-            for line2D in line2Ds:
-                xy = line2D.get_xydata()
-                label = ['t = %0.2f, event_id = %d' % (x, y) for (x, y) in xy]
-                tooltip = mpld3.plugins.PointHTMLTooltip(line2D, label)
-                mpld3.plugins.connect(fig, tooltip)
-
-            d3_url = op.join(op.dirname(__file__), 'html', 'd3.v3.min.js')
-            mpld3_url = op.join(op.dirname(__file__), 'html',
-                                'mpld3.v0.2.min.js')
-            html = mpld3.fig_to_html(fig, d3_url=d3_url, mpld3_url=mpld3_url)
-            img = False
-        else:
-            img = _fig_to_img(fig)
-            html = False
+        img = _fig_to_img(ax.get_figure())
 
         caption = 'Events : ' + eve_fname
         div_klass = 'events'
@@ -855,7 +830,7 @@ class Report(object):
                                          div_klass=div_klass,
                                          img_klass=img_klass,
                                          caption=caption,
-                                         interactive=html, show=show)
+                                         show=show)
         self.html.append(html)
 
     def _render_epochs(self, epo_fname):
