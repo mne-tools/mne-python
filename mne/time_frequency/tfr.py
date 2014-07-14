@@ -451,7 +451,7 @@ def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
 def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                  baseline, vmin, vmax, dB):
     """Aux Function to prepare tfr computation"""
-    from ..viz import _setup_vmin_vmax
+    from ..viz.utils import _setup_vmin_vmax
 
     if mode is not None and baseline is not None:
         logger.info("Applying baseline correction '%s' during %s" %
@@ -592,7 +592,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        from ..viz import _imshow_tfr
+        from ..viz.topo import _imshow_tfr
         import matplotlib.pyplot as plt
         times, freqs = self.times.copy(), self.freqs.copy()
         data = self.data[picks]
@@ -676,7 +676,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        from ..viz import _imshow_tfr, _plot_topo
+        from ..viz.topo import _imshow_tfr, _plot_topo
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
