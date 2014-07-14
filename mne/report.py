@@ -267,9 +267,13 @@ image_template = Template(u"""
 
 {{default interactive = False}}
 {{default width = 50}}
+{{default id = False}}
 
+{{if id}}
 <li class="{{div_klass}}" id="{{id}}" {{if not show}}style="display: none"
 {{endif}}>
+{{endif}}
+
 {{if caption}}
 <h4>{{caption}}</h4>
 {{endif}}
@@ -281,7 +285,8 @@ image_template = Template(u"""
     <center>{{interactive}}</center>
 {{endif}}
 </div>
-</li>
+
+{{if id}}</li>{{endif}}
 """)
 
 repr_template = Template(u"""
@@ -774,12 +779,15 @@ class Report(object):
         if 'evoked' not in self.sections:
             self.sections.append('evoked')
 
+        import matplotlib.pyplot as plt
         evokeds = read_evokeds(evoked_fname, verbose=False)
 
         html = []
         for ev in evokeds:
             global_id = self._get_id()
+
             img = _fig_to_img(ev.plot(show=False))
+
             caption = 'Evoked : ' + evoked_fname + ' (' + ev.comment + ')'
             div_klass = 'evoked'
             img_klass = 'evoked'
@@ -789,6 +797,17 @@ class Report(object):
                                                   img_klass=img_klass,
                                                   caption=caption,
                                                   show=show))
+
+            for ch_type in ['eeg', 'grad', 'mag']:
+                img = _fig_to_img(ev.plot_evoked_topomap(ch_type=ch_type,
+                                                         show=False))
+                caption = u'Topomap (ch_type = %s)' % ch_type
+                html.append(image_template.substitute(img=img,
+                                                      div_klass=div_klass,
+                                                      img_klass=img_klass,
+                                                      caption=caption,
+                                                      show=show))
+        plt.close('all')
 
         self.html.append('\n'.join(html))
 
