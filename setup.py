@@ -79,6 +79,7 @@ if __name__ == "__main__":
                     'mne.io.fiff', 'mne.io.fiff.tests',
                     'mne.io.kit', 'mne.io.kit.tests',
                     'mne.forward', 'mne.forward.tests',
+                    'mne.viz', 'mne.viz.tests',
                     'mne.gui', 'mne.gui.tests',
                     'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',
