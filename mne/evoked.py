@@ -534,8 +534,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                    scale_time=scale_time,
                                    unit=unit, res=res, proj=proj, size=size,
                                    format=format, time_format=time_format,
-                                   show_names=show_names, title=title,
-                                   mask=mask, mask_params=mask_params,
+                                   show=show, show_names=show_names,
+                                   title=title, mask=mask,
+                                   mask_params=mask_params,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp)
 
