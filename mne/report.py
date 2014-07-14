@@ -527,12 +527,11 @@ class Report(object):
             If True, overwrite report if it already exists.
         """
 
-        if not hasattr(self, 'data_path'):
-            self.data_path = op.dirname(__file__)
-            warnings.warn('`data_path` not provided. Using %s instead'
-                          % self.data_path)
-
         if fname is None:
+            if not hasattr(self, 'data_path'):
+                self.data_path = op.dirname(__file__)
+                warnings.warn('`data_path` not provided. Using %s instead'
+                              % self.data_path)
             fname = op.realpath(op.join(self.data_path, 'report.html'))
         else:
             fname = op.realpath(fname)
@@ -551,10 +550,15 @@ class Report(object):
                 overwrite = True
 
         if overwrite or not op.isfile(fname):
-            logger.info('Saving to %s' % fname)
+            logger.info('Saving report to location %s' % fname)
             fobj = open(fname, 'w')
             fobj.write(_fix_global_ids(''.join(self.html)))
             fobj.close()
+
+            # remove header, TOC and footer to allow more saves
+            self.html.pop(0)
+            self.html.pop(0)
+            self.html.pop()
 
         if open_browser:
             import webbrowser
@@ -622,6 +626,10 @@ class Report(object):
 
         html_toc += u'\n</ul></div>'
         html_toc += u'<div id="content">'
+
+        # The sorted html (according to section)
+        self.html = html
+        self.fnames = fnames
 
         html_header = header_template.substitute(title=self.title,
                                                  include=self.include,
