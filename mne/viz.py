@@ -5071,7 +5071,7 @@ def _setup_vmin_vmax(data, vmin, vmax):
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean', layout=None,
                      vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
-                     colorbar=True, unit=None, res=64, size=2, format='%1.1e',
+                     colorbar=False, unit=None, res=64, size=2, format='%1.1e',
                      show_names=False, title=None, axes=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data
 
