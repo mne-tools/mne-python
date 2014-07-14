@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+import os
 import os.path as op
 import glob
 import warnings
@@ -9,29 +10,37 @@ import warnings
 from nose.tools import assert_true, assert_equal
 
 from mne import read_evokeds
+from mne.datasets import sample
 from mne.report import Report
 from mne.io import Raw
 from mne.utils import _TempDir
 
+data_dir = sample.data_path(download=False)
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
+subjects_dir = op.join(data_dir, 'subjects')
+
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
+evoked1_fname = op.join(base_dir, 'test-nf-ave.fif')
+evoked2_fname = op.join(base_dir, 'test-ave.fif')
 
+
+os.environ['MNE_REPORT_TESTING'] = 'True'
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 tempdir = _TempDir()
 
 
-def test_parse_folder():
-    """Test parsing of folders for MNE-Report.
+def test_render_report():
+    """Test rendering -*.fif files for mne report.
     """
 
     report = Report(info_fname=raw_fname)
-    with warnings.catch_warnings(record=True):
+    with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=base_dir)
+    assert_true(len(w) == 1)
 
     # Check correct paths and filenames
     assert_true(raw_fname in report.fnames)
@@ -48,17 +57,7 @@ def test_parse_folder():
     assert_true(raw_html.find('class="raw"') != -1)
     assert_true(raw_html.find(raw_fname) != -1)
 
-    c_evoked = read_evokeds(evoked_nf_name)
-    evoked_idx = [ii for ii, fname in enumerate(report.fnames)
-                  if fname == evoked_nf_name][0]
-    assert_true(report.html[evoked_idx].find(evoked_nf_name) != -1)
-
-    # Check saving functionality
-    report.data_path = tempdir
-    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False)
-    assert_true(op.isfile(op.join(tempdir, 'report.html')))
-
-    # Check if all files were rendered
+    # Check if all files were rendered in the report
     fnames = glob.glob(op.join(base_dir, '*.fif'))
     fnames = [fname for fname in fnames if
               fname.endswith(('-eve.fif', '-ave.fif', '-cov.fif',
@@ -66,13 +65,27 @@ def test_parse_folder():
                               '-src.fif', '-trans.fif', 'raw.fif',
                               'sss.fif', '-epo.fif'))]
 
-    # Check if TOC contains names of all files
     for fname in fnames:
-        assert_true(report.html[1].find(fname) != -1)
+        assert_true(''.join(report.html).find(op.basename(fname)) != -1)
 
     assert_equal(len(report.fnames), len(fnames))
-    # different evoked conditions have different ids
-    assert_equal(report.initial_id, len(report.html) + len(c_evoked) - 1)
+    assert_equal(len(report.html), len(report.fnames))
+
+    evoked1 = read_evokeds(evoked1_fname)
+    evoked2 = read_evokeds(evoked2_fname)
+    assert_equal(len(report.fnames) + len(evoked1) + len(evoked2) - 2,
+                 report.initial_id)
+
+    # Check saving functionality
+    report.data_path = tempdir
+    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False)
+    assert_true(op.isfile(op.join(tempdir, 'report.html')))
+
+    # Check add_section functionality
+    report.add_section(figs=[evoked1[0].plot(show=False)],
+                       captions=['evoked response'])
+    assert_equal(len(report.html), len(fnames) + 1)
+    assert_equal(len(report.html), len(report.fnames))
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
@@ -81,4 +94,16 @@ def test_parse_folder():
     # Check overwriting file
     report.save(fname=op.join(tempdir, 'report.html'), open_browser=False,
                 overwrite=True)
-    assert_true(op.isfile(op.join(tempdir, 'report2.html')))
+    assert_true(op.isfile(op.join(tempdir, 'report.html')))
+
+
+@sample.requires_sample_data
+def test_render_mri():
+    """Test rendering MRI for mne report.
+    """
+    report = Report(info_fname=raw_fname,
+                    subject='sample', subjects_dir=subjects_dir)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        report.parse_folder(data_path=data_dir,
+                            pattern='*sample_audvis_raw-trans.fif')
