@@ -359,20 +359,19 @@ class Report(object):
         if section not in self.sections:
             self.sections.append(section)
 
-        html = []
         for fig, caption in zip(figs, captions):
             global_id = self._get_id()
             div_klass = section
             img_klass = section
             img = _fig_to_img(fig)
-            html.append(image_template.substitute(img=img, id=global_id,
-                                                  div_klass=div_klass,
-                                                  img_klass=img_klass,
-                                                  caption=caption,
-                                                  show=True))
+            html = image_template.substitute(img=img, id=global_id,
+                                             div_klass=div_klass,
+                                             img_klass=img_klass,
+                                             caption=caption,
+                                             show=True)
             self.fnames.append('%s-#-%s-#-custom' % (caption, section))
             self._sectionlabels.append(section)
-        self.html.append(''.join(html))
+            self.html.append(html)
 
     ###########################################################################
     # HTML rendering
@@ -620,9 +619,6 @@ class Report(object):
                                                             text=ev.comment)
                             global_id += 1
                         html_toc += u'</ul></li>'
-
-        self.html = html
-        self.fnames = fnames
 
         html_toc += u'\n</ul></div>'
         html_toc += u'<div id="content">'
