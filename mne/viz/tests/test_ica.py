@@ -34,8 +34,7 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-event_id, tmin, tmax = 1, -0.2, 0.5
-n_chan = 15
+event_id, tmin, tmax = 1, -0.1, 0.2
 
 
 def requires_sklearn(function):
@@ -60,16 +59,13 @@ def _get_events():
 
 
 def _get_picks(raw):
-    return pick_types(raw.info, meg=True, eeg=False, stim=False,
-                      ecg=False, eog=False, exclude='bads')
+    return [0, 1, 2, 6, 7, 8, 12, 13, 14]  # take a only few channels
 
 
 def _get_epochs():
     raw = _get_raw()
     events = _get_events()
     picks = _get_picks(raw)
-    # Use a subset of channels for plotting speed
-    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     return epochs
@@ -82,13 +78,12 @@ def test_plot_ica_components():
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
-                           ecg=False, eog=False, exclude='bads')
+    ica_picks = _get_picks(raw)
     ica.fit(raw, picks=ica_picks)
     warnings.simplefilter('always', UserWarning)
     with warnings.catch_warnings(record=True):
-        for components in [0, [0], [0, 1], [0, 1] * 7, None]:
-            ica.plot_components(components, image_interp='bilinear')
+        for components in [0, [0], [0, 1], [0, 1] * 2, None]:
+            ica.plot_components(components, image_interp='bilinear', res=16)
     ica.info = None
     assert_raises(RuntimeError, ica.plot_components, 1)
     plt.close('all')
@@ -101,7 +96,6 @@ def test_plot_ica_sources():
     raw = io.Raw(raw_fname, preload=True)
     picks = _get_picks(raw)
     epochs = _get_epochs()
-    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     raw.pick_channels([raw.ch_names[k] for k in picks])
     ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
                            ecg=False, eog=False, exclude='bads')
@@ -120,11 +114,9 @@ def test_plot_ica_overlay():
     """
     raw = _get_raw()
     picks = _get_picks(raw)
-    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
-                           ecg=False, eog=False, exclude='bads')
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica.fit(raw, picks=ica_picks)
+    ica.fit(raw, picks=picks)
     # don't test raw, needs preload ...
     ecg_epochs = create_ecg_epochs(raw, picks=picks)
     ica.plot_overlay(ecg_epochs.average())
@@ -139,11 +131,10 @@ def test_plot_ica_scores():
     """Test plotting of ICA scores
     """
     raw = _get_raw()
-    ica_picks = pick_types(raw.info, meg=True, eeg=False, stim=False,
-                           ecg=False, eog=False, exclude='bads')
+    picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
-    ica.fit(raw, picks=ica_picks)
+    ica.fit(raw, picks=picks)
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
     assert_raises(ValueError, ica.plot_scores, [0.2])
     plt.close('all')

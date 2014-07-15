@@ -429,11 +429,11 @@ class ICA(ContainsMixin):
 
     def _pre_whiten(self, data, info, picks):
         """Aux function"""
-        info = pick_info(deepcopy(info), picks)
         has_pre_whitener = hasattr(self, '_pre_whitener')
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
             # Scale (z-score) the data by channel type
+            info = pick_info(deepcopy(info), picks)
             pre_whitener = np.empty([len(data), 1])
             for ch_type in ['mag', 'grad', 'eeg']:
                 if _contains_ch_type(info, ch_type):
@@ -444,12 +444,8 @@ class ICA(ContainsMixin):
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:
-            ncov = deepcopy(self.noise_cov)
-            if data.shape[0] != ncov['data'].shape[0]:
-                ncov['data'] = ncov['data'][picks][:, picks]
-                assert data.shape[0] == ncov['data'].shape[0]
-
-            pre_whitener, _ = compute_whitener(ncov, info, picks)
+            pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
+            assert data.shape[0] == pre_whitener.shape[1]
             data = fast_dot(pre_whitener, data)
         elif has_pre_whitener and self.noise_cov is None:
             data /= self._pre_whitener
