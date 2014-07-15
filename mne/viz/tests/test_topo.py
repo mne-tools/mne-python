@@ -17,7 +17,7 @@ matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
-from mne import pick_types, pick_channels_evoked
+from mne import pick_channels_evoked
 from mne.layouts import read_layout
 from mne.datasets import sample
 from mne.time_frequency.tfr import AverageTFR
@@ -36,10 +36,8 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-event_id, tmin, tmax = 1, -0.2, 0.5
-n_chan = 15
+event_id, tmin, tmax = 1, -0.2, 0.2
 layout = read_layout('Vectorview-all')
 
 
@@ -52,16 +50,13 @@ def _get_events():
 
 
 def _get_picks(raw):
-    return pick_types(raw.info, meg=True, eeg=False, stim=False,
-                      ecg=False, eog=False, exclude='bads')
+    return [0, 1, 2, 6, 7, 8, 12, 13, 14]  # take a only few channels
 
 
 def _get_epochs():
     raw = _get_raw()
     events = _get_events()
     picks = _get_picks(raw)
-    # Use a subset of channels for plotting speed
-    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
     epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     return epochs
@@ -100,19 +95,6 @@ def test_plot_topo():
         picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
                                                          ch_names)
         plot_topo(picked_evoked_delayed_ssp, layout, proj='interactive')
-
-
-def test_plot_topo_tfr():
-    """Test plotting of TFR
-    """
-    # Make a fake dataset to plot
-    epochs = _get_epochs()
-    n_freqs = 11
-    con = np.random.randn(n_chan, n_freqs, len(epochs.times))
-    freqs = np.arange(n_freqs)
-    # Show topography of connectivity from seed
-    plot_topo_tfr(epochs, con, freqs, layout)
-    plt.close('all')
 
 
 def test_plot_topo_image_epochs():
