@@ -29,7 +29,6 @@ from ..utils import get_subjects_dir, logger, _check_subject
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 
 
-
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
                       n_jobs=1):
     """Plot MEG/EEG fields on head surface and helmet in 3D
@@ -318,7 +317,7 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
             mlab.points3d(eeg_loc[:, 0], eeg_loc[:, 1], eeg_loc[:, 2],
                           color=(1.0, 0.0, 0.0), scale_factor=0.005)
         else:
-            warnings.warn('EEG electrode locations not found.'
+            warnings.warn('EEG electrode locations not found. '
                           'Cannot plot EEG electrodes.')
 
     mlab.view(90, 90)
