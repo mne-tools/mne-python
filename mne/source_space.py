@@ -418,6 +418,12 @@ def _read_one_source_space(fid, this, verbose=None):
     if tag is not None:
         res['subject_his_id'] = tag.data
 
+    #   Segmentation
+    if res['type'] == 'discrete':
+        tag = find_tag(fid, this, FIFF.FIFF_COMMENT)
+        if tag is not None:
+            res['seg_name'] = tag.data
+
     return res
 
 
@@ -672,6 +678,11 @@ def _write_one_source_space(fid, this, verbose=None):
         write_float_sparse_rcs(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST, dists)
         write_float_matrix(fid, FIFF.FIFF_MNE_SOURCE_SPACE_DIST_LIMIT,
                            this['dist_limit'])
+
+    #   Segmentation data
+    if this['type'] == 'discrete' and ('seg_name' in this):
+        # Save the name of the segment
+        write_string(fid, FIFF.FIFF_COMMENT, this['seg_name'])
 
 
 ##############################################################################
@@ -1701,3 +1712,95 @@ def _do_src_distances(con, vertno, run_inds, limit):
     min_idx = min_idx[midx, range_idx]
     d[d == np.inf] = 0  # scipy will give us np.inf for uncalc. distances
     return d, min_idx, min_dist
+
+
+def add_subcortical_volumes(src, seg_labels, spacing=5., subjects_dir=None):
+    """Adds a subcortical volume to a cortical source space
+
+    Parameters
+    ----------
+    src : dict
+        Source space
+    seg_labels : list of int, or list of strings
+        Names or indices of desired segments
+    spacing : float
+        Spacing between vertices in millimeters
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+
+    Returns
+    -------
+    src : SourceSpaces
+        The source spaces.
+    """
+
+    # Get the subject
+    subject = src[0]['subject_his_id']
+
+    # Get the subjects directory
+    subjects_dir = get_subjects_dir(subjects_dir)
+
+    # Find the segmentation file
+    aseg_fname = op.join(subjects_dir, subject, 'mri', 'aseg.mgz')
+
+    # Read the segmentation data using nibabel
+    aseg = nib.load(aseg_fname)
+    aseg_hdr = aseg.get_header()
+    aseg_data = aseg.get_data()
+
+    # Read the freesurfer lookup table
+    lut_fname = op.join(os.environ['FREESURFER_HOME'],
+                        'FreeSurferColorLUT.txt')
+    lut = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
+                        names=['id', 'name'])
+
+    # Generate a grid using spacing
+    kernel = np.zeros((int(spacing), int(spacing), int(spacing)))
+    kernel[0, 0, 0] = 1
+    sx, sy, sz = aseg_data.shape
+    nx, ny, nz = np.ceil((sx/spacing, sy/spacing, sz/spacing))
+    grid = np.tile(kernel, (nx, ny, nz))
+    grid = grid[:sx, :sy, :sz]
+    grid = grid.astype('bool')
+
+    # Get the indices to the desired labels
+    for label in seg_labels:
+
+        # Get numeric index to label
+        if type(label) == str:
+            seg_name = label
+            seg_id = lut['id'][lut['name'] == seg_name]
+        elif type(label) == int:
+            seg_id = label
+            seg_name = lut['name'][lut['id'] == seg_id]
+
+        # Get indices to label
+        ix = aseg_data == seg_id
+        ix *= grid  # downsample to grid
+        pts = np.array(np.where(ix)).T
+
+        # Transform data to RAS coordinates
+        trans = aseg_hdr.get_vox2ras_tkr()
+        pts = apply_trans(trans, pts)
+
+        # Convert to meters
+        pts /= 1000.
+
+        # Set orientations
+        ori = np.zeros(pts.shape)
+        ori[:, 2] = 1.0
+
+        # Store coordinates and orientations as dict
+        pos = dict(rr=pts, nn=ori)
+
+        # Setup a discrete source
+        sp = _make_discrete_source_space(pos)
+        sp.update(dict(nearest=None, dist=None, use_tris=None, patch_inds=None,
+                       dist_limit=None, pinfo=None, ntri=0, nearest_dist=None,
+                       nuse_tri=None, tris=None, type='discrete',
+                       seg_name=seg_name))
+
+        # Combine source spaces
+        src.append(sp)
+
+    return src
