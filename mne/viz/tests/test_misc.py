@@ -76,6 +76,7 @@ def test_plot_events():
     raw = _get_raw()
     events = _get_events()
     plot_events(events, raw.info['sfreq'], raw.first_samp)
+    plot_events(events, raw.info['sfreq'], raw.first_samp, equal_spacing=False)
     # Test plotting events without sfreq
     plot_events(events, first_samp=raw.first_samp)
     warnings.simplefilter('always', UserWarning)

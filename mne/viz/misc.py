@@ -392,7 +392,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
 
 
 def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
-                axes=None, show=True):
+                axes=None, equal_spacing=True, show=True):
     """Plot events to get a visual display of the paradigm
 
     Parameters
@@ -417,6 +417,8 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         drawn.
     axes : instance of matplotlib.axes.AxesSubplot
        The subplot handle.
+    equal_spacing : bool
+        Use equal spacing between events in y-axis.
     show : bool
         Call pyplot.show() at the end.
 
@@ -478,6 +480,8 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     ax = axes if axes else plt.gca()
 
     unique_events_id = np.array(unique_events_id)
+    min_event = np.min(unique_events_id)
+    max_event = np.max(unique_events_id)
 
     for idx, ev in enumerate(unique_events_id):
         ev_mask = events[:, 2] == ev
@@ -486,12 +490,20 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
             kwargs['label'] = event_id_rev[ev]
         if ev in color:
             kwargs['color'] = color[ev]
-        ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
-                (idx + 1) * np.ones(ev_mask.sum()), '.', **kwargs)
+        if equal_spacing:
+            ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
+                    (idx + 1) * np.ones(ev_mask.sum()), '.', **kwargs)
+        else:
+            ax.plot((events[ev_mask, 0] - first_samp) / sfreq,
+                    events[ev_mask, 2], '.', **kwargs)
 
-    ax.set_yticks(1 + np.arange(unique_events_id.size))
-    ax.set_ylim(0, unique_events_id.size + 1)
-    ax.set_yticklabels(unique_events_id)
+    if equal_spacing:
+        ax.set_ylim(0, unique_events_id.size + 1)
+        ax.set_yticks(1 + np.arange(unique_events_id.size))
+        ax.set_yticklabels(unique_events_id)
+    else:
+        ax.set_ylim([min_event - 1, max_event + 1])
+
     ax.set_xlabel(xlabel)
     ax.set_ylabel('Events id')
 
