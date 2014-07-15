@@ -594,6 +594,17 @@ requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
                                                'Freesurfer')
 
 
+def has_neuromag2ft():
+    """Aux function"""
+    if not 'NEUROMAG2FT_ROOT' in os.environ:
+        return False
+    else:
+        return True
+
+
+requires_neuromag2ft = np.testing.dec.skipif(not has_neuromag2ft(),
+                                             'Requires neuromag2ft')
+
 def requires_nibabel(vox2ras_tkr=False):
     """Aux function"""
     if vox2ras_tkr:
