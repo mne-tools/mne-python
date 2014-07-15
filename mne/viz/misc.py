@@ -422,8 +422,8 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
     Returns
     -------
-    ax : matplotlib.axes.AxesSubplot | matplotlib.pyplot
-        The axis object containing the plot.
+    fig : matplotlib.figure.Figure
+        The figure object containing the plot.
     """
 
     if sfreq is None:
@@ -506,4 +506,4 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     if show:
         plt.show()
 
-    return ax if fig is None else fig
+    return fig if fig is not None
