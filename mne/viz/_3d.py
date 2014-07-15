@@ -238,7 +238,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 
 def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
-               ch_type=None):
+               ch_type=None, source='bem'):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
@@ -258,6 +258,11 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
         If None, both the MEG helmet and EEG electrodes will be shown.
         If 'meg', only the MEG helmet will be shown. If 'eeg', only the
         EEG electrodes will be shown.
+    source : str
+        Type to load. Common choices would be `'bem'` or `'head'`. We first
+        try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
+        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory. Defaults
+        to 'bem'. Note. For single layer bems it is recommended to use 'head'.
 
     Returns
     -------
@@ -275,7 +280,7 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
 
     trans = read_trans(trans_fname)
 
-    surfs = [get_head_surf(subject, subjects_dir=subjects_dir)]
+    surfs = [get_head_surf(subject, source=source, subjects_dir=subjects_dir)]
     if ch_type is None or ch_type == 'meg':
         surfs.append(get_meg_helmet_surf(info, trans))
 
@@ -313,8 +318,8 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
             mlab.points3d(eeg_loc[:, 0], eeg_loc[:, 1], eeg_loc[:, 2],
                           color=(1.0, 0.0, 0.0), scale_factor=0.005)
         else:
-            raise warnings.warn('EEG electrode locations not found.'
-                                'Cannot plot EEG electrodes.')
+            warnings.warn('EEG electrode locations not found.'
+                          'Cannot plot EEG electrodes.')
 
     mlab.view(90, 90)
     return fig
