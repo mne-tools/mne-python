@@ -36,7 +36,7 @@ fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-event_id, tmin, tmax = 1, -0.2, 0.5
+event_id, tmin, tmax = 1, -0.1, 0.1
 n_chan = 15
 layout = read_layout('Vectorview-all')
 
@@ -60,7 +60,7 @@ def _get_epochs():
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
-    epochs = Epochs(raw, events[:10], event_id, tmin, tmax, picks=picks,
+    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     return epochs
 
