@@ -506,4 +506,4 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     if show:
         plt.show()
 
-    return fig if fig is not None
+    return fig if fig is not None else plt.gcf()
