@@ -41,8 +41,9 @@ class FieldTripClient(object):
         Port to use for the connection.
     wait_max : float
         Maximum time (in seconds) to wait for Fieldtrip buffer to start
-    tmin : float
-        Time instant to start receiving buffers.
+    tmin : float | None
+        Time instant to start receiving buffers. If None, start from the latest
+        samples available.
     tmax : float
         Time instant to stop receiving buffers.
     buffer_size : int
@@ -51,7 +52,7 @@ class FieldTripClient(object):
         Log verbosity see mne.verbose.
     """
     def __init__(self, info=None, host='localhost', port=1972, wait_max=30,
-                 tmin=0, tmax=np.inf, buffer_size=1000, verbose=None):
+                 tmin=None, tmax=np.inf, buffer_size=1000, verbose=None):
         self.verbose = verbose
 
         self.info = info
@@ -107,8 +108,14 @@ class FieldTripClient(object):
         self.ch_names = self.ft_header.labels
 
         # find start and end samples
+
         sfreq = self.info['sfreq']
-        self.tmin_samp = int(round(sfreq * self.tmin))
+
+        if self.tmin is None:
+            self.tmin_samp = max(0, self.ft_header.nSamples - 1)
+        else:
+            self.tmin_samp = int(round(sfreq * self.tmin))
+
         if self.tmax != np.inf:
             self.tmax_samp = int(round(sfreq * self.tmax))
         else:
@@ -274,8 +281,8 @@ class FieldTripClient(object):
 
         iter_times = zip(range(self.tmin_samp, self.tmax_samp,
                                self.buffer_size),
-                         range(self.buffer_size, self.tmax_samp,
-                               self.buffer_size))
+                         range(self.tmin_samp + self.buffer_size,
+                               self.tmax_samp, self.buffer_size))
 
         for ii, (start, stop) in enumerate(iter_times):
 
