@@ -22,7 +22,7 @@ from mne.layouts import read_layout
 from mne.datasets import sample
 from mne.time_frequency.tfr import AverageTFR
 
-from mne.viz import plot_topo, plot_topo_tfr, plot_topo_image_epochs
+from mne.viz import plot_topo, plot_topo_image_epochs
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -34,7 +34,6 @@ ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
-fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.2, 0.2
