@@ -1437,7 +1437,10 @@ def _add_interpolator(s, mri_name):
     _print_coord_trans(s['vox_mri_t'], 'MRI volume : ')
     _print_coord_trans(s['mri_ras_t'], 'MRI volume : ')
 
-    # Convert from destination to source volume coords
+    #
+    # Convert MRI voxels from destination (MRI volume) to source (volume
+    # source space subset) coordinates
+    #
     combo_trans = combine_transforms(s['vox_mri_t'],
                                      invert_transform(s['src_mri_t']),
                                      FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
@@ -1445,6 +1448,8 @@ def _add_interpolator(s, mri_name):
     combo_trans['trans'] = combo_trans['trans'].astype(np.float32)
 
     logger.info('Setting up interpolation...')
+
+    # Take *all* MRI vertices...
     js = np.arange(mri_width, dtype=np.float32)
     js = np.tile(js[np.newaxis, np.newaxis, :],
                  (mri_depth, mri_height, 1)).ravel()
@@ -1454,14 +1459,23 @@ def _add_interpolator(s, mri_name):
     ps = np.arange(mri_depth, dtype=np.float32)
     ps = np.tile(ps[:, np.newaxis, np.newaxis],
                  (1, mri_height, mri_width)).ravel()
+    r0 = np.c_[js, ks, ps]
+    # note we have the correct number of vertices
+    assert len(r0) == mri_width * mri_height * mri_depth
 
-    r0 = apply_trans(combo_trans['trans'], np.c_[js, ks, ps])
-    del js, ks, ps
+    # ...and transform them from their MRI space into our source space's frame
+    # (this is labeled as FIFFV_MNE_COORD_MRI_VOXEL, but it's really a subset
+    # of the entire volume!)
+    r0 = apply_trans(combo_trans['trans'], r0)
     rn = np.floor(r0).astype(int)
     maxs = (s['vol_dims'] - 1)[np.newaxis, :]
     good = np.logical_and(np.all(rn >= 0, axis=1), np.all(rn < maxs, axis=1))
     rn = rn[good]
     r0 = r0[good]
+    # now we take each MRI voxel *in this space*, and figure out how to make
+    # its value the weighted sum of voxels in the volume source space. This
+    # is a 3D weighting scheme based (presumably) on the fact that we know
+    # we're interpolating from one volumetric grid into another.
     jj = rn[:, 0]
     kk = rn[:, 1]
     pp = rn[:, 2]
