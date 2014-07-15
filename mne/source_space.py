@@ -27,7 +27,7 @@ from .source_estimate import mesh_dist
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
                     check_scipy_version)
-from .fixes import in1d, partial
+from .fixes import in1d, partial, gzip_open
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms)
@@ -1376,9 +1376,6 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
 
 def _vol_vertex(width, height, jj, kk, pp):
     return jj + width * kk + pp * (width * height)
-
-
-from mne.fixes import gzip_open
 
 
 def _get_mgz_header(fname):
