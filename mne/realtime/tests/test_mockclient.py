@@ -1,11 +1,11 @@
 import os.path as op
 
+from nose.tools import assert_true
+from numpy.testing import assert_array_equal
+
 import mne
 from mne import Epochs, read_events
 from mne.realtime import MockRtClient, RtEpochs
-
-from nose.tools import assert_true
-from numpy.testing import assert_array_equal
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')

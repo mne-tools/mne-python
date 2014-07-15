@@ -67,22 +67,22 @@ def test_kit2fiff_model():
 
     # test setting stim channels
     model.stim_slope = '+'
-    events_bin = mne.find_events(raw_bin)
+    events_bin = mne.find_events(raw_bin, stim_channel='STI 014')
 
     model.stim_chs = '<'
     raw = model.get_raw()
-    events = mne.find_events(raw)
+    events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events, events_bin)
 
     events_rev = events_bin.copy()
     events_rev[:, 2] = 1
     model.stim_chs = '>'
     raw = model.get_raw()
-    events = mne.find_events(raw)
+    events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events, events_rev)
 
     model.stim_chs = 'man'
     model.stim_chs_manual = list(range(167, 159, -1))
     raw = model.get_raw()
-    events = mne.find_events(raw)
+    events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events, events_bin)
