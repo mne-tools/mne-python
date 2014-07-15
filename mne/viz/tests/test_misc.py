@@ -34,15 +34,13 @@ subjects_dir = op.join(data_dir, 'subjects')
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-event_id, tmin, tmax = 1, -0.2, 0.5
-n_chan = 15
+
 
 def _get_raw():
-    return io.Raw(raw_fname, preload=False)
+    return io.Raw(raw_fname, preload=True)
 
 
 def _get_events():
@@ -54,7 +52,7 @@ def test_plot_cov():
     """
     raw = _get_raw()
     cov = read_cov(cov_fname)
-    fig1, fig2 = plot_cov(cov, raw.info, proj=True)
+    fig1, fig2 = plot_cov(cov, raw.info, proj=True, exclude=raw.ch_names[6:])
     plt.close('all')
 
 
@@ -103,9 +101,9 @@ def test_plot_source_spectrogram():
 
     # dense version
     vertices = [s['vertno'] for s in sample_src]
-    n_time = 5
+    n_times = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.ones((n_verts, n_time))
+    stc_data = np.ones((n_verts, n_times))
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_source_spectrogram([stc, stc], [[1, 2], [3, 4]])
     assert_raises(ValueError, plot_source_spectrogram, [], [])

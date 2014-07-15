@@ -21,15 +21,9 @@ import matplotlib.pyplot as plt
 
 data_dir = sample.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
-
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
-evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
-cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-event_id, tmin, tmax = 1, -0.2, 0.5
-n_chan = 15
 
 
 def _fake_click(fig, ax, point, xform='ax'):
@@ -47,7 +41,9 @@ def _fake_click(fig, ax, point, xform='ax'):
 
 
 def _get_raw():
-    return io.Raw(raw_fname, preload=False)
+    raw = io.Raw(raw_fname, preload=True)
+    raw.pick_channels(raw.ch_names[:9])
+    return raw
 
 
 def _get_events():
