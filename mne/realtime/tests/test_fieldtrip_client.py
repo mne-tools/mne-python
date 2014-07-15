@@ -17,13 +17,11 @@ from mne.externals.six.moves import queue
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.realpath(op.join(base_dir, 'test_raw.fif'))
-neuromag2ft_fname = op.realpath(op.join(os.environ['NEUROMAG2FT_ROOT'],
-                                'neuromag2ft'))
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-def _run_buffer(kill_signal):
+def _run_buffer(kill_signal, neuromag2ft_fname):
     cmd = (neuromag2ft_fname, '--file', raw_fname, '--speed', '4.0')
 
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
@@ -38,8 +36,12 @@ def _run_buffer(kill_signal):
 def test_fieldtrip_client():
     """Test fieldtrip_client"""
 
+    neuromag2ft_fname = op.realpath(op.join(os.environ['NEUROMAG2FT_ROOT'],
+                                    'neuromag2ft'))
+
     kill_signal = queue.Queue()
-    thread = threading.Thread(target=_run_buffer, args=(kill_signal,))
+    thread = threading.Thread(target=_run_buffer, args=(kill_signal,
+                                                        neuromag2ft_fname))
     thread.daemon = True
     thread.start()
 
