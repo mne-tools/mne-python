@@ -71,16 +71,14 @@ def test_plot_sparse_source_estimates():
 
     # now do sparse version
     vertices = sample_src[0]['vertno']
-    n_verts = len(vertices)
-    stc_data = np.zeros((n_verts * n_time))
-    stc_data[(np.random.rand(20) * n_verts * n_time).astype(int)] = 1
-    stc_data.shape = (n_verts, n_time)
-    inds = np.where(np.any(stc_data, axis=1))[0]
-    stc_data = stc_data[inds]
+    inds = [111, 333]
+    stc_data = np.zeros((len(inds), n_time))
+    stc_data[0, 1] = 1.
+    stc_data[1, 4] = 2.
     vertices = [vertices[inds], np.empty(0, dtype=np.int)]
     stc = SourceEstimate(stc_data, vertices, 1, 1)
     plot_sparse_source_estimates(sample_src, stc, bgcolor=(1, 1, 1),
-                                 opacity=0.5, high_resolution=True)
+                                 opacity=0.5, high_resolution=False)
 
 
 @requires_mayavi
