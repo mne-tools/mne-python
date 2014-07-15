@@ -475,6 +475,9 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
     import matplotlib.pyplot as plt
 
+    fig = None
+    if axes is None:
+        fig = plt.figure()
     ax = axes if axes else plt.gca()
 
     unique_events_id = np.array(unique_events_id)
@@ -503,4 +506,4 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     if show:
         plt.show()
 
-    return ax
+    return ax if fig is None else fig
