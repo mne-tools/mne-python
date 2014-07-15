@@ -221,8 +221,8 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     if return_fig:
         return fig
     else:
-        msg = ("The 'perc' return parameter will be deprecated in v0.9. "
-               "Use 'Epochs.drop_log_stats' instead.")
+        msg = ("'return_fig=False' will be deprecated in v0.9. "
+               "Use 'Epochs.drop_log_stats' to get percentages instead.")
         warnings.warn(msg, DeprecationWarning)
         return perc, fig
 
