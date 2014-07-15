@@ -316,8 +316,9 @@ def get_head_surf(subject, source='bem', subjects_dir=None):
     """
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    this_head = op.join(subjects_dir, subject, 'bem',
-                        '%s-%s.fif' % (subject, source))
+    # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
+    this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
+                                    '%s-%s.fif' % (subject, source)))
     if not op.isfile(this_head):
         # let's do a more sophisticated search
         this_head = None

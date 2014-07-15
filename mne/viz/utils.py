@@ -254,7 +254,6 @@ def _prepare_trellis(n_cells, max_col):
     return fig, axes
 
 
-
 def _draw_proj_checkbox(event, params, draw_current_state=True):
     """Toggle options (projectors) dialog"""
     import matplotlib.pyplot as plt
