@@ -1070,15 +1070,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             raise ValueError('Cannot create interpolation matrix for '
                              'discrete source space, mri must be None if '
                              'pos is a dict')
-<<<<<<< HEAD
-        if not has_nibabel(vox2ras_tkr=True):
-            raise RuntimeError('nibabel with "vox2ras_tkr" property is '
-                               'required to process mri data, consider '
-                               'installing and/or updating nibabel')
     elif not isinstance(pos, dict) and volume_label is None:
-=======
-    elif not isinstance(pos, dict):
->>>>>>> cc380248b2360a16cf54da8ca289a19ec75b3782
         # "pos" will create a discrete src, so we don't need "mri"
         # if "pos" is None, we must have "mri" b/c it will be vol src
         raise RuntimeError('"mri" must be provided if "pos" is not a dict '
@@ -1419,6 +1411,10 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
 
 
 def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
+    try:
+        import nibabel as nib
+    except ImportError:
+        raise ImportError("nibabel is required to read segmentation file.")
 
     # Calculate spacing in millimeters
     spacing_mm = spacing_m * 1000.
@@ -1455,61 +1451,59 @@ def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
     vol_id = lut_data['id'][lut_data['name'] == volume_label]
 
     # Get indices for this volume label in voxel space
-    vol_ix = mgz_data == vol_id
+    vox_bool = mgz_data == vol_id
 
     # Downsample using grid
-    vol_ix *= grid
+    vox_bool *= grid
 
     # Get the 3 dimensional indices in voxel space
-    xyz = np.array(np.where(vol_ix)).T
+    vox_xyz = np.array(np.where(vox_bool)).T
 
     # Transform to RAS coordinates
+    # (use tkr normalization or volume won't align with surface source spaces)
     trans = mgz_hdr.get_vox2ras_tkr()
-    rr = apply_trans(trans, xyz)
+    rr = apply_trans(trans, vox_xyz)
 
     # Convert to meters
     rr /= 1000.
 
     # Get the shape of the source space
-    shape = (xyz.max(0) - xyz.min(0) + spacing_vox)/spacing_vox
+    shape = (vox_xyz.max(0) - vox_xyz.min(0) + spacing_vox)/spacing_vox
 
-    # Convert boolean indices to source space
-    xmin, ymin, zmin = xyz.min(0)
-    xmax, ymax, zmax = xyz.max(0)
-    src_ix = vol_ix[xmin:xmax+spacing_vox:spacing_vox,
-                    ymin:ymax+spacing_vox:spacing_vox,
-                    zmin:zmax+spacing_vox:spacing_vox]
+    # Convert boolean array to source space
+    xmin, ymin, zmin = vox_xyz.min(0)
+    xmax, ymax, zmax = vox_xyz.max(0)
+    src_bool = vox_bool[xmin:xmax+spacing_vox:spacing_vox,
+                        ymin:ymax+spacing_vox:spacing_vox,
+                        zmin:zmax+spacing_vox:spacing_vox]
 
     # Calculate parameters for source space
-    nuse = rr.shape[0]  # number of points in use
+    nuse = src_bool.sum()  # number of points in use
     npts = shape[0]*shape[1]*shape[2]  # number of points in source space
     coord_frame = FIFF.FIFFV_COORD_MRI  # coordinate frame
 
     # Calculate the inuse array
-    inuse = src_ix.flatten().astype('int')
+    inuse = src_bool.flatten().astype('int')
 
     # Calculate the src_mri transform
-    rmin = rr.min(0)
-    rmax = rr.max(0)
-    voxel_size = spacing_m * np.ones(3)
-    ras = np.linalg.inv(trans[:3, :3])
-    r0 = np.zeros(3)
-    for dim in range(3):
-        if ras[:, dim].sum() < 0:
-            r0[dim] = rmax[dim]
-        else:
-            r0[dim] = rmin[dim]
-    src_mri_t = _make_voxel_ras_trans(r0, ras, voxel_size)
+    r0 = apply_trans(trans, vox_xyz.min(0))
+    trans[:3, :3] *= spacing_vox
+    trans[:3, 3] = r0
+    trans[:3] /= 1000.
+    src_mri_t = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
+                 'to': FIFF.FIFFV_COORD_MRI, 'trans': trans}
 
     # Populate the entire source space
     xyz_new = np.mgrid[0:shape[0], 0:shape[1], 0:shape[2]].reshape(3, -1).T
+
+    # Convert to RAS
     rr_new = apply_trans(src_mri_t['trans'], xyz_new)
 
-    # Check that source indices are equal
+    # Check that source indices are equal in source and voxel space
     assert (xyz_new[inuse.astype('bool')] ==
-            (xyz-xyz.min(0))/spacing_vox).all()
+            (vox_xyz-vox_xyz.min(0))/spacing_vox).all()
 
-    # Check that the positions are nearly equal
+    # Check that source positions are equal in source and voxel space
     assert ((rr-rr_new[inuse.astype('bool')])**2).sum() < 1e-10
 
     # Populate the orientations
@@ -1519,9 +1513,8 @@ def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
     # Setup the source space
     sp = dict(coord_frame=coord_frame, type='vol', nuse=nuse, np=npts,
               inuse=inuse, vertno=np.where(inuse)[0], rr=rr_new, nn=nn,
-              id=-1, seg_name=volume_label, shape=shape, src_mri_t=src_mri_t)
-
-    sp['vol_dims'] = shape
+              id=-1, seg_name=volume_label, shape=shape, src_mri_t=src_mri_t,
+              vol_dims=shape)
 
     return sp
 
@@ -1915,6 +1908,8 @@ def get_volume_label_names(mgz_fname):
     label_names : list of str
         The names of segmented volumes included in this mgz file.
     """
+    import nibabel as nib
+
     # Read the mgz file using nibabel
     mgz_data = nib.load(mgz_fname).get_data()
 
