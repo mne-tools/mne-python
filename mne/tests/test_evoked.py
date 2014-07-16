@@ -1,5 +1,5 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#         Denis Engemann <d.engemann@fz-juelich.de>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Denis Engemann <denis.engemann@gmail.com>
 #         Andrew Dykstra <andrew.r.dykstra@gmail.com>
 #
 # License: BSD (3-clause)

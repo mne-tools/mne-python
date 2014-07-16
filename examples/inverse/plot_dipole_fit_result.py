@@ -14,7 +14,7 @@ $mne_dipole_fit --meas sample_audvis-ave.fif --set 1 --meg --tmin 40 --tmax 95 \
     --dip sample_audvis_set1.dip
 
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

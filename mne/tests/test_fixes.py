@@ -1,6 +1,6 @@
 # Authors: Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
 #          Gael Varoquaux <gael.varoquaux@normalesup.org>
-#          Alex Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
 # License: BSD
 
 import numpy as np

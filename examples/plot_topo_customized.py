@@ -10,7 +10,7 @@ layout.
 
 """
 
-# Author: Denis A. Engemann <d.engemann@fz-juelich.de>
+# Author: Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 

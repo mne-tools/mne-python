@@ -7,7 +7,7 @@ In this example we read a raw file. Plot a segment of MEG data
 restricted to MEG channels. And save these data in a new
 raw file.
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

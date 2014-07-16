@@ -10,7 +10,7 @@ instead of e.g. EEG-cap positions.
 """
 print(__doc__)
 
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)

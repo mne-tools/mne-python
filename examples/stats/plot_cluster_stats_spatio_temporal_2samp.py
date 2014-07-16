@@ -9,7 +9,7 @@ The multiple comparisons problem is addressed with a cluster-level
 permutation test across space and time.
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 

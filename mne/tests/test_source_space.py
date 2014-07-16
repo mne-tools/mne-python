@@ -17,6 +17,7 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_scipy_version)
 from mne.surface import _accumulate_normals, _triangle_neighbors
+from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
 from mne.source_space import get_volume_label_names, SourceSpaces
 
@@ -35,6 +36,16 @@ fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 
 tempdir = _TempDir()
+
+
+@requires_nibabel(vox2ras_tkr=True)
+def test_mgz_header():
+    import nibabel as nib
+    header = _get_mgz_header(fname_mri)
+    mri_hdr = nib.load(fname_mri).get_header()
+    assert_allclose(mri_hdr.get_data_shape(), header['dims'])
+    assert_allclose(mri_hdr.get_vox2ras_tkr(), header['vox2ras_tkr'])
+    assert_allclose(mri_hdr.get_ras2vox(), header['ras2vox'])
 
 
 @requires_scipy_version('0.11')
@@ -189,7 +200,6 @@ def test_discrete_source_space():
 
 @sample.requires_sample_data
 @requires_mne
-@requires_nibabel(vox2ras_tkr=True)
 def test_volume_source_space():
     """Test setting up volume source spaces
     """

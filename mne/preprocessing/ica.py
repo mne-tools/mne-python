@@ -1,5 +1,5 @@
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Juergen Dammers <j.dammers@fz-juelich.de>
 #
 # License: BSD (3-clause)
@@ -429,11 +429,11 @@ class ICA(ContainsMixin):
 
     def _pre_whiten(self, data, info, picks):
         """Aux function"""
-        info = pick_info(deepcopy(info), picks)
         has_pre_whitener = hasattr(self, '_pre_whitener')
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
             # Scale (z-score) the data by channel type
+            info = pick_info(deepcopy(info), picks)
             pre_whitener = np.empty([len(data), 1])
             for ch_type in ['mag', 'grad', 'eeg']:
                 if _contains_ch_type(info, ch_type):
@@ -444,12 +444,8 @@ class ICA(ContainsMixin):
                     pre_whitener[this_picks] = np.std(data[this_picks])
             data /= pre_whitener
         elif not has_pre_whitener and self.noise_cov is not None:
-            ncov = deepcopy(self.noise_cov)
-            if data.shape[0] != ncov['data'].shape[0]:
-                ncov['data'] = ncov['data'][picks][:, picks]
-                assert data.shape[0] == ncov['data'].shape[0]
-
-            pre_whitener, _ = compute_whitener(ncov, info, picks)
+            pre_whitener, _ = compute_whitener(self.noise_cov, info, picks)
+            assert data.shape[0] == pre_whitener.shape[1]
             data = fast_dot(pre_whitener, data)
         elif has_pre_whitener and self.noise_cov is None:
             data /= self._pre_whitener
@@ -1065,7 +1061,7 @@ class ICA(ContainsMixin):
             time in seconds. If None, data will be used to the last sample.
         copy : bool
             Whether to return a copy or whether to apply the solution in place.
-            Defaults to True.
+            Defaults to False.
         """
         if isinstance(inst, _BaseRaw):
             out = self._apply_raw(raw=inst, include=include,
@@ -1260,8 +1256,9 @@ class ICA(ContainsMixin):
         return self
 
     def plot_components(self, picks=None, ch_type='mag', res=64, layout=None,
-                        vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                        title=None, show=True, outlines='head', contours=6):
+                        vmin=None, vmax=None, cmap='RdBu_r', sensors='k,',
+                        colorbar=False, title=None, show=True, outlines='head',
+                        contours=6, image_interp='bilinear'):
         """Project unmixing matrix on interpolated sensor topogrpahy.
 
         Parameters
@@ -1276,9 +1273,15 @@ class ICA(ContainsMixin):
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout is
             inferred from the data.
-        vmax : scalar
-            The value specfying the range of the color scale (-vmax to +vmax).
-            If None, the largest absolute value in the data is used.
+        vmin : float | callable
+            The value specfying the lower bound of the color range.
+            If None, and vmax is None, -vmax is used. Else np.min(data).
+            If callable, the output equals vmin(data).
+        vmax : float | callable
+            The value specfying the upper bound of the color range.
+            If None, the maximum absolute value is used. If vmin is None,
+            but vmax is not, defaults to np.min(data).
+            If callable, the output equals vmax(data).
         cmap : matplotlib colormap
             Colormap.
         sensors : bool | str
@@ -1296,7 +1299,12 @@ class ICA(ContainsMixin):
             values in 'mask_pos' will serve as image mask. If None,
             nothing will be drawn. Defaults to 'head'.
         contours : int | False | None
-            The number of contour lines to draw. If 0, no contours will be drawn.
+            The number of contour lines to draw. If 0, no contours will
+            be drawn.
+        image_interp : str
+            The image interpolation to be used. All matplotlib options are
+            accepted.
+
         Returns
         -------
         fig : instance of matplotlib.pyplot.Figure
@@ -1308,7 +1316,8 @@ class ICA(ContainsMixin):
                                    cmap=cmap,
                                    sensors=sensors, colorbar=colorbar,
                                    title=title, show=show,
-                                   outlines=outlines, contours=contours)
+                                   outlines=outlines, contours=contours,
+                                   image_interp=image_interp)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, show=True, title=None):

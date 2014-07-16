@@ -19,7 +19,7 @@ http://hal.inria.fr/inria-00497023
 """
 print(__doc__)
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

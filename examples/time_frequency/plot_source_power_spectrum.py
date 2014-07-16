@@ -6,7 +6,7 @@ Compute power spectrum densities of the sources with dSPM
 Returns an STC file containing the PSD (in dB) of each of the sources.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          The statsmodels folks for AR yule_walker
 #
 # License: BSD (3-clause)

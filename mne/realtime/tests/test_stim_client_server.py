@@ -1,11 +1,13 @@
 import threading
 import time
-from ...externals.six.moves import queue
-
-from mne.realtime import StimServer, StimClient
 from nose.tools import assert_equal, assert_raises
 
+from mne.realtime import StimServer, StimClient
+from mne.externals.six.moves import queue
+from mne.utils import requires_good_network
 
+
+@requires_good_network
 def test_connection():
     """Test TCP/IP connection for StimServer <-> StimClient.
     """
@@ -48,6 +50,7 @@ def test_connection():
         assert_raises(StopIteration, stim_server.start, 0.1)
 
 
+@requires_good_network
 def connect_client(trig_queue):
     """Helper method that instantiates the StimClient.
     """

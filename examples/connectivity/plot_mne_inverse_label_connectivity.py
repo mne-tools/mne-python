@@ -10,7 +10,7 @@ is ordered based on the locations of the regions.
 """
 
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
 # License: BSD (3-clause)

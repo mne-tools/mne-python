@@ -8,8 +8,8 @@ for further signal processing and data analysis.
 
 """
 
-# Author: Denis Engemann <d.engemann@fz-juelich.de>
-#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Denis Engemann <denis.engemann@gmail.com>
+#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

@@ -8,6 +8,7 @@ import os
 from ..externals.six.moves import queue
 import re
 from threading import Thread
+import warnings
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -320,7 +321,7 @@ class CoregModel(HasPrivateTraits):
     @cached_property
     def _get_point_distance(self):
         if (len(self.transformed_hsp_points) == 0
-            or len(self.transformed_mri_points) == 0):
+                or len(self.transformed_mri_points) == 0):
             return
         dists = cdist(self.transformed_hsp_points, self.transformed_mri_points,
                       'euclidean')
@@ -374,7 +375,8 @@ class CoregModel(HasPrivateTraits):
         distance = float(distance)
         if reset:
             logger.info("Coregistration: Reset excluded head shape points")
-            self.hsp.points_filter = None
+            with warnings.catch_warnings(record=True):  # Traits None comp
+                self.hsp.points_filter = None
 
         if distance <= 0:
             return
@@ -397,7 +399,8 @@ class CoregModel(HasPrivateTraits):
             new_filter[old_filter] = new_sub_filter
 
         # set the filter
-        self.hsp.points_filter = new_filter
+        with warnings.catch_warnings(record=True):  # comp to None in Traits
+            self.hsp.points_filter = new_filter
 
     def fit_auricular_points(self):
         "Find rotation to fit LPA and RPA"

@@ -1,5 +1,5 @@
 from __future__ import print_function
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -47,6 +47,18 @@ def test_read_pdf():
         data = _read_data(info)
         shape = (info['total_chans'], info['total_slices'])
         assert_true(data.shape == shape)
+
+
+def test_crop():
+    """ Test crop raw """
+    raw = read_raw_bti(pdf_fnames[0], config_fnames[0], hs_fnames[0])
+    y, t = raw[:]
+    t0, t1 = 0.25 * t[-1], 0.75 * t[-1]
+    mask = (t0 <= t) * (t <= t1)
+    raw_ = raw.crop(t0, t1)
+    y_, _ = raw_[:]
+    assert_true(y_.shape[1] == mask.sum())
+    assert_true(y_.shape[0] == y.shape[0])
 
 
 def test_raw():

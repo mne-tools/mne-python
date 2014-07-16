@@ -7,7 +7,7 @@ The connectivity is computed between 4 labels across the spectrum
 between 5 and 40 Hz.
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

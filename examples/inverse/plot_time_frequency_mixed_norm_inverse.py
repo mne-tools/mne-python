@@ -32,7 +32,7 @@ Lecture Notes in Computer Science, 2011, Volume 6801/2011,
 600-611, DOI: 10.1007/978-3-642-22092-0_49
 http://dx.doi.org/10.1007/978-3-642-22092-0_49
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 

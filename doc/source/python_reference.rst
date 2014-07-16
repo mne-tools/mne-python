@@ -284,8 +284,6 @@ Visualization
    plot_sparse_source_estimates
    plot_topo
    plot_topo_image_epochs
-   plot_topo_phase_lock
-   plot_topo_power
    plot_topo_tfr
    plot_topomap
    compare_fiff
@@ -616,8 +614,8 @@ Time-Frequency
    compute_raw_psd
    compute_epochs_psd
    iir_filter_raw
-   induced_power
    morlet
+   tfr_morlet
    single_trial_power
    yule_walker
    ar_raw

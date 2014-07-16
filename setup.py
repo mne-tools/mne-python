@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2011-2013 Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+
+# Copyright (C) 2011-2014 Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 
 import os
 from os import path as op
@@ -24,7 +25,7 @@ descr = """MNE python project for MEG and EEG data analysis."""
 DISTNAME = 'mne'
 DESCRIPTION = descr
 MAINTAINER = 'Alexandre Gramfort'
-MAINTAINER_EMAIL = 'gramfort@nmr.mgh.harvard.edu'
+MAINTAINER_EMAIL = 'alexandre.gramfort@telecom-paristech.fr'
 URL = 'http://martinos.org/mne'
 LICENSE = 'BSD (3-clause)'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
@@ -66,6 +67,7 @@ if __name__ == "__main__":
                     'mne.datasets.megsim',
                     'mne.datasets.spm_face',
                     'mne.datasets.eegbci',
+                    'mne.datasets.somato',
                     'mne.externals',
                     'mne.fiff',
                     'mne.io', 'mne.io.tests',
@@ -77,6 +79,7 @@ if __name__ == "__main__":
                     'mne.io.fiff', 'mne.io.fiff.tests',
                     'mne.io.kit', 'mne.io.kit.tests',
                     'mne.forward', 'mne.forward.tests',
+                    'mne.viz', 'mne.viz.tests',
                     'mne.gui', 'mne.gui.tests',
                     'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',

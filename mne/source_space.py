@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
@@ -27,12 +27,10 @@ from .source_estimate import mesh_dist
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
                     check_scipy_version)
-from .fixes import in1d, partial
+from .fixes import in1d, partial, gzip_open
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms)
-if has_nibabel():
-    import nibabel as nib
 
 
 class SourceSpaces(list):
@@ -807,6 +805,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     if use_nibabel is True and mode == 'freesurfer':
         use_nibabel = False
     if use_nibabel:
+        import nibabel as nib
         img = nib.load(path)
         hdr = img.get_header()
         n_orig = hdr.get_vox2ras()
@@ -1071,11 +1070,15 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             raise ValueError('Cannot create interpolation matrix for '
                              'discrete source space, mri must be None if '
                              'pos is a dict')
+<<<<<<< HEAD
         if not has_nibabel(vox2ras_tkr=True):
             raise RuntimeError('nibabel with "vox2ras_tkr" property is '
                                'required to process mri data, consider '
                                'installing and/or updating nibabel')
     elif not isinstance(pos, dict) and volume_label is None:
+=======
+    elif not isinstance(pos, dict):
+>>>>>>> cc380248b2360a16cf54da8ca289a19ec75b3782
         # "pos" will create a discrete src, so we don't need "mri"
         # if "pos" is None, we must have "mri" b/c it will be vol src
         raise RuntimeError('"mri" must be provided if "pos" is not a dict '
@@ -1527,20 +1530,57 @@ def _vol_vertex(width, height, jj, kk, pp):
     return jj + width * kk + pp * (width * height)
 
 
+def _get_mgz_header(fname):
+    """Adapted from nibabel to quickly extract header info"""
+    if not fname.endswith('.mgz'):
+        raise IOError('Filename must end with .mgz')
+    header_dtd = [('version', '>i4'), ('dims', '>i4', (4,)),
+                  ('type', '>i4'), ('dof', '>i4'), ('goodRASFlag', '>i2'),
+                  ('delta', '>f4', (3,)), ('Mdc', '>f4', (3, 3)),
+                  ('Pxyz_c', '>f4', (3,))]
+    header_dtype = np.dtype(header_dtd)
+    with gzip_open(fname, 'rb') as fid:
+        hdr_str = fid.read(header_dtype.itemsize)
+    header = np.ndarray(shape=(), dtype=header_dtype,
+                        buffer=hdr_str)
+    # dims
+    dims = header['dims'].astype(int)
+    dims = dims[:3] if len(dims) == 4 else dims
+    # vox2ras_tkr
+    delta = header['delta']
+    ds = np.array(delta, float)
+    ns = np.array(dims * ds) / 2.0
+    v2rtkr = np.array([[-ds[0], 0, 0, ns[0]],
+                       [0, 0, ds[2], -ns[2]],
+                       [0, -ds[1], 0, ns[1]],
+                       [0, 0, 0, 1]], dtype=np.float32)
+    # ras2vox
+    d = np.diag(delta)
+    pcrs_c = dims / 2.0
+    Mdc = header['Mdc'].T
+    pxyz_0 = header['Pxyz_c'] - np.dot(Mdc, np.dot(d, pcrs_c))
+    M = np.eye(4, 4)
+    M[0:3, 0:3] = np.dot(Mdc, d)
+    M[0:3, 3] = pxyz_0.T
+    M = linalg.inv(M)
+    header = dict(dims=dims, vox2ras_tkr=v2rtkr, ras2vox=M)
+    return header
+
+
 def _add_interpolator(s, mri_name):
     """Compute a sparse matrix to interpolate the data into an MRI volume"""
     # extract transformation information from mri
     logger.info('Reading %s...' % mri_name)
-    mri_hdr = nib.load(mri_name).get_header()
-    mri_width, mri_height, mri_depth = mri_hdr.get_data_shape()
+    header = _get_mgz_header(mri_name)
+    mri_width, mri_height, mri_depth = header['dims']
+
     s.update(dict(mri_width=mri_width, mri_height=mri_height,
                   mri_depth=mri_depth))
-    trans = mri_hdr.get_vox2ras_tkr()
+    trans = header['vox2ras_tkr'].copy()
     trans[:3, :] /= 1000.0
     s['vox_mri_t'] = {'trans': trans, 'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
                       'to': FIFF.FIFFV_COORD_MRI}  # ras_tkr
-    trans = linalg.inv(np.dot(mri_hdr.get_vox2ras_tkr(),
-                              mri_hdr.get_ras2vox()))
+    trans = linalg.inv(np.dot(header['vox2ras_tkr'], header['ras2vox']))
     trans[:3, 3] /= 1000.0
     s['mri_ras_t'] = {'trans': trans, 'from': FIFF.FIFFV_COORD_MRI,
                       'to': FIFF.FIFFV_MNE_COORD_RAS}  # ras
@@ -1548,7 +1588,11 @@ def _add_interpolator(s, mri_name):
     _print_coord_trans(s['src_mri_t'], 'Source space : ')
     _print_coord_trans(s['vox_mri_t'], 'MRI volume : ')
     _print_coord_trans(s['mri_ras_t'], 'MRI volume : ')
-    # Convert from destination to source volume coords
+
+    #
+    # Convert MRI voxels from destination (MRI volume) to source (volume
+    # source space subset) coordinates
+    #
     combo_trans = combine_transforms(s['vox_mri_t'],
                                      invert_transform(s['src_mri_t']),
                                      FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
@@ -1556,6 +1600,8 @@ def _add_interpolator(s, mri_name):
     combo_trans['trans'] = combo_trans['trans'].astype(np.float32)
 
     logger.info('Setting up interpolation...')
+
+    # Take *all* MRI vertices...
     js = np.arange(mri_width, dtype=np.float32)
     js = np.tile(js[np.newaxis, np.newaxis, :],
                  (mri_depth, mri_height, 1)).ravel()
@@ -1565,14 +1611,23 @@ def _add_interpolator(s, mri_name):
     ps = np.arange(mri_depth, dtype=np.float32)
     ps = np.tile(ps[:, np.newaxis, np.newaxis],
                  (1, mri_height, mri_width)).ravel()
+    r0 = np.c_[js, ks, ps]
+    # note we have the correct number of vertices
+    assert len(r0) == mri_width * mri_height * mri_depth
 
-    r0 = apply_trans(combo_trans['trans'], np.c_[js, ks, ps])
-    del js, ks, ps
+    # ...and transform them from their MRI space into our source space's frame
+    # (this is labeled as FIFFV_MNE_COORD_MRI_VOXEL, but it's really a subset
+    # of the entire volume!)
+    r0 = apply_trans(combo_trans['trans'], r0)
     rn = np.floor(r0).astype(int)
     maxs = (s['vol_dims'] - 1)[np.newaxis, :]
     good = np.logical_and(np.all(rn >= 0, axis=1), np.all(rn < maxs, axis=1))
     rn = rn[good]
     r0 = r0[good]
+    # now we take each MRI voxel *in this space*, and figure out how to make
+    # its value the weighted sum of voxels in the volume source space. This
+    # is a 3D weighting scheme based (presumably) on the fact that we know
+    # we're interpolating from one volumetric grid into another.
     jj = rn[:, 0]
     kk = rn[:, 1]
     pp = rn[:, 2]

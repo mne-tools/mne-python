@@ -5,7 +5,7 @@ Generate simulated evoked data
 
 """
 # Author: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
