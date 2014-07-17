@@ -1,6 +1,6 @@
 """Linear inverse solvers based on L2 Minimum Norm Estimates (MNE)"""
 
-from .inverse import (read_inverse_operator, apply_inverse,
+from .inverse import (Inverse, read_inverse_operator, apply_inverse,
                       apply_inverse_raw, make_inverse_operator,
                       apply_inverse_epochs, write_inverse_operator,
                       compute_rank_inverse)
