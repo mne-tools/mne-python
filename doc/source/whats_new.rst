@@ -111,7 +111,7 @@ Changelog
 
    - Add new somatosensory MEG dataset with nice time-frequency content by `Alex Gramfort`_
 
-   - Add Inverse class to display inverse operator info by `Mainak Jas`_
+   - Add InverseOperator class to display inverse operator info by `Mainak Jas`_
 
 
 BUG
