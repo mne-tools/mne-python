@@ -20,7 +20,7 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
                         write_coord_trans, write_string)
 
-from ..io.pick import channel_type, pick_info
+from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import prepare_noise_cov, _read_cov, _write_cov
 from ..forward import (compute_depth_prior, read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
@@ -32,6 +32,39 @@ from ..transforms import invert_transform, transform_surface_to
 from ..source_estimate import _make_stc
 from ..utils import check_fname, logger, verbose
 from functools import reduce
+
+
+class Inverse(dict):
+    """Inverse class to represent info from inverse operator
+    """
+
+    def __repr__(self):
+        """Summarize inverse info instead of printing all"""
+
+        entr = '<Inverse'
+
+        nchan = len(pick_types(self['info'], meg=True, eeg=False))
+        entr += ' | ' + 'MEG channels: %d' % nchan
+        nchan = len(pick_types(self['info'], meg=False, eeg=True))
+        entr += ' | ' + 'EEG channels: %d' % nchan
+
+        if self['src'][0]['type'] == 'surf':
+            entr += (' | Source space: Surface with %d vertices'
+                     % self['nsource'])
+        elif self['src'][0]['type'] == 'vol':
+            entr += (' | Source space: Volume with %d grid points'
+                     % self['nsource'])
+        elif self['src'][0]['type'] == 'discrete':
+            entr += (' | Source space: Discrete with %d dipoles'
+                     % self['nsource'])
+
+        source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
+                      FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
+                      FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
+        entr += ' | Source orientation: %s' % source_ori[self['source_ori']]
+        entr += '>'
+
+        return entr
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -64,7 +97,7 @@ def read_inverse_operator(fname, verbose=None):
 
     Returns
     -------
-    inv : dict
+    inv : instance of Inverse
         The inverse operator.
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
@@ -286,7 +319,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     fid.close()
 
-    return inv
+    return Inverse(inv)
 
 
 @verbose
