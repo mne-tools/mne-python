@@ -3,7 +3,7 @@
 
 from .topomap import plot_evoked_topomap, plot_projs_topomap
 from .topomap import plot_ica_components, plot_ica_topomap
-from .topomap import plot_tfr_topomap
+from .topomap import plot_tfr_topomap, plot_topomap
 from .topo import plot_topo, plot_topo_tfr, plot_topo_image_epochs
 from .utils import tight_layout, mne_analyze_colormap, compare_fiff
 from ._3d import plot_sparse_source_estimates, plot_source_estimates
