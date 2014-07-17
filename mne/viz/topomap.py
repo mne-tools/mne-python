@@ -447,8 +447,8 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
             ax.plot(x, y, color='k', linewidth=linewidth)
 
     # This tackles an incomprehensible matplotlib bug if no contours are
-    # drawn. We will always draw contours. But only one of them that we
-    # then make them invisible if no contours are desired.
+    # drawn. To avoid rescalings, we will always draw contours.
+    # But if no contours are desired we only draw one and make it invisible .
     no_contours = False
     if contours in (False, None):
         contours, no_contours = 1, True
