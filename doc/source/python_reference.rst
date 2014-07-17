@@ -518,7 +518,7 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   Inverse
+   InverseOperator
 
 Functions:
 

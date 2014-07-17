@@ -113,7 +113,7 @@ Changelog
 
    - Add HDF5 write/read support for SourceEstimates by `Eric Larson`_
 
-   - Add Inverse class to display inverse operator info by `Mainak Jas`_
+   - Add InverseOperator class to display inverse operator info by `Mainak Jas`_
 
 
 BUG

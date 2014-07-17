@@ -34,14 +34,14 @@ from ..utils import check_fname, logger, verbose
 from functools import reduce
 
 
-class Inverse(dict):
-    """Inverse class to represent info from inverse operator
+class InverseOperator(dict):
+    """InverseOperator class to represent info from inverse operator
     """
 
     def __repr__(self):
         """Summarize inverse info instead of printing all"""
 
-        entr = '<Inverse'
+        entr = '<InverseOperator'
 
         nchan = len(pick_types(self['info'], meg=True, eeg=False))
         entr += ' | ' + 'MEG channels: %d' % nchan
@@ -97,7 +97,7 @@ def read_inverse_operator(fname, verbose=None):
 
     Returns
     -------
-    inv : instance of Inverse
+    inv : instance of InverseOperator
         The inverse operator.
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
@@ -319,7 +319,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     fid.close()
 
-    return Inverse(inv)
+    return InverseOperator(inv)
 
 
 @verbose
