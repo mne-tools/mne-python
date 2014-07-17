@@ -415,8 +415,8 @@ div.footer {
         {{for section in sections}}
 
         <li class="active {{section}}-btn">
-            <a href="#" onclick="togglebutton('.{{section}}')">
-            {{section.capitalize() if section != 'mri' else 'MRI'}}</a>
+           <a href="javascript:void(0)" onclick="togglebutton('.{{section}}')">
+           {{section.capitalize() if section != 'mri' else 'MRI'}}</a>
         </li>
 
         {{endfor}}
@@ -470,9 +470,13 @@ repr_template = Template(u"""
 """)
 
 toc_list = Template(u"""
-<li class="{{div_klass}}">{{if id}}<a href="#{{id}}">{{endif}}
+<li class="{{div_klass}}">
+    {{if id}}
+        <a href="javascript:void(0)" onclick="window.location.hash={{id}};">
+    {{endif}}
 <span title="{{tooltip}}" style="color:{{color}}"> {{text}}</span>
-{{if id}}</a>{{endif}}</li>
+{{if id}}</a>{{endif}}
+</li>
 """)
 
 
