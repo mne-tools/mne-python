@@ -25,6 +25,9 @@ event_name = op.join(base_dir, 'test-eve.fif')
 evoked1_fname = op.join(base_dir, 'test-nf-ave.fif')
 evoked2_fname = op.join(base_dir, 'test-ave.fif')
 
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
 
 os.environ['MNE_REPORT_TESTING'] = 'True'
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
