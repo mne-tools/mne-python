@@ -27,7 +27,7 @@ install:
     - source activate testenv
     - conda install --yes ipython==1.1.0 numpy scipy nose matplotlib
     - if [ "${DEPS}" == "full" ]; then
-        conda install --yes pandas statsmodels scikit-learn patsy;
+        conda install --yes pandas statsmodels scikit-learn patsy tables;
         pip install nibabel;
         if [ ${PYTHON:0:1} == "2" ]; then
           pip install nitime;
