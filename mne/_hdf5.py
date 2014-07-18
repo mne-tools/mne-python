@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""HDF5 saving functions
-"""
+# Authors: Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
 
 import numpy as np
 from os import path as op

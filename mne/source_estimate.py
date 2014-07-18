@@ -1014,13 +1014,13 @@ class SourceEstimate(_BaseSourceEstimate):
             hemisphere, respectively.
         ftype : string
             File format to use. Allowed values are "stc" (default), "w",
-            and "hdf5". The "w" format only supports a single time point.
+            and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
-        if ftype not in ('stc', 'w', 'hdf5'):
-            raise ValueError('ftype must be "stc", "w", or "hdf5", not "%s"'
+        if ftype not in ('stc', 'w', 'h5'):
+            raise ValueError('ftype must be "stc", "w", or "h5", not "%s"'
                              % ftype)
 
         lh_data = self.data[:len(self.lh_vertno)]
@@ -1041,7 +1041,7 @@ class SourceEstimate(_BaseSourceEstimate):
                      data=lh_data[:, 0])
             _write_w(fname + '-rh.w', vertices=self.rh_vertno,
                      data=rh_data[:, 0])
-        elif ftype == 'hdf5':
+        elif ftype == 'h5':
             write_hdf5(fname + '.h5',
                        dict(vertices=self.vertno, data=self.data,
                             tmin=self.tmin, tstep=self.tstep))
