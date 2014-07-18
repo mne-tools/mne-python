@@ -122,8 +122,8 @@ def test_expand():
 
 
 def _fake_stc(n_time=10):
-    vertices = [np.arange(10), np.arange(90)]
-    return SourceEstimate(np.random.rand(100, n_time), vertices, 0, 1e-1)
+    verts = [np.arange(10), np.arange(90)]
+    return SourceEstimate(np.random.rand(100, n_time), verts, 0, 1e-1, 'foo')
 
 
 def test_io_stc():
@@ -147,10 +147,13 @@ def test_io_stc_h5():
     """
     stc = _fake_stc()
     assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
-    stc.save(op.join(tempdir, 'tmp'), ftype='h5')
-    stc3 = read_source_estimate(op.join(tempdir, 'tmp'))
-    stc4 = read_source_estimate(op.join(tempdir, 'tmp-stc.h5'))
+    out_name = op.join(tempdir, 'tmp')
+    stc.save(out_name, ftype='h5')
+    stc3 = read_source_estimate(out_name)
+    stc4 = read_source_estimate(out_name + '-stc.h5')
+    assert_raises(RuntimeError, read_source_estimate, out_name, subject='bar')
     for stc_new in stc3, stc4:
+        assert_equal(stc_new.subject, stc.subject)
         assert_array_equal(stc_new.data, stc.data)
         assert_array_equal(stc_new.tmin, stc.tmin)
         assert_array_equal(stc_new.tstep, stc.tstep)

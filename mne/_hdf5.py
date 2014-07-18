@@ -62,6 +62,11 @@ def _triage_write(key, value, root, *write_params):
         for vi, sub_value in enumerate(value):
             _triage_write('idx_{0}'.format(vi), sub_value, sub_root,
                           *write_params)
+    elif isinstance(value, type(None)):
+        atom = tb.BoolAtom()
+        s = create_c_array(root, key, atom, (1,), title='None',
+                           filters=filters)
+        s[:] = False
     elif isinstance(value, (int, float, str)):
         if isinstance(value, int):
             title = 'int'
@@ -144,6 +149,8 @@ def _triage_read(node):
         else:
             cast = str
         data = cast(np.array(node)[0])
+    elif type_str == 'None':
+        data = None
     else:
         raise TypeError('Unknown node type: {0}'.format(type_str))
     return data

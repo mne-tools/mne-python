@@ -331,7 +331,12 @@ def read_source_estimate(fname, subject=None):
             kwargs['vertices'] = vertices
             kwargs['data'] = data
 
-    kwargs['subject'] = subject
+    if 'subject' not in kwargs:
+        kwargs['subject'] = subject
+    if subject is not None and subject != kwargs['subject']:
+        raise RuntimeError('provided subject name "%s" does not match '
+                           'subject name from the file "%s'
+                           % (subject, kwargs['subject']))
 
     if ftype == 'volume':
         stc = VolSourceEstimate(**kwargs)
@@ -1044,7 +1049,8 @@ class SourceEstimate(_BaseSourceEstimate):
         elif ftype == 'h5':
             write_hdf5(fname + '-stc.h5',
                        dict(vertices=self.vertno, data=self.data,
-                            tmin=self.tmin, tstep=self.tstep))
+                            tmin=self.tmin, tstep=self.tstep,
+                            subject=self.subject))
         logger.info('[done]')
 
     def __repr__(self):
