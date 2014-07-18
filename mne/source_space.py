@@ -1900,7 +1900,8 @@ def _do_src_distances(con, vertno, run_inds, limit):
 
 
 def get_volume_label_names(mgz_fname):
-    """Returns a list of names of segmented volumes in a .mgz file
+    """Returns a list of names of segmented volumes in a .mgz file, typically
+    named aseg.mgz in the freesurfer pipeline.
 
     Parameters
     ----------
@@ -1910,8 +1911,7 @@ def get_volume_label_names(mgz_fname):
     Returns
     -------
     label_names : list of str
-        The names of segmented volumes included in this mgz file, typically
-        named aseg.mgz in the freesurfer pipeline.
+        The names of segmented volumes included in this mgz file
     """
     import nibabel as nib
 
