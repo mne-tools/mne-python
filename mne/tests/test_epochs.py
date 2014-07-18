@@ -801,7 +801,7 @@ def test_access_by_name():
 
     epochs3 = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3, 'd': 4},
                      tmin, tmax, picks=picks, preload=True)
-    assert_equal(list(sorted(epochs3[['a', 'b']].event_id.values())),
+    assert_equal(list(sorted(epochs3[('a', 'b')].event_id.values())),
                  [1, 2])
     epochs4 = epochs['a']
     epochs5 = epochs3['a']
