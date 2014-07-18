@@ -14,6 +14,7 @@ import numpy as np
 import time
 from glob import glob
 import warnings
+import base64
 
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
@@ -71,7 +72,7 @@ def _fig_to_img(function=None, fig=None, **kwargs):
     fig.savefig(output, format='png', bbox_inches='tight')
     plt.close('all')
 
-    return output.getvalue().encode('base64')
+    return base64.b64encode(output.getvalue())
 
 
 @_check_report_mode
