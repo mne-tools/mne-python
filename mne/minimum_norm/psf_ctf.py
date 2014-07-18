@@ -28,7 +28,7 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
 
     Parameters
     ----------
-    inverse_operator : dict
+    inverse_operator : instance of InverseOperator
         Inverse operator read with mne.read_inverse_operator.
     forward : dict
         Forward solution, created with "surf_ori=True" and "force_fixed=False"
@@ -195,7 +195,7 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
 
     Parameters
     ----------
-    inverse_operator : dict
+    inverse_operator : instance of InverseOperator
         Inverse operator read with mne.read_inverse_operator.
     forward : dict
          The forward operator.
@@ -363,7 +363,7 @@ def cross_talk_function(inverse_operator, forward, labels,
 
     Parameters
     ----------
-    inverse_operator : dict
+    inverse_operator : instance of InverseOperator
         Inverse operator read with mne.read_inverse_operator.
     forward : dict
          Forward solution, created with "force_fixed=True"
