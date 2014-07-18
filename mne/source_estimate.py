@@ -200,7 +200,7 @@ def _write_w(filename, vertices, data):
     # write the vertices and data
     for i in range(vertices_n):
         _write_3(fid, vertices[i])
-        #XXX: without float() endianness is wrong, not sure why
+        # XXX: without float() endianness is wrong, not sure why
         fid.write(np.array(float(data[i]), dtype='>f4').tostring())
 
     # close the file
@@ -344,7 +344,7 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
                                 tstep=tstep, subject=subject)
     elif isinstance(vertices, list) and len(vertices) > 2:
         # make a mixed source estimate
-        stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin, 
+        stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
                                   tstep=tstep, subject=subject)
     else:
         raise ValueError('vertices has to be either a list with one or two '
@@ -1275,7 +1275,7 @@ class SourceEstimate(_BaseSourceEstimate):
             if not len(hemi) == 1:
                 raise ValueError('Could not infer hemisphere')
             hemi = hemi[0]
-        if not hemi in [0, 1]:
+        if hemi not in [0, 1]:
             raise ValueError('hemi must be 0 or 1')
 
         subjects_dir = get_subjects_dir(subjects_dir)

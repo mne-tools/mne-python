@@ -19,7 +19,7 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
-from mne.source_space import get_volume_label_names, SourceSpaces
+from mne.source_space import get_volume_labels_from_aseg, SourceSpaces
 
 warnings.simplefilter('always')
 
@@ -506,9 +506,9 @@ def test_get_volume_label_names():
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 
-    label_names = get_volume_label_names(aseg_fname)
+    label_names = get_volume_labels_from_aseg(aseg_fname)
 
-    assert label_names.count('Brain-Stem') == 1
+    assert_equal(label_names.count('Brain-Stem'), 1)
 
 
 @sample.requires_sample_data
@@ -518,16 +518,25 @@ def test_source_space_from_label():
     """Test generating a source space from volume label
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_label_names(aseg_fname)
+    label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_label = np.random.choice(label_names, 1)[0]
 
+    # Test pos as dict
     pos = dict()
     assert_raises(ValueError, setup_volume_source_space, 'sample', pos=pos,
+                  volume_label=volume_label, mri=aseg_fname)
+
+    # Test no mri provided
+    assert_raises(RuntimeError, setup_volume_source_space, 'sample', mri=None,
                   volume_label=volume_label)
+
+    # Test invalid volume label
+    assert_raises(ValueError, setup_volume_source_space, 'sample',
+                  volume_label='Hello World!', mri=aseg_fname)
 
     src = setup_volume_source_space('sample', subjects_dir=subjects_dir,
                                     volume_label=volume_label, mri=aseg_fname)
-    assert volume_label == src[0]['seg_name']
+    assert_equal(volume_label, src[0]['seg_name'])
 
     # test reading and writing
     fname_temp = 'temp.fif'
@@ -544,7 +553,7 @@ def test_combine_source_spaces():
     """Test combining two source spaces
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-    label_names = get_volume_label_names(aseg_fname)
+    label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_labels = np.random.choice(label_names, 2)
 
     src1 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
@@ -555,8 +564,8 @@ def test_combine_source_spaces():
                                      mri=aseg_fname)
     src = src1 + src2
 
-    assert type(src) == SourceSpaces
-    assert len(src) == 2
+    assert_equal(type(src), SourceSpaces)
+    assert_equal(len(src), 2)
 
 
 # The following code was used to generate small-src.fif.gz.
