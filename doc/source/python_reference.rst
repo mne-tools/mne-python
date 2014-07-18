@@ -512,6 +512,16 @@ Inverse Solutions
 
 .. currentmodule:: mne.minimum_norm
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   InverseOperator
+
+Functions:
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
