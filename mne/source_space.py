@@ -1410,16 +1410,11 @@ def _make_volume_source_space(surf, grid, exclude, mindist):
     return sp
 
 
-def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
+def _make_volume_from_label(grid, volume_label, mgz_fname):
     try:
         import nibabel as nib
     except ImportError:
         raise ImportError("nibabel is required to read segmentation file.")
-
-    # Calculate spacing in millimeters
-    spacing_mm = spacing_m * 1000.
-    # Calculate spacing in voxels (assumes 1 voxel == 1 mm**3)
-    spacing_vox = int(spacing_mm)
 
     # Read the segmentation data using nibabel
     mgz = nib.load(mgz_fname)
@@ -1431,21 +1426,6 @@ def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
                         'FreeSurferColorLUT.txt')
     lut_data = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
                              names=['id', 'name'])
-
-    # Create a downsampling kernel in voxel space
-    kernel = np.zeros((spacing_vox, spacing_vox, spacing_vox))
-    kernel[0, 0, 0] = 1  # set only one true element
-
-    # Get the dimensions of the mri data in voxel space
-    sx, sy, sz = mgz_data.shape
-    # Calculate the number of kernels needed for each dimension
-    nx, ny, nz = np.ceil((sz/spacing_mm, sy/spacing_mm,
-                          sz/spacing_mm)).astype('int')
-
-    # Create a boolean the same shape as the mri data for downsampling
-    grid = np.tile(kernel, (nx, ny, nz))
-    grid = grid[:sx, :sy, :sz]
-    grid = grid.astype('bool')
 
     # Get the numeric index for this volume label
     vol_id = lut_data['id'][lut_data['name'] == volume_label]
@@ -1462,59 +1442,67 @@ def _make_volume_from_label(spacing_m, volume_label, mgz_fname):
     # Transform to RAS coordinates
     # (use tkr normalization or volume won't align with surface source spaces)
     trans = mgz_hdr.get_vox2ras_tkr()
+    trans[:3] /= 1000.
     rr = apply_trans(trans, vox_xyz)
 
-    # Convert to meters
-    rr /= 1000.
+    # Calculate the grid size
+    mins = rr.min(0)
+    maxs = rr.max(0)
+    cm = rr.mean(0)
 
-    # Get the shape of the source space
-    shape = (vox_xyz.max(0) - vox_xyz.min(0) + spacing_vox)/spacing_vox
+    # Define the sphere that fits the surface
+    maxdist = np.sqrt(np.max(np.sum((rr - cm) ** 2, axis=1)))
 
-    # Convert boolean array to source space
-    xmin, ymin, zmin = vox_xyz.min(0)
-    xmax, ymax, zmax = vox_xyz.max(0)
-    src_bool = vox_bool[xmin:xmax+spacing_vox:spacing_vox,
-                        ymin:ymax+spacing_vox:spacing_vox,
-                        zmin:zmax+spacing_vox:spacing_vox]
+    maxn = np.zeros(3, int)
+    minn = np.zeros(3, int)
+    for c in range(3):
+        if maxs[c] > 0:
+            maxn[c] = np.floor(np.abs(maxs[c]) / grid) + 1
+        else:
+            maxn[c] = -np.floor(np.abs(maxs[c]) / grid) - 1
+        if mins[c] > 0:
+            minn[c] = np.floor(np.abs(mins[c]) / grid) + 1
+        else:
+            minn[c] = -np.floor(np.abs(mins[c]) / grid) - 1
 
-    # Calculate parameters for source space
-    nuse = src_bool.sum()  # number of points in use
-    npts = shape[0]*shape[1]*shape[2]  # number of points in source space
-    coord_frame = FIFF.FIFFV_COORD_MRI  # coordinate frame
+    # Now make the initial grid
+    ns = maxn - minn + 1
+    npts = np.prod(ns)
+    nrow = ns[0]
+    ncol = ns[1]
+    nplane = nrow * ncol
+    sp = dict(np=npts, rr=np.zeros((npts, 3)), nn=np.zeros((npts, 3)),
+              inuse=np.ones(npts, int), type='vol', nuse=npts,
+              coord_frame=FIFF.FIFFV_COORD_MRI, id=-1, shape=ns)
+    sp['nn'][:, 2] = 1.0  # Source orientation is immaterial
 
-    # Calculate the inuse array
-    inuse = src_bool.flatten().astype('int')
+    x = np.arange(minn[0], maxn[0] + 1)[np.newaxis, np.newaxis, :]
+    y = np.arange(minn[1], maxn[1] + 1)[np.newaxis, :, np.newaxis]
+    z = np.arange(minn[2], maxn[2] + 1)[:, np.newaxis, np.newaxis]
+    z = np.tile(z, (1, ns[1], ns[0])).ravel()
+    y = np.tile(y, (ns[2], 1, ns[0])).ravel()
+    x = np.tile(x, (ns[2], ns[1], 1)).ravel()
+    k = np.arange(npts)
+    sp['rr'] = np.c_[x, y, z] * grid    
+
+    # Filter out points too far from volume region voxels
+    dists = _compute_nearest(rr, sp['rr'], return_dists=True)[1]
+    # Maximum distance from center of mass of a voxel to any of its corners
+    maxdist = np.sqrt(((trans[:3, :3].sum(0) / 2.) ** 2).sum())
+    bads = np.where(dists > maxdist)[0]
+    sp['inuse'][bads] = False
+    sp['nuse'] -= len(bads)
+    sp['vertno'] = np.where(sp['inuse']>0)[0]
 
     # Calculate the src_mri transform
-    r0 = apply_trans(trans, vox_xyz.min(0))
-    trans[:3, :3] *= spacing_vox
-    trans[:3, 3] = r0
-    trans[:3] /= 1000.
-    src_mri_t = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                 'to': FIFF.FIFFV_COORD_MRI, 'trans': trans}
-
-    # Populate the entire source space
-    xyz_new = np.mgrid[0:shape[0], 0:shape[1], 0:shape[2]].reshape(3, -1).T
-
-    # Convert to RAS
-    rr_new = apply_trans(src_mri_t['trans'], xyz_new)
-
-    # Check that source indices are equal in source and voxel space
-    assert (xyz_new[inuse.astype('bool')] ==
-            (vox_xyz-vox_xyz.min(0))/spacing_vox).all()
-
-    # Check that source positions are equal in source and voxel space
-    assert ((rr-rr_new[inuse.astype('bool')])**2).sum() < 1e-10
-
-    # Populate the orientations
-    nn = np.zeros(rr_new.shape)
-    nn[:, 2] = 1.
-
-    # Setup the source space
-    sp = dict(coord_frame=coord_frame, type='vol', nuse=nuse, np=npts,
-              inuse=inuse, vertno=np.where(inuse)[0], rr=rr_new, nn=nn,
-              id=-1, seg_name=volume_label, shape=shape, src_mri_t=src_mri_t,
-              vol_dims=shape)
+    trans = np.zeros((4, 4))
+    trans[-1, -1] = 1
+    trans[:3, :3] = np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])*grid
+    trans[:3, 3] = minn * grid
+    sp['src_mri_t'] = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
+                       'to': FIFF.FIFFV_COORD_MRI, 'trans': trans}   
+    
+    sp['vol_dims'] = maxn - minn + 1
 
     return sp
 

@@ -5,9 +5,9 @@
 import numpy as np
 import mne
 from mne.datasets import sample
+from mne.utils import run_subprocess
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-import subprocess
 import nibabel as nib
 
 data_path = sample.data_path()
@@ -38,7 +38,7 @@ ax.plot(x1, y1, z1, 'bo', alpha=0.1)
 
 # plot the white matter sources
 x2, y2, z2 = lh_ctx[0]['rr'][lh_ctx[0]['inuse'].astype(bool)].T
-ax.plot(x2, y2, z2, 'ro', alpha=0.1)
+ax.plot(x2, y2, z2, 'ro', alpha=0.5)
 
 plt.show()
 
@@ -46,7 +46,9 @@ plt.show()
 # Export the volume source to nifti
 
 # tranform vertices to 3d volume
-vol = lh_ctx[0]['inuse'].reshape(lh_ctx[0]['shape'])
+shape = lh_ctx[0]['shape']
+shape3d = (shape[2], shape[1], shape[0])
+vol = lh_ctx[0]['inuse'].reshape(shape3d)
 # calculate affine transform (similar to source_estimate.save_stc_as_volume)
 aff = lh_ctx[0]['src_mri_t']['trans']
 aff = np.dot(lh_ctx[0]['mri_ras_t']['trans'], aff)
@@ -62,7 +64,7 @@ nii_fname = 'mne_sample_lh-cortical-white-matter.nii'
 nib.save(img, nii_fname)
 
 # display image in freeview
-subprocess.call(['freeview', '-v', mri_fname, '-v',
+run_subprocess(['freeview', '-v', mri_fname, '-v',
                  '%s:colormap=lut:opacity=0.5' % aseg_fname, '-v',
                  '%s:colormap=jet:colorscale=0,2' % nii_fname, '-slice',
                  '157 75 105'])
