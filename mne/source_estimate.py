@@ -266,9 +266,9 @@ def read_source_estimate(fname, subject=None):
                        "hemisphere tag ('...-lh.w' or '...-rh.w')"
                        % fname)
                 raise IOError(err)
-        elif fname.endswith('.h5'):
+        elif fname.endswith('-stc.h5'):
             ftype = 'h5'
-            fname = fname[:-3]
+            fname = fname[:-7]
         else:
             raise RuntimeError('Unknown extension for file %s' % fname_arg)
 
@@ -277,7 +277,7 @@ def read_source_estimate(fname, subject=None):
                      for f in [fname + '-rh.stc', fname + '-lh.stc']]
         w_exist = [os.path.exists(f)
                    for f in [fname + '-rh.w', fname + '-lh.w']]
-        h5_exist = os.path.exists(fname + '.h5')
+        h5_exist = os.path.exists(fname + '-stc.h5')
         if all(stc_exist) and (ftype is not 'w'):
             ftype = 'surface'
         elif all(w_exist):
@@ -319,7 +319,7 @@ def read_source_estimate(fname, subject=None):
         kwargs['tmin'] = 0.0
         kwargs['tstep'] = 1.0
     elif ftype == 'h5':
-        kwargs = read_hdf5(fname + '.h5')
+        kwargs = read_hdf5(fname + '-stc.h5')
 
     if ftype != 'volume':
         # Make sure the vertices are ordered
@@ -1042,7 +1042,7 @@ class SourceEstimate(_BaseSourceEstimate):
             _write_w(fname + '-rh.w', vertices=self.rh_vertno,
                      data=rh_data[:, 0])
         elif ftype == 'h5':
-            write_hdf5(fname + '.h5',
+            write_hdf5(fname + '-stc.h5',
                        dict(vertices=self.vertno, data=self.data,
                             tmin=self.tmin, tstep=self.tstep))
         logger.info('[done]')

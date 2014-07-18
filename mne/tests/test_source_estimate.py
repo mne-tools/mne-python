@@ -126,6 +126,7 @@ def test_io_stc():
     """
     # STC
     stc = read_source_estimate(fname)
+    stc.crop(0.1, 0.5)
     stc.save(op.join(tempdir, "tmp.stc"))
     stc2 = read_source_estimate(op.join(tempdir, "tmp.stc"))
 
@@ -136,14 +137,17 @@ def test_io_stc():
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
     # HDF5
-    stc.save(op.join(tempdir, 'tmp.h5'))
-    stc3 = read_source_estimate(op.join(tempdir, 'tmp.h5'))
-    assert_array_equal(stc3.data, stc.data)
-    assert_array_equal(stc3.tmin, stc.tmin)
-    assert_array_equal(stc3.tstep, stc.tstep)
-    assert_equal(len(stc3.vertno), len(stc.vertno))
-    for v1, v2 in zip(stc3.vertno, stc.vertno):
-        assert_array_equal(v1, v2)
+    assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
+    stc.save(op.join(tempdir, 'tmp'), ftype='h5')
+    stc3 = read_source_estimate(op.join(tempdir, 'tmp'))
+    stc4 = read_source_estimate(op.join(tempdir, 'tmp-stc.h5'))
+    for stc_new in stc3, stc4:
+        assert_array_equal(stc_new.data, stc.data)
+        assert_array_equal(stc_new.tmin, stc.tmin)
+        assert_array_equal(stc_new.tstep, stc.tstep)
+        assert_equal(len(stc_new.vertno), len(stc.vertno))
+        for v1, v2 in zip(stc_new.vertno, stc.vertno):
+            assert_array_equal(v1, v2)
 
 
 @sample.requires_sample_data
