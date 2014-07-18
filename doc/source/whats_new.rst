@@ -111,6 +111,7 @@ Changelog
 
    - Add new somatosensory MEG dataset with nice time-frequency content by `Alex Gramfort`_
 
+   - Add HDF5 write/read support for SourceEstimates by `Eric Larson`_
 
 BUG
 ~~~
