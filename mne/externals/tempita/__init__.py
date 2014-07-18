@@ -32,221 +32,12 @@ If there are syntax errors ``TemplateError`` will be raised.
 import re
 import sys
 import cgi
+from ..six.moves.urllib.parse import quote as url_quote
 import os
 import tokenize
-
-from .six.moves import cStringIO
-from .six.moves.urllib_parse import quote as url_quote
-
-
-__all__ = ['PY3', 'b', 'basestring_', 'bytes', 'next', 'is_unicode']
-
-PY3 = True if sys.version_info[0] == 3 else False
-
-if sys.version_info[0] < 3:
-    b = bytes = str
-    basestring_ = basestring
-else:
-
-    def b(s):
-        if isinstance(s, str):
-            return s.encode('latin1')
-        return bytes(s)
-    basestring_ = (bytes, str)
-    bytes = bytes
-text = str
-
-if sys.version_info[0] < 3:
-
-    def next(obj):
-        return obj.next()
-else:
-    next = next
-
-
-def is_unicode(obj):
-    if sys.version_info[0] < 3:
-        return isinstance(obj, unicode)
-    else:
-        return isinstance(obj, str)
-
-
-def coerce_text(v):
-    if not isinstance(v, basestring_):
-        if sys.version_info[0] < 3:
-            attr = '__unicode__'
-        else:
-            attr = '__str__'
-        if hasattr(v, attr):
-            return unicode(v)
-        else:
-            return bytes(v)
-    return v
-
-
-"""
-Helper for looping over sequences, particular in templates.
-
-Often in a loop in a template it's handy to know what's next up,
-previously up, if this is the first or last item in the sequence, etc.
-These can be awkward to manage in a normal Python loop, but using the
-looper you can get a better sense of the context.  Use like::
-
-    >>> for loop, item in looper(['a', 'b', 'c']):
-    ...     print loop.number, item
-    ...     if not loop.last:
-    ...         print '---'
-    1 a
-    ---
-    2 b
-    ---
-    3 c
-
-"""
-
-import sys
-
-__all__ = ['looper']
-
-
-class looper(object):
-    """
-    Helper for looping (particularly in templates)
-
-    Use this like::
-
-        for loop, item in looper(seq):
-            if loop.first:
-                ...
-    """
-
-    def __init__(self, seq):
-        self.seq = seq
-
-    def __iter__(self):
-        return looper_iter(self.seq)
-
-    def __repr__(self):
-        return '<%s for %r>' % (
-            self.__class__.__name__, self.seq)
-
-
-class looper_iter(object):
-
-    def __init__(self, seq):
-        self.seq = list(seq)
-        self.pos = 0
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        if self.pos >= len(self.seq):
-            raise StopIteration
-        result = loop_pos(self.seq, self.pos), self.seq[self.pos]
-        self.pos += 1
-        return result
-
-    if sys.version < "3":
-        next = __next__
-
-
-class loop_pos(object):
-
-    def __init__(self, seq, pos):
-        self.seq = seq
-        self.pos = pos
-
-    def __repr__(self):
-        return '<loop pos=%r at %r>' % (
-            self.seq[self.pos], self.pos)
-
-    def index(self):
-        return self.pos
-    index = property(index)
-
-    def number(self):
-        return self.pos + 1
-    number = property(number)
-
-    def item(self):
-        return self.seq[self.pos]
-    item = property(item)
-
-    def __next__(self):
-        try:
-            return self.seq[self.pos + 1]
-        except IndexError:
-            return None
-    __next__ = property(__next__)
-
-    if sys.version < "3":
-        next = __next__
-
-    def previous(self):
-        if self.pos == 0:
-            return None
-        return self.seq[self.pos - 1]
-    previous = property(previous)
-
-    def odd(self):
-        return not self.pos % 2
-    odd = property(odd)
-
-    def even(self):
-        return self.pos % 2
-    even = property(even)
-
-    def first(self):
-        return self.pos == 0
-    first = property(first)
-
-    def last(self):
-        return self.pos == len(self.seq) - 1
-    last = property(last)
-
-    def length(self):
-        return len(self.seq)
-    length = property(length)
-
-    def first_group(self, getter=None):
-        """
-        Returns true if this item is the start of a new group,
-        where groups mean that some attribute has changed.  The getter
-        can be None (the item itself changes), an attribute name like
-        ``'.attr'``, a function, or a dict key or list index.
-        """
-        if self.first:
-            return True
-        return self._compare_group(self.item, self.previous, getter)
-
-    def last_group(self, getter=None):
-        """
-        Returns true if this item is the end of a new group,
-        where groups mean that some attribute has changed.  The getter
-        can be None (the item itself changes), an attribute name like
-        ``'.attr'``, a function, or a dict key or list index.
-        """
-        if self.last:
-            return True
-        return self._compare_group(self.item, self.__next__, getter)
-
-    def _compare_group(self, item, other, getter):
-        if getter is None:
-            return item != other
-        elif (isinstance(getter, basestring_)
-              and getter.startswith('.')):
-            getter = getter[1:]
-            if getter.endswith('()'):
-                getter = getter[:-2]
-                return getattr(item, getter)() != getattr(other, getter)()
-            else:
-                return getattr(item, getter) != getattr(other, getter)
-        elif hasattr(getter, '__call__'):
-            return getter(item) != getter(other)
-        else:
-            return item[getter] != other[getter]
-
+from ..six.moves import cStringIO as StringIO
+from ._looper import looper
+from .compat3 import PY3, bytes, basestring_, next, is_unicode, coerce_text
 
 __all__ = ['TemplateError', 'Template', 'sub', 'HTMLTemplate',
            'sub_html', 'html', 'bunch']
@@ -539,7 +330,9 @@ class Template(object):
                 return ''
             if self._unicode:
                 try:
-                    value = unicode(value)
+                    value = str(value)
+                    if not is_unicode(value):
+                        value = value.decode('utf-8')
                 except UnicodeDecodeError:
                     value = bytes(value)
             else:
@@ -551,7 +344,8 @@ class Template(object):
             exc_info = sys.exc_info()
             e = exc_info[1]
             e.args = (self._add_line_info(e.args[0], pos),)
-            raise(exc_info[1], e, exc_info[2])
+            # raise(exc_info[1], e, exc_info[2])
+            raise(e)
         else:
             if self._unicode and isinstance(value, bytes):
                 if not self.default_encoding:
@@ -894,15 +688,15 @@ Lex a string into chunks:
     >>> lex('hey {{')
     Traceback (most recent call last):
         ...
-    mne.externals.tempita.TemplateError: No }} to finish last expression at line 1 column 7
+    tempita.TemplateError: No }} to finish last expression at line 1 column 7
     >>> lex('hey }}')
     Traceback (most recent call last):
         ...
-    mne.externals.tempita.TemplateError: }} outside expression at line 1 column 7
+    tempita.TemplateError: }} outside expression at line 1 column 7
     >>> lex('hey {{ {{')
     Traceback (most recent call last):
         ...
-    mne.externals.tempita.TemplateError: {{ inside expression at line 1 column 10
+    tempita.TemplateError: {{ inside expression at line 1 column 10
 
 """ if PY3 else """
 Lex a string into chunks:
@@ -1054,31 +848,32 @@ parse.__doc__ = r"""
         >>> parse('{{continue}}')
         Traceback (most recent call last):
             ...
-        mne.externals.tempita.TemplateError: continue outside of for loop at line 1 column 3
+        tempita.TemplateError: continue outside of for loop at line 1 column 3
         >>> parse('{{if x}}foo')
         Traceback (most recent call last):
             ...
-        mne.externals.tempita.TemplateError: No {{endif}} at line 1 column 3
+        tempita.TemplateError: No {{endif}} at line 1 column 3
         >>> parse('{{else}}')
         Traceback (most recent call last):
             ...
-        mne.externals.tempita.TemplateError: else outside of an if block at line 1 column 3
+        tempita.TemplateError: else outside of an if block at line 1 column 3
         >>> parse('{{if x}}{{for x in y}}{{endif}}{{endfor}}')
         Traceback (most recent call last):
             ...
-        mne.externals.tempita.TemplateError: Unexpected endif at line 1 column 25
+        tempita.TemplateError: Unexpected endif at line 1 column 25
         >>> parse('{{if}}{{endif}}')
         Traceback (most recent call last):
             ...
-        mne.externals.tempita.TemplateError: if with no expression at line 1 column 3
+        tempita.TemplateError: if with no expression at line 1 column 3
         >>> parse('{{for x y}}{{endfor}}')
         Traceback (most recent call last):
             ...
-        mne.externals.tempita.TemplateError: Bad for (no "in") in 'x y' at line 1 column 3
+        tempita.TemplateError: Bad for (no "in") in 'x y' at line 1 column 3
         >>> parse('{{py:x=1\ny=2}}')  #doctest: +NORMALIZE_WHITESPACE
         Traceback (most recent call last):
             ...
-        mne.externals.tempita.TemplateError: Multi-line py blocks must start with a newline at line 1 column 3
+        tempita.TemplateError: Multi-line py blocks must start
+            with a newline at line 1 column 3
     """ if PY3 else r"""
     Parses a string into a kind of AST
 
@@ -1326,7 +1121,7 @@ def parse_def(tokens, name, context):
 
 
 def parse_signature(sig_text, name, pos):
-    tokens = tokenize.generate_tokens(cStringIO(sig_text).readline)
+    tokens = tokenize.generate_tokens(StringIO(sig_text).readline)
     sig_args = []
     var_arg = None
     var_kw = None
