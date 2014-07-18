@@ -124,16 +124,26 @@ def test_expand():
 def test_io_stc():
     """Test IO for STC files
     """
+    # STC
     stc = read_source_estimate(fname)
     stc.save(op.join(tempdir, "tmp.stc"))
     stc2 = read_source_estimate(op.join(tempdir, "tmp.stc"))
 
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.tmin, stc2.tmin)
-    assert_true(len(stc.vertno) == len(stc2.vertno))
+    assert_equal(len(stc.vertno), len(stc2.vertno))
     for v1, v2 in zip(stc.vertno, stc2.vertno):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
+    # HDF5
+    stc.save(op.join(tempdir, 'tmp.h5'))
+    stc3 = read_source_estimate(op.join(tempdir, 'tmp.h5'))
+    assert_array_equal(stc3.data, stc.data)
+    assert_array_equal(stc3.tmin, stc.tmin)
+    assert_array_equal(stc3.tstep, stc.tstep)
+    assert_equal(len(stc3.vertno), len(stc.vertno))
+    for v1, v2 in zip(stc3.vertno, stc.vertno):
+        assert_array_equal(v1, v2)
 
 
 @sample.requires_sample_data
