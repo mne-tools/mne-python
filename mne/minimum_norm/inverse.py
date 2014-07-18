@@ -514,7 +514,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         Prepared inverse operator.
     """
     if nave <= 0:
@@ -633,7 +633,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
     else:
         inv['noisenorm'] = []
 
-    return inv
+    return InverseOperator(inv)
 
 
 @verbose
@@ -1170,7 +1170,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         Inverse operator.
 
     Notes
@@ -1400,7 +1400,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     inv_op['units'] = 'Am'
     inv_op['info'] = inv_info
 
-    return inv_op
+    return InverseOperator(inv_op)
 
 
 def compute_rank_inverse(inv):

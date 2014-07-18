@@ -268,7 +268,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     ----------
     epochs : instance of Epochs
         The epochs.
-    inverse_operator : instance of inverse operator
+    inverse_operator : instance of InverseOperator
         The inverse operator.
     label : Label
         Restricts the source estimates to a given label.
@@ -343,7 +343,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     ----------
     raw : instance of Raw
         The raw data
-    inverse_operator : dict
+    inverse_operator : instance of InverseOperator
         The inverse operator
     lambda2: float
         The regularization parameter
@@ -608,7 +608,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     ----------
     epochs : instance of Epochs
         The raw data.
-    inverse_operator : dict
+    inverse_operator : instance of InverseOperator
         The inverse operator.
     lambda2 : float
         The regularization parameter.
