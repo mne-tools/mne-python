@@ -759,7 +759,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     Adapted from freesurfer m-files. Altered to deal with Norig
     and Torig correctly.
     """
-    if mode is not None and not mode in ['nibabel', 'freesurfer']:
+    if mode is not None and mode not in ['nibabel', 'freesurfer']:
         raise ValueError('mode must be "nibabel" or "freesurfer"')
     fname = op.join(subjects_dir, subject, 'mri', 'transforms',
                     'talairach.xfm')
@@ -945,7 +945,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
 
     # pre-load ico/oct surf (once) for speed, if necessary
     if stype in ['ico', 'oct']:
-        ### from mne_ico_downsample.c ###
+        # ### from mne_ico_downsample.c ###
         if stype == 'ico':
             logger.info('Doing the icosahedral vertex picking...')
             ico_surf = _get_ico_surface(sval)
@@ -1038,7 +1038,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         If True, overwrite output file (if it exists).
     subjects_dir : string, or None
         Path to SUBJECTS_DIR if it is not set in the environment.
-    volume_label : str
+    volume_label : str | None
         Region of interest corresponding with freesurfer lookup table.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -1052,10 +1052,12 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
 
     Notes
     -----
-    To create a discrete source space, `pos` must be a dict. To create a
-    volume source space, `pos` must be a float. Note that if a discrete
-    source space is created, then `mri` is optional (can be None), whereas
-    for a volume source space, `mri` must be provided.
+    To create a discrete source space, `pos` must be a dict, 'mri' must be
+    None, and 'volume_label' must be None. To create a whole brain volume
+    source space, `pos` must be a float and 'mri' must be provided. To create
+    a volume source space from label, 'pos' must be a float, 'volume_label'
+    must be provided, and 'mri' must refer to a .mgh or .mgz file with values
+    corresponding to the freesurfer lookup-table.
     """
 
     subjects_dir = get_subjects_dir(subjects_dir)
@@ -1070,7 +1072,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             raise ValueError('Cannot create interpolation matrix for '
                              'discrete source space, mri must be None if '
                              'pos is a dict')
-    elif not isinstance(pos, dict) and volume_label is None:
+    elif not isinstance(pos, dict):
         # "pos" will create a discrete src, so we don't need "mri"
         # if "pos" is None, we must have "mri" b/c it will be vol src
         raise RuntimeError('"mri" must be provided if "pos" is not a dict '
@@ -1078,14 +1080,9 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                            'space is desired)')
 
     if volume_label is not None:
-        if mri is None:
-            raise ValueError('"mri" must be provided for segmented volumes')
-        else:
-            label_names = get_volume_label_names(mri)
-            if len(label_names) < 1:
-                raise ValueError('The mri file provided does not contain any '
-                                 'values recognized by the freesurfer lookup '
-                                 'table.')
+        if isinstance(pos, dict):
+            raise ValueError('If volume label is not none, pos but be '
+                             'float, not a dict.')
 
     sphere = np.asarray(sphere)
     if sphere.size != 4:
@@ -1422,7 +1419,7 @@ def _make_volume_from_label(grid, volume_label, mgz_fname):
     mgz_data = mgz.get_data()
 
     # Read the freesurfer look up table
-    lut_fname = op.join(os.environ['FREESURFER_HOME'],
+    lut_fname = op.join(op.split(__file__)[0], 'data',
                         'FreeSurferColorLUT.txt')
     lut_data = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
                              names=['id', 'name'])
@@ -1433,26 +1430,34 @@ def _make_volume_from_label(grid, volume_label, mgz_fname):
     # Get indices for this volume label in voxel space
     vox_bool = mgz_data == vol_id
 
-    # Downsample using grid
-    vox_bool *= grid
-
     # Get the 3 dimensional indices in voxel space
     vox_xyz = np.array(np.where(vox_bool)).T
 
     # Transform to RAS coordinates
     # (use tkr normalization or volume won't align with surface source spaces)
     trans = mgz_hdr.get_vox2ras_tkr()
+    # Convert transform from mm to m
     trans[:3] /= 1000.
-    rr = apply_trans(trans, vox_xyz)
+    rr = apply_trans(trans, vox_xyz)  # positions of VOI in RAS space (m)
 
-    # Calculate the grid size
+    # Calculate the grid size in RAS space
     mins = rr.min(0)
     maxs = rr.max(0)
-    cm = rr.mean(0)
+    cm = rr.mean(0)  # center of mass
 
-    # Define the sphere that fits the surface
+    # Define the sphere which fits the surface
     maxdist = np.sqrt(np.max(np.sum((rr - cm) ** 2, axis=1)))
 
+    # Update log
+    logger.info('Volume CM = (%6.1f %6.1f %6.1f) mm'
+                % (1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
+    logger.info('Volume fits inside a sphere with radius %6.1f mm'
+                % (1000 * maxdist))
+    logger.info('Volume extent:')
+    for c, mi, ma in zip('xyz', mins, maxs):
+        logger.info('    %s = %6.1f ... %6.1f mm' % (c, 1000 * mi, 1000 * ma))
+
+    # Calculate the grid size in source space
     maxn = np.zeros(3, int)
     minn = np.zeros(3, int)
     for c in range(3):
@@ -1465,25 +1470,31 @@ def _make_volume_from_label(grid, volume_label, mgz_fname):
         else:
             minn[c] = -np.floor(np.abs(mins[c]) / grid) - 1
 
-    # Now make the initial grid
+    # Update log
+    logger.info('Grid extent:')
+    for c, mi, ma in zip('xyz', minn, maxn):
+        logger.info('    %s = %6.1f ... %6.1f mm'
+                    % (c, 1000 * mi * grid, 1000 * ma * grid))
+
+    # Now make the source space
     ns = maxn - minn + 1
     npts = np.prod(ns)
-    nrow = ns[0]
-    ncol = ns[1]
-    nplane = nrow * ncol
     sp = dict(np=npts, rr=np.zeros((npts, 3)), nn=np.zeros((npts, 3)),
               inuse=np.ones(npts, int), type='vol', nuse=npts,
               coord_frame=FIFF.FIFFV_COORD_MRI, id=-1, shape=ns)
     sp['nn'][:, 2] = 1.0  # Source orientation is immaterial
 
+    # Setup the source locations
     x = np.arange(minn[0], maxn[0] + 1)[np.newaxis, np.newaxis, :]
     y = np.arange(minn[1], maxn[1] + 1)[np.newaxis, :, np.newaxis]
     z = np.arange(minn[2], maxn[2] + 1)[:, np.newaxis, np.newaxis]
     z = np.tile(z, (1, ns[1], ns[0])).ravel()
     y = np.tile(y, (ns[2], 1, ns[0])).ravel()
     x = np.tile(x, (ns[2], ns[1], 1)).ravel()
-    k = np.arange(npts)
-    sp['rr'] = np.c_[x, y, z] * grid    
+    sp['rr'] = np.c_[x, y, z] * grid
+
+    # Update log
+    logger.info('%d sources before omitting any.', sp['nuse'])
 
     # Filter out points too far from volume region voxels
     dists = _compute_nearest(rr, sp['rr'], return_dists=True)[1]
@@ -1492,7 +1503,11 @@ def _make_volume_from_label(grid, volume_label, mgz_fname):
     bads = np.where(dists > maxdist)[0]
     sp['inuse'][bads] = False
     sp['nuse'] -= len(bads)
-    sp['vertno'] = np.where(sp['inuse']>0)[0]
+    sp['vertno'] = np.where(sp['inuse'] > 0)[0]
+
+    # Update log
+    logger.info('%d sources remaining after excluding sources too far from '
+                'VOI voxels', sp['nuse'])
 
     # Calculate the src_mri transform
     trans = np.zeros((4, 4))
@@ -1500,9 +1515,10 @@ def _make_volume_from_label(grid, volume_label, mgz_fname):
     trans[:3, :3] = np.array([[0, 0, 1], [0, 1, 0], [1, 0, 0]])*grid
     trans[:3, 3] = minn * grid
     sp['src_mri_t'] = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                       'to': FIFF.FIFFV_COORD_MRI, 'trans': trans}   
-    
+                       'to': FIFF.FIFFV_COORD_MRI, 'trans': trans}
+
     sp['vol_dims'] = maxn - minn + 1
+    sp['seg_name'] = volume_label
 
     return sp
 
@@ -1894,7 +1910,8 @@ def get_volume_label_names(mgz_fname):
     Returns
     -------
     label_names : list of str
-        The names of segmented volumes included in this mgz file.
+        The names of segmented volumes included in this mgz file, typically
+        named aseg.mgz in the freesurfer pipeline.
     """
     import nibabel as nib
 
@@ -1902,20 +1919,14 @@ def get_volume_label_names(mgz_fname):
     mgz_data = nib.load(mgz_fname).get_data()
 
     # Read the freesurfer lookup table
-    lut_fname = op.join(os.environ['FREESURFER_HOME'],
+    lut_fname = op.join(op.split(__file__)[0], 'data',
                         'FreeSurferColorLUT.txt')
     lut_data = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
                              names=['id', 'name'])
 
-    # Get a list of unique ids from the mgz file
-    ids = np.unique(mgz_data)
-
-    # Create an empty list to store names
-    label_names = []
-
-    # Loop through unique ids
-    for i in ids:
-        name = lut_data[i]['name']
-        label_names.append(name)
+    # Get the unique label names
+    label_names = [lut_data[lut_data['id'] == ii]['name'][0] for ii in
+                   np.unique(mgz_data)]
+    label_names = sorted(label_names, key=lambda n: n.lower())
 
     return label_names

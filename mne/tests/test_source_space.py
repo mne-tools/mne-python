@@ -520,7 +520,11 @@ def test_source_space_from_label():
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_label_names(aseg_fname)
     volume_label = np.random.choice(label_names, 1)[0]
-    print(volume_label)
+
+    pos = dict()
+    assert_raises(ValueError, setup_volume_source_space, 'sample', pos=pos,
+                  volume_label=volume_label)
+
     src = setup_volume_source_space('sample', subjects_dir=subjects_dir,
                                     volume_label=volume_label, mri=aseg_fname)
     assert volume_label == src[0]['seg_name']

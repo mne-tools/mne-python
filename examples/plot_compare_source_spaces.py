@@ -3,12 +3,12 @@
 # License: BSD (3-clause)
 
 import numpy as np
-import mne
-from mne.datasets import sample
-from mne.utils import run_subprocess
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import nibabel as nib
+from mne import (setup_source_space, setup_volume_source_space)
+from mne.datasets import sample
+from mne.utils import run_subprocess
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -17,14 +17,13 @@ aseg_fname = subjects_dir + '/sample/mri/aseg.mgz'
 mri_fname = subjects_dir + '/sample/mri/brain.mgz'
 
 # setup a cortical surface source space
-surf = mne.setup_source_space(subj, subjects_dir=subjects_dir, add_dist=False,
-                              overwrite=True)
+surf = setup_source_space(subj, subjects_dir=subjects_dir, add_dist=False,
+                          overwrite=True)
 
 # setup a volume source space of the left cortical white matter
 label = 'Left-Cerebral-White-Matter'
-lh_ctx = mne.setup_volume_source_space(subj, mri=aseg_fname,
-                                       volume_label=label,
-                                       subjects_dir=subjects_dir)
+lh_ctx = setup_volume_source_space(subj, mri=aseg_fname, volume_label=label,
+                                   subjects_dir=subjects_dir)
 
 #########################################
 # Plot the positions of each source space
@@ -65,6 +64,6 @@ nib.save(img, nii_fname)
 
 # display image in freeview
 run_subprocess(['freeview', '-v', mri_fname, '-v',
-                 '%s:colormap=lut:opacity=0.5' % aseg_fname, '-v',
-                 '%s:colormap=jet:colorscale=0,2' % nii_fname, '-slice',
-                 '157 75 105'])
+                '%s:colormap=lut:opacity=0.5' % aseg_fname, '-v',
+                '%s:colormap=jet:colorscale=0,2' % nii_fname, '-slice',
+                '157 75 105'])
