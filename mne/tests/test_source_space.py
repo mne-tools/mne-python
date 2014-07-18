@@ -545,7 +545,7 @@ def test_combine_source_spaces():
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_label_names(aseg_fname)
-    volume_labels = np.random.choice(label_names[1:], 2)
+    volume_labels = np.random.choice(label_names, 2)
 
     src1 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
                                      volume_label=volume_labels[0],
