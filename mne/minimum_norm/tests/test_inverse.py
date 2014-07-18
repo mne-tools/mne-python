@@ -311,6 +311,7 @@ def test_io_inverse_operator():
     """Test IO of inverse_operator with GZip
     """
     inverse_operator = read_inverse_operator(fname_inv)
+    print(inverse_operator)
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
 

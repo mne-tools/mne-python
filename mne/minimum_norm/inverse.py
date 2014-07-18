@@ -48,6 +48,8 @@ class InverseOperator(dict):
         nchan = len(pick_types(self['info'], meg=False, eeg=True))
         entr += ' | ' + 'EEG channels: %d' % nchan
 
+        # XXX TODO: This and the __repr__ in SourceSpaces should call a
+        # function _get_name_str() in source_space.py
         if self['src'][0]['type'] == 'surf':
             entr += (' | Source space: Surface with %d vertices'
                      % self['nsource'])
