@@ -1164,7 +1164,7 @@ class Epochs(_BaseEpochs):
         if isinstance(key, string_types):
             key = [key]
 
-        if isinstance(key, list) and isinstance(key[0], string_types):
+        if isinstance(key, (list, tuple)) and isinstance(key[0], string_types):
             select = np.any(np.atleast_2d([epochs._key_match(k)
                                            for k in key]), axis=0)
             epochs.name = ('+'.join(key) if epochs.name == 'Unknown'
