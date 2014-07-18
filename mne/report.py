@@ -26,7 +26,7 @@ from .epochs import read_epochs
 from .externals.decorator import decorator
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
-from .externals.six.moves import builtins
+from .externals.six import moves
 
 tempdir = _TempDir()
 temp_fname = op.join(tempdir, 'test')
@@ -725,7 +725,7 @@ class Report(object):
             msg = ('Report already exists at location %s. '
                    'Overwrite it (y/[n])? '
                    % fname)
-            answer = builtins.raw_input(msg)
+            answer = moves.input(msg)
             if answer.lower() == 'y':
                 overwrite = True
 
