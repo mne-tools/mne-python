@@ -1,4 +1,4 @@
- """Tools for working with epoched data"""
+"""Tools for working with epoched data"""
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
