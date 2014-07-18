@@ -23,6 +23,7 @@ from .viz import plot_events, plot_trans, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
 from .epochs import read_epochs
+from .minimum_norm import read_inverse_operator
 
 from .externals.decorator import decorator
 from .externals.tempita import HTMLTemplate, Template
@@ -179,6 +180,10 @@ def _get_toc_property(fname):
         text = op.basename(fname)
     elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
         div_klass = 'forward'
+        tooltip = fname
+        text = op.basename(fname)
+    elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
+        div_klass = 'inverse'
         tooltip = fname
         text = op.basename(fname)
     elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
@@ -665,6 +670,9 @@ class Report(object):
                 elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
                     self._render_forward(fname)
                     self._sectionlabels.append('forward')
+                elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
+                    self._render_inverse(fname)
+                    self._sectionlabels.append('inverse')
                 elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
                     self._render_evoked(fname)
                     self.fnames.append(fname)
@@ -771,10 +779,13 @@ class Report(object):
                     div_klass, tooltip, text = _get_toc_property(fname)
 
                     if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz',
-                                       'raw.fif',
-                                       'sss.fif', '-eve.fif', '-cov.fif',
-                                       '-trans.fif', '-fwd.fif', '-epo.fif',
-                                       'bem', 'custom')):
+                                       'raw.fif', 'raw.fif.gz', 'sss.fif',
+                                       'sss.fif.gz', '-eve.fif', '-eve.fif.gz',
+                                       '-cov.fif', '-cov.fif.gz', '-trans.fif',
+                                       'trans.fif.gz', '-fwd.fif',
+                                       '-fwd.fif.gz', '-epo.fif',
+                                       '-inv.fif', '-inv.fif.gz',
+                                       '-epo.fif.gz', 'bem', 'custom')):
                         html_toc += toc_list.substitute(div_klass=div_klass,
                                                         id=global_id,
                                                         tooltip=tooltip,
@@ -783,7 +794,7 @@ class Report(object):
                         global_id += 1
 
                     # loop through conditions for evoked
-                    elif fname.endswith(('-ave.fif')):
+                    elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
                        # XXX: remove redundant read_evokeds
                         evokeds = read_evokeds(fname, verbose=False)
 
@@ -955,6 +966,23 @@ class Report(object):
 
         if 'forward' not in self.sections:
             self.sections.append('forward')
+
+    def _render_inverse(self, inv_fname):
+
+        div_klass = 'inverse'
+        caption = u'Inverse: %s' % inv_fname
+        inv = read_inverse_operator(inv_fname)
+        repr_inv = re.sub('>', '', re.sub('<', '', repr(inv)))
+        global_id = self._get_id()
+        html = repr_template.substitute(div_klass=div_klass,
+                                        id=global_id,
+                                        caption=caption,
+                                        repr=repr_inv)
+        self.html.append(html)
+        self.fnames.append(inv_fname)
+
+        if 'inverse' not in self.sections:
+            self.sections.append('inverse')
 
     def _render_evoked(self, evoked_fname, figsize=None):
 
