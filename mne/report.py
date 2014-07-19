@@ -263,7 +263,7 @@ def _iterate_coronal_slices(array, limits=None):
 def _build_html_image(img, id, div_klass, img_klass, caption=None, show=True):
     """ Build a html image from a slice array """
     html = []
-    add_style = '' if show else 'style="display: none"'
+    add_style = u'' if show else u'style="display: none"'
     html.append(u'<li class="%s" id="%s" %s>' % (div_klass, id, add_style))
     html.append(u'<div class="thumbnail">')
     html.append(u'<img class="%s" alt="" style="width:90%%;" '
@@ -273,7 +273,7 @@ def _build_html_image(img, id, div_klass, img_klass, caption=None, show=True):
     if caption:
         html.append(u'<h4>%s</h4>' % caption)
     html.append(u'</li>')
-    return '\n'.join(html)
+    return u'\n'.join(html)
 
 slider_template = HTMLTemplate(u"""
 <script>$("#{{slider_id}}").slider({
