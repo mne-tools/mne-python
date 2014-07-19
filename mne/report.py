@@ -532,14 +532,14 @@ class Report(object):
             will be appended to the end of the section
         """
 
-        if section not in self.sections:
-            self.sections.append(section)
         if not isinstance(figs, (list, tuple)):
             figs = [figs]
         if not isinstance(captions, (list, tuple)):
             captions = [captions]
         if not len(figs) == len(captions):
             raise ValueError('Captions and figures must have the same length.')
+        if section not in self.sections:
+            self.sections.append(section)
 
         for fig, caption in zip(figs, captions):
             global_id = self._get_id()

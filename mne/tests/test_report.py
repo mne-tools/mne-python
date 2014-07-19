@@ -90,8 +90,8 @@ def test_render_report():
                        captions=['evoked response'])
     assert_equal(len(report.html), len(fnames) + 1)
     assert_equal(len(report.html), len(report.fnames))
-    assert_raises(ValueError, report.add_section, figs=fig,
-                  captions=['ha', 'ha'])
+    assert_raises(ValueError, report.add_section, figs=[fig, fig],
+                  captions='H')
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
