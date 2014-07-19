@@ -618,7 +618,10 @@ class _Empty(object):
         return 'Empty'
 
     def __unicode__(self):
-        return u''
+        if PY3:
+            return str('')
+        else:
+            return unicode('')
 
     def __iter__(self):
         return iter(())
