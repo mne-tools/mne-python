@@ -381,18 +381,14 @@ li{
   margin-top: navbar-height;
   position: fixed;
   width: 20%;
-  height: 100%;
+  height: 90%;
   overflow: auto;
 }
 
 #toc li {
-    overflow: auto;
+    overflow: hidden;
     padding-bottom: 2px;
     margin-left: 20px;
-}
-
-#toc a {
-    padding: 0 0 3px 2px;
 }
 
 #toc span {
@@ -448,10 +444,8 @@ image_template = Template(u"""
 {{default width = 50}}
 {{default id = False}}
 
-{{if id}}
-<li class="{{div_klass}}" id="{{id}}" {{if not show}}style="display: none"
-{{endif}}>
-{{endif}}
+<li class="{{div_klass}}" {{if id}}id="{{id}}"{{endif}}
+{{if not show}}style="display: none"{{endif}}>
 
 {{if caption}}
 <h4>{{caption}}</h4>
@@ -464,8 +458,7 @@ image_template = Template(u"""
     <center>{{interactive}}</center>
 {{endif}}
 </div>
-
-{{if id}}</li>{{endif}}
+</li>
 """)
 
 repr_template = Template(u"""
