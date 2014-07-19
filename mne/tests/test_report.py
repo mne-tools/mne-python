@@ -7,7 +7,7 @@ import os.path as op
 import glob
 import warnings
 
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_equal, assert_raises
 
 from mne import read_evokeds
 from mne.datasets import sample
@@ -85,10 +85,12 @@ def test_render_report():
     assert_true(op.isfile(op.join(tempdir, 'report.html')))
 
     # Check add_section functionality
-    report.add_section(figs=[evoked1[0].plot(show=False)],
+    fig = evoked1[0].plot(show=False)
+    report.add_section(figs=fig,  # test non-list input
                        captions=['evoked response'])
     assert_equal(len(report.html), len(fnames) + 1)
     assert_equal(len(report.html), len(report.fnames))
+    assert_raises(report.add_section, figs=fig, captions=['ha', 'ha'])
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
