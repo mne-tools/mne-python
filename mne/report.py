@@ -418,7 +418,8 @@ div.footer {
 
         <li class="active {{section}}-btn">
            <a href="javascript:void(0)" onclick="togglebutton('.{{section}}')">
-           {{section.capitalize() if section != 'mri' else 'MRI'}}</a>
+{{(section.replace("___", " ").capitalize() if section != 'mri' else 'MRI')}}
+           </a>
         </li>
 
         {{endfor}}
@@ -538,7 +539,8 @@ class Report(object):
             captions = [captions]
         if not len(figs) == len(captions):
             raise ValueError('Captions and figures must have the same length.')
-        if section not in self.sections:
+        if section.replace(" ", "___") not in self.sections:
+            section = section.replace(" ", "___")
             self.sections.append(section)
 
         for fig, caption in zip(figs, captions):
@@ -767,13 +769,13 @@ class Report(object):
         # Sort by section
         html, fnames = [], []
         for section in self.sections:
-            logger.info('%s' % section)
+            logger.info('%s' % section.replace("___", " "))
             for sectionlabel, this_html, fname in (zip(self._sectionlabels,
                                                    self.html, self.fnames)):
                 if section == sectionlabel:
                     html.append(this_html)
                     fnames.append(fname)
-                    logger.info('\t... %s' % fname[-20:])
+                    logger.info('\t... %s' % fname.replace("___", " ")[-20:])
                     color = _is_bad_fname(fname)
                     div_klass, tooltip, text = _get_toc_property(fname)
 
