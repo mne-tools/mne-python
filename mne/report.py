@@ -24,6 +24,7 @@ from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
+from .parallel import parallel_func, check_n_jobs
 
 from .externals.decorator import decorator
 from .externals.tempita import HTMLTemplate, Template
@@ -205,6 +206,66 @@ def _get_toc_property(fname):
 
     return div_klass, tooltip, text
 
+
+def _iterate_files(report, fname, info, sfreq):
+
+    logger.info("Rendering : %s"
+                % op.join('...' + report.data_path[-20:],
+                          fname))
+    try:
+        if fname.endswith(('.mgz')):
+            html = report._render_bem(subject=report.subject,
+                                      subjects_dir=report.subjects_dir)
+            report_fname = 'bem'
+            report_sectionlabel = 'mri'
+        elif fname.endswith(('raw.fif', 'raw.fif.gz',
+                             'sss.fif', 'sss.fif.gz')):
+            html = report._render_raw(fname)
+            report_fname = fname
+            report_sectionlabel = 'raw'
+        elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+            html = report._render_forward(fname)
+            report_fname = fname
+            report_sectionlabel = 'forward'
+        elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
+            html = report._render_inverse(fname)
+            report_fname = fname
+            report_sectionlabel = 'inverse'
+        elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
+            html = report._render_evoked(fname)
+            report_fname = fname
+            report_sectionlabel = 'evoked'
+        elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
+            html = report._render_eve(fname, sfreq)
+            report_fname = fname
+            report_sectionlabel = 'events'
+        elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
+            html = report._render_epochs(fname)
+            report_fname = fname
+            report_sectionlabel = 'epochs'
+        elif (fname.endswith(('-cov.fif', '-cov.fif.gz'))
+              and report.info_fname is not None):
+            html = report._render_cov(fname, info)
+            report_fname = fname
+            report_sectionlabel = 'covariance'
+        elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
+              and report.info_fname is not None and report.subjects_dir
+              is not None and report.subject is not None):
+            html = report._render_trans(fname, report.data_path, info,
+                                        report.subject, report.subjects_dir)
+            report_fname = fname
+            report_sectionlabel = 'trans'
+        else:
+            html = None
+            report_fname = None
+            report_sectionlabel = None
+    except Exception as e:
+        logger.info(e)
+        html = None
+        report_fname = None
+        report_sectionlabel = None
+
+    return html, report_fname, report_sectionlabel
 
 ###############################################################################
 # IMAGE FUNCTIONS
@@ -517,7 +578,7 @@ class Report(object):
 
     def _get_id(self):
         self.initial_id += 1
-        return self.initial_id
+        return 42
 
     def add_section(self, figs, captions, section='custom'):
         """Append custom user-defined figures.
@@ -615,7 +676,7 @@ class Report(object):
         self.include = ''.join(include)
 
     @verbose
-    def parse_folder(self, data_path, pattern='*.fif', verbose=None):
+    def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, verbose=None):
         """Renders all the files in the folder.
 
         Parameters
@@ -626,15 +687,16 @@ class Report(object):
         pattern : str
             Filename pattern to include in the report. e.g., -ave.fif will
             include all evoked files.
+        n_jobs : int
+          Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
+        n_jobs = check_n_jobs(n_jobs)
         self.data_path = data_path
 
         if self.title is None:
             self.title = 'MNE Report for ...%s' % self.data_path[-20:]
-
-        folders = []
 
         fnames = _recursive_search(self.data_path, pattern)
 
@@ -653,56 +715,16 @@ class Report(object):
                           '-cov.fif(.gz) and -trans.fif(.gz) files.')
             sfreq = None
 
-        for fname in fnames:
-            logger.info("Rendering : %s"
-                        % op.join('...' + self.data_path[-20:],
-                                  fname))
-            try:
-                if fname.endswith(('.mgz')):
-                    self._render_bem(subject=self.subject,
-                                     subjects_dir=self.subjects_dir)
-                    self.fnames.append('bem')
-                    self._sectionlabels.append('mri')
-                elif fname.endswith(('raw.fif', 'raw.fif.gz',
-                                     'sss.fif', 'sss.fif.gz')):
-                    self._render_raw(fname)
-                    self.fnames.append(fname)
-                    self._sectionlabels.append('raw')
-                elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
-                    self._render_forward(fname)
-                    self._sectionlabels.append('forward')
-                elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
-                    self._render_inverse(fname)
-                    self._sectionlabels.append('inverse')
-                elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
-                    self._render_evoked(fname)
-                    self.fnames.append(fname)
-                    self._sectionlabels.append('evoked')
-                elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
-                    self._render_eve(fname, sfreq)
-                    self.fnames.append(fname)
-                    self._sectionlabels.append('events')
-                elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
-                    self._render_epochs(fname)
-                    self.fnames.append(fname)
-                    self._sectionlabels.append('epochs')
-                elif (fname.endswith(('-cov.fif', '-cov.fif.gz'))
-                      and self.info_fname is not None):
-                    self._render_cov(fname, info)
-                    self.fnames.append(fname)
-                    self._sectionlabels.append('covariance')
-                elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
-                      and self.info_fname is not None and self.subjects_dir
-                      is not None and self.subject is not None):
-                    self._render_trans(fname, self.data_path, info,
-                                       self.subject, self.subjects_dir)
-                    self.fnames.append(fname)
-                    self._sectionlabels.append('trans')
-                elif op.isdir(fname):
-                    folders.append(fname)
-                    logger.info(folders)
-            except Exception as e:
-                logger.info(e)
+        parallel, p_fun, _ = parallel_func(_iterate_files, n_jobs)
+        r = parallel(p_fun(self, fname, info, sfreq) for fname in fnames)
+        htmls, report_fnames, report_sectionlabels = zip(*r)
+        self.html = [html for html in htmls if html is not None]
+        self.fnames = [report_fname for report_fname in report_fnames if
+                       report_fname is not None]
+        self._sectionlabels = [report_sectionlabel for report_sectionlabel
+                               in report_sectionlabels if report_sectionlabel
+                               is not None]
+        self.sections = np.unique(self._sectionlabels).tolist()
 
     def save(self, fname=None, open_browser=True, overwrite=False):
         """Save html report and open it in browser.
@@ -923,13 +945,9 @@ class Report(object):
         html += self._render_array(data, global_id=global_id,
                                    cmap=cmap, limits=limits)
         html += u'</li>\n'
-        self.html.append(html)
         return html
 
     def _render_raw(self, raw_fname):
-
-        if 'raw' not in self.sections:
-            self.sections.append('raw')
 
         global_id = self._get_id()
         div_klass = 'raw'
@@ -949,7 +967,7 @@ class Report(object):
                                         id=global_id,
                                         caption=caption,
                                         repr=repr_html)
-        self.html.append(html)
+        return html
 
     def _render_forward(self, fwd_fname):
 
@@ -962,11 +980,7 @@ class Report(object):
                                         id=global_id,
                                         caption=caption,
                                         repr=repr_fwd)
-        self.html.append(html)
-        self.fnames.append(fwd_fname)
-
-        if 'forward' not in self.sections:
-            self.sections.append('forward')
+        return html
 
     def _render_inverse(self, inv_fname):
 
@@ -979,16 +993,9 @@ class Report(object):
                                         id=global_id,
                                         caption=caption,
                                         repr=repr_inv)
-        self.html.append(html)
-        self.fnames.append(inv_fname)
-
-        if 'inverse' not in self.sections:
-            self.sections.append('inverse')
+        return html
 
     def _render_evoked(self, evoked_fname, figsize=None):
-
-        if 'evoked' not in self.sections:
-            self.sections.append('evoked')
 
         evokeds = read_evokeds(evoked_fname, verbose=False)
 
@@ -1019,12 +1026,9 @@ class Report(object):
                                                       caption=caption,
                                                       show=show))
 
-        self.html.append('\n'.join(html))
+        return '\n'.join(html)
 
     def _render_eve(self, eve_fname, sfreq=None):
-
-        if 'events' not in self.sections:
-            self.sections.append('events')
 
         global_id = self._get_id()
         events = read_events(eve_fname)
@@ -1042,12 +1046,9 @@ class Report(object):
                                          img_klass=img_klass,
                                          caption=caption,
                                          show=show)
-        self.html.append(html)
+        return html
 
     def _render_epochs(self, epo_fname):
-
-        if 'epochs' not in self.sections:
-            self.sections.append('epochs')
 
         global_id = self._get_id()
 
@@ -1063,12 +1064,9 @@ class Report(object):
                                          img_klass=img_klass,
                                          caption=caption,
                                          show=show)
-        self.html.append(html)
+        return html
 
     def _render_cov(self, cov_fname, info_fname):
-
-        if 'covariance' not in self.sections:
-            self.sections.append('covariance')
 
         global_id = self._get_id()
         cov = Covariance(cov_fname)
@@ -1084,7 +1082,7 @@ class Report(object):
                                          img_klass=img_klass,
                                          caption=caption,
                                          show=show)
-        self.html.append(html)
+        return html
 
     def _render_trans(self, trans_fname, path, info, subject,
                       subjects_dir):
@@ -1109,7 +1107,7 @@ class Report(object):
                                              caption=caption,
                                              width=75,
                                              show=show)
-            self.html.append(html)
+            return html
 
     def _render_bem(self, subject, subjects_dir):
 
@@ -1167,8 +1165,7 @@ class Report(object):
                                          shape, orientation='coronal')
         html += u'</div>'
         html += u'</li>\n'
-        self.html.append(''.join(html))
-        return html
+        return ''.join(html)
 
 
 def _recursive_search(path, pattern):
