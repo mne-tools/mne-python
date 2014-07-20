@@ -78,12 +78,13 @@ def _fig_to_img(function=None, fig=None, **kwargs):
 
 
 @_check_report_mode
-def _fig_to_mrislice(function, orig_size, **kwargs):
+def _fig_to_mrislice(function, orig_size, sl, **kwargs):
     import matplotlib.pyplot as plt
     from PIL import Image
 
     plt.close('all')
     fig = _plot_mri_contours(**kwargs)
+    temp_sl_fname = temp_fname + str(sl)
 
     fig_size = fig.get_size_inches()
     w, h = orig_size[0], orig_size[1]
@@ -92,12 +93,12 @@ def _fig_to_mrislice(function, orig_size, **kwargs):
     a = fig.gca()
     a.set_xticks([]), a.set_yticks([])
     plt.xlim(0, h), plt.ylim(w, 0)
-    fig.savefig(temp_fname, bbox_inches='tight',
+    fig.savefig(temp_sl_fname, bbox_inches='tight',
                 pad_inches=0, format='png')
-    Image.open(temp_fname).resize((w, h)).save(temp_fname,
-                                               format='png')
+    Image.open(temp_sl_fname).resize((w, h)).save(temp_sl_fname,
+                                                  format='png')
     output = BytesIO()
-    Image.open(temp_fname).save(output, format='png')
+    Image.open(temp_sl_fname).save(output, format='png')
     return output.getvalue().encode('base64')
 
 
@@ -213,13 +214,8 @@ def _iterate_files(report, fname, info, sfreq):
                 % op.join('...' + report.data_path[-20:],
                           fname))
     try:
-        if fname.endswith(('.mgz')):
-            html = report._render_bem(subject=report.subject,
-                                      subjects_dir=report.subjects_dir)
-            report_fname = 'bem'
-            report_sectionlabel = 'mri'
-        elif fname.endswith(('raw.fif', 'raw.fif.gz',
-                             'sss.fif', 'sss.fif.gz')):
+        if fname.endswith(('raw.fif', 'raw.fif.gz',
+                           'sss.fif', 'sss.fif.gz')):
             html = report._render_raw(fname)
             report_fname = fname
             report_sectionlabel = 'raw'
@@ -316,6 +312,41 @@ def _iterate_coronal_slices(array, limits=None):
         if limits and ind not in limits:
             continue
         yield ind, np.flipud(np.rot90(array[:, :, ind]))
+
+
+def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
+    img_klass = 'slideimg-%s' % name
+
+    caption = u'Slice %s %s' % (name, ind)
+    slice_id = '%s-%s-%s' % (name, global_id, ind)
+    div_klass = 'span12 %s' % slides_klass
+    img = _build_image(data, cmap=cmap)
+    first = True if ind == 0 else False
+    html = _build_html_image(img, slice_id, div_klass,
+                             img_klass, caption,
+                             first)
+    return ind, html
+
+
+def _iterate_bem_slices(name, global_id, slides_klass, orig_size,
+                        mri_fname, surf_fnames, orientation, sl):
+
+        img_klass = 'slideimg-%s' % name
+        logger.info('Rendering BEM contours : orientation = %s, '
+                    'slice = %d' % (orientation, sl))
+        caption = u'Slice %s %s' % (name, sl)
+        slice_id = '%s-%s-%s' % (name, global_id, sl)
+        div_klass = 'span12 %s' % slides_klass
+
+        kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames,
+                      orientation=orientation, slices=[sl],
+                      show=False)
+        img = _fig_to_mrislice(function=_plot_mri_contours,
+                               orig_size=orig_size, sl=sl, **kwargs)
+        first = True if sl == 0 else False
+        return _build_html_image(img, slice_id, div_klass,
+                                 img_klass, caption,
+                                 first)
 
 
 ###############################################################################
@@ -620,25 +651,20 @@ class Report(object):
 
     ###########################################################################
     # HTML rendering
-    def _render_one_axe(self, slices_iter, name, global_id=None, cmap='gray'):
+    def _render_one_axe(self, slices_iter, name, global_id=None, cmap='gray',
+                        n_jobs=1):
         """Render one axe of the array."""
         global_id = global_id or name
         html = []
         slices, slices_range = [], []
-        first = True
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
-        img_klass = 'slideimg-%s' % name
-        for ind, data in slices_iter:
-            slices_range.append(ind)
-            caption = u'Slice %s %s' % (name, ind)
-            slice_id = '%s-%s-%s' % (name, global_id, ind)
-            div_klass = 'span12 %s' % slides_klass
-            img = _build_image(data, cmap=cmap)
-            slices.append(_build_html_image(img, slice_id, div_klass,
-                                            img_klass, caption,
-                                            first))
-            first = False
+
+        parallel, p_fun, _ = parallel_func(_iterate_mri_slices, n_jobs)
+        r = parallel(p_fun(name, ind, global_id, slides_klass, data, cmap)
+                     for ind, data in slices_iter)
+        slices_range, slices = zip(*r)
+
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
         html.append(u'<div id="%s"></div>' % slider_id)
@@ -700,13 +726,6 @@ class Report(object):
 
         fnames = _recursive_search(self.data_path, pattern)
 
-        if self.subjects_dir is not None and self.subject is not None:
-            fnames += glob(op.join(self.subjects_dir, self.subject,
-                           'mri', 'T1.mgz'))
-        else:
-            warnings.warn('`subjects_dir` and `subject` not provided.'
-                          ' Cannot render MRI and -trans.fif(.gz) files.')
-
         if self.info_fname is not None:
             info = read_info(self.info_fname)
             sfreq = info['sfreq']
@@ -725,6 +744,17 @@ class Report(object):
                                in report_sectionlabels if report_sectionlabel
                                is not None]
         self.sections = np.unique(self._sectionlabels).tolist()
+
+        if self.subjects_dir is not None and self.subject is not None:
+            self.html.append(self._render_bem(subject=self.subject,
+                                              subjects_dir=
+                                              self.subjects_dir,
+                                              n_jobs=n_jobs))
+            self.fnames.append('bem')
+            self._sectionlabels.append('mri')
+        else:
+            warnings.warn('`subjects_dir` and `subject` not provided.'
+                          ' Cannot render MRI and -trans.fif(.gz) files.')
 
     def save(self, fname=None, open_browser=True, overwrite=False):
         """Save html report and open it in browser.
@@ -853,7 +883,7 @@ class Report(object):
         self.html.insert(1, html_toc)  # insert TOC
 
     def _render_array(self, array, global_id=None, cmap='gray',
-                      limits=None):
+                      limits=None, n_jobs=1):
         html = []
         html.append(u'<div class="row">')
         # Axial
@@ -861,12 +891,13 @@ class Report(object):
         axial_limit = limits.get('axial')
         axial_slices_gen = _iterate_axial_slices(array, axial_limit)
         html.append(
-            self._render_one_axe(axial_slices_gen, 'axial', global_id, cmap))
+            self._render_one_axe(axial_slices_gen, 'axial', global_id, cmap,
+                                 n_jobs=n_jobs))
         # Sagittal
         sagittal_limit = limits.get('sagittal')
         sagittal_slices_gen = _iterate_sagittal_slices(array, sagittal_limit)
         html.append(self._render_one_axe(sagittal_slices_gen, 'sagittal',
-                    global_id, cmap))
+                    global_id, cmap, n_jobs=n_jobs))
         html.append(u'</div>')
         html.append(u'<div class="row">')
         # Coronal
@@ -874,13 +905,13 @@ class Report(object):
         coronal_slices_gen = _iterate_coronal_slices(array, coronal_limit)
         html.append(
             self._render_one_axe(coronal_slices_gen, 'coronal',
-                                 global_id, cmap))
+                                 global_id, cmap, n_jobs=n_jobs))
         # Close section
         html.append(u'</div>')
         return '\n'.join(html)
 
     def _render_one_bem_axe(self, mri_fname, surf_fnames, global_id,
-                            shape, orientation='coronal'):
+                            shape, orientation='coronal', n_jobs=1):
 
         orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
         orientation_axis = orientation_name2axis[orientation]
@@ -890,27 +921,15 @@ class Report(object):
         name = orientation
         html, img = [], []
         slices, slices_range = [], []
-        first = True
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
-        img_klass = 'slideimg-%s' % name
-        for sl in range(0, n_slices, 2):
-            logger.info('Rendering BEM contours : orientation = %s, '
-                        'slice = %d' % (orientation, sl))
-            slices_range.append(sl)
-            caption = u'Slice %s %s' % (name, sl)
-            slice_id = '%s-%s-%s' % (name, global_id, sl)
-            div_klass = 'span12 %s' % slides_klass
 
-            kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames,
-                          orientation=orientation, slices=[sl],
-                          show=False)
-            img = _fig_to_mrislice(function=_plot_mri_contours,
-                                   orig_size=orig_size, **kwargs)
-            slices.append(_build_html_image(img, slice_id, div_klass,
-                                            img_klass, caption,
-                                            first))
-            first = False
+        slices_range = range(0, n_slices, 2)
+
+        parallel, p_fun, _ = parallel_func(_iterate_bem_slices, n_jobs)
+        slices = parallel(p_fun(name, global_id, slides_klass, orig_size,
+                          mri_fname, surf_fnames, orientation, sl)
+                          for sl in slices_range)
 
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
@@ -924,7 +943,7 @@ class Report(object):
 
         return '\n'.join(html)
 
-    def _render_image(self, image, cmap='gray'):
+    def _render_image(self, image, cmap='gray', n_jobs=1):
 
         import nibabel as nib
 
@@ -943,7 +962,8 @@ class Report(object):
         html = u'<li class="mri" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name
         html += self._render_array(data, global_id=global_id,
-                                   cmap=cmap, limits=limits)
+                                   cmap=cmap, limits=limits,
+                                   n_jobs=n_jobs)
         html += u'</li>\n'
         return html
 
@@ -1092,8 +1112,6 @@ class Report(object):
         img = _iterate_trans_views(function=plot_trans, **kwargs)
 
         if img is not None:
-            if 'trans' not in self.sections:
-                self.sections.append('trans')
 
             global_id = self._get_id()
 
@@ -1109,7 +1127,7 @@ class Report(object):
                                              show=show)
             return html
 
-    def _render_bem(self, subject, subjects_dir):
+    def _render_bem(self, subject, subjects_dir, n_jobs=1):
 
         import nibabel as nib
 
@@ -1126,7 +1144,7 @@ class Report(object):
         if not op.isdir(bem_path):
             warnings.warn('Subject bem directory "%s" does not exist' %
                           bem_path)
-            return self._render_image(mri_fname, cmap='gray')
+            return self._render_image(mri_fname, cmap='gray', n_jobs=n_jobs)
 
         surf_fnames = []
         for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
@@ -1157,12 +1175,15 @@ class Report(object):
         html += u'<h2>%s</h2>\n' % name
         html += u'<div class="row">'
         html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
-                                         shape, orientation='axial')
+                                         shape, orientation='axial',
+                                         n_jobs=n_jobs)
         html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
-                                         shape, orientation='sagittal')
+                                         shape, orientation='sagittal',
+                                         n_jobs=n_jobs)
         html += u'</div><div class="row">'
         html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
-                                         shape, orientation='coronal')
+                                         shape, orientation='coronal',
+                                         n_jobs=n_jobs)
         html += u'</div>'
         html += u'</li>\n'
         return ''.join(html)
