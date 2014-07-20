@@ -23,5 +23,4 @@ def test_hdf5():
     write_hdf5(test_file, x, overwrite=True)
     assert_raises(IOError, read_hdf5, test_file + 'FOO')  # not found
     xx = read_hdf5(test_file)
-    print(object_diff(x, xx))
     assert_true(object_diff(x, xx) == '')  # no assert_equal, ugly output
