@@ -308,7 +308,8 @@ def test_setup_source_space():
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         warnings.simplefilter('always')
         src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
-                                     subjects_dir=subjects_dir, add_dist=False)
+                                     subjects_dir=subjects_dir, add_dist=False,
+                                     overwrite=True)
     _compare_source_spaces(src, src_new, mode='approx')
 
     # oct-6 (sample) - auto filename + IO
