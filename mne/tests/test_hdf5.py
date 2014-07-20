@@ -16,11 +16,12 @@ def test_hdf5():
     """
     test_file = op.join(tempdir, 'test.hdf5')
     x = dict(a=dict(b=np.zeros(3)), c=np.zeros(2, np.complex128),
-             d=[dict(e=(1, -2., 'hello'))])
+             d=[dict(e=(1, -2., 'hello', u'goodbyeu\u2764')), None])
     write_hdf5(test_file, 1)
     assert_equal(read_hdf5(test_file), 1)
     assert_raises(IOError, write_hdf5, test_file, x)  # file exists
     write_hdf5(test_file, x, overwrite=True)
     assert_raises(IOError, read_hdf5, test_file + 'FOO')  # not found
     xx = read_hdf5(test_file)
+    print(object_diff(x, xx))
     assert_true(object_diff(x, xx) == '')  # no assert_equal, ugly output
