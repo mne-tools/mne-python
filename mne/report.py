@@ -110,7 +110,8 @@ def _fig_to_mrislice(function, orig_size, sl, **kwargs):
 
 @_check_report_mode
 def _iterate_trans_views(function, **kwargs):
-
+    """Auxiliary function to iterate over views in trans fig.
+    """
     from PIL import Image
     import matplotlib.pyplot as plt
     import mayavi
@@ -204,7 +205,8 @@ def _get_toc_property(fname):
 
 
 def _iterate_files(report, fnames, info, sfreq):
-
+    """Auxiliary function to parallel process in batch mode.
+    """
     htmls, report_fnames, report_sectionlabels = [], [], []
     for fname in fnames:
         logger.info("Rendering : %s"
@@ -269,7 +271,8 @@ def _iterate_files(report, fnames, info, sfreq):
 
 
 def _build_image(data, cmap='gray'):
-    """ Build an image encoded in base64 """
+    """Build an image encoded in base64.
+    """
 
     import matplotlib.pyplot as plt
     from matplotlib.figure import Figure
@@ -289,7 +292,8 @@ def _build_image(data, cmap='gray'):
 
 
 def _iterate_sagittal_slices(array, limits=None):
-    """ Iterate sagittal slice """
+    """Iterate sagittal slice.
+    """
     shape = array.shape[0]
     for ind in xrange(shape):
         if limits and ind not in limits:
@@ -298,7 +302,8 @@ def _iterate_sagittal_slices(array, limits=None):
 
 
 def _iterate_axial_slices(array, limits=None):
-    """ Iterate axial slice """
+    """Iterate axial slice.
+    """
     shape = array.shape[1]
     for ind in xrange(shape):
         if limits and ind not in limits:
@@ -307,7 +312,8 @@ def _iterate_axial_slices(array, limits=None):
 
 
 def _iterate_coronal_slices(array, limits=None):
-    """ Iterate coronal slice """
+    """Iterate coronal slice.
+    """
     shape = array.shape[2]
     for ind in xrange(shape):
         if limits and ind not in limits:
@@ -316,6 +322,8 @@ def _iterate_coronal_slices(array, limits=None):
 
 
 def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
+    """Auxiliary function for parallel processing of mri slices.
+    """
     img_klass = 'slideimg-%s' % name
 
     caption = u'Slice %s %s' % (name, ind)
@@ -331,6 +339,8 @@ def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
 
 def _iterate_bem_slices(name, global_id, slides_klass, orig_size,
                         mri_fname, surf_fnames, orientation, sl):
+    """Auxiliary function for parallel processing of bem slices.
+    """
 
     img_klass = 'slideimg-%s' % name
     logger.info('Rendering BEM contours : orientation = %s, '
@@ -354,7 +364,8 @@ def _iterate_bem_slices(name, global_id, slides_klass, orig_size,
 # HTML functions
 
 def _build_html_image(img, id, div_klass, img_klass, caption=None, show=True):
-    """ Build a html image from a slice array """
+    """Build a html image from a slice array.
+    """
     html = []
     add_style = u'' if show else u'style="display: none"'
     html.append(u'<li class="%s" id="%s" %s>' % (div_klass, id, add_style))
@@ -388,7 +399,8 @@ slider_template = HTMLTemplate(u"""
 
 
 def _build_html_slider(slices_range, slides_klass, slider_id):
-    """ Build an html slider for a given slices range and a slices klass """
+    """Build an html slider for a given slices range and a slices klass.
+    """
     startvalue = (slices_range[0] + slices_range[-1]) / 2 + 1
     return slider_template.substitute(slider_id=slider_id,
                                       klass=slides_klass,
@@ -609,6 +621,8 @@ class Report(object):
         self._init_render(verbose=self.verbose)  # Initialize the renderer
 
     def _get_id(self):
+        """Get id of plot.
+        """
         self.initial_id += 1
         return self.initial_id
 
@@ -654,7 +668,8 @@ class Report(object):
     # HTML rendering
     def _render_one_axe(self, slices_iter, name, global_id=None, cmap='gray',
                         n_jobs=1):
-        """Render one axe of the array."""
+        """Render one axe of the array.
+        """
         global_id = global_id or name
         html = []
         slices, slices_range = [], []
@@ -681,7 +696,8 @@ class Report(object):
     # global rendering functions
     @verbose
     def _init_render(self, verbose=None):
-        """Initialize the renderer."""
+        """Initialize the renderer.
+        """
 
         inc_fnames = ['jquery-1.10.2.min.js', 'jquery-ui.min.js',
                       'bootstrap.min.js', 'jquery-ui.min.css',
@@ -818,6 +834,8 @@ class Report(object):
 
     @verbose
     def _render_toc(self, verbose=None):
+        """Render the Table of Contents.
+        """
 
         logger.info('Rendering : Table of Contents')
 
@@ -886,6 +904,8 @@ class Report(object):
 
     def _render_array(self, array, global_id=None, cmap='gray',
                       limits=None, n_jobs=1):
+        """Render mri without bem contours.
+        """
         html = []
         html.append(u'<div class="row">')
         # Axial
@@ -914,6 +934,8 @@ class Report(object):
 
     def _render_one_bem_axe(self, mri_fname, surf_fnames, global_id,
                             shape, orientation='coronal', n_jobs=1):
+        """Render one axe of bem contours.
+        """
 
         orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
         orientation_axis = orientation_name2axis[orientation]
@@ -946,7 +968,8 @@ class Report(object):
         return '\n'.join(html)
 
     def _render_image(self, image, cmap='gray', n_jobs=1):
-
+        """Render one slice of mri without bem.
+        """
         import nibabel as nib
 
         global_id = self._get_id()
@@ -970,7 +993,8 @@ class Report(object):
         return html
 
     def _render_raw(self, raw_fname):
-
+        """Render raw.
+        """
         global_id = self._get_id()
         div_klass = 'raw'
         caption = u'Raw : %s' % raw_fname
@@ -992,7 +1016,8 @@ class Report(object):
         return html
 
     def _render_forward(self, fwd_fname):
-
+        """Render forward.
+        """
         div_klass = 'forward'
         caption = u'Forward: %s' % fwd_fname
         fwd = read_forward_solution(fwd_fname)
@@ -1005,7 +1030,8 @@ class Report(object):
         return html
 
     def _render_inverse(self, inv_fname):
-
+        """Render inverse.
+        """
         div_klass = 'inverse'
         caption = u'Inverse: %s' % inv_fname
         inv = read_inverse_operator(inv_fname)
@@ -1018,7 +1044,8 @@ class Report(object):
         return html
 
     def _render_evoked(self, evoked_fname, figsize=None):
-
+        """Render evoked.
+        """
         evokeds = read_evokeds(evoked_fname, verbose=False)
 
         html = []
@@ -1051,7 +1078,8 @@ class Report(object):
         return '\n'.join(html)
 
     def _render_eve(self, eve_fname, sfreq=None):
-
+        """Render events.
+        """
         global_id = self._get_id()
         events = read_events(eve_fname)
 
@@ -1071,7 +1099,8 @@ class Report(object):
         return html
 
     def _render_epochs(self, epo_fname):
-
+        """Render epochs.
+        """
         global_id = self._get_id()
 
         epochs = read_epochs(epo_fname)
@@ -1089,7 +1118,8 @@ class Report(object):
         return html
 
     def _render_cov(self, cov_fname, info_fname):
-
+        """Render cov.
+        """
         global_id = self._get_id()
         cov = Covariance(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
@@ -1108,7 +1138,8 @@ class Report(object):
 
     def _render_trans(self, trans_fname, path, info, subject,
                       subjects_dir):
-
+        """Render trans.
+        """
         kwargs = dict(info=info, trans_fname=trans_fname, subject=subject,
                       subjects_dir=subjects_dir)
         img = _iterate_trans_views(function=plot_trans, **kwargs)
@@ -1130,7 +1161,8 @@ class Report(object):
             return html
 
     def _render_bem(self, subject, subjects_dir, n_jobs=1):
-
+        """Render mri+bem.
+        """
         import nibabel as nib
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
