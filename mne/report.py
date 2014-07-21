@@ -35,6 +35,12 @@ from .externals.six import moves
 tempdir = _TempDir()
 temp_fname = op.join(tempdir, 'test')
 
+VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
+                    '-eve.fif', '-eve.fif.gz', '-cov.fif', '-cov.fif.gz',
+                    '-trans.fif', '-trans.fif.gz', '-fwd.fif', '-fwd.fif.gz',
+                    '-epo.fif', '-epo.fif.gz', '-inv.fif', '-inv.fif.gz',
+                    '-ave.fif', '-ave.fif.gz', 'T1.mgz']
+
 ###############################################################################
 # PLOTTING FUNCTIONS
 
@@ -139,18 +145,7 @@ def _is_bad_fname(fname):
     """Auxiliary function for identifying bad file naming patterns
        and highlighting them in red in the TOC.
     """
-    if not fname.endswith(('-eve.fif', '-eve.fif.gz',
-                           '-ave.fif', '-ave.fif.gz',
-                           '-cov.fif', '-cov.fif.gz',
-                           '-sol.fif',
-                           '-fwd.fif', '-fwd.fif.gz',
-                           '-inv.fif', '-inv.fif.gz',
-                           '-src.fif',
-                           '-trans.fif', '-trans.fif.gz',
-                           'raw.fif', 'raw.fif.gz',
-                           'sss.fif', 'sss.fif.gz',
-                           '-epo.fif', 'T1.mgz',
-                           'bem', 'custom')):
+    if not fname.endswith(tuple(VALID_EXTENSIONS + ['bem', 'custom'])):
         return 'red'
     else:
         return ''
@@ -845,23 +840,8 @@ class Report(object):
                     color = _is_bad_fname(fname)
                     div_klass, tooltip, text = _get_toc_property(fname)
 
-                    if fname.endswith(('.nii', '.nii.gz', '.mgh', '.mgz',
-                                       'raw.fif', 'raw.fif.gz', 'sss.fif',
-                                       'sss.fif.gz', '-eve.fif', '-eve.fif.gz',
-                                       '-cov.fif', '-cov.fif.gz', '-trans.fif',
-                                       '-trans.fif.gz', '-fwd.fif',
-                                       '-fwd.fif.gz', '-epo.fif',
-                                       '-inv.fif', '-inv.fif.gz',
-                                       '-epo.fif.gz', 'bem', 'custom')):
-                        html_toc += toc_list.substitute(div_klass=div_klass,
-                                                        id=global_id,
-                                                        tooltip=tooltip,
-                                                        color=color,
-                                                        text=text)
-                        global_id += 1
-
                     # loop through conditions for evoked
-                    elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
+                    if fname.endswith(('-ave.fif', '-ave.fif.gz')):
                        # XXX: remove redundant read_evokeds
                         evokeds = read_evokeds(fname, verbose=False)
 
@@ -882,6 +862,15 @@ class Report(object):
                                                             text=ev.comment)
                             global_id += 1
                         html_toc += u'</ul></li>'
+
+                    elif fname.endswith(tuple(VALID_EXTENSIONS +
+                                        ['bem', 'custom'])):
+                        html_toc += toc_list.substitute(div_klass=div_klass,
+                                                        id=global_id,
+                                                        tooltip=tooltip,
+                                                        color=color,
+                                                        text=text)
+                        global_id += 1
 
         html_toc += u'\n</ul></div>'
         html_toc += u'<div id="content">'
@@ -1211,14 +1200,7 @@ def _recursive_search(path, pattern):
         for f in fnmatch.filter(files, pattern):
             # only the following file types are supported
             # this ensures equitable distribution of jobs
-            if f.endswith(('raw.fif', 'raw.fif.gz', 'sss.fif',
-                           'sss.fif.gz', '-eve.fif', '-eve.fif.gz',
-                           '-cov.fif', '-cov.fif.gz', '-trans.fif',
-                           '-trans.fif.gz', '-fwd.fif',
-                           '-fwd.fif.gz', '-epo.fif',
-                           '-inv.fif', '-inv.fif.gz',
-                           '-epo.fif.gz', '-ave.fif',
-                           '-ave.fif.gz')):
+            if f.endswith(tuple(VALID_EXTENSIONS)):
                 filtered_files.append(op.realpath(op.join(dirpath, f)))
 
     return filtered_files
