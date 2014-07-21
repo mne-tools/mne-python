@@ -1121,7 +1121,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
 
     if volume_label is not None:
         if isinstance(pos, dict):
-            raise ValueError('If volume label is not none, pos but be '
+            raise ValueError('If volume label is not none, pos must be '
                              'float, not a dict.')
         # Check that volume label is found in .mgz file
         volume_labels = get_volume_labels_from_aseg(mri)
@@ -1882,12 +1882,12 @@ def get_volume_labels_from_aseg(mgz_fname):
     ----------
     mgz_fname : str
         Filename to read. Typically aseg.mgz or some variant in the freesurfer
-        pipeline
+        pipeline.
 
     Returns
     -------
     label_names : list of str
-        The names of segmented volumes included in this mgz file
+        The names of segmented volumes included in this mgz file.
     """
     import nibabel as nib
 

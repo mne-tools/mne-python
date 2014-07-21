@@ -539,10 +539,9 @@ def test_source_space_from_label():
     assert_equal(volume_label, src[0]['seg_name'])
 
     # test reading and writing
-    fname_temp = 'temp.fif'
-    write_source_spaces(fname_temp, src)
-    src_from_file = read_source_spaces(fname_temp)
-    os.remove(fname_temp)
+    out_name = op.join(tempdir, 'temp-src.fif')
+    write_source_spaces(out_name, src)
+    src_from_file = read_source_spaces(out_name)
     _compare_source_spaces(src, src_from_file, mode='approx')
 
 
