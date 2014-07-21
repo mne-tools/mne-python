@@ -15,7 +15,6 @@ import time
 from glob import glob
 import warnings
 import base64
-from itertools import chain
 
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
@@ -743,15 +742,15 @@ class Report(object):
         htmls, report_fnames, report_sectionlabels = zip(*r)
 
         # combine results from n_jobs discarding plots not rendered
-        self.html = [html for html in list(chain(*htmls)) if html is not None]
-        self.fnames = [fname for fname in list(chain(*report_fnames)) if
+        self.html = [html for html in sum(htmls, []) if html is not None]
+        self.fnames = [fname for fname in sum(report_fnames, []) if
                        fname is not None]
         self._sectionlabels = [slabel for slabel in
-                               list(chain(*report_sectionlabels))
+                               sum(report_sectionlabels, [])
                                if slabel is not None]
 
         # find unique section labels
-        self.sections = np.unique(self._sectionlabels).tolist()
+        self.sections = sorted(set(self._sectionlabels))
 
         # render mri
         if self.subjects_dir is not None and self.subject is not None:
