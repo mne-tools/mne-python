@@ -44,7 +44,7 @@ if __name__ == '__main__':
     verbose = True if options.verbose is not None else False
     open_browser = False if options.no_browser is not None else True
     overwrite = True if options.overwrite is not None else False
-    n_jobs = int(options.n_jobs)
+    n_jobs = int(options.n_jobs) if options.n_jobs is not None else 1
 
     report = Report(info_fname, subjects_dir=subjects_dir, subject=subject,
                     verbose=verbose)

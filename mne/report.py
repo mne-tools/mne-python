@@ -15,6 +15,7 @@ import time
 from glob import glob
 import warnings
 import base64
+from itertools import chain
 
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
@@ -208,60 +209,66 @@ def _get_toc_property(fname):
     return div_klass, tooltip, text
 
 
-def _iterate_files(report, fname, info, sfreq):
+def _iterate_files(report, fnames, info, sfreq):
 
-    logger.info("Rendering : %s"
-                % op.join('...' + report.data_path[-20:],
-                          fname))
-    try:
-        if fname.endswith(('raw.fif', 'raw.fif.gz',
-                           'sss.fif', 'sss.fif.gz')):
-            html = report._render_raw(fname)
-            report_fname = fname
-            report_sectionlabel = 'raw'
-        elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
-            html = report._render_forward(fname)
-            report_fname = fname
-            report_sectionlabel = 'forward'
-        elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
-            html = report._render_inverse(fname)
-            report_fname = fname
-            report_sectionlabel = 'inverse'
-        elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
-            html = report._render_evoked(fname)
-            report_fname = fname
-            report_sectionlabel = 'evoked'
-        elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
-            html = report._render_eve(fname, sfreq)
-            report_fname = fname
-            report_sectionlabel = 'events'
-        elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
-            html = report._render_epochs(fname)
-            report_fname = fname
-            report_sectionlabel = 'epochs'
-        elif (fname.endswith(('-cov.fif', '-cov.fif.gz'))
-              and report.info_fname is not None):
-            html = report._render_cov(fname, info)
-            report_fname = fname
-            report_sectionlabel = 'covariance'
-        elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
-              and report.info_fname is not None and report.subjects_dir
-              is not None and report.subject is not None):
-            html = report._render_trans(fname, report.data_path, info,
-                                        report.subject, report.subjects_dir)
-            report_fname = fname
-            report_sectionlabel = 'trans'
-        else:
+    htmls, report_fnames, report_sectionlabels = [], [], []
+    for fname in fnames:
+        logger.info("Rendering : %s"
+                    % op.join('...' + report.data_path[-20:],
+                              fname))
+        try:
+            if fname.endswith(('raw.fif', 'raw.fif.gz',
+                               'sss.fif', 'sss.fif.gz')):
+                html = report._render_raw(fname)
+                report_fname = fname
+                report_sectionlabel = 'raw'
+            elif fname.endswith(('-fwd.fif', '-fwd.fif.gz')):
+                html = report._render_forward(fname)
+                report_fname = fname
+                report_sectionlabel = 'forward'
+            elif fname.endswith(('-inv.fif', '-inv.fif.gz')):
+                html = report._render_inverse(fname)
+                report_fname = fname
+                report_sectionlabel = 'inverse'
+            elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
+                html = report._render_evoked(fname)
+                report_fname = fname
+                report_sectionlabel = 'evoked'
+            elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
+                html = report._render_eve(fname, sfreq)
+                report_fname = fname
+                report_sectionlabel = 'events'
+            elif fname.endswith(('-epo.fif', '-epo.fif.gz')):
+                html = report._render_epochs(fname)
+                report_fname = fname
+                report_sectionlabel = 'epochs'
+            elif (fname.endswith(('-cov.fif', '-cov.fif.gz'))
+                  and report.info_fname is not None):
+                html = report._render_cov(fname, info)
+                report_fname = fname
+                report_sectionlabel = 'covariance'
+            elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
+                  and report.info_fname is not None and report.subjects_dir
+                  is not None and report.subject is not None):
+                html = report._render_trans(fname, report.data_path, info,
+                                            report.subject,
+                                            report.subjects_dir)
+                report_fname = fname
+                report_sectionlabel = 'trans'
+            else:
+                html = None
+                report_fname = None
+                report_sectionlabel = None
+        except Exception as e:
+            logger.info(e)
             html = None
             report_fname = None
             report_sectionlabel = None
-    except Exception as e:
-        logger.info(e)
-        html = None
-        report_fname = None
-        report_sectionlabel = None
+        htmls.append(html)
+        report_fnames.append(report_fname)
+        report_sectionlabels.append(report_sectionlabel)
 
-    return html, report_fname, report_sectionlabel
+    return htmls, report_fnames, report_sectionlabels
 
 ###############################################################################
 # IMAGE FUNCTIONS
@@ -331,22 +338,22 @@ def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
 def _iterate_bem_slices(name, global_id, slides_klass, orig_size,
                         mri_fname, surf_fnames, orientation, sl):
 
-        img_klass = 'slideimg-%s' % name
-        logger.info('Rendering BEM contours : orientation = %s, '
-                    'slice = %d' % (orientation, sl))
-        caption = u'Slice %s %s' % (name, sl)
-        slice_id = '%s-%s-%s' % (name, global_id, sl)
-        div_klass = 'span12 %s' % slides_klass
+    img_klass = 'slideimg-%s' % name
+    logger.info('Rendering BEM contours : orientation = %s, '
+                'slice = %d' % (orientation, sl))
+    caption = u'Slice %s %s' % (name, sl)
+    slice_id = '%s-%s-%s' % (name, global_id, sl)
+    div_klass = 'span12 %s' % slides_klass
 
-        kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames,
-                      orientation=orientation, slices=[sl],
-                      show=False)
-        img = _fig_to_mrislice(function=_plot_mri_contours,
-                               orig_size=orig_size, sl=sl, **kwargs)
-        first = True if sl == 0 else False
-        return _build_html_image(img, slice_id, div_klass,
-                                 img_klass, caption,
-                                 first)
+    kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames,
+                  orientation=orientation, slices=[sl],
+                  show=False)
+    img = _fig_to_mrislice(function=_plot_mri_contours,
+                           orig_size=orig_size, sl=sl, **kwargs)
+    first = True if sl == 0 else False
+    return _build_html_image(img, slice_id, div_klass,
+                             img_klass, caption,
+                             first)
 
 
 ###############################################################################
@@ -609,7 +616,7 @@ class Report(object):
 
     def _get_id(self):
         self.initial_id += 1
-        return 42
+        return self.initial_id
 
     def add_section(self, figs, captions, section='custom'):
         """Append custom user-defined figures.
@@ -734,17 +741,24 @@ class Report(object):
                           '-cov.fif(.gz) and -trans.fif(.gz) files.')
             sfreq = None
 
+        # render plots in parallel
         parallel, p_fun, _ = parallel_func(_iterate_files, n_jobs)
-        r = parallel(p_fun(self, fname, info, sfreq) for fname in fnames)
+        r = parallel(p_fun(self, fname, info, sfreq) for fname in
+                     np.array_split(fnames, n_jobs))
         htmls, report_fnames, report_sectionlabels = zip(*r)
-        self.html = [html for html in htmls if html is not None]
-        self.fnames = [report_fname for report_fname in report_fnames if
-                       report_fname is not None]
-        self._sectionlabels = [report_sectionlabel for report_sectionlabel
-                               in report_sectionlabels if report_sectionlabel
-                               is not None]
+
+        # combine results from n_jobs discarding plots not rendered
+        self.html = [html for html in list(chain(*htmls)) if html is not None]
+        self.fnames = [fname for fname in list(chain(*report_fnames)) if
+                       fname is not None]
+        self._sectionlabels = [slabel for slabel in
+                               list(chain(*report_sectionlabels))
+                               if slabel is not None]
+
+        # find unique section labels
         self.sections = np.unique(self._sectionlabels).tolist()
 
+        # render mri
         if self.subjects_dir is not None and self.subject is not None:
             self.html.append(self._render_bem(subject=self.subject,
                                               subjects_dir=
@@ -835,7 +849,7 @@ class Report(object):
                                        'raw.fif', 'raw.fif.gz', 'sss.fif',
                                        'sss.fif.gz', '-eve.fif', '-eve.fif.gz',
                                        '-cov.fif', '-cov.fif.gz', '-trans.fif',
-                                       'trans.fif.gz', '-fwd.fif',
+                                       '-trans.fif.gz', '-fwd.fif',
                                        '-fwd.fif.gz', '-epo.fif',
                                        '-inv.fif', '-inv.fif.gz',
                                        '-epo.fif.gz', 'bem', 'custom')):
@@ -1195,7 +1209,17 @@ def _recursive_search(path, pattern):
     filtered_files = list()
     for dirpath, dirnames, files in os.walk(path):
         for f in fnmatch.filter(files, pattern):
-            filtered_files.append(op.realpath(op.join(dirpath, f)))
+            # only the following file types are supported
+            # this ensures equitable distribution of jobs
+            if f.endswith(('raw.fif', 'raw.fif.gz', 'sss.fif',
+                           'sss.fif.gz', '-eve.fif', '-eve.fif.gz',
+                           '-cov.fif', '-cov.fif.gz', '-trans.fif',
+                           '-trans.fif.gz', '-fwd.fif',
+                           '-fwd.fif.gz', '-epo.fif',
+                           '-inv.fif', '-inv.fif.gz',
+                           '-epo.fif.gz', '-ave.fif',
+                           '-ave.fif.gz')):
+                filtered_files.append(op.realpath(op.join(dirpath, f)))
 
     return filtered_files
 
