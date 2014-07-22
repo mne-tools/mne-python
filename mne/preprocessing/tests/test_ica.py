@@ -127,7 +127,7 @@ def test_ica_rank_reduction():
                        eog=False, exclude='bads')[:10]
     n_components = 5
     max_pca_components = len(picks)
-    for n_pca_components in [6, 7, 9]:
+    for n_pca_components in [6, 10]:
         ica = ICA(n_components=n_components,
                   max_pca_components=max_pca_components,
                   n_pca_components=n_pca_components,
