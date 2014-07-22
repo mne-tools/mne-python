@@ -653,6 +653,7 @@ class Report(object):
             self.sections.append(section)
 
         for fig, caption in zip(figs, captions):
+            section = section.replace(" ", "___")
             global_id = self._get_id()
             div_klass = section
             img_klass = section
@@ -663,7 +664,7 @@ class Report(object):
                                              caption=caption,
                                              show=True)
             self.fnames.append('%s-#-%s-#-custom' % (caption, section))
-            self._sectionlabels.append(section.replace(" ", "___"))
+            self._sectionlabels.append(section)
             self.html.append(html)
 
     ###########################################################################
