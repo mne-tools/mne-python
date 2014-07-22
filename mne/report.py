@@ -856,7 +856,7 @@ class Report(object):
         self.sections = np.array(sections)[order].tolist() + custom
 
         # Sort by section
-        html, fnames = [], []
+        html, fnames, sectionlabels = [], [], []
         for section in self.sections:
             logger.info('%s' % section.replace("___", " "))
             for sectionlabel, this_html, fname in (zip(self._sectionlabels,
@@ -864,6 +864,7 @@ class Report(object):
                 if section == sectionlabel:
                     html.append(this_html)
                     fnames.append(fname)
+                    sectionlabels.append(sectionlabel)
                     logger.info('\t... %s' % fname.replace("___", " ")[-20:])
                     color = _is_bad_fname(fname)
                     div_klass, tooltip, text = _get_toc_property(fname)
@@ -906,6 +907,7 @@ class Report(object):
         # The sorted html (according to section)
         self.html = html
         self.fnames = fnames
+        self._sectionlabels = sectionlabels
 
         html_header = header_template.substitute(title=self.title,
                                                  include=self.include,
