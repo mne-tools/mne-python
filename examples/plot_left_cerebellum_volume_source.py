@@ -43,9 +43,12 @@ lh_cereb = setup_volume_source_space(subj, mri=aseg_fname, sphere=sphere,
 ###############################################################################
 # Plot the positions of each source space
 
-# extract left cortical surface vertices and triangle faces
+# extract left cortical surface vertices, triangle faces, and surface normals
 x1, y1, z1 = lh_surf['rr'].T
 faces = lh_surf['use_tris']
+normals = lh_surf['nn']
+# normalize for mayavi
+normals = normals / np.sum(normals * normals, axis=1)[:, np.newaxis]
 
 # extract left cerebellum cortex source positions
 x2, y2, z2 = lh_cereb[0]['rr'][lh_cereb[0]['inuse'].astype(bool)].T
@@ -54,12 +57,13 @@ x2, y2, z2 = lh_cereb[0]['rr'][lh_cereb[0]['inuse'].astype(bool)].T
 mlab.figure(1, bgcolor=(0, 0, 0))
 
 # plot the left cortical surface
-mlab.triangular_mesh(x1, y1, z1, faces, color=(0.7, ) * 3)
+mesh = mlab.pipeline.triangular_mesh_source(x1, y1, z1, faces)
+mesh.data.point_data.normals = normals
+mlab.pipeline.surface(mesh, color=3*(0.7,))
 
 # plot the convex hull bounding the left cerebellum
 hull = ConvexHull(np.c_[x2, y2, z2])
-mlab.triangular_mesh(x2, y2, z2, hull.simplices, color=(0.5, 0.5, 0.5),
-                     opacity=0.3)
+mlab.triangular_mesh(x2, y2, z2, hull.simplices, color=3*(0.5,), opacity=0.3)
 
 # plot the left cerebellum sources
 mlab.points3d(x2, y2, z2, color=(1, 1, 0), scale_factor=0.001)
