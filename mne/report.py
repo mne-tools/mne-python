@@ -661,7 +661,7 @@ class Report(object):
                                              caption=caption,
                                              show=True)
             self.fnames.append('%s-#-%s-#-custom' % (caption, section))
-            self._sectionlabels.append(section)
+            self._sectionlabels.append(section.replace(" ", "___"))
             self.html.append(html)
 
     ###########################################################################
