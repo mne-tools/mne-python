@@ -117,6 +117,8 @@ Changelog
 
    - Add `$ mne report` command to generate html reports of MEG/EEG data analysis pipelines by `Mainak Jas`_, `Alex Gramfort`_ and `Denis Engemann`_
 
+   - Improve ICA verbosity with regard to rank reduction by `Denis Engemann`_
+
 BUG
 ~~~
 
@@ -158,6 +160,8 @@ affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
    - Deprecated ICA methods specfific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
 
    - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
+
+   - As default, for ICA the maximum number of PCA components equals the number of channels passed. The number of PCA components used to reconstruct the sensor space signals now defaults to the maximum number of PCA components estimated.
 
 .. _changes_0_7:
 
