@@ -33,6 +33,8 @@ if __name__ == '__main__':
                       help="Do not open MNE-Report in browser")
     parser.add_option("--overwrite", dest="overwrite", action='store_false',
                       help="Overwrite html report if it already exists")
+    parser.add_option("-j", "--jobs", dest="n_jobs", help="Number of jobs to"
+                      " run in parallel")
 
     options, args = parser.parse_args()
     path = options.path
@@ -42,8 +44,9 @@ if __name__ == '__main__':
     verbose = True if options.verbose is not None else False
     open_browser = False if options.no_browser is not None else True
     overwrite = True if options.overwrite is not None else False
+    n_jobs = int(options.n_jobs) if options.n_jobs is not None else 1
 
     report = Report(info_fname, subjects_dir=subjects_dir, subject=subject,
                     verbose=verbose)
-    report.parse_folder(path, verbose=verbose)
+    report.parse_folder(path, verbose=verbose, n_jobs=n_jobs)
     report.save(open_browser=open_browser, overwrite=overwrite)
