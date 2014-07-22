@@ -114,7 +114,7 @@ class SourceSpaces(list):
         Notes
         -----
         This method requires nibabel.
-        Can only be used on volume source spaces of length one.
+        Can only be used on a source space containing a single volume.
         """
         try:
             import nibabel as nib
@@ -122,8 +122,8 @@ class SourceSpaces(list):
             raise RuntimeError('This function requires nibabel')
 
         if len(self) > 1 or self[0]['type'] != 'vol':
-            raise RuntimeError('This function can only be used on volume '
-                               'sources of length one')
+            raise RuntimeError('This function can only be used on a source '
+                               'space containing a single volume.')
         # create 3d grid
         shape = self[0]['shape']
         shape3d = (shape[2], shape[1], shape[0])
