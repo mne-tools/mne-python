@@ -39,6 +39,8 @@ VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
                     '-trans.fif', '-trans.fif.gz', '-fwd.fif', '-fwd.fif.gz',
                     '-epo.fif', '-epo.fif.gz', '-inv.fif', '-inv.fif.gz',
                     '-ave.fif', '-ave.fif.gz', 'T1.mgz']
+SECTION_ORDER = ['raw', 'events', 'evoked', 'covariance', 'trans', 'mri',
+                 'forward', 'inverse']
 
 ###############################################################################
 # PLOTTING FUNCTIONS
@@ -843,6 +845,14 @@ class Report(object):
         html_toc += u'<div id="toc"><center><h4>CONTENTS</h4></center>'
 
         global_id = 1
+
+        # Reorder self.sections to reflect natural ordering
+        sections = list(set(self.sections) & set(SECTION_ORDER))
+        custom = [section for section in self.sections if section
+                  not in SECTION_ORDER]
+        order = [sections.index(section) for section in SECTION_ORDER if
+                 section in sections]
+        self.sections = np.array(sections)[order].tolist() + custom
 
         # Sort by section
         html, fnames = [], []
