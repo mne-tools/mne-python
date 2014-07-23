@@ -28,7 +28,6 @@ real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                               'Aud-rh.label')
 v1_label_fname = op.join(subjects_dir, 'sample', 'label', 'lh.V1.label')
 
-# sample dataset should be updated to reflect mne conventions
 fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-eeg-oct-6p-fwd.fif')
 src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
@@ -114,6 +113,7 @@ def test_label_addition():
 
 @sample.requires_sample_data
 def test_label_in_src():
+    """Test label in src"""
     src = read_source_spaces(src_fname)
     label = read_label(v1_label_fname)
 

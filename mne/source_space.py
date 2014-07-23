@@ -197,7 +197,10 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     src : SourceSpaces
         The source spaces.
     """
-    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
+    # be more permissive on read than write (fwd/inv can contain src)
+    check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
+                                        '-fwd.fif', '-fwd.fif.gz',
+                                        '-inv.fif', '-inv.fif.gz'))
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
