@@ -56,15 +56,28 @@ class Forward(dict):
         nchan = len(pick_types(self['info'], meg=False, eeg=True))
         entr += ' | ' + 'EEG channels: %d' % nchan
 
-        if self['src'][0]['type'] == 'surf':
+        src_types = np.array([src['type'] for src in self['src']])
+        if (src_types == 'surf').all():
             entr += (' | Source space: Surface with %d vertices'
                      % self['nsource'])
-        elif self['src'][0]['type'] == 'vol':
+        elif (src_types == 'vol').all():
             entr += (' | Source space: Volume with %d grid points'
                      % self['nsource'])
-        elif self['src'][0]['type'] == 'discrete':
+        elif (src_types == 'discrete').all():
             entr += (' | Source space: Discrete with %d dipoles'
                      % self['nsource'])
+        else:
+            count_string = ''
+            if (src_types == 'surf').any():
+                count_string += '%d surface, ' % (src_types == 'surf').sum()
+            if (src_types == 'vol').any():
+                count_string += '%d volume, ' % (src_types == 'vol').sum()
+            if (src_types == 'discrete').any():
+                count_string += '%d discrete, ' \
+                                % (src_types == 'discrete').sum()
+            count_string = count_string.rstrip(', ')            
+            entr += (' | Source space: Mixed (%s) with %d vertices'
+                     % (count_string, self['nsource']))
 
         if self['source_ori'] == FIFF.FIFFV_MNE_UNKNOWN_ORI:
             entr += (' | Source orientation: Unknown')

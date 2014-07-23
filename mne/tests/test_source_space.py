@@ -19,6 +19,7 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
+from mne.source_space import get_volume_labels_from_aseg, SourceSpaces
 
 warnings.simplefilter('always')
 
@@ -403,6 +404,10 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                     assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4)
                 else:
                     raise RuntimeError('unknown mode')
+        for name in ['seg_name']:
+            if name in s0 or name in s1:
+                print(name)
+                assert_equal(s0[name], s1[name])
         if mode == 'exact':
             for name in ['inuse', 'vertno', 'use_tris']:
                 assert_array_equal(s0[name], s1[name])
@@ -492,6 +497,75 @@ def test_vertex_to_mni_fs_nibabel():
                                  'freesurfer')
         # less than 0.1 mm error
         assert_allclose(coords, coords_2, atol=0.1)
+
+
+@sample.requires_sample_data
+@requires_freesurfer
+@requires_nibabel()
+def test_get_volume_label_names():
+    """Test reading volume label names
+    """
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+
+    label_names = get_volume_labels_from_aseg(aseg_fname)
+
+    assert_equal(label_names.count('Brain-Stem'), 1)
+
+
+@sample.requires_sample_data
+@requires_freesurfer
+@requires_nibabel()
+def test_source_space_from_label():
+    """Test generating a source space from volume label
+    """
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+    label_names = get_volume_labels_from_aseg(aseg_fname)
+    volume_label = np.random.choice(label_names, 1)[0]
+
+    # Test pos as dict
+    pos = dict()
+    assert_raises(ValueError, setup_volume_source_space, 'sample', pos=pos,
+                  volume_label=volume_label, mri=aseg_fname)
+
+    # Test no mri provided
+    assert_raises(RuntimeError, setup_volume_source_space, 'sample', mri=None,
+                  volume_label=volume_label)
+
+    # Test invalid volume label
+    assert_raises(ValueError, setup_volume_source_space, 'sample',
+                  volume_label='Hello World!', mri=aseg_fname)
+
+    src = setup_volume_source_space('sample', subjects_dir=subjects_dir,
+                                    volume_label=volume_label, mri=aseg_fname)
+    assert_equal(volume_label, src[0]['seg_name'])
+
+    # test reading and writing
+    out_name = op.join(tempdir, 'temp-src.fif')
+    write_source_spaces(out_name, src)
+    src_from_file = read_source_spaces(out_name)
+    _compare_source_spaces(src, src_from_file, mode='approx')
+
+
+@sample.requires_sample_data
+@requires_freesurfer
+@requires_nibabel()
+def test_combine_source_spaces():
+    """Test combining two source spaces
+    """
+    aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+    label_names = get_volume_labels_from_aseg(aseg_fname)
+    volume_labels = np.random.choice(label_names, 2)
+
+    src1 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
+                                     volume_label=volume_labels[0],
+                                     mri=aseg_fname)
+    src2 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
+                                     volume_label=volume_labels[1],
+                                     mri=aseg_fname)
+    src = src1 + src2
+
+    assert_equal(type(src), SourceSpaces)
+    assert_equal(len(src), 2)
 
 
 # The following code was used to generate small-src.fif.gz.
