@@ -579,7 +579,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                      fmin=fmin, fmax=fmax, NFFT=n_fft,
+                                      fmin=fmin, fmax=fmax, n_fft=n_fft,
                                       n_jobs=n_jobs, plot=False, proj=proj)
 
         # Convert PSDs to dB

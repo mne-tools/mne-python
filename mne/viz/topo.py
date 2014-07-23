@@ -81,7 +81,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
-        from .layouts import find_layout
+        from ..layouts import find_layout
         layout = find_layout(info)
 
     if on_pick is not None:
@@ -105,6 +105,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
         ch_idx = ch_names.index(name)
         vars(ax)['_mne_ch_name'] = name
         vars(ax)['_mne_ch_idx'] = ch_idx
+        vars(ax)['_mne_ax_face_color'] = axis_facecolor
         yield ax, ch_idx
 
 
@@ -166,10 +167,11 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
     import matplotlib.pyplot as plt
     try:
         ch_idx = orig_ax._mne_ch_idx
+        face_color = orig_ax._mne_ax_face_color
         fig, ax = plt.subplots(1)
 
         plt.title(orig_ax._mne_ch_name)
-        ax.set_axis_bgcolor('k')
+        ax.set_axis_bgcolor(face_color)
 
         # allow custom function to override parameters
         show_func(plt, ch_idx)
@@ -306,7 +308,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     ch_names = _clean_names(ch_names)
 
     if layout is None:
-        from .layouts.layout import find_layout
+        from ..layouts.layout import find_layout
         layout = find_layout(info)
 
     # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
@@ -442,7 +444,7 @@ def plot_topo_tfr(epochs, tfr, freq, layout=None, colorbar=True, vmin=None,
         vmax = tfr.max()
 
     if layout is None:
-        from .layouts.layout import find_layout
+        from ..layouts.layout import find_layout
         layout = find_layout(epochs.info)
 
     tfr_imshow = partial(_imshow_tfr, tfr=tfr.copy(), freq=freq, cmap=cmap)
@@ -528,7 +530,7 @@ def plot_topo_power(epochs, power, freq, layout=None, baseline=None,
     if vmax is None:
         vmax = power.max()
     if layout is None:
-        from .layouts.layout import find_layout
+        from ..layouts.layout import find_layout
         layout = find_layout(epochs.info)
 
     power_imshow = partial(_imshow_tfr, tfr=power.copy(), freq=freq)
@@ -611,7 +613,7 @@ def plot_topo_phase_lock(epochs, phase, freq, layout=None, baseline=None,
     if vmax is None:
         vmax = phase.max()
     if layout is None:
-        from .layouts.layout import find_layout
+        from ..layouts.layout import find_layout
         layout = find_layout(epochs.info)
 
     phase_imshow = partial(_imshow_tfr, tfr=phase.copy(), freq=freq)
@@ -708,7 +710,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     if vmax is None:
         vmax = data.max()
     if layout is None:
-        from .layouts.layout import find_layout
+        from ..layouts.layout import find_layout
         layout = find_layout(epochs.info)
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
