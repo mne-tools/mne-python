@@ -28,7 +28,7 @@ projs = projs[3:][::2]  # take only one projection per channel type
 ssp_ecg_map = sensitivity_map(fwd, ch_type='grad', projs=projs, mode='angle')
 
 ###############################################################################
-# Show sensitivy map
+# Show sensitivity map
 
 import matplotlib.pyplot as plt
 plt.hist(ssp_ecg_map.data.ravel())

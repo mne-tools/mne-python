@@ -47,16 +47,16 @@ mode = 'svd'
 n_svd_comp = 1
 
 method = 'MNE'  # can be 'MNE', 'dSPM', or 'sLORETA'
-stc_ctf_mne, singvals = cross_talk_function(inverse_operator, forward, labels,
-                                            method=method, lambda2=lambda2,
-                                            signed=False, mode=mode,
-                                            n_svd_comp=n_svd_comp)
+stc_ctf_mne = cross_talk_function(inverse_operator, forward, labels,
+                                  method=method, lambda2=lambda2,
+                                  signed=False, mode=mode,
+                                  n_svd_comp=n_svd_comp)
 
 method = 'dSPM'
-stc_ctf_dspm, singvals = cross_talk_function(inverse_operator, forward, labels,
-                                             method=method, lambda2=lambda2,
-                                             signed=False, mode=mode,
-                                             n_svd_comp=n_svd_comp)
+stc_ctf_dspm = cross_talk_function(inverse_operator, forward, labels,
+                                   method=method, lambda2=lambda2,
+                                   signed=False, mode=mode,
+                                   n_svd_comp=n_svd_comp)
 
 from mayavi import mlab
 fmin = 0.

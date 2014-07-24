@@ -4,7 +4,7 @@ Export evoked data to Nitime
 ============================
 
 """
-# Author: Denis Engemann <d.engemann@fz-juelichde>
+# Author: Denis Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)

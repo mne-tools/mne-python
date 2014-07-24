@@ -44,7 +44,7 @@ psds = 20 * np.log10(psds)  # scale to dB
 def my_callback(ax, ch_idx):
     """
     This block of code is executed once you click on one of the channel axes
-    in the plot. To work with the viz internals this function should only take
+    in the plot. To work with the viz internals, this function should only take
     two parameters, the axis and the channel or data index.
     """
     ax.plot(freqs, psds[ch_idx], color='red')
@@ -58,5 +58,5 @@ for ax, idx in iter_topography(raw.info,
                                on_pick=my_callback):
     ax.plot(psds[idx], color='red')
 
-plt.gcf().suptitle('Powe spectral densities')
+plt.gcf().suptitle('Power spectral densities')
 plt.show()
