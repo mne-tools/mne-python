@@ -214,8 +214,10 @@ def read_events(filename, include=None, exclude=None):
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
-        event_list, _ = _read_events_fif(fid, tree)
-        fid.close()
+        try:
+            event_list, _ = _read_events_fif(fid, tree)
+        finally:
+            fid.close()
     else:
         #  Have to read this in as float64 then convert because old style
         #  eve/lst files had a second float column that will raise errors
