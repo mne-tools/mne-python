@@ -1735,6 +1735,35 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      tstep=tstep, subject=subject,
                                      verbose=verbose)
 
+    def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
+                     colormap='hot', time_label='time=%02.f ms',
+                     smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
+                     transparent=True, alpha=1.0, time_viewer=False,
+                     config_opts={}, subjects_dir=None, figure=None,
+                     views='lat', colorbar=True):
+
+        # extract surface source spaces
+        surf = [s for s in src if s['type'] == 'surf']
+        if len(surf) != 2:
+            raise IOError('Source spaces must contain exactly two surfaces.')
+
+        # extract surface source estimate
+        data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
+        vertices = [s['vertno'] for s in surf]
+
+        stc = SourceEstimate(data, vertices, self.tmin, self.tstep,
+                             self.subject, self.verbose)
+
+        plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
+                              colormap=colormap, time_label=time_label,
+                              smoothing_steps=smoothing_steps, fmin=fmin,
+                              fmid=fmid, fmax=fmax, transparent=transparent,
+                              alpha=alpha, time_viewer=time_viewer,
+                              config_opts=config_opts,
+                              subjects_dir=subjects_dir, figure=figure,
+                              views=views, colorbar=colorbar)
+
+
 ###############################################################################
 # Morphing
 
