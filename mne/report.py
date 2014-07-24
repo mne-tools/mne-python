@@ -68,7 +68,7 @@ def _check_report_mode(function, *args, **kwargs):
 
 
 @_check_report_mode
-def _fig_to_img(function=None, fig=None, **kwargs):
+def _fig_to_img(function=None, fig=None, close_fig=True, **kwargs):
     """Wrapper function to plot figure and
        for fig <-> binary image.
     """
@@ -80,6 +80,8 @@ def _fig_to_img(function=None, fig=None, **kwargs):
 
     output = BytesIO()
     fig.savefig(output, format='png', bbox_inches='tight')
+    if close_fig is True:
+        plt.close(fig)
 
     return base64.b64encode(output.getvalue()).decode('ascii')
 
@@ -656,7 +658,7 @@ class Report(object):
             global_id = self._get_id()
             div_klass = section
             img_klass = section
-            img = _fig_to_img(fig=fig)
+            img = _fig_to_img(fig=fig, close_fig=False)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
