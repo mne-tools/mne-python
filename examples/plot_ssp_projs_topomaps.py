@@ -7,7 +7,7 @@ This example shows how to display topographies of SSP projection vectors.
 The projections used are the ones correcting for ECG artifacts.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#         Denis A. Engemann <d.engemann@fz-juuelich.de>
+#         Denis A. Engemann <denis.engemann@gmail.com>
 
 # License: BSD (3-clause)
 

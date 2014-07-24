@@ -34,7 +34,7 @@ mag_map = mne.sensitivity_map(fwd, ch_type='mag', mode='fixed')
 eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
 
 ###############################################################################
-# Show gain matrix a.k.a. leadfield matrix with sensitivy map
+# Show gain matrix a.k.a. leadfield matrix with sensitivity map
 
 import matplotlib.pyplot as plt
 picks_meg = mne.pick_types(fwd['info'], meg=True, eeg=False)
