@@ -3,7 +3,7 @@
 Reading and writing raw files
 =============================
 
-In this example we read a raw file. Plot a segment of MEG data
+In this example, we read a raw file. Plot a segment of MEG data
 restricted to MEG channels. And save these data in a new
 raw file.
 """
