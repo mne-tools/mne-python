@@ -62,11 +62,15 @@ def test_render_report():
 
     # Check if all files were rendered in the report
     fnames = glob.glob(op.join(base_dir, '*.fif'))
+    bad_name = 'test_ctf_comp_raw-eve.fif'
+    decrement = any(fname.endswith(bad_name) for fname in fnames)
     fnames = [fname for fname in fnames if
               fname.endswith(('-eve.fif', '-ave.fif', '-cov.fif',
                               '-sol.fif', '-fwd.fif', '-inv.fif',
                               '-src.fif', '-trans.fif', 'raw.fif',
-                              'sss.fif', '-epo.fif'))]
+                              'sss.fif', '-epo.fif')) and
+              not fname.endswith(bad_name)]
+    # last file above gets created by another test, and it shouldn't be there
 
     for fname in fnames:
         assert_true(''.join(report.html).find(op.basename(fname)) != -1)
@@ -77,7 +81,7 @@ def test_render_report():
     evoked1 = read_evokeds(evoked1_fname)
     evoked2 = read_evokeds(evoked2_fname)
     assert_equal(len(report.fnames) + len(evoked1) + len(evoked2) - 2,
-                 report.initial_id)
+                 report.initial_id - decrement)
 
     # Check saving functionality
     report.data_path = tempdir

@@ -59,6 +59,7 @@ def test_volume_stc():
             assert_true(isinstance(stc_new, VolSourceEstimate))
             assert_array_equal(vertno_read, stc_new.vertno)
             assert_array_almost_equal(stc.data, stc_new.data)
+
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
     assert_true(isinstance(stc, VolSourceEstimate))
@@ -83,13 +84,16 @@ def test_volume_stc():
         vol_fname = op.join(tempdir, 'stc.nii.gz')
         stc.save_as_volume(vol_fname, src,
                            dest='surf', mri_resolution=False)
-        img = nib.load(vol_fname)
+        with warnings.catch_warnings(record=True):  # nib<->numpy
+            img = nib.load(vol_fname)
         assert_true(img.shape == src[0]['shape'] + (len(stc.times),))
 
-        t1_img = nib.load(fname_t1)
+        with warnings.catch_warnings(record=True):  # nib<->numpy
+            t1_img = nib.load(fname_t1)
         stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
                            dest='mri', mri_resolution=True)
-        img = nib.load(vol_fname)
+        with warnings.catch_warnings(record=True):  # nib<->numpy
+            img = nib.load(vol_fname)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
         assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
                                   decimal=5)
@@ -580,7 +584,8 @@ def test_as_data_frame():
                         if isinstance(ind, list) else [ind])
             assert_array_equal(df.values.T[ncat:], stc.data)
             # test that non-indexed data were present as categorial variables
-            df.reset_index().columns[:3] == ['subject', 'time']
+            with warnings.catch_warnings(record=True):  # pandas
+                df.reset_index().columns[:3] == ['subject', 'time']
 
 
 def test_get_peak():
