@@ -80,7 +80,6 @@ def _fig_to_img(function=None, fig=None, **kwargs):
 
     output = BytesIO()
     fig.savefig(output, format='png', bbox_inches='tight')
-    plt.close('all')
 
     return base64.b64encode(output.getvalue()).decode('ascii')
 
