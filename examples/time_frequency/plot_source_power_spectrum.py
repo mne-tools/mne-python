@@ -36,12 +36,12 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
 
 tmin, tmax = 0, 120  # use the first 120s of data
 fmin, fmax = 4, 100  # look at frequencies between 4 and 100Hz
-NFFT = 2048  # the FFT size (NFFT). Ideally a power of 2
+n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
 label = mne.read_label(fname_label)
 
 stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                          tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
-                         pick_ori="normal", NFFT=NFFT, label=label)
+                         pick_ori="normal", n_fft=n_fft, label=label)
 
 stc.save('psd_dSPM')
 

@@ -35,7 +35,7 @@ raw.filter(1, 20)
 picks = mne.pick_types(raw.info, meg=True, exclude=[])
 tmin, tmax = 0, 120  # use the first 120s of data
 fmin, fmax = 2, 20  # look at frequencies between 2 and 20Hz
-n_fft = 2048  # the FFT size (NFFT). Ideally a power of 2
+n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
 psds, freqs = compute_raw_psd(raw, picks=picks, tmin=tmin, tmax=tmax,
                               fmin=fmin, fmax=fmax)
 psds = 20 * np.log10(psds)  # scale to dB

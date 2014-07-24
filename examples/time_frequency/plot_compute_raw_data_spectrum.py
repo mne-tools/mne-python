@@ -38,7 +38,7 @@ raw.add_proj(projs, remove_existing=True)
 
 tmin, tmax = 0, 60  # use the first 60s of data
 fmin, fmax = 2, 300  # look at frequencies between 2 and 300Hz
-n_fft = 2048  # the FFT size (NFFT). Ideally a power of 2
+n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
 
 plt.ion()
 
