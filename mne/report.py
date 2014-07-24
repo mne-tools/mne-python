@@ -39,8 +39,8 @@ VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
                     '-trans.fif', '-trans.fif.gz', '-fwd.fif', '-fwd.fif.gz',
                     '-epo.fif', '-epo.fif.gz', '-inv.fif', '-inv.fif.gz',
                     '-ave.fif', '-ave.fif.gz', 'T1.mgz']
-SECTION_ORDER = ['raw', 'events', 'evoked', 'covariance', 'trans', 'mri',
-                 'forward', 'inverse']
+SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
+                 'mri', 'forward', 'inverse']
 
 ###############################################################################
 # PLOTTING FUNCTIONS
@@ -524,9 +524,10 @@ div.footer {
 
         {{for section in sections}}
 
-        <li class="active {{section}}-btn">
-           <a href="javascript:void(0)" onclick="togglebutton('.{{section}}')">
-{{(section.replace("___", " ").capitalize() if section != 'mri' else 'MRI')}}
+        <li class="active {{sectionvars[section]}}-btn">
+           <a href="javascript:void(0)"
+           onclick="togglebutton('.{{sectionvars[section]}}')">
+    {{section if section != 'mri' else 'MRI'}}
            </a>
         </li>
 
@@ -620,6 +621,7 @@ class Report(object):
         self.fnames = []  # List of file names rendered
         self.sections = []  # List of sections
         self._sectionlabels = []  # Section labels
+        self._sectionvars = {}  # Section variable names in js
 
         self._init_render(verbose=self.verbose)  # Initialize the renderer
 
@@ -649,23 +651,23 @@ class Report(object):
             captions = [captions]
         if not len(figs) == len(captions):
             raise ValueError('Captions and figures must have the same length.')
-        if section.replace(" ", "___") not in self.sections:
-            section = section.replace(" ", "___")
+        if section not in self.sections:
             self.sections.append(section)
+            self._sectionvars[section] = _clean_varnames(section)
 
         for fig, caption in zip(figs, captions):
-            section = section.replace(" ", "___")
+            sectionvar = self._sectionvars[section]
             global_id = self._get_id()
-            div_klass = section
-            img_klass = section
-            img = _fig_to_img(fig=fig, close_fig=False)
+            div_klass = self._sectionvars[section]
+            img_klass = self._sectionvars[section]
+            img = _fig_to_img(fig=fig)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
                                              show=True)
-            self.fnames.append('%s-#-%s-#-custom' % (caption, section))
-            self._sectionlabels.append(section)
+            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
+            self._sectionlabels.append(sectionvar)
             self.html.append(html)
 
     ###########################################################################
@@ -771,6 +773,7 @@ class Report(object):
 
         # find unique section labels
         self.sections = sorted(set(self._sectionlabels))
+        self._sectionvars = dict(zip(self.sections, self.sections))
 
         # render mri
         if self.subjects_dir is not None and self.subject is not None:
@@ -859,14 +862,14 @@ class Report(object):
         # Sort by section
         html, fnames, sectionlabels = [], [], []
         for section in self.sections:
-            logger.info('%s' % section.replace("___", " "))
+            logger.info('%s' % section)
             for sectionlabel, this_html, fname in (zip(self._sectionlabels,
                                                    self.html, self.fnames)):
-                if section == sectionlabel:
+                if self._sectionvars[section] == sectionlabel:
                     html.append(this_html)
                     fnames.append(fname)
                     sectionlabels.append(sectionlabel)
-                    logger.info('\t... %s' % fname.replace("___", " ")[-20:])
+                    logger.info('\t... %s' % fname[-20:])
                     color = _is_bad_fname(fname)
                     div_klass, tooltip, text = _get_toc_property(fname)
 
@@ -912,7 +915,8 @@ class Report(object):
 
         html_header = header_template.substitute(title=self.title,
                                                  include=self.include,
-                                                 sections=self.sections)
+                                                 sections=self.sections,
+                                                 sectionvars=self._sectionvars)
         self.html.insert(0, html_header)  # Insert header at position 0
         self.html.insert(1, html_toc)  # insert TOC
 
@@ -990,6 +994,7 @@ class Report(object):
 
         if 'mri' not in self.sections:
             self.sections.append('mri')
+            self._sectionvars['mri'] = 'mri'
 
         nim = nib.load(image)
         data = nim.get_data()
@@ -1216,6 +1221,7 @@ class Report(object):
 
         if 'mri' not in self.sections:
             self.sections.append('mri')
+            self._sectionvars['mri'] = 'mri'
 
         name, caption = 'BEM', 'BEM contours'
 
@@ -1235,6 +1241,17 @@ class Report(object):
         html += u'</div>'
         html += u'</li>\n'
         return ''.join(html)
+
+
+def _clean_varnames(s):
+
+    # Remove invalid characters
+    s = re.sub('[^0-9a-zA-Z_]', '', s)
+
+    # Remove leading characters until we find a letter or underscore
+    s = re.sub('^[^a-zA-Z_]+', '', s)
+
+    return s
 
 
 def _recursive_search(path, pattern):
