@@ -48,15 +48,17 @@ for ax, picks, ch_type in zip(axes, [picks_meg, picks_eeg], ['meg', 'eeg']):
     ax.set_xlabel('sources')
     ax.set_ylabel('sensors')
     plt.colorbar(im, ax=ax, cmap='RdBu_r')
+plt.show()
 
+plt.figure()
 plt.hist([grad_map.data.ravel(), mag_map.data.ravel(), eeg_map.data.ravel()],
          bins=20, label=['Gradiometers', 'Magnetometers', 'EEG'],
          color=['c', 'b', 'k'])
-
 plt.legend()
 plt.title('Normal orientation sensitivity')
 plt.xlabel('sensitivity')
 plt.ylabel('count')
+plt.show()
 
 args = dict(fmin=0.1, fmid=0.5, fmax=0.9, smoothing_steps=7)
 grad_map.plot(subject='sample', time_label='Gradiometer sensitivity',
