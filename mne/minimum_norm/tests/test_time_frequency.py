@@ -90,11 +90,11 @@ def test_source_psd():
     label = read_label(fname_label)
     tmin, tmax = 0, 20  # seconds
     fmin, fmax = 55, 65  # Hz
-    NFFT = 2048
+    n_fft = 2048
     stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
                              method="dSPM", tmin=tmin, tmax=tmax,
                              fmin=fmin, fmax=fmax, pick_ori="normal",
-                             NFFT=NFFT, label=label, overlap=0.1)
+                             n_fft=n_fft, label=label, overlap=0.1)
     assert_true(stc.times[0] >= fmin * 1e-3)
     assert_true(stc.times[-1] <= fmax * 1e-3)
     # Time max at line frequency (60 Hz in US)
