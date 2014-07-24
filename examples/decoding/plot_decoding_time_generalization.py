@@ -72,7 +72,7 @@ times = 1e3 * epochs.times  # convert times to ms
 plt.figure()
 plt.imshow(scores, interpolation='nearest', origin='lower',
            extent=[times[0], times[-1], times[0], times[-1]],
-           vmin=0., vmax=1.)
+           vmin=0.1, vmax=0.9, cmap='RdBu_r')
 plt.xlabel('Times Test (ms)')
 plt.ylabel('Times Train (ms)')
 plt.title('Time generalization (%s vs. %s)' % tuple(event_id.keys()))

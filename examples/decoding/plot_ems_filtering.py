@@ -69,7 +69,8 @@ times = epochs.times * 1e3
 plt.figure()
 plt.title('single trial surrogates')
 plt.imshow(surrogates[conditions.argsort()], origin='lower', aspect='auto',
-           extent=[times[0], times[-1], 1, len(surrogates)])
+           extent=[times[0], times[-1], 1, len(surrogates)],
+           cmap='RdBu_r')
 plt.xlabel('Time (ms)')
 plt.ylabel('Trials (reordered by condition)')
 

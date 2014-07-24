@@ -25,7 +25,7 @@ from .utils import figure_nobar
 
 def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
                       vmax=None, colorbar=True, order=None, show=True,
-                      units=None, scalings=None):
+                      units=None, scalings=None, cmap='RdBu_r'):
     """Plot Event Related Potential / Fields image
 
     Parameters
@@ -60,6 +60,8 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
     scalings : dict | None
         The scalings of the channel types to be applied for plotting.
         If None, defaults to `scalings=dict(eeg=1e6, grad=1e13, mag=1e15)`
+    cmap : matplotlib colormap
+        Colormap.
 
     Returns
     -------
@@ -110,7 +112,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
                         extent=[1e3 * epochs.times[0], 1e3 * epochs.times[-1],
                                 0, len(data)],
                         aspect='auto', origin='lower',
-                        vmin=vmin, vmax=vmax)
+                        vmin=vmin, vmax=vmax, cmap=cmap)
         ax2 = plt.subplot2grid((3, 10), (2, 0), colspan=9, rowspan=1)
         if colorbar:
             ax3 = plt.subplot2grid((3, 10), (0, 9), colspan=1, rowspan=3)
