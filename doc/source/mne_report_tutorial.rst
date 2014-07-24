@@ -76,7 +76,7 @@ Custom plots can be added to the report. Let us first generate a custom plot:
 
 To add the custom plot to the report, do:
 
-    >>> report.add_section(fig, caption='evoked response', section='subject 1')
+    >>> report.add_section(fig, captions='evoked response', section='subject 1')
     >>> report.save('report.html', overwrite=True)
 
 The MNE report command internally manages the sections so that plots belonging to the same section

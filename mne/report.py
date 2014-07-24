@@ -755,7 +755,7 @@ class Report(object):
         else:
             warnings.warn('`info_fname` not provided. Cannot render'
                           '-cov.fif(.gz) and -trans.fif(.gz) files.')
-            sfreq = None
+            info, sfreq = None, None
 
         # render plots in parallel
         parallel, p_fun, _ = parallel_func(_iterate_files, n_jobs)
