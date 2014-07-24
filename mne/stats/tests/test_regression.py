@@ -58,7 +58,8 @@ def test_regression():
     stc = read_source_estimate(stc_fname).crop(0, 0.02)
     stc_list = [stc, stc, stc]
     stc_gen = (s for s in stc_list)
-    lm1 = linear_regression(stc_list, design_matrix[:len(stc_list)])
+    with warnings.catch_warnings(record=True):  # divide by zero
+        lm1 = linear_regression(stc_list, design_matrix[:len(stc_list)])
     lm2 = linear_regression(stc_gen, design_matrix[:len(stc_list)])
 
     for k in lm1:

@@ -1704,10 +1704,11 @@ class VolSourceEstimate(_BaseSourceEstimate):
         """
 
         vert_idx, time_idx = _get_peak(self.data, self.times, tmin, tmax,
-                                             mode)
+                                       mode)
 
         return (vert_idx if vert_as_index else self.vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
+
 
 ###############################################################################
 # Morphing
@@ -1942,7 +1943,6 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
             stc_morph.vertno[k] = np.array([], dtype=np.int64)
 
     return stc_morph
-
 
 
 @verbose
@@ -2561,9 +2561,10 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     header = nib.nifti1.Nifti1Header()
     header.set_xyzt_units('mm', 'msec')
     header['pixdim'][4] = 1e3 * stc.tstep
-    img = nib.Nifti1Image(vol, affine, header=header)
-    if fname is not None:
-        nib.save(img, fname)
+    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+        img = nib.Nifti1Image(vol, affine, header=header)
+        if fname is not None:
+            nib.save(img, fname)
     return img
 
 

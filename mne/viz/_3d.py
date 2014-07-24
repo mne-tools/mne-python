@@ -110,27 +110,33 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
         # Make a solid surface
         vlim = np.max(np.abs(data))
         alpha = alphas[ii]
-        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+        with warnings.catch_warnings(record=True):  # traits
+            mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
         mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
 
         # Now show our field pattern
-        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
-                                                    scalars=data)
+        with warnings.catch_warnings(record=True):  # traits
+            mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
+                                                        scalars=data)
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
-        fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim)
+        with warnings.catch_warnings(record=True):  # traits
+            fsurf = mlab.pipeline.surface(mesh, vmin=-vlim, vmax=vlim)
         fsurf.module_manager.scalar_lut_manager.lut.table = colormap
 
         # And the field lines on top
-        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
-                                                    scalars=data)
+        with warnings.catch_warnings(record=True):  # traits
+            mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'],
+                                                        scalars=data)
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
-        cont = mlab.pipeline.contour_surface(mesh, contours=21, line_width=1.0,
-                                             vmin=-vlim, vmax=vlim,
-                                             opacity=alpha)
+        with warnings.catch_warnings(record=True):  # traits
+            cont = mlab.pipeline.contour_surface(mesh, contours=21,
+                                                 line_width=1.0,
+                                                 vmin=-vlim, vmax=vlim,
+                                                 opacity=alpha)
         cont.module_manager.scalar_lut_manager.lut.table = colormap_lines
 
     if '%' in time_label:
@@ -299,7 +305,8 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
 
         # Make a solid surface
         alpha = alphas[ii]
-        mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
+        with warnings.catch_warnings(record=True):  # traits
+            mesh = mlab.pipeline.triangular_mesh_source(x, y, z, surf['tris'])
         mesh.data.point_data.normals = nn
         mesh.data.cell_data.normals = None
         mlab.pipeline.surface(mesh, color=colors[ii], opacity=alpha)
@@ -314,8 +321,9 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
             # Transform EEG electrodes to MRI coordinates
             eeg_loc = apply_trans(trans['trans'], eeg_loc)
 
-            mlab.points3d(eeg_loc[:, 0], eeg_loc[:, 1], eeg_loc[:, 2],
-                          color=(1.0, 0.0, 0.0), scale_factor=0.005)
+            with warnings.catch_warnings(record=True):  # traits
+                mlab.points3d(eeg_loc[:, 0], eeg_loc[:, 1], eeg_loc[:, 2],
+                              color=(1.0, 0.0, 0.0), scale_factor=0.005)
         else:
             warnings.warn('EEG electrode locations not found. '
                           'Cannot plot EEG electrodes.')
@@ -458,7 +466,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     else:
         logger.info('PySurfer does not support "views" argument, please '
                     'consider updating to a newer version (0.4 or later)')
-    brain = Brain(subject, hemi, surface, **kwargs)
+    with warnings.catch_warnings(record=True):  # traits warnings
+        brain = Brain(subject, hemi, surface, **kwargs)
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         if hemi_idx == 0:
@@ -467,10 +476,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             data = stc.data[len(stc.vertno[0]):]
         vertices = stc.vertno[hemi_idx]
         time = 1e3 * stc.times
-        brain.add_data(data, colormap=colormap, vertices=vertices,
-                       smoothing_steps=smoothing_steps, time=time,
-                       time_label=time_label, alpha=alpha, hemi=hemi,
-                       colorbar=colorbar)
+        with warnings.catch_warnings(record=True):  # traits warnings
+            brain.add_data(data, colormap=colormap, vertices=vertices,
+                           smoothing_steps=smoothing_steps, time=time,
+                           time_label=time_label, alpha=alpha, hemi=hemi,
+                           colorbar=colorbar)
 
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
@@ -478,7 +488,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     if time_viewer:
         TimeViewer(brain)
-
     return brain
 
 
@@ -576,9 +585,11 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     mlab.clf()
     if mlab.options.backend != 'test':
         f.scene.disable_render = True
-    surface = mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                                   use_faces, color=brain_color,
-                                   opacity=opacity, **kwargs)
+    with warnings.catch_warnings(record=True):  # traits warnings
+        surface = mlab.triangular_mesh(points[:, 0], points[:, 1],
+                                       points[:, 2], use_faces,
+                                       color=brain_color,
+                                       opacity=opacity, **kwargs)
 
     import matplotlib.pyplot as plt
     # Show time courses
@@ -608,13 +619,14 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         scale_factor = scale_factors[1] if is_common else scale_factors[0]
 
         if (isinstance(scale_factor, (np.ndarray, list, tuple))
-             and len(unique_vertnos) == len(scale_factor)):
+                and len(unique_vertnos) == len(scale_factor)):
             scale_factor = scale_factor[idx]
 
         x, y, z = points[v]
         nx, ny, nz = normals[v]
-        mlab.quiver3d(x, y, z, nx, ny, nz, color=color_converter.to_rgb(c),
-                      mode=mode, scale_factor=scale_factor)
+        with warnings.catch_warnings(record=True):  # traits
+            mlab.quiver3d(x, y, z, nx, ny, nz, color=color_converter.to_rgb(c),
+                          mode=mode, scale_factor=scale_factor)
 
         for k in ind:
             vertno = vertnos[k]
