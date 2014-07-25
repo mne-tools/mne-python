@@ -3,7 +3,7 @@ What's new
 
 .. _changes_0_8:
 
-Current
+Version 0.8
 -----------
 
 Changelog
@@ -162,6 +162,43 @@ affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
    - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
 
    - As default, for ICA the maximum number of PCA components equals the number of channels passed. The number of PCA components used to reconstruct the sensor space signals now defaults to the maximum number of PCA components estimated.
+
+Authors
+~~~~~~~~~
+
+The committer list for this release is the following (preceded by number
+of commits):
+
+   418  Denis A. Engemann
+   284  Alexandre Gramfort
+   242  Eric Larson
+   155  Christian Brodbeck
+   144  Mainak Jas
+    49  Martin Billinger
+    49  Andrew Dykstra
+    44  Tal Linzen
+    37  Dan G. Wakeman
+    36  Martin Luessi
+    26  Teon Brooks
+    20  Cathy Nangini
+    15  Hari Bharadwaj
+    15  Roman Goj
+    10  Ross Maddox
+     9  Marmaduke Woodman
+     8  Praveen Sripad
+     8  Tanay
+     8  Roan LaPlante
+     5  Saket Choudhary
+     4  Nick Ward
+     4  Mads Jensen
+     3  Olaf Hauk
+     3  Brad Buran
+     2  Daniel Strohmeier
+     2  Federico Raimondo
+     2  Alan Leggitt
+     1  Jean-Remi King
+     1  Matti Hamalainen
+
 
 .. _changes_0_7:
 
