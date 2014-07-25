@@ -518,9 +518,16 @@ div.footer {
 <body>
 
 <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
-    <div class="container">
+    <div class="container-fluid">
+        <div class="navbar-header navbar-left">
+            <ul class="nav nav-pills"><li class="active">
+                <a class="navbar-btn" data-toggle="collapse"
+                data-target="#viewnavbar" href="javascript:void(0)">
+                ></a></li></ul>
+    </div>
         <h3 class="navbar-text" style="color:white">{{title}}</h3>
-        <ul class="nav nav-pills navbar-right" style="margin-top: 7px;">
+        <ul class="nav nav-pills navbar-right" style="margin-top: 7px;"
+        id="viewnavbar">
 
         {{for section in sections}}
 
