@@ -101,12 +101,12 @@ Custom plots can be added to the report. Let us first generate a custom plot:
             nave = 55 - aspect type = 100
     Projections have already been applied. Doing nothing.
     Applying baseline correction ... (mode: mean)
-    >>> fig = evoked.plot()
+    >>> fig = evoked.plot() # doctest: +SKIP
 
 To add the custom plot to the report, do:
 
-    >>> report.add_section(fig, captions='Left Auditory', section='evoked')
-    >>> report.save('report.html', overwrite=True)  # doctest:+ELLIPSIS
+    >>> report.add_section(fig, captions='Left Auditory', section='evoked') # doctest: +SKIP
+    >>> report.save('report.html', overwrite=True) # doctest: +SKIP
     Rendering : Table of Contents...
 
 The MNE report command internally manages the sections so that plots belonging to the same section
