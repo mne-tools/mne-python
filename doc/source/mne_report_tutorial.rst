@@ -62,22 +62,52 @@ the required functions:
 Generate the report:
 
     >>> path = sample.data_path()
-    >>> report = Report(subjects_dir=path + '/subjects', subject='sample')
-    >>> report.parse_folder(data_path=path)
-    >>> report.save('report.html')
+    >>> report = Report()
+    Embedding : jquery-1.10.2.min.js
+    Embedding : jquery-ui.min.js
+    Embedding : bootstrap.min.js
+    Embedding : jquery-ui.min.css
+    Embedding : bootstrap.min.css
+
+Only include \*-eve.fif files in the report:
+
+    >>> report.parse_folder(data_path=path, pattern='*-eve.fif') # doctest:+ELLIPSIS
+    Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif
+    Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_eog-eve.fif
+    Rendering : .../MNE-sample-data/MEG/sample/ernoise_raw-eve.fif
+    Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_raw-eve.fif
+    Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_ecg-eve.fif
+
+Save the report as an html, but do not open the html in a browser:
+
+    >>> report.save('report.html', overwrite=True, open_browser=False) # doctest:+ELLIPSIS
+    Rendering : Table of Contents...
 
 There is greater flexibility compared to the command line interface. 
 Custom plots can be added to the report. Let us first generate a custom plot:
 
     >>> from mne import read_evokeds
     >>> fname = path + '/MEG/sample/sample_audvis-ave.fif'
-    >>> evoked = read_evokeds(fname, condition='Left Auditory', baseline=(None, 0))
+    >>> evoked = read_evokeds(fname, condition='Left Auditory', baseline=(None, 0)) # doctest:+ELLIPSIS
+    Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
+        Read a total of 4 projection items:
+            PCA-v1 (1 x 102) active
+            PCA-v2 (1 x 102) active
+            PCA-v3 (1 x 102) active
+            Average EEG reference (1 x 60) active
+        Found the data of interest:
+            t =    -199.80 ...     499.49 ms (Left Auditory)
+            0 CTF compensation matrices available
+            nave = 55 - aspect type = 100
+    Projections have already been applied. Doing nothing.
+    Applying baseline correction ... (mode: mean)
     >>> fig = evoked.plot()
 
 To add the custom plot to the report, do:
 
-    >>> report.add_section(fig, captions='evoked response', section='subject 1')
-    >>> report.save('report.html', overwrite=True)
+    >>> report.add_section(fig, captions='Left Auditory', section='evoked')
+    >>> report.save('report.html', overwrite=True)  # doctest:+ELLIPSIS
+    Rendering : Table of Contents...
 
 The MNE report command internally manages the sections so that plots belonging to the same section
 are rendered consecutively. Within a section, the plots are ordered in the same order that they were 
