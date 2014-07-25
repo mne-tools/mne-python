@@ -71,7 +71,7 @@ Generate the report:
 
 Only include \*-eve.fif files in the report:
 
-    >>> report.parse_folder(data_path=path, pattern='*-eve.fif') # doctest:+ELLIPSIS
+    >>> report.parse_folder(data_path=path, pattern='*-eve.fif') # doctest: +SKIP
     Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif
     Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_eog-eve.fif
     Rendering : .../MNE-sample-data/MEG/sample/ernoise_raw-eve.fif
@@ -80,7 +80,7 @@ Only include \*-eve.fif files in the report:
 
 Save the report as an html, but do not open the html in a browser:
 
-    >>> report.save('report.html', overwrite=True, open_browser=False) # doctest:+ELLIPSIS
+    >>> report.save('report.html', overwrite=True, open_browser=False) # doctest:+SKIP
     Rendering : Table of Contents...
 
 There is greater flexibility compared to the command line interface. 
