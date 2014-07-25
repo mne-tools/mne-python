@@ -29,6 +29,7 @@ can use ``__name='tmpl.html'`` to set the name of the template.
 If there are syntax errors ``TemplateError`` will be raised.
 """
 
+import warnings
 import re
 import sys
 import cgi
@@ -452,7 +453,8 @@ def html_quote(value, force=True):
         value = cgi.escape(value.decode('latin1'), 1)
         value = value.encode('latin1')
     else:
-        value = cgi.escape(value, 1)
+        with warnings.catch_warnings(record=True):  # annoying
+            value = cgi.escape(value, 1)
     if sys.version < "3":
         if is_unicode(value):
             value = value.encode('ascii', 'xmlcharrefreplace')
