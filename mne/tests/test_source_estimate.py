@@ -12,7 +12,7 @@ from scipy.fftpack import fft
 
 from mne.datasets import sample
 from mne import (stats, SourceEstimate, VolSourceEstimate, Label,
-                 read_source_spaces)
+                 read_source_spaces, MixedSourceEstimate)
 from mne import read_source_estimate, morph_data, extract_label_time_course
 from mne.source_estimate import (spatio_temporal_tris_connectivity,
                                  spatio_temporal_src_connectivity,
@@ -34,7 +34,8 @@ fname_vol = op.join(data_path, 'MEG', 'sample',
 fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis-meg-vol-7-fwd.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
-
+fname_src = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis-meg-oct-6-fwd.fif')
 tempdir = _TempDir()
 
 
@@ -589,3 +590,30 @@ def test_get_peak():
                                         time_as_index=True)
         assert_true(vert_idx < stc.data.shape[0])
         assert_true(time_idx < len(stc.times))
+
+
+@sample.requires_sample_data
+def test_mixed_stc():
+    """Test source estimate from mixed source space
+    """
+    N = 90  # number of sources
+    T = 2  # number of time points
+    S = 3  # number of source spaces
+
+    data = np.random.randn(N, T)
+    vertno = S * [np.arange(N/S)]
+
+    # make sure error is raised if vertices are not a list of length >= 2
+    assert_raises(ValueError, MixedSourceEstimate, data=data,
+                  vertices=[np.arange(N)])
+
+    stc = MixedSourceEstimate(data, vertno, 0, 1)
+
+    srf = read_source_spaces(fname_src)
+    vol = read_source_spaces(fname_vsrc)
+
+    # create a mixed source space
+    src = srf + vol
+
+    # make sure error is raised for plotting surface with volume source
+    assert_raises(ValueError, stc.plot_surface, src=vol)

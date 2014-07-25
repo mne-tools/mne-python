@@ -331,7 +331,7 @@ def read_source_estimate(fname, subject=None):
 
 
 def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
-    """Helper function to generate either a surface or volume source estimate
+    """Helper function to generate a surface, volume or mixed source estimate
     """
 
     if isinstance(vertices, list) and len(vertices) == 2:
@@ -347,7 +347,7 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
         stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
                                   tstep=tstep, subject=subject)
     else:
-        raise ValueError('vertices has to be either a list with one or two '
+        raise ValueError('vertices has to be either a list with one or more '
                          'arrays or an array')
     return stc
 
@@ -1378,12 +1378,15 @@ class SourceEstimate(_BaseSourceEstimate):
             A instance of surfer.viz.Brain from PySurfer.
         """
         brain = plot_source_estimates(self, subject, surface=surface,
-                        hemi=hemi, colormap=colormap, time_label=time_label,
-                        smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
-                        fmax=fmax, transparent=transparent, alpha=alpha,
-                        time_viewer=time_viewer, config_opts=config_opts,
-                        subjects_dir=subjects_dir, figure=figure, views=views,
-                        colorbar=colorbar)
+                                      hemi=hemi, colormap=colormap,
+                                      time_label=time_label,
+                                      smoothing_steps=smoothing_steps,
+                                      fmin=fmin, fmid=fmid, fmax=fmax,
+                                      transparent=transparent, alpha=alpha,
+                                      time_viewer=time_viewer,
+                                      config_opts=config_opts,
+                                      subjects_dir=subjects_dir, figure=figure,
+                                      views=views, colorbar=colorbar)
         return brain
 
     @verbose
@@ -1686,7 +1689,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         """
 
         vert_idx, time_idx = _get_peak(self.data, self.times, tmin, tmax,
-                                             mode)
+                                       mode)
 
         return (vert_idx if vert_as_index else self.vertno[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
@@ -1731,6 +1734,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):
 
+        if not isinstance(vertices, list) or len(vertices) < 2:
+            raise ValueError('Vertices must be a list of numpy arrays with '
+                             'one array per source space.')
+
         _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
                                      tstep=tstep, subject=subject,
                                      verbose=verbose)
@@ -1745,7 +1752,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         # extract surface source spaces
         surf = [s for s in src if s['type'] == 'surf']
         if len(surf) != 2:
-            raise IOError('Source spaces must contain exactly two surfaces.')
+            raise ValueError('Source space must contain exactly two surfaces.')
 
         # extract surface source estimate
         data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
@@ -1763,6 +1770,76 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                               subjects_dir=subjects_dir, figure=figure,
                               views=views, colorbar=colorbar)
 
+    def export_volumes_to_nifti(self, src, fname):
+
+        # extract volume source spaces and source estimates
+        vol_src = []  # list of volume source spaces
+        start = 0  # source to read from source estimate
+        first_vol = True  # bool to track first volume source
+        for s in src:
+            if s['type'] == 'vol':
+                vol_src.append(s)  # update list of volume sources
+                stop = start + s['nuse']  # get range of sources to read
+                if first_vol:
+                    vol_data = self.data[start:stop]
+                    first_vol = False
+                else:
+                    vol_data = np.vstack((vol_data, self.data[start:stop]))
+            start += s['nuse']  # update stc starting index
+
+        # check that at least one volume is present
+        if len(vol_src) < 1:
+            raise ValueError('Source space must contain at least one volume.')
+
+        # calculate the inuse array
+        inuse = np.zeros(vol_src[0]['inuse'].shape)
+        for vs in vol_src:
+            try:
+                inuse += vs['inuse']
+            except ValueError:
+                raise ValueError('Each volume source space must be generated '
+                                 'from the same grid.')
+
+        # get the 3d shape
+        shape = vs['shape']
+        shape3d = (shape[2], shape[1], shape[0])
+
+        # setup 3d mask
+        mask3d = inuse.reshape(shape3d).astype(bool)
+
+        # get the 4d shape
+        n_times = vol_data.shape[1]
+        shape = (n_times, shape[2], shape[1], shape[0])
+
+        # setup the 4d volume
+        vol = np.zeros(shape)
+        for k, v in enumerate(vol):
+            v[mask3d] = vol_data[:, k]
+        vol = vol.T
+
+        # setup the affine transform
+        affine = vs['src_mri_t']['trans'].copy()
+        affine = np.dot(vs['mri_ras_t']['trans'], affine)
+        affine[:3] *= 1e3  # convert to mm
+
+        # import nibabel or raise error
+        try:
+            import nibabel as nib
+        except ImportError:
+            raise ImportError('nibabel is required to save mixed estimate to '
+                              'volume images.')
+
+        # setup the nifti header
+        header = nib.nifti1.Nifti1Header()
+        header.set_xyzt_units('mm', 'msec')
+        header['pixdim'][4] = 1e3 * self.tstep
+
+        # save and/or return nifti image
+        img = nib.Nifti1Image(vol, affine, header=header)
+        if fname is not None:
+            nib.save(img, fname)
+
+        return img
 
 ###############################################################################
 # Morphing
