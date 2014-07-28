@@ -127,12 +127,10 @@ class SourceSpaces(list):
         # create 3d grid
         shape = self[0]['shape']
         shape3d = (shape[2], shape[1], shape[0])
-        vol = self[0]['inuse'].reshape(shape3d)
+        vol = self[0]['inuse'].reshape(shape3d).T
         # calculate affine transform
         aff = self[0]['src_mri_t']['trans']
         aff = np.dot(self[0]['mri_ras_t']['trans'], aff)
-        aff = np.dot(aff, np.array([[0, 0, 1, 0], [0, 1, 0, 0],
-                                    [1, 0, 0, 0], [0, 0, 0, 1]]))
         aff[:3] *= 1e3  # convert to millimeters
 
         # setup the nifti file
