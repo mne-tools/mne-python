@@ -1770,7 +1770,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                               subjects_dir=subjects_dir, figure=figure,
                               views=views, colorbar=colorbar)
 
-    def export_volumes_to_nifti(self, src, fname):
+    def export_volumes_to_nifti(self, src, fname, include_surfaces=False):
 
         # extract volume source spaces and source estimates
         vol_src = []  # list of volume source spaces
@@ -1815,6 +1815,39 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         vol = np.zeros(shape)
         for k, v in enumerate(vol):
             v[mask3d] = vol_data[:, k]
+
+        # inlude surface source spaces
+        if include_surfaces:
+            surf_src = []  # list of surfaces
+            surf_data = []
+            start = 0  # start index
+            # loop through the sources
+            for s in src:
+                # extract surfaces
+                if s['type'] == 'surf':
+                    # update surface list
+                    surf_src.append(s)
+                    stop = start + s['nuse']
+                    surf_data.append(self.data[start:stop])
+                start += s['nuse']
+
+            # loop through the surfaces
+            for n, surf in enumerate(surf_src):
+                # get the vertex positions
+                rr = surf['rr'][surf['inuse'].astype(bool)]
+                # find nearest voxel for each vertex
+                ix = _compute_nearest(vs['rr'], rr)
+                # loop through unique voxels
+                for i in np.unique(ix):
+                    # get the 3d indices
+                    ii = np.unravel_index(i, shape3d)
+                    # average all vertices within this voxel
+                    dat = surf_data[n][ix == i].mean(0)
+                    # update voxel data at each time point
+                    for k, v in enumerate(vol):
+                        v[ii] = dat[k]
+
+        # transpose volume data
         vol = vol.T
 
         # setup the affine transform
