@@ -1748,6 +1748,66 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                      transparent=True, alpha=1.0, time_viewer=False,
                      config_opts={}, subjects_dir=None, figure=None,
                      views='lat', colorbar=True):
+        """Plot surface source estimates with PySurfer
+
+        Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
+        which will automatically be set by this function. Plotting multiple
+        SourceEstimates with different values for subjects_dir will cause
+        PySurfer to use the wrong FreeSurfer surfaces when using methods of
+        the returned Brain object. It is therefore recommended to set the
+        SUBJECTS_DIR environment variable or always use the same value for
+        subjects_dir (within the same Python session).
+
+        Parameters
+        ----------
+        src : SourceSpaces
+            The source spaces to plot.
+        subject : str | None
+            The subject name corresponding to FreeSurfer environment
+            variable SUBJECT. If None stc.subject will be used. If that
+            is None, the environment will be used.
+        surface : str
+            The type of surface (inflated, white etc.).
+        hemi : str, 'lh' | 'rh' | 'split' | 'both'
+            The hemisphere to display. Using 'both' or 'split' requires
+            PySurfer version 0.4 or above.
+        colormap : str
+            The type of colormap to use.
+        time_label : str
+            How to print info about the time instant visualized.
+        smoothing_steps : int
+            The amount of smoothing.
+        fmin : float
+            The minimum value to display.
+        fmid : float
+            The middle value on the colormap.
+        fmax : float
+            The maximum value for the colormap.
+        transparent : bool
+            If True, use a linear transparency between fmin and fmid.
+        alpha : float
+            Alpha value to apply globally to the overlay.
+        time_viewer : bool
+            Display time viewer GUI.
+        config_opts : dict
+            Keyword arguments for Brain initialization.
+            See pysurfer.viz.Brain.
+        subjects_dir : str
+            The path to the FreeSurfer subjects reconstructions.
+            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
+        figure : instance of mayavi.core.scene.Scene | None
+            If None, the last figure will be cleaned and a new figure will
+            be created.
+        views : str | list
+            View to use. See surfer.Brain().
+        colorbar : bool
+            If True, display colorbar on scene.
+
+        Returns
+        -------
+        brain : Brain
+            A instance of surfer.viz.Brain from PySurfer.
+        """
 
         # extract surface source spaces
         surf = [s for s in src if s['type'] == 'surf']
@@ -1761,21 +1821,49 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         stc = SourceEstimate(data, vertices, self.tmin, self.tstep,
                              self.subject, self.verbose)
 
-        plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
-                              colormap=colormap, time_label=time_label,
-                              smoothing_steps=smoothing_steps, fmin=fmin,
-                              fmid=fmid, fmax=fmax, transparent=transparent,
-                              alpha=alpha, time_viewer=time_viewer,
-                              config_opts=config_opts,
-                              subjects_dir=subjects_dir, figure=figure,
-                              views=views, colorbar=colorbar)
+        return plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
+                                     colormap=colormap, time_label=time_label,
+                                     smoothing_steps=smoothing_steps,
+                                     fmin=fmin, fmid=fmid, fmax=fmax,
+                                     transparent=transparent, alpha=alpha,
+                                     time_viewer=time_viewer,
+                                     config_opts=config_opts,
+                                     subjects_dir=subjects_dir, figure=figure,
+                                     views=views, colorbar=colorbar)
 
-    def export_volumes_to_nifti(self, src, fname, include_surfaces=False):
+    def save_volume(self, src, fname, include_surfaces=False, dest='mri',
+                    mri_resolution=False):
+        """Save volume source estimate as a nifti or mgh image
+
+        Parameters
+        ----------
+        src : list
+            The list of source spaces (must contain at least one volume)
+        fname : string
+            Filename to save volume to (supports .nii and .mgz format)
+        include_surfaces : bool
+            If True surface source estimates are mapped onto nearest voxels
+            and included in image.
+        dest : 'mri' | 'surf'
+            If 'mri' the volume is defined in the coordinate system of
+            the original T1 image. If 'surf' the coordinate system
+            of the FreeSurfer surface is used (Surface RAS).
+        mri_resolution: bool
+            If True the image is saved in MRI resolution.
+            WARNING: if you have many time points the file produced can be
+            huge.
+
+        Returns
+        -------
+        img : instance Nifti1Image or MGHImage
+            The image object.
+        """
 
         # extract volume source spaces and source estimates
         vol_src = []  # list of volume source spaces
         start = 0  # source to read from source estimate
         first_vol = True  # bool to track first volume source
+        # loop through the sources
         for s in src:
             if s['type'] == 'vol':
                 vol_src.append(s)  # update list of volume sources
@@ -1785,7 +1873,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                     first_vol = False
                 else:
                     vol_data = np.vstack((vol_data, self.data[start:stop]))
-            start += s['nuse']  # update stc starting index
+            start += s['nuse']  # update stc data starting index
 
         # check that at least one volume is present
         if len(vol_src) < 1:
@@ -1819,7 +1907,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         # inlude surface source spaces
         if include_surfaces:
             surf_src = []  # list of surfaces
-            surf_data = []
+            surf_data = []  # surface stc data
             start = 0  # start index
             # loop through the sources
             for s in src:
@@ -1862,15 +1950,28 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             raise ImportError('nibabel is required to save mixed estimate to '
                               'volume images.')
 
-        # setup the nifti header
-        header = nib.nifti1.Nifti1Header()
-        header.set_xyzt_units('mm', 'msec')
-        header['pixdim'][4] = 1e3 * self.tstep
+        # get the file type
+        fstring, ftype = os.path.splitext(fname)
 
-        # save and/or return nifti image
-        img = nib.Nifti1Image(vol, affine, header=header)
-        if fname is not None:
-            nib.save(img, fname)
+        if ftype == '.nii':  # save as nifti
+
+            # setup the nifti header
+            header = nib.nifti1.Nifti1Header()
+            header.set_xyzt_units('mm', 'msec')
+            header['pixdim'][4] = 1e3 * self.tstep
+
+            # return nifti image
+            img = nib.Nifti1Image(vol, affine, header=header)
+
+        elif ftype == '.mgz':  # save as mgh
+
+            # float64 not currently supported
+            vol = vol.astype('float32')
+            # return mgh image
+            img = nib.freesurfer.mghformat.MGHImage(vol, affine)
+
+        # save image
+        nib.save(img, fname)
 
         return img
 
