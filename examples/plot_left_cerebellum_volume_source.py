@@ -13,12 +13,12 @@ segmentation file.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 from scipy.spatial import ConvexHull
 from mayavi import mlab
-from mne import (setup_source_space, setup_volume_source_space)
+from mne import setup_source_space, setup_volume_source_space
 from mne.datasets import sample
 
 data_path = sample.data_path()
