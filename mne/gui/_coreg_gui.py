@@ -1037,10 +1037,10 @@ class CoregPanel(HasPrivateTraits):
 
     def _scale_z_dec_fired(self):
         step = 1. / self.scale_step
-        self.scale_x *= step
+        self.scale_z *= step
 
     def _scale_z_inc_fired(self):
-        self.scale_x *= self.scale_step
+        self.scale_z *= self.scale_step
 
     def _trans_x_dec_fired(self):
         self.trans_x -= self.trans_step
