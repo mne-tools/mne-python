@@ -1,8 +1,8 @@
 # Authors: Christoph Dinh <chdinh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 import time
@@ -10,13 +10,13 @@ import copy
 
 import numpy as np
 
-from ..fiff import pick_channels, pick_types
+from .. import pick_channels, pick_types
 from ..utils import logger, verbose
 from ..baseline import rescale
 from ..epochs import _BaseEpochs
 from ..event import _find_events
 from ..filter import detrend
-from ..fiff.proj import setup_proj
+from ..io.proj import setup_proj
 
 
 class RtEpochs(_BaseEpochs):
@@ -347,7 +347,7 @@ class RtEpochs(_BaseEpochs):
             The raw epoch (only calibration has been applied) over all
             channels.
         event_samp : int
-            The time in samples when the epoch occured.
+            The time in samples when the epoch occurred.
         event_id : int
             The event ID of the epoch.
         """
@@ -362,19 +362,8 @@ class RtEpochs(_BaseEpochs):
         if self.proj and self._projector is not None:
             epoch = np.dot(self._projector, epoch)
 
-        # Detrend
-        if self.detrend is not None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False, ref_meg=False)
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
-
-        # Baseline correct
-        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
-                        copy=False, verbose='ERROR')
-
-        # Decimate
-        if self.decim > 1:
-            epoch = epoch[:, self._decim_idx]
+        # Detrend, baseline correct, decimate
+        epoch = self._preprocess(epoch, verbose='ERROR')
 
         # Decide if this is a good epoch
         is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')

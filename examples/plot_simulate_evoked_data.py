@@ -5,26 +5,30 @@ Generate simulated evoked data
 
 """
 # Author: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#         Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
+
+print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
 
-import mne
-from mne.fiff.pick import pick_types_evoked, pick_types_forward
+from mne import (read_proj, read_forward_solution, read_cov, read_label,
+                 pick_types_evoked, pick_types_forward, pick_types,
+                 read_evokeds)
+from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import iir_filter_raw, morlet
-from mne.viz import plot_evoked, plot_sparse_source_estimates
+from mne.viz import plot_sparse_source_estimates
 from mne.simulation import generate_sparse_stc, generate_evoked
 
 ###############################################################################
 # Load real data as templates
 data_path = sample.data_path()
 
-raw = mne.fiff.Raw(data_path + '/MEG/sample/sample_audvis_raw.fif')
-proj = mne.read_proj(data_path + '/MEG/sample/sample_audvis_ecg_proj.fif')
+raw = Raw(data_path + '/MEG/sample/sample_audvis_raw.fif')
+proj = read_proj(data_path + '/MEG/sample/sample_audvis_ecg_proj.fif')
 raw.info['projs'] += proj
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
 
@@ -32,17 +36,18 @@ fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
-fwd = mne.read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
+fwd = read_forward_solution(fwd_fname, force_fixed=True, surf_ori=True)
 fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
 
-cov = mne.read_cov(cov_fname)
+cov = read_cov(cov_fname)
 
-evoked_template = mne.fiff.read_evoked(ave_fname, setno=0, baseline=None)
+condition = 'Left Auditory'
+evoked_template = read_evokeds(ave_fname, condition=condition, baseline=None)
 evoked_template = pick_types_evoked(evoked_template, meg=True, eeg=True,
                                     exclude=raw.info['bads'])
 
 label_names = ['Aud-lh', 'Aud-rh']
-labels = [mne.read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
+labels = [read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
           for ln in label_names]
 
 ###############################################################################
@@ -68,7 +73,7 @@ stc = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep,
 
 ###############################################################################
 # Generate noisy evoked data
-picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
+picks = pick_types(raw.info, meg=True, exclude='bads')
 iir_filter = iir_filter_raw(raw, order=5, picks=picks, tmin=60, tmax=180)
 evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
                          tmin=0.0, tmax=0.2, iir_filter=iir_filter)
@@ -81,4 +86,4 @@ plot_sparse_source_estimates(fwd['src'], stc, bgcolor=(1, 1, 1),
 plt.figure()
 plt.psd(evoked.data[0])
 
-plot_evoked(evoked)
+evoked.plot()

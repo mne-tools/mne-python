@@ -3,11 +3,11 @@
 Reading/Writing a noise covariance matrix
 =========================================
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne.datasets import sample
@@ -16,7 +16,7 @@ data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 cov = mne.Covariance(fname)
-print cov
+print(cov)
 
 ###############################################################################
 # Show covariance

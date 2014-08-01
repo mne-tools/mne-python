@@ -9,6 +9,7 @@ MNE with Python
 
    getting_started.rst
    python_tutorial.rst
+   mne_report_tutorial.rst
    auto_examples/index.rst
    python_reference.rst
    whats_new.rst

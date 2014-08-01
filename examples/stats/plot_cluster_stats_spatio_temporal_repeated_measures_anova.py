@@ -14,20 +14,20 @@ comparisons problem is addressed with a cluster-level permutation test
 across space and time.
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Engemannn <d.engemann@fz-juelich.de>
+#          Denis Engemannn <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import os.path as op
 import numpy as np
 from numpy.random import randn
 
 import mne
-from mne import (fiff, spatial_tris_connectivity, compute_morph_matrix,
+from mne import (io, spatial_tris_connectivity, compute_morph_matrix,
                  grade_to_tris)
 from mne.stats import (spatio_temporal_cluster_test, f_threshold_twoway_rm,
                        f_twoway_rm, summarize_clusters_stc)
@@ -46,13 +46,13 @@ tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 
 #   Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 ###############################################################################
 # Read epochs for all channels, removing a bad one
 raw.info['bads'] += ['MEG 2443']
-picks = fiff.pick_types(raw.info, meg=True, eog=True, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 # we'll load all four conditions that make up the 'two ways' of our ANOVA
 
 event_id = dict(l_aud=1, r_aud=2, l_vis=3, r_vis=4)
@@ -101,7 +101,7 @@ tstep = conditions[0].tstep
 # we'll only consider the left hemisphere in this example.
 n_vertices_sample, n_times = conditions[0].lh_data.shape
 n_subjects = 7
-print 'Simulating data for %d subjects.' % n_subjects
+print('Simulating data for %d subjects.' % n_subjects)
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)
@@ -122,7 +122,7 @@ n_vertices_fsave = morph_mat.shape[0]
 
 #    We have to change the shape for the dot() to work properly
 X = X.reshape(n_vertices_sample, n_times * n_subjects * 4)
-print 'Morphing data.'
+print('Morphing data.')
 X = morph_mat.dot(X)  # morph_mat is a sparse matrix
 X = X.reshape(n_vertices_fsave, n_times, n_subjects, 4)
 
@@ -169,9 +169,9 @@ def stat_fun(*args):
     # The following expression catches the list input, swaps the first and the
     # second dimension and puts the remaining observations in the third
     # dimension.
-    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_subjects,
-                                                       n_conditions, n_times *
-                                                       n_vertices_fsave)
+    data = np.squeeze(np.swapaxes(np.array(args), 1, 0))
+    data = data.reshape(n_subjects, n_conditions,  # generalized if buffer used
+                        data.size / (n_subjects * n_conditions))
     return f_twoway_rm(data, factor_levels=factor_levels, effects=effects,
                        return_pvals=return_pvals)[0]
                        #  drop p-values (empty array).
@@ -187,17 +187,18 @@ def stat_fun(*args):
 source_space = grade_to_tris(5)
 # as we only have one hemisphere we need only need half the connectivity
 lh_source_space = source_space[source_space[:, 0] < 10242]
-print 'Computing connectivity.'
+print('Computing connectivity.')
 connectivity = spatial_tris_connectivity(lh_source_space)
 
 #    Now let's actually do the clustering. Please relax, on a small
 #    notebook and one single thread only this will take a couple of minutes ...
-#    To speed things up a bit we will
-pthresh = 0.001
+pthresh = 0.0005
 f_thresh = f_threshold_twoway_rm(n_subjects, factor_levels, effects, pthresh)
+
+#    To speed things up a bit we will ...
 n_permutations = 100  # ... run fewer permutations (reduces sensitivity)
 
-print 'Clustering.'
+print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
     spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
                                  threshold=f_thresh, stat_fun=stat_fun,
@@ -210,7 +211,7 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 ###############################################################################
 # Visualize the clusters
 
-print 'Visualizing clusters.'
+print('Visualizing clusters.')
 
 #    Now let's build a convenient representation of each cluster, where each
 #    cluster becomes a "time point" in the SourceEstimate
@@ -261,10 +262,12 @@ for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_ids)):
     plt.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
                      alpha=0.5, label='')
 
+ymin, ymax = mean_tc.min() -5, mean_tc.max() + 5 
 plt.xlabel('Time (ms)')
 plt.ylabel('Activation (F-values)')
 plt.xlim(times[[0, -1]])
-plt.fill_betweenx(np.arange(*plt.ylim()), times[inds_t[0]],
+plt.ylim(ymin, ymax)
+plt.fill_betweenx(np.arange(ymin, ymax), times[inds_t[0]],
                   times[inds_t[-1]], color='orange', alpha=0.3)
 plt.legend()
 plt.title('Interaction between stimulus-modality and location.')

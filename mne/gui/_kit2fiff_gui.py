@@ -5,7 +5,7 @@
 # License: BSD (3-clause)
 
 import os
-from Queue import Queue
+from ..externals.six.moves import queue
 from threading import Thread
 
 import numpy as np
@@ -18,7 +18,7 @@ try:
     from pyface.api import confirm, error, FileDialog, OK, YES, information
     from traits.api import (HasTraits, HasPrivateTraits, cached_property,
                             Instance, Property, Bool, Button, Enum, File, Int,
-                            List, Str, DelegatesTo)
+                            List, Str, Array, DelegatesTo)
     from traitsui.api import (View, Item, HGroup, VGroup, spring,
                               CheckListEditor, EnumEditor, Handler)
     from traitsui.menu import NoButtons
@@ -41,6 +41,8 @@ except:
     List = trait_wraith
     Property = trait_wraith
     Str = trait_wraith
+    Array = trait_wraith
+    spring = trait_wraith
     View = trait_wraith
     Item = trait_wraith
     HGroup = trait_wraith
@@ -50,16 +52,16 @@ except:
     CheckListEditor = trait_wraith
     SceneEditor = trait_wraith
 
-from ..fiff.kit.coreg import read_hsp, read_elp
-from ..fiff.kit.kit import RawKIT, KIT
+from ..io.kit.coreg import read_hsp
+from ..io.kit.kit import RawKIT, KIT
 from ..transforms import apply_trans, als_ras_trans, als_ras_trans_mm
-from ..coreg import (_decimate_points, fit_matched_points,
+from ..coreg import (read_elp, _decimate_points, fit_matched_points,
                      get_ras_to_neuromag_trans)
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._viewer import HeadViewController, headview_item, PointObject
 
 
-use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in xrange(5)])
+use_editor = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
 backend_is_wx = False  # is there a way to determine this?
 if backend_is_wx:
     # wx backend allows labels for wildcards
@@ -87,10 +89,11 @@ class Kit2FiffModel(HasPrivateTraits):
                     "head shape")
     fid_file = File(exists=True, filter=hsp_fid_wildcard, desc="Digitizer "
                     "fiducials")
-    stim_chs = Enum(">", "<")
+    stim_chs = Enum(">", "<", "man")
+    stim_chs_manual = Array(int, (8,), range(168, 176))
     stim_slope = Enum("-", "+")
     # Marker Points
-    use_mrk = List(range(5), desc="Which marker points to use for the device "
+    use_mrk = List(list(range(5)), desc="Which marker points to use for the device "
                    "head coregistration.")
 
     # Derived Traits
@@ -157,7 +160,7 @@ class Kit2FiffModel(HasPrivateTraits):
     def _get_elp(self):
         if self.elp_raw is None:
             return np.empty((0, 3))
-        pts = self.elp_raw[3:]
+        pts = self.elp_raw[3:8]
         pts = apply_trans(self.polhemus_neuromag_trans, pts)
         return pts
 
@@ -168,6 +171,8 @@ class Kit2FiffModel(HasPrivateTraits):
 
         try:
             pts = read_elp(self.fid_file)
+            if len(pts) < 8:
+                raise ValueError("File contains %i points, need 8" % len(pts))
         except Exception as err:
             error(None, str(err), "Error Reading Fiducials")
             self.reset_traits(['fid_file'])
@@ -259,8 +264,7 @@ class Kit2FiffModel(HasPrivateTraits):
 
     def clear_all(self):
         """Clear all specified input parameters"""
-        self.markers.mrk1.clear = True
-        self.markers.mrk2.clear = True
+        self.markers.clear = True
         self.reset_traits(['sqd_file', 'hsp_file', 'fid_file'])
 
     def get_event_info(self):
@@ -284,12 +288,17 @@ class Kit2FiffModel(HasPrivateTraits):
         if not self.sqd_file:
             raise ValueError("sqd file not set")
 
-        raw = RawKIT(self.sqd_file, preload=preload)
-        raw._set_stimchannels(self.stim_chs, self.stim_slope)
+        if self.stim_chs == 'man':
+            stim = self.stim_chs_manual
+        else:
+            stim = self.stim_chs
+
+        raw = RawKIT(self.sqd_file, preload=preload, stim=stim,
+                     slope=self.stim_slope)
 
         if np.any(self.fid):
             raw._set_dig_neuromag(self.fid, self.elp, self.hsp,
-                                 self.dev_head_trans)
+                                  self.dev_head_trans)
         return raw
 
 
@@ -297,8 +306,7 @@ class Kit2FiffFrameHandler(Handler):
     """Handler that checks for unfinished processes before closing its window
     """
     def close(self, info, is_ok):
-        if info.object.kit2fiff_panel.kit2fiff_coreg_panel\
-                                                    .queue.unfinished_tasks:
+        if info.object.kit2fiff_panel.queue.unfinished_tasks:
             msg = ("Can not close the window while saving is still in "
                    "progress. Please wait until all files are processed.")
             title = "Saving Still in Progress"
@@ -318,6 +326,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     hsp_file = DelegatesTo('model')
     fid_file = DelegatesTo('model')
     stim_chs = DelegatesTo('model')
+    stim_chs_manual = DelegatesTo('model')
     stim_slope = DelegatesTo('model')
 
     # info
@@ -338,7 +347,7 @@ class Kit2FiffPanel(HasPrivateTraits):
     # Output
     save_as = Button(label='Save FIFF...')
     clear_all = Button(label='Clear All')
-    queue = Instance(Queue, ())
+    queue = Instance(queue.Queue, ())
     queue_feedback = Str('')
     queue_current = Str('')
     queue_len = Int(0)
@@ -359,16 +368,7 @@ class Kit2FiffPanel(HasPrivateTraits):
                               Item('use_mrk', editor=use_editor,
                                    style='custom'),
                               label="Sources", show_border=True),
-                    VGroup(Item('stim_chs', label="Binary Coding",
-                                style='custom',
-                                editor=EnumEditor(values={'>': '1:1 ... 128',
-                                                          '<': '2:128 ... 1',
-                                                          },
-                                                  cols=2),
-                                help="Specifies the bit order in event "
-                                "channels. Assign the first bit (1) to the "
-                                "first or the last trigger channel."),
-                           Item('stim_slope', label="Event Onset",
+                    VGroup(Item('stim_slope', label="Event Onset",
                                 style='custom',
                                 editor=EnumEditor(
                                            values={'+': '2:Peak (0 to 5 V)',
@@ -377,6 +377,18 @@ class Kit2FiffPanel(HasPrivateTraits):
                                 help="Whether events are marked by a decrease "
                                 "(trough) or an increase (peak) in trigger "
                                 "channel values"),
+                           Item('stim_chs', label="Binary Coding",
+                                style='custom',
+                                editor=EnumEditor(values={'>': '1:1 ... 128',
+                                                          '<': '3:128 ... 1',
+                                                          'man': '2:Manual'},
+                                                  cols=2),
+                                help="Specifies the bit order in event "
+                                "channels. Assign the first bit (1) to the "
+                                "first or the last trigger channel."),
+                           Item('stim_chs_manual', label='Stim Channels',
+                                style='custom',
+                                visible_when="stim_chs == 'man'"),
                            label='Events', show_border=True),
                        HGroup(Item('save_as', enabled_when='can_save'), spring,
                               'clear_all', show_labels=False),

@@ -198,6 +198,10 @@ These steps can be broken out to be more explicit as:
 
     ln -s <path to mne-python>/mne ~/.local/lib/python2.7/site-packages/mne
 
+   Also for the mne-python scripts::
+   
+    ln -s <path to mne-python>/bin/mne /usr/local/bin/mne
+
    Since you make a symbolic link to the local directory, you won't require
    root access while editing the files and the changes in your working
    directory are automatically reflected in the installation directory. To

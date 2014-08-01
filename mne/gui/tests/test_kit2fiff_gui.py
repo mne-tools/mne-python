@@ -5,11 +5,12 @@
 import os
 
 import numpy as np
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal
 
-from mne.fiff.kit.tests import data_dir as kit_data_dir
-from mne.fiff import Raw
+import mne
+from mne.io.kit.tests import data_dir as kit_data_dir
+from mne.io import Raw
 from mne.utils import _TempDir, requires_traits
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
@@ -17,7 +18,7 @@ mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 sqd_path = os.path.join(kit_data_dir, 'test.sqd')
 hsp_path = os.path.join(kit_data_dir, 'test_hsp.txt')
 fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
-fif_path = os.path.join(kit_data_dir, 'test_bin.fif')
+fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
 tempdir = _TempDir()
 tgt_fname = os.path.join(tempdir, 'test-raw.fif')
@@ -63,3 +64,25 @@ def test_kit2fiff_model():
     assert_false(np.all(model.dev_head_trans == trans_transform))
     assert_false(np.all(model.dev_head_trans == trans_avg))
     assert_false(np.all(model.dev_head_trans == np.eye(4)))
+
+    # test setting stim channels
+    model.stim_slope = '+'
+    events_bin = mne.find_events(raw_bin, stim_channel='STI 014')
+
+    model.stim_chs = '<'
+    raw = model.get_raw()
+    events = mne.find_events(raw, stim_channel='STI 014')
+    assert_array_equal(events, events_bin)
+
+    events_rev = events_bin.copy()
+    events_rev[:, 2] = 1
+    model.stim_chs = '>'
+    raw = model.get_raw()
+    events = mne.find_events(raw, stim_channel='STI 014')
+    assert_array_equal(events, events_rev)
+
+    model.stim_chs = 'man'
+    model.stim_chs_manual = list(range(167, 159, -1))
+    raw = model.get_raw()
+    events = mne.find_events(raw, stim_channel='STI 014')
+    assert_array_equal(events, events_bin)

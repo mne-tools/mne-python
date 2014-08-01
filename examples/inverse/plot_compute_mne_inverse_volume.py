@@ -8,16 +8,16 @@ space and stores the solution in a nifti file for visualisation.
 
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
 from mne.datasets import sample
-from mne.fiff import Evoked
+from mne import read_evokeds
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 data_path = sample.data_path()
@@ -29,7 +29,7 @@ lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
-evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
+evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']
 

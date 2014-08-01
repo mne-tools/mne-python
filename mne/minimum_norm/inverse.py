@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
@@ -9,29 +9,64 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-from ..fiff.constants import FIFF
-from ..fiff.open import fiff_open
-from ..fiff.tag import find_tag
-from ..fiff.matrix import (_read_named_matrix, _transpose_named_matrix,
-                           write_named_matrix)
-from ..fiff.proj import read_proj, make_projector, write_proj
-from ..fiff.tree import dir_tree_find
-from ..fiff.write import (write_int, write_float_matrix, start_file,
-                          start_block, end_block, end_file, write_float,
-                          write_coord_trans, write_string)
+from ..io.constants import FIFF
+from ..io.open import fiff_open
+from ..io.tag import find_tag
+from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
+                         write_named_matrix)
+from ..io.proj import _read_proj, make_projector, _write_proj
+from ..io.tree import dir_tree_find
+from ..io.write import (write_int, write_float_matrix, start_file,
+                        start_block, end_block, end_file, write_float,
+                        write_coord_trans, write_string)
 
-from ..fiff.cov import read_cov, write_cov
-from ..fiff.pick import channel_type, pick_info
-from ..cov import prepare_noise_cov
+from ..io.pick import channel_type, pick_info, pick_types
+from ..cov import prepare_noise_cov, _read_cov, _write_cov
 from ..forward import (compute_depth_prior, read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
                        compute_orient_prior, _to_fixed_ori)
 from ..source_space import (read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
-from ..transforms import invert_transform, transform_source_space_to
+from ..transforms import invert_transform, transform_surface_to
 from ..source_estimate import _make_stc
-from ..utils import logger, verbose
+from ..utils import check_fname, logger, verbose
+from functools import reduce
+
+
+class InverseOperator(dict):
+    """InverseOperator class to represent info from inverse operator
+    """
+
+    def __repr__(self):
+        """Summarize inverse info instead of printing all"""
+
+        entr = '<InverseOperator'
+
+        nchan = len(pick_types(self['info'], meg=True, eeg=False))
+        entr += ' | ' + 'MEG channels: %d' % nchan
+        nchan = len(pick_types(self['info'], meg=False, eeg=True))
+        entr += ' | ' + 'EEG channels: %d' % nchan
+
+        # XXX TODO: This and the __repr__ in SourceSpaces should call a
+        # function _get_name_str() in source_space.py
+        if self['src'][0]['type'] == 'surf':
+            entr += (' | Source space: Surface with %d vertices'
+                     % self['nsource'])
+        elif self['src'][0]['type'] == 'vol':
+            entr += (' | Source space: Volume with %d grid points'
+                     % self['nsource'])
+        elif self['src'][0]['type'] == 'discrete':
+            entr += (' | Source space: Discrete with %d dipoles'
+                     % self['nsource'])
+
+        source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
+                      FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
+                      FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
+        entr += ' | Source orientation: %s' % source_ori[self['source_ori']]
+        entr += '>'
+
+        return entr
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -58,15 +93,17 @@ def read_inverse_operator(fname, verbose=None):
     Parameters
     ----------
     fname : string
-        The name of the FIF file.
+        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         The inverse operator.
     """
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
+
     #
     #   Open the file, create directory
     #
@@ -184,23 +221,23 @@ def read_inverse_operator(fname, verbose=None):
     #
     #   Read the covariance matrices
     #
-    inv['noise_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
+    inv['noise_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
     logger.info('    Noise covariance matrix read.')
 
-    inv['source_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
+    inv['source_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
     logger.info('    Source covariance matrix read.')
     #
     #   Read the various priors
     #
-    inv['orient_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+    inv['orient_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
     if inv['orient_prior'] is not None:
         logger.info('    Orientation priors read.')
 
-    inv['depth_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
+    inv['depth_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
     if inv['depth_prior'] is not None:
         logger.info('    Depth priors read.')
 
-    inv['fmri_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
+    inv['fmri_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
     if inv['fmri_prior'] is not None:
         logger.info('    fMRI priors read.')
 
@@ -254,7 +291,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     #  We also need the SSP operator
     #
-    inv['projs'] = read_proj(fid, tree)
+    inv['projs'] = _read_proj(fid, tree)
 
     #
     #  Some empty fields to be filled in later
@@ -268,9 +305,9 @@ def read_inverse_operator(fname, verbose=None):
     nuse = 0
     for k in range(len(inv['src'])):
         try:
-            inv['src'][k] = transform_source_space_to(inv['src'][k],
-                                                      inv['coord_frame'],
-                                                      mri_head_t)
+            inv['src'][k] = transform_surface_to(inv['src'][k],
+                                                 inv['coord_frame'],
+                                                 mri_head_t)
         except Exception as inst:
             fid.close()
             raise Exception('Could not transform source space (%s)' % inst)
@@ -284,7 +321,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     fid.close()
 
-    return inv
+    return InverseOperator(inv)
 
 
 @verbose
@@ -294,12 +331,14 @@ def write_inverse_operator(fname, inv, verbose=None):
     Parameters
     ----------
     fname : string
-        The name of the FIF file.
+        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     inv : dict
         The inverse operator.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
+
     #
     #   Open the file, create directory
     #
@@ -325,7 +364,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     #
     #   Write SSP operator
     #
-    write_proj(fid, inv['projs'])
+    _write_proj(fid, inv['projs'])
 
     #
     #   Write the source spaces
@@ -365,21 +404,21 @@ def write_inverse_operator(fname, inv, verbose=None):
     #   write the covariance matrices
     #
     logger.info('    Writing noise covariance matrix.')
-    write_cov(fid, inv['noise_cov'])
+    _write_cov(fid, inv['noise_cov'])
 
     logger.info('    Writing source covariance matrix.')
-    write_cov(fid, inv['source_cov'])
+    _write_cov(fid, inv['source_cov'])
 
     #
     #   write the various priors
     #
     logger.info('    Writing orientation priors.')
     if inv['depth_prior'] is not None:
-        write_cov(fid, inv['depth_prior'])
+        _write_cov(fid, inv['depth_prior'])
     if inv['orient_prior'] is not None:
-        write_cov(fid, inv['orient_prior'])
+        _write_cov(fid, inv['orient_prior'])
     if inv['fmri_prior'] is not None:
-        write_cov(fid, inv['fmri_prior'])
+        _write_cov(fid, inv['fmri_prior'])
 
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
 
@@ -477,7 +516,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         Prepared inverse operator.
     """
     if nave <= 0:
@@ -596,7 +635,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
     else:
         inv['noisenorm'] = []
 
-    return inv
+    return InverseOperator(inv)
 
 
 @verbose
@@ -646,8 +685,8 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
 
     trans = inv['reginv'][:, None] * reduce(np.dot,
                                             [inv['eigen_fields']['data'],
-                                            inv['whitener'],
-                                            inv['proj']])
+                                             inv['whitener'],
+                                             inv['proj']])
     #
     #   Transformation into current distributions by weighting the eigenleads
     #   with the weights computed above
@@ -754,7 +793,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori == None)
+                   and pick_ori is None)
 
     if is_free_ori:
         logger.info('combining the current components...')
@@ -765,7 +804,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         sol *= noise_norm
 
     tstep = 1.0 / evoked.info['sfreq']
-    tmin = float(evoked.first) / evoked.info['sfreq']
+    tmin = float(evoked.times[0])
     vertno = _get_vertno(inv['src'])
     subject = _subject_from_inverse(inverse_operator)
 
@@ -854,7 +893,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori == None)
+                   and pick_ori is None)
 
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
@@ -864,10 +903,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
         # Allocate space for inverse solution
         n_times = data.shape[1]
-        sol = np.empty((K.shape[0] / 3, n_times),
+        sol = np.empty((K.shape[0] // 3, n_times),
                        dtype=(K[0, 0] * data[0, 0]).dtype)
 
-        for pos in xrange(0, n_times, buffer_size):
+        for pos in range(0, n_times, buffer_size):
             sol[:, pos:pos + buffer_size] = \
                 combine_xyz(np.dot(K, data[:, pos:pos + buffer_size]))
 
@@ -892,7 +931,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     return stc
 
 
-def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
+def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
                               verbose=None, pick_normal=None):
     """ see apply_inverse_epochs """
@@ -917,7 +956,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     tmin = epochs.times[0]
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori == None)
+                   and pick_ori is None)
 
     if not is_free_ori and noise_norm is not None:
         # premultiply kernel with noise normalization
@@ -1029,7 +1068,7 @@ def _xyz2lf(Lf_xyz, normals):
         tangential orientations (tangent space of cortical surface).
     """
     n_sensors, n_dipoles = Lf_xyz.shape
-    n_positions = n_dipoles / 3
+    n_positions = n_dipoles // 3
     Lf_xyz = Lf_xyz.reshape(n_sensors, n_positions, 3)
     n_sensors, n_positions, _ = Lf_xyz.shape
     Lf_cortex = np.zeros_like(Lf_xyz)
@@ -1133,7 +1172,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         Inverse operator.
 
     Notes
@@ -1331,7 +1370,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     has_meg = False
     has_eeg = False
     ch_idx = [k for k, c in enumerate(info['chs'])
-                                    if c['ch_name'] in gain_info['ch_names']]
+              if c['ch_name'] in gain_info['ch_names']]
     for idx in ch_idx:
         ch_type = channel_type(info, idx)
         if ch_type == 'eeg':
@@ -1363,7 +1402,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     inv_op['units'] = 'Am'
     inv_op['info'] = inv_info
 
-    return inv_op
+    return InverseOperator(inv_op)
 
 
 def compute_rank_inverse(inv):

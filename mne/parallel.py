@@ -1,10 +1,11 @@
 """Parallel util function
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: Simplified BSD
 
+from .externals.six import string_types
 import inspect
 import logging
 import os
@@ -61,7 +62,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
         try:
             from sklearn.externals.joblib import Parallel, delayed
         except ImportError:
-            logger.warn('joblib not installed. Cannot run in parallel.')
+            logger.warning('joblib not installed. Cannot run in parallel.')
             n_jobs = 1
             my_func = func
             parallel = list
@@ -72,13 +73,13 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
     joblib_mmap = ('temp_folder' in aspec.args and 'max_nbytes' in aspec.args)
 
     cache_dir = get_config('MNE_CACHE_DIR', None)
-    if isinstance(max_nbytes, basestring) and max_nbytes == 'auto':
+    if isinstance(max_nbytes, string_types) and max_nbytes == 'auto':
         max_nbytes = get_config('MNE_MEMMAP_MIN_SIZE', None)
 
     if max_nbytes is not None:
         if not joblib_mmap and cache_dir is not None:
-            logger.warn('"MNE_CACHE_DIR" is set but a newer version of joblib '
-                        'is needed to use the memmapping pool.')
+            logger.warning('"MNE_CACHE_DIR" is set but a newer version of '
+                           'joblib is needed to use the memmapping pool.')
         if joblib_mmap and cache_dir is None:
             logger.info('joblib supports memapping pool but "MNE_CACHE_DIR" '
                         'is not set in MNE-Python config. To enable it, use, '
@@ -119,19 +120,20 @@ def check_n_jobs(n_jobs, allow_cuda=False):
     """
     if _force_serial:
         n_jobs = 1
-        logger.info('... MNE_FORCE_SERIAL set. Processing in forced serial mode.')
+        logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
+                    'serial mode.')
 
     elif not isinstance(n_jobs, int):
         if not allow_cuda:
             raise ValueError('n_jobs must be an integer')
-        elif not isinstance(n_jobs, basestring) or n_jobs != 'cuda':
+        elif not isinstance(n_jobs, string_types) or n_jobs != 'cuda':
             raise ValueError('n_jobs must be an integer, or "cuda"')
         #else, we have n_jobs='cuda' and this is okay, so do nothing
     elif n_jobs <= 0:
         try:
             import multiprocessing
             n_cores = multiprocessing.cpu_count()
-            n_jobs = n_cores + n_jobs
+            n_jobs = min(n_cores + n_jobs + 1, n_cores)
             if n_jobs <= 0:
                 raise ValueError('If n_jobs has a negative value it must not '
                                  'be less than the number of CPUs present. '
@@ -139,8 +141,8 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         except ImportError:
             # only warn if they tried to use something other than 1 job
             if n_jobs != 1:
-                logger.warn('multiprocessing not installed. Cannot run in '
-                            'parallel.')
+                logger.warning('multiprocessing not installed. Cannot run in '
+                               'parallel.')
                 n_jobs = 1
 
     return n_jobs

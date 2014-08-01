@@ -50,14 +50,14 @@ def init_cuda():
         import pycuda.gpuarray
         import pycuda.driver
     except ImportError:
-        logger.warn('module pycuda not found, CUDA not enabled')
+        logger.warning('module pycuda not found, CUDA not enabled')
     else:
         try:
             # Initialize CUDA; happens with importing autoinit
             import pycuda.autoinit
         except ImportError:
-            logger.warn('pycuda.autoinit could not be imported, likely '
-                        'a hardware error, CUDA not enabled')
+            logger.warning('pycuda.autoinit could not be imported, likely '
+                           'a hardware error, CUDA not enabled')
         else:
             # Make our multiply inplace kernel
             try:
@@ -84,16 +84,16 @@ def init_cuda():
                 try:
                     from scikits.cuda import fft as cudafft
                 except ImportError:
-                    logger.warn('module scikits.cuda not found, CUDA not '
-                                'enabled')
+                    logger.warning('module scikits.cuda not found, CUDA not '
+                                   'enabled')
                 else:
                     # Make sure we can use 64-bit FFTs
                     try:
                         fft_plan = cudafft.Plan(16, np.float64, np.complex128)
                         del fft_plan
                     except:
-                        logger.warn('Device does not support 64-bit FFTs, '
-                                    'CUDA not enabled')
+                        logger.warning('Device does not support 64-bit FFTs, '
+                                       'CUDA not enabled')
                     else:
                         cuda_capable = True
                         # Figure out limit for CUDA FFT calculations
@@ -279,9 +279,9 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
             # try setting up for float64
             try:
                 n_fft_x = len(W)
-                cuda_fft_len_x = int((n_fft_x - (n_fft_x % 2)) / 2 + 1)
+                cuda_fft_len_x = int((n_fft_x - (n_fft_x % 2)) // 2 + 1)
                 n_fft_y = new_len
-                cuda_fft_len_y = int((n_fft_y - (n_fft_y % 2)) / 2 + 1)
+                cuda_fft_len_y = int((n_fft_y - (n_fft_y % 2)) // 2 + 1)
                 fft_plan = cudafft.Plan(n_fft_x, np.float64, np.complex128)
                 ifft_plan = cudafft.Plan(n_fft_y, np.complex128, np.float64)
                 x_fft = gpuarray.zeros(max(cuda_fft_len_x,
@@ -347,12 +347,12 @@ def fft_resample(x, W, new_len, npad, to_remove,
     old_len = len(x)
     if not cuda_dict['use_cuda']:
         N = int(min(new_len, old_len))
-        sl_1 = slice((N + 1) / 2)
+        sl_1 = slice((N + 1) // 2)
         y_fft = np.zeros(new_len, np.complex128)
         x_fft = fft(x).ravel()
         x_fft *= W
         y_fft[sl_1] = x_fft[sl_1]
-        sl_2 = slice(-(N - 1) / 2, None)
+        sl_2 = slice(-(N - 1) // 2, None)
         y_fft[sl_2] = x_fft[sl_2]
         y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
     else:
@@ -369,12 +369,12 @@ def fft_resample(x, W, new_len, npad, to_remove,
         # or taking just the real component...
         if new_len > old_len:
             if old_len % 2 == 0:
-                nyq = int((old_len - (old_len % 2)) / 2)
+                nyq = int((old_len - (old_len % 2)) // 2)
                 cuda_dict['halve_value'](cuda_dict['x_fft'],
                                         slice=slice(nyq, nyq + 1))
         else:
             if new_len % 2 == 0:
-                nyq = int((new_len - (new_len % 2)) / 2)
+                nyq = int((new_len - (new_len % 2)) // 2)
                 cuda_dict['real_value'](cuda_dict['x_fft'],
                                         slice=slice(nyq, nyq + 1))
         cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],

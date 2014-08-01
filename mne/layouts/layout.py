@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
@@ -11,23 +11,19 @@ import os.path as op
 import numpy as np
 from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
-from ..fiff import FIFF, pick_types
+from .. import pick_types
+from ..io.constants import FIFF
 from ..utils import _clean_names
+from ..externals.six.moves import map
 
 
 class Layout(object):
     """Sensor layouts
 
-    Parameters
-    ----------
-    kind : str
-        Type of layout (can also be custom for EEG). Valid layouts are
-        {'Vectorview-all', 'Vectorview-grad', 'Vectorview-mag',  'CTF-275',
-         'magnesWH3600'}
-    path : string
-        Path to folder where to find the layout file.
+    Layouts are typically loaded from a file using read_layout. Only use this
+    class directly if you're constructing a new layout.
 
-    Attributes
+    Parameters
     ----------
     box : tuple of length 4
         The box dimension (x_min, x_max, y_min, y_max)
@@ -245,7 +241,7 @@ def make_grid_layout(info, picks=None):
     info : dict
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
-    picks : array-like | None
+    picks : array-like of int | None
         The indices of the channels to be included. If None, al misc channels
         will be included.
 
@@ -262,7 +258,7 @@ def make_grid_layout(info, picks=None):
     if not names:
         raise ValueError('No misc data channels found.')
 
-    ids = range(len(picks))
+    ids = list(range(len(picks)))
     size = len(picks)
 
     # prepare square-like layout
@@ -299,14 +295,14 @@ def find_layout(info=None, ch_type=None, chs=None):
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info | None
+    info : instance of mne.io.meas_info.Info | None
         The measurement info.
     ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
         Defaults to None. Note, this argument will only be considered for
         VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
-    chs : instance of mne.fiff.meas_info.Info | None
+    chs : instance of mne.io.meas_info.Info | None
         The measurement info. Defaults to None. This keyword is deprecated and
         will be removed in MNE-Python 0.9. Use `info` instead.
 
@@ -337,8 +333,12 @@ def find_layout(info=None, ch_type=None, chs=None):
     coil_types = set([ch['coil_type'] for ch in chs])
     channel_types = set([ch['kind'] for ch in chs])
 
-    has_vv_mag = FIFF.FIFFV_COIL_VV_MAG_T3 in coil_types
-    has_vv_grad = FIFF.FIFFV_COIL_VV_PLANAR_T1 in coil_types
+    has_vv_mag = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_MAG_T1,
+                                                FIFF.FIFFV_COIL_VV_MAG_T2,
+                                                FIFF.FIFFV_COIL_VV_MAG_T3]])
+    has_vv_grad = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
+                                                 FIFF.FIFFV_COIL_VV_PLANAR_T2,
+                                                 FIFF.FIFFV_COIL_VV_PLANAR_T3]])
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
@@ -352,6 +352,8 @@ def find_layout(info=None, ch_type=None, chs=None):
                     (FIFF.FIFFV_MEG_CH in channel_types and
                      any([k in ctf_other_types for k in coil_types])))
                     # hack due to MNE-C bug in IO of CTF
+    n_kit_grads = len([ch for ch in chs
+                       if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD])
 
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad])
     has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
@@ -382,6 +384,8 @@ def find_layout(info=None, ch_type=None, chs=None):
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
         layout_name = 'CTF-275'
+    elif n_kit_grads == 157:
+        layout_name = 'KIT-157'
     else:
         return None
 
@@ -395,7 +399,7 @@ def find_layout(info=None, ch_type=None, chs=None):
 
 
 def _find_topomap_coords(chs, layout=None):
-    """Try to guess the MEG system and return appropriate topomap coordinates
+    """Try to guess the E/MEG layout and return appropriate topomap coordinates
 
     Parameters
     ----------
@@ -423,6 +427,22 @@ def _find_topomap_coords(chs, layout=None):
     return pos
 
 
+def _cart_to_sph(x, y, z):
+    """Aux function"""
+    hypotxy = np.hypot(x, y)
+    r = np.hypot(hypotxy, z)
+    elev = np.arctan2(z, hypotxy)
+    az = np.arctan2(y, x)
+    return az, elev, r
+
+
+def _pol_to_cart(th, r):
+    """Aux function"""
+    x = r * np.cos(th)
+    y = r * np.sin(th)
+    return x, y
+
+
 def _auto_topomap_coords(chs):
     """Make a 2 dimensional sensor map from sensor positions in an info dict
 
@@ -436,33 +456,14 @@ def _auto_topomap_coords(chs):
     locs : array, shape = (n_sensors, 2)
         An array of positions of the 2 dimensional map.
     """
-    locs3d = np.array([ch['loc'][:3] for ch in chs])
-
-    # fit the 3d sensor locations to a sphere with center (cx, cy, cz)
-    # and radius r
-
-    # error function
-    def err(params):
-        r, cx, cy, cz = params
-        return   np.sum((locs3d - [cx, cy, cz]) ** 2, 1) - r ** 2
-
-    (r, cx, cy, cz), _ = leastsq(err, (1, 0, 0, 0))
-
-    # center the sensor locations based on the sphere and scale to
-    # radius 1
-    sphere_center = np.array((cx, cy, cz))
-    locs3d -= sphere_center
-    locs3d /= r
-
-    # implement projection
-    locs2d = np.copy(locs3d[:, :2])
-    z = max(locs3d[:, 2]) - locs3d[:, 2]  # distance form top
-    r = np.sqrt(z)  # desired 2d radius
-    r_xy = np.sqrt(np.sum(locs3d[:, :2] ** 2, 1))  # current radius in xy
-    idx = (r_xy != 0)  # avoid zero division
-    F = r[idx] / r_xy[idx]  # stretching factor accounting for current r
-    locs2d[idx, :] *= F[:, None]
-
+    locs3d = np.array([ch['loc'][:3] for ch in chs
+                       if ch['kind'] in [FIFF.FIFFV_MEG_CH,
+                                         FIFF.FIFFV_EEG_CH]])
+    if not np.any(locs3d):
+        raise RuntimeError('Cannot compute layout, no positions found')
+    x, y, z = locs3d[:, :3].T
+    az, el, r = _cart_to_sph(x, y, z)
+    locs2d = np.c_[_pol_to_cart(az, np.pi / 2 - el)]
     return locs2d
 
 
@@ -484,7 +485,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
 
     Returns
     -------
-    picks : list of int
+    picks : array of int
         Picks for the grad channels, ordered in pairs.
     coords : array, shape = (n_grad_channels, 3)
         Coordinates for a topomap plot (optional, only returned if
@@ -512,7 +513,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     if topomap_coords:
         shape = (len(pairs), 2, -1)
         coords = (_find_topomap_coords(grad_chs, layout)
-                                      .reshape(shape).mean(axis=1))
+                  .reshape(shape).mean(axis=1))
         return picks, coords
     else:
         return picks

@@ -4,11 +4,11 @@
 #
 # License: BSD (3-clause)
 
-from copy import deepcopy
 import os
-from Queue import Queue
+from ..externals.six.moves import queue
 import re
 from threading import Thread
+import warnings
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -63,7 +63,7 @@ except:
 
 
 from ..coreg import bem_fname, trans_fname
-from ..fiff import FIFF
+from ..io.constants import FIFF
 from ..forward import prepare_bem_model
 from ..transforms import (write_trans, read_trans, apply_trans, rotation,
                           translation, scaling, rotation_angles)
@@ -71,7 +71,7 @@ from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _point_cloud_error)
 from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
-from ._file_traits import (assert_env_set, trans_wildcard, RawSource,
+from ._file_traits import (set_mne_root, trans_wildcard, RawSource,
                            SubjectSelectorPanel)
 from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
 
@@ -84,7 +84,7 @@ class CoregModel(HasPrivateTraits):
 
     Notes
     -----
-    Transform from head to mri space is modeled with the following steps:
+    Transform from head to mri space is modelled with the following steps:
 
      * move the head shape to its nasion position
      * rotate the head shape with user defined rotation around its nasion
@@ -105,6 +105,9 @@ class CoregModel(HasPrivateTraits):
     hsp = Instance(RawSource, ())
 
     # parameters
+    grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
+                      "head outwards to compensate for hair on the digitizer "
+                      "head shape")
     n_scale_params = Enum(0, 1, 3, desc="Scale the MRI to better fit the "
                           "subject's head shape (a new MRI subject will be "
                           "created with a name specified upon saving)")
@@ -117,6 +120,9 @@ class CoregModel(HasPrivateTraits):
     trans_x = Float(0, label="Right (X)")
     trans_y = Float(0, label="Anterior (Y)")
     trans_z = Float(0, label="Superior (Z)")
+
+    prepare_bem_model = Bool(True, desc="whether to run mne_prepare_bem_model "
+                             "after scaling the MRI")
 
     # secondary to parameters
     scale = Property(depends_on=['n_scale_params', 'scale_x', 'scale_y',
@@ -138,13 +144,17 @@ class CoregModel(HasPrivateTraits):
                               "match the scaled MRI.")
 
     # info
+    subject_has_bem = DelegatesTo('mri')
+    lock_fiducials = DelegatesTo('mri')
+    can_prepare_bem_model = Property(Bool, depends_on=['n_scale_params',
+                                                       'subject_has_bem'])
     can_save = Property(Bool, depends_on=['head_mri_trans'])
     raw_subject = Property(depends_on='hsp.raw_fname', desc="Subject guess "
                            "based on the raw file name.")
-    lock_fiducials = DelegatesTo('mri')
 
     # transformed geometry
-    transformed_mri_points = Property(depends_on=['mri.points',
+    processed_mri_points = Property(depends_on=['mri.points', 'grow_hair'])
+    transformed_mri_points = Property(depends_on=['processed_mri_points',
                                                   'mri_scale_trans'])
     transformed_hsp_points = Property(depends_on=['hsp.points',
                                                   'head_mri_trans'])
@@ -171,6 +181,10 @@ class CoregModel(HasPrivateTraits):
     fid_eval_str = Property(depends_on=['lpa_distance', 'nasion_distance',
                                         'rpa_distance'])
     points_eval_str = Property(depends_on='point_distance')
+
+    @cached_property
+    def _get_can_prepare_bem_model(self):
+        return self.subject_has_bem and self.n_scale_params > 0
 
     @cached_property
     def _get_can_save(self):
@@ -238,8 +252,28 @@ class CoregModel(HasPrivateTraits):
         return trans
 
     @cached_property
+    def _get_processed_mri_points(self):
+        if self.grow_hair:
+            if len(self.mri.norms):
+                if self.n_scale_params == 0:
+                    scaled_hair_dist = self.grow_hair / 1000
+                else:
+                    scaled_hair_dist = self.grow_hair / self.scale / 1000
+
+                points = self.mri.points.copy()
+                hair = points[:, 2] > points[:, 1]
+                points[hair] += self.mri.norms[hair] * scaled_hair_dist
+                return points
+            else:
+                msg = "Norms missing form bem, can't grow hair"
+                error(None, msg)
+                self.grow_hair = 0
+        return self.mri.points
+
+    @cached_property
     def _get_transformed_mri_points(self):
-        return apply_trans(self.mri_scale_trans, self.mri.points)
+        points = apply_trans(self.mri_scale_trans, self.processed_mri_points)
+        return points
 
     @cached_property
     def _get_transformed_mri_lpa(self):
@@ -287,7 +321,7 @@ class CoregModel(HasPrivateTraits):
     @cached_property
     def _get_point_distance(self):
         if (len(self.transformed_hsp_points) == 0
-            or len(self.transformed_mri_points) == 0):
+                or len(self.transformed_mri_points) == 0):
             return
         dists = cdist(self.transformed_hsp_points, self.transformed_mri_points,
                       'euclidean')
@@ -341,7 +375,8 @@ class CoregModel(HasPrivateTraits):
         distance = float(distance)
         if reset:
             logger.info("Coregistration: Reset excluded head shape points")
-            self.hsp.points_filter = None
+            with warnings.catch_warnings(record=True):  # Traits None comp
+                self.hsp.points_filter = None
 
         if distance <= 0:
             return
@@ -364,7 +399,8 @@ class CoregModel(HasPrivateTraits):
             new_filter[old_filter] = new_sub_filter
 
         # set the filter
-        self.hsp.points_filter = new_filter
+        with warnings.catch_warnings(record=True):  # comp to None in Traits
+            self.hsp.points_filter = new_filter
 
     def fit_auricular_points(self):
         "Find rotation to fit LPA and RPA"
@@ -402,7 +438,7 @@ class CoregModel(HasPrivateTraits):
         "Find rotation to fit head shapes"
         src_pts = self.hsp.points - self.hsp.nasion
 
-        tgt_pts = self.mri.points - self.mri.nasion
+        tgt_pts = self.processed_mri_points - self.mri.nasion
         tgt_pts *= self.scale
         tgt_pts -= [self.trans_x, self.trans_y, self.trans_z]
 
@@ -449,7 +485,7 @@ class CoregModel(HasPrivateTraits):
         "Find MRI scaling and rotation to match head shape points"
         src_pts = self.hsp.points - self.hsp.nasion
 
-        tgt_pts = self.mri.points - self.mri.nasion
+        tgt_pts = self.processed_mri_points - self.mri.nasion
 
         if self.n_scale_params == 1:
             x0 = (self.rot_x, self.rot_y, self.rot_z, 1. / self.scale_x)
@@ -477,12 +513,12 @@ class CoregModel(HasPrivateTraits):
         subjects_dir = self.mri.subjects_dir
         subject_from = self.mri.subject
 
-        bem_name = 'inner_skull'
+        bem_name = 'inner_skull-bem'
         bem_file = bem_fname.format(subjects_dir=subjects_dir,
                                     subject=subject_from, name=bem_name)
         if not os.path.exists(bem_file):
             pattern = bem_fname.format(subjects_dir=subjects_dir,
-                                       subject=subject_to, name='(.+)')
+                                       subject=subject_to, name='(.+-bem)')
             bem_dir, bem_file = os.path.split(pattern)
             m = None
             bem_file_pattern = re.compile(bem_file)
@@ -493,10 +529,10 @@ class CoregModel(HasPrivateTraits):
 
             if m is None:
                 pattern = bem_fname.format(subjects_dir=subjects_dir,
-                                           subject=subject_to, name='*')
+                                           subject=subject_to, name='*-bem')
                 err = ("No bem file found; looking for files matching "
                        "%s" % pattern)
-                error(err)
+                error(None, err)
 
             bem_name = m.group(1)
 
@@ -524,9 +560,9 @@ class CoregModel(HasPrivateTraits):
 
     def reset(self):
         """Reset all the parameters affecting the coregistration"""
-        self.reset_traits(('n_scaling_params', 'scale_x', 'scale_y', 'scale_z',
-                           'rot_x', 'rot_y', 'rot_z', 'trans_x', 'trans_y',
-                           'trans_z'))
+        self.reset_traits(('grow_hair', 'n_scaling_params', 'scale_x',
+                           'scale_y', 'scale_z', 'rot_x', 'rot_y', 'rot_z',
+                           'trans_x', 'trans_y', 'trans_z'))
 
     def set_trans(self, head_mri_trans):
         """Set rotation and translation parameters from a transformation matrix
@@ -564,13 +600,10 @@ class CoregModel(HasPrivateTraits):
         """
         if not self.can_save:
             raise RuntimeError("Not enough information for saving transform")
-        trans = self.head_mri_trans
-        dig = deepcopy(self.hsp.fid_dig)
-        for i in xrange(len(dig)):
-            dig[i]['r'] = apply_trans(trans, dig[i]['r'])
-        info = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
-                'trans': trans, 'dig': dig}
-        write_trans(fname, info)
+        trans_matrix = self.head_mri_trans
+        trans = {'to': FIFF.FIFFV_COORD_MRI, 'from': FIFF.FIFFV_COORD_HEAD,
+                 'trans': trans_matrix}
+        write_trans(fname, trans)
 
 
 class CoregFrameHandler(Handler):
@@ -592,6 +625,7 @@ class CoregPanel(HasPrivateTraits):
 
     # parameters
     reset_params = Button(label='Reset')
+    grow_hair = DelegatesTo('model')
     n_scale_params = DelegatesTo('model')
     scale_step = Float(1.01)
     scale_x = DelegatesTo('model')
@@ -641,18 +675,20 @@ class CoregPanel(HasPrivateTraits):
     points_eval_str = DelegatesTo('model')
 
     # saving
+    can_prepare_bem_model = DelegatesTo('model')
     can_save = DelegatesTo('model')
-    prepare_bem_model = Bool(True)
+    prepare_bem_model = DelegatesTo('model')
     save = Button(label="Save As...")
     load_trans = Button
-    queue = Instance(Queue, ())
+    queue = Instance(queue.Queue, ())
     queue_feedback = Str('')
     queue_current = Str('')
     queue_len = Int(0)
     queue_len_str = Property(Str, depends_on=['queue_len'])
     error = Str('')
 
-    view = View(VGroup(Item('n_scale_params', label='MRI Scaling',
+    view = View(VGroup(Item('grow_hair', show_label=True),
+                       Item('n_scale_params', label='MRI Scaling',
                             style='custom', show_label=True,
                             editor=EnumEditor(values={0: '1:No Scaling',
                                                       1: '2:1 Param',
@@ -763,7 +799,7 @@ class CoregPanel(HasPrivateTraits):
                        HGroup(Item('prepare_bem_model'),
                               Label("Run mne_prepare_bem_model"),
                               show_labels=False,
-                              enabled_when='n_scale_params > 0'),
+                              enabled_when='can_prepare_bem_model'),
                        HGroup(Item('save', enabled_when='can_save',
                                    tooltip="Save the trans file and (if "
                                    "scaling is enabled) the scaled MRI"),
@@ -881,12 +917,11 @@ class CoregPanel(HasPrivateTraits):
             return
 
         # Make sure that MNE_ROOT environment variable is set
-        if not assert_env_set(mne_root=True):
+        if not set_mne_root(True):
             err = ("MNE_ROOT environment variable could not be set. "
-                   "You will be able to scale MRIs, but the preparatory mne "
-                   "tools will fail. Please specify the MNE_ROOT environment "
-                   "variable. In Python this can be done using:\n\n"
-                   ">>> os.environ['MNE_ROOT'] = '/Applications/mne-2.7.3'")
+                   "You will be able to scale MRIs, but the "
+                   "mne_prepare_bem_model tool will fail. Please install "
+                   "MNE.")
             warning(None, err, "MNE_ROOT Not Set")
 
     def _reset_params_fired(self):
@@ -942,7 +977,7 @@ class CoregPanel(HasPrivateTraits):
             subject_to = mridlg.subject_to
 
         # find bem file to run mne_prepare_bem_model
-        if self.n_scale_params and self.prepare_bem_model:
+        if self.can_prepare_bem_model and self.prepare_bem_model:
             bem_job = self.model.get_prepare_bem_model_job(subject_to)
         else:
             bem_job = None
@@ -1263,11 +1298,13 @@ class CoregFrame(HasTraits):
 
         # MRI scalp
         color = defaults['mri_color']
-        self.mri_obj = SurfaceObject(points=self.model.mri.points, color=color,
-                                     tri=self.model.mri.tris, scene=self.scene)
+        self.mri_obj = SurfaceObject(points=self.model.transformed_mri_points,
+                                     color=color, tri=self.model.mri.tris,
+                                     scene=self.scene)
         # on_trait_change was unreliable, so link it another way:
         self.model.mri.on_trait_change(self._on_mri_src_change, 'tris')
-        self.model.sync_trait('scale', self.mri_obj, 'trans', mutual=False)
+        self.model.sync_trait('transformed_mri_points', self.mri_obj, 'points',
+                              mutual=False)
         self.fid_panel.hsp_obj = self.mri_obj
 
         # MRI Fiducials

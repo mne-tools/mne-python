@@ -9,11 +9,11 @@ The multiple comparisons problem is addressed with a cluster-level
 permutation test across space and time.
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import os.path as op
 import numpy as np
@@ -40,7 +40,7 @@ n_vertices_fsave, n_times = stc.data.shape
 tstep = stc.tstep
 
 n_subjects1, n_subjects2 = 7, 9
-print 'Simulating data for %d and %d subjects.' % (n_subjects1, n_subjects2)
+print('Simulating data for %d and %d subjects.' % (n_subjects1, n_subjects2))
 
 #    Let's make sure our results replicate, so set the seed.
 np.random.seed(0)
@@ -59,7 +59,7 @@ X2 = np.abs(X2)  # only magnitude
 
 #    To use an algorithm optimized for spatio-temporal clustering, we
 #    just pass the spatial connectivity matrix (instead of spatio-temporal)
-print 'Computing connectivity.'
+print('Computing connectivity.')
 connectivity = spatial_tris_connectivity(grade_to_tris(5))
 
 #    Note that X needs to be a list of multi-dimensional array of shape
@@ -73,7 +73,7 @@ X = [X1, X2]
 p_threshold = 0.0001
 f_threshold = stats.distributions.f.ppf(1. - p_threshold / 2.,
                                         n_subjects1 - 1, n_subjects2 - 1)
-print 'Clustering.'
+print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu =\
     spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=2,
                                  threshold=f_threshold)
@@ -84,7 +84,7 @@ good_cluster_inds = np.where(cluster_p_values < 0.05)[0]
 ###############################################################################
 # Visualize the clusters
 
-print 'Visualizing clusters.'
+print('Visualizing clusters.')
 
 #    Now let's build a convenient representation of each cluster, where each
 #    cluster becomes a "time point" in the SourceEstimate

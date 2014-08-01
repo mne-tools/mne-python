@@ -3,11 +3,11 @@
 Reading a source space from a forward operator
 ==============================================
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import os.path as op
 
@@ -15,7 +15,7 @@ import mne
 from mne.datasets import sample
 
 data_path = sample.data_path()
-fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-eeg-oct-6p-fwd.fif')
+fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
 
 add_geom = True  # include high resolution source space
 src = mne.read_source_spaces(fname, add_geom=add_geom)

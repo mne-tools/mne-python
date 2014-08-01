@@ -1,6 +1,7 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_almost_equal
-from nose.tools import assert_true, assert_raises
+from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
+                           assert_array_equal)
+from nose.tools import assert_equal, assert_true, assert_raises
 import os.path as op
 import warnings
 from scipy.signal import resample as sp_resample
@@ -73,13 +74,30 @@ def test_notch_filters():
 
         if lf is None:
             set_log_file()
-            out = open(log_file).readlines()
+            with open(log_file) as fid:
+                out = fid.readlines()
             if len(out) != 2:
                 raise ValueError('Detected frequencies not logged properly')
             out = np.fromstring(out[1], sep=', ')
             assert_array_almost_equal(out, freqs)
         new_power = np.sqrt(sum_squared(b) / b.size)
         assert_almost_equal(new_power, orig_power, tol)
+
+
+def test_resample():
+    """Test resampling"""
+    x = np.random.normal(0, 1, (10, 10, 10))
+    x_rs = resample(x, 1, 2, 10)
+    assert_equal(x.shape, (10, 10, 10))
+    assert_equal(x_rs.shape, (10, 10, 5))
+
+    x_2 = x.swapaxes(0, 1)
+    x_2_rs = resample(x_2, 1, 2, 10)
+    assert_array_equal(x_2_rs.swapaxes(0, 1), x_rs)
+
+    x_3 = x.swapaxes(0, 2)
+    x_3_rs = resample(x_3, 1, 2, 10, 0)
+    assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
 
 def test_filters():
@@ -144,13 +162,14 @@ def test_filters():
     assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
     # test to make sure our resamling matches scipy's
-    bp_up_dn = sp_resample(sp_resample(bp_oa, 2 * len(bp_oa), window='boxcar'),
-                           len(bp_oa), window='boxcar')
+    bp_up_dn = sp_resample(sp_resample(bp_oa, 2 * bp_oa.shape[-1], axis=-1,
+                                       window='boxcar'),
+                           bp_oa.shape[-1], window='boxcar', axis=-1)
     assert_array_almost_equal(bp_oa[n_resamp_ignore:-n_resamp_ignore],
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
 
     # make sure we don't alias
-    t = np.array(range(Fs * sig_len_secs)) / float(Fs)
+    t = np.array(list(range(Fs * sig_len_secs))) / float(Fs)
     # make sinusoid close to the Nyquist frequency
     sig = np.sin(2 * np.pi * Fs / 2.2 * t)
     # signal should disappear with 2x downsampling
@@ -203,7 +222,8 @@ def test_cuda():
 
     # check to make sure we actually used CUDA
     set_log_file()
-    out = open(log_file).readlines()
+    with open(log_file) as fid:
+        out = fid.readlines()
     assert_true(sum(['Using CUDA for FFT FIR filtering' in o
                      for o in out]) == 12)
 

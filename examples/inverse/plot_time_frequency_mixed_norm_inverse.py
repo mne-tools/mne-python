@@ -32,14 +32,13 @@ Lecture Notes in Computer Science, 2011, Volume 6801/2011,
 600-611, DOI: 10.1007/978-3-642-22092-0_49
 http://dx.doi.org/10.1007/978-3-642-22092-0_49
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
-from mne import fiff
 from mne.datasets import sample
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.inverse_sparse import tf_mixed_norm
@@ -54,9 +53,9 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 cov = mne.read_cov(cov_fname)
 
 # Handling average file
-setno = 'Left visual'
-evoked = fiff.read_evoked(ave_fname, setno=setno, baseline=(None, 0))
-evoked = fiff.pick.pick_channels_evoked(evoked)
+condition = 'Left visual'
+evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
+evoked = mne.pick_channels_evoked(evoked)
 # We make the window slightly larger than what you'll eventually be interested
 # in ([-0.05, 0.3]) to avoid edge effects.
 evoked.crop(tmin=-0.1, tmax=0.4)
@@ -97,19 +96,19 @@ evoked.crop(tmin=-0.05, tmax=0.3)
 residual.crop(tmin=-0.05, tmax=0.3)
 
 ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-picks = fiff.pick_types(evoked.info, meg='grad', exclude='bads')
+picks = mne.pick_types(evoked.info, meg='grad', exclude='bads')
 evoked.plot(picks=picks, ylim=ylim, proj=True,
             titles=dict(grad='Evoked Response (grad)'))
 
-picks = fiff.pick_types(residual.info, meg='grad', exclude='bads')
+picks = mne.pick_types(residual.info, meg='grad', exclude='bads')
 residual.plot(picks=picks, ylim=ylim, proj=True,
               titles=dict(grad='Residual (grad)'))
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-                             opacity=0.1, fig_name="TF-MxNE (cond %s)" % setno,
-                             modes=['sphere'], scale_factors=[1.])
+                             opacity=0.1, fig_name="TF-MxNE (cond %s)"
+                             % condition, modes=['sphere'], scale_factors=[1.])
 
 time_label = 'TF-MxNE time=%0.2f ms'
 brain = stc.plot('sample', 'inflated', 'rh', fmin=10e-9, fmid=15e-9,

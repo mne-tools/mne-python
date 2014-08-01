@@ -29,6 +29,10 @@ tmp-*.w
 tmtags
 auto_examples
 MNE-sample-data*
+MNE-spm-face*
+MNE-eegbci-data*
+MNE-somato-data*
+MEGSIM*
 build
 coverage
 

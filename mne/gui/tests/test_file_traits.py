@@ -9,7 +9,7 @@ from numpy.testing import assert_allclose
 from nose.tools import assert_equal, assert_false, assert_raises, assert_true
 
 from mne.datasets import sample
-from mne.fiff.tests import data_dir as fiff_data_dir
+from mne.io.tests import data_dir as fiff_data_dir
 from mne.utils import _TempDir, requires_mne_fs_in_env, requires_traits
 
 data_path = sample.data_path(download=False)
@@ -33,15 +33,6 @@ def test_bem_source():
     bem.file = bem_path
     assert_equal(bem.points.shape, (2562, 3))
     assert_equal(bem.tris.shape, (5120, 3))
-
-
-@requires_traits
-@requires_mne_fs_in_env
-def test_assert_env_set():
-    """Test environment variable detection"""
-    from mne.gui._file_traits import assert_env_set
-
-    assert_true(assert_env_set(True, True))
 
 
 @sample.requires_sample_data

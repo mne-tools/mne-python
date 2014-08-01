@@ -1,18 +1,30 @@
 import os
 
-from nose.tools import assert_raises, assert_true
+from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_less
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_array_less)
 
 from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _point_cloud_error, _decimate_points,
                        create_default_subject, scale_mri,
-                       _is_mri_subject, scale_labels, scale_source_space)
+                       _is_mri_subject, scale_labels, scale_source_space,
+                       read_elp)
+from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
+from functools import reduce
 
 
 tempdir = _TempDir()
+
+
+def test_read_elp():
+    """Test reading an ELP file"""
+    path = os.path.join(kit_data_dir, 'test_elp.txt')
+    points = read_elp(path)
+    assert_equal(points.shape, (8, 3))
+    assert_array_equal(points[0], [1.3930, 13.1613, -4.6967])
 
 
 @requires_mne_fs_in_env

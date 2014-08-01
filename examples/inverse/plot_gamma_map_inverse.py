@@ -10,7 +10,7 @@ NeuroImage, vol. 44, no. 3, pp. 947?66, Mar. 2009.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 
@@ -26,8 +26,9 @@ evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 # Read the evoked response and crop it
-setno = 'Left visual'
-evoked = mne.fiff.read_evoked(evoked_fname, setno=setno, baseline=(None, 0))
+condition = 'Left visual'
+evoked = mne.read_evokeds(evoked_fname, condition=condition,
+                          baseline=(None, 0))
 evoked.crop(tmin=-50e-3, tmax=300e-3)
 
 # Read the forward solution
@@ -55,10 +56,10 @@ plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
 
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
-evoked = mne.fiff.pick_types_evoked(evoked, meg='grad', exclude='bads')
+evoked = mne.pick_types_evoked(evoked, meg='grad', exclude='bads')
 evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
             proj=True)
 
-residual = mne.fiff.pick_types_evoked(residual, meg='grad', exclude='bads')
+residual = mne.pick_types_evoked(residual, meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
               proj=True)

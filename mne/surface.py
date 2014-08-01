@@ -1,9 +1,10 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Denis A. Engemann <d.engemann@fz-juelich.de>
+#          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
+from .externals.six import string_types
 import os
 from os import path as op
 import sys
@@ -11,15 +12,18 @@ from struct import pack
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy import sparse
+from fnmatch import fnmatch
 
-from .fiff.constants import FIFF
-from .fiff.open import fiff_open
-from .fiff.tree import dir_tree_find
-from .fiff.tag import find_tag
-from .fiff.write import (write_int, write_float, write_float_matrix,
-                         write_int_matrix, start_file, end_block,
-                         start_block, end_file, write_string,
-                         write_float_sparse_rcs)
+from .io.constants import FIFF
+from .io.open import fiff_open
+from .io.tree import dir_tree_find
+from .io.tag import find_tag
+from .io.write import (write_int, write_float, write_float_matrix,
+                       write_int_matrix, start_file, end_block,
+                       start_block, end_file, write_string,
+                       write_float_sparse_rcs)
+from .channels import _get_meg_system
+from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir
 
 
@@ -171,6 +175,8 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
     if tag is None:
+        tag = tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
+    if tag is None:
         res['nn'] = []
     else:
         res['nn'] = tag.data
@@ -286,6 +292,84 @@ def read_bem_solution(fname, verbose=None):
 
 
 ###############################################################################
+# AUTOMATED SURFACE FINDING
+
+def get_head_surf(subject, source='bem', subjects_dir=None):
+    """Load the subject head surface
+
+    Parameters
+    ----------
+    subject : str
+        Subject name.
+    source : str
+        Type to load. Common choices would be `'bem'` or `'head'`. We first
+        try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
+        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory.
+    subjects_dir : str, or None
+        Path to the SUBJECTS_DIR. If None, the path is obtained by using
+        the environment variable SUBJECTS_DIR.
+
+    Returns
+    -------
+    surf : dict
+        The head surface.
+    """
+    # Load the head surface from the BEM
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
+    this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
+                                    '%s-%s.fif' % (subject, source)))
+    if not op.isfile(this_head):
+        # let's do a more sophisticated search
+        this_head = None
+        path = op.join(subjects_dir, subject, 'bem')
+        if not op.isdir(path):
+            raise IOError('Subject bem directory "%s" does not exist'
+                          % path)
+        files = os.listdir(path)
+        for fname in files:
+            if fnmatch(fname, '%s*%s.fif' % (subject, source)):
+                this_head = op.join(path, fname)
+                break
+        if this_head is None:
+            raise IOError('No file matching "%s*%s" found'
+                          % (subject, source))
+    surf = read_bem_surfaces(this_head, True,
+                             FIFF.FIFFV_BEM_SURF_ID_HEAD)
+    return surf
+
+
+def get_meg_helmet_surf(info, trans=None):
+    """Load the MEG helmet associated with the MEG sensors
+
+    Parameters
+    ----------
+    info : instance of io.meas_info.Info
+        Measurement info.
+    trans : dict
+        The head<->MRI transformation, usually obtained using
+        read_trans(). Can be None, in which case the surface will
+        be in head coordinates instead of MRI coordinates.
+
+    Returns
+    -------
+    surf : dict
+        The MEG helmet as a surface.
+    """
+    system = _get_meg_system(info)
+    fname = op.join(op.split(__file__)[0], 'data', 'helmets',
+                    system + '.fif.gz')
+    surf = read_bem_surfaces(fname, False, FIFF.FIFFV_MNE_SURF_MEG_HELMET)
+
+    # Ignore what the file says, it's in device coords and we want MRI coords
+    surf['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+    transform_surface_to(surf, 'head', info['dev_head_t'])
+    if trans is not None:
+        transform_surface_to(surf, 'mri', trans)
+    return surf
+
+
+###############################################################################
 # EFFICIENCY UTILITIES
 
 def fast_cross_3d(x, y):
@@ -336,11 +420,9 @@ def _accumulate_normals(tris, tri_nn, npts):
     #
     nn = np.zeros((npts, 3))
     for verts in tris.T:  # note this only loops 3x (number of verts per tri)
-        counts = np.bincount(verts, minlength=npts)
-        reord = np.argsort(verts)
-        vals = np.r_[np.zeros((1, 3)), np.cumsum(tri_nn[reord, :], 0)]
-        idx = np.cumsum(np.r_[0, counts])
-        nn += vals[idx[1:], :] - vals[idx[:-1], :]
+        for idx in range(3):  # x, y, z
+            nn[:, idx] += np.bincount(verts, weights=tri_nn[:, idx],
+                                      minlength=npts)
     return nn
 
 
@@ -428,7 +510,7 @@ def _complete_surface_info(this, do_neighbor_vert=False):
     #   Determine the neighboring vertices and fix errors
     if do_neighbor_vert is True:
         this['neighbor_vert'] = [_get_surf_neighbors(this, k)
-                                 for k in xrange(this['np'])]
+                                 for k in range(this['np'])]
 
     return this
 
@@ -561,13 +643,21 @@ def read_surface(fname, verbose=None):
         Triangulation (each line contains indexes for three points which
         together form a face).
     """
-    with open(fname, "rb") as fobj:
+    TRIANGLE_MAGIC = 16777214
+    QUAD_MAGIC = 16777215
+    NEW_QUAD_MAGIC = 16777213
+    with open(fname, "rb", buffering=0) as fobj:  # buffering=0 for np bug
         magic = _fread3(fobj)
-        if (magic == 16777215) or (magic == 16777213):  # Quad file or new quad
+        if (magic == QUAD_MAGIC) or (magic == NEW_QUAD_MAGIC):  # Quad file or new quad
+            create_stamp = ''
             nvert = _fread3(fobj)
             nquad = _fread3(fobj)
-            coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float)
-            coords = coords.reshape(-1, 3) / 100.0
+            if magic == QUAD_MAGIC:
+                coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float) / 100.
+            else:
+                coords = np.fromfile(fobj, ">f4", nvert * 3).astype(np.float)
+
+            coords = coords.reshape(-1, 3)
             quads = _fread3_many(fobj, nquad * 4)
             quads = quads.reshape(nquad, 4)
             #
@@ -587,11 +677,12 @@ def read_surface(fname, verbose=None):
                     faces[nface] = quad[0], quad[2], quad[3]
                     nface += 1
 
-        elif magic == 16777214:  # Triangle file
+        elif magic == TRIANGLE_MAGIC:  # Triangle file
             create_stamp = fobj.readline()
-            _ = fobj.readline()
+            _ = fobj.readline()  # analysis:ignore
             vnum = np.fromfile(fobj, ">i4", 1)[0]
             fnum = np.fromfile(fobj, ">i4", 1)[0]
+            #raise RuntimeError
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
             faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
         else:
@@ -608,7 +699,7 @@ def read_surface(fname, verbose=None):
 def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
     """Load the surface as dict, optionally add the geometry information"""
     # based on mne_load_surface_geom() in mne_surface_io.c
-    if isinstance(fname, basestring):
+    if isinstance(fname, string_types):
         rr, tris = read_surface(fname)  # mne_read_triangle_file()
         nvert = len(rr)
         ntri = len(tris)
@@ -746,6 +837,9 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = _read_surface_geom(surf_name, norm_rr=True, add_geom=False)
+        if not len(from_surf['rr']) == surf['np']:
+            raise RuntimeError('Mismatch between number of surface vertices, '
+                               'possible parcellation error?')
         _normalize_vectors(ico_surf['rr'])
 
         # Make the maps
@@ -754,7 +848,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
         mmap = _compute_nearest(from_surf['rr'], ico_surf['rr'])
         nmap = len(mmap)
         surf['inuse'] = np.zeros(surf['np'], int)
-        for k in xrange(nmap):
+        for k in range(nmap):
             if surf['inuse'][mmap[k]]:
                 # Try the nearest neighbors
                 neigh = _get_surf_neighbors(surf, mmap[k])
@@ -819,9 +913,11 @@ def write_surface(fname, coords, faces, create_stamp=''):
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")
 
-    with open(fname, 'w') as fid:
+    with open(fname, 'wb') as fid:
         fid.write(pack('>3B', 255, 255, 254))
-        fid.writelines(('%s\n' % create_stamp, '\n'))
+        strs = ['%s\n' % create_stamp, '\n']
+        strs = [s.encode('utf-8') for s in strs]
+        fid.writelines(strs)
         vnum = len(coords)
         fnum = len(faces)
         fid.write(pack('>2i', vnum, fnum))
@@ -948,7 +1044,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     left_map, right_map : sparse matrix
         The morph maps for the 2 hemispheres.
     """
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # First check for morph-map dir existence
     mmap_dir = op.join(subjects_dir, 'morph-maps')
@@ -956,8 +1052,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         try:
             os.mkdir(mmap_dir)
         except:
-            logger.warn('Could not find or make morph map directory "%s"'
-                        % mmap_dir)
+            logger.warning('Could not find or make morph map directory "%s"'
+                           % mmap_dir)
 
     # Does the file exist
     fname = op.join(mmap_dir, '%s-%s-morph.fif' % (subject_from, subject_to))
@@ -978,8 +1074,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
                 _write_morph_map(fname, subject_from, subject_to,
                                  mmap_1, mmap_2)
             except Exception as exp:
-                logger.warn('Could not write morph-map file "%s" (error: %s)'
-                            % (fname, exp))
+                logger.warning('Could not write morph-map file "%s" '
+                               '(error: %s)' % (fname, exp))
             return mmap_1
 
     f, tree, _ = fiff_open(fname)

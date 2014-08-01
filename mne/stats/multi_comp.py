@@ -1,5 +1,5 @@
 # Authors: Josef Pktd and example from H Raja and rewrite from Vincent Davis
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # Code borrowed from statsmodels
 #

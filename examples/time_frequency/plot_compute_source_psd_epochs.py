@@ -13,13 +13,13 @@ Discrete Prolate Spheroidal Sequence (DPSS) windows.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw, pick_types
+from mne.io import Raw
 from mne.minimum_norm import read_inverse_operator, compute_source_psd_epochs
 
 
@@ -46,7 +46,7 @@ include = []
 raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 # pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
                    include=include, exclude='bads')
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,

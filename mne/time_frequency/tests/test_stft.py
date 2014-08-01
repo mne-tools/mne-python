@@ -31,7 +31,7 @@ def test_stft():
 
         # norm conservation thanks to tight frame property
         assert_almost_equal(np.sqrt(stft_norm2(X)),
-                            map(linalg.norm, x), decimal=2)
+                            [linalg.norm(xx) for xx in x], decimal=2)
 
         # Try with empty array
         x = np.zeros((0, T))

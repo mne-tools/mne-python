@@ -570,6 +570,27 @@ def make_thumbnail(in_fname, out_fname, width, height):
     thumb.save(out_fname)
 
 
+def scale_image(in_fname, max_width):
+    """Scale image such that width <= max_width
+    """
+    img = Image.open(in_fname)
+    width_in, height_in = img.size
+
+    if width_in <= max_width:
+        return
+
+    scale = max_width / float(width_in)
+
+    width_sc = int(round(scale * width_in))
+    height_sc = int(round(scale * height_in))
+
+    # resize the image
+    img.thumbnail((width_sc, height_sc), Image.ANTIALIAS)
+
+    # overwrite the image
+    img.save(in_fname)
+
+
 def get_short_module_name(module_name, obj_name):
     """ Get the shortest possible module name """
     parts = module_name.split('.')
@@ -685,17 +706,20 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
 
                 # find functions so we can later add links to the documentation
                 funregex = re.compile('[\w.]+\(')
+                fun_exclude = ['print']
                 with open(src_file, 'rt') as fid:
                     for line in fid.readlines():
                         if line.startswith('#'):
                             continue
                         for match in funregex.findall(line):
                             fun_name = match[:-1]
+                            if fun_name in fun_exclude:
+                                continue
                             try:
                                 exec('this_fun = %s' % fun_name, my_globals)
                             except Exception as err:
-                                print 'extracting function failed'
-                                print err
+                                print ('Error: extracting function %s failed: '
+                                       '%s' % (fun_name, str(err)))
                                 continue
                             this_fun = my_globals['this_fun']
                             if not callable(this_fun):
@@ -761,6 +785,9 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                         plt.savefig(image_path % fig_num, facecolor='black')
                     else:
                         plt.savefig(image_path % fig_num)
+
+                    # make sure the image is not too large
+                    scale_image(image_path % fig_num, 850)
                     figure_list.append(image_fname % fig_num)
                     last_fig_num = fig_num
 
@@ -768,6 +795,8 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                 for scene in e.scenes:
                     last_fig_num += 1
                     mlab.savefig(image_path % last_fig_num)
+                    # make sure the image is not too large
+                    scale_image(image_path % last_fig_num, 850)
                     figure_list.append(image_fname % last_fig_num)
                     mlab.close(scene)
 

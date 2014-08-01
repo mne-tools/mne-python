@@ -1,12 +1,14 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+
 from ..source_estimate import SourceEstimate
 from ..utils import check_random_state
+from ..externals.six.moves import zip
 
 
 def select_source_in_label(src, label, random_state=None):
@@ -89,7 +91,7 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
         else:
             raise ValueError('No vertno found.')
 
-    vertno = map(np.array, vertno)
+    vertno = [np.array(v) for v in vertno]
 
     # the data is in the order left, right
     data = list()
@@ -176,7 +178,7 @@ def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
             vertno[idx] = np.concatenate(vertno[idx])
         elif len(vertno[idx]) == 1:
             vertno[idx] = vertno[idx][0]
-    vertno = map(np.array, vertno)
+    vertno = [np.array(v) for v in vertno]
 
     # the data is in the order left, right
     data = list()

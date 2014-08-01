@@ -4,6 +4,8 @@
 #
 # License: BSD (3-clause)
 
+from ..utils import _check_mayavi_version
+
 
 def combine_kit_markers():
     """Create a new KIT marker file by interpolating two marker files
@@ -12,13 +14,14 @@ def combine_kit_markers():
     -----
     The functionality in this GUI is also part of :func:`kit2fiff`.
     """
+    _check_mayavi_version()
     from ._marker_gui import CombineMarkersFrame
     gui = CombineMarkersFrame()
     gui.configure_traits()
     return gui
 
 
-def coregistration(tabbed=False, split=True, scene_width=01, raw=None,
+def coregistration(tabbed=False, split=True, scene_width=0o1, raw=None,
                    subject=None, subjects_dir=None):
     """Coregister an MRI with a subject's head shape
 
@@ -49,6 +52,7 @@ def coregistration(tabbed=False, split=True, scene_width=01, raw=None,
     subjects for which no MRI is available
     <http://www.slideshare.net/mne-python/mnepython-scale-mri>`_.
     """
+    _check_mayavi_version()
     from ._coreg_gui import CoregFrame, _make_view
     view = _make_view(tabbed, split, scene_width)
     gui = CoregFrame(raw, subject, subjects_dir)
@@ -74,6 +78,7 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
     All parameters are optional, since they can be set through the GUI.
     The functionality in this GUI is also part of :func:`coregistration`.
     """
+    _check_mayavi_version()
     from ._fiducials_gui import FiducialsFrame
     gui = FiducialsFrame(subject, subjects_dir, fid_file=fid_file)
     gui.configure_traits()
@@ -83,6 +88,7 @@ def fiducials(subject=None, fid_file=None, subjects_dir=None):
 def kit2fiff():
     """Convert KIT files to the fiff format
     """
+    _check_mayavi_version()
     from ._kit2fiff_gui import Kit2FiffFrame
     gui = Kit2FiffFrame()
     gui.configure_traits()

@@ -1,10 +1,14 @@
 import numpy as np
 from scipy import stats
+from scipy.stats import f
+fprob = f.sf  # stats.fprob is deprecated
 from scipy.signal import detrend
 from ..fixes import matrix_rank
+from functools import reduce
+from ..externals.six.moves import map  # analysis:ignore
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
@@ -18,7 +22,7 @@ defaults_twoway_rm = {
         'A*B': [0, 1, 2]
         },
     'iter_contrasts': np.array([(1, 0, 1), (0, 1, 1), (1, 1, 1)])
- }
+    }
 
 
 # The following function is a rewriting of scipy.stats.f_oneway
@@ -91,7 +95,7 @@ def _f_oneway(*args):
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
     f = msb / msw
-    prob = stats.fprob(dfbn, dfwn, f)
+    prob = fprob(dfbn, dfwn, f)
     return f, prob
 
 
@@ -103,28 +107,28 @@ def f_oneway(*args):
 def _check_effects(effects):
     """ Aux Function """
     if effects.upper() not in defaults_twoway_rm['parse']:
-        raise ValueError('The value passed for `effects` is not supported.'
-            ' Please consider the documentation.')
+        raise ValueError('The value passed for `effects` is not supported. '
+                         'Please consider the documentation.')
 
     return defaults_twoway_rm['parse'][effects]
 
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
     """ Aux Function: Setup contrasts """
-    sc, sy, = [], []  
-    
+    sc, sy, = [], []
+
     # prepare computation of Kronecker products
     for n_levels in factor_levels:
         # for each factor append
         # 1) column vector of length == number of levels,
-        # 2) square matrix with diagonal == number of levels 
+        # 2) square matrix with diagonal == number of levels
 
-        # main + interaction effects for contrasts 
+        # main + interaction effects for contrasts
         sc.append([np.ones([n_levels, 1]),
                    detrend(np.eye(n_levels), type='constant')])
         # main + interaction effects for component means
         sy.append([np.ones([n_levels, 1]) / n_levels, np.eye(n_levels)])
-        # XXX component means not returned at the moment 
+        # XXX component means not returned at the moment
 
     for (c1, c2, c3) in defaults_twoway_rm['iter_contrasts'][effect_picks]:
         # c1 selects the first factors' level in the column vector
@@ -138,7 +142,7 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
 
 
 def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
-                       pvalue=0.05):
+                          pvalue=0.05):
     """ Compute f-value thesholds for a two-way ANOVA
 
     Parameters
@@ -168,7 +172,7 @@ def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
 
     f_threshold = []
     for _, df1, df2 in _iter_contrasts(n_subjects, factor_levels,
-                                        effect_picks):
+                                       effect_picks):
         f_threshold.append(stats.f(df1, df2).isf(pvalue))
 
     return f_threshold if len(f_threshold) > 1 else f_threshold[0]
@@ -177,7 +181,7 @@ def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
 # The following functions based on MATLAB code by Rik Henson
 # and Python code from the pvttble toolbox by Roger Lew.
 def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
-                   correction=False, return_pvals=True):
+                correction=False, return_pvals=True):
     """ 2 way repeated measures ANOVA for fully balanced designs
 
     data : ndarray
@@ -225,7 +229,7 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
         data = data[:, :, np.newaxis]
     elif data.ndim > 3:  # let's allow for some magic here.
         data = data.reshape(data.shape[0], data.shape[1],
-            np.prod(data.shape[2:]))
+                            np.prod(data.shape[2:]))
 
     effect_picks = _check_effects(effects)
     n_obs = data.shape[2]
@@ -235,7 +239,7 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
     data = np.rollaxis(data, 2)
     fvalues, pvalues = [], []
     for c_, df1, df2 in _iter_contrasts(n_replications, factor_levels,
-            effect_picks):
+                                        effect_picks):
         y = np.dot(data, c_)
         b = np.mean(y, axis=1)[:, np.newaxis, :]
         ss = np.sum(np.sum(y * b, axis=2), axis=1)
@@ -244,16 +248,15 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
         fvalues.append(fvals)
         if correction:
             # sample covariances, leave off "/ (y.shape[1] - 1)" norm because
-            # it falls out. the below line is faster than the equivalent:
-            # v = np.array([np.dot(y_.T, y_) for y_ in y])
-            v = np.array(map(np.dot, y.swapaxes(2, 1), y))
-            v = (np.array(map(np.trace, v)) ** 2 /
-                  (df1 * np.sum(np.sum(v * v, axis=2), axis=1)))
+            # it falls out.
+            v = np.array([np.dot(y_.T, y_) for y_ in y])
+            v = (np.array([np.trace(vv) for vv in v]) ** 2 /
+                 (df1 * np.sum(np.sum(v * v, axis=2), axis=1)))
             eps = v
 
         df1, df2 = np.zeros(n_obs) + df1, np.zeros(n_obs) + df2
         if correction:
-            df1, df2 = [d[None, :] * eps for d in df1, df2]
+            df1, df2 = [d[None, :] * eps for d in (df1, df2)]
 
         if return_pvals:
             pvals = stats.f(df1, df2).sf(fvals)
@@ -262,4 +265,4 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
         pvalues.append(pvals)
 
     # handle single effect returns
-    return [np.squeeze(np.asarray(v)) for v in fvalues, pvalues]
+    return [np.squeeze(np.asarray(v)) for v in (fvalues, pvalues)]

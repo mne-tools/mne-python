@@ -21,7 +21,10 @@ clean-build:
 clean-ctags:
 	rm -f tags
 
-clean: clean-build clean-pyc clean-so clean-ctags
+clean-cache:
+	find . -name "__pycache__" | xargs rm -rf
+
+clean: clean-build clean-pyc clean-so clean-ctags clean-cache
 
 in: inplace # just a shortcut
 inplace:
@@ -31,7 +34,7 @@ sample_data: $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif
 	@echo "Target needs sample data"
 
 $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif:
-	wget ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE-sample-data-processed.tar.gz
+	wget -c ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE-sample-data-processed.tar.gz
 	tar xvzf MNE-sample-data-processed.tar.gz
 	mv MNE-sample-data examples/
 	ln -sf ${PWD}/examples/MNE-sample-data ${PWD}/MNE-sample-data

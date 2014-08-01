@@ -43,16 +43,16 @@ def tridisolve(d, e, b, overwrite_b=True):
         x = b
     else:
         x = b.copy()
-    for k in xrange(1, N):
+    for k in range(1, N):
         # e^(k-1) = e(k-1) / d(k-1)
         # d(k) = d(k) - e^(k-1)e(k-1) / d(k-1)
         t = ew[k - 1]
         ew[k - 1] = t / dw[k - 1]
         dw[k] = dw[k] - t * ew[k - 1]
-    for k in xrange(1, N):
+    for k in range(1, N):
         x[k] = x[k] - ew[k - 1] * x[k - 1]
     x[N - 1] = x[N - 1] / dw[N - 1]
-    for k in xrange(N - 2, -1, -1):
+    for k in range(N - 2, -1, -1):
         x[k] = x[k] / dw[k] - ew[k] * x[k + 1]
 
     if not overwrite_b:
@@ -207,7 +207,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         # find the corresponding eigenvectors via inverse iteration
         t = np.linspace(0, np.pi, N)
         dpss = np.zeros((Kmax, N), 'd')
-        for k in xrange(Kmax):
+        for k in range(Kmax):
             dpss[k] = tridi_inverse_iteration(diagonal, off_diag, w[k],
                                               x0=np.sin((k + 1) * t))
 
@@ -228,8 +228,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
-    NFFT = 2 ** int(np.ceil(np.log2(rxx_size)))
-    dpss_fft = fftpack.fft(dpss, NFFT)
+    n_fft = 2 ** int(np.ceil(np.log2(rxx_size)))
+    dpss_fft = fftpack.fft(dpss, n_fft)
     dpss_rxx = np.real(fftpack.ifft(dpss_fft * dpss_fft.conj()))
     dpss_rxx = dpss_rxx[:, :N]
 
@@ -452,7 +452,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
 @verbose
 def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                   adaptive=False, low_bias=True, n_jobs=1, verbose=None):
+                   adaptive=False, low_bias=True, n_jobs=1,
+                   normalization='length', verbose=None):
     """Compute power spectrum density (PSD) using a multi-taper method
 
     Parameters
@@ -475,6 +476,10 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -485,6 +490,9 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
     freqs : array
         The frequency points in Hz of the PSD.
     """
+    if normalization not in ('length', 'full'):
+        raise ValueError('Normalization must be "length" or "full", not %s'
+                         % normalization)
     if x.ndim > 2:
         raise ValueError('x can only be 1d or 2d')
 
@@ -531,5 +539,7 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         psd = psd[0, :]
 
     freqs = freqs[freq_mask]
+    if normalization == 'full':
+        psd /= sfreq
 
     return psd, freqs

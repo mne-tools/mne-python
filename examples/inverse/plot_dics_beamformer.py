@@ -16,14 +16,14 @@ in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from mne.fiff import Raw
+from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
 from mne.beamformer import dics
@@ -42,8 +42,8 @@ raw = Raw(raw_fname)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
 # Set picks
-picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                            stim=False, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
+                       stim=False, exclude='bads')
 
 # Read epochs
 event_id, tmin, tmax = 1, -0.2, 0.5

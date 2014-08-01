@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
@@ -11,23 +11,31 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from . import fiff
-from .utils import logger, verbose
-from .fiff.write import start_file, end_file
-from .fiff.proj import (make_projector, proj_equal, activate_proj,
-                        _has_eeg_average_ref_proj)
-from .fiff import fiff_open
-from .fiff.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
-                        pick_channels)
-from .fiff.constants import FIFF
+from .io.write import start_file, end_file
+from .io.proj import (make_projector, proj_equal, activate_proj,
+                      _has_eeg_average_ref_proj)
+from .io import fiff_open
+from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
+                      pick_channels)
+from .io.constants import FIFF
+from .io.meas_info import read_bad_channels
+from .io.proj import _read_proj, _write_proj
+from .io.tag import find_tag
+from .io.tree import dir_tree_find
+from .io.write import (start_block, end_block, write_int, write_name_list,
+                       write_double, write_float_matrix)
 from .epochs import _is_good
+from .utils import check_fname, logger, verbose
+from .externals.six.moves import zip
 
 
 def _check_covs_algebra(cov1, cov2):
     if cov1.ch_names != cov2.ch_names:
         raise ValueError('Both Covariance do not have the same list of '
                          'channels.')
-    if map(str, cov1['projs']) != map(str, cov2['projs']):
+    projs1 = [str(c) for c in cov1['projs']]
+    projs2 = [str(c) for c in cov1['projs']]
+    if projs1 != projs2:
         raise ValueError('Both Covariance do not have the same list of '
                          'SSP projections.')
 
@@ -55,7 +63,7 @@ class Covariance(dict):
 
         # Reading
         fid, tree, _ = fiff_open(fname)
-        self.update(fiff.read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
+        self.update(_read_cov(fid, tree, FIFF.FIFFV_MNE_NOISE_COV))
         fid.close()
 
     @property
@@ -72,10 +80,12 @@ class Covariance(dict):
 
     def save(self, fname):
         """save covariance matrix in a FIF file"""
+        check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
+
         fid = start_file(fname)
 
         try:
-            fiff.write_cov(fid, self)
+            _write_cov(fid, self)
         except Exception as inst:
             os.remove(fname)
             raise inst
@@ -153,13 +163,16 @@ def read_cov(fname):
     Parameters
     ----------
     fname : string
-        The name of file containing the covariance matrix.
+        The name of file containing the covariance matrix. It should end with
+        -cov.fif or -cov.fif.gz.
 
     Returns
     -------
     cov : Covariance
         The noise covariance matrix.
     """
+    check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
+
     return Covariance(fname)
 
 
@@ -168,14 +181,14 @@ def read_cov(fname):
 
 def _check_n_samples(n_samples, n_chan):
     """Check to see if there are enough samples for reliable cov calc"""
-    n_samples_min = 10 * (n_chan + 1) / 2
+    n_samples_min = 10 * (n_chan + 1) // 2
     if n_samples <= 0:
         raise ValueError('No samples found to compute the covariance matrix')
     if n_samples < n_samples_min:
         text = ('Too few samples (required : %d got : %d), covariance '
                 'estimate may be unreliable' % (n_samples_min, n_samples))
         warnings.warn(text)
-        logger.warn(text)
+        logger.warning(text)
 
 
 @verbose
@@ -216,7 +229,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         Rejection parameters based on flatness of signal
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
         If flat is None then no rejection is done.
-    picks : array of int
+    picks : array-like of int
         Indices of channels to include (if None, all channels
         except bad channels are used).
     verbose : bool, str, int, or None
@@ -232,7 +245,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     # Convert to samples
     start = 0 if tmin is None else int(floor(tmin * sfreq))
     if tmax is None:
-        stop = raw.last_samp - raw.first_samp
+        stop = int(raw.last_samp - raw.first_samp)
     else:
         stop = int(ceil(tmax * sfreq))
     step = int(ceil(tstep * raw.info['sfreq']))
@@ -347,7 +360,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     # check for baseline correction
     for epochs_t in epochs:
-        if epochs_t.baseline is None:
+        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5:
             warnings.warn('Epochs are not baseline corrected, covariance '
                           'matrix may be inaccurate')
 
@@ -406,7 +419,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if keep_sample_mean:
         data /= n_samples_tot
     else:
-        n_samples_epoch = n_samples / n_epochs
+        n_samples_epoch = n_samples // n_epochs
         norm_const = np.sum(n_samples_epoch * (n_epochs - 1))
         for i, mean in enumerate(data_mean):
             data -= 1.0 / n_epochs[i] * np.dot(mean, mean.T)
@@ -437,7 +450,7 @@ def write_cov(fname, cov):
     Parameters
     ----------
     fname : string
-        The name of the file
+        The name of the file. It should end with -cov.fif or -cov.fif.gz.
     cov : Covariance
         The noise covariance matrix
     """
@@ -553,7 +566,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
     return noise_cov
 
 
-def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
+def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
                proj=True, verbose=None):
     """Regularize noise covariance matrix
 
@@ -573,8 +586,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
         Regularization factor for MEG gradiometers.
     eeg : float
         Regularization factor for EEG.
-    exclude : list | None
-        List of channels to mark as bad. If None, bads channels
+    exclude : list | 'bads'
+        List of channels to mark as bad. If 'bads', bads channels
         are extracted from both info['bads'] and cov['bads'].
     proj : bool
         Apply or not projections to keep rank of data.
@@ -587,7 +600,11 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude=None,
         The regularized covariance matrix.
     """
     cov = cp.deepcopy(cov)
+
     if exclude is None:
+        raise ValueError('exclude must be a list of strings or "bads"')
+
+    if exclude == 'bads':
         exclude = info['bads'] + cov['bads']
 
     sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
@@ -667,7 +684,7 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
         The noise covariance.
     info : dict
         The measurement info.
-    picks : array of int | None
+    picks : array-like of int | None
         The channels indices to include. If None the data
         channels in info, except bad channels, are used.
     verbose : bool, str, int, or None
@@ -714,7 +731,7 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False):
         The evoked data
     noise_cov : instance of Covariance
         The noise covariance
-    picks : array of ints
+    picks : array-like of int
         The channel indices to whiten
     diag : bool
         If True, whiten using only the diagonal of the covariance
@@ -748,3 +765,140 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False):
     W = np.dot(noise_cov['eigvec'].T, W)
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
+
+
+@verbose
+def _read_cov(fid, node, cov_kind, verbose=None):
+    """Read a noise covariance matrix"""
+    #   Find all covariance matrices
+    covs = dir_tree_find(node, FIFF.FIFFB_MNE_COV)
+    if len(covs) == 0:
+        raise ValueError('No covariance matrices found')
+
+    #   Is any of the covariance matrices a noise covariance
+    for p in range(len(covs)):
+        tag = find_tag(fid, covs[p], FIFF.FIFF_MNE_COV_KIND)
+
+        if tag is not None and int(tag.data) == cov_kind:
+            this = covs[p]
+
+            #   Find all the necessary data
+            tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_DIM)
+            if tag is None:
+                raise ValueError('Covariance matrix dimension not found')
+            dim = int(tag.data)
+
+            tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_NFREE)
+            if tag is None:
+                nfree = -1
+            else:
+                nfree = int(tag.data)
+
+            tag = find_tag(fid, this, FIFF.FIFF_MNE_ROW_NAMES)
+            if tag is None:
+                names = []
+            else:
+                names = tag.data.split(':')
+                if len(names) != dim:
+                    raise ValueError('Number of names does not match '
+                                     'covariance matrix dimension')
+
+            tag = find_tag(fid, this, FIFF.FIFF_MNE_COV)
+            if tag is None:
+                tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_DIAG)
+                if tag is None:
+                    raise ValueError('No covariance matrix data found')
+                else:
+                    #   Diagonal is stored
+                    data = tag.data
+                    diagmat = True
+                    logger.info('    %d x %d diagonal covariance (kind = '
+                                '%d) found.' % (dim, dim, cov_kind))
+
+            else:
+                from scipy import sparse
+                if not sparse.issparse(tag.data):
+                    #   Lower diagonal is stored
+                    vals = tag.data
+                    data = np.zeros((dim, dim))
+                    data[np.tril(np.ones((dim, dim))) > 0] = vals
+                    data = data + data.T
+                    data.flat[::dim + 1] /= 2.0
+                    diagmat = False
+                    logger.info('    %d x %d full covariance (kind = %d) '
+                                'found.' % (dim, dim, cov_kind))
+                else:
+                    diagmat = False
+                    data = tag.data
+                    logger.info('    %d x %d sparse covariance (kind = %d)'
+                                ' found.' % (dim, dim, cov_kind))
+
+            #   Read the possibly precomputed decomposition
+            tag1 = find_tag(fid, this, FIFF.FIFF_MNE_COV_EIGENVALUES)
+            tag2 = find_tag(fid, this, FIFF.FIFF_MNE_COV_EIGENVECTORS)
+            if tag1 is not None and tag2 is not None:
+                eig = tag1.data
+                eigvec = tag2.data
+            else:
+                eig = None
+                eigvec = None
+
+            #   Read the projection operator
+            projs = _read_proj(fid, this)
+
+            #   Read the bad channel list
+            bads = read_bad_channels(fid, this)
+
+            #   Put it together
+            cov = dict(kind=cov_kind, diag=diagmat, dim=dim, names=names,
+                       data=data, projs=projs, bads=bads, nfree=nfree, eig=eig,
+                       eigvec=eigvec)
+            return cov
+
+    logger.info('    Did not find the desired covariance matrix (kind = %d)'
+                % cov_kind)
+
+    return None
+
+
+def _write_cov(fid, cov):
+    """Write a noise covariance matrix"""
+    start_block(fid, FIFF.FIFFB_MNE_COV)
+
+    #   Dimensions etc.
+    write_int(fid, FIFF.FIFF_MNE_COV_KIND, cov['kind'])
+    write_int(fid, FIFF.FIFF_MNE_COV_DIM, cov['dim'])
+    if cov['nfree'] > 0:
+        write_int(fid, FIFF.FIFF_MNE_COV_NFREE, cov['nfree'])
+
+    #   Channel names
+    if cov['names'] is not None and len(cov['names']) > 0:
+        write_name_list(fid, FIFF.FIFF_MNE_ROW_NAMES, cov['names'])
+
+    #   Data
+    if cov['diag']:
+        write_double(fid, FIFF.FIFF_MNE_COV_DIAG, cov['data'])
+    else:
+        # Store only lower part of covariance matrix
+        dim = cov['dim']
+        mask = np.tril(np.ones((dim, dim), dtype=np.bool)) > 0
+        vals = cov['data'][mask].ravel()
+        write_double(fid, FIFF.FIFF_MNE_COV, vals)
+
+    #   Eigenvalues and vectors if present
+    if cov['eig'] is not None and cov['eigvec'] is not None:
+        write_float_matrix(fid, FIFF.FIFF_MNE_COV_EIGENVECTORS, cov['eigvec'])
+        write_double(fid, FIFF.FIFF_MNE_COV_EIGENVALUES, cov['eig'])
+
+    #   Projection operator
+    if cov['projs'] is not None and len(cov['projs']) > 0:
+        _write_proj(fid, cov['projs'])
+
+    #   Bad channels
+    if cov['bads'] is not None and len(cov['bads']) > 0:
+        start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+        write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, cov['bads'])
+        end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+
+    #   Done!
+    end_block(fid, FIFF.FIFFB_MNE_COV)

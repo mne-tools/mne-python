@@ -1,21 +1,21 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
 import numpy as np
 from scipy import linalg
 
-from . import fiff, Epochs
-from .utils import logger, verbose
-from .fiff.pick import pick_types, pick_types_forward
-from .fiff.proj import Projection, _has_eeg_average_ref_proj
+from . import io, Epochs
+from .utils import check_fname, logger, verbose
+from .io.pick import pick_types, pick_types_forward
+from .io.proj import Projection, _has_eeg_average_ref_proj
 from .event import make_fixed_length_events
 from .parallel import parallel_func
 from .cov import _check_n_samples
 from .forward import (is_fixed_orient, _subject_from_forward,
                       convert_forward_solution)
 from .source_estimate import SourceEstimate
-from .fiff.proj import make_projector, make_eeg_average_ref_proj
+from .io.proj import make_projector, make_eeg_average_ref_proj
 
 
 def read_proj(fname):
@@ -24,15 +24,19 @@ def read_proj(fname):
     Parameters
     ----------
     fname : string
-        The name of file containing the projections vectors.
+        The name of file containing the projections vectors. It should end with
+        -proj.fif or -proj.fif.gz.
 
     Returns
     -------
     projs : list
         The list of projection vectors.
     """
-    fid, tree, _ = fiff.fiff_open(fname)
-    projs = fiff.proj.read_proj(fid, tree)
+    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
+
+    ff, tree, _ = io.fiff_open(fname)
+    with ff as fid:
+        projs = io.proj._read_proj(fid, tree)
     return projs
 
 
@@ -42,14 +46,17 @@ def write_proj(fname, projs):
     Parameters
     ----------
     fname : string
-        The name of file containing the projections vectors.
+        The name of file containing the projections vectors. It should end with
+        -proj.fif or -proj.fif.gz.
 
     projs : list
         The list of projection vectors.
     """
-    fid = fiff.write.start_file(fname)
-    fiff.proj.write_proj(fid, projs)
-    fiff.write.end_file(fid)
+    check_fname(fname, 'projection', ('-proj.fif', '-proj.fif.gz'))
+
+    fid = io.write.start_file(fname)
+    io.proj._write_proj(fid, projs)
+    io.write.end_file(fid)
 
 
 @verbose
@@ -123,10 +130,10 @@ def compute_proj_epochs(epochs, n_grad=2, n_mag=2, n_eeg=2, n_jobs=1,
     # compute data covariance
     data = _compute_cov_epochs(epochs, n_jobs)
     event_id = epochs.event_id
-    if event_id is None or len(event_id.keys()) == 0:
+    if event_id is None or len(list(event_id.keys())) == 0:
         event_id = '0'
     elif len(event_id.keys()) == 1:
-        event_id = str(event_id.values()[0])
+        event_id = str(list(event_id.values())[0])
     else:
         event_id = 'Multiple-events'
     desc_prefix = "%s-%-.3f-%-.3f" % (event_id, epochs.tmin, epochs.tmax)
@@ -141,7 +148,7 @@ def _compute_cov_epochs(epochs, n_jobs):
     if n_epochs == 0:
         raise RuntimeError('No good epochs found')
 
-    n_chan, n_samples = epochs.__iter__().next().shape
+    n_chan, n_samples = epochs.info['nchan'], len(epochs.times)
     _check_n_samples(n_samples * n_epochs, n_chan)
     data = sum(data)
     return data
@@ -321,7 +328,7 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     n_locations = n_dipoles // 3
     sensitivity_map = np.empty(n_locations)
 
-    for k in xrange(n_locations):
+    for k in range(n_locations):
         gg = gain[:, 3 * k:3 * (k + 1)]
         if mode != 'fixed':
             s = linalg.svd(gg, full_matrices=False, compute_uv=False)

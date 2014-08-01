@@ -13,14 +13,14 @@ visualize the evoked responses to both 'quickly-processed'
 and 'slowly-processed' face stimuli.
 
 """
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
-from mne import fiff
+from mne import io
 from mne.event import define_target_events
 from mne.datasets import sample
 data_path = sample.data_path()
@@ -31,7 +31,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 #   Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
@@ -39,8 +39,8 @@ include = []  # or stim channels ['STI 014']
 raw.info['bads'] += ['EEG 053']  # bads
 
 # pick MEG channels
-picks = fiff.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
-                        include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg='mag', eeg=False, stim=False, eog=True,
+                       include=include, exclude='bads')
 
 ###############################################################################
 # Find stimulus event followed by quick button presses
@@ -56,12 +56,12 @@ fill_na = 99  # the fill value for misses
 events_, lag = define_target_events(events, reference_id, target_id,
                                     sfreq, tmin, tmax, new_id, fill_na)
 
-print events_  # The 99 indicates missing or too late button presses
+print(events_)  # The 99 indicates missing or too late button presses
 
 # besides the events also the lag between target and reference is returned
 # this could e.g. be used as parametric regressor in subsequent analyses.
 
-print lag[lag != fill_na]  # lag in milliseconds
+print(lag[lag != fill_na])  # lag in milliseconds
 
 # #############################################################################
 # Construct epochs

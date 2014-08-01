@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# Authors: Denis A. Engemann  <d.engemann@fz-juelich.de>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Denis A. Engemann  <denis.engemann@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 #          simplified bsd-3 license
@@ -11,10 +11,11 @@ Create high-resolution head surfaces for coordinate alignment.
 
 example usage: mne make_scalp_surfaces --overwrite --subject sample
 """
+from __future__ import print_function
+
 import os
 import os.path as op
 import sys
-from commands import getstatusoutput
 import mne
 
 if __name__ == '__main__':
@@ -44,16 +45,17 @@ if __name__ == '__main__':
     verbose = options.verbose
     force = '--force' if options.force else '--check'
 
+    from mne.commands.utils import get_status_output
     def my_run_cmd(cmd, err_msg):
-        sig, out = getstatusoutput(cmd)
+        sig, out, error = get_status_output(cmd)
         if verbose:
-            print out
+            print(out, error)
         if sig != 0:
-            print err_msg
+            print(err_msg)
             sys.exit(1)
 
     if not 'SUBJECTS_DIR' in env:
-        print 'The environment variable SUBJECTS_DIR should be set'
+        print('The environment variable SUBJECTS_DIR should be set')
         sys.exit(1)
 
     if not op.isabs(env['SUBJECTS_DIR']):
@@ -61,17 +63,17 @@ if __name__ == '__main__':
     subj_dir = env['SUBJECTS_DIR']
 
     if not 'MNE_ROOT' in env:
-        print 'MNE_ROOT environment variable is not set'
+        print('MNE_ROOT environment variable is not set')
         sys.exit(1)
 
     if not 'FREESURFER_HOME' in env:
-        print 'The FreeSurfer environment needs to be set up for this script'
+        print('The FreeSurfer environment needs to be set up for this script')
         sys.exit(1)
 
     subj_path = op.join(subj_dir, subject)
     if not op.exists(subj_path):
-        print ('%s does not exits. Please check your subject directory '
-               'path.' % subj_path)
+        print(('%s does not exits. Please check your subject directory '
+               'path.' % subj_path))
         sys.exit(1)
 
     if op.exists(op.join(subj_path, 'mri', 'T1.mgz')):
@@ -79,7 +81,7 @@ if __name__ == '__main__':
     else:
         mri = 'T1'
 
-    print '1. Creating a dense scalp tessellation with mkheadsurf...'
+    print('1. Creating a dense scalp tessellation with mkheadsurf...')
 
     def check_seghead(surf_path=op.join(subj_path, 'surf')):
         for k in ['/lh.seghead', '/lh.smseghead']:
@@ -93,30 +95,30 @@ if __name__ == '__main__':
         cmd = 'mkheadsurf -subjid %s -srcvol %s >/dev/null' % (subject, mri)
         my_run_cmd(cmd, 'mkheadsurf failed')
     else:
-        print '%s/surf/%s already there' % (subj_path, my_seghead)
+        print('%s/surf/%s already there' % (subj_path, my_seghead))
         if not overwrite:
-            print 'Use the --overwrite option to replace exisiting surfaces.'
+            print('Use the --overwrite option to replace exisiting surfaces.')
             sys.exit()
 
     surf = check_seghead()
     if surf is None:
-        print 'mkheadsurf did not produce the standard output file.'
+        print('mkheadsurf did not produce the standard output file.')
         sys.exit(1)
 
     fif = '{0}/{1}/bem/{1}-head-dense.fif'.format(subj_dir, subject)
-    print '2. Creating %s ...' % fif
+    print('2. Creating %s ...' % fif)
     cmd = 'mne_surf2bem --surf %s --id 4 %s --fif %s' % (surf, force, fif)
     my_run_cmd(cmd, 'Failed to create %s, see above' % fif)
     levels = 'medium', 'sparse'
     for ii, (n_tri, level) in enumerate(zip([30000, 2500], levels), 3):
         my_surf = mne.read_bem_surfaces(fif)[0]
-        print '%i. Creating medium grade tessellation...' % ii
-        print '%i.1 Decimating the dense tessellation...' % ii
+        print('%i. Creating medium grade tessellation...' % ii)
+        print('%i.1 Decimating the dense tessellation...' % ii)
         points, tris = mne.decimate_surface(points=my_surf['rr'],
                                             triangles=my_surf['tris'],
                                             n_triangles=n_tri)
         out_fif = fif.replace('dense', level)
-        print '%i.2 Creating %s' % (ii, out_fif)
+        print('%i.2 Creating %s' % (ii, out_fif))
         surf_fname = '/tmp/tmp-surf.surf'
         # convert points to meters, make mne_analyze happy
         mne.write_surface(surf_fname, points * 1e3, tris)

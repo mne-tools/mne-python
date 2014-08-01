@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -7,23 +7,26 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
+import warnings
 
 from mne.datasets import sample
 from mne import read_label, read_forward_solution
 from mne.time_frequency import morlet
 from mne.simulation import generate_sparse_stc, generate_evoked
-import mne
-from mne.fiff.pick import pick_types_evoked, pick_types_forward
+from mne import read_cov
+from mne.io import Raw
+from mne import pick_types_evoked, pick_types_forward, read_evokeds
 
+warnings.simplefilter('always')
 
 data_path = sample.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-eeg-oct-6-fwd.fif')
-raw_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test_raw.fif')
-ave_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+ave_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test-ave.fif')
-cov_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
+cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test-cov.fif')
 
 
@@ -31,15 +34,15 @@ cov_fname = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests',
 def test_simulate_evoked():
     """ Test simulation of evoked data """
 
-    raw = mne.fiff.Raw(raw_fname)
+    raw = Raw(raw_fname)
     fwd = read_forward_solution(fwd_fname, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
-    cov = mne.read_cov(cov_fname)
+    cov = read_cov(cov_fname)
     label_names = ['Aud-lh', 'Aud-rh']
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
 
-    evoked_template = mne.fiff.read_evoked(ave_fname, setno=0, baseline=None)
+    evoked_template = read_evokeds(ave_fname, condition=0, baseline=None)
     evoked_template = pick_types_evoked(evoked_template, meg=True, eeg=True,
                                         exclude=raw.info['bads'])
 
@@ -64,8 +67,10 @@ def test_simulate_evoked():
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
-    evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
-                             tmin=0.0, tmax=0.2, iir_filter=iir_filter)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')  # positive semidefinite warning
+        evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
+                                 tmin=0.0, tmax=0.2, iir_filter=iir_filter)
     assert_array_almost_equal(evoked.times, stc.times)
     assert_true(len(evoked.data) == len(fwd['sol']['data']))
 

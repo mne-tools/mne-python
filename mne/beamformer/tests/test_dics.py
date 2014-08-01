@@ -1,3 +1,4 @@
+from __future__ import print_function
 import warnings
 import os.path as op
 import copy as cp
@@ -10,6 +11,7 @@ import mne
 from mne.datasets import sample
 from mne.beamformer import dics, dics_epochs, dics_source_power, tf_dics
 from mne.time_frequency import compute_epochs_csd
+from mne.externals.six import advance_iterator
 
 # Note that this is the first test file, this will apply to all subsequent
 # tests in a full nosetest:
@@ -32,7 +34,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
     """
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)[:10]
-    raw = mne.fiff.Raw(fname_raw, preload=False)
+    raw = mne.io.Raw(fname_raw, preload=False)
     forward = mne.read_forward_solution(fname_fwd)
     if read_all_forward:
         forward_surf_ori = mne.read_forward_solution(fname_fwd, surf_ori=True)
@@ -51,9 +53,9 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
 
     # Set up pick list: MEG - bad channels
     left_temporal_channels = mne.read_selection('Left-temporal')
-    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False,
-                                stim=True, eog=True, exclude='bads',
-                                selection=left_temporal_channels)
+    picks = mne.pick_types(raw.info, meg=True, eeg=False,
+                           stim=True, eog=True, exclude='bads',
+                           selection=left_temporal_channels)
 
     # Read epochs
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
@@ -126,7 +128,7 @@ def test_dics():
     # Testing returning of generator
     stcs_ = dics_epochs(epochs, forward_fixed, noise_csd, data_csd, reg=0.01,
                         return_generator=True, label=label)
-    assert_array_equal(stcs[0].data, stcs_.next().data)
+    assert_array_equal(stcs[0].data, advance_iterator(stcs_).data)
 
     # Test whether correct number of trials was returned
     epochs.drop_bad_epochs()
@@ -206,7 +208,7 @@ def test_dics_source_power():
     for freq, data_csd in zip(frequencies, data_csds):
         data_csd.frequencies = [freq]
     noise_csds = data_csds
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         dics_source_power(epochs.info, forward, noise_csds, data_csds)
     assert len(w) == 1
 
@@ -235,7 +237,7 @@ def test_tf_dics():
                    freq_bins, reg=reg, label=label)
 
     assert_true(len(stcs) == len(freq_bins))
-    print stcs[0].shape
+    print(stcs[0].shape)
     assert_true(stcs[0].shape[1] == 4)
 
     # Manually calculating source power in several time windows to compare

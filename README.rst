@@ -1,4 +1,3 @@
-
 .. -*- mode: rst -*-
 
 
@@ -72,7 +71,7 @@ Dependencies
 ^^^^^^^^^^^^
 
 The required dependencies to build the software are python >= 2.6,
-NumPy >= 1.4, SciPy >= 0.7.2 and matplotlib >= 0.98.4.
+NumPy >= 1.6, SciPy >= 0.7.2 and matplotlib >= 0.98.4.
 
 Some isolated functions require pandas >= 0.7.3 and nitime (multitaper analysis).
 

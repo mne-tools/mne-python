@@ -6,6 +6,8 @@
 
 from glob import glob
 import os
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 # allow import without traits
 try:
@@ -43,7 +45,8 @@ except:
     NoButtons = trait_wraith
 
 from ..coreg import fid_fname, fid_fname_general, head_bem_fname
-from ..fiff import FIFF, write_fiducials
+from ..io import write_fiducials
+from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
 from ._file_traits import (BemSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
@@ -76,7 +79,9 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     fid_points = DelegatesTo('fid', 'points')
     subjects_dir = DelegatesTo('subject_source')
     subject = DelegatesTo('subject_source')
+    subject_has_bem = DelegatesTo('subject_source')
     points = DelegatesTo('bem')
+    norms = DelegatesTo('bem')
     tris = DelegatesTo('bem')
     lpa = Array(float, (1, 3))
     nasion = Array(float, (1, 3))
@@ -294,7 +299,7 @@ class FiducialsPanel(HasPrivateTraits):
             idx = None
             pt = [picker.pick_position]
         elif self.hsp_obj.surf.actor.actor in picker.actors:
-            idxs = [i for i in xrange(n_pos) if picker.actors[i] is
+            idxs = [i for i in range(n_pos) if picker.actors[i] is
                     self.hsp_obj.surf.actor.actor]
             idx = idxs[-1]
             pt = [picker.picked_positions[idx]]

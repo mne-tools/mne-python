@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Martin Luessi <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 # License: Simplified BSD
 from copy import deepcopy
 
@@ -7,7 +7,7 @@ import numpy as np
 from scipy import linalg
 
 from ..forward import is_fixed_orient, _to_fixed_ori
-from ..fiff.pick import pick_channels_evoked
+from ..io.pick import pick_channels_evoked
 from ..minimum_norm.inverse import _prepare_forward
 from ..utils import logger, verbose
 from .mxne_inverse import _make_sparse_stc, _prepare_gain
@@ -281,8 +281,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         in_pos = 0
         if len(X) < 3 * len(active_src):
             X_xyz = np.zeros((3 * len(active_src), X.shape[1]), dtype=X.dtype)
-            for ii in xrange(len(active_src)):
-                for jj in xrange(3):
+            for ii in range(len(active_src)):
+                for jj in range(3):
                     if in_pos >= len(active_set):
                         break
                     if (active_set[in_pos] + jj) % 3 == 0:

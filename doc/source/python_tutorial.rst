@@ -45,47 +45,17 @@ Installation of the required materials
 
 See :ref:`getting_started` with Python.
 
-Get the code
-^^^^^^^^^^^^
 
-  You can manually get the latest version of the code at:
+.. note:: The expected location for the MNE-sample data is my-path-to/mne-python/examples.
+    If you downloaded data and an example asks you whether to download it again, make sure
+    the data reside in the examples directory and you run the script from its current directory.
 
-  https://github.com/mne-tools/mne-python
+    From IPython e.g. say::
 
-  Then from the mne-python folder (containing a setup.py file) you can install with::
-
-      python setup.py install
-
-  You can also install the latest release with easy_install::
-
-      easy_install -U mne
-
-  or with pip::
-
-      pip install mne --upgrade
-
-  For the latest development version (the most up to date)::
-
-      pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+    cd examples/preprocessing
 
 
-Make life easier
-~~~~~~~~~~~~~~~~
-
-  For optimal performance we recommend using numpy / scipy with the multi-threaded
-  ATLAS, gotoblas2, or intel MKL. For example, the Enthought Canopy and the Anaconda distributions
-  ship with tested MKL-compiled numpy / scipy versions. Depending on the use case and your system
-  this may speed up operations by a factor greater than 10.
-
-  The expected location for the MNE-sample data is my-path-to/mne-python/examples.
-  If you downloaded data and an example asks you whether to download it again, make sure
-  the data reside in the examples directory and you run the script from its current directory.
-
-  From IPython e.g. say::
-
-   cd examples/preprocessing
-
-   %run plot_find_ecg_artifacts.py
+    %run plot_find_ecg_artifacts.py
 
 
 From raw data to evoked data
@@ -128,24 +98,24 @@ Access raw data
     >>> from mne.datasets import sample
     >>> data_path = sample.data_path()
     >>> raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-    >>> print raw_fname # doctest: +SKIP
+    >>> print(raw_fname) # doctest: +SKIP
     ./MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw.fif
 
 .. note:: The MNE sample dataset should be downloaded automatically but be patient (approx. 2GB)
 
 Read data from file:
 
-    >>> raw = mne.fiff.Raw(raw_fname) # doctest:+ELLIPSIS
+    >>> raw = mne.io.Raw(raw_fname) # doctest:+ELLIPSIS
     Opening raw data ...
     Ready.
-    >>> print raw
+    >>> print(raw)
     <Raw  |  n_channels x n_times : 376 x 41700>
-    >>> print raw.info # doctest:+ELLIPSIS
-    <Info | 19 non-empty ...
+    >>> print(raw.info) # doctest:+ELLIPSIS
+    <Info | 17 non-empty ...
 
 Look at the channels in raw:
 
-    >>> print raw.ch_names # doctest:+ELLIPSIS
+    >>> print(raw.ch_names) # doctest:+ELLIPSIS
     ['MEG 0113', 'MEG 0112', ...]
 
 Read and plot a segment of raw data
@@ -154,9 +124,9 @@ Read and plot a segment of raw data
     >>> data, times = raw[:, start:stop]
     Reading 15015 ... 17266  =     99.998 ...   114.989 secs...
     [done]
-    >>> print data.shape
+    >>> print(data.shape)
     (376, 2252)
-    >>> print times.shape
+    >>> print(times.shape)
     (2252,)
     >>> data, times = raw[2:20:3, start:stop]  # access underlying data
     Reading 15015 ... 17266  =     99.998 ...   114.989 secs...
@@ -168,7 +138,7 @@ Read and plot a segment of raw data
 
 Save a segment of 150s of raw data (MEG only):
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
+    >>> picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
     >>> raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks, overwrite=True) # doctest: +ELLIPSIS
     Reading ...
 
@@ -182,7 +152,7 @@ First extract events:
     [done]
     319 events found
     Events id: [ 1  2  3  4  5 32]
-    >>> print events[:5]
+    >>> print(events[:5])
     [[6994    0    2]
      [7086    0    3]
      [7192    0    1]
@@ -212,12 +182,12 @@ The variable raw.info['bads'] is just a python list.
 
 Pick the good channels, excluding raw.info['bads']:
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude='bads')
+    >>> picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude='bads')
 
 Alternatively one can restrict to magnetometers or gradiometers with:
 
-    >>> mag_picks = mne.fiff.pick_types(raw.info, meg='mag', eog=True, exclude='bads')
-    >>> grad_picks = mne.fiff.pick_types(raw.info, meg='grad', eog=True, exclude='bads')
+    >>> mag_picks = mne.pick_types(raw.info, meg='mag', eog=True, exclude='bads')
+    >>> grad_picks = mne.pick_types(raw.info, meg='grad', eog=True, exclude='bads')
 
 Define the baseline period:
 
@@ -233,15 +203,15 @@ Read epochs:
     Created an SSP operator (subspace dimension = 4)
     4 projection items activated
     145 matching events found
-    >>> print epochs
+    >>> print(epochs)
     <Epochs  |  n_events : 145 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0),
-     'aud_r': 73, 'aud_l': 72>
+     'aud_l': 72, 'aud_r': 73>
 
 Get single epochs for one condition:
 
     >>> epochs_data = epochs['aud_l'].get_data() # doctest: +ELLIPSIS
     Reading ...
-    >>> print epochs_data.shape
+    >>> print(epochs_data.shape)
     (55, 365, 106)
 
 epochs_data is a 3D array of dimension (55 epochs, 365 channels, 106 time instants).
@@ -266,7 +236,7 @@ Compute evoked responses for auditory responses by averaging and plot it:
 
     >>> evoked = epochs['aud_l'].average() # doctest: +ELLIPSIS
     Reading ...
-    >>> print evoked
+    >>> print(evoked)
     <Evoked  |  comment : 'aud_l', time : [-0.199795, 0.499488], n_epochs : 55, n_channels x n_times : 364 x 106>
     >>> evoked.plot() # doctest:+SKIP
 
@@ -279,13 +249,13 @@ Compute evoked responses for auditory responses by averaging and plot it:
 
   >>> max_in_each_epoch = [e.max() for e in epochs['aud_l']] # doctest:+ELLIPSIS
   Reading ...
-  >>> print max_in_each_epoch[:4] # doctest:+ELLIPSIS
+  >>> print(max_in_each_epoch[:4]) # doctest:+ELLIPSIS
   [1.93751...e-05, 1.64055...e-05, 1.85453...e-05, 2.04128...e-05]
 
 It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-    >>> evoked1 = mne.fiff.read_evoked(evoked_fname, setno='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
+    >>> evoked1 = mne.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
     Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
@@ -301,14 +271,14 @@ It is also possible to read evoked data stored in a fif file:
 
 Or another one stored in the same file:
 
-    >>> evoked2 = mne.fiff.read_evoked(evoked_fname, setno='Right Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
+    >>> evoked2 = mne.read_evokeds(evoked_fname, condition='Right Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
     Reading ...
 
 Compute a contrast:
 
     >>> contrast = evoked1 - evoked2
 
-    >>> print contrast
+    >>> print(contrast)
     <Evoked  |  comment : 'Left Auditory - Right Auditory', time : [-0.199795, 0.499488], n_epochs : 116, n_channels x n_times : 376 x 421>
 
 Time-Frequency: Induced power and phase-locking values
