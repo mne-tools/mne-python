@@ -1,3 +1,4 @@
+from glob import glob
 import os
 
 from nose.tools import assert_raises, assert_true, assert_equal
@@ -41,6 +42,12 @@ def test_scale_mri():
     os.remove(fid_path)
     create_default_subject(update=True, subjects_dir=tempdir)
     assert_true(os.path.exists(fid_path), "Updating fsaverage")
+
+    # remove redundant label files
+    label_temp = os.path.join(tempdir, 'fsaverage', 'label', '*.label')
+    label_paths = glob(label_temp)
+    for label_path in label_paths[1:]:
+        os.remove(label_path)
 
     # create source space
     path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-0-src.fif')
