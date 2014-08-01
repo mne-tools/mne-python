@@ -3,11 +3,11 @@
 Read a forward operator and display sensitivity maps
 ====================================================
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne.datasets import sample
@@ -19,14 +19,14 @@ subjects_dir = data_path + '/subjects'
 fwd = mne.read_forward_solution(fname, surf_ori=True)
 leadfield = fwd['sol']['data']
 
-print "Leadfield size : %d x %d" % leadfield.shape
+print("Leadfield size : %d x %d" % leadfield.shape)
 
 grad_map = mne.sensitivity_map(fwd, ch_type='grad', mode='fixed')
 mag_map = mne.sensitivity_map(fwd, ch_type='mag', mode='fixed')
 eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
 
 ###############################################################################
-# Show gain matrix a.k.a. leadfield matrix with sensitivy map
+# Show gain matrix a.k.a. leadfield matrix with sensitivity map
 
 import matplotlib.pyplot as plt
 plt.matshow(leadfield[:, :500])

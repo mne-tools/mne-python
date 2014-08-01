@@ -17,11 +17,11 @@ domain using Morlet wavelets and the debiased Squared Weighted Phase Lag Index
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne
-from mne import fiff
+from mne import io
 from mne.connectivity import spectral_connectivity, seed_target_indices
 from mne.datasets import sample
 from mne.viz import plot_topo_tfr
@@ -33,15 +33,15 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # Add a bad channel
 raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
-                        exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
 # Create epochs for left-visual condition
 event_id, tmin, tmax = 3, -0.2, 0.5

@@ -9,17 +9,17 @@ related to the trade-off between denoising and preserving signal.
 In this example we demonstrate how to use topographic maps for delayed
 SSP application.
 """
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 data_path = sample.data_path()
 
@@ -31,7 +31,7 @@ ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # delete EEG projections (we know it's the last one)
@@ -40,8 +40,8 @@ raw.del_proj(-1)
 [raw.add_proj(p) for p in mne.read_proj(ecg_fname) if 'axial' in p['desc']]
 
 # pick magnetometer channels
-picks = fiff.pick_types(raw.info, meg='mag', stim=False, eog=True,
-                        include=[], exclude='bads')
+picks = mne.pick_types(raw.info, meg='mag', stim=False, eog=True,
+                       include=[], exclude='bads')
 
 # We will make of the proj `delayed` option to
 # interactively select projections at the evoked stage.

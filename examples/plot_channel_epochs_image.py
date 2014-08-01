@@ -17,9 +17,9 @@ responses A. Gramfort, R. Keriven, M. Clerc, 2010,
 Biomedical Engineering, IEEE Trans. on, vol. 57 (5), 1051-1061
 http://hal.inria.fr/inria-00497023
 """
-print __doc__
+print(__doc__)
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -27,7 +27,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 data_path = sample.data_path()
 
@@ -38,13 +38,13 @@ event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
-                        exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
+                       exclude='bads')
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,

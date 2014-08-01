@@ -24,12 +24,12 @@ pp. 1-4, Jun. 2008.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw, pick_types
+from mne.io import Raw
 from mne.minimum_norm import read_inverse_operator, apply_inverse_epochs
 from mne.connectivity import seed_target_indices, phase_slope_index
 from mne.viz import mne_analyze_colormap
@@ -51,8 +51,8 @@ raw = Raw(fname_raw)
 events = mne.read_events(fname_event)
 
 # pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,

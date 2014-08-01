@@ -8,17 +8,17 @@ compute average spectra to identify channels and
 frequencies of interest for subsequent TFR analyses.
 """
 
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_psd
 ###############################################################################
@@ -28,7 +28,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 tmin, tmax, event_id = -1., 1., 1
@@ -36,8 +36,8 @@ include = []
 raw.info['bads'] += ['MEG 2443']  # bads
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                        stim=False, include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=False, include=include, exclude='bads')
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks, proj=True,
                     baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
@@ -82,3 +82,15 @@ plt.show()
 # The ``plot_time_frequency.py`` example investigates one of the channels
 # around index 140.
 # Finally, also note the power line artifacts across all channels.
+
+# Now let's take a look at the spatial distributions of the lower frequencies
+# Note. We're 'abusing' the Evoked.plot_topomap method here to display
+# our average powermap
+
+evoked = epochs.average()  # create evoked
+evoked.data = average_psds[:, freq_mask]  # insert our psd data
+evoked.times = freqs  # replace times with frequencies.
+evoked.plot_topomap(ch_type='grad', times=range(5, 12, 2),
+                    scale=1, scale_time=1, time_format='%0.1f Hz',
+                    cmap='Reds', vmin=np.min, vmax=np.max,
+                    unit='dB', format='-%0.1f')

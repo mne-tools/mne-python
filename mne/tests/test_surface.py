@@ -1,23 +1,53 @@
+from __future__ import print_function
 import os.path as op
 import numpy as np
-
+from nose.tools import assert_true, assert_raises
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
-
-from nose.tools import assert_true, assert_raises
 
 from mne.datasets import sample
 from mne import (read_bem_surfaces, write_bem_surface, read_surface,
                  write_surface, decimate_surface)
 from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
-                         fast_cross_3d)
+                         fast_cross_3d, get_head_surf,
+                         get_meg_helmet_surf)
 from mne.utils import _TempDir, requires_tvtk
+from mne.io import read_info
+from mne.transforms import _get_mri_head_t_from_trans_file
 
 data_path = sample.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-5120-5120-5120-bem-sol.fif')
 tempdir = _TempDir()
+
+
+def test_helmet():
+    """Test loading helmet surfaces
+    """
+    base_dir = op.join(op.dirname(__file__), '..', 'io')
+    fname_raw = op.join(base_dir, 'tests', 'data', 'test_raw.fif')
+    fname_kit_raw = op.join(base_dir, 'kit', 'tests', 'data',
+                            'test_bin_raw.fif')
+    fname_bti_raw = op.join(base_dir, 'bti', 'tests', 'data',
+                            'exported4D_linux_raw.fif')
+    fname_ctf_raw = op.join(base_dir, 'tests', 'data', 'test_ctf_raw.fif')
+    fname_trans = op.join(base_dir, 'tests', 'data',
+                          'sample-audvis-raw-trans.txt')
+    trans = _get_mri_head_t_from_trans_file(fname_trans)
+    for fname in [fname_raw, fname_kit_raw, fname_bti_raw, fname_ctf_raw]:
+        helmet = get_meg_helmet_surf(read_info(fname), trans)
+        assert_equal(len(helmet['rr']), 304)  # they all have 304 verts
+        assert_equal(len(helmet['rr']), len(helmet['nn']))
+
+
+@sample.requires_sample_data
+def test_head():
+    """Test loading the head surface
+    """
+    surf_1 = get_head_surf('sample', subjects_dir=subjects_dir)
+    surf_2 = get_head_surf('sample', 'head', subjects_dir=subjects_dir)
+    assert_true(len(surf_1['rr']) < len(surf_2['rr']))  # BEM vs dense head
 
 
 def test_huge_cross():
@@ -71,7 +101,7 @@ def test_io_bem_surfaces():
     """
     surf = read_bem_surfaces(fname, add_geom=True)
     surf = read_bem_surfaces(fname, add_geom=False)
-    print "Number of surfaces : %d" % len(surf)
+    print("Number of surfaces : %d" % len(surf))
 
     write_bem_surface(op.join(tempdir, 'bem_surf.fif'), surf[0])
     surf_read = read_bem_surfaces(op.join(tempdir, 'bem_surf.fif'),

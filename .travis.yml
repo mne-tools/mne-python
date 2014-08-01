@@ -1,35 +1,71 @@
 language: python
+
 env:
-    - COVERAGE=--with-coverage MNE_FORCE_SERIAL=1 MNE_SKIP_SAMPLE_DATASET_TESTS=1
-python:
-    - "2.7"
-virtualenv:
-    system_site_packages: true
+    # Enable python 2 and python 3 builds
+    # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
+    #            scikit-learn, patsy, nibabel; in the case of Python 2, also
+    #            nitime
+    # DEPS=minimal: don't build optional dependencies; tests that require those
+    #               dependencies are supposed to be skipped
+    - PYTHON=2.7 DEPS=full
+    - PYTHON=3.3 DEPS=full
+    - PYTHON=2.6 DEPS=full
+    - PYTHON=2.7 DEPS=minimal
+# Setup anaconda
 before_install:
-    - sudo apt-get update -qq
-    - sudo apt-get install -qq python-scipy python-nose
-    - sudo apt-get install python-pip
-    - sudo apt-get install python-nibabel python-nitime python-pandas
-    - sudo pip install scikit-learn
+  - wget http://repo.continuum.io/miniconda/Miniconda-2.2.2-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b
+  - export PATH=/home/travis/anaconda/bin:$PATH
+  - conda update --yes conda
+  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
+  - sudo rm -rf /dev/shm
+  - sudo ln -s /run/shm /dev/shm
+
 install:
-    - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coverage; fi
-    - if [ "${COVERAGE}" == "--with-coverage" ]; then sudo pip install coveralls; fi
+    - conda create -n testenv --yes pip python=$PYTHON
+    - source activate testenv
+    - conda install --yes ipython==1.1.0 numpy scipy nose matplotlib
+    - if [ "${DEPS}" == "full" ]; then
+        conda install --yes pandas statsmodels scikit-learn patsy pytables;
+        pip install nibabel;
+        if [ ${PYTHON:0:1} == "2" ]; then
+          pip install nitime;
+        fi;
+      fi;
+    - pip install coverage; pip install coveralls; pip install nose-timer
+    - MNE_FORCE_SERIAL=1
+    - MNE_SKIP_SAMPLE_DATASET_TESTS=1
+    # Skip tests that require large downloads over the network to save bandwith
+    # usage as travis workers are stateless and therefore traditional local
+    # disk caching does not work.
+    - export MNE_SKIP_NETWORK_TESTS=1
     - python setup.py build
     - python setup.py install
+    - myscripts='browse_raw bti2fiff surf2bem'
+    - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
     - cd ~
-    - MNE_DIR=$(python -c 'import mne;print mne.__path__[0]')
-    - ln -s ${SRC_DIR}/mne/fiff/tests/data ${MNE_DIR}/fiff/tests/data
-    - ln -s ${SRC_DIR}/mne/fiff/bti/tests/data ${MNE_DIR}/fiff/bti/tests/data
-    - ln -s ${SRC_DIR}/mne/fiff/edf/tests/data ${MNE_DIR}/fiff/edf/tests/data
-    - ln -s ${SRC_DIR}/mne/fiff/kit/tests/data ${MNE_DIR}/fiff/kit/tests/data
-    - ln -s ${SRC_DIR}/mne/fiff/brainvision/tests/data ${MNE_DIR}/fiff/brainvision/tests/data
+    - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
+    - ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data
+    - ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data
+    - ln -s ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data
+    - ln -s ${SRC_DIR}/mne/io/kit/tests/data ${MNE_DIR}/io/kit/tests/data
+    - ln -s ${SRC_DIR}/mne/io/brainvision/tests/data ${MNE_DIR}/io/brainvision/tests/data
+    - ln -s ${SRC_DIR}/mne/io/egi/tests/data ${MNE_DIR}/io/egi/tests/data
+    - ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg
+    - ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc
+    # Link coverage to src dir, coveralls should be run from there (needs git calls)
+    - ln -s ${MNE_DIR}/../.coverage ${SRC_DIR}/.coverage
+
 script:
+    # Suppress the parallel outputs for logging cleanliness
+    - export MNE_LOGGING_LEVEL=warning
     - cd ${MNE_DIR}/../
-    - TEST="nosetests -v --exe mne"
-    - TEST_COVER="nosetests -v --exe --with-coverage --cover-package=mne
-      --cover-html --cover-html-dir=coverage mne"
-    - if [ "${COVERAGE}" == "--with-coverage" ]; then ${TEST};
-      else ${TEST_COVER}; fi
+    - nosetests --with-timer --timer-top-n 30;
+
 after_success:
-    - if [ "${COVERAGE}" == "--with-coverage" ]; then coveralls; fi
+    # Need to run from source dir to exectue "git" commands
+    - echo "Running coveralls";
+    - cd ${SRC_DIR};
+    - coveralls;

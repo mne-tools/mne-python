@@ -18,18 +18,18 @@ performing a permutation clustering test using the ANOVA as
 clustering function. The results final will be compared to
 multiple comparisons using False Discovery Rate correction.
 """
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 
 import mne
-from mne import fiff
+from mne import io
 from mne.time_frequency import single_trial_power
 from mne.stats import f_threshold_twoway_rm, f_twoway_rm, fdr_correction
 from mne.datasets import sample
@@ -44,15 +44,15 @@ tmin = -0.2
 tmax = 0.5
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
 raw.info['bads'] += ['MEG 2443']  # bads
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                        stim=False, include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=False, include=include, exclude='bads')
 
 ch_name = raw.info['ch_names'][picks[0]]
 
@@ -114,7 +114,7 @@ data = np.swapaxes(np.asarray(epochs_power), 1, 0)
 data = data.reshape(n_replications, n_conditions, n_frequencies * n_times)
 
 # so we have replications * conditions * observations:
-print data.shape
+print(data.shape)
 
 # while the iteration scheme used above for assembling the data matrix
 # makes sure the first two dimensions are organized as expected (with A =

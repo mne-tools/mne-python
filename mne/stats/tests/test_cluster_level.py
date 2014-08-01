@@ -37,6 +37,39 @@ def _get_conditions():
     return condition1_1d, condition2_1d, condition1_2d, condition2_2d
 
 
+def test_permutation_step_down_p():
+    """Test cluster level permutations with step_down_p
+    """
+    try:
+        try:
+            from sklearn.feature_extraction.image import grid_to_graph
+        except ImportError:
+            from scikits.learn.feature_extraction.image import grid_to_graph
+    except ImportError:
+        return
+    rng = np.random.RandomState(0)
+    # subjects, time points, spatial points
+    X = rng.randn(9, 2, 10)
+    # add some significant points
+    X[:, 0:2, 0:2] += 2  # span two time points and two spatial points
+    X[:, 1, 5:9] += 0.5  # span four time points with 4x smaller amplitude
+    thresh = 2
+    # make sure it works when we use ALL points in step-down
+    t, clusters, p, H0 = \
+            permutation_cluster_1samp_test(X, threshold=thresh,
+                                            step_down_p=1.0)
+    # make sure using step-down will actually yield improvements sometimes
+    t, clusters, p_old, H0 = \
+            permutation_cluster_1samp_test(X, threshold=thresh,
+                                           step_down_p=0.0)
+    assert_equal(np.sum(p_old < 0.05), 1)  # just spatial cluster
+    t, clusters, p_new, H0 = \
+            permutation_cluster_1samp_test(X, threshold=thresh,
+                                           step_down_p=0.05)
+    assert_equal(np.sum(p_new < 0.05), 2)  # time one rescued
+    assert_true(np.all(p_old >= p_new))
+
+
 def test_cluster_permutation_test():
     """Test cluster level permutations tests
     """
@@ -225,7 +258,7 @@ def test_cluster_permutation_with_connectivity():
                       connectivity=connectivity, threshold=dict(me='hello'))
 
         # too extreme a start threshold
-        with warnings.catch_warnings(True) as w:
+        with warnings.catch_warnings(record=True) as w:
             spatio_temporal_func(X1d_3, connectivity=connectivity,
                                  threshold=dict(start=10, step=1))
         if not did_warn:

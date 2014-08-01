@@ -9,17 +9,17 @@ potential / field (ERP/ERF) images.
 One sensor topography plot is produced with the evoked field images from
 the selected channels.
 """
-print __doc__
+print(__doc__)
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
 import matplotlib.pyplot as plt
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 data_path = sample.data_path()
 
@@ -30,13 +30,13 @@ event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # Set up pick list: EEG + MEG - bad channels (modify to your needs)
 raw.info['bads'] = ['MEG 2443', 'EEG 053']
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
-                        exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=True, eog=True,
+                       exclude='bads')
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,

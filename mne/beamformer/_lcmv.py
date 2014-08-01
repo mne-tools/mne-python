@@ -1,7 +1,7 @@
 """Compute Linearly constrained minimum variance (LCMV) beamformer.
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
@@ -11,9 +11,9 @@ import warnings
 import numpy as np
 from scipy import linalg
 
-from ..fiff.constants import FIFF
-from ..fiff.proj import make_projector
-from ..fiff.pick import pick_types, pick_channels_forward, pick_channels_cov
+from ..io.constants import FIFF
+from ..io.proj import make_projector
+from ..io.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _get_vertno, combine_xyz
 from ..cov import compute_whitener, compute_covariance
@@ -21,6 +21,7 @@ from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
 from ..utils import logger, verbose
 from .. import Epochs
+from ..externals import six
 
 
 @verbose
@@ -48,7 +49,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         The regularization for the whitened data covariance.
     label : Label
         Restricts the LCMV solution to a given label.
-    picks : array of int | None
+    picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
     pick_ori : None | 'normal' | 'max-power'
@@ -290,9 +291,9 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = evoked.times[0]
 
     stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                      label, pick_ori=pick_ori).next()
+                      label, pick_ori=pick_ori)
 
-    return stc
+    return six.advance_iterator(stc)
 
 
 @verbose
@@ -378,7 +379,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 
     Parameters
     ----------
-    raw : mne.fiff.Raw
+    raw : mne.io.Raw
         Raw data to invert.
     forward : dict
         Forward operator.
@@ -394,7 +395,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
         Index of first time sample (index not time is seconds).
     stop : int
         Index of first time sample not to include (index not time is seconds).
-    picks : array of int
+    picks : array-like of int
         Channel indices in raw to use for beamforming (if None all channels
         are used except bad channels).
     pick_ori : None | 'normal' | 'max-power'
@@ -432,9 +433,9 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = times[0]
 
     stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                      label, picks, pick_ori).next()
+                      label, picks, pick_ori)
 
-    return stc
+    return six.advance_iterator(stc)
 
 
 @verbose
@@ -464,7 +465,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
         The regularization for the whitened data covariance.
     label : Label | None
         Restricts the solution to a given label.
-    picks : array of int | None
+    picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
     pick_ori : None | 'normal'
@@ -645,8 +646,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         raw_band = raw.copy()
         raw_band.filter(l_freq, h_freq, picks=raw_picks, method='iir',
                         n_jobs=n_jobs)
+        raw_band.info['highpass'] = l_freq
+        raw_band.info['lowpass'] = h_freq
         epochs_band = Epochs(raw_band, epochs.events, epochs.event_id,
-                             tmin=epochs.tmin, tmax=epochs.tmax,
+                             tmin=epochs.tmin, tmax=epochs.tmax, baseline=None,
                              picks=raw_picks, proj=epochs.proj, preload=True)
         del raw_band
 
@@ -673,6 +676,12 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                             'time window %d to %d ms, in frequency range '
                             '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
                                              l_freq, h_freq))
+
+                # Counteracts unsafe floating point arithmetic ensuring all
+                # relevant samples will be taken into account when selecting
+                # data in time windows
+                win_tmin = win_tmin - 1e-10
+                win_tmax = win_tmax + 1e-10
 
                 # Calculating data covariance from filtered epochs in current
                 # time window

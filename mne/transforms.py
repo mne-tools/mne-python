@@ -1,19 +1,20 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
+import os
+import glob
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
 
-from .fiff import FIFF
-from .fiff.open import fiff_open
-from .fiff.tag import read_tag, find_tag
-from .fiff.tree import dir_tree_find
-from .fiff.write import (start_file, end_file, start_block, end_block,
-                         write_coord_trans, write_dig_point, write_int)
-from .utils import logger
+from .io.constants import FIFF
+from .io.open import fiff_open
+from .io.tag import read_tag
+from .io.write import start_file, end_file, write_coord_trans
+from .utils import check_fname, logger
+from .externals.six import string_types
 
 
 # transformation from anterior/left/superior coordinate system to
@@ -26,24 +27,23 @@ als_ras_trans_mm = als_ras_trans * [0.001, 0.001, 0.001, 1]
 
 def _coord_frame_name(cframe):
     """Map integers to human-readable names"""
-    types = [FIFF.FIFFV_COORD_UNKNOWN, FIFF.FIFFV_COORD_DEVICE,
-             FIFF.FIFFV_COORD_ISOTRAK, FIFF.FIFFV_COORD_HPI,
-             FIFF.FIFFV_COORD_HEAD, FIFF.FIFFV_COORD_MRI,
-             FIFF.FIFFV_MNE_COORD_MRI_VOXEL, FIFF.FIFFV_COORD_MRI_SLICE,
-             FIFF.FIFFV_COORD_MRI_DISPLAY, FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
-             FIFF.FIFFV_MNE_COORD_CTF_HEAD, FIFF.FIFFV_MNE_COORD_RAS,
-             FIFF.FIFFV_MNE_COORD_MNI_TAL, FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ,
-             FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ, -1]
-    strs = ['unknown', 'MEG device', 'isotrak', 'hpi', 'head',
-            'MRI (surface RAS)', 'MRI voxel', 'MRI slice', 'MRI display',
-            'CTF MEG device', 'CTF/4D/KIT head', 'RAS (non-zero origin)',
-            'MNI Talairach', 'Talairach (MNI z > 0)', 'Talairach (MNI z < 0)',
-            'unknown']
-    assert len(types) == len(strs)
-    for t, s in zip(types, strs):
-        if cframe == t:
-            return s
-    return strs[-1]
+    types = {FIFF.FIFFV_COORD_UNKNOWN: 'unknown',
+             FIFF.FIFFV_COORD_DEVICE: 'MEG device',
+             FIFF.FIFFV_COORD_ISOTRAK: 'isotrak',
+             FIFF.FIFFV_COORD_HPI: 'hpi',
+             FIFF.FIFFV_COORD_HEAD: 'head',
+             FIFF.FIFFV_COORD_MRI: 'MRI (surface RAS)',
+             FIFF.FIFFV_MNE_COORD_MRI_VOXEL: 'MRI voxel',
+             FIFF.FIFFV_COORD_MRI_SLICE: 'MRI slice',
+             FIFF.FIFFV_COORD_MRI_DISPLAY: 'MRI display',
+             FIFF.FIFFV_MNE_COORD_CTF_DEVICE: 'CTF MEG device',
+             FIFF.FIFFV_MNE_COORD_CTF_HEAD: 'CTF/4D/KIT head',
+             FIFF.FIFFV_MNE_COORD_RAS: 'RAS (non-zero origin)',
+             FIFF.FIFFV_MNE_COORD_MNI_TAL: 'MNI Talairach',
+             FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: 'Talairach (MNI z > 0)',
+             FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: 'Talairach (MNI z < 0)',
+             -1: 'unknown'}
+    return types.get(cframe, 'unknown')
 
 
 def _print_coord_trans(t, prefix='Coordinate transformation: '):
@@ -52,6 +52,24 @@ def _print_coord_trans(t, prefix='Coordinate transformation: '):
     for tt in t['trans']:
         logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f mm' %
                     (tt[0], tt[1], tt[2], 1000 * tt[3]))
+
+
+def _find_trans(subject, subjects_dir=None):
+    if subject is None:
+        if 'SUBJECT' in os.environ:
+            subject = os.environ['SUBJECT']
+        else:
+            raise ValueError('SUBJECT environment variable not set')
+
+    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
+                                          '*-trans.fif'))
+    if len(trans_fnames) < 1:
+        raise RuntimeError('Could not find the transformation for '
+                           '{subject}'.format(subject=subject))
+    elif len(trans_fnames) > 1:
+        raise RuntimeError('Found multiple transformations for '
+                           '{subject}'.format(subject=subject))
+    return trans_fnames[0]
 
 
 def apply_trans(trans, pts, move=True):
@@ -73,6 +91,8 @@ def apply_trans(trans, pts, move=True):
     """
     trans = np.asarray(trans)
     pts = np.asarray(pts)
+    if pts.size == 0:
+        return pts.copy()
 
     # apply rotation & scale
     if pts.ndim == 1:
@@ -248,68 +268,42 @@ def read_trans(fname):
 
     Returns
     -------
-    info : dict
-        The contents of the trans file.
+    trans : dict
+        The transformation dictionary from the fif file.
+
+    Notes
+    -----
+    The trans dictionary has the following structure:
+    trans = {'from': int, 'to': int, 'trans': numpy.ndarray <4x4>}
     """
-    info = {}
-    fid, tree, _ = fiff_open(fname)
-    block = dir_tree_find(tree, FIFF.FIFFB_MNE)[0]
+    fid, tree, directory = fiff_open(fname)
 
-    tag = find_tag(fid, block, FIFF.FIFF_COORD_TRANS)
-    info.update(tag.data)
+    with fid:
+        for t in directory:
+            if t.kind == FIFF.FIFF_COORD_TRANS:
+                tag = read_tag(fid, t.pos)
+                break
+        else:
+            raise IOError('This does not seem to be a -trans.fif file.')
 
-    isotrak = dir_tree_find(block, FIFF.FIFFB_ISOTRAK)
-    isotrak = isotrak[0]
-
-    tag = find_tag(fid, isotrak, FIFF.FIFF_MNE_COORD_FRAME)
-    if tag is None:
-        coord_frame = 0
-    else:
-        coord_frame = int(tag.data)
-
-    info['dig'] = dig = []
-    for k in range(isotrak['nent']):
-        kind = isotrak['directory'][k].kind
-        pos = isotrak['directory'][k].pos
-        if kind == FIFF.FIFF_DIG_POINT:
-            tag = read_tag(fid, pos)
-            tag.data['coord_frame'] = coord_frame
-            dig.append(tag.data)
-
-    fid.close()
-    return info
+    trans = tag.data
+    return trans
 
 
-def write_trans(fname, info):
+def write_trans(fname, trans):
     """Write a -trans.fif file
 
     Parameters
     ----------
     fname : str
-        The name of the file.
-    info : dict
+        The name of the file, which should end in '-trans.fif'.
+    trans : dict
         Trans file data, as returned by read_trans.
     """
+    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
+
     fid = start_file(fname)
-    start_block(fid, FIFF.FIFFB_MNE)
-
-    write_coord_trans(fid, info)
-
-    dig = info['dig']
-    if dig:
-        start_block(fid, FIFF.FIFFB_ISOTRAK)
-
-        coord_frames = set(d['coord_frame'] for d in dig)
-        if len(coord_frames) > 1:
-            raise ValueError("dig points in different coord_frames")
-        coord_frame = coord_frames.pop()
-        write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
-
-        for d in dig:
-            write_dig_point(fid, d)
-        end_block(fid, FIFF.FIFFB_ISOTRAK)
-
-    end_block(fid, FIFF.FIFFB_MNE)
+    write_coord_trans(fid, trans)
     end_file(fid)
 
 
@@ -321,15 +315,21 @@ def invert_transform(trans):
     return itrans
 
 
-def transform_source_space_to(src, dest, trans):
-    """Transform source space data to the desired coordinate system
+_frame_dict = dict(meg=FIFF.FIFFV_COORD_DEVICE,
+                   mri=FIFF.FIFFV_COORD_MRI,
+                   head=FIFF.FIFFV_COORD_HEAD)
+
+
+def transform_surface_to(surf, dest, trans):
+    """Transform surface to the desired coordinate system
 
     Parameters
     ----------
     src : dict
-        Source space.
-    dest : int
-        Destination coordinate system (one of mne.fiff.FIFF.FIFFV_COORD_...).
+        Surface.
+    orig: 'meg' | 'mri' | 'head' | int
+        Destination coordinate system. Can be an integer for using
+        FIFF types.
     trans : dict
         Transformation.
 
@@ -338,22 +338,24 @@ def transform_source_space_to(src, dest, trans):
     res : dict
         Transformed source space. Data are modified in-place.
     """
+    if isinstance(dest, string_types):
+        if dest not in _frame_dict:
+            raise KeyError('dest must be one of %s, not "%s"'
+                           % [list(_frame_dict.keys()), dest])
+        dest = _frame_dict[dest]  # convert to integer
+    if surf['coord_frame'] == dest:
+        return surf
 
-    if src['coord_frame'] == dest:
-        return src
-
-    if trans['to'] == src['coord_frame'] and trans['from'] == dest:
+    if trans['to'] == surf['coord_frame'] and trans['from'] == dest:
         trans = invert_transform(trans)
-    elif trans['from'] != src['coord_frame'] or trans['to'] != dest:
+    elif trans['from'] != surf['coord_frame'] or trans['to'] != dest:
         raise ValueError('Cannot transform the source space using this '
                          'coordinate transformation')
 
-    t = trans['trans'][:3, :]
-    src['coord_frame'] = dest
-
-    src['rr'] = np.dot(np.c_[src['rr'], np.ones((src['np'], 1))], t.T)
-    src['nn'] = np.dot(np.c_[src['nn'], np.zeros((src['np'], 1))], t.T)
-    return src
+    surf['coord_frame'] = dest
+    surf['rr'] = apply_trans(trans['trans'], surf['rr'])
+    surf['nn'] = apply_trans(trans['trans'], surf['nn'], move=False)
+    return surf
 
 
 def transform_coordinates(filename, pos, orig, dest):
@@ -402,7 +404,7 @@ def transform_coordinates(filename, pos, orig, dest):
             tag = read_tag(fid, d.pos)
             trans = tag.data
             if (trans['from'] == FIFF.FIFFV_COORD_MRI and
-                trans['to'] == FIFF.FIFFV_COORD_HEAD):
+                    trans['to'] == FIFF.FIFFV_COORD_HEAD):
                 T0 = invert_transform(trans)
             elif (trans['from'] == FIFF.FIFFV_COORD_MRI and
                   trans['to'] == FIFF.FIFFV_MNE_COORD_RAS):
@@ -447,7 +449,7 @@ def transform_coordinates(filename, pos, orig, dest):
             pos = np.dot(np.dot(T2['trans'], T1['trans']), pos)
             if dest != FIFF.FIFFV_MNE_COORD_MNI_TAL:
                 if dest == FIFF.FIFFV_MNE_COORD_FS_TAL:
-                    for k in xrange(n_points):
+                    for k in range(n_points):
                         if pos[2, k] > 0:
                             pos[:, k] = np.dot(T3plus['trans'], pos[:, k])
                         else:

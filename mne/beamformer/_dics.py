@@ -12,12 +12,13 @@ import numpy as np
 from scipy import linalg
 
 from ..utils import logger, verbose
-from ..fiff.pick import pick_types
+from ..io.pick import pick_types
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import combine_xyz
 from ..source_estimate import SourceEstimate
 from ..time_frequency import CrossSpectralDensity, compute_epochs_csd
 from ._lcmv import _prepare_beamformer_input
+from ..externals import six
 
 
 @verbose
@@ -48,7 +49,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
         The regularization for the cross-spectral density.
     label : Label | None
         Restricts the solution to a given label.
-    picks : array of int | None
+    picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
     pick_ori : None | 'normal'
@@ -77,7 +78,7 @@ def _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg,
     n_orient = 3 if is_free_ori else 1
     n_sources = G.shape[1] // n_orient
 
-    for k in xrange(n_sources):
+    for k in range(n_sources):
         Wk = W[n_orient * k: n_orient * k + n_orient]
         Gk = G[:, n_orient * k: n_orient * k + n_orient]
         Ck = np.dot(Wk, Gk)
@@ -191,7 +192,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
 
     stc = _apply_dics(data, info, tmin, forward, noise_csd, data_csd, reg=reg,
                       label=label, pick_ori=pick_ori)
-    return stc.next()
+    return six.advance_iterator(stc)
 
 
 @verbose
@@ -372,7 +373,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
 
         # Compute spatial filters
         W = np.dot(G.T, Cm_inv)
-        for k in xrange(n_sources):
+        for k in range(n_sources):
             Wk = W[n_orient * k: n_orient * k + n_orient]
             Gk = G[:, n_orient * k: n_orient * k + n_orient]
             Ck = np.dot(Wk, Gk)
@@ -492,7 +493,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
     if n_ffts is not None and len(n_ffts) != len(freq_bins):
-        raise ValueError('When specifiying number of FFT samples, one value '
+        raise ValueError('When specifying number of FFT samples, one value '
                          'must be provided per frequency bin')
     if mt_bandwidths is not None and len(mt_bandwidths) != len(freq_bins):
         raise ValueError('When using multitaper mode and specifying '
@@ -540,6 +541,12 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
                             'time window %d to %d ms, in frequency range '
                             '%d to %d Hz' % (win_tmin * 1e3, win_tmax * 1e3,
                                              freq_bin[0], freq_bin[1]))
+
+                # Counteracts unsafe floating point arithmetic ensuring all
+                # relevant samples will be taken into account when selecting
+                # data in time windows
+                win_tmin = win_tmin - 1e-10
+                win_tmax = win_tmax + 1e-10
 
                 # Calculating data CSD in current time window
                 data_csd = compute_epochs_csd(epochs, mode=mode,

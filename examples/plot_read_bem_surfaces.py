@@ -3,11 +3,11 @@
 Reading BEM surfaces from a forward solution
 ============================================
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne.datasets import sample
@@ -17,7 +17,7 @@ fname = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
 
 surfaces = mne.read_bem_surfaces(fname, add_geom=True)
 
-print "Number of surfaces : %d" % len(surfaces)
+print("Number of surfaces : %d" % len(surfaces))
 
 ###############################################################################
 # Show result

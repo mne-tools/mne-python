@@ -48,7 +48,7 @@ except:
 
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
-from ..fiff.kit import read_mrk, write_mrk
+from ..io.kit import read_mrk, write_mrk
 from ._viewer import HeadViewController, headview_borders, PointObject
 
 
@@ -67,8 +67,8 @@ else:
 out_ext = ['.txt', '.pickled']
 
 
-use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in xrange(5)])
-use_editor_h = CheckListEditor(cols=5, values=[(i, str(i)) for i in xrange(5)])
+use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in range(5)])
+use_editor_h = CheckListEditor(cols=5, values=[(i, str(i)) for i in range(5)])
 
 mrk_view_editable = View(
         VGroup('file',
@@ -149,7 +149,7 @@ class MarkerPointSource(MarkerPoints):
     name = Property(Str, depends_on='file')
     dir = Property(Str, depends_on='file')
 
-    use = List(range(5), desc="Which points to use for the interpolated "
+    use = List(list(range(5)), desc="Which points to use for the interpolated "
                "marker.")
     enabled = Property(Bool, depends_on=['points', 'use'])
     clear = Button(desc="Clear the current marker data")
@@ -186,7 +186,7 @@ class MarkerPointSource(MarkerPoints):
             self.points = pts
 
     def _clear_fired(self):
-        self.reset_traits(['file', 'points'])
+        self.reset_traits(['file', 'points', 'use'])
 
     def _edit_fired(self):
         self.edit_traits(view=mrk_view_edit)
@@ -312,8 +312,15 @@ class CombineMarkersModel(HasPrivateTraits):
     mrk2 = Instance(MarkerPointSource)
     mrk3 = Instance(MarkerPointDest)
 
+    clear = Button(desc="Clear the current marker data")
+
     # stats
     distance = Property(Str, depends_on=['mrk1.points', 'mrk2.points'])
+
+    def _clear_fired(self):
+        self.mrk1.clear = True
+        self.mrk2.clear = True
+        self.mrk3.reset_traits(['method'])
 
     def _mrk1_default(self):
         mrk = MarkerPointSource()

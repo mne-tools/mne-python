@@ -7,16 +7,15 @@ The connectivity is computed between 4 labels across the spectrum
 between 5 and 40 Hz.
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
-import numpy as np
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw, pick_types
+from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
 
@@ -35,8 +34,8 @@ events = mne.read_events(fname_event)
 raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
 # Define epochs for left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5

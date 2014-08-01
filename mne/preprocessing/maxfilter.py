@@ -1,9 +1,10 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
+from ..externals.six import string_types
 import os
 from warnings import warn
 import logging
@@ -11,9 +12,11 @@ import logging
 import numpy as np
 from scipy import optimize, linalg
 
-from ..fiff import Raw
-from ..fiff.constants import FIFF
+from ..io import Raw
+from ..io.constants import FIFF
 from ..utils import logger, verbose
+from ..externals.six.moves import map
+from ..externals.six.moves import zip
 
 
 @verbose
@@ -217,7 +220,7 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         else:
             RuntimeError('invalid frame for origin')
 
-    if not isinstance(origin, basestring):
+    if not isinstance(origin, string_types):
         origin = '%0.1f %0.1f %0.1f' % (origin[0], origin[1], origin[2])
 
     # format command

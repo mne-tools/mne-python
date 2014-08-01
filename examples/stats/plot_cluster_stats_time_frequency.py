@@ -17,16 +17,16 @@ The procedure consists in:
     between conditions.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 
 import mne
-from mne import fiff
+from mne import io
 from mne.time_frequency import single_trial_power
 from mne.stats import permutation_cluster_test
 from mne.datasets import sample
@@ -41,15 +41,15 @@ tmin = -0.2
 tmax = 0.5
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 include = []
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                        stim=False, include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=False, include=include, exclude='bads')
 
 ch_name = raw.info['ch_names'][picks[0]]
 

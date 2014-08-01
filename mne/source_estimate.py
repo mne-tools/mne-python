@@ -1,9 +1,11 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
+#          Mads Jensen <mje.mads@gmail.com>
 #
 # License: BSD (3-clause)
 
+from .externals.six import string_types
 import os
 import copy
 from math import ceil
@@ -12,7 +14,9 @@ from scipy import linalg, sparse
 from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
+from ._hdf5 import read_hdf5, write_hdf5
 from .filter import resample
+from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)
@@ -21,6 +25,7 @@ from .utils import (get_subjects_dir, _check_subject,
                     logger, verbose)
 from .viz import plot_source_estimates
 from .fixes import in1d
+from .externals.six.moves import zip
 
 
 def _read_stc(filename):
@@ -131,28 +136,25 @@ def _read_w(filename):
            data           The data matrix (nvert long)
     """
 
-    fid = open(filename, 'rb')
+    with open(filename, 'rb', buffering=0) as fid:  # buffering=0 for np bug
+        # skip first 2 bytes
+        fid.read(2)
 
-    # skip first 2 bytes
-    fid.read(2)
+        # read number of vertices/sources (3 byte integer)
+        vertices_n = int(_read_3(fid))
 
-    # read number of vertices/sources (3 byte integer)
-    vertices_n = int(_read_3(fid))
+        vertices = np.zeros((vertices_n), dtype=np.int32)
+        data = np.zeros((vertices_n), dtype=np.float32)
 
-    vertices = np.zeros((vertices_n), dtype=np.int32)
-    data = np.zeros((vertices_n), dtype=np.float32)
+        # read the vertices and data
+        for i in range(vertices_n):
+            vertices[i] = _read_3(fid)
+            data[i] = np.fromfile(fid, dtype='>f4', count=1)[0]
 
-    # read the vertices and data
-    for i in range(vertices_n):
-        vertices[i] = _read_3(fid)
-        data[i] = np.fromfile(fid, dtype='>f4', count=1)
+        w = dict()
+        w['vertices'] = vertices
+        w['data'] = data
 
-    w = dict()
-    w['vertices'] = vertices
-    w['data'] = data
-
-    # close the file
-    fid.close()
     return w
 
 
@@ -264,14 +266,24 @@ def read_source_estimate(fname, subject=None):
                        "hemisphere tag ('...-lh.w' or '...-rh.w')"
                        % fname)
                 raise IOError(err)
+        elif fname.endswith('-stc.h5'):
+            ftype = 'h5'
+            fname = fname[:-7]
+        else:
+            raise RuntimeError('Unknown extension for file %s' % fname_arg)
 
     if ftype is not 'volume':
-        stc_exist = map(os.path.exists, (fname + '-rh.stc', fname + '-lh.stc'))
-        w_exist = map(os.path.exists, (fname + '-rh.w', fname + '-lh.w'))
+        stc_exist = [os.path.exists(f)
+                     for f in [fname + '-rh.stc', fname + '-lh.stc']]
+        w_exist = [os.path.exists(f)
+                   for f in [fname + '-rh.w', fname + '-lh.w']]
+        h5_exist = os.path.exists(fname + '-stc.h5')
         if all(stc_exist) and (ftype is not 'w'):
             ftype = 'surface'
         elif all(w_exist):
             ftype = 'w'
+        elif h5_exist:
+            ftype = 'h5'
         elif any(stc_exist) or any(w_exist):
             raise IOError("Hemisphere missing for %r" % fname_arg)
         else:
@@ -306,6 +318,8 @@ def read_source_estimate(fname, subject=None):
         # w files only have a single time point
         kwargs['tmin'] = 0.0
         kwargs['tstep'] = 1.0
+    elif ftype == 'h5':
+        kwargs = read_hdf5(fname + '-stc.h5')
 
     if ftype != 'volume':
         # Make sure the vertices are ordered
@@ -317,7 +331,12 @@ def read_source_estimate(fname, subject=None):
             kwargs['vertices'] = vertices
             kwargs['data'] = data
 
-    kwargs['subject'] = subject
+    if 'subject' not in kwargs:
+        kwargs['subject'] = subject
+    if subject is not None and subject != kwargs['subject']:
+        raise RuntimeError('provided subject name "%s" does not match '
+                           'subject name from the file "%s'
+                           % (subject, kwargs['subject']))
 
     if ftype == 'volume':
         stc = VolSourceEstimate(**kwargs)
@@ -356,7 +375,7 @@ def _verify_source_estimate_compat(a, b):
                          'same vertices. Consider using stc.expand().')
     if a.subject != b.subject:
         raise ValueError('source estimates do not have the same subject '
-                         'names, "%s" and "%s"' % (a.name, b.name))
+                         'names, %r and %r' % (a.subject, b.subject))
 
 
 class _BaseSourceEstimate(object):
@@ -578,10 +597,16 @@ class _BaseSourceEstimate(object):
             self._data -= a
         return self
 
+    def __truediv__(self, a):
+        return self.__div__(a)
+
     def __div__(self, a):
         stc = copy.deepcopy(self)
         stc /= a
         return stc
+
+    def __itruediv__(self, a):
+        return self.__idiv__(a)
 
     def __idiv__(self, a):
         self._remove_kernel_sens_data_()
@@ -681,7 +706,7 @@ class _BaseSourceEstimate(object):
         nv, _ = self.shape
         nt = len(times) - 1
         data = np.empty((nv, nt), dtype=self.data.dtype)
-        for i in xrange(nt):
+        for i in range(nt):
             idx = (self.times >= times[i]) & (self.times < times[i + 1])
             data[:, i] = func(self.data[:, idx], axis=1)
 
@@ -856,7 +881,7 @@ class _BaseSourceEstimate(object):
             if copy:
                 stcs = [SourceEstimate(data_t[:, :, a], verts, tmin,
                                        self.tstep, self.subject)
-                                       for a in range(data_t.shape[-1])]
+                        for a in range(data_t.shape[-1])]
             else:
                 raise ValueError('copy must be True if transformed data has '
                                  'more than 2 dimensions')
@@ -928,7 +953,7 @@ class _BaseSourceEstimate(object):
         if index is not None:
             if 'time' in index:
                 df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(True):
+            with warnings.catch_warnings(record=True):
                 df.set_index(index, inplace=True)
 
         return df
@@ -993,14 +1018,15 @@ class SourceEstimate(_BaseSourceEstimate):
             and "-rh.w") to the stem provided, for the left and the right
             hemisphere, respectively.
         ftype : string
-            File format to use. Allowed values are "stc" (default) and "w".
-            The "w" format only supports a single time point.
+            File format to use. Allowed values are "stc" (default), "w",
+            and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
-        if ftype not in ['stc', 'w']:
-            raise ValueError('ftype must be "stc" or "w", not "%s"' % ftype)
+        if ftype not in ('stc', 'w', 'h5'):
+            raise ValueError('ftype must be "stc", "w", or "h5", not "%s"'
+                             % ftype)
 
         lh_data = self.data[:len(self.lh_vertno)]
         rh_data = self.data[-len(self.rh_vertno):]
@@ -1020,7 +1046,11 @@ class SourceEstimate(_BaseSourceEstimate):
                      data=lh_data[:, 0])
             _write_w(fname + '-rh.w', vertices=self.rh_vertno,
                      data=rh_data[:, 0])
-
+        elif ftype == 'h5':
+            write_hdf5(fname + '-stc.h5',
+                       dict(vertices=self.vertno, data=self.data,
+                            tmin=self.tmin, tstep=self.tstep,
+                            subject=self.subject))
         logger.info('[done]')
 
     def __repr__(self):
@@ -1061,7 +1091,7 @@ class SourceEstimate(_BaseSourceEstimate):
             stc_vertices = self.vertno[1]
 
         # find index of the Label's vertices
-        idx = np.nonzero(map(label.vertices.__contains__, stc_vertices))[0]
+        idx = np.nonzero(in1d(stc_vertices, label.vertices))[0]
 
         # find output vertices
         vertices = stc_vertices[idx]
@@ -1108,7 +1138,7 @@ class SourceEstimate(_BaseSourceEstimate):
         else:
             raise TypeError("Expected  Label or BiHemiLabel; got %r" % label)
 
-        if sum(map(len, vertices)) == 0:
+        if sum([len(v) for v in vertices]) == 0:
             raise ValueError('No vertices match the label in the stc file')
 
         label_stc = SourceEstimate(values, vertices=vertices,
@@ -1274,7 +1304,7 @@ class SourceEstimate(_BaseSourceEstimate):
         surf = os.path.join(subjects_dir, subject, 'surf',
                             hemis[hemi] + '.sphere')
 
-        if isinstance(surf, basestring):  # read in surface
+        if isinstance(surf, string_types):  # read in surface
             surf = read_surface(surf)
 
         if restrict_vertices is False:
@@ -1375,8 +1405,8 @@ class SourceEstimate(_BaseSourceEstimate):
         return brain
 
     @verbose
-    def morph(self, subject_to, grade=5, smooth=None,
-              subjects_dir=None, buffer_size=64, n_jobs=1, subject_from=None,
+    def morph(self, subject_to, grade=5, smooth=None, subjects_dir=None,
+              buffer_size=64, n_jobs=1, subject_from=None, sparse=False,
               verbose=None):
         """Morph a source estimate from one subject to another
 
@@ -1396,6 +1426,7 @@ class SourceEstimate(_BaseSourceEstimate):
             computing vertex locations. Note that if subject='fsaverage'
             and 'grade=5', this set of vertices will automatically be used
             (instead of computed) for speed, since this is a common morph.
+            NOTE : If sparse=True, grade has to be set to None.
         smooth : int or None
             Number of iterations for the smoothing of the surface data.
             If None, smooth is automatically defined to fill the surface
@@ -1410,6 +1441,10 @@ class SourceEstimate(_BaseSourceEstimate):
         subject_from : string
             Name of the original subject as named in the SUBJECTS_DIR.
             If None, self.subject will be used.
+        sparse : bool
+            Morph as a sparse source estimate. If True the only
+            parameters used are subject_to and subject_from,
+            and grade has to be None.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -1419,8 +1454,13 @@ class SourceEstimate(_BaseSourceEstimate):
             Source estimate for the destination subject.
         """
         subject_from = _check_subject(self.subject, subject_from)
-        return morph_data(subject_from, subject_to, self, grade, smooth,
-                          subjects_dir, buffer_size, n_jobs, verbose)
+        if sparse:
+            if grade is not None:
+                raise RuntimeError('grade must be set to None if sparse=True.')
+            return _morph_sparse(self, subject_from, subject_to, subjects_dir)
+        else:
+            return morph_data(subject_from, subject_to, self, grade, smooth,
+                              subjects_dir, buffer_size, n_jobs, verbose)
 
     def morph_precomputed(self, subject_to, vertices_to, morph_mat,
                           subject_from=None):
@@ -1446,6 +1486,46 @@ class SourceEstimate(_BaseSourceEstimate):
         subject_from = _check_subject(self.subject, subject_from)
         return morph_data_precomputed(subject_from, subject_to, self,
                                       vertices_to, morph_mat)
+
+    def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
+                 vert_as_index=False, time_as_index=False):
+        """Get location and latency of peak amplitude
+
+        hemi : {'lh', 'rh', None}
+            The hemi to be considered. If None, the entire source space is
+            considered.
+        tmin : float | None
+            The minimum point in time to be considered for peak getting.
+        tmax : float | None
+            The maximum point in time to be considered for peak getting.
+        mode : {'pos', 'neg', 'abs'}
+            How to deal with the sign of the data. If 'pos' only positive
+            values will be considered. If 'neg' only negative values will
+            be considered. If 'abs' absolute values will be considered.
+            Defaults to 'abs'.
+        vert_as_index : bool
+            whether to return the vertex index instead of of its ID.
+            Defaults to False.
+        time_as_index : bool
+            Whether to return the time index instead of the latency.
+            Defaults to False.
+
+        Returns
+        -------
+        pos : int
+            The vertex exhibiting the maximum response, either ID or index.
+        latency : float | int
+            The time point of the maximum response, either latency in seconds
+            or index.
+        """
+        data = {'lh': self.lh_data, 'rh': self.rh_data, None: self.data}[hemi]
+        vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno,
+                  None: np.concatenate(self.vertno)}[hemi]
+
+        vert_idx, time_idx = _get_peak(data, self.times, tmin, tmax, mode)
+
+        return (vert_idx if vert_as_index else vertno[vert_idx],
+                time_idx if time_as_index else self.times[time_idx])
 
 
 class VolSourceEstimate(_BaseSourceEstimate):
@@ -1594,6 +1674,40 @@ class VolSourceEstimate(_BaseSourceEstimate):
         s += ", tstep : %s (ms)" % (1e3 * self.tstep)
         s += ", data size : %s x %s" % self.shape
         return "<VolSourceEstimate  |  %s>" % s
+
+    def get_peak(self, tmin=None, tmax=None, mode='abs',
+                 vert_as_index=False, time_as_index=False):
+        """Get location and latency of peak amplitude
+
+        tmin : float | None
+            The minimum point in time to be considered for peak getting.
+        tmax : float | None
+            The maximum point in time to be considered for peak getting.
+        mode : {'pos', 'neg', 'abs'}
+            How to deal with the sign of the data. If 'pos' only positive
+            values will be considered. If 'neg' only negative values will
+            be considered. If 'abs' absolute values will be considered.
+            Defaults to 'abs'.
+        vert_as_index : bool
+            whether to return the vertex index instead of of its ID.
+            Defaults to False.
+        time_as_index : bool
+            Whether to return the time index instead of the latency.
+            Defaults to False.
+
+        Returns
+        -------
+        pos : int
+            The vertex exhibiting the maximum response, either ID or index.
+        latency : float
+            The latency in seconds.
+        """
+
+        vert_idx, time_idx = _get_peak(self.data, self.times, tmin, tmax,
+                                       mode)
+
+        return (vert_idx if vert_as_index else self.vertno[vert_idx],
+                time_idx if time_as_index else self.times[time_idx])
 
 
 ###############################################################################
@@ -1778,6 +1892,57 @@ def _get_subject_sphere_tris(subject, subjects_dir):
                             xh + '.sphere.reg') for xh in ['lh', 'rh']]
     tris = [read_surface(s)[1] for s in spheres]
     return tris
+
+
+def _sparse_argmax_nnz_row(csr_mat):
+    """Return index of the maximum non-zero index in each row
+    """
+    n_rows = csr_mat.shape[0]
+    idx = np.empty(n_rows, dtype=np.int)
+    for k in range(n_rows):
+        row = csr_mat[k].tocoo()
+        idx[k] = row.col[np.argmax(row.data)]
+    return idx
+
+
+def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
+    """Morph sparse source estimates to an other subject
+
+    Parameters
+    ----------
+    stc : SourceEstimate
+        The sparse STC.
+    subject_from : str
+        The subject on which stc is defined.
+    subject_to : str
+        The target subject.
+    subjects_dir : str
+        Path to SUBJECTS_DIR if it is not set in the environment.
+
+    Returns
+    -------
+    stc_morph : SourceEstimate
+        The morphed source estimates.
+    """
+    maps = read_morph_map(subject_to, subject_from, subjects_dir)
+    stc_morph = stc.copy()
+    stc_morph.subject = subject_to
+
+    cnt = 0
+    for k, hemi in enumerate(['lh', 'rh']):
+        if stc.vertno[k].size > 0:
+            map_hemi = maps[k]
+            vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertno[k]])
+            order = np.argsort(vertno_k)
+            n_active_hemi = len(vertno_k)
+            data_hemi = stc_morph._data[cnt:cnt + n_active_hemi]
+            stc_morph._data[cnt:cnt + n_active_hemi] = data_hemi[order]
+            stc_morph.vertno[k] = vertno_k[order]
+            cnt += n_active_hemi
+        else:
+            stc_morph.vertno[k] = np.array([], dtype=np.int64)
+
+    return stc_morph
 
 
 @verbose
@@ -2396,9 +2561,10 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     header = nib.nifti1.Nifti1Header()
     header.set_xyzt_units('mm', 'msec')
     header['pixdim'][4] = 1e3 * stc.tstep
-    img = nib.Nifti1Image(vol, affine, header=header)
-    if fname is not None:
-        nib.save(img, fname)
+    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+        img = nib.Nifti1Image(vol, affine, header=header)
+        if fname is not None:
+            nib.save(img, fname)
     return img
 
 
@@ -2459,7 +2625,8 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
             if not allow_empty:
                 raise ValueError(msg)
             else:
-                logger.warn(msg + '. Assigning all-zero time series to label.')
+                logger.warning(msg + '. Assigning all-zero time series to '
+                               'label.')
             this_vertidx = None  # to later check if label is empty
 
         label_vertidx.append(this_vertidx)
@@ -2473,6 +2640,8 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     elif mode == 'pca_flip':
        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
+    elif mode == 'max':
+        pass  # we calculate the maximum value later
     else:
         raise ValueError('%s is an invalid mode' % mode)
 
@@ -2513,6 +2682,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
                     scale = linalg.norm(s) / np.sqrt(len(vertidx))
 
                     label_tc[i] = sign * scale * V[0]
+        elif mode == 'max':
+            for i, vertidx in enumerate(label_vertidx):
+                if vertidx is not None:
+                    label_tc[i] = np.max(np.abs(stc.data[vertidx, :]), axis=0)
         else:
             raise ValueError('%s is an invalid mode' % mode)
 
@@ -2531,18 +2704,24 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     parameter.
 
     Valid values for mode are:
-    'mean': Average within each label.
-    'mean_flip': Average within each label with sign flip depending on source
-    orientation.
-    'pca_flip': Apply an SVD to the time courses within each label and use the
-    scaled and sign-flipped first right-singular vector as the label time
-    course. The scaling is performed such that the power of the label time
-    course is the same as the average per-vertex time course power within
-    the label. The sign of the resulting time course is adjusted by multiplying
-    it with "sign(dot(u, flip))" where u is the first left-singular vector,
-    and flip is a sing-flip vector based on the vertex normals. This procedure
-    assures that the phase does not randomly change by 180 degrees from one
-    stc to the next.
+    --------------------------
+
+    mean : Average within each label.
+
+    mean_flip : Average within each label with sign flip depending on source
+        orientation.
+
+    pca_flip : Apply an SVD to the time courses within each label and use the
+        scaled and sign-flipped first right-singular vector as the label time
+        course. The scaling is performed such that the power of the label time
+        course is the same as the average per-vertex time course power within
+        the label. The sign of the resulting time course is adjusted by
+        multiplying it with "sign(dot(u, flip))" where u is the first
+        left-singular vector, and flip is a sing-flip vector based on the
+        vertex normals. This procedure assures that the phase does not randomly
+        change by 180 degrees from one stc to the next.
+
+    max : Max value within each label.
 
     Parameters
     ----------

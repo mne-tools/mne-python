@@ -1,18 +1,22 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larsoner@uw.edu>
 #
 # License: BSD (3-clause)
 
+from ..externals.six import string_types
 import os
 from os import path as op
 import numpy as np
 
-from ..fiff import read_info, pick_types, pick_info, FIFF, _has_kit_refs
-from .forward import write_forward_solution, _merge_meg_eeg_fwds
+from .. import pick_types, pick_info
+from ..io.pick import _has_kit_refs
+from ..io import read_info
+from ..io.constants import FIFF
+from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
-from ..transforms import (invert_transform, transform_source_space_to,
+from ..transforms import (invert_transform, transform_surface_to,
                           read_trans, _get_mri_head_t_from_trans_file,
                           apply_trans, _print_coord_trans, _coord_frame_name)
 from ..utils import logger, verbose
@@ -21,8 +25,10 @@ from ..source_space import (read_source_spaces, _filter_source_spaces,
 from ..surface import read_bem_solution, _normalize_vectors
 
 
-def _read_coil_defs(fname):
+def _read_coil_defs(fname=None):
     """Read a coil definition file"""
+    if fname is None:
+        fname = op.join(op.split(__file__)[0], '..', 'data', 'coil_def.dat')
     big_val = 0.5
     with open(fname, 'r') as fid:
         lines = fid.readlines()
@@ -44,7 +50,7 @@ def _read_coil_defs(fname):
                 rmag = list()
                 cosmag = list()
                 w = list()
-                for p in xrange(npts):
+                for p in range(npts):
                     # get next non-comment line
                     line = lines.pop()
                     while(line[0] == '#'):
@@ -142,8 +148,10 @@ def _create_eeg_el(ch, t):
     return res
 
 
-def _create_coils(coilset, chs, acc, t, coil_type='meg'):
+def _create_coils(chs, acc=None, t=None, coil_type='meg', coilset=None):
     """Create a set of MEG or EEG coils"""
+    if coilset is None:  # auto-read defs if not supplied
+        coilset = _read_coil_defs()
     coils = list()
     if coil_type == 'meg':
         for ch in chs:
@@ -153,7 +161,7 @@ def _create_coils(coilset, chs, acc, t, coil_type='meg'):
             coils.append(_create_eeg_el(ch, t))
     else:
         raise RuntimeError('unknown coil type')
-    return coils, t['to']
+    return coils, coils[0]['coord_frame']  # all get the same coord_frame
 
 
 @verbose
@@ -164,7 +172,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info | str
+    info : instance of mne.io.meas_info.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
@@ -204,8 +212,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     Returns
     -------
-    fwd : dict
-        The generated forward solution.
+    fwd : instance of Forward
+        The forward solution.
 
     Notes
     -----
@@ -220,7 +228,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     # 3. --fixed option (can be computed post-hoc)
     # 4. --mricoord option (probably not necessary)
 
-    if isinstance(mri, basestring):
+    if isinstance(mri, string_types):
         if not op.isfile(mri):
             raise IOError('mri file "%s" not found' % mri)
         if op.splitext(mri)[1] in ['.fif', '.gz']:
@@ -231,7 +239,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
         mri_head_t = mri
         mri = 'dict'
 
-    if not isinstance(src, basestring):
+    if not isinstance(src, string_types):
         if not isinstance(src, SourceSpaces):
             raise TypeError('src must be a string or SourceSpaces')
         src_extra = 'list'
@@ -244,9 +252,9 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'
                       % fname)
-    if not isinstance(info, (dict, basestring)):
+    if not isinstance(info, (dict, string_types)):
         raise TypeError('info should be a dict or string')
-    if isinstance(info, basestring):
+    if isinstance(info, string_types):
         info_extra = op.split(info)[1]
         info_extra_long = info
         info = read_info(info, verbose=False)
@@ -261,7 +269,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     coord_frame = FIFF.FIFFV_COORD_HEAD
 
     # Report the setup
-    mri_extra = mri if isinstance(mri, basestring) else 'dict'
+    mri_extra = mri if isinstance(mri, string_types) else 'dict'
     logger.info('Source space                 : %s' % src)
     logger.info('MRI -> head transform source : %s' % mri_extra)
     logger.info('Measurement data             : %s' % info_extra_long)
@@ -274,7 +282,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     # Read the source locations
     logger.info('')
-    if isinstance(src, basestring):
+    if isinstance(src, string_types):
         logger.info('Reading %s...' % src)
         src = read_source_spaces(src, verbose=False)
     else:
@@ -367,35 +375,33 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
         raise RuntimeError('Could not find any MEG or EEG channels')
 
     # Create coil descriptions with transformation to head or MRI frame
-    templates = _read_coil_defs(op.join(op.split(__file__)[0],
-                                        '..', 'data', 'coil_def.dat'))
+    templates = _read_coil_defs()
     if nmeg > 0 and ncomp > 0:  # Compensation channel information
         logger.info('%d compensation data sets in %s'
                     % (ncomp_data, info_extra))
 
     meg_xform = meg_head_t
-    eeg_xform = {'trans': np.eye(4), 'to': FIFF.FIFFV_COORD_HEAD,
-                 'from': FIFF.FIFFV_COORD_HEAD}
     extra_str = 'Head'
 
     megcoils, megcf, compcoils, compcf = None, None, None, None
     if nmeg > 0:
-        megcoils, megcf = _create_coils(templates, megchs,
+        megcoils, megcf = _create_coils(megchs,
                                         FIFF.FWD_COIL_ACCURACY_ACCURATE,
-                                        meg_xform, coil_type='meg')
+                                        meg_xform, coil_type='meg',
+                                        coilset=templates)
         if ncomp > 0:
-            compcoils, compcf = _create_coils(templates, compchs,
+            compcoils, compcf = _create_coils(compchs,
                                               FIFF.FWD_COIL_ACCURACY_NORMAL,
-                                              meg_xform, coil_type='meg')
+                                              meg_xform, coil_type='meg',
+                                              coilset=templates)
     eegels = None
     if neeg > 0:
-        eegels, _ = _create_coils(templates, eegchs, None,
-                                  eeg_xform, coil_type='eeg')
+        eegels, _ = _create_coils(eegchs, coil_type='eeg')
     logger.info('%s coordinate coil definitions created.' % extra_str)
 
     # Transform the source spaces into the appropriate coordinates
     for s in src:
-        transform_source_space_to(s, coord_frame, mri_head_t)
+        transform_surface_to(s, coord_frame, mri_head_t)
     logger.info('Source spaces are now in %s coordinates.'
                 % _coord_frame_name(coord_frame))
 
@@ -440,7 +446,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     megfwd, eegfwd = _compute_forwards(src, bem, coils, cfs, ccoils, ccfs,
                                        infos, coil_types, n_jobs)
 
-    # merge forwards into one
+    # merge forwards into one (creates two Forward objects)
     megfwd = _to_forward_dict(megfwd, None, megnames, coord_frame,
                               FIFF.FIFFV_MNE_FREE_ORI)
     eegfwd = _to_forward_dict(eegfwd, None, eegnames, coord_frame,
@@ -453,7 +459,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     info = pick_info(info, picks)
     source_rr = np.concatenate([s['rr'][s['vertno']] for s in src])
     # deal with free orientations:
-    nsource = fwd['sol']['data'].shape[1] / 3
+    nsource = fwd['sol']['data'].shape[1] // 3
     source_nn = np.tile(np.eye(3), (nsource, 1))
 
     # Don't transform the source spaces back into MRI coordinates (which is
@@ -481,10 +487,10 @@ def _to_forward_dict(fwd, fwd_grad, names, coord_frame, source_ori):
     if fwd is not None:
         sol = dict(data=fwd.T, nrow=fwd.shape[1], ncol=fwd.shape[0],
                    row_names=names, col_names=[])
-        fwd = dict(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
-                   coord_frame=coord_frame, sol_grad=None,
-                   nchan=sol['nrow'], _orig_source_ori=source_ori,
-                   _orig_sol=sol['data'].copy(), _orig_sol_grad=None)
+        fwd = Forward(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
+                      coord_frame=coord_frame, sol_grad=None,
+                      nchan=sol['nrow'], _orig_source_ori=source_ori,
+                      _orig_sol=sol['data'].copy(), _orig_sol_grad=None)
         if fwd_grad is not None:
             sol_grad = dict(data=fwd_grad.T, nrow=fwd_grad.shape[1],
                             ncol=fwd_grad.shape[0], row_names=names,

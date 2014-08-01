@@ -7,7 +7,7 @@ Create a forward operator and display sensitivity maps
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne.datasets import sample
@@ -27,26 +27,37 @@ fwd = mne.make_forward_solution(raw_fname, mri=mri, src=src, bem=bem,
 fwd = mne.convert_forward_solution(fwd, surf_ori=True)
 leadfield = fwd['sol']['data']
 
-print "Leadfield size : %d x %d" % leadfield.shape
+print("Leadfield size : %d x %d" % leadfield.shape)
 
 grad_map = mne.sensitivity_map(fwd, ch_type='grad', mode='fixed')
 mag_map = mne.sensitivity_map(fwd, ch_type='mag', mode='fixed')
 eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
 
 ###############################################################################
-# Show gain matrix a.k.a. leadfield matrix with sensitivy map
+# Show gain matrix a.k.a. leadfield matrix with sensitivity map
 
 import matplotlib.pyplot as plt
-plt.matshow(leadfield[:, :500])
-plt.xlabel('sources')
-plt.ylabel('sensors')
-plt.title('Lead field matrix (500 dipoles only)')
+picks_meg = mne.pick_types(fwd['info'], meg=True, eeg=False)
+picks_eeg = mne.pick_types(fwd['info'], meg=False, eeg=True)
+
+fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+fig.suptitle('Lead field matrix (500 dipoles only)', fontsize=14)
+for ax, picks, ch_type in zip(axes, [picks_meg, picks_eeg], ['meg', 'eeg']):
+    im = ax.imshow(leadfield[picks, :500], origin='lower', aspect='auto')
+    ax.set_title(ch_type.upper())
+    ax.set_xlabel('sources')
+    ax.set_ylabel('sensors')
+    plt.colorbar(im, ax=ax, cmap='RdBu_r')
+plt.show()
 
 plt.figure()
 plt.hist([grad_map.data.ravel(), mag_map.data.ravel(), eeg_map.data.ravel()],
-         bins=20, label=['Gradiometers', 'Magnetometers', 'EEG'])
+         bins=20, label=['Gradiometers', 'Magnetometers', 'EEG'],
+         color=['c', 'b', 'k'])
 plt.legend()
 plt.title('Normal orientation sensitivity')
+plt.xlabel('sensitivity')
+plt.ylabel('count')
 plt.show()
 
 args = dict(fmin=0.1, fmid=0.5, fmax=0.9, smoothing_steps=7)

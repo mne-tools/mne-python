@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_equal
@@ -11,19 +12,22 @@ from mne.label import read_label, label_sign_flip
 from mne.event import read_events
 from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
-from mne import fiff, read_cov, read_forward_solution
+from mne import read_cov, read_forward_solution, read_evokeds, pick_types
+from mne.io import Raw
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse)
 from mne.utils import _TempDir
+from ...externals import six
 
 s_path = op.join(sample.data_path(download=False), 'MEG', 'sample')
 fname_inv = op.join(s_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_inv_fixed = op.join(s_path, 'sample_audvis-meg-oct-6-meg-fixed-inv.fif')
 fname_inv_nodepth = op.join(s_path,
-                           'sample_audvis-meg-oct-6-meg-nodepth-fixed-inv.fif')
+                            'sample_audvis-meg-oct-6-meg-nodepth'
+                            '-fixed-inv.fif')
 fname_inv_diag = op.join(s_path,
                          'sample_audvis-meg-oct-6-meg-diagnoise-inv.fif')
 fname_vol_inv = op.join(s_path, 'sample_audvis-meg-vol-7-meg-inv.fif')
@@ -43,7 +47,7 @@ last_keys = [None] * 10
 
 
 def _get_evoked():
-    evoked = fiff.Evoked(fname_data, setno=0, baseline=(None, 0))
+    evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(0, 0.2)
     return evoked
 
@@ -55,7 +59,7 @@ def _compare(a, b):
     try:
         if isinstance(a, dict):
             assert_true(isinstance(b, dict))
-            for k, v in a.iteritems():
+            for k, v in six.iteritems(a):
                 if not k in b and k not in skip_types:
                     raise ValueError('First one had one second one didn\'t:\n'
                                      '%s not in %s' % (k, b.keys()))
@@ -63,7 +67,7 @@ def _compare(a, b):
                     last_keys.pop()
                     last_keys = [k] + last_keys
                     _compare(v, b[k])
-            for k, v in b.iteritems():
+            for k, v in six.iteritems(b):
                 if not k in a and k not in skip_types:
                     raise ValueError('Second one had one first one didn\'t:\n'
                                      '%s not in %s' % (k, a.keys()))
@@ -80,7 +84,7 @@ def _compare(a, b):
         else:
             assert_true(a == b)
     except Exception as exptn:
-        print last_keys
+        print(last_keys)
         raise exptn
 
 
@@ -141,7 +145,7 @@ def test_warn_inverse_operator():
     bad_info['projs'] = list()
     fwd_op = read_forward_solution(fname_fwd_meeg, surf_ori=True)
     noise_cov = read_cov(fname_cov)
-    with warnings.catch_warnings(True) as w:
+    with warnings.catch_warnings(record=True) as w:
         make_inverse_operator(bad_info, fwd_op, noise_cov)
     assert_equal(len(w), 1)
 
@@ -307,8 +311,17 @@ def test_io_inverse_operator():
     """Test IO of inverse_operator with GZip
     """
     inverse_operator = read_inverse_operator(fname_inv)
+    print(inverse_operator)
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
+
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        inv_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        write_inverse_operator(inv_badname, inverse_operator)
+        read_inverse_operator(inv_badname)
+    assert_true(len(w) == 2)
 
 
 @sample.requires_sample_data
@@ -317,7 +330,7 @@ def test_apply_mne_inverse_raw():
     """
     start = 3
     stop = 10
-    raw = fiff.Raw(fname_raw)
+    raw = Raw(fname_raw)
     label_lh = read_label(fname_label % 'Aud-lh')
     _, times = raw[0, start:stop]
     inverse_operator = read_inverse_operator(fname_inv)
@@ -346,7 +359,7 @@ def test_apply_mne_inverse_raw():
 def test_apply_mne_inverse_fixed_raw():
     """Test MNE with fixed-orientation inverse operator on Raw
     """
-    raw = fiff.Raw(fname_raw)
+    raw = Raw(fname_raw)
     start = 3
     stop = 10
     _, times = raw[0, start:stop]
@@ -381,11 +394,10 @@ def test_apply_mne_inverse_epochs():
     label_lh = read_label(fname_label % 'Aud-lh')
     label_rh = read_label(fname_label % 'Aud-rh')
     event_id, tmin, tmax = 1, -0.2, 0.5
-    raw = fiff.Raw(fname_raw)
+    raw = Raw(fname_raw)
 
-    picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True,
-                            ecg=True, eog=True, include=['STI 014'],
-                            exclude='bads')
+    picks = pick_types(raw.info, meg=True, eeg=False, stim=True, ecg=True,
+                       eog=True, include=['STI 014'], exclude='bads')
     reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
     flat = dict(grad=1e-15, mag=1e-15)
 

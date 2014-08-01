@@ -1,10 +1,10 @@
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 # License: BSD (3-clause)
 
-import Queue
+from ..externals.six.moves import queue
 import time
 import socket
-import SocketServer
+from ..externals.six.moves import socketserver
 import threading
 
 import numpy as np
@@ -12,7 +12,7 @@ import numpy as np
 from ..utils import logger, verbose
 
 
-class _ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class _ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     """Creates a threaded TCP server
 
     Parameters
@@ -32,14 +32,14 @@ class _ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     # except that it has an additional attribute stim_server
 
         # Create the server and bind it to the desired server address
-        SocketServer.TCPServer.__init__(self, server_address,
+        socketserver.TCPServer.__init__(self, server_address,
                                         request_handler_class,
                                         False)
 
         self.stim_server = stim_server
 
 
-class _TriggerHandler(SocketServer.BaseRequestHandler):
+class _TriggerHandler(socketserver.BaseRequestHandler):
     """Request handler on the server side."""
 
     def handle(self):
@@ -48,8 +48,8 @@ class _TriggerHandler(SocketServer.BaseRequestHandler):
         self.request.settimeout(None)
 
         while self.server.stim_server._running:
-
             data = self.request.recv(1024)  # clip input at 1Kb
+            data = data.decode()  # need to turn it into a string (Py3k)
 
             if data == 'add client':
                 # Add stim_server._client
@@ -60,25 +60,25 @@ class _TriggerHandler(SocketServer.BaseRequestHandler):
                 # Instantiate queue for communication between threads
                 # Note: new queue for each handler
                 if not hasattr(self, '_tx_queue'):
-                    self._tx_queue = Queue.Queue()
+                    self._tx_queue = queue.Queue()
 
-                self.request.sendall("Client added")
+                self.request.sendall("Client added".encode('utf-8'))
 
                 # Mark the client as running
                 for client in self.server.stim_server._clients:
                     if client['id'] == client_id:
                         client['running'] = True
 
-            if data == 'get trigger':
+            elif data == 'get trigger':
 
                 # Pop triggers and send them
                 if (self._tx_queue.qsize() > 0 and
                         self.server.stim_server, '_clients'):
 
                     trigger = self._tx_queue.get()
-                    self.request.sendall(str(trigger))
+                    self.request.sendall(str(trigger).encode('utf-8'))
                 else:
-                    self.request.sendall("Empty")
+                    self.request.sendall("Empty".encode('utf-8'))
 
 
 class StimServer(object):
@@ -244,17 +244,25 @@ class StimClient(object):
             self._sock.connect((host, port))
 
             logger.info("Establishing connection with server")
-            self._sock.send("add client")
-            resp = self._sock.recv(1024)
+            data = "add client".encode('utf-8')
+            n_sent = self._sock.send(data)
+            if n_sent != len(data):
+                raise RuntimeError('Could not communicate with server')
+            resp = self._sock.recv(1024).decode()  # turn bytes into str (Py3k)
 
             if resp == 'Client added':
                 logger.info("Connection established")
+            else:
+                raise RuntimeError('Client not added')
 
         except Exception:
             raise RuntimeError('Setting up acquisition <-> stimulation '
                                'computer connection (host: %s '
                                'port: %d) failed. Make sure StimServer '
                                'is running.' % (host, port))
+    def close(self):
+        """Close the socket object"""
+        self._sock.close()
 
     @verbose
     def get_trigger(self, timeout=5.0, verbose=None):
@@ -278,7 +286,7 @@ class StimClient(object):
                         logger.info("received nothing")
                         return None
 
-                self._sock.send("get trigger")
+                self._sock.send("get trigger".encode('utf-8'))
                 trigger = self._sock.recv(1024)
 
                 if trigger != 'Empty':

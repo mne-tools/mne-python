@@ -1,5 +1,5 @@
 # Authors: Romain Trachel <romain.trachel@inria.fr>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -27,6 +27,9 @@ class CSP(TransformerMixin):
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
                 Oracle Approximating Shrinkage ('oas')
+    log : bool
+        If true, apply log to standardize the features.
+        If false, features are just z-scored.
 
     Attributes
     ----------
@@ -43,9 +46,10 @@ class CSP(TransformerMixin):
     of the abnormal components in the clinical EEG. Electroencephalography
     and Clinical Neurophysiology, 79(6):440--447, December 1991.
     """
-    def __init__(self, n_components=4, reg=None):
+    def __init__(self, n_components=4, reg=None, log=True):
         self.n_components = n_components
         self.reg = reg
+        self.log = log
         self.filters_ = None
         self.patterns_ = None
         self.mean_ = None
@@ -200,6 +204,9 @@ class CSP(TransformerMixin):
 
         # compute features (mean band power)
         X = (X ** 2).mean(axis=-1)
-        X -= self.mean_
-        X /= self.std_
+        if self.log:
+            X = np.log(X)
+        else:
+            X -= self.mean_
+            X /= self.std_
         return X

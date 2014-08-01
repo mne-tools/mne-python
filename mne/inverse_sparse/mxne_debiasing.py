@@ -1,5 +1,5 @@
 # Authors: Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -100,7 +100,7 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
     Y = np.ones(n_sources)
     t = 1.0
 
-    for i in xrange(max_iter):
+    for i in range(max_iter):
         D0 = D
 
         # gradient step

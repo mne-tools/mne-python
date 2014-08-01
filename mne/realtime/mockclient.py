@@ -1,6 +1,6 @@
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Denis Engemann <d.engemann@fz-juelich.de>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Denis Engemann <denis.engemann@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -46,7 +46,7 @@ class MockRtClient(object):
         ----------
         epochs : instance of RtEpochs
             The epochs object.
-        picks : array of int
+        picks : array-like of int
             Indices of channels.
         tmin : float
             Time instant to start receiving buffers.
@@ -63,8 +63,8 @@ class MockRtClient(object):
         tmin_samp = int(round(sfreq * tmin))
         tmax_samp = int(round(sfreq * tmax))
 
-        iter_times = zip(range(tmin_samp, tmax_samp, buffer_size),
-                         range(buffer_size, tmax_samp, buffer_size))
+        iter_times = zip(list(range(tmin_samp, tmax_samp, buffer_size)),
+                         list(range(buffer_size, tmax_samp, buffer_size)))
 
         for ii, (start, stop) in enumerate(iter_times):
             # channels are picked in _append_epoch_to_queue. No need to pick

@@ -1,10 +1,12 @@
 #! /usr/bin/env python
 #
-# Copyright (C) 2011-2013 Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+
+# Copyright (C) 2011-2014 Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 
 import os
+from os import path as op
 
-import setuptools  # we are using a setuptools namespace
+import setuptools  # noqa; analysis:ignore; we are using a setuptools namespace
 from numpy.distutils.core import setup
 
 # get the version (don't import mne here, so dependencies are not needed)
@@ -23,7 +25,7 @@ descr = """MNE python project for MEG and EEG data analysis."""
 DISTNAME = 'mne'
 DESCRIPTION = descr
 MAINTAINER = 'Alexandre Gramfort'
-MAINTAINER_EMAIL = 'gramfort@nmr.mgh.harvard.edu'
+MAINTAINER_EMAIL = 'alexandre.gramfort@telecom-paristech.fr'
 URL = 'http://martinos.org/mne'
 LICENSE = 'BSD (3-clause)'
 DOWNLOAD_URL = 'http://github.com/mne-tools/mne-python'
@@ -64,12 +66,20 @@ if __name__ == "__main__":
                     'mne.datasets.sample',
                     'mne.datasets.megsim',
                     'mne.datasets.spm_face',
-                    'mne.fiff', 'mne.fiff.tests',
-                    'mne.fiff.bti', 'mne.fiff.bti.tests',
-                    'mne.fiff.kit', 'mne.fiff.kit.tests',
-                    'mne.fiff.edf', 'mne.fiff.edf.tests',
-                    'mne.fiff.brainvision', 'mne.fiff.brainvision.tests',
+                    'mne.datasets.eegbci',
+                    'mne.datasets.somato',
+                    'mne.externals',
+                    'mne.fiff',
+                    'mne.io', 'mne.io.tests',
+                    'mne.io.array', 'mne.io.array.tests',
+                    'mne.io.brainvision', 'mne.io.brainvision.tests',
+                    'mne.io.bti', 'mne.io.bti.tests',
+                    'mne.io.edf', 'mne.io.edf.tests',
+                    'mne.io.egi', 'mne.io.egi.tests',
+                    'mne.io.fiff', 'mne.io.fiff.tests',
+                    'mne.io.kit', 'mne.io.kit.tests',
                     'mne.forward', 'mne.forward.tests',
+                    'mne.viz', 'mne.viz.tests',
                     'mne.gui', 'mne.gui.tests',
                     'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',
@@ -82,10 +92,14 @@ if __name__ == "__main__":
                     'mne.time_frequency', 'mne.time_frequency.tests',
                     'mne.realtime', 'mne.realtime.tests',
                     'mne.decoding', 'mne.decoding.tests',
-                    'mne.commands'],
-          package_data={'mne': ['data/*.sel',
-                                'data/icos.fif.gz',
-                                'data/coil_def.dat',
-                                'layouts/*.lout',
-                                'layouts/*.lay']},
+                    'mne.commands', 'mne.externals',
+                    'mne.externals.tempita'],
+          package_data={'mne': [op.join('data', '*.sel'),
+                                op.join('data', 'icos.fif.gz'),
+                                op.join('data', 'coil_def.dat'),
+                                op.join('data', 'helmets', '*.fif.gz'),
+                                op.join('layouts', '*.lout'),
+                                op.join('layouts', '*.lay'),
+                                op.join('html', '*.js'),
+                                op.join('html', '*.css')]},
           scripts=['bin/mne'])

@@ -5,10 +5,12 @@ You can do for example:
 
 $ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" --l-freq 1 --h-freq 100 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 """
+from __future__ import print_function
 
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 
+from mne.externals.six import string_types
 import os
 import sys
 import mne
@@ -154,7 +156,7 @@ if __name__ == '__main__':
 
     if bad_fname is not None:
         bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
-        print 'Bad channels read : %s' % bads
+        print('Bad channels read : %s' % bads)
     else:
         bads = []
 
@@ -170,10 +172,10 @@ if __name__ == '__main__':
     else:
         ecg_proj_fname = prefix + '_ecg_proj.fif'
 
-    raw = mne.fiff.Raw(raw_in, preload=preload)
+    raw = mne.io.Raw(raw_in, preload=preload)
 
     if raw_event_fname is not None:
-        raw_event = mne.fiff.Raw(raw_event_fname)
+        raw_event = mne.io.Raw(raw_event_fname)
     else:
         raw_event = raw
 
@@ -191,15 +193,15 @@ if __name__ == '__main__':
         raw_event.close()
 
     if proj_fname is not None:
-        print 'Including SSP projections from : %s' % proj_fname
+        print('Including SSP projections from : %s' % proj_fname)
         # append the ecg projs, so they are last in the list
         projs = mne.read_proj(proj_fname) + projs
 
-    if isinstance(preload, basestring) and os.path.exists(preload):
+    if isinstance(preload, string_types) and os.path.exists(preload):
         os.remove(preload)
 
-    print "Writing ECG projections in %s" % ecg_proj_fname
+    print("Writing ECG projections in %s" % ecg_proj_fname)
     mne.write_proj(ecg_proj_fname, projs)
 
-    print "Writing ECG events in %s" % ecg_event_fname
+    print("Writing ECG events in %s" % ecg_event_fname)
     mne.write_events(ecg_event_fname, events)

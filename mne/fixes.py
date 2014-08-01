@@ -22,10 +22,33 @@ import scipy
 from scipy import linalg
 from math import ceil, log
 from numpy.fft import irfft
+from nose.tools import assert_true
 from scipy.signal import filtfilt as sp_filtfilt
 from distutils.version import LooseVersion
 from functools import partial
-import copy_reg
+from .externals import six
+from .externals.six.moves import copyreg
+from gzip import GzipFile
+
+
+###############################################################################
+# Misc
+
+class gzip_open(GzipFile):  # python2.6 doesn't have context managing
+    def __init__(self, *args, **kwargs):
+        return GzipFile.__init__(self, *args, **kwargs)
+
+    def __enter__(self):
+        if hasattr(GzipFile, '__enter__'):
+            return GzipFile.__enter__(self)
+        else:
+            return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if hasattr(GzipFile, '__exit__'):
+            return GzipFile.__exit__(self, exc_type, exc_value, traceback)
+        else:
+            return self.close()
 
 
 class _Counter(collections.defaultdict):
@@ -35,12 +58,12 @@ class _Counter(collections.defaultdict):
         self.update(iterable)
 
     def most_common(self):
-        return sorted(self.iteritems(), key=itemgetter(1), reverse=True)
+        return sorted(six.iteritems(self), key=itemgetter(1), reverse=True)
 
     def update(self, other):
         """Adds counts for elements in other"""
         if isinstance(other, self.__class__):
-            for x, n in other.iteritems():
+            for x, n in six.iteritems(other):
                 self[x] += n
         else:
             for x in other:
@@ -103,7 +126,7 @@ else:
 def _bincount(X, weights=None, minlength=None):
     """Replacing np.bincount in numpy < 1.6 to provide minlength."""
     result = np.bincount(X, weights)
-    if len(result) >= minlength:
+    if minlength is None or len(result) >= minlength:
         return result
     out = np.zeros(minlength, np.int)
     out[:len(result)] = result
@@ -151,6 +174,30 @@ else:
     in1d = np.in1d
 
 
+def _digitize(x, bins, right=False):
+    """Replacement for digitize with right kwarg (numpy < 1.7).
+
+    Notes
+    -----
+    This fix is only meant for integer arrays. If ``right==True`` but either
+    ``x`` or ``bins`` are of a different type, a NotImplementedError will be
+    raised.
+    """
+    if right:
+        x = np.asarray(x)
+        bins = np.asarray(bins)
+        if (x.dtype.kind not in 'ui') or (bins.dtype.kind not in 'ui'):
+            raise NotImplementedError("Only implemented for integer input")
+        return np.digitize(x - 1e-5, bins)
+    else:
+        return np.digitize(x, bins)
+
+if LooseVersion(np.__version__) < LooseVersion('1.7'):
+    digitize = _digitize
+else:
+    digitize = np.digitize
+
+
 def _tril_indices(n, k=0):
     """Replacement for tril_indices that is provided for numpy >= 1.4"""
     mask = np.greater_equal(np.subtract.outer(np.arange(n), np.arange(n)), -k)
@@ -192,7 +239,7 @@ def _qr_economic_old(A, **kwargs):
     Compat function for the QR-decomposition in economic mode
     Scipy 0.9 changed the keyword econ=True to mode='economic'
     """
-    with warnings.catch_warnings(True):
+    with warnings.catch_warnings(record=True):
         return linalg.qr(A, econ=True, **kwargs)
 
 
@@ -514,7 +561,7 @@ def _reduce_partial(p):
 
 # This adds pickling functionality to older Python 2.6
 # Please always import partial from here.
-copy_reg.pickle(partial, _reduce_partial)
+copyreg.pickle(partial, _reduce_partial)
 
 
 def normalize_colors(vmin, vmax, clip=False):
@@ -524,3 +571,18 @@ def normalize_colors(vmin, vmax, clip=False):
         return plt.Normalize(vmin, vmax, clip=clip)
     else:
         return plt.normalize(vmin, vmax, clip=clip)
+
+
+def _assert_is(expr1, expr2, msg=None):
+    """Fake assert_is without message"""
+    assert_true(expr2 is expr2)
+
+def _assert_is_not(expr1, expr2, msg=None):
+    """Fake assert_is_not without message"""
+    assert_true(expr2 is not expr2)
+
+try:
+    from nose.tools import assert_is, assert_is_not
+except ImportError:
+    assert_is = _assert_is
+    assert_is_not = _assert_is_not

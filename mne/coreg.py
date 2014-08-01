@@ -4,7 +4,7 @@
 #
 # License: BSD (3-clause)
 
-from ConfigParser import RawConfigParser
+from .externals.six.moves import configparser
 import fnmatch
 from glob import glob, iglob
 import os
@@ -18,13 +18,16 @@ from scipy.optimize import leastsq
 from scipy.spatial.distance import cdist
 from scipy.linalg import norm
 
-from .fiff.meas_info import read_fiducials, write_fiducials
+from .io.meas_info import read_fiducials, write_fiducials
 from .label import read_label, Label
-from .source_space import read_source_spaces, write_source_spaces
+from .source_space import (add_source_space_distances, read_source_spaces,
+                           write_source_spaces)
 from .surface import (read_surface, write_surface, read_bem_surfaces,
                       write_bem_surface)
 from .transforms import rotation, rotation3d, scaling, translation
 from .utils import get_config, get_subjects_dir, logger, pformat
+from functools import reduce
+from .externals.six.moves import zip
 
 
 # some path templates
@@ -32,12 +35,11 @@ trans_fname = os.path.join('{raw_dir}', '{subject}-trans.fif')
 subject_dirname = os.path.join('{subjects_dir}', '{subject}')
 bem_dirname = os.path.join(subject_dirname, 'bem')
 surf_dirname = os.path.join(subject_dirname, 'surf')
-bem_fname = os.path.join(bem_dirname, "{subject}-{name}-bem.fif")
-fid_fname = os.path.join(bem_dirname, "{subject}-fiducials.fif")
+bem_fname = os.path.join(bem_dirname, "{subject}-{name}.fif")
+head_bem_fname = pformat(bem_fname, name='head')
+fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
-head_bem_fname = os.path.join(bem_dirname, "{subject}-head.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
-
 
 
 def create_default_subject(mne_root=None, fs_home=None, update=False,
@@ -368,7 +370,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         return trans
     else:
         err = ("Invalid out parameter: %r. Needs to be 'params' or "
-              "'trans'." % out)
+               "'trans'." % out)
         raise ValueError(err)
 
 
@@ -533,7 +535,6 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
              "To improve performance, install the sklearn module.")
         errfunc = _point_cloud_error
 
-
     # for efficiency, define parameter specific error function
     param_info = (rotate, translate, scale)
     if param_info == (True, False, 0):
@@ -583,7 +584,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
         return _trans_from_params(param_info, est)
     else:
         err = ("Invalid out parameter: %r. Needs to be 'params' or "
-              "'trans'." % out)
+               "'trans'." % out)
         raise ValueError(err)
 
 
@@ -663,9 +664,17 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
 
     # BEM files
     paths['bem'] = bem = []
-    bem.append(head_bem_fname)
-    bem_file = pformat(bem_fname, name='inner_skull')
-    bem.append(bem_file)
+    path = head_bem_fname.format(subjects_dir=subjects_dir, subject=subject)
+    if os.path.exists(path):
+        bem.append('head')
+    bem_pattern = pformat(bem_fname, subjects_dir=subjects_dir,
+                          subject=subject, name='*-bem')
+    re_pattern = pformat(bem_fname, subjects_dir=subjects_dir, subject=subject,
+                         name='(.+)')
+    for path in iglob(bem_pattern):
+        match = re.match(re_pattern, path)
+        name = match.group(1)
+        bem.append(name)
 
     # fiducials
     paths['fid'] = [fid_fname]
@@ -678,7 +687,7 @@ def _find_mri_paths(subject='fsaverage', subjects_dir=None):
         dup.append(fname)
 
     # check presence of required files
-    for ftype in ['surf', 'bem', 'fid', 'duplicate']:
+    for ftype in ['surf', 'fid', 'duplicate']:
         for fname in paths[ftype]:
             path = fname.format(subjects_dir=subjects_dir, subject=subject)
             path = os.path.realpath(path)
@@ -720,12 +729,54 @@ def _is_mri_subject(subject, subjects_dir=None):
     if not os.path.exists(fname):
         return False
 
-    fname = bem_fname.format(subjects_dir=subjects_dir, subject=subject,
-                             name='*')
-    if len(glob(fname)) == 0:
-        return False
-
     return True
+
+
+def _mri_subject_has_bem(subject, subjects_dir=None):
+    """Check whether an mri subject has a file matching the bem pattern
+
+    Parameters
+    ----------
+    subject : str
+        Name of the subject.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+
+    Returns
+    -------
+    has_bem_file : bool
+        Whether ``subject`` has a bem file.
+    """
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    pattern = bem_fname.format(subjects_dir=subjects_dir, subject=subject,
+                               name='*-bem')
+    fnames = glob(pattern)
+    return bool(len(fnames))
+
+
+def read_elp(fname):
+    """Read point coordinates from a text file
+
+    Parameters
+    ----------
+    fname : str
+        Absolute path to laser point file (*.txt).
+
+    Returns
+    -------
+    elp_points : array, [n_points x 3]
+        Point coordinates.
+    """
+    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    with open(fname) as fid:
+        elp_points = pattern.findall(fid.read())
+    elp_points = np.array(elp_points, dtype=float)
+    if elp_points.shape[1] != 3:
+        err = ("File %r does not contain 3 columns as required; got shape "
+               "%s." % (fname, elp_points.shape))
+        raise ValueError(err)
+
+    return elp_points
 
 
 def read_mri_cfg(subject, subjects_dir=None):
@@ -752,14 +803,14 @@ def read_mri_cfg(subject, subjects_dir=None):
         raise IOError(err)
 
     logger.info("Reading MRI cfg file %s" % fname)
-    config = RawConfigParser()
+    config = configparser.RawConfigParser()
     config.read(fname)
     n_params = config.getint("MRI Scaling", 'n_params')
     if n_params == 1:
         scale = config.getfloat("MRI Scaling", 'scale')
     elif n_params == 3:
         scale_str = config.get("MRI Scaling", 'scale')
-        scale = np.array(map(float, scale_str.split()))
+        scale = np.array([float(s) for s in scale_str.split()])
     else:
         raise ValueError("Invalid n_params value in MRI cfg: %i" % n_params)
 
@@ -788,7 +839,7 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
     else:
         n_params = 3
 
-    config = RawConfigParser()
+    config = configparser.RawConfigParser()
     config.add_section("MRI Scaling")
     config.set("MRI Scaling", 'subject_from', subject_from)
     config.set("MRI Scaling", 'subject_to', subject_to)
@@ -796,10 +847,78 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
     if n_params == 1:
         config.set("MRI Scaling", 'scale', str(scale))
     else:
-        config.set("MRI Scaling", 'scale', ' '.join(map(str, scale)))
+        config.set("MRI Scaling", 'scale', ' '.join([str(s) for s in scale]))
     config.set("MRI Scaling", 'version', '1')
-    with open(fname, 'wb') as fid:
+    with open(fname, 'w') as fid:
         config.write(fid)
+
+
+def _scale_params(subject_to, subject_from, scale, subjects_dir):
+    subjects_dir = get_subjects_dir(subjects_dir, True)
+    if (subject_from is None) != (scale is None):
+        err = ("Need to provide either both subject_from and scale "
+               "parameters, or neither.")
+        raise TypeError(err)
+
+    if subject_from is None:
+        cfg = read_mri_cfg(subject_to, subjects_dir)
+        subject_from = cfg['subject_from']
+        n_params = cfg['n_params']
+        scale = cfg['scale']
+    else:
+        scale = np.asarray(scale)
+        if scale.ndim == 0:
+            n_params = 1
+        elif scale.shape == (3,):
+            n_params = 3
+        else:
+            err = ("Invalid shape for scale parameer. Need scalar or array of "
+                   "length 3. Got %s." % str(scale))
+            raise ValueError(err)
+
+    return subjects_dir, subject_from, n_params, scale
+
+
+def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
+              subjects_dir=None):
+    """Scale a bem file
+
+    Parameters
+    ----------
+    subject_to : str
+        Name of the scaled MRI subject (the destination mri subject).
+    bem_name : str
+        Name of the bem file. For example, to scale
+        ``fsaverage-inner_skull-bem.fif``, the bem_name would be
+        "inner_skull-bem".
+    subject_from : None | str
+        The subject from which to read the source space. If None, subject_from
+        is read from subject_to's config file.
+    scale : None | float | array, shape = (3,)
+        Scaling factor. Has to be specified if subjects_from is specified,
+        otherwise it is read from subject_to's config file.
+    subjects_dir : None | str
+        Override the SUBJECTS_DIR environment variable.
+    """
+    subjects_dir, subject_from, _, scale = _scale_params(subject_to,
+                                                         subject_from, scale,
+                                                         subjects_dir)
+
+    src = bem_fname.format(subjects_dir=subjects_dir, subject=subject_from,
+                           name=bem_name)
+    dst = bem_fname.format(subjects_dir=subjects_dir, subject=subject_to,
+                           name=bem_name)
+
+    if os.path.exists(dst):
+        raise IOError("File alredy exists: %s" % dst)
+
+    surfs = read_bem_surfaces(src)
+    if len(surfs) != 1:
+        err = ("BEM file with more than one surface: %r" % src)
+        raise NotImplementedError(err)
+    surf0 = surfs[0]
+    surf0['rr'] = surf0['rr'] * scale
+    write_bem_surface(dst, surf0)
 
 
 def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
@@ -916,17 +1035,8 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         write_surface(dest, pts * scale, tri)
 
     # BEM files [in m]
-    for fname in paths['bem']:
-        src = fname.format(subject=subject_from, subjects_dir=subjects_dir)
-        src = os.path.realpath(src)
-        surfs = read_bem_surfaces(src)
-        if len(surfs) != 1:
-            err = ("BEM file with more than one surface: %r" % src)
-            raise NotImplementedError(err)
-        surf0 = surfs[0]
-        surf0['rr'] = surf0['rr'] * scale
-        dest = fname.format(subject=subject_to, subjects_dir=subjects_dir)
-        write_bem_surface(dest, surf0)
+    for bem_name in paths['bem']:
+        scale_bem(subject_to, bem_name, subject_from, scale, subjects_dir)
 
     # fiducials [in m]
     for fname in paths['fid']:
@@ -956,7 +1066,7 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
 
 
 def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
-                       subjects_dir=None):
+                       subjects_dir=None, n_jobs=1):
     """Scale a source space for an mri created with scale_mri()
 
     Parameters
@@ -977,28 +1087,15 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
         otherwise it is read from subject_to's config file.
     subjects_dir : None | str
         Override the SUBJECTS_DIR environment variable.
+    n_jobs : int
+        Number of jobs to run in parallel if recomputing distances (only
+        applies if scale is an array of length 3, and will not use more cores
+        than there are source spaces).
     """
-    subjects_dir = get_subjects_dir(subjects_dir, True)
-    if (subject_from is None) != (scale is None):
-        err = ("Need to provide either both subject_from and scale "
-               "parameters, or neither.")
-        raise TypeError(err)
-
-    if subject_from is None:
-        cfg = read_mri_cfg(subject_to, subjects_dir)
-        subject_from = cfg['subject_from']
-        n_params = cfg['n_params']
-        scale = cfg['scale']
-    else:
-        scale = np.asarray(scale)
-        if scale.ndim == 0:
-            n_params = 1
-        elif scale.shape == (3,):
-            n_params = 3
-        else:
-            err = ("Invalid shape for scale parameer. Need scalar or array of "
-                   "length 3. Got %s." % str(scale))
-            raise ValueError(err)
+    subjects_dir, subject_from, n_params, scale = _scale_params(subject_to,
+                                                                subject_from,
+                                                                scale,
+                                                                subjects_dir)
 
     # find the source space file names
     if src_name.isdigit():
@@ -1032,15 +1129,27 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
     logger.info("scaling source space %s:  %s -> %s", spacing, subject_from,
                 subject_to)
     logger.info("Scale factor: %s", scale)
+    add_dist = False
     for ss in sss:
-        ss['rr'] = ss['rr'] * scale
-        if norm_scale is not None:
-            nn = ss['nn'] * norm_scale
+        ss['subject_his_id'] = subject_to
+        ss['rr'] *= scale
+
+        # distances and patch info
+        if norm_scale is None:
+            if ss['dist'] is not None:
+                ss['dist'] *= scale
+                ss['nearest_dist'] *= scale
+                ss['dist_limit'] *= scale
+        else:
+            nn = ss['nn']
+            nn *= norm_scale
             norm = np.sqrt(np.sum(nn ** 2, 1))
             nn /= norm[:, np.newaxis]
-            ss['nn'] = nn
+            if ss['dist'] is not None:
+                add_dist = True
 
-            ss['dist'] = None
-            ss['dist_limit'] = None
-            ss['nearest_dist'] = None
+    if add_dist:
+        logger.info("Recomputing distances, this might take a while")
+        add_source_space_distances(sss, sss[0]['dist_limit'], n_jobs)
+
     write_source_spaces(dst, sss)

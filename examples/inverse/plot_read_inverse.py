@@ -3,11 +3,11 @@
 Reading an inverse operator and view source space in 3D
 =======================================================
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator
@@ -18,10 +18,10 @@ fname += '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 
 inv = read_inverse_operator(fname)
 
-print "Method: %s" % inv['methods']
-print "fMRI prior: %s" % inv['fmri_prior']
-print "Number of sources: %s" % inv['nsource']
-print "Number of channels: %s" % inv['nchan']
+print("Method: %s" % inv['methods'])
+print("fMRI prior: %s" % inv['fmri_prior'])
+print("Number of sources: %s" % inv['nsource'])
+print("Number of channels: %s" % inv['nchan'])
 
 ###############################################################################
 # Show result on 3D source space

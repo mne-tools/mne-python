@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 
 # Authors: Thorsten Kranz <thorstenkranz@gmail.com>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: Simplified BSD
 
@@ -171,7 +171,7 @@ def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
 def _get_clusters_st(x_in, neighbors, max_step=1):
     """Helper function to choose the most efficient version"""
     n_src = len(neighbors)
-    n_times = x_in.size / n_src
+    n_times = x_in.size // n_src
     cl_goods = np.where(x_in)[0]
     if len(cl_goods) > 0:
         keepers = [np.array([], dtype=int)] * n_times
@@ -326,7 +326,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
                 txt = ('threshold["start"] (%s) is more extreme than '
                        'data statistics with most extreme value %s'
                        % (threshold['start'], stop))
-                logger.warn(txt)
+                logger.warning(txt)
                 warnings.warn(txt)
             else:
                 logger.info('Using %d thresholds from %0.2f to %0.2f for TFCE '
@@ -436,11 +436,11 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
             else:
                 if t_power == 1:
                     sums = ndimage.measurements.sum(x, labels,
-                                                  index=range(1, n_labels + 1))
+                                                  index=list(range(1, n_labels + 1)))
                 else:
                     sums = ndimage.measurements.sum(np.sign(x) *
                                                   np.abs(x) ** t_power, labels,
-                                                  index=range(1, n_labels + 1))
+                                                  index=list(range(1, n_labels + 1)))
         else:
             # boolean masks (raveled)
             clusters = list()
@@ -556,7 +556,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
             # only shuffle a small data buffer, so we need less memory
             T_obs_surr = np.empty(n_vars, dtype=X_full.dtype)
 
-            for pos in xrange(0, n_vars, buffer_size):
+            for pos in range(0, n_vars, buffer_size):
                 # number of variables for this loop
                 n_var_loop = min(pos + buffer_size, n_vars) - pos
 
@@ -628,7 +628,7 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
             # only sign-flip a small data buffer, so we need less memory
             T_obs_surr = np.empty(n_vars, dtype=X.dtype)
 
-            for pos in xrange(0, n_vars, buffer_size):
+            for pos in range(0, n_vars, buffer_size):
                 # number of variables for this loop
                 n_var_loop = min(pos + buffer_size, n_vars) - pos
 
@@ -703,13 +703,13 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     # test if stat_fun treats variables independently
     if buffer_size is not None:
         T_obs_buffer = np.zeros_like(T_obs)
-        for pos in xrange(0, n_tests, buffer_size):
+        for pos in range(0, n_tests, buffer_size):
             T_obs_buffer[pos: pos + buffer_size] =\
                 stat_fun(*[x[:, pos: pos + buffer_size] for x in X])
 
         if not np.alltrue(T_obs == T_obs_buffer):
-            logger.warn('Provided stat_fun does not treat variables '
-                        'independently. Setting buffer_size to None.')
+            logger.warning('Provided stat_fun does not treat variables '
+                           'independently. Setting buffer_size to None.')
             buffer_size = None
 
     # The stat should have the same shape as the samples for no conn.
@@ -786,11 +786,11 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                 seeds = list(seed + np.arange(n_permutations))
 
         # Step 3: repeat permutations for step-down-in-jumps procedure
-        smallest_p = -1
-        clusters_kept = 0
+        n_removed = 1  # number of new clusters added
+        total_removed = 0
         step_down_include = None  # start out including all points
-        step_down_iteration = 0
-        while smallest_p < step_down_p:
+        n_step_downs = 0
+        while n_removed > 0:
             # actually do the clustering for each partition
             if include is not None:
                 if step_down_include is not None:
@@ -806,27 +806,22 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             H0 = np.concatenate(H0)
             cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
 
-            # sort them by significance; for backward compat, don't sort the
-            # clusters themselves
-            inds = np.argsort(cluster_pv)
-            ord_pv = cluster_pv[inds]
-            smallest_p = ord_pv[clusters_kept]
+            # figure out how many new ones will be removed for step-down
+            to_remove = np.where(cluster_pv < step_down_p)[0]
+            n_removed = to_remove.size - total_removed
+            total_removed = to_remove.size
             step_down_include = np.ones(n_tests, dtype=bool)
-            under = np.where(cluster_pv < step_down_p)[0]
-            for ci in under:
-                step_down_include[clusters[ci]] = False
+            for ti in to_remove:
+                step_down_include[clusters[ti]] = False
             if connectivity is None:
                 step_down_include.shape = sample_shape
-            step_down_iteration += 1
+            n_step_downs += 1
             if step_down_p > 0:
-                extra_text = 'additional ' if step_down_iteration > 1 else ''
-                new_count = under.size - clusters_kept
-                plural = '' if new_count == 1 else 's'
-                logger.info('Step-down-in-jumps iteration'
-                            '%i found %i %scluster%s'
-                            % (step_down_iteration, new_count,
-                               extra_text, plural))
-            clusters_kept += under.size
+                a_text = 'additional ' if n_step_downs > 1 else ''
+                pl = '' if n_removed == 1 else 's'
+                logger.info('Step-down-in-jumps iteration #%i found %i %s'
+                            'cluster%s to exclude from subsequent iterations'
+                            % (n_step_downs, n_removed, a_text, pl))
 
         # The clusters should have the same shape as the samples
         clusters = _reshape_clusters(clusters, sample_shape)

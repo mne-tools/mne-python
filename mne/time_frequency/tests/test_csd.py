@@ -3,14 +3,16 @@ from nose.tools import (assert_raises, assert_equal, assert_almost_equal,
                         assert_true)
 from numpy.testing import assert_array_equal
 from os import path as op
+import warnings
 
 import mne
 
-from mne.fiff import Raw
+from mne.io import Raw
 from mne.utils import sum_squared
 from mne.time_frequency import compute_epochs_csd, induced_power
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+warnings.simplefilter('always')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_fname = op.join(base_dir, 'test-eve.fif')
 
@@ -21,7 +23,7 @@ def _get_data():
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
     # Set picks
-    picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, eog=False,
+    picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                                 stim=False, exclude='bads')
 
     # Read several epochs
@@ -72,8 +74,10 @@ def test_compute_epochs_csd():
 
     # Computing induced power for comparison
     epochs.crop(tmin=0.04, tmax=0.15)
-    power, _ = induced_power(epochs.get_data(), epochs.info['sfreq'], [10],
-                             n_cycles=0.6)
+    with warnings.catch_warnings(record=True):  # deprecation
+        warnings.simplefilter('always')
+        power, _ = induced_power(epochs.get_data(), epochs.info['sfreq'], [10],
+                                 n_cycles=0.6)
     power = np.mean(power, 2)
 
     # Maximum PSD should occur for specific channel

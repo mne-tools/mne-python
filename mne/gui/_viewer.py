@@ -41,6 +41,7 @@ except:
     Item = trait_wraith
     Group = trait_wraith
     HGroup = trait_wraith
+    VGrid = trait_wraith
     VGroup = trait_wraith
     Glyph = trait_wraith
     Surface = trait_wraith
@@ -164,7 +165,7 @@ class Object(HasPrivateTraits):
             color = self.color.getRgbF()[:3]
         return color
 
-    @on_trait_change('trans')
+    @on_trait_change('trans,points')
     def _update_points(self):
         """Update the location of the plotted points"""
         if not hasattr(self.src, 'data'):

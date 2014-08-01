@@ -12,13 +12,13 @@ are used which produces strong connectvitiy in the right occipital sensors.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 from scipy import linalg
 
 import mne
-from mne import fiff
+from mne import io
 from mne.connectivity import spectral_connectivity
 from mne.datasets import sample
 
@@ -29,14 +29,14 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # Add a bad channel
 raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                         exclude='bads')
 
 # Create epochs for the visual condition

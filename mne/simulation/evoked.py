@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -8,7 +8,7 @@ import copy
 import numpy as np
 from scipy import signal
 
-from ..fiff.pick import pick_channels_cov
+from ..io.pick import pick_channels_cov
 from ..utils import check_random_state
 from ..forward import apply_forward
 

@@ -10,17 +10,17 @@ is ordered based on the locations of the regions.
 """
 
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw, pick_types
+from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
 from mne.viz import circular_layout, plot_connectivity_circle
@@ -40,8 +40,8 @@ events = mne.read_events(fname_event)
 raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
 # Define epochs for left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
@@ -58,8 +58,9 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_ori="normal", return_generator=True)
 
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
-labels, label_colors = mne.labels_from_parc('sample', parc='aparc',
-                                            subjects_dir=subjects_dir)
+labels = mne.read_labels_from_annot('sample', parc='aparc',
+                                    subjects_dir=subjects_dir)
+label_colors = [label.color for label in labels]
 
 # Average the source estimates within each label using sign-flips to reduce
 # signal cancellations, also here we return a generator
@@ -79,13 +80,16 @@ label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
 fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
-
+con_methods = ['pli', 'wpli2_debiased']
 con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
-        method='wpli2_debiased', mode='multitaper', sfreq=sfreq, fmin=fmin,
+        method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
         fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
-con = con[:, :, 0]
+# for each method
+con_res = dict()
+for method, c in zip(con_methods, con):
+    con_res[method] = c[:, :, 0]
 
 # Now, we visualize the connectivity using a circular graph layout
 
@@ -112,14 +116,25 @@ node_order = list()
 node_order.extend(lh_labels[::-1])  # reverse the order
 node_order.extend(rh_labels)
 
-node_angles = circular_layout(label_names, node_order, start_pos=90)
+node_angles = circular_layout(label_names, node_order, start_pos=90,
+                              group_boundaries=[0, len(label_names) / 2])
 
 # Plot the graph using node colors from the FreeSurfer parcellation. We only
 # show the 300 strongest connections.
-plot_connectivity_circle(con, label_names, n_lines=300, node_angles=node_angles,
-                         node_colors=label_colors,
+plot_connectivity_circle(con_res['pli'], label_names, n_lines=300,
+                         node_angles=node_angles, node_colors=label_colors,
                          title='All-to-All Connectivity left-Auditory '
-                               'Condition')
+                               'Condition (PLI)')
 import matplotlib.pyplot as plt
 plt.savefig('circle.png', facecolor='black')
+
+# Plot connectivity for both methods in the same plot
+fig = plt.figure(num=None, figsize=(8, 4), facecolor='black')
+no_names = [''] * len(label_names)
+for ii, method in enumerate(con_methods):
+    plot_connectivity_circle(con_res[method], no_names, n_lines=300,
+                             node_angles=node_angles, node_colors=label_colors,
+                             title=method, padding=0, fontsize_colorbar=6,
+                             fig=fig, subplot=(1, 2, ii + 1))
+
 plt.show()

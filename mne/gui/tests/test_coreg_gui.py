@@ -2,23 +2,26 @@
 #
 # License: BSD (3-clause)
 
+from ...externals.six import string_types
 import os
 
 import numpy as np
 from numpy.testing import assert_allclose
 from nose.tools import (assert_equal, assert_almost_equal, assert_false,
                         assert_raises, assert_true)
+import warnings
 
 import mne
 from mne.datasets import sample
-from mne.fiff.kit.tests import data_dir as kit_data_dir
+from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
 
 
 data_path = sample.data_path(download=False)
 raw_path = os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-kit_raw_path = os.path.join(kit_data_dir, 'test_bin.fif')
+kit_raw_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
+warnings.simplefilter('always')
 
 tempdir = _TempDir()
 
@@ -93,8 +96,8 @@ def test_coreg_model():
     assert_almost_equal(model.rot_z, rot_z)
 
     # info
-    assert_true(isinstance(model.fid_eval_str, basestring))
-    assert_true(isinstance(model.points_eval_str, basestring))
+    assert_true(isinstance(model.fid_eval_str, string_types))
+    assert_true(isinstance(model.points_eval_str, string_types))
 
 
 @sample.requires_sample_data
@@ -146,7 +149,7 @@ def test_coreg_model_with_fsaverage():
     assert_true(avg_point_distance_1param < avg_point_distance)
 
     desc, func, args, kwargs = model.get_scaling_job('test')
-    assert_true(isinstance(desc, basestring))
+    assert_true(isinstance(desc, string_types))
     assert_equal(args[0], 'fsaverage')
     assert_equal(args[1], 'test')
     assert_allclose(args[2], model.scale)
@@ -159,5 +162,6 @@ def test_coreg_model_with_fsaverage():
 
     # test switching raw disables point omission
     assert_equal(model.hsp.n_omitted, 1)
-    model.hsp.file = kit_raw_path
+    with warnings.catch_warnings(record=True):
+        model.hsp.file = kit_raw_path
     assert_equal(model.hsp.n_omitted, 0)

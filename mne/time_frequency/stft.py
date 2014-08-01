@@ -67,7 +67,7 @@ def stft(x, wsize, tstep=None, verbose=None):
                          'window length.')
 
     n_step = int(ceil(T / float(tstep)))
-    n_freq = wsize / 2 + 1
+    n_freq = wsize // 2 + 1
     logger.info("Number of frequencies: %d" % n_freq)
     logger.info("Number of time steps: %d" % n_step)
 
@@ -88,7 +88,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     # Zero-padding and Pre-processing for edges
     xp = np.zeros((n_signals, wsize + (n_step - 1) * tstep),
                   dtype=x.dtype)
-    xp[:, (wsize - tstep) / 2: (wsize - tstep) / 2 + T] = x
+    xp[:, (wsize - tstep) // 2: (wsize - tstep) // 2 + T] = x
     x = xp
 
     for t in range(n_step):
@@ -169,18 +169,18 @@ def istft(X, tstep=None, Tx=None):
         swin[t * tstep:t * tstep + wsize] += win ** 2
     swin = np.sqrt(swin / wsize)
 
-    fframe = np.empty((n_signals, n_win + wsize / 2 - 1), dtype=X.dtype)
+    fframe = np.empty((n_signals, n_win + wsize // 2 - 1), dtype=X.dtype)
     for t in range(n_step):
         # IFFT
         fframe[:, :n_win] = X[:, :, t]
-        fframe[:, n_win:] = np.conj(X[:, wsize / 2 - 1: 0: -1, t])
+        fframe[:, n_win:] = np.conj(X[:, wsize // 2 - 1: 0: -1, t])
         frame = ifft(fframe)
         wwin = win / swin[t * tstep:t * tstep + wsize]
         # Overlap-add
         x[:, t * tstep: t * tstep + wsize] += np.real(np.conj(frame) * wwin)
 
     # Truncation
-    x = x[:, (wsize - tstep) / 2: (wsize - tstep) / 2 + T + 1][:, :Tx].copy()
+    x = x[:, (wsize - tstep) // 2: (wsize - tstep) // 2 + T + 1][:, :Tx].copy()
     return x
 
 
@@ -206,7 +206,7 @@ def stftfreq(wsize, sfreq=None):
     stft
     istft
     """
-    n_freq = wsize / 2 + 1
+    n_freq = wsize // 2 + 1
     freqs = fftfreq(wsize)
     freqs = np.abs(freqs[:n_freq])
     if sfreq is not None:

@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -12,15 +12,16 @@ from scipy import linalg
 import warnings
 
 from mne.cov import regularize, whiten_evoked
-from mne import (read_cov, Epochs, merge_events,
+from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
-                 compute_covariance)
-from mne.fiff import Raw, pick_channels_cov, pick_channels, Evoked, pick_types
+                 compute_covariance, read_evokeds)
+from mne import pick_channels_cov, pick_channels, pick_types
+from mne.io import Raw
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 cov_gz_fname = op.join(base_dir, 'test-cov.fif.gz')
 cov_km_fname = op.join(base_dir, 'test-km-cov.fif')
@@ -35,27 +36,35 @@ def test_io_cov():
     """Test IO for noise covariance matrices
     """
     cov = read_cov(cov_fname)
-    cov.save(op.join(tempdir, 'cov.fif'))
-    cov2 = read_cov(op.join(tempdir, 'cov.fif'))
+    cov.save(op.join(tempdir, 'test-cov.fif'))
+    cov2 = read_cov(op.join(tempdir, 'test-cov.fif'))
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(op.join(tempdir, 'cov.fif.gz'))
-    cov2 = read_cov(op.join(tempdir, 'cov.fif.gz'))
+    cov2.save(op.join(tempdir, 'test-cov.fif.gz'))
+    cov2 = read_cov(op.join(tempdir, 'test-cov.fif.gz'))
     assert_array_almost_equal(cov.data, cov2.data)
 
     cov['bads'] = ['EEG 039']
     cov_sel = pick_channels_cov(cov, exclude=cov['bads'])
     assert_true(cov_sel['dim'] == (len(cov['data']) - len(cov['bads'])))
     assert_true(cov_sel['data'].shape == (cov_sel['dim'], cov_sel['dim']))
-    cov_sel.save(op.join(tempdir, 'cov.fif'))
+    cov_sel.save(op.join(tempdir, 'test-cov.fif'))
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
-    cov2.save(op.join(tempdir, 'cov.fif.gz'))
-    cov2 = read_cov(op.join(tempdir, 'cov.fif.gz'))
+    cov2.save(op.join(tempdir, 'test-cov.fif.gz'))
+    cov2 = read_cov(op.join(tempdir, 'test-cov.fif.gz'))
     assert_array_almost_equal(cov.data, cov2.data)
+
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        cov_badname = op.join(tempdir, 'test-bad-name.fif.gz')
+        write_cov(cov_badname, cov)
+        read_cov(cov_badname)
+    assert_true(len(w) == 2)
 
 
 def test_cov_estimation_on_raw_segment():
@@ -84,8 +93,9 @@ def test_cov_estimation_on_raw_segment():
     # make sure we get a warning with too short a segment
     raw_2 = raw.crop(0, 1)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         cov = compute_raw_data_covariance(raw_2)
-        assert_true(len(w) == 1)
+    assert_true(len(w) == 1)
 
 
 def test_cov_estimation_with_triggers():
@@ -140,14 +150,15 @@ def test_cov_estimation_with_triggers():
 
     # cov with list of epochs with different projectors
     epochs = [Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
-              baseline=(-0.2, -0.1), proj=True, reject=reject),
+                     baseline=(-0.2, -0.1), proj=True, reject=reject),
               Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
-              baseline=(-0.2, -0.1), proj=False, reject=reject)]
+                     baseline=(-0.2, -0.1), proj=False, reject=reject)]
     # these should fail
     assert_raises(ValueError, compute_covariance, epochs)
     assert_raises(ValueError, compute_covariance, epochs, projs=None)
     # these should work, but won't be equal to above
-    with warnings.catch_warnings(True) as w:  # too few samples warning
+    with warnings.catch_warnings(record=True) as w:  # too few samples warning
+        warnings.simplefilter('always')
         cov = compute_covariance(epochs, projs=epochs[0].info['projs'])
         cov = compute_covariance(epochs, projs=[])
     assert_true(len(w) == 2)
@@ -177,10 +188,12 @@ def test_regularize_cov():
     """Test cov regularization
     """
     raw = Raw(raw_fname, preload=False)
+    raw.info['bads'].append(raw.ch_names[0])  # test with bad channels
     noise_cov = read_cov(cov_fname)
     # Regularize noise cov
     reg_noise_cov = regularize(noise_cov, raw.info,
-                               mag=0.1, grad=0.1, eeg=0.1, proj=True)
+                               mag=0.1, grad=0.1, eeg=0.1, proj=True,
+                               exclude='bads')
     assert_true(noise_cov['dim'] == reg_noise_cov['dim'])
     assert_true(noise_cov['data'].shape == reg_noise_cov['data'].shape)
     assert_true(np.mean(noise_cov['data'] < reg_noise_cov['data']) < 0.08)
@@ -188,7 +201,8 @@ def test_regularize_cov():
 
 def test_evoked_whiten():
     """Test whitening of evoked data"""
-    evoked = Evoked(ave_fname, setno=0, baseline=(None, 0), proj=True)
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
+                          proj=True)
     cov = read_cov(cov_fname)
 
     ###########################################################################
@@ -196,7 +210,8 @@ def test_evoked_whiten():
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
 
-    noise_cov = regularize(cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1)
+    noise_cov = regularize(cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1,
+                           exclude='bads')
 
     evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
     whiten_baseline_data = evoked_white.data[picks][:, evoked.times < 0]

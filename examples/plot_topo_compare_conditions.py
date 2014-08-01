@@ -11,17 +11,17 @@ evoked responses.
 
 """
 
-# Authors: Denis Engemann <d.engemann@fz-juelich.de>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Denis Engemann <denis.engemann@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import matplotlib.pyplot as plt
 import mne
 
-from mne.fiff import Raw, pick_types
+from mne.io import Raw
 from mne.viz import plot_topo
 from mne.datasets import sample
 data_path = sample.data_path()
@@ -46,8 +46,8 @@ include = []  # or stim channels ['STI 014']
 reject = dict(grad=4000e-13, mag=4e-12)
 
 # pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+                       include=include, exclude='bads')
 
 # Create epochs including different events
 epochs = mne.Epochs(raw, events, dict(audio_l=1, visual_r=3), tmin, tmax,

@@ -1,4 +1,5 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+from __future__ import print_function
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: Simplified BSD
 
@@ -48,16 +49,16 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     -------
     >>> Y = np.tile(np.array([0, 4, 3, 0, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print Y
+    >>> print(Y)
     [[ 0.  4.  3.  0.  0.]
      [ 0.  4.  3.  0.  0.]
      [ 0.  0.  0.  0.  0.]
      [ 0.  0.  0.  0.  0.]]
     >>> Yp, active_set = prox_l21(Y, 2, 2)
-    >>> print Yp
+    >>> print(Yp)
     [[ 0.          2.86862915  2.15147186  0.          0.        ]
      [ 0.          2.86862915  2.15147186  0.          0.        ]]
-    >>> print active_set
+    >>> print(active_set)
     [ True  True False False]
     """
     if len(Y) == 0:
@@ -71,7 +72,7 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
         rows_norm = np.sqrt(stft_norm2(Y).reshape(n_positions, -1).sum(axis=1))
     else:
         rows_norm = np.sqrt(np.sum((np.abs(Y) ** 2).reshape(n_positions, -1),
-                                    axis=1))
+                                   axis=1))
     # Ensure shrink is >= 0 while avoiding any division by zero
     shrink = np.maximum(1.0 - alpha / np.maximum(rows_norm, alpha), 0.0)
     active_set = shrink > 0.0
@@ -96,16 +97,16 @@ def prox_l1(Y, alpha, n_orient):
     -------
     >>> Y = np.tile(np.array([1, 2, 3, 2, 0], dtype=np.float), (2, 1))
     >>> Y = np.r_[Y, np.zeros_like(Y)]
-    >>> print Y
+    >>> print(Y)
     [[ 1.  2.  3.  2.  0.]
      [ 1.  2.  3.  2.  0.]
      [ 0.  0.  0.  0.  0.]
      [ 0.  0.  0.  0.  0.]]
     >>> Yp, active_set = prox_l1(Y, 2, 2)
-    >>> print Yp
+    >>> print(Yp)
     [[ 0.          0.58578644  1.58578644  0.58578644  0.        ]
      [ 0.          0.58578644  1.58578644  0.58578644  0.        ]]
-    >>> print active_set
+    >>> print(active_set)
     [ True  True False False]
     """
     n_positions = Y.shape[0] // n_orient
@@ -174,7 +175,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 
 @verbose
 def _mixed_norm_solver_prox(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
-                       init=None, n_orient=1):
+                            init=None, n_orient=1):
     """Solves L21 inverse problem with proximal iterations and FISTA"""
     n_sensors, n_times = M.shape
     n_sensors, n_sources = G.shape
@@ -205,7 +206,7 @@ def _mixed_norm_solver_prox(M, G, alpha, maxit=200, tol=1e-8, verbose=None,
 
     active_set = np.ones(n_sources, dtype=np.bool)  # start with full AS
 
-    for i in xrange(maxit):
+    for i in range(maxit):
         X0, active_set_0 = X, active_set  # store previous values
         if gram is None:
             Y += np.dot(G.T, R) / lipschitz_constant  # ISTA step
@@ -350,7 +351,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         active_set[idx_large_corr[-active_set_size:]] = True
         if n_orient > 1:
             active_set = np.tile(active_set[:, None], [1, n_orient]).ravel()
-        for k in xrange(maxit):
+        for k in range(maxit):
             X, as_, E = l21_solver(M, G[:, active_set], alpha,
                                    maxit=maxit, tol=tol, init=X_init,
                                    n_orient=n_orient)
@@ -366,8 +367,8 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                                                          n_orient))
                 new_active_idx = idx_large_corr[-active_set_size:]
                 if n_orient > 1:
-                    new_active_idx = n_orient * new_active_idx[:, None] + \
-                                                np.arange(n_orient)[None, :]
+                    new_active_idx = (n_orient * new_active_idx[:, None] +
+                                      np.arange(n_orient)[None, :])
                     new_active_idx = new_active_idx.ravel()
                 idx_old_active_set = as_
                 active_set_old = active_set.copy()
@@ -382,7 +383,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
                     logger.info('Convergence stopped (AS did not change) !')
                     break
         else:
-            logger.warn('Did NOT converge ! (gap: %s > %s)' % (gap, tol))
+            logger.warning('Did NOT converge ! (gap: %s > %s)' % (gap, tol))
 
         active_set = np.zeros_like(active_set)
         active_set[as_] = True
@@ -537,7 +538,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     n_dipoles = G.shape[1]
 
     n_step = int(ceil(n_times / float(tstep)))
-    n_freq = wsize / 2 + 1
+    n_freq = wsize // 2 + 1
     n_coefs = n_step * n_freq
     phi = _Phi(wsize, tstep, n_coefs)
     phiT = _PhiT(tstep, n_freq, n_step, n_times)
@@ -560,7 +561,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     alpha_time_lc = alpha_time / lipschitz_constant
     alpha_space_lc = alpha_space / lipschitz_constant
-    for i in xrange(maxit):
+    for i in range(maxit):
         Z0, active_set_0 = Z, active_set  # store previous values
 
         if active_set.sum() < len(R) and Y_time_as is not None:
@@ -580,17 +581,17 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
             Z, active_set_l1 = prox_l1(Y, alpha_time_lc, n_orient)
 
         Z, active_set_l21 = prox_l21(Z, alpha_space_lc, n_orient,
-                                shape=(-1, n_freq, n_step), is_stft=True)
+                                     shape=(-1, n_freq, n_step), is_stft=True)
         active_set = active_set_l1
         active_set[active_set_l1] = active_set_l21
 
         # Check convergence : max(abs(Z - Z0)) < tol
-        stop = (safe_max_abs(Z, True - active_set_0[active_set]) < tol and
-                safe_max_abs(Z0, True - active_set[active_set_0]) < tol and
+        stop = (safe_max_abs(Z, ~active_set_0[active_set]) < tol and
+                safe_max_abs(Z0, ~active_set[active_set_0]) < tol and
                 safe_max_abs_diff(Z, active_set_0[active_set],
                                   Z0, active_set[active_set_0]) < tol)
         if stop:
-            print 'Convergence reached !'
+            print('Convergence reached !')
             break
 
         # FISTA 2 steps

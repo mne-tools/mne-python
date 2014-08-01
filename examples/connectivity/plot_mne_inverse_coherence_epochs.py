@@ -13,12 +13,12 @@ MNE-dSPM inverse soltions.
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import numpy as np
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw, pick_types
+from mne.io import Raw
 from mne.minimum_norm import (apply_inverse, apply_inverse_epochs,
                               read_inverse_operator)
 from mne.connectivity import seed_target_indices, spectral_connectivity
@@ -45,8 +45,8 @@ events = mne.read_events(fname_event)
 raw.info['bads'] += ['MEG 2443']
 
 # pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -98,10 +98,10 @@ coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(stcs,
     method='coh', mode='fourier', indices=indices,
     sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, n_jobs=2)
 
-print 'Frequencies in Hz over which coherence was averaged for alpha: '
-print freqs[0]
-print 'Frequencies in Hz over which coherence was averaged for beta: '
-print freqs[1]
+print('Frequencies in Hz over which coherence was averaged for alpha: ')
+print(freqs[0])
+print('Frequencies in Hz over which coherence was averaged for beta: ')
+print(freqs[1])
 
 # Generate a SourceEstimate with the coherence. This is simple since we
 # used a single seed. For more than one seeds we would have to split coh.

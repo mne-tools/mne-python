@@ -558,7 +558,7 @@ Designating bad channels
 Sometimes some MEG or EEG channels are not functioning properly
 for various reasons. These channels should be excluded from the
 analysis by marking them bad using the mne_mark_bad_channels utility,
-see :ref:`CHDDHBEE`. Especially if a channel is not show
+see :ref:`CHDDHBEE`. Especially if a channel does not show
 a signal at all (flat) it is most important to exclude it from the
 analysis, since its noise estimate will be unrealistically low and
 thus the current estimate calculations will give a strong weight

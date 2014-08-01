@@ -25,7 +25,7 @@ for a real experiment.
 
 """
 
-print __doc__
+print(__doc__)
 
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
@@ -51,7 +51,7 @@ from sklearn.metrics import confusion_matrix
 # Load fiff file to simulate data
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-raw = mne.fiff.Raw(raw_fname, preload=True)
+raw = mne.io.Raw(raw_fname, preload=True)
 
 # Instantiating stimulation server
 
@@ -59,8 +59,8 @@ raw = mne.fiff.Raw(raw_fname, preload=True)
 with StimServer('localhost', port=4218) as stim_server:
 
     # The channels to be used while decoding
-    picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                                stim=True, exclude=raw.info['bads'])
+    picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                           stim=True, exclude=raw.info['bads'])
 
     rt_client = MockRtClient(raw)
 
@@ -119,10 +119,10 @@ with StimServer('localhost', port=4218) as stim_server:
 
             # do something if one class is decoded better than the other
             if score_c1[-1] < score_c2[-1]:
-                print "We decoded class RV better than class LV"
+                print("We decoded class RV better than class LV")
                 ev_list.append(3)  # adding more LV to future simulated data
             else:
-                print "We decoded class LV better than class RV"
+                print("We decoded class LV better than class RV")
                 ev_list.append(4)  # adding more RV to future simulated data
 
             # Clear the figure

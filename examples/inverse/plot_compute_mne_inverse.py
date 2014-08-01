@@ -8,15 +8,15 @@ and stores the solution in stc files for visualisation.
 
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import matplotlib.pyplot as plt
 from mne.datasets import sample
-from mne.fiff import Evoked
+from mne import read_evokeds
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 
 
@@ -30,7 +30,7 @@ lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
-evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
+evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 
 # Compute inverse solution
@@ -50,7 +50,15 @@ plt.show()
 # Plot brain in 3D with PySurfer if available. Note that the subject name
 # is already known by the SourceEstimate stc object.
 brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir)
-brain.set_data_time_index(180)
 brain.scale_data_colormap(fmin=8, fmid=12, fmax=15, transparent=True)
 brain.show_view('lateral')
+
+# use peak getter to move vizualization to the time point of the peak
+vertno_max, time_idx = stc.get_peak(hemi='rh', time_as_index=True)
+
+brain.set_data_time_index(time_idx)
+
+# draw marker at maximum peaking vertex
+brain.add_foci(vertno_max, coords_as_verts=True, hemi='rh', color='blue',
+               scale_factor=0.6)
 brain.save_image('dSPM_map.png')

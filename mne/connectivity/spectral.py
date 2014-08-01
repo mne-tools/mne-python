@@ -2,6 +2,7 @@
 #
 # License: BSD (3-clause)
 
+from ..externals.six import string_types
 from warnings import warn
 from inspect import getargspec, getmembers
 
@@ -417,7 +418,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
 
     # accumulate connectivity scores
     if mode in ['multitaper', 'fourier']:
-        for i in xrange(0, n_cons, block_size):
+        for i in range(0, n_cons, block_size):
             con_idx = slice(i, i + block_size)
             if mt_adaptive:
                 csd = _csd_from_mt(x_mt[idx_map[0][con_idx]],
@@ -433,7 +434,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
                 method.accumulate(con_idx, csd)
     else:
         # cwt_morlet mode
-        for i in xrange(0, n_cons, block_size):
+        for i in range(0, n_cons, block_size):
             con_idx = slice(i, i + block_size)
 
             csd = x_cwt[idx_map[0][con_idx]]\
@@ -651,9 +652,15 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         the output freqs will be a list with arrays of the frequencies
         that were averaged.
     tmin : float | None
-        Time to start connectivity estimation.
+        Time to start connectivity estimation. Note: when "data" is an array,
+        the first sample is assumed to be at time 0. For other types
+        (Epochs, etc.), the time information contained in the object is used
+        to compute the time indices.
     tmax : float | None
-        Time to end connectivity estimation.
+        Time to end connectivity estimation. Note: when "data" is an array,
+        the first sample is assumed to be at time 0. For other types
+        (Epochs, etc.), the time information contained in the object is used
+        to compute the time indices.
     mt_bandwidth : float | None
         The bandwidth of the multitaper windowing function in Hz.
         Only used in 'multitaper' mode.
@@ -724,7 +731,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         if m in _CON_METHOD_MAP:
             method = _CON_METHOD_MAP[m]
             con_method_types.append(method)
-        elif isinstance(m, basestring):
+        elif isinstance(m, string_types):
             raise ValueError('%s is not a valid connectivity method' % m)
         else:
             # add custom method
@@ -836,7 +843,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                 freq_mask |= ((freqs_all >= f_lower) & (freqs_all <= f_upper))
 
             # possibly skip frequency points
-            for pos in xrange(fskip):
+            for pos in range(fskip):
                 freq_mask[pos + 1::fskip + 1] = False
 
             # the frequency points where we compute connectivity
@@ -1004,7 +1011,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
             method.compute_con(slice(0, n_cons), n_epochs)
         else:
             # compute scores block-wise to save memory
-            for i in xrange(0, n_cons, block_size):
+            for i in range(0, n_cons, block_size):
                 con_idx = slice(i, i + block_size)
                 psd_xx = psd[idx_map[0][con_idx]]
                 psd_yy = psd[idx_map[1][con_idx]]
@@ -1022,7 +1029,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                                  'be the same as the number of frequencies')
             con_shape = (n_cons, n_bands) + this_con.shape[2:]
             this_con_bands = np.empty(con_shape, dtype=this_con.dtype)
-            for band_idx in xrange(n_bands):
+            for band_idx in range(n_bands):
                 this_con_bands[:, band_idx] =\
                     np.mean(this_con[:, freq_idx_bands[band_idx]], axis=1)
             this_con = this_con_bands

@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
@@ -10,7 +10,8 @@ import numpy as np
 
 from .. import Epochs, compute_proj_evoked, compute_proj_epochs
 from ..utils import logger, verbose
-from ..fiff import pick_types, make_eeg_average_ref_proj
+from .. import pick_types
+from ..io import make_eeg_average_ref_proj
 from .ecg import find_ecg_events
 from .eog import find_eog_events
 
@@ -41,9 +42,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     ----------
     mode : string ('ECG', or 'EOG')
         What type of events to detect.
-    raw : mne.fiff.Raw
+    raw : mne.io.Raw
         Raw input file.
-    raw_event : mne.fiff.Raw or None
+    raw_event : mne.io.Raw or None
         Raw file to use for event detection (if None, raw is used).
     tmin : float
         Time before event in seconds.
@@ -105,7 +106,7 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
     events : ndarray
         Detected events.
     """
-    if not raw._preloaded:
+    if not raw.preload:
         raise ValueError('raw needs to be preloaded, '
                          'use preload=True in constructor')
 
@@ -225,9 +226,9 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
 
     Parameters
     ----------
-    raw : mne.fiff.Raw
+    raw : mne.io.Raw
         Raw input file.
-    raw_event : mne.fiff.Raw or None
+    raw_event : mne.io.Raw or None
         Raw file to use for event detection (if None, raw is used).
     tmin : float
         Time before event in seconds.
@@ -321,9 +322,9 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
 
     Parameters
     ----------
-    raw : mne.fiff.Raw
+    raw : mne.io.Raw
         Raw input file.
-    raw_event : mne.fiff.Raw or None
+    raw_event : mne.io.Raw or None
         Raw file to use for event detection (if None, raw is used).
     tmin : float
         Time before event in seconds.

@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: Simplified BSD
@@ -11,7 +11,7 @@ from nose.tools import assert_true
 
 from mne.datasets import sample
 from mne.label import read_label
-from mne import fiff, read_cov, read_forward_solution
+from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 
@@ -29,17 +29,16 @@ fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 def test_mxne_inverse():
     """Test (TF-)MxNE inverse computation"""
     # Handling forward solution
-    evoked = fiff.Evoked(fname_data, setno=1, baseline=(None, 0))
+    evoked = read_evokeds(fname_data, condition=1, baseline=(None, 0))
 
     # Read noise covariance matrix
     cov = read_cov(fname_cov)
 
     # Handling average file
-    setno = 0
     loose = None
     depth = 0.9
 
-    evoked = fiff.read_evoked(fname_data, setno=setno, baseline=(None, 0))
+    evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(tmin=-0.1, tmax=0.4)
 
     evoked_l21 = copy.deepcopy(evoked)

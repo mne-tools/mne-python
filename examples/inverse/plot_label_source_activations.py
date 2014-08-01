@@ -10,16 +10,15 @@ in a label. We compare a simple average, with an averaging
 using the dipoles normal (flip mode) and then a PCA,
 also using a sign flip.
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print __doc__
+print(__doc__)
 
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, apply_inverse
-from mne.fiff import Evoked
 
 data_path = sample.data_path()
 label = 'Aud-lh'
@@ -32,7 +31,7 @@ lambda2 = 1.0 / snr ** 2
 method = "dSPM"  # use dSPM method (could also be MNE or sLORETA)
 
 # Load data
-evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
+evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']
 
@@ -48,7 +47,7 @@ mean = stc.extract_label_time_course(label, src, mode='mean')
 mean_flip = stc.extract_label_time_course(label, src, mode='mean_flip')
 pca = stc.extract_label_time_course(label, src, mode='pca_flip')
 
-print "Number of vertices : %d" % len(stc_label.data)
+print("Number of vertices : %d" % len(stc_label.data))
 
 # View source activations
 import matplotlib.pyplot as plt
