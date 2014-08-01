@@ -1,15 +1,3 @@
-==========================
-Google Summer of Code 2014
-==========================
-
-For the Google Summer of Code 2014 (GSOC) we are looking for two ambitious
-students with strong Python skills and a background and / or interest in brain
-imaging research. If you feel addressed or happen to know someone who might be
-interested please get in touch with us or forward this message to her / him.
-Here are our our `GSOC projects <http://goo.gl/4KkmRC>`_.
-`Registration <http://goo.gl/KMPQRf>`_ opens on March 10, 2014, 7 p.m. UTC.
-
-
 ========
 MNE Home
 ========

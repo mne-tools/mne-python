@@ -147,11 +147,9 @@ API
 
    - The default of the new add_dist option of `setup_source_space` to add patch information will change from False to True in MNE-Python 0.9
 
-   - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`.
-read_evokeds will return all Evoked instances in a file by default.
+   - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`. read_evokeds will return all Evoked instances in a file by default.
 
-   - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This
-affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
+   - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
 
    - Deprecate `mne.fiff` module, use `mne.io` instead e.g. `mne.io.Raw` instead of `mne.fiff.Raw`.
 
@@ -166,38 +164,37 @@ affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
 Authors
 ~~~~~~~~~
 
-The committer list for this release is the following (preceded by number
-of commits):
+The committer list for this release is the following (preceded by number of commits):
 
-   418  Denis A. Engemann
-   284  Alexandre Gramfort
-   242  Eric Larson
-   155  Christian Brodbeck
-   144  Mainak Jas
-    49  Martin Billinger
-    49  Andrew Dykstra
-    44  Tal Linzen
-    37  Dan G. Wakeman
-    36  Martin Luessi
-    26  Teon Brooks
-    20  Cathy Nangini
-    15  Hari Bharadwaj
-    15  Roman Goj
-    10  Ross Maddox
-     9  Marmaduke Woodman
-     8  Praveen Sripad
-     8  Tanay
-     8  Roan LaPlante
-     5  Saket Choudhary
-     4  Nick Ward
-     4  Mads Jensen
-     3  Olaf Hauk
-     3  Brad Buran
-     2  Daniel Strohmeier
-     2  Federico Raimondo
-     2  Alan Leggitt
-     1  Jean-Remi King
-     1  Matti Hamalainen
+   * 418  Denis A. Engemann
+   * 284  Alexandre Gramfort
+   * 242  Eric Larson
+   * 155  Christian Brodbeck
+   * 144  Mainak Jas
+   * 49  Martin Billinger
+   * 49  Andrew Dykstra
+   * 44  Tal Linzen
+   * 37  Dan G. Wakeman
+   * 36  Martin Luessi
+   * 26  Teon Brooks
+   * 20  Cathy Nangini
+   * 15  Hari Bharadwaj
+   * 15  Roman Goj
+   * 10  Ross Maddox
+   * 9  Marmaduke Woodman
+   * 8  Praveen Sripad
+   * 8  Tanay
+   * 8  Roan LaPlante
+   * 5  Saket Choudhary
+   * 4  Nick Ward
+   * 4  Mads Jensen
+   * 3  Olaf Hauk
+   * 3  Brad Buran
+   * 2  Daniel Strohmeier
+   * 2  Federico Raimondo
+   * 2  Alan Leggitt
+   * 1  Jean-Remi King
+   * 1  Matti Hamalainen
 
 
 .. _changes_0_7:
