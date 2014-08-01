@@ -64,6 +64,11 @@ def test_scale_mri():
     scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
     assert_true(os.path.exists(src_path), "Source space was not scaled")
 
+    # scale with distances
+    os.remove(src_path)
+    setup_source_space('fsaverage', path, 'ico0', overwrite=True,
+                       subjects_dir=tempdir, add_dist=True)
+    scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
 
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points"""
