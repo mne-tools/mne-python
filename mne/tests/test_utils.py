@@ -263,7 +263,7 @@ def test_fetch_file():
     # Skipping test if no internet connection available
     try:
         urllib.request.urlopen("http://github.com", timeout=2)
-    except urllib.request.URLError:
+    except:
         from nose.plugins.skip import SkipTest
         raise SkipTest('No internet connection, skipping download test.')
 
