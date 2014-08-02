@@ -48,7 +48,7 @@ License: BSD-3
   DAMAGE.
 
 Files: mne/externals/decorator.py
-Copyright (c) 2005-2012, Michele Simionato
+Copyright: 2005-2012, Michele Simionato
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,7 +76,7 @@ USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
 DAMAGE.
 
 Files: mne/externals/Fieldtrip.py
-Copyright (C) 2008, Robert Oostenveld, S. Klanke
+Copyright: 2008, Robert Oostenveld, S. Klanke
 F.C. Donders Centre for Cognitive Neuroimaging, Radboud University Nijmegen, The Netherlands.
 http://www.ru.nl/fcdonders/fieldtrip
 
@@ -110,7 +110,7 @@ ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
 Files: mne/externals/jdcal.py
-Copyright (c) 2010, Prasanth Nair, <prasanthhn@gmail.com>
+Copyright: 2010, Prasanth Nair, <prasanthhn@gmail.com>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -168,11 +168,11 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Files: mne/html/bootstrap*
-Copyright 2013 Twitter, Inc.
+Copyright: 2013 Twitter, Inc.
 Licensed under http://www.apache.org/licenses/LICENSE-2.0
 
 Files: mne/html/jquery*
-Copyright (c) 2005, 2013 jQuery Foundation, Inc.
+Copyright: 2005, 2013 jQuery Foundation, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -181,7 +181,7 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 Files: mne/html/d3*
-Copyright 2013 Mike Bostock.
+Copyright: 2013 Mike Bostock.
 
 License: BSD-3
   Redistribution and use in source and binary forms, with or without
@@ -210,7 +210,7 @@ License: BSD-3
   DAMAGE.
 
 Files: mne/html/mpld3*
-Copyright (c) 2013, Jake Vanderplas
+Copyright: 2013, Jake Vanderplas
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
