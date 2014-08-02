@@ -1,8 +1,8 @@
-python-mne (0.8.1-1) UNRELEASED; urgency=low
+python-mne (0.8.2-1) UNRELEASED; urgency=low
 
   * New upstream version.
 
- -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Thu, 31 Jul 2014 23:56:25 -0400
+ -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Fri, 01 Aug 2014 23:01:26 +0000
 
 python-mne (0.7.3-1) unstable; urgency=low
 
