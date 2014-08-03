@@ -91,7 +91,8 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
     plt.subplot(2, 2, 2 * ii + 2)
     plt.imshow(phase_lock,
                extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
-               aspect='auto', origin='lower', vmin=0, vmax=0.7)
+               aspect='auto', origin='lower', vmin=0, vmax=0.7,
+               cmap='RdBu_r')
     plt.xlabel('Time (s)')
     plt.ylabel('Frequency (Hz)')
     plt.title('Phase-lock (%s)' % title)

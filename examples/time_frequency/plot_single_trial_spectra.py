@@ -60,14 +60,17 @@ fig.suptitle('Single trial power', fontsize=12)
 freq_mask = freqs < 150
 freqs = freqs[freq_mask]
 
+cmap = 'RdBu_r'
 ax1.set_title('single trial', fontsize=10)
-ax1.imshow(some_psds[:, freq_mask].T, aspect='auto', origin='lower')
+ax1.imshow(some_psds[:, freq_mask].T, aspect='auto', origin='lower',
+           cmap=cmap)
 ax1.set_yticks(np.arange(0, len(freqs), 10))
 ax1.set_yticklabels(freqs[::10].round(1))
 ax1.set_ylabel('Frequency (Hz)')
 
 ax2.set_title('averaged over trials', fontsize=10)
-ax2.imshow(average_psds[:, freq_mask].T, aspect='auto', origin='lower')
+ax2.imshow(average_psds[:, freq_mask].T, aspect='auto', origin='lower',
+           cmap=cmap)
 ax2.set_xticks(np.arange(0, len(picks), 30))
 ax2.set_xticklabels(picks[::30])
 ax2.set_xlabel('MEG channel index (Gradiometers)')

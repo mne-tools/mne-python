@@ -140,6 +140,8 @@ for train_idx, test_idx in cv:
 
 # Plot scores over time
 w_times = (w_start + w_length / 2.) / sfreq + epochs.tmin
+
+plt.figure()
 plt.plot(w_times, np.mean(scores_windows, 0), label='Score')
 plt.axvline(0, linestyle='--', color='k', label='Onset')
 plt.axhline(0.5, linestyle='-', color='k', label='Chance')
