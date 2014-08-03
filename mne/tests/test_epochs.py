@@ -212,8 +212,8 @@ def test_read_write_epochs():
     epochs_read4.equalize_event_counts(epochs.event_id)
 
     epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
-    epochs.save('test-epo.fif')
-    epochs_read5 = read_epochs('test-epo.fif')
+    epochs.save(op.join(tempdir, 'test-epo.fif'))
+    epochs_read5 = read_epochs(op.join(tempdir, 'test-epo.fif'))
     assert_array_equal(epochs_read5.selection, epochs.selection)
     assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
 
