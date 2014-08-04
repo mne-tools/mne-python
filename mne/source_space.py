@@ -103,42 +103,160 @@ class SourceSpaces(list):
         """
         write_source_spaces(fname, self)
 
-    def export_to_nifti(self, fname):
-        """Exports source space to nifti file
+    def export_volume(self, fname, include_surfaces=False,
+                      include_discrete=False, dest='mri',
+                      mri_resolution=False, use_lut=True):
+        """Exports source space to nifti or mgz file
 
         Parameters
         ----------
         fname : str
-            Name of nifti file to write
+            Name of nifti or mgz file to write
+        include_surfaces : bool
+            If True, include surface source spaces
+        include_discrete : bool
+            If True, include discrete source spaces
+        dest : 'mri' | 'surf'
+            If 'mri' the volume is defined in the coordinate system of the
+            original T1 image. If 'surf' the coordinate system of the
+            FreeSurfer surface is used (Surface RAS).
+        mri_resolution : bool
+            If True, the image is saved in MRI resolution
+        lut : bool
+            If True, assigns a color value to each source space.
 
         Notes
         -----
         This method requires nibabel.
-        Can only be used on a source space containing a single volume.
         """
+
+        # import nibabel or raise error
         try:
             import nibabel as nib
         except ImportError:
-            raise RuntimeError('This function requires nibabel')
+            raise RuntimeError('This function requires nibabel.')
 
-        if len(self) > 1 or self[0]['type'] != 'vol':
-            raise RuntimeError('This function can only be used on a source '
-                               'space containing a single volume.')
-        # create 3d grid
-        shape = self[0]['shape']
+        # read the lookup table
+        if use_lut:
+            data_dir = op.join(op.dirname(__file__), 'data')
+            lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
+            lut = np.genfromtxt(lut_fname, dtype=None,
+                                usecols=(0, 1), names=['id', 'name'])
+
+        # Setup a dictionary of source types
+        src_types = dict(volume=[], surface=[], discrete=[])
+
+        # Populate dictionary of source types
+        for src in self:
+            # volume sources
+            if src['type'] == 'vol':
+                src_types['volume'].append(src)
+            # surface sources
+            elif src['type'] == 'surf':
+                src_types['surface'].append(src)
+            # discrete sources
+            elif src['type'] == 'discrete':
+                src_types['discrete'].append(src)
+            else:
+                raise ValueError('Unrecognized source type: %s.' % src['type'])
+
+        # Loop through the volume sources
+        first_vol = True
+        for vs in src_types['volume']:
+            # read the lookup table value
+            if use_lut:
+                i = lut['id'][lut['name'] == vs['seg_name']]
+            else:
+                i = 1
+
+            if first_vol:
+                # get the interpolation matrix
+                interpolator = vs['interpolator']
+                # get the inuse array
+                inuse = i*vs['inuse']
+                first_vol = False
+            else:
+                # update the interpolation matrix
+                interpolator = interpolator + vs['interpolator']
+                # update the inuse array
+                inuse += i*vs['inuse']
+        # convert interpolator to zeros and ones
+        interpolator = interpolator.astype(bool).astype(int)
+
+        # create 3d grid in source space
+
+        # get the source space shape
+        shape = vs['shape']
+        # read the shape in reverse order (otherwise results are scrambled)
         shape3d = (shape[2], shape[1], shape[0])
-        vol = self[0]['inuse'].reshape(shape3d).T
-        # calculate affine transform
-        aff = self[0]['src_mri_t']['trans']
-        aff = np.dot(self[0]['mri_ras_t']['trans'], aff)
-        aff[:3] *= 1e3  # convert to millimeters
 
-        # setup the nifti file
-        hdr = nib.Nifti1Header()
-        hdr.set_xyzt_units('mm')
-        img = nib.Nifti1Image(vol, affine=aff, header=hdr)
+        # setup grid for mri resolution in voxel space
+        if mri_resolution:
+            # get the voxel space shape
+            shape3d = (vs['mri_height'], vs['mri_depth'], vs['mri_width'])
+            # reconstruct inuse array from inuse and interpolation matrix
+            inuse = (interpolator * inuse).reshape(shape3d).astype(bool)
+            inuse = inuse.astype(int)
 
-        # save as nifti file
+        # include surface spaces
+        if include_surfaces:
+            surf_names = ['Left-Cerebral-Cortex', 'Right-Cerebral-Cortex']
+            # get the positions of the voxels in source space
+            vol_rr = vs['rr']
+            # loop through the surfaces
+            for i, surf in enumerate(src_types['surface']):
+                # get vertex position
+                rr = surf['rr']
+                # find the nearest voxel for each vertex
+                ix = _compute_nearest(vol_rr, rr)
+                # update inuse array
+                if use_lut:
+                    inuse[ix] = lut['id'][lut['name'] == surf_names[i]]
+                else:
+                    inuse[ix] = 1
+
+        # reshape inuse array to create volume
+        vol = inuse.reshape(shape3d)
+        # transpose volume data (to account for zyx order)
+        vol = vol.T
+
+        # calculate affine transform for image
+        if mri_resolution:
+            # voxel space to mri space transform
+            transform = vs['vox_mri_t']
+        else:
+            # source space to mri space transform
+            transform = vs['src_mri_t']
+        if dest == 'mri':
+            # combine with mri space to ras space transform
+            transform = combine_transforms(transform, vs['mri_ras_t'],
+                                           transform['from'],
+                                           vs['mri_ras_t']['to'])
+        # now setup the affine for nifti
+        aff = transform['trans']
+        # convert m to mm
+        aff[:3] *= 1e3
+
+        # save volume data
+
+        # get the file type
+        fstring, ftype = op.splitext(fname.lower())
+        # setup image for file
+        if ftype == '.nii':  # save as nifit
+            # setup the nifti header
+            hdr = nib.Nifti1Header()
+            hdr.set_xyzt_units('mm')
+            # save the nifti image
+            img = nib.Nifti1Image(vol, aff, header=hdr)
+        elif ftype == '.mgz':  # save as mgh
+            # convert to float32 (float64 not currently supported)
+            vol = vol.astype('float32')
+            # save the mgh image
+            img = nib.freesurfer.mghformat.MGHImage(vol, aff)
+        else:
+            raise(ValueError('Unrecognized file extension'))
+
+        # save volume
         nib.save(img, fname)
 
 
