@@ -3,6 +3,7 @@ import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
+import warnings
 
 from mne.datasets import sample
 from mne import io, find_events, Epochs, pick_types
@@ -23,6 +24,7 @@ fname_inv = op.join(data_path, 'MEG', 'sample',
 fname_data = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_raw.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
+warnings.simplefilter('always')
 
 
 @sample.requires_sample_data
@@ -159,3 +161,22 @@ def test_source_psd_epochs():
 
     assert_array_almost_equal(psd, stc_psd.data)
     assert_array_almost_equal(freqs, stc_psd.times)
+
+    # Check corner cases caused by tiny bandwidth
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        compute_source_psd_epochs(one_epochs, inverse_operator,
+                                  lambda2=lambda2, method=method,
+                                  pick_ori="normal", label=label,
+                                  bandwidth=0.01, low_bias=True,
+                                  fmin=fmin, fmax=fmax,
+                                  return_generator=False)
+        compute_source_psd_epochs(one_epochs, inverse_operator,
+                                  lambda2=lambda2, method=method,
+                                  pick_ori="normal", label=label,
+                                  bandwidth=0.01, low_bias=False,
+                                  fmin=fmin, fmax=fmax,
+                                  return_generator=False)
+    assert_true(len(w) >= 2)
+    assert_true(any('not properly use' in str(ww.message) for ww in w))
+    assert_true(any('Bandwidth too small' in str(ww.message) for ww in w))
