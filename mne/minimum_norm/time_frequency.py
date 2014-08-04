@@ -7,6 +7,7 @@ from warnings import warn
 
 import numpy as np
 from scipy import linalg, signal, fftpack
+import warnings
 
 from ..io.constants import FIFF
 from ..source_estimate import _make_stc
@@ -521,6 +522,9 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     # compute standardized half-bandwidth
     half_nbw = float(bandwidth) * n_times / (2 * sfreq)
+    if half_nbw < 0.5:
+        warnings.warn('Bandwidth too small, using minimum (normalized 0.5)')
+        half_nbw = 0.5
     n_tapers_max = int(2 * half_nbw)
 
     dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
