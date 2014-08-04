@@ -138,10 +138,10 @@ for c, p_val in zip(clusters, cluster_p_values):
 
 plt.imshow(T_obs, cmap=plt.cm.gray,
            extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
-           aspect='auto', origin='lower')
+           aspect='auto', origin='lower', cmap='RdBu_r')
 plt.imshow(T_obs_plot, cmap=plt.cm.jet,
            extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
-           aspect='auto', origin='lower')
+           aspect='auto', origin='lower', cmap='RdBu_r')
 
 plt.xlabel('time (ms)')
 plt.ylabel('Frequency (Hz)')

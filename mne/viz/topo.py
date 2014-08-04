@@ -145,7 +145,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             ylim_ = ylim
 
         show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
-                  vmax=vmax, ylim=ylim_, cmap=cmap)
+                  vmax=vmax, ylim=ylim_)
 
         if ylim_ and not any(v is None for v in ylim_):
             plt.ylim(*ylim_)

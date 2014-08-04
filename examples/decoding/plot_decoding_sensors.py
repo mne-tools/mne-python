@@ -79,8 +79,7 @@ for t in xrange(n_times):
     Xt /= Xt.std(axis=0)
     # Run cross-validation
     # Note : for sklearn the Xt matrix should be 2d (n_samples x n_features)
-    scores_t = cross_val_score(clf, Xt, y, cv=cv, n_jobs=1,
-                               scoring='roc_auc')
+    scores_t = cross_val_score(clf, Xt, y, cv=cv, n_jobs=1)
     scores[t] = scores_t.mean()
     std_scores[t] = scores_t.std()
 
