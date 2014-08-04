@@ -663,6 +663,7 @@ class Report(object):
             self._sectionvars[section] = _clean_varnames(section)
 
         for fig, caption in zip(figs, captions):
+            caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
             global_id = self._get_id()
             div_klass = self._sectionvars[section]
