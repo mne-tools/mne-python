@@ -29,8 +29,11 @@ try:
     from enthought.mayavi import mlab
 except:
     from mayavi import mlab
-mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
-mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
-                     lh_faces)
-mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
-                     rh_faces)
+mlab.figure(size=(600, 600), bgcolor=(0, 0, 0),)
+mesh = mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
+                            lh_faces, colormap='RdBu')
+mesh.module_manager.scalar_lut_manager.reverse_lut = True
+
+mesh = mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
+                            rh_faces, colormap='RdBu')
+mesh.module_manager.scalar_lut_manager.reverse_lut = True

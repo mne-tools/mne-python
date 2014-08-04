@@ -379,9 +379,6 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         err = ("Data and pos need to be of same length. Got data of shape %s, "
                "pos of shape %s." % (str(), str()))
 
-    axes = plt.gca()
-    axes.set_frame_on(False)
-
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     plt.xticks(())
@@ -391,6 +388,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     pos_y = pos[:, 1]
 
     ax = axis if axis else plt.gca()
+    ax.set_frame_on(False)
     if any([not pos_y.any(), not pos_x.any()]):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')

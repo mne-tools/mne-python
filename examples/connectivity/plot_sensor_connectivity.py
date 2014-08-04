@@ -76,7 +76,7 @@ sens_loc = [raw.info['chs'][picks[i]]['loc'][:3] for i in idx]
 sens_loc = np.array(sens_loc)
 
 pts = mlab.points3d(sens_loc[:, 0], sens_loc[:, 1], sens_loc[:, 2],
-                    color=(0, 0, 1), opacity=0.5, scale_factor=0.01)
+                    color=(1, 1, 1), opacity=1, scale_factor=0.005)
 
 # Get the strongest connections
 n_con = 20  # show up to 20 connections
@@ -100,8 +100,11 @@ vmin = np.min(con_val)
 for val, nodes in zip(con_val, con_nodes):
     x1, y1, z1 = sens_loc[nodes[0]]
     x2, y2, z2 = sens_loc[nodes[1]]
-    mlab.plot3d([x1, x2], [y1, y2], [z1, z2], [val, val],
-                vmin=vmin, vmax=vmax, tube_radius=0.002)
+    points = mlab.plot3d([x1, x2], [y1, y2], [z1, z2], [val, val],
+                         vmin=vmin, vmax=vmax, tube_radius=0.001,
+                         colormap='RdBu')
+    points.module_manager.scalar_lut_manager.reverse_lut = True
+
 
 mlab.scalarbar(title='Phase Lag Index (PLI)', nb_labels=4)
 

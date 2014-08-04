@@ -196,7 +196,7 @@ good_clusers = np.where(cluster_p_values < .05)[0]
 T_obs_plot = np.ma.masked_array(T_obs, np.invert(clusters[good_clusers]))
 
 plt.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, plt.cm.jet]):
+for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, 'RdBu_r']):
     plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
                frequencies[0], frequencies[-1]], aspect='auto',
                origin='lower')
@@ -211,7 +211,7 @@ mask, _ = fdr_correction(pvals[2])
 T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
 
 plt.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, plt.cm.jet]):
+for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, 'RdBu_r']):
     plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
                frequencies[0], frequencies[-1]], aspect='auto',
                origin='lower')

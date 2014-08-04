@@ -205,7 +205,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     # Plotting the results
     fig = plt.figure(figsize=(9, 6))
     plt.pcolor(time_grid, freq_grid, source_power[:, source_index, :],
-               cmap=plt.cm.jet)
+               cmap='Reds')
     ax = plt.gca()
 
     plt.title('Time-frequency source power')

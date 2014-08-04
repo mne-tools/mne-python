@@ -166,15 +166,13 @@ def stat_fun(*args):
     # flattened array, necessitated by the clustering procedure.
     # The ANOVA however expects an input array of dimensions:
     # subjects X conditions X observations (optional).
-    # The following expression catches the list input, swaps the first and the
-    # second dimension and puts the remaining observations in the third
-    # dimension.
+    # The following expression catches the list input
+    # and swaps the first and the
+    # second dimension
     data = np.squeeze(np.swapaxes(np.array(args), 1, 0))
-    data = data.reshape(n_subjects, n_conditions,  # generalized if buffer used
-                        data.size / (n_subjects * n_conditions))
     return f_twoway_rm(data, factor_levels=factor_levels, effects=effects,
                        return_pvals=return_pvals)[0]
-                       #  drop p-values (empty array).
+    # get f-values only.
     # Note. for further details on this ANOVA function consider the
     # corresponding time frequency example.
 
@@ -246,7 +244,7 @@ inds_t, inds_v = [(clusters[cluster_ind]) for ii, cluster_ind in
 
 times = np.arange(X[0].shape[1]) * tstep * 1e3
 
-plt.clf()
+plt.figure()
 colors = ['y', 'b', 'g', 'purple']
 event_ids = ['l_aud', 'r_aud', 'l_vis', 'r_vis']
 
@@ -262,12 +260,12 @@ for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_ids)):
     plt.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
                      alpha=0.5, label='')
 
-ymin, ymax = mean_tc.min() -5, mean_tc.max() + 5 
+ymin, ymax = mean_tc.min() - 5, mean_tc.max() + 5
 plt.xlabel('Time (ms)')
 plt.ylabel('Activation (F-values)')
 plt.xlim(times[[0, -1]])
 plt.ylim(ymin, ymax)
-plt.fill_betweenx(np.arange(ymin, ymax), times[inds_t[0]],
+plt.fill_betweenx((ymin, ymax), times[inds_t[0]],
                   times[inds_t[-1]], color='orange', alpha=0.3)
 plt.legend()
 plt.title('Interaction between stimulus-modality and location.')
