@@ -12,6 +12,7 @@
 import numpy as np
 from scipy import stats, sparse, ndimage
 import warnings
+import logging
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
@@ -526,7 +527,7 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
 
 def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                      max_step, include, partitions, t_power, seeds,
-                     sample_shape, buffer_size):
+                     sample_shape, buffer_size, pb):
 
     n_samp, n_vars = X_full.shape
 
@@ -541,10 +542,11 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         X_buffer = [np.empty((len(X_full[s]), buffer_size), dtype=X_full.dtype)
                     for s in slices]
 
-    pb = ProgressBar(len(seeds), spinner=True)
+
     for seed_idx, seed in enumerate(seeds):
-        if (seed_idx + 1) % 32 == 0:
-            pb.update(seed_idx + 1)
+        if pb is not None:
+            if not (seed_idx + 1) % 32:
+                pb.update(seed_idx + 1)
 
         # shuffle sample indices
         rng = np.random.RandomState(seed)
@@ -594,7 +596,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
 
 def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
                            max_step, include, partitions, t_power, seeds,
-                           sample_shape, buffer_size):
+                           sample_shape, buffer_size, pb):
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
 
@@ -608,10 +610,10 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         # allocate a buffer so we don't need to allocate memory in loop
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
-    pb = ProgressBar(len(seeds), spinner=True)
     for seed_idx, seed in enumerate(seeds):
-        if (seed_idx + 1) % 32 == 0:
-            pb.update(seed_idx + 1)
+        if pb is not None:
+            if not (seed_idx + 1) % 32:
+                pb.update(seed_idx + 1)
 
         if isinstance(seed, np.ndarray):
             # new surrogate data with specified sign flip
@@ -770,7 +772,6 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
         slices = [slice(splits_idx[k], splits_idx[k + 1])
                                                     for k in range(len(X))]
-
     parallel, my_do_perm_func, _ = parallel_func(do_perm_func, n_jobs)
 
     # Step 2: If we have some clusters, repeat process on permuted data
@@ -798,6 +799,15 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         total_removed = 0
         step_down_include = None  # start out including all points
         n_step_downs = 0
+
+        def get_pb(seeds):
+            # make sure pb adds across jobs
+            if logger.level <= logging.INFO:
+                pb = ProgressBar(len(seeds), spinner=True)
+            else:
+                pb = None
+            return pb
+
         while n_removed > 0:
             # actually do the clustering for each partition
             if include is not None:
@@ -809,7 +819,8 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                 this_include = step_down_include
             H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
                           connectivity, stat_fun, max_step, this_include,
-                          partitions, t_power, s, sample_shape, buffer_size)
+                          partitions, t_power, s, sample_shape, buffer_size,
+                          get_pb(s))
                           for s in split_list(seeds, n_jobs))
             H0 = np.concatenate(H0)
             cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
