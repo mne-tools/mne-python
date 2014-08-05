@@ -15,7 +15,7 @@ import warnings
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import split_list, logger, verbose
+from ..utils import split_list, logger, verbose, ProgressBar
 from ..fixes import in1d, unravel_index
 from ..source_estimate import SourceEstimate
 
@@ -541,7 +541,11 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
         X_buffer = [np.empty((len(X_full[s]), buffer_size), dtype=X_full.dtype)
                     for s in slices]
 
+    pb = ProgressBar(len(seeds), spinner=True)
     for seed_idx, seed in enumerate(seeds):
+        if (seed_idx + 1) % 32 == 0:
+            pb.update(seed_idx + 1)
+
         # shuffle sample indices
         rng = np.random.RandomState(seed)
         idx_shuffled = np.arange(n_samp)
@@ -604,7 +608,11 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         # allocate a buffer so we don't need to allocate memory in loop
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
+    pb = ProgressBar(len(seeds), spinner=True)
     for seed_idx, seed in enumerate(seeds):
+        if (seed_idx + 1) % 32 == 0:
+            pb.update(seed_idx + 1)
+
         if isinstance(seed, np.ndarray):
             # new surrogate data with specified sign flip
             if not seed.size == n_samp:
