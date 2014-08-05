@@ -29,7 +29,7 @@ real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
 v1_label_fname = op.join(subjects_dir, 'sample', 'label', 'lh.V1.label')
 
 fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-eeg-oct-6p-fwd.fif')
+                    'sample_audvis-eeg-oct-6-fwd.fif')
 src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
 
