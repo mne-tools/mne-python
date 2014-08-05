@@ -29,7 +29,7 @@ eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
 # Show gain matrix a.k.a. leadfield matrix with sensitivity map
 
 import matplotlib.pyplot as plt
-plt.matshow(leadfield[:, :500])
+plt.matshow(leadfield[:, :500], cmap='RdBu_r')
 plt.xlabel('sources')
 plt.ylabel('sensors')
 plt.title('Lead field matrix (500 dipoles only)')
