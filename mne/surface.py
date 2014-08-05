@@ -9,6 +9,8 @@ import os
 from os import path as op
 import sys
 from struct import pack
+import glob
+
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy import sparse
@@ -304,7 +306,9 @@ def get_head_surf(subject, source='bem', subjects_dir=None):
     source : str
         Type to load. Common choices would be `'bem'` or `'head'`. We first
         try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
-        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory.
+        then look for `'$SUBJECT*$SOURCE.fif'` in the same directory by going
+        through all files matching the pattern. The head surface will be read
+        from the first file containing a head surface.
     subjects_dir : str, or None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
@@ -329,17 +333,15 @@ def get_head_surf(subject, source='bem', subjects_dir=None):
         if not op.isdir(path):
             raise IOError('Subject bem directory "%s" does not exist'
                           % path)
-        files = os.listdir(path)
-        for fname in files:
-            if fnmatch(fname, '%s*%s.fif' % (subject, source)):
-                this_head = op.join(path, fname)
-                try:
-                    surf = read_bem_surfaces(this_head, True,
-                                             FIFF.FIFFV_BEM_SURF_ID_HEAD)
-                    break
-                except ValueError:
-                    # the file does not contain a head surface
-                    this_head = None
+        files = glob.glob(op.join(path, '%s*%s.fif' % (subject, source)))
+        for this_head in files:
+            try:
+                surf = read_bem_surfaces(this_head, True,
+                                         FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                break
+            except ValueError:
+                # the file does not contain a head surface
+                this_head = None
 
         if this_head is None:
             raise IOError('No file matching "%s*%s" and containing a head surface '
