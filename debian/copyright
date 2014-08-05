@@ -2,6 +2,7 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: MNE-Python
 Upstream-Contact: Alexandre Gramfort <alexandre.gramfort@m4x.org>
 Source: http://github.com/mne-tools/mne-python
+Files-Excluded: mne/html/*.min.js
 
 Files: *
 Copyright: 2010-2014, MNE-Python Developers

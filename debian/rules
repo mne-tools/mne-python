@@ -14,3 +14,6 @@ override_dh_auto_test:
 	MNE_SKIP_SAMPLE_DATASET_TESTS=true \
 	  xvfb-run --auto-servernum --server-num=20 -s "-screen 0 1024x768x24 -ac +extension GLX +render -noreset" \
 	  $(NOSETESTS) mne
+
+get-orig-source:
+	uscan --verbose --force-download --repack --compress xz
