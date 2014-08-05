@@ -1,0 +1,6 @@
+# no idea from what package to pick from - see mail to mentors # /usr/lib/python2.7/dist-packages/mne/html/bootstrap.min.js
+/usr/share/javascript/d3/d3.min.js			/usr/lib/python2.7/dist-packages/mne/html/d3.v3.min.js
+# Debian has currently JQuery 1.7.2 - hope this fits with mne which contains 1.10.2
+/usr/share/javascript/jquery/jquery.min.js		/usr/lib/python2.7/dist-packages/mne/html/jquery-1.10.2.min.js
+/usr/share/javascript/jquery-ui/jquery-ui.min.js	/usr/lib/python2.7/dist-packages/mne/html/jquery-ui.min.js
+# This is not packaged for Debian /usr/lib/python2.7/dist-packages/mne/html/mpld3.v0.2.min.js

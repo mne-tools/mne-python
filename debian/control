@@ -39,7 +39,10 @@ Depends: ${misc:Depends},
          xvfb,
          xauth,
          libgl1-mesa-dri,
-         help2man
+         help2man,
+         libjs-d3,
+         libjs-jquery,
+         libjs-jquery-ui
 Recommends: python-nose,
             mayavi2
 Suggests: python-dap,
