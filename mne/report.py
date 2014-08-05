@@ -15,6 +15,7 @@ import time
 from glob import glob
 import warnings
 import base64
+from datetime import datetime as dt
 
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
@@ -585,6 +586,41 @@ repr_template = Template(u"""
 <hr></li>
 """)
 
+raw_template = Template(u"""
+<li class="{{div_klass}}" id="{{id}}">
+<h4>{{caption}}</h4>
+<table class="table table-hover">
+    <tr>
+        <th>Measurement date</th>
+        {{if meas_date is not None}}
+        <td>{{meas_date}}</td>
+        {{else}}<td>Unknown</td>{{endif}}
+    </tr>
+    <tr>
+        <th>Experimenter</th>
+        {{if raw.info['experimenter'] is not None}}
+        <td>{{raw.info['experimenter']}}</td>
+        {{else}}<td>Unknown</td>{{endif}}
+    </tr>
+    <tr>
+        <th>Bad channels</th>
+        {{if raw.info['bads'] is not None}}
+        <td>{{', '.join(raw.info['bads'])}}</td>
+        {{else}}<td>None</td>{{endif}}
+    </tr>
+    <tr>
+        <th>Lowpass</th>
+        <td>{{u'%0.2f' % raw.info['lowpass']}} Hz</td>
+    </tr>
+    <tr>
+        <th>Highpass</th>
+        <td>{{u'%0.2f' % raw.info['highpass']}} Hz</td>
+    </tr>
+</table>
+</li>
+""")
+
+
 toc_list = Template(u"""
 <li class="{{div_klass}}">
     {{if id}}
@@ -1026,19 +1062,15 @@ class Report(object):
         caption = u'Raw : %s' % raw_fname
 
         raw = Raw(raw_fname)
+        meas_date = raw.info['meas_date']
+        if meas_date is not None:
+            meas_date = dt.fromtimestamp(meas_date[0]).strftime("%B %d, %Y")
 
-        repr_raw = re.sub('>', '', re.sub('<', '', repr(raw)))
-        repr_info = re.sub('\\n', '\\n</br>',
-                           re.sub('>', '',
-                                  re.sub('<', '',
-                                         repr(raw.info))))
-
-        repr_html = repr_raw + '%s<br/>%s' % (repr_raw, repr_info)
-
-        html = repr_template.substitute(div_klass=div_klass,
-                                        id=global_id,
-                                        caption=caption,
-                                        repr=repr_html)
+        html = raw_template.substitute(div_klass=div_klass,
+                                       id=global_id,
+                                       caption=caption,
+                                       raw=raw,
+                                       meas_date=meas_date)
         return html
 
     def _render_forward(self, fwd_fname):
