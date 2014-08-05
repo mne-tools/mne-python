@@ -723,7 +723,19 @@ Decoding
 
 .. automodule:: mne.decoding
    :no-members:
+   :no-inherited-members:
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   Scaler
+   ConcatenateChannels
+   PSDEstimator
+   FilterEstimator
+   CSP
 
 Realtime
 ========
@@ -732,6 +744,20 @@ Realtime
 
 .. automodule:: mne.realtime
    :no-members:
+   :no-inherited-members:
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   RtEpochs
+   RtClient
+   MockRtClient
+   FieldTripClient
+   StimServer
+   StimClient
 
 MNE-Report
 ==========
