@@ -1,6 +1,10 @@
 python-mne (0.8.2+dfsg-1) UNRELEASED; urgency=low
 
+  [ Alexandre Gramfort ]
   * New upstream version.
+
+  [ Andreas Tille ]
+  * Strip compressed JS files from upstream source
 
  -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Fri, 01 Aug 2014 23:01:26 +0000
 
