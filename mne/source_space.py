@@ -105,7 +105,7 @@ class SourceSpaces(list):
 
     def export_volume(self, fname, include_surfaces=False,
                       include_discrete=False, dest='mri',
-                      mri_resolution=False, use_lut=True):
+                      mri_resolution=False, use_lut=True, mgz_fname=None):
         """Exports source space to nifti or mgz file
 
         Parameters
@@ -124,6 +124,8 @@ class SourceSpaces(list):
             If True, the image is saved in MRI resolution
         lut : bool
             If True, assigns a color value to each source space.
+        mgz_fname : string, or None
+            Filename of .mgz file containing header information.
 
         Notes
         -----
@@ -195,14 +197,44 @@ class SourceSpaces(list):
             # get the voxel space shape
             shape3d = (vs['mri_height'], vs['mri_depth'], vs['mri_width'])
             # reconstruct inuse array from inuse and interpolation matrix
-            inuse = (interpolator * inuse).reshape(shape3d).astype(bool)
-            inuse = inuse.astype(int)
+            inuse = (interpolator * inuse).astype(bool).astype(int)
 
         # include surface spaces
         if include_surfaces:
             surf_names = ['Left-Cerebral-Cortex', 'Right-Cerebral-Cortex']
-            # get the positions of the voxels in source space
-            vol_rr = vs['rr']
+
+            if mri_resolution:
+                # get the voxel space dimensions
+                mri_width = vs['mri_width']
+                mri_depth = vs['mri_depth']
+                mri_height = vs['mri_height']
+
+                # setup a grid in voxel space
+                js = np.arange(mri_width, dtype=np.float32)
+                js = np.tile(js[np.newaxis, np.newaxis, :],
+                             (mri_depth, mri_height, 1)).ravel()
+                ks = np.arange(mri_height, dtype=np.float32)
+                ks = np.tile(ks[np.newaxis, :, np.newaxis],
+                             (mri_depth, 1, mri_width)).ravel()
+                ps = np.arange(mri_depth, dtype=np.float32)
+                ps = np.tile(ps[:, np.newaxis, np.newaxis],
+                             (1, mri_height, mri_width)).ravel()
+
+                r0 = np.c_[js, ks, ps]
+
+                # tranform from voxel to ras space
+                t1 = vs['vox_mri_t'].copy()
+                t2 = vs['mri_ras_t'].copy()
+                trans = combine_transforms(t1, t2, t1['from'],
+                                           t2['to'])['trans']
+
+                # apply transformation
+                vol_rr = apply_trans(trans, r0)
+
+            else:
+                # get the positions of the voxels in source space
+                vol_rr = vs['rr']
+
             # loop through the surfaces
             for i, surf in enumerate(src_types['surface']):
                 # get vertex position
@@ -223,10 +255,10 @@ class SourceSpaces(list):
         # calculate affine transform for image
         if mri_resolution:
             # voxel space to mri space transform
-            transform = vs['vox_mri_t']
+            transform = vs['vox_mri_t'].copy()
         else:
             # source space to mri space transform
-            transform = vs['src_mri_t']
+            transform = vs['src_mri_t'].copy()
         if dest == 'mri':
             # combine with mri space to ras space transform
             transform = combine_transforms(transform, vs['mri_ras_t'],
