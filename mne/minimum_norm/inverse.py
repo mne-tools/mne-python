@@ -744,7 +744,8 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_ori=None, verbose=None, pick_normal=None):
+                  pick_ori=None, verbose=None, pick_normal=None,
+                  inv=None, return_inv=False):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -767,11 +768,19 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         when working with loose orientations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    inv : instance of InverseOperator | None
+        Prepared inverse operator. If provided, this will be used instead of
+        calculating `prepare_inverse_operator`. This is faster if
+        `apply_inverse` is called repeatedly, for example in a loop.
+    return_inv : bool
+        If True, return prepared inverse operator along with stc.
 
     Returns
     -------
     stc : SourceEstimate | VolSourceEstimate
         The source estimates
+    inv : instance of InverseOperator
+        Prepared inverse operator.
     """
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
@@ -782,7 +791,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     _check_ch_names(inverse_operator, evoked.info)
 
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    if inv is None:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
     #
     #   Pick the correct channels from the data
     #
@@ -812,7 +822,10 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
                     subject=subject)
     logger.info('[done]')
 
-    return stc
+    if return_inv:
+        return stc, inv
+    else:
+        return stc
 
 
 @verbose
