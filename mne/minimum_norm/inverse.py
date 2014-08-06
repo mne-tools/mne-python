@@ -827,7 +827,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_ori=None,
                       buffer_size=None, verbose=None,
-                      pick_normal=None):
+                      prepared=False, pick_normal=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -839,7 +839,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     raw : Raw object
         Raw data.
     inverse_operator : dict
-        Inverse operator read with mne.read_inverse_operator.
+        Inverse operator read with mne.read_inverse_operator or returned
+        from `prepare_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -868,6 +869,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         buffer_size << data length).
         Note that this setting has no effect for fixed-orientation inverse
         operators.
+    prepared : bool
+        If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -884,7 +887,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
@@ -940,7 +946,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
-                              verbose=None, pick_normal=None):
+                              verbose=None, pick_normal=None, prepared=False):
     """ see apply_inverse_epochs """
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
@@ -950,7 +956,10 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
@@ -999,8 +1008,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
-                         return_generator=False, verbose=None,
-                         pick_normal=None):
+                         return_generator=False, pick_normal=None,
+                         prepared=False, verbose=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -1011,7 +1020,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     epochs : Epochs object
         Single trial epochs.
     inverse_operator : dict
-        Inverse operator read with mne.read_inverse_operator.
+        Inverse operator read with mne.read_inverse_operator or returned
+        from `prepare_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -1029,6 +1039,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
+    prepared : bool
+        If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1040,7 +1052,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
                                      pick_ori=pick_ori, verbose=verbose,
-                                     pick_normal=pick_normal)
+                                     pick_normal=pick_normal,
+                                     prepared=prepared)
 
     if not return_generator:
         # return a list
