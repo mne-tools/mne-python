@@ -611,13 +611,9 @@ raw_template = Template(u"""
         {{endif}}
     </tr>
     <tr>
-        <th>Channels</th>
-        <td>{{n_mag}} magnetometers, {{n_grad}} gradiometers,
+        <th>Good channels</th>
+        <td>{{n_mag}} magnetometer, {{n_grad}} gradiometer,
             and {{n_eeg}} EEG channels</td>
-    </tr>
-    <tr>
-        <th>EOG channels</th>
-        <td>{{eog}}</td>
     </tr>
     <tr>
         <th>Bad channels</th>
@@ -625,6 +621,13 @@ raw_template = Template(u"""
         <td>{{', '.join(info['bads'])}}</td>
         {{else}}<td>None</td>{{endif}}
     </tr>
+    <tr>
+        <th>EOG channels</th>
+        <td>{{eog}}</td>
+    </tr>
+    <tr>
+        <th>ECG channels</th>
+        <td>{{ecg}}</td>
     <tr>
         <th>Lowpass</th>
         <td>{{u'%0.2f' % info['lowpass']}} Hz</td>
@@ -1088,6 +1091,11 @@ class Report(object):
             eog = ', '.join(np.array(raw.info['ch_names'])[pick_eog])
         else:
             eog = 'Not available'
+        pick_ecg = pick_types(raw.info, meg=False, ecg=True)
+        if len(pick_ecg) > 0:
+            ecg = ', '.join(np.array(raw.info['ch_names'])[pick_eog])
+        else:
+            ecg = 'Not available'
         meas_date = raw.info['meas_date']
         if meas_date is not None:
             meas_date = dt.fromtimestamp(meas_date[0]).strftime("%B %d, %Y")
@@ -1098,7 +1106,8 @@ class Report(object):
                                        info=raw.info,
                                        meas_date=meas_date,
                                        n_eeg=n_eeg, n_grad=n_grad,
-                                       n_mag=n_mag, eog=eog)
+                                       n_mag=n_mag, eog=eog,
+                                       ecg=ecg)
         return html
 
     def _render_forward(self, fwd_fname):
