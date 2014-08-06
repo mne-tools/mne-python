@@ -9,12 +9,11 @@ import os
 from os import path as op
 import sys
 from struct import pack
-import glob
+from glob import glob
 
 import numpy as np
 from scipy.spatial.distance import cdist
 from scipy import sparse
-from fnmatch import fnmatch
 
 from .io.constants import FIFF
 from .io.open import fiff_open
@@ -333,7 +332,7 @@ def get_head_surf(subject, source='bem', subjects_dir=None):
         if not op.isdir(path):
             raise IOError('Subject bem directory "%s" does not exist'
                           % path)
-        files = glob.glob(op.join(path, '%s*%s.fif' % (subject, source)))
+        files = sorted(glob(op.join(path, '%s*%s.fif' % (subject, source))))
         for this_head in files:
             try:
                 surf = read_bem_surfaces(this_head, True,
