@@ -105,27 +105,27 @@ class SourceSpaces(list):
 
     def export_volume(self, fname, include_surfaces=False,
                       include_discrete=False, dest='mri',
-                      mri_resolution=False, use_lut=True, mgz_fname=None):
-        """Exports source space to nifti or mgz file
+                      mri_resolution=False, use_lut=True):
+        """Exports source spaces to nifti or mgz file
 
         Parameters
         ----------
         fname : str
-            Name of nifti or mgz file to write
+            Name of nifti or mgz file to write.
         include_surfaces : bool
-            If True, include surface source spaces
+            If True, include surface source spaces.
         include_discrete : bool
-            If True, include discrete source spaces
+            If True, include discrete source spaces.
         dest : 'mri' | 'surf'
             If 'mri' the volume is defined in the coordinate system of the
             original T1 image. If 'surf' the coordinate system of the
             FreeSurfer surface is used (Surface RAS).
         mri_resolution : bool
             If True, the image is saved in MRI resolution
+            (e.g. 256 x 256 x 256).
         lut : bool
-            If True, assigns a color value to each source space.
-        mgz_fname : string, or None
-            Filename of .mgz file containing header information.
+            If True, assigns a numeric value to each source space that
+            corresponds to a color on the freesurfer lookup table.
 
         Notes
         -----
@@ -138,8 +138,9 @@ class SourceSpaces(list):
         except ImportError:
             raise RuntimeError('This function requires nibabel.')
 
-        # read the lookup table
+        # use lookup table to assign values to source spaces
         if use_lut:
+            # read the lookup table
             data_dir = op.join(op.dirname(__file__), 'data')
             lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
             lut = np.genfromtxt(lut_fname, dtype=None,
@@ -159,16 +160,19 @@ class SourceSpaces(list):
             # discrete sources
             elif src['type'] == 'discrete':
                 src_types['discrete'].append(src)
+            # raise an error if dealing with source type other than volume
+            # surface or discrete
             else:
                 raise ValueError('Unrecognized source type: %s.' % src['type'])
 
+        # Get the inuse array and interpolation matrix from volume sources
+        first_vol = True  # mark the first volume source
         # Loop through the volume sources
-        first_vol = True
         for vs in src_types['volume']:
-            # read the lookup table value
-            if use_lut:
+            # read the lookup table value for segmented volume
+            if use_lut and 'seg_name' in vs:
                 i = lut['id'][lut['name'] == vs['seg_name']]
-            else:
+            else:  # otherwise assign 1
                 i = 1
 
             if first_vol:
@@ -185,31 +189,37 @@ class SourceSpaces(list):
         # convert interpolator to zeros and ones
         interpolator = interpolator.astype(bool).astype(int)
 
-        # create 3d grid in source space
+        # create 3d grid in the MRI_VOXEL coordinate frame
 
-        # get the source space shape
+        # get the volume source space shape
         shape = vs['shape']
         # read the shape in reverse order (otherwise results are scrambled)
         shape3d = (shape[2], shape[1], shape[0])
 
-        # setup grid for mri resolution in voxel space
+        # setup grid for mri resolution in the MRI_VOXEL coordinate frame
         if mri_resolution:
             # get the voxel space shape
             shape3d = (vs['mri_height'], vs['mri_depth'], vs['mri_width'])
             # reconstruct inuse array from inuse and interpolation matrix
             inuse = (interpolator * inuse).astype(bool).astype(int)
 
+        # len of inuse array should match shape regardless of mri_resolution
+        assert len(inuse) == np.prod(shape3d)
+
         # include surface spaces
         if include_surfaces:
+
+            # get the name of each surface
             surf_names = ['Left-Cerebral-Cortex', 'Right-Cerebral-Cortex']
 
             if mri_resolution:
-                # get the voxel space dimensions
+                # get the MRI_VOXEL coordinate frame dimensions
                 mri_width = vs['mri_width']
                 mri_depth = vs['mri_depth']
                 mri_height = vs['mri_height']
 
-                # setup a grid in voxel space
+                # setup grid in the MRI_VOXEL coordinate frame
+                # this is identical to _add_interpolator
                 js = np.arange(mri_width, dtype=np.float32)
                 js = np.tile(js[np.newaxis, np.newaxis, :],
                              (mri_depth, mri_height, 1)).ravel()
@@ -219,55 +229,55 @@ class SourceSpaces(list):
                 ps = np.arange(mri_depth, dtype=np.float32)
                 ps = np.tile(ps[:, np.newaxis, np.newaxis],
                              (1, mri_height, mri_width)).ravel()
+                # voxel locations in voxel space
+                vol_rr_vox = np.c_[js, ks, ps]
 
-                r0 = np.c_[js, ks, ps]
-
-                # tranform from voxel to ras space
-                t1 = vs['vox_mri_t'].copy()
-                t2 = vs['mri_ras_t'].copy()
+                # tranform from MRI_VOXEL to RAS coordinates
+                t1 = vs['vox_mri_t'].copy()  # MRI_VOXEL to MRI
+                t2 = vs['mri_ras_t'].copy()  # MRI to RAS
                 trans = combine_transforms(t1, t2, t1['from'],
                                            t2['to'])['trans']
-
                 # apply transformation
-                vol_rr = apply_trans(trans, r0)
+                vol_rr_ras = apply_trans(trans, vol_rr_vox)
 
             else:
                 # get the positions of the voxels in source space
-                vol_rr = vs['rr']
+                vol_rr_ras = vs['rr']
 
             # loop through the surfaces
             for i, surf in enumerate(src_types['surface']):
-                # get vertex position
-                rr = surf['rr']
+                # get vertex positions
+                srf_rr_ras = surf['rr']
                 # find the nearest voxel for each vertex
-                ix = _compute_nearest(vol_rr, rr)
-                # update inuse array
+                ix = _compute_nearest(vol_rr_ras, srf_rr_ras)
+                # update inuse array to include surface voxels
                 if use_lut:
                     inuse[ix] = lut['id'][lut['name'] == surf_names[i]]
                 else:
                     inuse[ix] = 1
 
-        # reshape inuse array to create volume
-        vol = inuse.reshape(shape3d)
+        # reshape inuse array to create volume in MRI_VOXEL coordinates
+        vox_grid = inuse.reshape(shape3d)
         # transpose volume data (to account for zyx order)
-        vol = vol.T
+        vox_grid = vox_grid.T
 
-        # calculate affine transform for image
+        # calculate affine transform for image (MRI_VOXEL to RAS)
         if mri_resolution:
-            # voxel space to mri space transform
+            # MRI_VOXEL to MRI transform
             transform = vs['vox_mri_t'].copy()
         else:
-            # source space to mri space transform
+            # MRI_VOXEL to MRI transform
+            # NOTE: 'src' indicates downsampled version of MRI_VOXEL
             transform = vs['src_mri_t'].copy()
         if dest == 'mri':
-            # combine with mri space to ras space transform
+            # combine with MRI to RAS transform
             transform = combine_transforms(transform, vs['mri_ras_t'],
                                            transform['from'],
                                            vs['mri_ras_t']['to'])
-        # now setup the affine for nifti
-        aff = transform['trans']
-        # convert m to mm
-        aff[:3] *= 1e3
+        # now setup the affine for volume image
+        affine = transform['trans']
+        # make sure affine converts from m to mm
+        affine[:3] *= 1e3
 
         # save volume data
 
@@ -279,12 +289,12 @@ class SourceSpaces(list):
             hdr = nib.Nifti1Header()
             hdr.set_xyzt_units('mm')
             # save the nifti image
-            img = nib.Nifti1Image(vol, aff, header=hdr)
+            img = nib.Nifti1Image(vox_grid, affine, header=hdr)
         elif ftype == '.mgz':  # save as mgh
             # convert to float32 (float64 not currently supported)
-            vol = vol.astype('float32')
+            vox_grid = vox_grid.astype('float32')
             # save the mgh image
-            img = nib.freesurfer.mghformat.MGHImage(vol, aff)
+            img = nib.freesurfer.mghformat.MGHImage(vox_grid, affine)
         else:
             raise(ValueError('Unrecognized file extension'))
 
@@ -496,6 +506,10 @@ def _read_one_source_space(fid, this, verbose=None):
         if tag is not None:
             res['mri_depth'] = int(tag.data)
 
+        tag = find_tag(fid, this, FIFF.FIFF_COMMENT)
+        if tag is not None:
+            res['seg_name'] = tag.data
+
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
     if tag is None:
         raise ValueError('Number of vertices not found')
@@ -610,12 +624,6 @@ def _read_one_source_space(fid, this, verbose=None):
     tag = find_tag(fid, this, FIFF.FIFF_SUBJ_HIS_ID)
     if tag is not None:
         res['subject_his_id'] = tag.data
-
-    #   Segmentation
-    if res['type'] == 'vol':
-        tag = find_tag(fid, this, FIFF.FIFF_COMMENT)
-        if tag is not None:
-            res['seg_name'] = tag.data
 
     return res
 
@@ -931,13 +939,14 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
 
     surfs = [op.join(subjects_dir, subject, 'surf', '%s.white' % h)
              for h in ['lh', 'rh']]
+
+    # read surface locations in MRI space
     rr = [read_surface(s)[0] for s in surfs]
 
-    # take point locations in RAS space and convert to MNI coordinates
+    # take point locations in MRI space and convert to MNI coordinates
     xfm = _read_talxfm(subject, subjects_dir, mode)
-    data = np.array([np.concatenate((rr[h][v, :], [1]))
-                     for h, v in zip(hemis, vertices)]).T
-    return np.dot(xfm, data)[:3, :].T.copy()
+    data = np.array([rr[h][v, :] for h, v in zip(hemis, vertices)])
+    return apply_trans(xfm['trans'], data)
 
 
 @verbose
@@ -951,6 +960,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
         raise ValueError('mode must be "nibabel" or "freesurfer"')
     fname = op.join(subjects_dir, subject, 'mri', 'transforms',
                     'talairach.xfm')
+    # read the RAS to MNI transform from talairach.xfm
     with open(fname, 'r') as fid:
         logger.debug('Reading FreeSurfer talairach.xfm file:\n%s' % fname)
 
@@ -978,7 +988,12 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
             raise ValueError('failed to find \'Linear_Transform\' string in '
                              'xfm file:\n%s' % fname)
 
+    # Setup the RAS to MNI transform
+    ras_mni_t = {'from': FIFF.FIFFV_MNE_COORD_RAS,
+                 'to': FIFF.FIFFV_MNE_COORD_MNI_TAL, 'trans': xfm}
+
     # now get Norig and Torig
+    # (i.e. vox_ras_t and vox_mri_t, respectively)
     path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
 
     if has_nibabel():
@@ -996,7 +1011,9 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
         import nibabel as nib
         img = nib.load(path)
         hdr = img.get_header()
+        # read the MRI_VOXEL to RAS transform
         n_orig = hdr.get_vox2ras()
+        # read the MRI_VOXEL to MRI transform
         ds = np.array(hdr.get_zooms())
         ns = (np.array(hdr.get_data_shape()[:3]) * ds) / 2.0
         t_orig = np.array([[-ds[0], 0, 0, ns[0]],
@@ -1012,8 +1029,31 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
             if not stdout.size == 16:
                 raise ValueError('Could not parse Freesurfer mri_info output')
             nt_orig.append(stdout.reshape(4, 4))
-    xfm = np.dot(xfm, np.dot(nt_orig[0], linalg.inv(nt_orig[1])))
-    return xfm
+    # extract the MRI_VOXEL to RAS transform
+    n_orig = nt_orig[0]
+    vox_ras_t = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
+                 'to': FIFF.FIFFV_MNE_COORD_RAS,
+                 'trans': n_orig}
+
+    # extract the MRI_VOXEL to MRI transform
+    t_orig = nt_orig[1]
+    vox_mri_t = {'from': FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
+                 'to': FIFF.FIFFV_COORD_MRI,
+                 'trans': t_orig}
+
+    # invert MRI_VOXEL to MRI to get the MRI to MRI_VOXEL transform
+    mri_vox_t = invert_transform(vox_mri_t)
+
+    # construct an MRI to RAS transform
+    mri_ras_t = combine_transforms(mri_vox_t, vox_ras_t,
+                                   FIFF.FIFFV_COORD_MRI,
+                                   FIFF.FIFFV_MNE_COORD_RAS)
+
+    # construct the MRI to MNI transform
+    mri_mni_t = combine_transforms(mri_ras_t, ras_mni_t,
+                                   FIFF.FIFFV_COORD_MRI,
+                                   FIFF.FIFFV_MNE_COORD_MNI_TAL)
+    return mri_mni_t
 
 
 ###############################################################################
