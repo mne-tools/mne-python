@@ -527,7 +527,7 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
 
 def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                      max_step, include, partitions, t_power, seeds,
-                     sample_shape, buffer_size, pb):
+                     sample_shape, buffer_size, progress_bar):
 
     n_samp, n_vars = X_full.shape
 
@@ -544,9 +544,9 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
 
 
     for seed_idx, seed in enumerate(seeds):
-        if pb is not None:
+        if progress_bar is not None:
             if not (seed_idx + 1) % 32:
-                pb.update(seed_idx + 1)
+                progress_bar.update(seed_idx + 1)
 
         # shuffle sample indices
         rng = np.random.RandomState(seed)
@@ -596,7 +596,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
 
 def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
                            max_step, include, partitions, t_power, seeds,
-                           sample_shape, buffer_size, pb):
+                           sample_shape, buffer_size, progress_bar):
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
 
@@ -611,9 +611,9 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
     for seed_idx, seed in enumerate(seeds):
-        if pb is not None:
+        if progress_bar is not None:
             if not (seed_idx + 1) % 32:
-                pb.update(seed_idx + 1)
+                progress_bar.update(seed_idx + 1)
 
         if isinstance(seed, np.ndarray):
             # new surrogate data with specified sign flip
