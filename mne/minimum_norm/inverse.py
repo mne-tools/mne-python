@@ -744,8 +744,8 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_ori=None, verbose=None, pick_normal=None,
-                  inv=None, return_inv=False):
+                  pick_ori=None, pick_normal=None, prepared=False,
+                  verbose=None):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -756,8 +756,9 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     ----------
     evoked : Evoked object
         Evoked data.
-    inverse_operator: dict
-        Inverse operator read with mne.read_inverse_operator.
+    inverse_operator: instance of InverseOperator
+        Inverse operator read with mne.read_inverse_operator or returned
+        from `prepare_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -766,21 +767,15 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+    prepared : bool
+        If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    inv : instance of InverseOperator | None
-        Prepared inverse operator. If provided, this will be used instead of
-        calculating `prepare_inverse_operator`. This is faster if
-        `apply_inverse` is called repeatedly, for example in a loop.
-    return_inv : bool
-        If True, return prepared inverse operator along with stc.
 
     Returns
     -------
     stc : SourceEstimate | VolSourceEstimate
         The source estimates
-    inv : instance of InverseOperator
-        Prepared inverse operator.
     """
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
@@ -791,8 +786,10 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     _check_ch_names(inverse_operator, evoked.info)
 
-    if inv is None:
+    if not prepared:
         inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
@@ -822,10 +819,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
                     subject=subject)
     logger.info('[done]')
 
-    if return_inv:
-        return stc, inv
-    else:
-        return stc
+    return stc
 
 
 @verbose
