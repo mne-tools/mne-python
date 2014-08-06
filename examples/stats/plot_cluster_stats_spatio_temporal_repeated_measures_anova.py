@@ -167,11 +167,9 @@ def stat_fun(*args):
     # The ANOVA however expects an input array of dimensions:
     # subjects X conditions X observations (optional).
     # The following expression catches the list input
-    # and swaps the first and the
-    # second dimension
-    data = np.squeeze(np.swapaxes(np.array(args), 1, 0))
-    return f_twoway_rm(data, factor_levels=factor_levels, effects=effects,
-                       return_pvals=return_pvals)[0]
+    # and swaps the first and the second dimension, and finally calls ANOVA.
+    return f_twoway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
+                        effects=effects, return_pvals=return_pvals)[0]
     # get f-values only.
     # Note. for further details on this ANOVA function consider the
     # corresponding time frequency example.
@@ -194,11 +192,11 @@ pthresh = 0.0005
 f_thresh = f_threshold_twoway_rm(n_subjects, factor_levels, effects, pthresh)
 
 #    To speed things up a bit we will ...
-n_permutations = 100  # ... run fewer permutations (reduces sensitivity)
+n_permutations = 128  # ... run fewer permutations (reduces sensitivity)
 
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
-    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=1,
+    spatio_temporal_cluster_test(X, connectivity=connectivity, n_jobs=2,
                                  threshold=f_thresh, stat_fun=stat_fun,
                                  n_permutations=n_permutations,
                                  buffer_size=None)

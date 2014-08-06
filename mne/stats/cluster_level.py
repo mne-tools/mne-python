@@ -800,13 +800,10 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         step_down_include = None  # start out including all points
         n_step_downs = 0
 
-        def get_pb(seeds):
-            # make sure pb adds across jobs
-            if logger.level <= logging.INFO:
-                pb = ProgressBar(len(seeds), spinner=True)
-            else:
-                pb = None
-            return pb
+        def get_progress_bar(seeds):
+            # make sure the progress bar adds to up 100% across n jobs
+            return (ProgressBar(len(seeds), spinner=True) if
+                     logger.level <= logging.INFO else None)
 
         while n_removed > 0:
             # actually do the clustering for each partition
@@ -820,7 +817,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
             H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
                           connectivity, stat_fun, max_step, this_include,
                           partitions, t_power, s, sample_shape, buffer_size,
-                          get_pb(s))
+                          get_progress_bar(s))
                           for s in split_list(seeds, n_jobs))
             H0 = np.concatenate(H0)
             cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
