@@ -17,7 +17,7 @@ import warnings
 import base64
 from datetime import datetime as dt
 
-from . import read_evokeds, read_events, Covariance
+from . import read_evokeds, read_events, pick_types, Covariance
 from .io import Raw, read_info
 from .utils import _TempDir, logger, verbose, get_subjects_dir
 from .viz import plot_events, plot_trans, plot_cov
@@ -598,23 +598,40 @@ raw_template = Template(u"""
     </tr>
     <tr>
         <th>Experimenter</th>
-        {{if raw.info['experimenter'] is not None}}
-        <td>{{raw.info['experimenter']}}</td>
+        {{if info['experimenter'] is not None}}
+        <td>{{info['experimenter']}}</td>
         {{else}}<td>Unknown</td>{{endif}}
     </tr>
     <tr>
+        <th>Digitized points</th>
+        {{if info['dig'] is not None}}
+        <td>{{len(info['dig'])}} points</td>
+        {{else}}
+        <td>Not available</td>
+        {{endif}}
+    </tr>
+    <tr>
+        <th>Channels</th>
+        <td>{{n_mag}} magnetometers, {{n_grad}} gradiometers,
+            and {{n_eeg}} EEG channels</td>
+    </tr>
+    <tr>
+        <th>EOG channels</th>
+        <td>{{eog}}</td>
+    </tr>
+    <tr>
         <th>Bad channels</th>
-        {{if raw.info['bads'] is not None}}
-        <td>{{', '.join(raw.info['bads'])}}</td>
+        {{if info['bads'] is not None}}
+        <td>{{', '.join(info['bads'])}}</td>
         {{else}}<td>None</td>{{endif}}
     </tr>
     <tr>
         <th>Lowpass</th>
-        <td>{{u'%0.2f' % raw.info['lowpass']}} Hz</td>
+        <td>{{u'%0.2f' % info['lowpass']}} Hz</td>
     </tr>
     <tr>
         <th>Highpass</th>
-        <td>{{u'%0.2f' % raw.info['highpass']}} Hz</td>
+        <td>{{u'%0.2f' % info['highpass']}} Hz</td>
     </tr>
 </table>
 </li>
@@ -1062,6 +1079,15 @@ class Report(object):
         caption = u'Raw : %s' % raw_fname
 
         raw = Raw(raw_fname)
+
+        n_eeg = len(pick_types(raw.info, meg=False, eeg=True))
+        n_grad = len(pick_types(raw.info, meg='grad'))
+        n_mag = len(pick_types(raw.info, meg='mag'))
+        pick_eog = pick_types(raw.info, meg=False, eog=True)
+        if len(pick_eog) > 0:
+            eog = ', '.join(np.array(raw.info['ch_names'])[pick_eog])
+        else:
+            eog = 'Not available'
         meas_date = raw.info['meas_date']
         if meas_date is not None:
             meas_date = dt.fromtimestamp(meas_date[0]).strftime("%B %d, %Y")
@@ -1069,8 +1095,10 @@ class Report(object):
         html = raw_template.substitute(div_klass=div_klass,
                                        id=global_id,
                                        caption=caption,
-                                       raw=raw,
-                                       meas_date=meas_date)
+                                       info=raw.info,
+                                       meas_date=meas_date,
+                                       n_eeg=n_eeg, n_grad=n_grad,
+                                       n_mag=n_mag, eog=eog)
         return html
 
     def _render_forward(self, fwd_fname):
