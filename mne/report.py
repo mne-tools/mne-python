@@ -707,7 +707,7 @@ class Report(object):
 
         Parameters
         ----------
-        figs : list of matplotlib.pyplot.Figure
+        figs : list of matplotlib.pyplot.Figure/mayavi.core.scene.Scene
             A list of figures to be included in the report.
         captions : list of str
             A list of captions to the figures.
@@ -715,6 +715,7 @@ class Report(object):
             Name of the section. If section already exists, the figures
             will be appended to the end of the section
         """
+        import mayavi
 
         if not isinstance(figs, (list, tuple)):
             figs = [figs]
@@ -732,7 +733,18 @@ class Report(object):
             global_id = self._get_id()
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
-            img = _fig_to_img(fig=fig)
+
+            if isinstance(fig, mayavi.core.scene.Scene):
+                from PIL import Image
+                import matplotlib.pyplot as plt
+
+                _, ax = plt.subplots(1)
+                fig.scene.save_bmp(temp_fname)
+                im = Image.open(temp_fname)
+                ax.imshow(im)
+                ax.axis('off')
+
+            img = _fig_to_img(fig=ax.get_figure())
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
