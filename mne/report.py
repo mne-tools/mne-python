@@ -629,12 +629,20 @@ raw_template = Template(u"""
         <th>ECG channels</th>
         <td>{{ecg}}</td>
     <tr>
-        <th>Lowpass</th>
-        <td>{{u'%0.2f' % info['lowpass']}} Hz</td>
+        <th>Measurement time range</th>
+        <td>{{u'%0.2f' % tmin}} to {{u'%0.2f' % tmax}} sec.</td>
+    </tr>
+    <tr>
+        <th>Sampling frequency</th>
+        <td>{{u'%0.2f' % info['sfreq']}} Hz</td>
     </tr>
     <tr>
         <th>Highpass</th>
         <td>{{u'%0.2f' % info['highpass']}} Hz</td>
+    </tr>
+     <tr>
+        <th>Lowpass</th>
+        <td>{{u'%0.2f' % info['lowpass']}} Hz</td>
     </tr>
 </table>
 </li>
@@ -1099,6 +1107,8 @@ class Report(object):
         meas_date = raw.info['meas_date']
         if meas_date is not None:
             meas_date = dt.fromtimestamp(meas_date[0]).strftime("%B %d, %Y")
+        tmin = raw.first_samp / raw.info['sfreq']
+        tmax = raw.last_samp / raw.info['sfreq']
 
         html = raw_template.substitute(div_klass=div_klass,
                                        id=global_id,
@@ -1107,7 +1117,7 @@ class Report(object):
                                        meas_date=meas_date,
                                        n_eeg=n_eeg, n_grad=n_grad,
                                        n_mag=n_mag, eog=eog,
-                                       ecg=ecg)
+                                       ecg=ecg, tmin=tmin, tmax=tmax)
         return html
 
     def _render_forward(self, fwd_fname):
