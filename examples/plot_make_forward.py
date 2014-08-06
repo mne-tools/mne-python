@@ -43,7 +43,8 @@ picks_eeg = mne.pick_types(fwd['info'], meg=False, eeg=True)
 fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 fig.suptitle('Lead field matrix (500 dipoles only)', fontsize=14)
 for ax, picks, ch_type in zip(axes, [picks_meg, picks_eeg], ['meg', 'eeg']):
-    im = ax.imshow(leadfield[picks, :500], origin='lower', aspect='auto')
+    im = ax.imshow(leadfield[picks, :500], origin='lower', aspect='auto',
+                   cmap='RdBu_r')
     ax.set_title(ch_type.upper())
     ax.set_xlabel('sources')
     ax.set_ylabel('sensors')
