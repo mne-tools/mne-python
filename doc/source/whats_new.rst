@@ -19,7 +19,7 @@ BUG
 API
 ~~~
 
-   - ...
+   - apply_inverse functions have a new boolean parameter `prepared` which saves computation time by calling `prepare_inverse_operator` only if it is False.
 
 
 .. _changes_0_8:
