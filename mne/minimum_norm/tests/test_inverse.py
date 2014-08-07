@@ -191,7 +191,7 @@ def test_apply_inverse_operator():
                                       lambda2=lambda2, method="MNE")
     stc2 = apply_inverse(evoked, inv_op, lambda2, "MNE")
     assert_array_almost_equal(stc.data, stc2.data)
-    assert_array_almost_equal(stc.times, stc.times)
+    assert_array_almost_equal(stc.times, stc2.times)
 
     stc = apply_inverse(evoked, inverse_operator, lambda2, "sLORETA")
     assert_true(stc.subject == 'sample')
