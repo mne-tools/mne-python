@@ -62,7 +62,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     """
     if exclude == 'bads':
         exclude = info['bads']
-    ch_names = [n for n in cov.ch_names if not n in exclude]
+    ch_names = [n for n in cov.ch_names if n not in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
     info_ch_names = info['ch_names']
     sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
