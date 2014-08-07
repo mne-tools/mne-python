@@ -10,6 +10,7 @@ import os
 import os.path as op
 import fnmatch
 import re
+from scipy.misc import imread
 import numpy as np
 import time
 from glob import glob
@@ -90,11 +91,9 @@ def _fig_to_img(function=None, fig=None, close_fig=True, **kwargs):
 @_check_report_mode
 def _fig_to_mrislice(function, orig_size, sl, **kwargs):
     import matplotlib.pyplot as plt
-    from PIL import Image
 
     plt.close('all')
     fig = _plot_mri_contours(**kwargs)
-    temp_sl_fname = temp_fname + str(sl)
 
     fig_size = fig.get_size_inches()
     w, h = orig_size[0], orig_size[1]
@@ -103,12 +102,9 @@ def _fig_to_mrislice(function, orig_size, sl, **kwargs):
     a = fig.gca()
     a.set_xticks([]), a.set_yticks([])
     plt.xlim(0, h), plt.ylim(w, 0)
-    fig.savefig(temp_sl_fname, bbox_inches='tight',
-                pad_inches=0, format='png')
-    Image.open(temp_sl_fname).resize((w, h)).save(temp_sl_fname,
-                                                  format='png')
     output = BytesIO()
-    Image.open(temp_sl_fname).save(output, format='png')
+    fig.savefig(output, bbox_inches='tight',
+                pad_inches=0, format='png')
     return output.getvalue().encode('base64')
 
 
@@ -116,7 +112,6 @@ def _fig_to_mrislice(function, orig_size, sl, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig.
     """
-    from PIL import Image
     import matplotlib.pyplot as plt
     import mayavi
 
@@ -130,7 +125,7 @@ def _iterate_trans_views(function, **kwargs):
             mayavi.mlab.view(view[0], view[1])
             # XXX: save_bmp / save_png / ...
             fig.scene.save_bmp(temp_fname)
-            im = Image.open(temp_fname)
+            im = imread(temp_fname)
             ax.imshow(im)
             ax.axis('off')
 
@@ -715,7 +710,13 @@ class Report(object):
             Name of the section. If section already exists, the figures
             will be appended to the end of the section
         """
-        import mayavi
+
+        try:
+            import mayavi
+        except ImportError:
+            warnings.warn('Could not import mayavi. Trying to render '
+                          '`mayavi.core.scene.Scene` figure instances'
+                          ' will throw an error.')
 
         if not isinstance(figs, (list, tuple)):
             figs = [figs]
@@ -735,12 +736,11 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             if isinstance(fig, mayavi.core.scene.Scene):
-                from PIL import Image
                 import matplotlib.pyplot as plt
 
                 _, ax = plt.subplots(1)
                 fig.scene.save_bmp(temp_fname)
-                im = Image.open(temp_fname)
+                im = imread(temp_fname)
                 ax.imshow(im)
                 ax.axis('off')
 
