@@ -757,8 +757,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     evoked : Evoked object
         Evoked data.
     inverse_operator: instance of InverseOperator
-        Inverse operator read with mne.read_inverse_operator or returned
-        from `prepare_inverse_operator`.
+        Inverse operator returned from `mne.read_inverse_operator`,
+        `prepare_inverse_operator` or `make_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -839,8 +839,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     raw : Raw object
         Raw data.
     inverse_operator : dict
-        Inverse operator read with mne.read_inverse_operator or returned
-        from `prepare_inverse_operator`.
+        Inverse operator returned from `mne.read_inverse_operator`,
+        `prepare_inverse_operator` or `make_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -1020,8 +1020,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     epochs : Epochs object
         Single trial epochs.
     inverse_operator : dict
-        Inverse operator read with mne.read_inverse_operator or returned
-        from `prepare_inverse_operator`.
+        Inverse operator returned from `mne.read_inverse_operator`,
+        `prepare_inverse_operator` or `make_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
