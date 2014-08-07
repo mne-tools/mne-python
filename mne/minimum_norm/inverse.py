@@ -826,8 +826,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_ori=None,
-                      buffer_size=None, verbose=None,
-                      prepared=False, pick_normal=None):
+                      buffer_size=None, pick_normal=None, prepared=False,
+                      verbose=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -946,7 +946,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
-                              verbose=None, pick_normal=None, prepared=False):
+                              pick_normal=None, prepared=False, verbose=None):
     """ see apply_inverse_epochs """
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
