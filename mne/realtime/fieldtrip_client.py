@@ -11,6 +11,7 @@ import numpy as np
 
 from ..io.constants import FIFF
 from ..io.meas_info import Info
+from ..epochs import EpochsArray
 from ..utils import logger
 from ..externals.FieldTrip import Client as FtClient
 
@@ -217,6 +218,30 @@ class FieldTripClient(object):
             The measurement info.
         """
         return self.info
+
+    def get_data_as_epoch(self, n_samples):
+        """Returns last n_samples from current time.
+
+        Parameters
+        ----------
+        n_samples : int
+            Number of samples to fetch.
+
+        Returns
+        -------
+        epoch : instance of Epochs
+            The samples fetched as an Epochs object.
+        """
+        ft_header = self.ft_client.getHeader()
+        last_samp = ft_header.nSamples - 1
+        start = last_samp - n_samples + 1
+        stop = last_samp
+
+        # get the data
+        data = self.ft_client.getData([start, stop]).transpose()
+        epoch = EpochsArray(data, info=self.info, events=[[0, 1, 1]],
+                            tmin=0)
+        return epoch
 
     def register_receive_callback(self, callback):
         """Register a raw buffer receive callback.
