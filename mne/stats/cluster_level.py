@@ -1498,15 +1498,16 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         The time of the first sample.
     subject : str
         The name of the subject.
-    vertno : list of arrays
-        The vertex numbers associated with the source space locations.
+    vertno : list of arrays | None
+        The vertex numbers associated with the source space locations. Defaults
+        to None. If None, equals ```[np.arange(10242), np.arange(10242)]```.
 
     Returns
     -------
     out : instance of SourceEstimate
     """
     if vertno is None:
-        vertnos = [np.arange(10242), np.arange(10242)]
+        vertno = [np.arange(10242), np.arange(10242)]
 
     T_obs, clusters, clu_pvals, _ = clu
     n_times, n_vertices = T_obs.shape
