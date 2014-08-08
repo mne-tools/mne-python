@@ -82,16 +82,16 @@ General code guidelines
   necessary for running some of the tests and nearly all of the examples.
 
   You can also run ``nosetests -x`` to have nose stop as soon as a failed
-  test is found, or run e.g., ``nosetests mne/fiff/tests/test_raw.py`` to run
+  test is found, or run e.g., ``nosetests mne/tests/test_event.py`` to run
   a specific test.
 
-* Update relevant documentation. Update :doc:`whats_new.rst <whats_new>` for new features and :doc:`python_reference.rst <python_reference>` for new classes and standalone functions. :doc:`whats_new.rst <whats_new>` is organized in chronologically ordered with the last feature at the end of the document.
+* Update relevant documentation. Update :doc:`whats_new.rst <whats_new>` for new features and :doc:`python_reference.rst <python_reference>` for new classes and standalone functions. :doc:`whats_new.rst <whats_new>` is organized in chronological order with the last feature at the end of the document.
 
  To ensure that these files were rendered correctly, run the following command::
 
      make html-noplot
 
- This will build the docs without building all the examples.
+ This will build the docs without building all the examples, which can save some time.
 
 Configuring git
 ---------------
