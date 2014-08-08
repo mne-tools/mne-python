@@ -12,7 +12,7 @@ from nose.tools import assert_true, assert_equal, assert_raises
 from mne import read_evokeds
 from mne.datasets import sample
 from mne.report import Report
-from mne.utils import _TempDir
+from mne.utils import _TempDir, requires_mayavi
 
 data_dir = sample.data_path(download=False)
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
@@ -34,6 +34,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 tempdir = _TempDir()
 
 
+@requires_mayavi()
 def test_render_report():
     """Test rendering -*.fif files for mne report.
     """

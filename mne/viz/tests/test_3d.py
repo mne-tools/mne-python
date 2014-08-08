@@ -16,6 +16,7 @@ from mne import SourceEstimate
 from mne import make_field_map, pick_channels_evoked, read_evokeds
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, mne_analyze_colormap)
+from mne.utils import requires_mayavi
 from mne.datasets import sample
 from mne.source_space import read_source_spaces
 
@@ -23,19 +24,6 @@ data_dir = sample.data_path(download=False)
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 subjects_dir = op.join(data_dir, 'subjects')
-
-lacks_mayavi = False
-try:
-    from mayavi import mlab
-except ImportError:
-    try:
-        from enthought.mayavi import mlab
-    except ImportError:
-        lacks_mayavi = True
-requires_mayavi = np.testing.dec.skipif(lacks_mayavi, 'Requires mayavi')
-
-if not lacks_mayavi:
-    mlab.options.backend = 'test'
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -45,7 +33,7 @@ matplotlib.use('Agg')  # for testing don't use X server
 
 
 @sample.requires_sample_data
-@requires_mayavi
+@requires_mayavi()
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates
     """
@@ -81,7 +69,7 @@ def test_plot_sparse_source_estimates():
                                  opacity=0.5, high_resolution=False)
 
 
-@requires_mayavi
+@requires_mayavi()
 @sample.requires_sample_data
 def test_plot_evoked_field():
     """Test plotting evoked field
@@ -99,7 +87,7 @@ def test_plot_evoked_field():
         evoked.plot_field(maps, time=0.1)
 
 
-@requires_mayavi
+@requires_mayavi()
 @sample.requires_sample_data
 def test_plot_trans():
     """Test plotting of -trans.fif files

@@ -763,6 +763,26 @@ def requires_sklearn(function):
     return dec
 
 
+def requires_mayavi():
+    """Decorator to skip test if mayavi is not available"""
+
+    lacks_mayavi = False
+    try:
+        from mayavi import mlab
+    except ImportError:
+        try:
+            from enthought.mayavi import mlab
+        except ImportError:
+            lacks_mayavi = True
+            mlab = False
+    requires_mayavi = np.testing.dec.skipif(lacks_mayavi, 'Requires mayavi')
+
+    if not lacks_mayavi:
+        mlab.options.backend = 'test'
+
+    return requires_mayavi
+
+
 def requires_good_network(function):
     """Helper for testing"""
 
