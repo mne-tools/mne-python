@@ -75,7 +75,7 @@ class Forward(dict):
             if (src_types == 'discrete').any():
                 count_string += '%d discrete, ' \
                                 % (src_types == 'discrete').sum()
-            count_string = count_string.rstrip(', ')            
+            count_string = count_string.rstrip(', ')
             entr += (' | Source space: Mixed (%s) with %d vertices'
                      % (count_string, self['nsource']))
 
@@ -542,12 +542,18 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     #   Transform the source spaces to the correct coordinate frame
     #   if necessary
 
+    # Make sure forward solution is in either the MRI or HEAD coordinate frame
     if (fwd['coord_frame'] != FIFF.FIFFV_COORD_MRI and
             fwd['coord_frame'] != FIFF.FIFFV_COORD_HEAD):
         raise ValueError('Only forward solutions computed in MRI or head '
                          'coordinates are acceptable')
 
     nuse = 0
+
+    # Transform each source space to the HEAD or MRI coordinate frame,
+    # depending on the coordinate frame of the forward solution
+    # NOTE: the function transform_surface_to will also work on discrete and
+    # volume sources
     for s in src:
         try:
             s = transform_surface_to(s, fwd['coord_frame'], mri_head_t)
@@ -556,6 +562,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
         nuse += s['nuse']
 
+    # Make sure all sources match the coordinate frame of the forward solution
     if nuse != fwd['nsource']:
         raise ValueError('Source spaces do not match the forward solution.')
 
@@ -735,6 +742,7 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     write_string(fid, FIFF.FIFF_MNE_FILE_NAME, fwd['info']['mri_file'])
     if fwd['info']['mri_id'] is not None:
         write_id(fid, FIFF.FIFF_PARENT_FILE_ID, fwd['info']['mri_id'])
+    # store the MRI to HEAD transform in MRI file
     write_coord_trans(fid, fwd['info']['mri_head_t'])
     end_block(fid, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
 
@@ -746,6 +754,8 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
     for s in fwd['src']:
         s = deepcopy(s)
         try:
+            # returns source space to original coordinate frame
+            # usually MRI
             s = transform_surface_to(s, fwd['mri_head_t']['from'],
                                      fwd['mri_head_t'])
         except Exception as inst:
@@ -877,6 +887,7 @@ def write_forward_meas_info(fid, info):
     write_string(fid, FIFF.FIFF_MNE_FILE_NAME, info['meas_file'])
     if info['meas_id'] is not None:
         write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
+    # get transformation from CTF and DEVICE to HEAD coordinate frame
     meg_head_t = info.get('dev_head_t', info.get('ctf_head_t'))
     if meg_head_t is None:
         fid.close()

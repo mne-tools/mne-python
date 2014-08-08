@@ -1858,7 +1858,12 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         img : instance Nifti1Image or MGHImage
             The image object.
         """
-
+        # import nibabel or raise error
+        try:
+            import nibabel as nib
+        except ImportError:
+            raise ImportError('nibabel is required to save mixed estimate to '
+                              'volume images.')
         # extract volume source spaces and source estimates
         vol_src = []  # list of volume source spaces
         start = 0  # source to read from source estimate
@@ -1887,7 +1892,6 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             except ValueError:
                 raise ValueError('Each volume source space must be generated '
                                  'from the same grid.')
-
         # get the 3d shape
         shape = vs['shape']
         shape3d = (shape[2], shape[1], shape[0])
@@ -1904,7 +1908,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         for k, v in enumerate(vol):
             v[mask3d] = vol_data[:, k]
 
-        # inlude surface source spaces
+        # include surface source spaces
         if include_surfaces:
             surf_src = []  # list of surfaces
             surf_data = []  # surface stc data
@@ -1938,22 +1942,15 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         # transpose volume data
         vol = vol.T
 
-        # setup the affine transform
+        # setup the affine transform from source (or MRI_VOXEL) to RAS
         affine = vs['src_mri_t']['trans'].copy()
         affine = np.dot(vs['mri_ras_t']['trans'], affine)
         affine[:3] *= 1e3  # convert to mm
 
-        # import nibabel or raise error
-        try:
-            import nibabel as nib
-        except ImportError:
-            raise ImportError('nibabel is required to save mixed estimate to '
-                              'volume images.')
-
         # get the file type
         fstring, ftype = os.path.splitext(fname)
 
-        if ftype == '.nii':  # save as nifti
+        if (ftype == '.nii') or (ftype == '.nii.gz'):  # save as nifti
 
             # setup the nifti header
             header = nib.nifti1.Nifti1Header()
@@ -1969,6 +1966,9 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             vol = vol.astype('float32')
             # return mgh image
             img = nib.freesurfer.mghformat.MGHImage(vol, affine)
+
+        else:
+            raise ValueError('Unrecognized file type.')
 
         # save image
         nib.save(img, fname)

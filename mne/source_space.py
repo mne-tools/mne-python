@@ -77,7 +77,7 @@ class SourceSpaces(list):
             else:
                 r = "%r" % ss_type
             coord_frame = ss['coord_frame']
-            if type(coord_frame) == np.ndarray:
+            if isinstance(coord_frame, np.ndarray):
                 coord_frame = coord_frame[0]
             r += ', coordinate_frame=%s' % _coord_frame_name(coord_frame)
             ss_repr.append('<%s>' % r)
@@ -378,7 +378,7 @@ class SourceSpaces(list):
         # get the file type
         fstring, ftype = op.splitext(fname.lower())
         # setup image for file
-        if ftype == '.nii':  # save as nifit
+        if (ftype == '.nii') or (ftype == '.nii.gz'):  # save as nifit
             # setup the nifti header
             hdr = nib.Nifti1Header()
             hdr.set_xyzt_units('mm')

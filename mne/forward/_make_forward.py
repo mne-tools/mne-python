@@ -228,6 +228,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     # 3. --fixed option (can be computed post-hoc)
     # 4. --mricoord option (probably not necessary)
 
+    # read the transformation from MRI to HEAD coordinates
+    # (could also be HEAD to MRI)
     if isinstance(mri, string_types):
         if not op.isfile(mri):
             raise IOError('mri file "%s" not found' % mri)
@@ -265,6 +267,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
                 mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
 
+    # set default forward solution coordinate frame to HEAD
     # this could, in principle, be an option
     coord_frame = FIFF.FIFFV_COORD_HEAD
 
@@ -400,6 +403,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     logger.info('%s coordinate coil definitions created.' % extra_str)
 
     # Transform the source spaces into the appropriate coordinates
+    # (will either be HEAD or MRI)
     for s in src:
         transform_surface_to(s, coord_frame, mri_head_t)
     logger.info('Source spaces are now in %s coordinates.'
