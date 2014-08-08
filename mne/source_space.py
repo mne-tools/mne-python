@@ -31,7 +31,7 @@ from .fixes import in1d, partial, gzip_open
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_mri_head_t_from_trans_file,
-                         read_trans)
+                         read_trans, _coord_frame_name)
 
 
 class SourceSpaces(list):
@@ -76,6 +76,10 @@ class SourceSpaces(list):
                 r = "'surf', n_vertices=%i, n_used=%i" % (ss['np'], ss['nuse'])
             else:
                 r = "%r" % ss_type
+            coord_frame = ss['coord_frame']
+            if type(coord_frame) == np.ndarray:
+                coord_frame = coord_frame[0]
+            r += ', coordinate_frame=%s' % _coord_frame_name(coord_frame)
             ss_repr.append('<%s>' % r)
         ss_repr = ', '.join(ss_repr)
         return "<SourceSpaces: [{ss}]>".format(ss=ss_repr)
