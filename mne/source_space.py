@@ -30,7 +30,8 @@ from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
 from .fixes import in1d, partial, gzip_open
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
-                         combine_transforms)
+                         combine_transforms, _get_mri_head_t_from_trans_file,
+                         read_trans)
 
 
 class SourceSpaces(list):
@@ -103,8 +104,9 @@ class SourceSpaces(list):
         """
         write_source_spaces(fname, self)
 
+    @verbose
     def export_volume(self, fname, include_surfaces=False,
-                      include_discrete=False, dest='mri',
+                      include_discrete=False, dest='mri', mri=None,
                       mri_resolution=False, use_lut=True):
         """Exports source spaces to nifti or mgz file
 
@@ -120,6 +122,14 @@ class SourceSpaces(list):
             If 'mri' the volume is defined in the coordinate system of the
             original T1 image. If 'surf' the coordinate system of the
             FreeSurfer surface is used (Surface RAS).
+        mri : dict, str, or None
+            Either a transformation filename (usually made using mne_analyze)
+            or an info dict (usually opened using read_trans()).
+            If string, an ending of `.fif` or `.fif.gz` will be assumed to be
+            in FIF format, any other ending will be assumed to be a text file
+            with a 4x4 transformation matrix (like the `--trans` MNE-C option.
+            Must be provided if source spaces are in head coordinates and
+            include_surfaces and mri_resolution are True.
         mri_resolution : bool
             If True, the image is saved in MRI resolution
             (e.g. 256 x 256 x 256).
@@ -138,13 +148,42 @@ class SourceSpaces(list):
         except ImportError:
             raise RuntimeError('This function requires nibabel.')
 
+        # Check coordinate frames
+        coord_frames = np.array([s['coord_frame'] for s in self])
+
+        # Raise error if mri is not provided when head coordinates are used
+        # and mri_resolution and include_surfaces are true
+        if (coord_frames == FIFF.FIFFV_COORD_HEAD).all():
+            coords = 'head'  # all sources in head coordinates
+            if mri_resolution and include_surfaces:
+                if mri is None:
+                    raise ValueError('mri containing mri to head transform '
+                                     'must be provided if mri_resolution and '
+                                     'include_surfaces are true and surfaces '
+                                     'are in head coordinates')
+
+            elif mri is not None:
+                logger.info('mri is not needed and will not be used unless '
+                            'include_surfaces and mri_resolution are True.')
+
+        elif (coord_frames == FIFF.FIFFV_COORD_MRI).all():
+            coords = 'mri'  # all sources in mri coordinates
+            if mri is not None:
+                logger.info('mri is not needed and will not be used unless '
+                            'sources are in head coordinates.')
+        # Raise error if all sources are not in the same space, or sources are
+        # not in mri or head coordinates
+        else:
+            raise ValueError('All sources must be in head coordinates or all '
+                             'sources must be in mri coordinates.')
+
         # use lookup table to assign values to source spaces
-        if use_lut:
-            # read the lookup table
-            data_dir = op.join(op.dirname(__file__), 'data')
-            lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
-            lut = np.genfromtxt(lut_fname, dtype=None,
-                                usecols=(0, 1), names=['id', 'name'])
+        logger.info('Reading FreeSurfer lookup table')
+        # read the lookup table
+        data_dir = op.join(op.dirname(__file__), 'data')
+        lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
+        lut = np.genfromtxt(lut_fname, dtype=None,
+                            usecols=(0, 1), names=['id', 'name'])
 
         # Setup a dictionary of source types
         src_types = dict(volume=[], surface=[], discrete=[])
@@ -170,44 +209,59 @@ class SourceSpaces(list):
         # Loop through the volume sources
         for vs in src_types['volume']:
             # read the lookup table value for segmented volume
-            if use_lut and 'seg_name' in vs:
+            if 'seg_name' in vs:
+                # find the color value for this volume
                 i = lut['id'][lut['name'] == vs['seg_name']]
-            else:  # otherwise assign 1
-                i = 1
+            else:
+                # raise error for whole brain volume
+                raise ValueError('Volume sources should be segments, '
+                                 'not the entire volume.')
+
+            if not use_lut:
+                i = 1  # default value for no lookup table color matching
 
             if first_vol:
-                # get the interpolation matrix
-                interpolator = vs['interpolator']
                 # get the inuse array
-                inuse = i*vs['inuse']
+                if mri_resolution:
+                    # read the mri file used to generate volumes
+                    aseg = nib.load(vs['mri_file'])
+
+                    # get the voxel space shape
+                    shape3d = (vs['mri_height'], vs['mri_depth'],
+                               vs['mri_width'])
+
+                    # get the values for this volume
+                    inuse = i * (aseg.get_data() == i).astype(int)
+                    inuse = inuse.ravel((2, 1, 0))
+
+                else:
+                    inuse = i * vs['inuse']
+
+                    # get the volume source space shape
+                    shape = vs['shape']
+
+                    # read the shape in reverse order
+                    # (otherwise results are scrambled)
+                    shape3d = (shape[2], shape[1], shape[0])
+
                 first_vol = False
+
             else:
-                # update the interpolation matrix
-                interpolator = interpolator + vs['interpolator']
                 # update the inuse array
-                inuse += i*vs['inuse']
-        # convert interpolator to zeros and ones
-        interpolator = interpolator.astype(bool).astype(int)
+                if mri_resolution:
+
+                    # get the values for this volume
+                    use = i * (aseg.get_data() == i).astype(int)
+                    inuse += use.ravel((2, 1, 0))
+                else:
+                    inuse += i * vs['inuse']
 
         # create 3d grid in the MRI_VOXEL coordinate frame
-
-        # get the volume source space shape
-        shape = vs['shape']
-        # read the shape in reverse order (otherwise results are scrambled)
-        shape3d = (shape[2], shape[1], shape[0])
-
-        # setup grid for mri resolution in the MRI_VOXEL coordinate frame
-        if mri_resolution:
-            # get the voxel space shape
-            shape3d = (vs['mri_height'], vs['mri_depth'], vs['mri_width'])
-            # reconstruct inuse array from inuse and interpolation matrix
-            inuse = (interpolator * inuse).astype(bool).astype(int)
-
         # len of inuse array should match shape regardless of mri_resolution
         assert len(inuse) == np.prod(shape3d)
 
         # include surface spaces
-        if include_surfaces:
+        if include_surfaces or include_discrete:
 
             # get the name of each surface
             surf_names = ['Left-Cerebral-Cortex', 'Right-Cerebral-Cortex']
@@ -232,29 +286,65 @@ class SourceSpaces(list):
                 # voxel locations in voxel space
                 vol_rr_vox = np.c_[js, ks, ps]
 
-                # tranform from MRI_VOXEL to RAS coordinates
-                t1 = vs['vox_mri_t'].copy()  # MRI_VOXEL to MRI
-                t2 = vs['mri_ras_t'].copy()  # MRI to RAS
-                trans = combine_transforms(t1, t2, t1['from'],
-                                           t2['to'])['trans']
-                # apply transformation
-                vol_rr_ras = apply_trans(trans, vol_rr_vox)
+                # tranform from MRI_VOXEL to MRI coordinates
+                trans = vs['vox_mri_t'].copy()
+
+                # check for head coordinates
+                if coords == 'head':
+                    if isinstance(mri, string_types):
+                        if not op.isfile(mri):
+                            raise IOError('mri file "%s" not found' % mri)
+                        if op.splitext(mri)[1] in ['.fif', '.gz']:
+                            mri_head_t = read_trans(mri)
+                        else:
+                            mri_head_t = _get_mri_head_t_from_trans_file(mri)
+                    else:  # dict
+                        mri_head_t = mri
+                        mri = 'dict'
+
+                    # make sure its an mri to head transform
+                    if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
+                        mri_head_t = invert_transform(mri_head_t)
+                    if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
+                            mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
+                        raise RuntimeError('Incorrect MRI transform provided')
+
+                    # combine transforms, from MRI_VOXEL to HEAD
+                    trans = combine_transforms(trans, mri_head_t,
+                                               FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
+                                               FIFF.FIFFV_COORD_HEAD)
+
+                # apply transform
+                vol_rr_ras = apply_trans(trans['trans'], vol_rr_vox)
 
             else:
                 # get the positions of the voxels in source space
                 vol_rr_ras = vs['rr']
 
             # loop through the surfaces
-            for i, surf in enumerate(src_types['surface']):
-                # get vertex positions
-                srf_rr_ras = surf['rr']
-                # find the nearest voxel for each vertex
-                ix = _compute_nearest(vol_rr_ras, srf_rr_ras)
-                # update inuse array to include surface voxels
-                if use_lut:
-                    inuse[ix] = lut['id'][lut['name'] == surf_names[i]]
-                else:
+            if include_surfaces:
+                for i, surf in enumerate(src_types['surface']):
+                    # get vertex positions
+                    srf_rr_ras = surf['rr']
+                    # find the nearest voxel for each vertex
+                    ix = _compute_nearest(vol_rr_ras, srf_rr_ras)
+                    # update inuse array to include surface voxels
+                    if use_lut:
+                        inuse[ix] = lut['id'][lut['name'] == surf_names[i]]
+                    else:
+                        inuse[ix] = 1
+            # loop through discretes
+            if include_discrete:
+                for i, disc in enumerate(src_types['discrete']):
+                    # get vertex positions
+                    disc_rr_ras = disc['rr']
+                    # find the nearest voxel for each vertex
+                    ix = _compute_nearest(vol_rr_ras, disc_rr_ras)
+                    # update inuse array to include discrete voxels
                     inuse[ix] = 1
+                    if use_lut:
+                        logger.info('Discrete sources do not have values on '
+                                    'the lookup table. Defaulting to 1.')
 
         # reshape inuse array to create volume in MRI_VOXEL coordinates
         vox_grid = inuse.reshape(shape3d)
@@ -1185,6 +1275,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
 
     for hemi, surf in zip(['lh', 'rh'], surfs):
         logger.info('Loading %s...' % surf)
+        # Setup the surface spacing in the MRI coord frame
         s = _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
                                  subjects_dir)
         logger.info('loaded %s %d/%d selected to source space (%s)'
@@ -1362,12 +1453,12 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     if isinstance(pos, float):
         logger.info('grid                  : %.1f mm' % pos)
         logger.info('mindist               : %.1f mm' % mindist)
-        pos /= 1000.0
+        pos /= 1000.0  # convert pos from m to mm
     if exclude > 0.0:
         logger.info('Exclude               : %.1f mm' % exclude)
     if mri is not None:
         logger.info('MRI volume            : %s' % mri)
-    exclude /= 1000.0
+    exclude /= 1000.0  # convert exclude from m to mm
     logger.info('')
 
     # Explicit list of points
@@ -1377,12 +1468,14 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     else:
         # Load the brain surface as a template
         if bem is not None:
+            # read bem surface in the MRI coordinate frame
             surf = read_bem_surfaces(bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN,
                                      verbose=False)
             logger.info('Loaded inner skull from %s (%d nodes)'
                         % (bem, surf['np']))
         elif surface is not None:
             if isinstance(surface, string_types):
+                # read the surface in the MRI coordinate frame
                 surf = _read_surface_geom(surface)
             else:
                 surf = surface
@@ -1395,15 +1488,19 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             surf = _get_ico_surface(3)
 
             # Scale and shift
+
+            # center at origin and make radius 1
             _normalize_vectors(surf['rr'])
+
+            # normalize to sphere (in MRI coord frame)
             surf['rr'] *= sphere[3] / 1000.0  # scale by radius
             surf['rr'] += sphere[:3] / 1000.0  # move by center
             _complete_surface_info(surf, True)
-        # Make the grid of sources
+        # Make the grid of sources in MRI space
         sp = _make_volume_source_space(surf, pos, exclude, mindist, mri,
                                        volume_label)
 
-    # Compute an interpolation matrix to show data in an MRI volume
+    # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
     if mri is not None:
         _add_interpolator(sp, mri)
 
@@ -1421,7 +1518,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
 
 
 def _make_voxel_ras_trans(move, ras, voxel_size):
-    """Make a transformation for MRI voxel to MRI surface RAS"""
+    """Make a transformation from MRI_VOXEL to MRI surface RAS (i.e. MRI)"""
     assert voxel_size.ndim == 1
     assert voxel_size.size == 3
     rot = ras.T * voxel_size[np.newaxis, :]
@@ -1473,7 +1570,7 @@ def _make_discrete_source_space(pos):
 def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
     """Make a source space which covers the volume bounded by surf"""
 
-    # Figure out the grid size
+    # Figure out the grid size in the MRI coordinate frame
     mins = np.min(surf['rr'], axis=0)
     maxs = np.max(surf['rr'], axis=0)
     cm = np.mean(surf['rr'], axis=0)  # center of mass
@@ -1650,10 +1747,13 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
         # Maximum distance from center of mass of a voxel to any of its corners
         maxdist = np.sqrt(((trans[:3, :3].sum(0) / 2.) ** 2).sum())
         bads = np.where(dists > maxdist)[0]
+
+        # Update source info
         sp['inuse'][bads] = False
         sp['vertno'] = np.where(sp['inuse'] > 0)[0]
         sp['nuse'] = len(sp['vertno'])
         sp['seg_name'] = volume_label
+        sp['mri_file'] = mri
 
         # Update log
         logger.info('%d sources remaining after excluding sources too far '
