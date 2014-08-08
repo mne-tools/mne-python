@@ -55,6 +55,7 @@
 
 .. other stuff
 .. _python: http://www.python.org
+.. _travis: https://travis-ci.org/
 
 .. python packages
 .. _pep8: http://pypi.python.org/pypi/pep8

@@ -93,6 +93,16 @@ General code guidelines
 
  This will build the docs without building all the examples, which can save some time.
 
+
+More mne-python specific guidelines
+-----------------------------------
+
+* Use underscores to separate words in non class names: n_samples rather than nsamples.
+* Use CamelCase for class names.
+* Use relative imports for references inside mne-python.
+* Use nested imports for ``matplotlib`` as this is not a hard dependency.
+* Use "hot" colormap instead of "jet" for visualization functions and examples. Use diverging colormaps for bipolar data, sequential colormaps for unipolar data, cyclic colormaps for cyclical data.
+
 Configuring git
 ---------------
 
@@ -261,7 +271,7 @@ sections.
 
 * If you do find yourself merging from the trunk, consider :ref:`rebase-on-trunk`
 
-* **Ensure all tests still pass**
+* **Ensure all tests still pass**. Make `travis`_ happy.
 
 * Ask for code review!
 
@@ -422,6 +432,11 @@ When you are ready to ask for someone to review your code and consider a merge:
    deal of time for you, as the code maintainers may have "suggestions" about
    how the code should be written (features, style, etc.) that are easier to
    implement from the start.
+
+#. Finally, make `travis`_ happy. Ensure that builds in all four jobs pass. To make code python3 compatible, refer to ``externals/six.py``. Use virtual environments to test code on different python versions. Please remember that `travis`_ only runs a subset of the tests and is thus not a substitute for running the entire test suite locally.
+
+#. For the code to be mergeable, please rebase w.r.t master branch.
+
 
 If you are uncertain about what would or would not be appropriate to contribute
 to mne-python, don't hesitate to either send a pull request, or open an issue
