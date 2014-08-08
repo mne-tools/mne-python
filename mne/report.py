@@ -10,7 +10,6 @@ import os
 import os.path as op
 import fnmatch
 import re
-from scipy.misc import imread
 import numpy as np
 import time
 from glob import glob
@@ -112,6 +111,7 @@ def _fig_to_mrislice(function, orig_size, sl, **kwargs):
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig.
     """
+    from scipy.misc import imread
     import matplotlib.pyplot as plt
     import mayavi
 
@@ -710,7 +710,6 @@ class Report(object):
             Name of the section. If section already exists, the figures
             will be appended to the end of the section
         """
-
         try:
             import mayavi
         except ImportError:
@@ -737,14 +736,16 @@ class Report(object):
 
             if isinstance(fig, mayavi.core.scene.Scene):
                 import matplotlib.pyplot as plt
+                from scipy.misc import imread
 
                 _, ax = plt.subplots(1)
                 fig.scene.save_bmp(temp_fname)
                 im = imread(temp_fname)
                 ax.imshow(im)
                 ax.axis('off')
+                fig = ax.get_figure()
 
-            img = _fig_to_img(fig=ax.get_figure())
+            img = _fig_to_img(fig=fig)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,

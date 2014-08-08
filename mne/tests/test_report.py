@@ -6,6 +6,7 @@ import os
 import os.path as op
 import glob
 import warnings
+import numpy as np
 
 from nose.tools import assert_true, assert_equal, assert_raises
 
@@ -28,12 +29,27 @@ evoked2_fname = op.join(base_dir, 'test-ave.fif')
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
+# Added for mlab support in add_section
+lacks_mayavi = False
+try:
+    from mayavi import mlab
+except ImportError:
+    try:
+        from enthought.mayavi import mlab
+    except ImportError:
+        lacks_mayavi = True
+requires_mayavi = np.testing.dec.skipif(lacks_mayavi, 'Requires mayavi')
+
+if not lacks_mayavi:
+    mlab.options.backend = 'test'
+
 os.environ['MNE_REPORT_TESTING'] = 'True'
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 tempdir = _TempDir()
 
 
+@requires_mayavi
 def test_render_report():
     """Test rendering -*.fif files for mne report.
     """
