@@ -27,7 +27,7 @@ What you will need
 
 #. Basic scientific tools in python: numpy_, scipy_, matplotlib_
 
-#. Development related tools: nosetests_, coverage_, mayavi_, sphinx_,
+#. Development related tools: nosetests_, coverage_, nose-timer_, mayavi_, sphinx_,
    pep8_, and pyflakes_
 
 #. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
@@ -63,6 +63,7 @@ General code guidelines
   ``mne/fiff/tests/test_raw.py``. You can use the ``coverage`` module in
   conjunction with ``nosetests`` (nose can automatically determine the code
   coverage if ``coverage`` is installed) to see how well new code is covered.
+  The ambition is to achieve around 85% coverage with tests.
 
 * After changes have been made, **ensure all tests pass**. This can be done
   by running the following from the ``mne-python`` root directory::
@@ -100,8 +101,11 @@ More mne-python specific guidelines
 * Use underscores to separate words in non class names: n_samples rather than nsamples.
 * Use CamelCase for class names.
 * Use relative imports for references inside mne-python.
-* Use nested imports for ``matplotlib`` as this is not a hard dependency.
-* Use "hot" colormap instead of "jet" for visualization functions and examples. Use diverging colormaps for bipolar data, sequential colormaps for unipolar data, cyclic colormaps for cyclical data.
+* Use nested imports for ``matplotlib``, ``sklearn``, and ``pandas``.
+* Use ``RdBu_r`` colormap for signed data and ``Reds`` for unsigned data in visualization functions and examples.
+* Efforts to improve test timing without decreasing coverage is well appreciated. To see the top-30 tests in order of decreasing timing, run the following command::
+
+    nosetests --with-timer --timer-top-n 30
 
 Configuring git
 ---------------
