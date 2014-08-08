@@ -9,7 +9,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - ...
+   - Add support for mayavi figures in `add_section` method in Report by `Mainak Jas`_
 
 BUG
 ~~~
