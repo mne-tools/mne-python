@@ -85,6 +85,14 @@ General code guidelines
   test is found, or run e.g., ``nosetests mne/fiff/tests/test_raw.py`` to run
   a specific test.
 
+* Update relevant documentation. Update :doc:`whats_new.rst <whats_new>` for new features and :doc:`python_reference.rst <python_reference>` for new classes and standalone functions. :doc:`whats_new.rst <whats_new>` is organized in chronologically ordered with the last feature at the end of the document.
+
+ To ensure that these files were rendered correctly, run the following command::
+
+     make html-noplot
+
+ This will build the docs without building all the examples.
+
 Configuring git
 ---------------
 
@@ -167,51 +175,6 @@ These steps can be broken out to be more explicit as:
 
     git clone git@github.com:your-user-name/mne-python.git
 
-#. Create a symbolic link to your mne directory::
-
-   To find the directory in which python packages are installed, go to python
-   and type::
-
-    import site; site.getsitepackages()
-
-   This gives two directories::
-
-    ['/usr/local/lib/python2.7/dist-packages', '/usr/lib/python2.7/dist-packages']
-
-   When you write examples and import the MNE modules, this is where python
-   searches and imports them from. If you want to avoid installing the
-   package again when you make changes in your source code, it is better to
-   create a symbolic link from the installation directory to the ``mne/``
-   folder containing your source code.
-
-   First, check if there are any ``mne`` or ``mne-*.egg-info`` files in
-   these directories and delete them. Then, find the user directory for
-   installing python packages::
-
-    import site; site.getusersitepackages()
-
-   This might give for instance::
-
-    '~/.local/lib/python2.7/site-packages'
-
-   Then, make a symbolic link to your working directory::
-
-    ln -s <path to mne-python>/mne ~/.local/lib/python2.7/site-packages/mne
-
-   Also for the mne-python scripts::
-   
-    ln -s <path to mne-python>/bin/mne /usr/local/bin/mne
-
-   Since you make a symbolic link to the local directory, you won't require
-   root access while editing the files and the changes in your working
-   directory are automatically reflected in the installation directory. To
-   verify that it works, go to a directory other than the installation
-   directory, run ipython, and then type ``import mne; print mne.__path__``.
-   This will show you from where it imported MNE-Python.
-
-   Now, whenever you make any changes to the code, just restart the
-   ipython kernel for the changes to take effect.
-
 #. Change directory to your new repo::
 
     cd mne-python
@@ -253,6 +216,16 @@ These steps can be broken out to be more explicit as:
     origin     git@github.com:your-user-name/mne-python.git (push)
 
    Your fork is now set up correctly.
+
+#. Install mne with editing permissions to the installed folder::
+
+   To be able to conveniently edit your files after installing mne-python,
+   install using the following setting::
+
+    python setup.py develop --user
+
+   To make changes in the code, edit the relevant files and restart the
+   ipython kernel for changes to take effect.
 
 #. Ensure unit tests pass and html files can be compiled
 
