@@ -1726,9 +1726,21 @@ def mesh_edges(tris):
     edges : sparse matrix
         The adjacency matrix.
     """
-    npoints = np.max(tris) + 1
-    ones_ntris = np.ones(3 * len(tris))
-    a, b, c = tris.T
+
+    if tris.max() > len(tris):
+        # allow for processing sub-selections of tris
+        unique_tris = np.unique(tris)
+        tris_remapped = np.ones_like(tris)
+        for ii, val in enumerate(unique_tris):
+            tris_remapped[np.where(tris == val)] = ii
+        tris_ = tris_remapped
+    else:
+        tris_ = tris
+
+    npoints = np.max(tris_) + 1
+    ones_ntris = np.ones(3 * len(tris_))
+
+    a, b, c = tris_.T
     x = np.concatenate((a, b, c))
     y = np.concatenate((b, c, a))
     edges = coo_matrix((ones_ntris, (x, y)), shape=(npoints, npoints))
@@ -2635,10 +2647,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     if mode == 'mean':
         pass  # we have this here to catch invalid values for mode
     elif mode == 'mean_flip':
-       # get the sign-flip vector for every label
+        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'pca_flip':
-       # get the sign-flip vector for every label
+        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'max':
         pass  # we calculate the maximum value later

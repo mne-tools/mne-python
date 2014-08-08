@@ -116,7 +116,8 @@ def test_expand():
     assert_true('sample' in repr(stc))
     labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
                                        subjects_dir=subjects_dir)
-    stc_limited = stc.in_label(labels_lh[0] + labels_lh[1])
+    new_label = labels_lh[0] + labels_lh[1]
+    stc_limited = stc.in_label(new_label)
     stc_new = stc_limited.copy()
     stc_new.data.fill(0)
     for label in labels_lh[:2]:
@@ -237,6 +238,12 @@ def test_stc_methods():
     assert_true(np.round(t, 3) == 0.123)
 
     stc = read_source_estimate(fname)
+    label = read_labels_from_annot('sample', 'aparc', 'lh',
+                                   subjects_dir=subjects_dir)[0]
+    stc_label = stc.in_label(label)
+    n_vertices_used = len(label.get_vertices_used(stc_label.vertno[0]))
+    assert_equal(len(stc_label.data), n_vertices_used)
+
     stc_new = deepcopy(stc)
     o_sfreq = 1.0 / stc.tstep
     # note that using no padding for this STC reduces edge ringing...

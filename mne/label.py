@@ -598,6 +598,48 @@ class Label(object):
         """
         return split_label(self, parts, subject, subjects_dir, freesurfer)
 
+    def get_vertices_used(self, vertices=None):
+        """Get the source space's vertices inside the label
+
+        Parameters
+        ----------
+        vertices : ndarray of int, shape(n vertices) | None
+            The set of vertices to compare the label to. If None, equal to
+            ```np.arange(10242)```. Defaults to None.
+
+        Returns
+        -------
+        label_verts : ndarray of in, shape(n label vertices)
+            The vertices of the label corresponding used by the data.
+        """
+        if vertices is None:
+            vertices = np.arange(10242)
+
+        label_verts = vertices[np.in1d(vertices, self.vertices)]
+        return label_verts
+
+    def get_tris(self, tris, vertices=None):
+        """Get the source space's triangles inside the label
+
+        Parameters
+        ----------
+        tris : ndarray of int, shape(n tris, 3)
+            The set of trise corresponding to the vertices in a source space.
+        vertices : ndarray of int, shape(n vertices) | None
+            The set of vertices to compare the label to. If None, equal to
+            ```np.arange(10242)```. Defaults to None.
+
+        Returns
+        -------
+        label_tris : ndarray of int, shape(n tris, 3)
+            The subset of tris used by the label
+        """
+        vertices_ = self.get_vertices_used(vertices)
+        selection = np.all(np.in1d(tris, vertices_).reshape(tris.shape),
+                           axis=1)
+        label_tris = tris[selection]
+        return label_tris
+
 
 class BiHemiLabel(object):
     """A freesurfer/MNE label with vertices in both hemispheres
