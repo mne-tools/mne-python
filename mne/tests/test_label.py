@@ -11,7 +11,8 @@ from nose.tools import assert_equal, assert_true, assert_raises
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
-                 read_labels_from_annot, write_labels_to_annot, split_label)
+                 read_labels_from_annot, write_labels_to_annot, split_label,
+                 create_default_subject)
 from mne.label import Label, _blend_colors
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
@@ -182,6 +183,23 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
         assert_true(label_a.hemi == label_b.hemi)
         if not ignore_pos:
             assert_array_equal(label_a.pos, label_b.pos)
+
+
+@sample.requires_sample_data
+def test_annot_io():
+    "Test I/O from and to *.annot files"
+    create_default_subject(subjects_dir=tempdir)
+    labels = read_labels_from_annot('fsaverage', 'PALS_B12_Lobes',
+                                    subjects_dir=tempdir)
+
+    # test saving parcellation only covering one hemisphere
+    parc = [l for l in labels if l.name == 'LOBE.TEMPORAL-lh']
+    write_labels_to_annot(parc, 'fsaverage', 'myparc', subjects_dir=tempdir)
+    parc1 = read_labels_from_annot('fsaverage', 'myparc', subjects_dir=tempdir)
+    parc1 = [l for l in parc1 if not l.name.startswith('unknown')]
+    assert_equal(len(parc1), len(parc))
+    for l1, l in zip(parc1, parc):
+        assert_labels_equal(l1, l)
 
 
 @sample.requires_sample_data
