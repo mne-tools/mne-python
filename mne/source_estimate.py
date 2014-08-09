@@ -1729,14 +1729,13 @@ def mesh_edges(tris):
 
     if tris.max() > len(tris):
         # allow for processing sub-selections of tris
-        unique_tris = np.unique(tris)
+        verts_used = np.unique(tris)
         tris_remapped = np.ones_like(tris)
-        for ii, val in enumerate(unique_tris):
-            tris_remapped[np.where(tris == val)] = ii
+        for ii, vertex in enumerate(verts_used):
+            tris_remapped[np.where(tris == vertex)] = ii
         tris_ = tris_remapped
     else:
         tris_ = tris
-
     npoints = np.max(tris_) + 1
     ones_ntris = np.ones(3 * len(tris_))
 
