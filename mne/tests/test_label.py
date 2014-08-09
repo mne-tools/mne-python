@@ -432,7 +432,9 @@ def test_stc_to_label():
 
     # test getting tris
     tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertno[0])
-    connectivity = spatial_tris_connectivity(tris)
+    assert_raises(ValueError, spatial_tris_connectivity, tris,
+                  remap_vertices=False)
+    connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
     assert_true(connectivity.shape[0] == len(stc.vertno[0]))
 
     # with smooth='patch'

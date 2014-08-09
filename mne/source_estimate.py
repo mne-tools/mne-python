@@ -1713,13 +1713,16 @@ class VolSourceEstimate(_BaseSourceEstimate):
 ###############################################################################
 # Morphing
 
-def mesh_edges(tris):
+def mesh_edges(tris, remap_vertices=False):
     """Returns sparse matrix with edges as an adjacency matrix
 
     Parameters
     ----------
     tris : array of shape [n_triangles x 3]
         The triangles.
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
 
     Returns
     -------
@@ -1727,11 +1730,12 @@ def mesh_edges(tris):
         The adjacency matrix.
     """
 
-    if np.max(tris) > len(tris):
+    if np.max(tris) > len(np.unique(tris)) and remap_vertices is False:
         # allow for processing sub-selections of tris
-        logger.info('Selection of triangles passed. '
-                    'Reassigning vertex numbers to construct '
-                    'connectivity matrix.')
+        raise ValueError('Cannot compute connectivity on a selection of '
+                         'triangles. Please use ```remap_vertices=True```')
+    elif remap_vertices is True:
+        logger.info('Reassigning vertex indices.')
         verts_used = np.unique(tris)
         tris_ = np.searchsorted(verts_used, tris)
     else:
@@ -1748,7 +1752,7 @@ def mesh_edges(tris):
     return edges
 
 
-def mesh_dist(tris, vert):
+def mesh_dist(tris, vert, remap_vertices=False):
     """Compute adjacency matrix weighted by distances
 
     It generates an adjacency matrix where the entries are the distances
@@ -1760,13 +1764,15 @@ def mesh_dist(tris, vert):
         Mesh triangulation
     vert : array (n_vert x 3)
         Vertex locations
-
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
     Returns
     -------
     dist_matrix : scipy.sparse.csr_matrix
         Sparse matrix with distances between adjacent vertices
     """
-    edges = mesh_edges(tris).tocoo()
+    edges = mesh_edges(tris, remap_vertices).tocoo()
 
     # Euclidean distances between neighboring vertices
     dist = np.sqrt(np.sum((vert[edges.row, :] - vert[edges.col, :]) ** 2,
@@ -2306,7 +2312,8 @@ def grade_to_tris(grade, verbose=None):
 
 
 @verbose
-def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
+def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
+                                      verbose=None):
     """Compute connectivity from triangles and time instants
 
     Parameters
@@ -2315,6 +2322,9 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
         N x 3 array defining triangles.
     n_times : int
         Number of time points
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2327,7 +2337,7 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
-    edges = mesh_edges(tris).tocoo()
+    edges = mesh_edges(tris, remap_vertices).tocoo()
     return _get_connectivity_from_edges(edges, n_times)
 
 
@@ -2395,13 +2405,16 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
 
 
 @verbose
-def spatial_tris_connectivity(tris, verbose=None):
+def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
     """Compute connectivity from triangles
 
     Parameters
     ----------
     tris : array
         N x 3 array defining triangles.
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2410,7 +2423,7 @@ def spatial_tris_connectivity(tris, verbose=None):
     connectivity : sparse COO matrix
         The connectivity matrix describing the spatial graph structure.
     """
-    return spatio_temporal_tris_connectivity(tris, 1)
+    return spatio_temporal_tris_connectivity(tris, 1, remap_vertices)
 
 
 def spatial_dist_connectivity(src, dist, verbose=None):
