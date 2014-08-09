@@ -603,19 +603,19 @@ class Label(object):
 
         Parameters
         ----------
-        vertices : ndarray of int, shape(n vertices) | None
-            The set of vertices to compare the label to. If None, equal to
+        vertices : ndarray of int, shape(n_vertices,) | None
+            The set of vertices to compare the label to. If None, equals to
             ```np.arange(10242)```. Defaults to None.
 
         Returns
         -------
-        label_verts : ndarray of in, shape(n label vertices)
+        label_verts : ndarray of in, shape(n_label_vertices,)
             The vertices of the label corresponding used by the data.
         """
         if vertices is None:
             vertices = np.arange(10242)
 
-        label_verts = vertices[np.in1d(vertices, self.vertices)]
+        label_verts = vertices[in1d(vertices, self.vertices)]
         return label_verts
 
     def get_tris(self, tris, vertices=None):
@@ -623,19 +623,20 @@ class Label(object):
 
         Parameters
         ----------
-        tris : ndarray of int, shape(n tris, 3)
-            The set of trise corresponding to the vertices in a source space.
-        vertices : ndarray of int, shape(n vertices) | None
-            The set of vertices to compare the label to. If None, equal to
+        tris : ndarray of int, shape(n_tris, 3)
+            The set of triangles corresponding to the vertices in a
+            source space.
+        vertices : ndarray of int, shape(n_vertices,) | None
+            The set of vertices to compare the label to. If None, equals to
             ```np.arange(10242)```. Defaults to None.
 
         Returns
         -------
-        label_tris : ndarray of int, shape(n tris, 3)
+        label_tris : ndarray of int, shape(n_tris, 3)
             The subset of tris used by the label
         """
         vertices_ = self.get_vertices_used(vertices)
-        selection = np.all(np.in1d(tris, vertices_).reshape(tris.shape),
+        selection = np.all(in1d(tris, vertices_).reshape(tris.shape),
                            axis=1)
         label_tris = tris[selection]
         if len(np.unique(label_tris)) < len(vertices_):
@@ -644,7 +645,7 @@ class Label(object):
             dropped_vertices = np.setdiff1d(vertices_, label_tris)
             n_dropped = len(dropped_vertices)
             assert n_dropped == (len(vertices_) - len(np.unique(label_tris)))
-            dropped_vertices_sel = np.any(np.in1d(tris, dropped_vertices)
+            dropped_vertices_sel = np.any(in1d(tris, dropped_vertices)
                                           .reshape(tris.shape), axis=1)
             new_tris = tris[dropped_vertices_sel]
             #  let's hope the ones that are least far a way from the mean are

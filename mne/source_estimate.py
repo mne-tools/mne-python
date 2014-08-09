@@ -1727,13 +1727,13 @@ def mesh_edges(tris):
         The adjacency matrix.
     """
 
-    if tris.max() > len(tris):
+    if np.max(tris) > len(tris):
         # allow for processing sub-selections of tris
+        logger.info('Selection of triangles passed. '
+                    'Reassigning vertex numbers to construct '
+                    'connectivity matrix.')
         verts_used = np.unique(tris)
-        tris_remapped = np.ones_like(tris)
-        for ii, vertex in enumerate(verts_used):
-            tris_remapped[np.where(tris == vertex)] = ii
-        tris_ = tris_remapped
+        tris_ = np.searchsorted(verts_used, tris)
     else:
         tris_ = tris
     npoints = np.max(tris_) + 1
