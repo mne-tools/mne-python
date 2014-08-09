@@ -638,6 +638,23 @@ class Label(object):
         selection = np.all(np.in1d(tris, vertices_).reshape(tris.shape),
                            axis=1)
         label_tris = tris[selection]
+        if len(np.unique(label_tris)) < len(vertices_):
+            logger.info('Surprising label structure. Trying to repair '
+                        'triangles.')
+            dropped_vertices = np.setdiff1d(vertices_, label_tris)
+            n_dropped = len(dropped_vertices)
+            assert n_dropped == (len(vertices_) - len(np.unique(label_tris)))
+            dropped_vertices_sel = np.any(np.in1d(tris, dropped_vertices)
+                                          .reshape(tris.shape), axis=1)
+            new_tris = tris[dropped_vertices_sel]
+            #  let's hope the ones that are least far a way from the mean are
+            #  are the missing ones ...
+            new_sel_idx = np.argsort(np.abs(new_tris.sum(1) -
+                                     tris.mean()))[-n_dropped:]
+
+            label_tris = np.r_[label_tris, new_tris[new_sel_idx]]
+            assert len(np.unique(label_tris)) == len(vertices_)
+
         return label_tris
 
 

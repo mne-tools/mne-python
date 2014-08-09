@@ -432,12 +432,8 @@ def test_stc_to_label():
 
     # test getting tris
     tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertno[0])
-    # not all vertices used in tris, therefore more complicated testing
-    assert_true(np.all(np.in1d(np.unique(tris),
-                               np.unique(stc.vertno[0]))))
-
     connectivity = spatial_tris_connectivity(tris)
-    assert_true(connectivity.shape[0] == len(np.unique(tris)))
+    assert_true(connectivity.shape[0] == len(stc.vertno[0]))
 
     # with smooth='patch'
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
