@@ -562,7 +562,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
 
         nuse += s['nuse']
 
-    # Make sure all sources match the coordinate frame of the forward solution
+    # Make sure the number of sources match after transformation
     if nuse != fwd['nsource']:
         raise ValueError('Source spaces do not match the forward solution.')
 

@@ -110,8 +110,8 @@ class SourceSpaces(list):
 
     @verbose
     def export_volume(self, fname, include_surfaces=False,
-                      include_discrete=False, dest='mri', mri=None,
-                      mri_resolution=False, use_lut=True):
+                      include_discrete=True, dest='mri', trans=None,
+                      mri_resolution=True, use_lut=True):
         """Exports source spaces to nifti or mgz file
 
         Parameters
@@ -126,7 +126,7 @@ class SourceSpaces(list):
             If 'mri' the volume is defined in the coordinate system of the
             original T1 image. If 'surf' the coordinate system of the
             FreeSurfer surface is used (Surface RAS).
-        mri : dict, str, or None
+        trans : dict, str, or None
             Either a transformation filename (usually made using mne_analyze)
             or an info dict (usually opened using read_trans()).
             If string, an ending of `.fif` or `.fif.gz` will be assumed to be
@@ -137,7 +137,7 @@ class SourceSpaces(list):
         mri_resolution : bool
             If True, the image is saved in MRI resolution
             (e.g. 256 x 256 x 256).
-        lut : bool
+        use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
 
@@ -155,25 +155,25 @@ class SourceSpaces(list):
         # Check coordinate frames
         coord_frames = np.array([s['coord_frame'] for s in self])
 
-        # Raise error if mri is not provided when head coordinates are used
+        # Raise error if trans is not provided when head coordinates are used
         # and mri_resolution and include_surfaces are true
         if (coord_frames == FIFF.FIFFV_COORD_HEAD).all():
             coords = 'head'  # all sources in head coordinates
             if mri_resolution and include_surfaces:
-                if mri is None:
-                    raise ValueError('mri containing mri to head transform '
+                if trans is None:
+                    raise ValueError('trans containing mri to head transform '
                                      'must be provided if mri_resolution and '
                                      'include_surfaces are true and surfaces '
                                      'are in head coordinates')
 
-            elif mri is not None:
-                logger.info('mri is not needed and will not be used unless '
+            elif trans is not None:
+                logger.info('trans is not needed and will not be used unless '
                             'include_surfaces and mri_resolution are True.')
 
         elif (coord_frames == FIFF.FIFFV_COORD_MRI).all():
             coords = 'mri'  # all sources in mri coordinates
-            if mri is not None:
-                logger.info('mri is not needed and will not be used unless '
+            if trans is not None:
+                logger.info('trans is not needed and will not be used unless '
                             'sources are in head coordinates.')
         # Raise error if all sources are not in the same space, or sources are
         # not in mri or head coordinates
@@ -277,34 +277,24 @@ class SourceSpaces(list):
                 mri_height = vs['mri_height']
 
                 # setup grid in the MRI_VOXEL coordinate frame
-                # this is identical to _add_interpolator
-                js = np.arange(mri_width, dtype=np.float32)
-                js = np.tile(js[np.newaxis, np.newaxis, :],
-                             (mri_depth, mri_height, 1)).ravel()
-                ks = np.arange(mri_height, dtype=np.float32)
-                ks = np.tile(ks[np.newaxis, :, np.newaxis],
-                             (mri_depth, 1, mri_width)).ravel()
-                ps = np.arange(mri_depth, dtype=np.float32)
-                ps = np.tile(ps[:, np.newaxis, np.newaxis],
-                             (1, mri_height, mri_width)).ravel()
-                # voxel locations in voxel space
-                vol_rr_vox = np.c_[js, ks, ps]
+                vol_rr_vox = np.mgrid[0:mri_width, 0:mri_height, 0:mri_depth]
+                vol_rr_vox = vol_rr_vox.astype(np.float32).reshape((3, -1),
+                                                                   order='F').T
 
-                # tranform from MRI_VOXEL to MRI coordinates
-                trans = vs['vox_mri_t'].copy()
+                # affine tranform from MRI_VOXEL to MRI coordinates
+                affine = vs['vox_mri_t'].copy()
 
                 # check for head coordinates
                 if coords == 'head':
-                    if isinstance(mri, string_types):
-                        if not op.isfile(mri):
-                            raise IOError('mri file "%s" not found' % mri)
-                        if op.splitext(mri)[1] in ['.fif', '.gz']:
-                            mri_head_t = read_trans(mri)
+                    if isinstance(trans, string_types):
+                        if not op.isfile(trans):
+                            raise IOError('trans file "%s" not found' % trans)
+                        if op.splitext(trans)[1] in ['.fif', '.gz']:
+                            mri_head_t = read_trans(trans)
                         else:
-                            mri_head_t = _get_mri_head_t_from_trans_file(mri)
+                            mri_head_t = _get_mri_head_t_from_trans_file(trans)
                     else:  # dict
-                        mri_head_t = mri
-                        mri = 'dict'
+                        mri_head_t = trans
 
                     # make sure its an mri to head transform
                     if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
@@ -314,12 +304,12 @@ class SourceSpaces(list):
                         raise RuntimeError('Incorrect MRI transform provided')
 
                     # combine transforms, from MRI_VOXEL to HEAD
-                    trans = combine_transforms(trans, mri_head_t,
-                                               FIFF.FIFFV_MNE_COORD_MRI_VOXEL,
-                                               FIFF.FIFFV_COORD_HEAD)
+                    affine = combine_transforms(affine, mri_head_t,
+                                                FIFF.FIFFV_MNE_MRI_VOXEL,
+                                                FIFF.FIFFV_COORD_HEAD)
 
                 # apply transform
-                vol_rr_ras = apply_trans(trans['trans'], vol_rr_vox)
+                vol_rr_ras = apply_trans(affine['trans'], vol_rr_vox)
 
             else:
                 # get the positions of the voxels in source space
@@ -375,16 +365,14 @@ class SourceSpaces(list):
 
         # save volume data
 
-        # get the file type
-        fstring, ftype = op.splitext(fname.lower())
         # setup image for file
-        if (ftype == '.nii') or (ftype == '.nii.gz'):  # save as nifit
+        if fname.endswith(('.nii', '.nii.gz')):  # save as nifit
             # setup the nifti header
             hdr = nib.Nifti1Header()
             hdr.set_xyzt_units('mm')
             # save the nifti image
             img = nib.Nifti1Image(vox_grid, affine, header=hdr)
-        elif ftype == '.mgz':  # save as mgh
+        elif fname.endswith('.mgz'):  # save as mgh
             # convert to float32 (float64 not currently supported)
             vox_grid = vox_grid.astype('float32')
             # save the mgh image
@@ -1867,16 +1855,8 @@ def _add_interpolator(s, mri_name):
     logger.info('Setting up interpolation...')
 
     # Take *all* MRI vertices...
-    js = np.arange(mri_width, dtype=np.float32)
-    js = np.tile(js[np.newaxis, np.newaxis, :],
-                 (mri_depth, mri_height, 1)).ravel()
-    ks = np.arange(mri_height, dtype=np.float32)
-    ks = np.tile(ks[np.newaxis, :, np.newaxis],
-                 (mri_depth, 1, mri_width)).ravel()
-    ps = np.arange(mri_depth, dtype=np.float32)
-    ps = np.tile(ps[:, np.newaxis, np.newaxis],
-                 (1, mri_height, mri_width)).ravel()
-    r0 = np.c_[js, ks, ps]
+    r0 = np.mgrid[0:mri_width, 0:mri_height, 0:mri_depth]
+    r0 = r0.astype(np.float32).reshape((3, -1), order='F').T
     # note we have the correct number of vertices
     assert len(r0) == mri_width * mri_height * mri_depth
 

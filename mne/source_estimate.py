@@ -1831,7 +1831,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
                                      subjects_dir=subjects_dir, figure=figure,
                                      views=views, colorbar=colorbar)
 
-    def save_volume(self, src, fname, include_surfaces=False, dest='mri',
+    def save_volume(self, src, fname, include_surfaces=True, dest='mri',
                     mri_resolution=False):
         """Save volume source estimate as a nifti or mgh image
 
@@ -1867,33 +1867,35 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         # extract volume source spaces and source estimates
         vol_src = []  # list of volume source spaces
         start = 0  # source to read from source estimate
-        first_vol = True  # bool to track first volume source
-        # loop through the sources
+        first_vol = True  # bool to track first volume source space
+        # loop through the source spaces
         for s in src:
+            # extract volume source spaces
             if s['type'] == 'vol':
-                vol_src.append(s)  # update list of volume sources
+                vol_src.append(s)  # update list of volume source spaces
                 stop = start + s['nuse']  # get range of sources to read
                 if first_vol:
-                    vol_data = self.data[start:stop]
+                    vs = s  # store the first instance for later use
+                    vol_data = self.data[start:stop]  # get the stc data
+                    vol_shape = s['shape']  # get the volume shape
+                    inuse = s['inuse']  # get the inuse array
                     first_vol = False
                 else:
+                    # update the stc data
                     vol_data = np.vstack((vol_data, self.data[start:stop]))
+                    # check that volumes are the same size
+                    if s['shape'] != vol_shape:
+                        raise ValueError('Each volume source space must be '
+                                         'generated from the same grid.')
+                    inuse += s['inuse']  # update the inuse array
             start += s['nuse']  # update stc data starting index
 
         # check that at least one volume is present
         if len(vol_src) < 1:
             raise ValueError('Source space must contain at least one volume.')
 
-        # calculate the inuse array
-        inuse = np.zeros(vol_src[0]['inuse'].shape)
-        for vs in vol_src:
-            try:
-                inuse += vs['inuse']
-            except ValueError:
-                raise ValueError('Each volume source space must be generated '
-                                 'from the same grid.')
         # get the 3d shape
-        shape = vs['shape']
+        shape = vol_shape
         shape3d = (shape[2], shape[1], shape[0])
 
         # setup 3d mask
@@ -1913,7 +1915,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             surf_src = []  # list of surfaces
             surf_data = []  # surface stc data
             start = 0  # start index
-            # loop through the sources
+            # loop through the source spaces
             for s in src:
                 # extract surfaces
                 if s['type'] == 'surf':
@@ -1947,10 +1949,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         affine = np.dot(vs['mri_ras_t']['trans'], affine)
         affine[:3] *= 1e3  # convert to mm
 
-        # get the file type
-        fstring, ftype = os.path.splitext(fname)
-
-        if (ftype == '.nii') or (ftype == '.nii.gz'):  # save as nifti
+        if fname.endswith(('.nii', '.nii.gz')):  # save as nifti
 
             # setup the nifti header
             header = nib.nifti1.Nifti1Header()
@@ -1960,7 +1959,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
             # return nifti image
             img = nib.Nifti1Image(vol, affine, header=header)
 
-        elif ftype == '.mgz':  # save as mgh
+        elif fname.endswith('.mgz'):  # save as mgh
 
             # float64 not currently supported
             vol = vol.astype('float32')

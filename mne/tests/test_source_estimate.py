@@ -601,7 +601,7 @@ def test_mixed_stc():
     S = 3  # number of source spaces
 
     data = np.random.randn(N, T)
-    vertno = S * [np.arange(N/S)]
+    vertno = S * [np.arange(N // S)]
 
     # make sure error is raised if vertices are not a list of length >= 2
     assert_raises(ValueError, MixedSourceEstimate, data=data,
@@ -609,11 +609,7 @@ def test_mixed_stc():
 
     stc = MixedSourceEstimate(data, vertno, 0, 1)
 
-    srf = read_source_spaces(fname_src)
     vol = read_source_spaces(fname_vsrc)
-
-    # create a mixed source space
-    src = srf + vol
 
     # make sure error is raised for plotting surface with volume source
     assert_raises(ValueError, stc.plot_surface, src=vol)
