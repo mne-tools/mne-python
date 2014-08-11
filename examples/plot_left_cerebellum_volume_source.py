@@ -30,8 +30,9 @@ aseg_fname = subjects_dir + '/sample/mri/aseg.mgz'
 # Setup the source spaces
 
 # setup a cortical surface source space and extract left hemisphere
-lh_surf = setup_source_space(subj, subjects_dir=subjects_dir,
-                             add_dist=False, overwrite=True)[0]
+surf = setup_source_space(subj, subjects_dir=subjects_dir,
+                          add_dist=False, overwrite=True)
+lh_surf = surf[0]
 
 # setup a volume source space of the left cerebellum cortex
 volume_label = 'Left-Cerebellum-Cortex'
@@ -78,7 +79,11 @@ mlab.show()
 
 # Export source positions to nift file
 nii_fname = data_path + '/MEG/sample/mne_sample_lh-cerebellum-cortex.nii'
-lh_cereb.export_to_nifti(nii_fname)
+
+# Combine the source spaces
+src = surf + lh_cereb
+
+src.export_volume(nii_fname, mri_resolution=True)
 
 # Uncomment the following lines to display source positions in freeview.
 '''

@@ -16,8 +16,7 @@ from mne.io import read_raw_bti
 from mne.io.constants import FIFF
 from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
-                 convert_forward_solution, read_source_spaces,
-                 setup_volume_source_space)
+                 convert_forward_solution, setup_volume_source_space)
 from mne.utils import requires_mne, _TempDir
 from mne.tests.test_source_space import _compare_source_spaces
 from mne.forward import Forward
@@ -264,16 +263,17 @@ def test_forward_mixed_source_space():
     fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 
     # get the surface source space
-    fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
-    surf = read_source_spaces(fname_src)
+    surf = setup_source_space('sample', fname=None, spacing='ico2')
 
     # setup two volume source spaces
     label_names = get_volume_labels_from_aseg(fname_aseg)
-    volume_labels = np.random.choice(label_names, 2)
-    vol1 = setup_volume_source_space('sample', fname=None, mri=fname_aseg,
-                                     volume_label=volume_labels[0])
-    vol2 = setup_volume_source_space('sample', fname=None, mri=fname_aseg,
-                                     volume_label=volume_labels[1])
+    vol_labels = np.random.choice(label_names, 2)
+    vol1 = setup_volume_source_space('sample', fname=None, pos=20.,
+                                     mri=fname_aseg,
+                                     volume_label=vol_labels[0])
+    vol2 = setup_volume_source_space('sample', fname=None, pos=20.,
+                                     mri=fname_aseg,
+                                     volume_label=vol_labels[1])
 
     # merge surfaces and volume
     src = surf + vol1 + vol2
