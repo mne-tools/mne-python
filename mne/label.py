@@ -99,7 +99,7 @@ def _split_colors(color, n):
 
     hsv_colors = ((h, s, v_) for v_ in np.linspace(v_min, v_max, n))
     rgb_colors = (hsv_to_rgb(h_, s_, v_) for h_, s_, v_ in hsv_colors)
-    rgba_colors = ((r_, g_, b_, a, ) for r_, g_, b_ in rgb_colors)
+    rgba_colors = ((r_, g_, b_, a,) for r_, g_, b_ in rgb_colors)
     return tuple(rgba_colors)
 
 
@@ -603,13 +603,13 @@ class Label(object):
 
         Parameters
         ----------
-        vertices : ndarray of int, shape(n_vertices, ) | None
+        vertices : ndarray of int, shape (n_vertices,) | None
             The set of vertices to compare the label to. If None, equals to
             ```np.arange(10242)```. Defaults to None.
 
         Returns
         -------
-        label_verts : ndarray of in, shape(n_label_vertices, )
+        label_verts : ndarray of in, shape (n_label_vertices,)
             The vertices of the label corresponding used by the data.
         """
         if vertices is None:
@@ -623,16 +623,16 @@ class Label(object):
 
         Parameters
         ----------
-        tris : ndarray of int, shape(n_tris, 3)
+        tris : ndarray of int, shape (n_tris, 3)
             The set of triangles corresponding to the vertices in a
             source space.
-        vertices : ndarray of int, shape(n_vertices, ) | None
+        vertices : ndarray of int, shape (n_vertices,) | None
             The set of vertices to compare the label to. If None, equals to
             ```np.arange(10242)```. Defaults to None.
 
         Returns
         -------
-        label_tris : ndarray of int, shape(n_tris, 3)
+        label_tris : ndarray of int, shape (n_tris, 3)
             The subset of tris used by the label
         """
         vertices_ = self.get_vertices_used(vertices)
@@ -965,7 +965,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
 
     # colors
     if label.color is None:
-        colors = (None, ) * n_parts
+        colors = (None,) * n_parts
     else:
         colors = _split_colors(label.color, n_parts)
 
