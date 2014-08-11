@@ -187,7 +187,7 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 
 @sample.requires_sample_data
 def test_annot_io():
-    "Test I/O from and to *.annot files"
+    """Test I/O from and to *.annot files"""
     create_default_subject(subjects_dir=tempdir)
     labels = read_labels_from_annot('fsaverage', 'PALS_B12_Lobes',
                                     subjects_dir=tempdir)
