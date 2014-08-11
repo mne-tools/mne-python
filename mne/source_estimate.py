@@ -1713,37 +1713,27 @@ class VolSourceEstimate(_BaseSourceEstimate):
 ###############################################################################
 # Morphing
 
-def mesh_edges(tris, remap_vertices=False):
+def mesh_edges(tris):
     """Returns sparse matrix with edges as an adjacency matrix
 
     Parameters
     ----------
     tris : array of shape [n_triangles x 3]
         The triangles.
-    remap_vertices : bool
-        Reassign vertex indices based on unique values. Useful
-        to process a subset of triangles. Defaults to False.
 
     Returns
     -------
     edges : sparse matrix
         The adjacency matrix.
     """
-
-    if np.max(tris) > len(np.unique(tris)) and remap_vertices is False:
-        # allow for processing sub-selections of tris
+    if np.max(tris) > len(np.unique(tris)):
         raise ValueError('Cannot compute connectivity on a selection of '
-                         'triangles. Please use ```remap_vertices=True```')
-    elif remap_vertices is True:
-        logger.info('Reassigning vertex indices.')
-        verts_used = np.unique(tris)
-        tris_ = np.searchsorted(verts_used, tris)
-    else:
-        tris_ = tris
-    npoints = np.max(tris_) + 1
-    ones_ntris = np.ones(3 * len(tris_))
+                         'triangles.')
 
-    a, b, c = tris_.T
+    npoints = np.max(tris) + 1
+    ones_ntris = np.ones(3 * len(tris))
+
+    a, b, c = tris.T
     x = np.concatenate((a, b, c))
     y = np.concatenate((b, c, a))
     edges = coo_matrix((ones_ntris, (x, y)), shape=(npoints, npoints))
@@ -1752,7 +1742,7 @@ def mesh_edges(tris, remap_vertices=False):
     return edges
 
 
-def mesh_dist(tris, vert, remap_vertices=False):
+def mesh_dist(tris, vert):
     """Compute adjacency matrix weighted by distances
 
     It generates an adjacency matrix where the entries are the distances
@@ -1764,15 +1754,12 @@ def mesh_dist(tris, vert, remap_vertices=False):
         Mesh triangulation
     vert : array (n_vert x 3)
         Vertex locations
-    remap_vertices : bool
-        Reassign vertex indices based on unique values. Useful
-        to process a subset of triangles. Defaults to False.
     Returns
     -------
     dist_matrix : scipy.sparse.csr_matrix
         Sparse matrix with distances between adjacent vertices
     """
-    edges = mesh_edges(tris, remap_vertices).tocoo()
+    edges = mesh_edges(tris).tocoo()
 
     # Euclidean distances between neighboring vertices
     dist = np.sqrt(np.sum((vert[edges.row, :] - vert[edges.col, :]) ** 2,
@@ -2337,7 +2324,11 @@ def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
-    edges = mesh_edges(tris, remap_vertices).tocoo()
+    if remap_vertices:
+        logger.info('Reassigning vertex indices.')
+        tris = np.searchsorted(np.unique(tris), tris)
+
+    edges = mesh_edges(tris).tocoo()
     return _get_connectivity_from_edges(edges, n_times)
 
 
