@@ -109,9 +109,9 @@ class SourceSpaces(list):
         write_source_spaces(fname, self)
 
     @verbose
-    def export_volume(self, fname, include_surfaces=False,
+    def export_volume(self, fname, include_surfaces=True,
                       include_discrete=True, dest='mri', trans=None,
-                      mri_resolution=True, use_lut=True):
+                      mri_resolution=False, use_lut=True):
         """Exports source spaces to nifti or mgz file
 
         Parameters
