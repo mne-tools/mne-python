@@ -1726,7 +1726,7 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
 @verbose
 def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                           subjects_dir=None, annot_fname=None,
-                          colormap='hsv', verbose=None):
+                          colormap='hsv', hemi='both', verbose=None):
     """Create a FreeSurfer annotation from a list of labels
 
     Parameters
@@ -1747,15 +1747,23 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     colormap : str
         Colormap to use to generate label colors for labels that do not
         have a color specified.
+    hemi : 'both' | 'lh' | 'rh'
+        The hemisphere(s) for which to write *.annot files (only applies if
+        annot_fname is not specified; default is 'both').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Notes
+    -----
+    Vertices that are not covered by any of the labels are assigned to a label
+    named "unknown".
     """
     logger.info('Writing labels to parcellation..')
 
     subjects_dir = get_subjects_dir(subjects_dir)
 
     # get the .annot filenames and hemispheres
-    annot_fname, hemis = _get_annot_fname(annot_fname, subject, 'both', parc,
+    annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
                                           subjects_dir)
 
     if not overwrite:

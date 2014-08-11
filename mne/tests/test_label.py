@@ -6,7 +6,7 @@ import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_equal, assert_true, assert_raises
+from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
@@ -199,6 +199,21 @@ def test_annot_io():
     parc1 = [l for l in parc1 if not l.name.startswith('unknown')]
     assert_equal(len(parc1), len(parc))
     for l1, l in zip(parc1, parc):
+        assert_labels_equal(l1, l)
+
+    # test saving only one hemisphere
+    parc = [l for l in labels if l.name.startswith('LOBE')]
+    write_labels_to_annot(parc, 'fsaverage', 'myparc2', hemi='lh',
+                          subjects_dir=tempdir)
+    annot_fname = os.path.join(tempdir, 'fsaverage', 'label',
+                               '%sh.myparc2.annot')
+    assert_true(os.path.isfile(annot_fname % 'l'))
+    assert_false(os.path.isfile(annot_fname % 'r'))
+    parc1 = read_labels_from_annot('fsaverage', 'myparc2',
+                                   annot_fname=annot_fname % 'l',
+                                   subjects_dir=tempdir)
+    parc_lh = [l for l in parc if l.name.endswith('lh')]
+    for l1, l in zip(parc1, parc_lh):
         assert_labels_equal(l1, l)
 
 
