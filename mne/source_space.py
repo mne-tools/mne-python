@@ -152,7 +152,7 @@ class SourceSpaces(list):
         except ImportError:
             raise RuntimeError('This function requires nibabel.')
 
-        # Check coordinate frames
+        # Check coordinate frames of each source space
         coord_frames = np.array([s['coord_frame'] for s in self])
 
         # Raise error if trans is not provided when head coordinates are used
@@ -208,7 +208,7 @@ class SourceSpaces(list):
             else:
                 raise ValueError('Unrecognized source type: %s.' % src['type'])
 
-        # Get the inuse array and interpolation matrix from volume sources
+        # Get shape, inuse array and interpolation matrix from volume sources
         first_vol = True  # mark the first volume source
         # Loop through the volume sources
         for vs in src_types['volume']:
@@ -236,6 +236,7 @@ class SourceSpaces(list):
 
                     # get the values for this volume
                     inuse = i * (aseg.get_data() == i).astype(int)
+                    # store as 1D array
                     inuse = inuse.ravel((2, 1, 0))
 
                 else:
@@ -260,98 +261,92 @@ class SourceSpaces(list):
                 else:
                     inuse += i * vs['inuse']
 
+        # Raise error if there are no volume source spaces
+        if first_vol:
+            raise ValueError('Source spaces must contain at least one volume.')
+
         # create 3d grid in the MRI_VOXEL coordinate frame
         # len of inuse array should match shape regardless of mri_resolution
         assert len(inuse) == np.prod(shape3d)
 
-        # include surface spaces
+        # setup the image in 3d space
+        img = inuse.reshape(shape3d).T
+
+        # include surface and/or discrete source spaces
         if include_surfaces or include_discrete:
 
-            # get the name of each surface
-            surf_names = ['Left-Cerebral-Cortex', 'Right-Cerebral-Cortex']
-
+            # setup affine transform for source spaces
             if mri_resolution:
-                # get the MRI_VOXEL coordinate frame dimensions
-                mri_width = vs['mri_width']
-                mri_depth = vs['mri_depth']
-                mri_height = vs['mri_height']
-
-                # setup grid in the MRI_VOXEL coordinate frame
-                # This is equivalent to using mgrid and reshaping, but faster
-                js = np.arange(mri_width, dtype=np.float32)
-                js = np.tile(js[np.newaxis, np.newaxis, :],
-                             (mri_depth, mri_height, 1)).ravel()
-                ks = np.arange(mri_height, dtype=np.float32)
-                ks = np.tile(ks[np.newaxis, :, np.newaxis],
-                             (mri_depth, 1, mri_width)).ravel()
-                ps = np.arange(mri_depth, dtype=np.float32)
-                ps = np.tile(ps[:, np.newaxis, np.newaxis],
-                             (1, mri_height, mri_width)).ravel()
-                vol_rr_vox = np.c_[js, ks, ps]
-
-                # affine tranform from MRI_VOXEL to MRI coordinates
-                affine = vs['vox_mri_t'].copy()
-
-                # check for head coordinates
-                if coords == 'head':
-                    if isinstance(trans, string_types):
-                        if not op.isfile(trans):
-                            raise IOError('trans file "%s" not found' % trans)
-                        if op.splitext(trans)[1] in ['.fif', '.gz']:
-                            mri_head_t = read_trans(trans)
-                        else:
-                            mri_head_t = _get_mri_head_t_from_trans_file(trans)
-                    else:  # dict
-                        mri_head_t = trans
-
-                    # make sure its an mri to head transform
-                    if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
-                        mri_head_t = invert_transform(mri_head_t)
-                    if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
-                            mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
-                        raise RuntimeError('Incorrect MRI transform provided')
-
-                    # combine transforms, from MRI_VOXEL to HEAD
-                    affine = combine_transforms(affine, mri_head_t,
-                                                FIFF.FIFFV_MNE_MRI_VOXEL,
-                                                FIFF.FIFFV_COORD_HEAD)
-
-                # apply transform
-                vol_rr_ras = apply_trans(affine['trans'], vol_rr_vox)
-
+                # get the MRI to MRI_VOXEL transform
+                affine = invert_transform(vs['vox_mri_t'])
             else:
-                # get the positions of the voxels in source space
-                vol_rr_ras = vs['rr']
+                # get the MRI to SOURCE (MRI_VOXEL) transform
+                affine = invert_transform(vs['src_mri_t'])
 
-            # loop through the surfaces
-            if include_surfaces:
-                for i, surf in enumerate(src_types['surface']):
-                    # get vertex positions
-                    srf_rr_ras = surf['rr']
-                    # find the nearest voxel for each vertex
-                    ix = _compute_nearest(vol_rr_ras, srf_rr_ras)
-                    # update inuse array to include surface voxels
-                    if use_lut:
-                        inuse[ix] = lut['id'][lut['name'] == surf_names[i]]
+            # modify affine if in head coordinates
+            if coords == 'head':
+
+                # read transformation
+                if isinstance(trans, string_types):
+                    if not op.isfile(trans):
+                        raise IOError('trans file "%s" not found' % trans)
+                    if op.splitext(trans)[1] in ['.fif', '.gz']:
+                        mri_head_t = read_trans(trans)
                     else:
-                        inuse[ix] = 1
-            # loop through discretes
+                        mri_head_t = _get_mri_head_t_from_trans_file(trans)
+                else:  # dict
+                    mri_head_t = trans
+
+                # make sure its an MRI to HEAD transform
+                if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
+                    mri_head_t = invert_transform(mri_head_t)
+                if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
+                        mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
+                    raise RuntimeError('Incorrect MRI transform provided')
+
+                # get the HEAD to MRI transform
+                head_mri_t = invert_transform(mri_head_t)
+
+                # combine transforms, from HEAD to MRI_VOXEL
+                affine = combine_transforms(head_mri_t, affine,
+                                            FIFF.FIFFV_COORD_HEAD,
+                                            FIFF.FIFFV_MNE_COORD_MRI_VOXEL)
+
+            # loop through the surface source spaces
+            if include_surfaces:
+
+                # get the surface names (assumes left, right order. may want
+                # to add these names during source space generation
+                surf_names = ['Left-Cerebral-Cortex', 'Right-Cerebral-Cortex']
+
+                for i, surf in enumerate(src_types['surface']):
+                    # convert vertex positions from their native space
+                    # (either HEAD or MRI) to MRI_VOXEL space
+                    srf_rr = apply_trans(affine['trans'], surf['rr'])
+                    # convert to numeric indices
+                    ix, iy, iz = srf_rr.T.astype(int)
+
+                    # get surface id or use default value
+                    if use_lut:
+                        i = lut['id'][lut['name'] == surf_names[i]]
+                    else:
+                        i = 1
+                    # update image to include surface voxels
+                    img[ix, iy, iz] = i
+
+            # loop through discrete source spaces
             if include_discrete:
                 for i, disc in enumerate(src_types['discrete']):
-                    # get vertex positions
-                    disc_rr_ras = disc['rr']
-                    # find the nearest voxel for each vertex
-                    ix = _compute_nearest(vol_rr_ras, disc_rr_ras)
-                    # update inuse array to include discrete voxels
-                    inuse[ix] = 1
+                    # convert vertex positions from their native space
+                    # (either HEAD or MRI) to MRI_VOXEL space
+                    disc_rr = apply_trans(affine['trans'], disc['rr'])
+                    # convert to numeric indices
+                    ix, iy, iz = disc_rr.T.astype(int)
+                    # set default value
+                    img[ix, iy, iz] = 1
                     if use_lut:
                         logger.info('Discrete sources do not have values on '
                                     'the lookup table. Defaulting to 1.')
-
-        # reshape inuse array to create volume in MRI_VOXEL coordinates
-        vox_grid = inuse.reshape(shape3d)
-        # transpose volume data (to account for zyx order)
-        vox_grid = vox_grid.T
 
         # calculate affine transform for image (MRI_VOXEL to RAS)
         if mri_resolution:
@@ -379,16 +374,16 @@ class SourceSpaces(list):
             hdr = nib.Nifti1Header()
             hdr.set_xyzt_units('mm')
             # save the nifti image
-            img = nib.Nifti1Image(vox_grid, affine, header=hdr)
+            img = nib.Nifti1Image(img, affine, header=hdr)
         elif fname.endswith('.mgz'):  # save as mgh
             # convert to float32 (float64 not currently supported)
-            vox_grid = vox_grid.astype('float32')
+            img = img.astype('float32')
             # save the mgh image
-            img = nib.freesurfer.mghformat.MGHImage(vox_grid, affine)
+            img = nib.freesurfer.mghformat.MGHImage(img, affine)
         else:
             raise(ValueError('Unrecognized file extension'))
 
-        # save volume
+        # write image to file
         nib.save(img, fname)
 
 

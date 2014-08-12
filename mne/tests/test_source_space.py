@@ -594,17 +594,26 @@ def test_combine_source_spaces():
     assert_true((coord_frames == FIFF.FIFFV_COORD_MRI).all())
 
     # test errors for export_volume
-
     image_fname = op.join(tempdir, 'temp-image.mgz')
 
+    # source spaces with no volume
+    assert_raises(ValueError, srf.export_volume, image_fname)
+
     # unrecognized source type
-    disc[0]['type'] = 'kitty'
-    src_unrecognized = src + disc
+    disc2 = disc.copy()
+    disc2[0]['type'] = 'kitty'
+    src_unrecognized = src + disc2
     assert_raises(ValueError, src_unrecognized.export_volume, image_fname)
 
     # unrecognized file type
-    image_fname = op.join(tempdir, 'temp-image.png')
-    assert_raises(ValueError, src.export_volume, image_fname)
+    bad_image_fname = op.join(tempdir, 'temp-image.png')
+    assert_raises(ValueError, src.export_volume, bad_image_fname)
+
+    # mixed coordinate frames
+    disc3 = disc.copy()
+    disc3[0]['coord_frame'] = 10
+    src_mixed_coord = src + disc3
+    assert_raises(ValueError, src_mixed_coord.export_volume, image_fname)
 
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,
