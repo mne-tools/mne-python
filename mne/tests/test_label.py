@@ -1,6 +1,7 @@
 import os
 import os.path as op
 from ..externals.six.moves import cPickle as pickle
+import shutil
 import glob
 import warnings
 
@@ -11,10 +12,10 @@ from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
-                 read_labels_from_annot, write_labels_to_annot, split_label,
-                 create_default_subject)
+                 read_labels_from_annot, write_labels_to_annot, split_label)
 from mne.label import Label, _blend_colors
-from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
+from mne.utils import (get_config, requires_mne, run_subprocess, _TempDir,
+                       requires_sklearn)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -188,14 +189,28 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 @sample.requires_sample_data
 def test_annot_io():
     """Test I/O from and to *.annot files"""
-    create_default_subject(subjects_dir=tempdir)
-    labels = read_labels_from_annot('fsaverage', 'PALS_B12_Lobes',
+    # copy necessary files from fsaverage to tempdir
+    fs_home = get_config('FREESURFER_HOME')
+    subject = 'fsaverage'
+    label_src = os.path.join(fs_home, 'subjects', 'fsaverage', 'label')
+    surf_src = os.path.join(fs_home, 'subjects', 'fsaverage', 'surf')
+    label_dir = os.path.join(tempdir, subject, 'label')
+    surf_dir = os.path.join(tempdir, subject, 'surf')
+    os.makedirs(label_dir)
+    os.mkdir(surf_dir)
+    shutil.copy(os.path.join(label_src, 'lh.PALS_B12_Lobes.annot'), label_dir)
+    shutil.copy(os.path.join(label_src, 'rh.PALS_B12_Lobes.annot'), label_dir)
+    shutil.copy(os.path.join(surf_src, 'lh.white'), surf_dir)
+    shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
+
+    # read original labels
+    labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
                                     subjects_dir=tempdir)
 
     # test saving parcellation only covering one hemisphere
     parc = [l for l in labels if l.name == 'LOBE.TEMPORAL-lh']
-    write_labels_to_annot(parc, 'fsaverage', 'myparc', subjects_dir=tempdir)
-    parc1 = read_labels_from_annot('fsaverage', 'myparc', subjects_dir=tempdir)
+    write_labels_to_annot(parc, subject, 'myparc', subjects_dir=tempdir)
+    parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tempdir)
     parc1 = [l for l in parc1 if not l.name.startswith('unknown')]
     assert_equal(len(parc1), len(parc))
     for l1, l in zip(parc1, parc):
@@ -203,13 +218,12 @@ def test_annot_io():
 
     # test saving only one hemisphere
     parc = [l for l in labels if l.name.startswith('LOBE')]
-    write_labels_to_annot(parc, 'fsaverage', 'myparc2', hemi='lh',
+    write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
                           subjects_dir=tempdir)
-    annot_fname = os.path.join(tempdir, 'fsaverage', 'label',
-                               '%sh.myparc2.annot')
+    annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
     assert_true(os.path.isfile(annot_fname % 'l'))
     assert_false(os.path.isfile(annot_fname % 'r'))
-    parc1 = read_labels_from_annot('fsaverage', 'myparc2',
+    parc1 = read_labels_from_annot(subject, 'myparc2',
                                    annot_fname=annot_fname % 'l',
                                    subjects_dir=tempdir)
     parc_lh = [l for l in parc if l.name.endswith('lh')]
