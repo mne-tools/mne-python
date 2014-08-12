@@ -598,6 +598,63 @@ class Label(object):
         """
         return split_label(self, parts, subject, subjects_dir, freesurfer)
 
+    def get_vertices_used(self, vertices=None):
+        """Get the source space's vertices inside the label
+
+        Parameters
+        ----------
+        vertices : ndarray of int, shape (n_vertices,) | None
+            The set of vertices to compare the label to. If None, equals to
+            ```np.arange(10242)```. Defaults to None.
+
+        Returns
+        -------
+        label_verts : ndarray of in, shape (n_label_vertices,)
+            The vertices of the label corresponding used by the data.
+        """
+        if vertices is None:
+            vertices = np.arange(10242)
+
+        label_verts = vertices[in1d(vertices, self.vertices)]
+        return label_verts
+
+    def get_tris(self, tris, vertices=None):
+        """Get the source space's triangles inside the label
+
+        Parameters
+        ----------
+        tris : ndarray of int, shape (n_tris, 3)
+            The set of triangles corresponding to the vertices in a
+            source space.
+        vertices : ndarray of int, shape (n_vertices,) | None
+            The set of vertices to compare the label to. If None, equals to
+            ```np.arange(10242)```. Defaults to None.
+
+        Returns
+        -------
+        label_tris : ndarray of int, shape (n_tris, 3)
+            The subset of tris used by the label
+        """
+        vertices_ = self.get_vertices_used(vertices)
+        selection = np.all(in1d(tris, vertices_).reshape(tris.shape),
+                           axis=1)
+        label_tris = tris[selection]
+        if len(np.unique(label_tris)) < len(vertices_):
+            logger.info('Surprising label structure. Trying to repair '
+                        'triangles.')
+            dropped_vertices = np.setdiff1d(vertices_, label_tris)
+            n_dropped = len(dropped_vertices)
+            assert n_dropped == (len(vertices_) - len(np.unique(label_tris)))
+
+            #  put missing vertices as extra zero-length triangles
+            add_tris = (dropped_vertices +
+                        np.zeros((len(dropped_vertices), 1), dtype=int)).T
+
+            label_tris = np.r_[label_tris, add_tris]
+            assert len(np.unique(label_tris)) == len(vertices_)
+
+        return label_tris
+
 
 class BiHemiLabel(object):
     """A freesurfer/MNE label with vertices in both hemispheres

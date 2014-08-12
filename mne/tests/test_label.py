@@ -15,6 +15,7 @@ from mne import (label_time_courses, read_label, stc_to_label,
 from mne.label import Label, _blend_colors
 from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
+from mne import spatial_tris_connectivity
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -420,6 +421,7 @@ def test_stc_to_label():
         warnings.simplefilter('always')
         labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=True,
                                             connected=True)
+
     assert_true(len(w) > 0)
     assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=True,
                   connected=True)
@@ -427,6 +429,13 @@ def test_stc_to_label():
                   connected=True)
     assert_equal(len(labels_lh), 1)
     assert_equal(len(labels_rh), 1)
+
+    # test getting tris
+    tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertno[0])
+    assert_raises(ValueError, spatial_tris_connectivity, tris,
+                  remap_vertices=False)
+    connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
+    assert_true(connectivity.shape[0] == len(stc.vertno[0]))
 
     # with smooth='patch'
     with warnings.catch_warnings(record=True) as w:  # connectedness warning

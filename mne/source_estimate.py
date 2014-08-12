@@ -1726,8 +1726,13 @@ def mesh_edges(tris):
     edges : sparse matrix
         The adjacency matrix.
     """
+    if np.max(tris) > len(np.unique(tris)):
+        raise ValueError('Cannot compute connectivity on a selection of '
+                         'triangles.')
+
     npoints = np.max(tris) + 1
     ones_ntris = np.ones(3 * len(tris))
+
     a, b, c = tris.T
     x = np.concatenate((a, b, c))
     y = np.concatenate((b, c, a))
@@ -1749,7 +1754,6 @@ def mesh_dist(tris, vert):
         Mesh triangulation
     vert : array (n_vert x 3)
         Vertex locations
-
     Returns
     -------
     dist_matrix : scipy.sparse.csr_matrix
@@ -2295,7 +2299,8 @@ def grade_to_tris(grade, verbose=None):
 
 
 @verbose
-def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
+def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
+                                      verbose=None):
     """Compute connectivity from triangles and time instants
 
     Parameters
@@ -2304,6 +2309,9 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
         N x 3 array defining triangles.
     n_times : int
         Number of time points
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2316,6 +2324,10 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    if remap_vertices:
+        logger.info('Reassigning vertex indices.')
+        tris = np.searchsorted(np.unique(tris), tris)
+
     edges = mesh_edges(tris).tocoo()
     return _get_connectivity_from_edges(edges, n_times)
 
@@ -2384,13 +2396,16 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
 
 
 @verbose
-def spatial_tris_connectivity(tris, verbose=None):
+def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
     """Compute connectivity from triangles
 
     Parameters
     ----------
     tris : array
         N x 3 array defining triangles.
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2399,7 +2414,7 @@ def spatial_tris_connectivity(tris, verbose=None):
     connectivity : sparse COO matrix
         The connectivity matrix describing the spatial graph structure.
     """
-    return spatio_temporal_tris_connectivity(tris, 1)
+    return spatio_temporal_tris_connectivity(tris, 1, remap_vertices)
 
 
 def spatial_dist_connectivity(src, dist, verbose=None):
@@ -2635,10 +2650,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     if mode == 'mean':
         pass  # we have this here to catch invalid values for mode
     elif mode == 'mean_flip':
-       # get the sign-flip vector for every label
+        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'pca_flip':
-       # get the sign-flip vector for every label
+        # get the sign-flip vector for every label
         label_flip = _get_label_flip(labels, label_vertidx, src)
     elif mode == 'max':
         pass  # we calculate the maximum value later
