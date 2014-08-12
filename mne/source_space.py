@@ -277,9 +277,17 @@ class SourceSpaces(list):
                 mri_height = vs['mri_height']
 
                 # setup grid in the MRI_VOXEL coordinate frame
-                vol_rr_vox = np.mgrid[0:mri_width, 0:mri_height, 0:mri_depth]
-                vol_rr_vox = vol_rr_vox.astype(np.float32).reshape((3, -1),
-                                                                   order='F').T
+                # This is equivalent to using mgrid and reshaping, but faster
+                js = np.arange(mri_width, dtype=np.float32)
+                js = np.tile(js[np.newaxis, np.newaxis, :],
+                             (mri_depth, mri_height, 1)).ravel()
+                ks = np.arange(mri_height, dtype=np.float32)
+                ks = np.tile(ks[np.newaxis, :, np.newaxis],
+                             (mri_depth, 1, mri_width)).ravel()
+                ps = np.arange(mri_depth, dtype=np.float32)
+                ps = np.tile(ps[:, np.newaxis, np.newaxis],
+                             (1, mri_height, mri_width)).ravel()
+                vol_rr_vox = np.c_[js, ks, ps]
 
                 # affine tranform from MRI_VOXEL to MRI coordinates
                 affine = vs['vox_mri_t'].copy()
@@ -1855,8 +1863,17 @@ def _add_interpolator(s, mri_name):
     logger.info('Setting up interpolation...')
 
     # Take *all* MRI vertices...
-    r0 = np.mgrid[0:mri_width, 0:mri_height, 0:mri_depth]
-    r0 = r0.astype(np.float32).reshape((3, -1), order='F').T
+    # This is equivalent to using mgrid and reshaping, but faster
+    js = np.arange(mri_width, dtype=np.float32)
+    js = np.tile(js[np.newaxis, np.newaxis, :],
+                 (mri_depth, mri_height, 1)).ravel()
+    ks = np.arange(mri_height, dtype=np.float32)
+    ks = np.tile(ks[np.newaxis, :, np.newaxis],
+                 (mri_depth, 1, mri_width)).ravel()
+    ps = np.arange(mri_depth, dtype=np.float32)
+    ps = np.tile(ps[:, np.newaxis, np.newaxis],
+                 (1, mri_height, mri_width)).ravel()
+    r0 = np.c_[js, ks, ps]
     # note we have the correct number of vertices
     assert len(r0) == mri_width * mri_height * mri_depth
 
