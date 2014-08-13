@@ -324,8 +324,11 @@ class SourceSpaces(list):
                     # (either HEAD or MRI) to MRI_VOXEL space
                     srf_rr = apply_trans(affine['trans'], surf['rr'])
                     # convert to numeric indices
-                    ix, iy, iz = srf_rr.T.astype(int)
-
+                    ix, iy, iz = srf_rr.T.round().astype(int)
+                    # clip indices outside of volume space
+                    ix = np.maximum(np.minimum(ix, shape3d[2]-1), 0)
+                    iy = np.maximum(np.minimum(iy, shape3d[1]-1), 0)
+                    iz = np.maximum(np.minimum(iz, shape3d[0]-1), 0)
                     # get surface id or use default value
                     if use_lut:
                         i = lut['id'][lut['name'] == surf_names[i]]
@@ -342,6 +345,10 @@ class SourceSpaces(list):
                     disc_rr = apply_trans(affine['trans'], disc['rr'])
                     # convert to numeric indices
                     ix, iy, iz = disc_rr.T.astype(int)
+                    # clip indices outside of volume space
+                    ix = np.maximum(np.minimum(ix, shape3d[2]-1), 0)
+                    iy = np.maximum(np.minimum(iy, shape3d[1]-1), 0)
+                    iz = np.maximum(np.minimum(iz, shape3d[0]-1), 0)
                     # set default value
                     img[ix, iy, iz] = 1
                     if use_lut:
