@@ -267,7 +267,7 @@ def test_fetch_file():
         from nose.plugins.skip import SkipTest
         raise SkipTest('No internet connection, skipping download test.')
 
-    urls = ['http://martinos.org/mne/stable/_static/mne_logo.png',
+    urls = ['http://www.google.com',
             'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
     for url in urls:
         archive_name = op.join(tempdir, "download_test")
