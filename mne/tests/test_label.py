@@ -190,10 +190,9 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 def test_annot_io():
     """Test I/O from and to *.annot files"""
     # copy necessary files from fsaverage to tempdir
-    fs_home = get_config('FREESURFER_HOME')
     subject = 'fsaverage'
-    label_src = os.path.join(fs_home, 'subjects', 'fsaverage', 'label')
-    surf_src = os.path.join(fs_home, 'subjects', 'fsaverage', 'surf')
+    label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
+    surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
     label_dir = os.path.join(tempdir, subject, 'label')
     surf_dir = os.path.join(tempdir, subject, 'surf')
     os.makedirs(label_dir)
