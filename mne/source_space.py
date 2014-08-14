@@ -324,18 +324,26 @@ class SourceSpaces(list):
                     # (either HEAD or MRI) to MRI_VOXEL space
                     srf_rr = apply_trans(affine['trans'], surf['rr'])
                     # convert to numeric indices
-                    ix, iy, iz = srf_rr.T.round().astype(int)
+                    ix_orig, iy_orig, iz_orig = srf_rr.T.round().astype(int)
                     # clip indices outside of volume space
-                    ix = np.maximum(np.minimum(ix, shape3d[2]-1), 0)
-                    iy = np.maximum(np.minimum(iy, shape3d[1]-1), 0)
-                    iz = np.maximum(np.minimum(iz, shape3d[0]-1), 0)
+                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2]-1), 0)
+                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1]-1), 0)
+                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0]-1), 0)
+                    # compare original and clipped indices
+                    n_diff = np.array((ix_orig != ix_clip, iy_orig != iy_clip,
+                                       iz_orig != iz_clip)).any(0).sum()
+                    # generate use warnings for clipping
+                    if n_diff > 0:
+                        logger.warning('%s surface vertices lay outside '
+                                       'of volume space. Consider using a '
+                                       'larger volume space.' % n_diff)
                     # get surface id or use default value
                     if use_lut:
                         i = lut['id'][lut['name'] == surf_names[i]]
                     else:
                         i = 1
                     # update image to include surface voxels
-                    img[ix, iy, iz] = i
+                    img[ix_clip, iy_clip, iz_clip] = i
 
             # loop through discrete source spaces
             if include_discrete:
@@ -344,13 +352,21 @@ class SourceSpaces(list):
                     # (either HEAD or MRI) to MRI_VOXEL space
                     disc_rr = apply_trans(affine['trans'], disc['rr'])
                     # convert to numeric indices
-                    ix, iy, iz = disc_rr.T.astype(int)
+                    ix_orig, iy_orig, iz_orig = disc_rr.T.astype(int)
                     # clip indices outside of volume space
-                    ix = np.maximum(np.minimum(ix, shape3d[2]-1), 0)
-                    iy = np.maximum(np.minimum(iy, shape3d[1]-1), 0)
-                    iz = np.maximum(np.minimum(iz, shape3d[0]-1), 0)
+                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2]-1), 0)
+                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1]-1), 0)
+                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0]-1), 0)
+                    # compare original and clipped indices
+                    n_diff = np.array((ix_orig != ix_clip, iy_orig != iy_clip,
+                                       iz_orig != iz_clip)).any(0).sum()
+                    # generate use warnings for clipping
+                    if n_diff > 0:
+                        logger.warning('%s discrete vertices lay outside '
+                                       'of volume space. Consider using a '
+                                       'larger volume space.' % n_diff)
                     # set default value
-                    img[ix, iy, iz] = 1
+                    img[ix_clip, iy_clip, iz_clip] = 1
                     if use_lut:
                         logger.info('Discrete sources do not have values on '
                                     'the lookup table. Defaulting to 1.')
