@@ -201,7 +201,7 @@ def _write_w(filename, vertices, data):
     # write the vertices and data
     for i in range(vertices_n):
         _write_3(fid, vertices[i])
-        #XXX: without float() endianness is wrong, not sure why
+        # XXX: without float() endianness is wrong, not sure why
         fid.write(np.array(float(data[i]), dtype='>f4').tostring())
 
     # close the file
@@ -347,7 +347,7 @@ def read_source_estimate(fname, subject=None):
 
 
 def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
-    """Helper function to generate either a surface or volume source estimate
+    """Helper function to generate a surface, volume or mixed source estimate
     """
 
     if isinstance(vertices, list) and len(vertices) == 2:
@@ -358,8 +358,12 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
             and len(vertices) == 1:
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
                                 tstep=tstep, subject=subject)
+    elif isinstance(vertices, list) and len(vertices) > 2:
+        # make a mixed source estimate
+        stc = MixedSourceEstimate(data, vertices=vertices, tmin=tmin,
+                                  tstep=tstep, subject=subject)
     else:
-        raise ValueError('vertices has to be either a list with one or two '
+        raise ValueError('vertices has to be either a list with one or more '
                          'arrays or an array')
     return stc
 
@@ -428,10 +432,9 @@ class _BaseSourceEstimate(object):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            if not (len(vertices) == 2 or len(vertices) == 1) or \
-                    not all([isinstance(v, np.ndarray) for v in vertices]):
-                raise ValueError('Vertices, if a list, must contain one or '
-                                 'two numpy arrays')
+            if not all([isinstance(v, np.ndarray) for v in vertices]):
+                raise ValueError('Vertices, if a list, must contain numpy '
+                                 'arrays')
 
             if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
                 raise ValueError('Vertices must be ordered in increasing '
@@ -1293,7 +1296,7 @@ class SourceEstimate(_BaseSourceEstimate):
             if not len(hemi) == 1:
                 raise ValueError('Could not infer hemisphere')
             hemi = hemi[0]
-        if not hemi in [0, 1]:
+        if hemi not in [0, 1]:
             raise ValueError('hemi must be 0 or 1')
 
         subjects_dir = get_subjects_dir(subjects_dir)
@@ -1396,12 +1399,15 @@ class SourceEstimate(_BaseSourceEstimate):
             A instance of surfer.viz.Brain from PySurfer.
         """
         brain = plot_source_estimates(self, subject, surface=surface,
-                        hemi=hemi, colormap=colormap, time_label=time_label,
-                        smoothing_steps=smoothing_steps, fmin=fmin, fmid=fmid,
-                        fmax=fmax, transparent=transparent, alpha=alpha,
-                        time_viewer=time_viewer, config_opts=config_opts,
-                        subjects_dir=subjects_dir, figure=figure, views=views,
-                        colorbar=colorbar)
+                                      hemi=hemi, colormap=colormap,
+                                      time_label=time_label,
+                                      smoothing_steps=smoothing_steps,
+                                      fmin=fmin, fmid=fmid, fmax=fmax,
+                                      transparent=transparent, alpha=alpha,
+                                      time_viewer=time_viewer,
+                                      config_opts=config_opts,
+                                      subjects_dir=subjects_dir, figure=figure,
+                                      views=views, colorbar=colorbar)
         return brain
 
     @verbose
@@ -1710,8 +1716,146 @@ class VolSourceEstimate(_BaseSourceEstimate):
                 time_idx if time_as_index else self.times[time_idx])
 
 
+class MixedSourceEstimate(_BaseSourceEstimate):
+    """Container for mixed surface and volume source estimates
+
+    Parameters
+    ----------
+    data : array of shape (n_dipoles, n_times) | 2-tuple (kernel, sens_data)
+        The data in source space. The data can either be a single array or
+        a tuple with two arrays: "kernel" shape (n_vertices, n_sensors) and
+        "sens_data" shape (n_sensors, n_times). In this case, the source
+        space data corresponds to "numpy.dot(kernel, sens_data)".
+    vertices : list of arrays
+        Vertex numbers corresponding to the data.
+    tmin : scalar
+        Time point of the first sample in data.
+    tstep : scalar
+        Time step between successive samples in data.
+    subject : str | None
+        The subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Attributes
+    ----------
+    subject : str | None
+        The subject name.
+    times : array of shape (n_times,)
+        The time vector.
+    vertno : list of arrays of shape (n_dipoles,)
+        The indices of the dipoles in each source space.
+    data : array of shape (n_dipoles, n_times)
+        The data in source space.
+    shape : tuple
+        The shape of the data. A tuple of int (n_dipoles, n_times).
+    """
+    @verbose
+    def __init__(self, data, vertices=None, tmin=None, tstep=None,
+                 subject=None, verbose=None):
+
+        if not isinstance(vertices, list) or len(vertices) < 2:
+            raise ValueError('Vertices must be a list of numpy arrays with '
+                             'one array per source space.')
+
+        _BaseSourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
+                                     tstep=tstep, subject=subject,
+                                     verbose=verbose)
+
+    def plot_surface(self, src, subject=None, surface='inflated', hemi='lh',
+                     colormap='hot', time_label='time=%02.f ms',
+                     smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
+                     transparent=True, alpha=1.0, time_viewer=False,
+                     config_opts={}, subjects_dir=None, figure=None,
+                     views='lat', colorbar=True):
+        """Plot surface source estimates with PySurfer
+
+        Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
+        which will automatically be set by this function. Plotting multiple
+        SourceEstimates with different values for subjects_dir will cause
+        PySurfer to use the wrong FreeSurfer surfaces when using methods of
+        the returned Brain object. It is therefore recommended to set the
+        SUBJECTS_DIR environment variable or always use the same value for
+        subjects_dir (within the same Python session).
+
+        Parameters
+        ----------
+        src : SourceSpaces
+            The source spaces to plot.
+        subject : str | None
+            The subject name corresponding to FreeSurfer environment
+            variable SUBJECT. If None stc.subject will be used. If that
+            is None, the environment will be used.
+        surface : str
+            The type of surface (inflated, white etc.).
+        hemi : str, 'lh' | 'rh' | 'split' | 'both'
+            The hemisphere to display. Using 'both' or 'split' requires
+            PySurfer version 0.4 or above.
+        colormap : str
+            The type of colormap to use.
+        time_label : str
+            How to print info about the time instant visualized.
+        smoothing_steps : int
+            The amount of smoothing.
+        fmin : float
+            The minimum value to display.
+        fmid : float
+            The middle value on the colormap.
+        fmax : float
+            The maximum value for the colormap.
+        transparent : bool
+            If True, use a linear transparency between fmin and fmid.
+        alpha : float
+            Alpha value to apply globally to the overlay.
+        time_viewer : bool
+            Display time viewer GUI.
+        config_opts : dict
+            Keyword arguments for Brain initialization.
+            See pysurfer.viz.Brain.
+        subjects_dir : str
+            The path to the FreeSurfer subjects reconstructions.
+            It corresponds to FreeSurfer environment variable SUBJECTS_DIR.
+        figure : instance of mayavi.core.scene.Scene | None
+            If None, the last figure will be cleaned and a new figure will
+            be created.
+        views : str | list
+            View to use. See surfer.Brain().
+        colorbar : bool
+            If True, display colorbar on scene.
+
+        Returns
+        -------
+        brain : Brain
+            A instance of surfer.viz.Brain from PySurfer.
+        """
+
+        # extract surface source spaces
+        surf = [s for s in src if s['type'] == 'surf']
+        if len(surf) != 2:
+            raise ValueError('Source space must contain exactly two surfaces.')
+
+        # extract surface source estimate
+        data = self.data[:surf[0]['nuse'] + surf[1]['nuse']]
+        vertices = [s['vertno'] for s in surf]
+
+        stc = SourceEstimate(data, vertices, self.tmin, self.tstep,
+                             self.subject, self.verbose)
+
+        return plot_source_estimates(stc, subject, surface=surface, hemi=hemi,
+                                     colormap=colormap, time_label=time_label,
+                                     smoothing_steps=smoothing_steps,
+                                     fmin=fmin, fmid=fmid, fmax=fmax,
+                                     transparent=transparent, alpha=alpha,
+                                     time_viewer=time_viewer,
+                                     config_opts=config_opts,
+                                     subjects_dir=subjects_dir, figure=figure,
+                                     views=views, colorbar=colorbar)
+
+
 ###############################################################################
 # Morphing
+
 
 def mesh_edges(tris):
     """Returns sparse matrix with edges as an adjacency matrix

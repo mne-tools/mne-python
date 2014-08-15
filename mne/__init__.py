@@ -23,7 +23,7 @@ from .forward import (read_forward_solution, apply_forward, apply_forward_raw,
                       do_forward_solution, average_forward_solutions,
                       write_forward_solution, make_forward_solution,
                       convert_forward_solution, make_field_map)
-from .source_estimate import (read_source_estimate,
+from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               SourceEstimate, VolSourceEstimate, morph_data,
                               morph_data_precomputed, compute_morph_matrix,
                               grade_to_tris, grade_to_vertices,
