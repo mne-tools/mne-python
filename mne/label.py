@@ -1783,7 +1783,7 @@ def parc_from_labels(labels, colors=None, subject=None, parc=None,
 @verbose
 def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
                           subjects_dir=None, annot_fname=None,
-                          colormap='hsv', verbose=None):
+                          colormap='hsv', hemi='both', verbose=None):
     """Create a FreeSurfer annotation from a list of labels
 
     Parameters
@@ -1804,15 +1804,23 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     colormap : str
         Colormap to use to generate label colors for labels that do not
         have a color specified.
+    hemi : 'both' | 'lh' | 'rh'
+        The hemisphere(s) for which to write *.annot files (only applies if
+        annot_fname is not specified; default is 'both').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Notes
+    -----
+    Vertices that are not covered by any of the labels are assigned to a label
+    named "unknown".
     """
     logger.info('Writing labels to parcellation..')
 
     subjects_dir = get_subjects_dir(subjects_dir)
 
     # get the .annot filenames and hemispheres
-    annot_fname, hemis = _get_annot_fname(annot_fname, subject, 'both', parc,
+    annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
                                           subjects_dir)
 
     if not overwrite:
@@ -1832,58 +1840,59 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     for hemi, fname in zip(hemis, annot_fname):
         hemi_labels = [label for label in labels if label.hemi == hemi]
         n_hemi_labels = len(hemi_labels)
+
         if n_hemi_labels == 0:
-            # no labels for this hemisphere
-            continue
-        hemi_labels.sort(key=lambda label: label.name)
+            ctab = np.empty((0, 4), dtype=np.int32)
+        else:
+            hemi_labels.sort(key=lambda label: label.name)
 
-        # convert colors to 0-255 RGBA tuples
-        hemi_colors = [no_color if label.color is None else
-                       tuple(int(round(255 * i)) for i in label.color)
-                       for label in hemi_labels]
-        ctab = np.array(hemi_colors, dtype=np.int32)
-        ctab_rgb = ctab[:, :3]
+            # convert colors to 0-255 RGBA tuples
+            hemi_colors = [no_color if label.color is None else
+                           tuple(int(round(255 * i)) for i in label.color)
+                           for label in hemi_labels]
+            ctab = np.array(hemi_colors, dtype=np.int32)
+            ctab_rgb = ctab[:, :3]
 
-        # make dict to check label colors (for annot ID only R, G and B count)
-        labels_by_color = defaultdict(list)
-        for label, color in zip(hemi_labels, ctab_rgb):
-            labels_by_color[tuple(color)].append(label.name)
+            # make color dict (for annot ID, only R, G and B count)
+            labels_by_color = defaultdict(list)
+            for label, color in zip(hemi_labels, ctab_rgb):
+                labels_by_color[tuple(color)].append(label.name)
 
-        # check label colors
-        for color, names in labels_by_color.items():
-            if color == no_color_rgb:
-                continue
+            # check label colors
+            for color, names in labels_by_color.items():
+                if color == no_color_rgb:
+                    continue
 
-            if color == (0, 0, 0):
-                # we cannot have an all-zero color, otherw. e.g. tksurfer
-                # refuses to read the parcellation
-                msg = ('    At least one label contains a color with, "r=0, '
-                       'g=0, b=0" value. Some FreeSurfer tools may fail to '
-                       'read the parcellation')
-                logger.warning(msg)
+                if color == (0, 0, 0):
+                    # we cannot have an all-zero color, otherw. e.g. tksurfer
+                    # refuses to read the parcellation
+                    msg = ('At least one label contains a color with, "r=0, '
+                           'g=0, b=0" value. Some FreeSurfer tools may fail '
+                           'to read the parcellation')
+                    logger.warning(msg)
 
-            if any(i > 255 for i in color):
-                msg = ("%s: %s (%s)" % (color, ', '.join(names), hemi))
-                invalid_colors.append(msg)
+                if any(i > 255 for i in color):
+                    msg = ("%s: %s (%s)" % (color, ', '.join(names), hemi))
+                    invalid_colors.append(msg)
 
-            if len(names) > 1:
-                msg = "%s: %s (%s)" % (color, ', '.join(names), hemi)
-                duplicate_colors.append(msg)
+                if len(names) > 1:
+                    msg = "%s: %s (%s)" % (color, ', '.join(names), hemi)
+                    duplicate_colors.append(msg)
 
-        # replace None values (labels with unspecified color)
-        if labels_by_color[no_color_rgb]:
-            default_colors = _n_colors(n_hemi_labels, bytes_=True,
-                                       cmap=colormap)
-            safe_color_i = 0  # keep track of colors known to be in hemi_colors
-            for i in xrange(n_hemi_labels):
-                if ctab[i, 0] == -1:
-                    color = default_colors[i]
-                    # make sure to add no duplicate color
-                    while np.any(np.all(color[:3] == ctab_rgb, 1)):
-                        color = default_colors[safe_color_i]
-                        safe_color_i += 1
-                    # assign the color
-                    ctab[i] = color
+            # replace None values (labels with unspecified color)
+            if labels_by_color[no_color_rgb]:
+                default_colors = _n_colors(n_hemi_labels, bytes_=True,
+                                           cmap=colormap)
+                safe_color_i = 0  # keep track of colors known to be in hemi_colors
+                for i in xrange(n_hemi_labels):
+                    if ctab[i, 0] == -1:
+                        color = default_colors[i]
+                        # make sure to add no duplicate color
+                        while np.any(np.all(color[:3] == ctab_rgb, 1)):
+                            color = default_colors[safe_color_i]
+                            safe_color_i += 1
+                        # assign the color
+                        ctab[i] = color
 
         # find number of vertices in surface
         if subject is not None and subjects_dir is not None:
@@ -1892,8 +1901,11 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
             points, _ = read_surface(fpath)
             n_vertices = len(points)
         else:
-            max_vert = max(np.max(label.vertices) for label in hemi_labels)
-            n_vertices = max_vert + 1
+            if len(hemi_labels) > 0:
+                max_vert = max(np.max(label.vertices) for label in hemi_labels)
+                n_vertices = max_vert + 1
+            else:
+                n_vertices = 1
             msg = ('    Number of vertices in the surface could not be '
                    'verified because the surface file could not be found; '
                    'specify subject and subjects_dir parameters.')
