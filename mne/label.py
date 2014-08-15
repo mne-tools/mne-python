@@ -648,9 +648,9 @@ class Label(object):
 
             #  put missing vertices as extra zero-length triangles
             add_tris = (dropped_vertices +
-                        np.zeros((len(dropped_vertices), 1), dtype=int)).T
+                        np.zeros((len(dropped_vertices), 3), dtype=int).T)
 
-            label_tris = np.r_[label_tris, add_tris]
+            label_tris = np.r_[label_tris, add_tris.T]
             assert len(np.unique(label_tris)) == len(vertices_)
 
         return label_tris
