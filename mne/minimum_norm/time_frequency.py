@@ -7,6 +7,7 @@ from warnings import warn
 
 import numpy as np
 from scipy import linalg, signal, fftpack
+import warnings
 
 from ..io.constants import FIFF
 from ..source_estimate import _make_stc
@@ -268,7 +269,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
     ----------
     epochs : instance of Epochs
         The epochs.
-    inverse_operator : instance of inverse operator
+    inverse_operator : instance of InverseOperator
         The inverse operator.
     label : Label
         Restricts the source estimates to a given label.
@@ -335,15 +336,16 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
 @verbose
 def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
-                       NFFT=2048, overlap=0.5, pick_ori=None, label=None,
-                       nave=1, pca=True, verbose=None, pick_normal=None):
+                       n_fft=2048, overlap=0.5, pick_ori=None, label=None,
+                       nave=1, pca=True, verbose=None, pick_normal=None,
+                       NFFT=None):
     """Compute source power spectrum density (PSD)
 
     Parameters
     ----------
     raw : instance of Raw
         The raw data
-    inverse_operator : dict
+    inverse_operator : instance of InverseOperator
         The inverse operator
     lambda2: float
         The regularization parameter
@@ -359,7 +361,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         The lower frequency of interest
     fmax : float
         The upper frequency of interest
-    NFFT: int
+    n_fft: int
         Window size for the FFT. Should be a power of 2.
     overlap: float
         The overlap fraction between windows. Should be between 0 and 1.
@@ -384,6 +386,11 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc : SourceEstimate | VolSourceEstimate
         The PSD (in dB) of each of the sources.
     """
+    if NFFT is not None:
+        n_fft = NFFT
+        warnings.warn("`NFFT` is deprecated and will be removed in v0.9. "
+                      "Use `n_fft` instead")
+
     pick_ori = _check_ori(pick_ori, pick_normal)
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
@@ -420,19 +427,19 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         start = raw.time_as_index(tmin)[0]
     if tmax is not None:
         stop = raw.time_as_index(tmax)[0] + 1
-    NFFT = int(NFFT)
+    n_fft = int(n_fft)
     Fs = raw.info['sfreq']
-    window = signal.hanning(NFFT)
-    freqs = fftpack.fftfreq(NFFT, 1. / Fs)
+    window = signal.hanning(n_fft)
+    freqs = fftpack.fftfreq(n_fft, 1. / Fs)
     freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freqs_mask]
     fstep = np.mean(np.diff(freqs))
     psd = np.zeros((K.shape[0], np.sum(freqs_mask)))
     n_windows = 0
 
-    for this_start in np.arange(start, stop, int(NFFT * (1. - overlap))):
-        data, _ = raw[sel, this_start:this_start + NFFT]
-        if data.shape[1] < NFFT:
+    for this_start in np.arange(start, stop, int(n_fft * (1. - overlap))):
+        data, _ = raw[sel, this_start:this_start + n_fft]
+        if data.shape[1] < n_fft:
             logger.info("Skipping last buffer")
             break
 
@@ -515,6 +522,9 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
 
     # compute standardized half-bandwidth
     half_nbw = float(bandwidth) * n_times / (2 * sfreq)
+    if half_nbw < 0.5:
+        warnings.warn('Bandwidth too small, using minimum (normalized 0.5)')
+        half_nbw = 0.5
     n_tapers_max = int(2 * half_nbw)
 
     dpss, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
@@ -608,7 +618,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
     ----------
     epochs : instance of Epochs
         The raw data.
-    inverse_operator : dict
+    inverse_operator : instance of InverseOperator
         The inverse operator.
     lambda2 : float
         The regularization parameter.

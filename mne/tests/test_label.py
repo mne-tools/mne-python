@@ -1,20 +1,23 @@
 import os
 import os.path as op
 from ..externals.six.moves import cPickle as pickle
+import shutil
 import glob
 import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
-from nose.tools import assert_equal, assert_true, assert_raises
+from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 
 from mne.datasets import sample
 from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
                  read_labels_from_annot, write_labels_to_annot, split_label)
 from mne.label import Label, _blend_colors
-from mne.utils import requires_mne, run_subprocess, _TempDir, requires_sklearn
+from mne.utils import (get_config, requires_mne, run_subprocess, _TempDir,
+                       requires_sklearn)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
+from mne import spatial_tris_connectivity
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -28,9 +31,8 @@ real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
                               'Aud-rh.label')
 v1_label_fname = op.join(subjects_dir, 'sample', 'label', 'lh.V1.label')
 
-# sample dataset should be updated to reflect mne conventions
 fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-eeg-oct-6p-fwd.fif')
+                    'sample_audvis-eeg-oct-6-fwd.fif')
 src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
 
@@ -114,6 +116,7 @@ def test_label_addition():
 
 @sample.requires_sample_data
 def test_label_in_src():
+    """Test label in src"""
     src = read_source_spaces(src_fname)
     label = read_label(v1_label_fname)
 
@@ -182,6 +185,50 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
         assert_true(label_a.hemi == label_b.hemi)
         if not ignore_pos:
             assert_array_equal(label_a.pos, label_b.pos)
+
+
+@sample.requires_sample_data
+def test_annot_io():
+    """Test I/O from and to *.annot files"""
+    # copy necessary files from fsaverage to tempdir
+    subject = 'fsaverage'
+    label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
+    surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
+    label_dir = os.path.join(tempdir, subject, 'label')
+    surf_dir = os.path.join(tempdir, subject, 'surf')
+    os.makedirs(label_dir)
+    os.mkdir(surf_dir)
+    shutil.copy(os.path.join(label_src, 'lh.PALS_B12_Lobes.annot'), label_dir)
+    shutil.copy(os.path.join(label_src, 'rh.PALS_B12_Lobes.annot'), label_dir)
+    shutil.copy(os.path.join(surf_src, 'lh.white'), surf_dir)
+    shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
+
+    # read original labels
+    labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
+                                    subjects_dir=tempdir)
+
+    # test saving parcellation only covering one hemisphere
+    parc = [l for l in labels if l.name == 'LOBE.TEMPORAL-lh']
+    write_labels_to_annot(parc, subject, 'myparc', subjects_dir=tempdir)
+    parc1 = read_labels_from_annot(subject, 'myparc', subjects_dir=tempdir)
+    parc1 = [l for l in parc1 if not l.name.startswith('unknown')]
+    assert_equal(len(parc1), len(parc))
+    for l1, l in zip(parc1, parc):
+        assert_labels_equal(l1, l)
+
+    # test saving only one hemisphere
+    parc = [l for l in labels if l.name.startswith('LOBE')]
+    write_labels_to_annot(parc, subject, 'myparc2', hemi='lh',
+                          subjects_dir=tempdir)
+    annot_fname = os.path.join(tempdir, subject, 'label', '%sh.myparc2.annot')
+    assert_true(os.path.isfile(annot_fname % 'l'))
+    assert_false(os.path.isfile(annot_fname % 'r'))
+    parc1 = read_labels_from_annot(subject, 'myparc2',
+                                   annot_fname=annot_fname % 'l',
+                                   subjects_dir=tempdir)
+    parc_lh = [l for l in parc if l.name.endswith('lh')]
+    for l1, l in zip(parc1, parc_lh):
+        assert_labels_equal(l1, l)
 
 
 @sample.requires_sample_data
@@ -420,6 +467,7 @@ def test_stc_to_label():
         warnings.simplefilter('always')
         labels_lh, labels_rh = stc_to_label(stc, src=src, smooth=True,
                                             connected=True)
+
     assert_true(len(w) > 0)
     assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=True,
                   connected=True)
@@ -427,6 +475,13 @@ def test_stc_to_label():
                   connected=True)
     assert_equal(len(labels_lh), 1)
     assert_equal(len(labels_rh), 1)
+
+    # test getting tris
+    tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertno[0])
+    assert_raises(ValueError, spatial_tris_connectivity, tris,
+                  remap_vertices=False)
+    connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
+    assert_true(connectivity.shape[0] == len(stc.vertno[0]))
 
     # with smooth='patch'
     with warnings.catch_warnings(record=True) as w:  # connectedness warning

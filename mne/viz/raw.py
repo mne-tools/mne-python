@@ -365,7 +365,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     for t in ['grad', 'mag']:
         inds += [pick_types(info, meg=t, ref_meg=False, exclude=[])]
         types += [t] * len(inds[-1])
-    pick_kwargs = dict(meg=False, exclude=[])
+    pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
     for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
               'misc', 'chpi', 'syst', 'ias', 'exci']:
         pick_kwargs[t] = True
@@ -579,7 +579,7 @@ def plot_raw_psds(raw, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
-                                      fmin=fmin, fmax=fmax, NFFT=n_fft,
+                                      fmin=fmin, fmax=fmax, n_fft=n_fft,
                                       n_jobs=n_jobs, plot=False, proj=proj)
 
         # Convert PSDs to dB

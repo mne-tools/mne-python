@@ -379,9 +379,6 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         err = ("Data and pos need to be of same length. Got data of shape %s, "
                "pos of shape %s." % (str(), str()))
 
-    axes = plt.gca()
-    axes.set_frame_on(False)
-
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
     plt.xticks(())
@@ -391,6 +388,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
     pos_y = pos[:, 1]
 
     ax = axis if axis else plt.gca()
+    ax.set_frame_on(False)
     if any([not pos_y.any(), not pos_x.any()]):
         raise RuntimeError('No position information found, cannot compute '
                            'geometries for topomap.')
@@ -446,11 +444,17 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
                 continue
             ax.plot(x, y, color='k', linewidth=linewidth)
 
-    if isinstance(contours, int) and contours not in (False, None):
-        cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
-                          linewidths=linewidth)
-    else:
-        cont = None
+    # This tackles an incomprehensible matplotlib bug if no contours are
+    # drawn. To avoid rescalings, we will always draw contours.
+    # But if no contours are desired we only draw one and make it invisible .
+    no_contours = False
+    if contours in (False, None):
+        contours, no_contours = 1, True
+    cont = ax.contour(Xi, Yi, Zi, contours, colors='k',
+                      linewidths=linewidth)
+    if no_contours is True:
+        for col in cont.collections:
+            col.set_visible(False)
 
     if _is_default_outlines:
         from matplotlib import patches

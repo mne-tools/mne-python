@@ -395,7 +395,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
                    clim=None, proj=False, xlim='tight', units=None,
-                   scalings=None, titles=None, axes=None):
+                   scalings=None, titles=None, axes=None, cmap='RdBu_r'):
         """Plot evoked data as images
 
         Parameters
@@ -431,11 +431,13 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             The axes to plot to. If list, the list must be a list of Axes of
             the same length as the number of channel types. If instance of
             Axes, there must be only one channel type plotted.
+        cmap : matplotlib colormap
+            Colormap.
         """
         return plot_evoked_image(self, picks=picks, exclude=exclude, unit=unit,
                                  show=show, clim=clim, proj=proj, xlim=xlim,
                                  units=units, scalings=scalings,
-                                 titles=titles, axes=axes)
+                                 titles=titles, axes=axes, cmap=cmap)
 
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
                      vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,

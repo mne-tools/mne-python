@@ -605,6 +605,7 @@ def has_neuromag2ft():
 requires_neuromag2ft = np.testing.dec.skipif(not has_neuromag2ft(),
                                              'Requires neuromag2ft')
 
+
 def requires_nibabel(vox2ras_tkr=False):
     """Aux function"""
     if vox2ras_tkr:
@@ -762,6 +763,26 @@ def requires_sklearn(function):
     return dec
 
 
+def requires_mayavi():
+    """Decorator to skip test if mayavi is not available"""
+
+    lacks_mayavi = False
+    try:
+        from mayavi import mlab
+    except ImportError:
+        try:
+            from enthought.mayavi import mlab
+        except ImportError:
+            lacks_mayavi = True
+            mlab = False
+    requires_mayavi = np.testing.dec.skipif(lacks_mayavi, 'Requires mayavi')
+
+    if not lacks_mayavi:
+        mlab.options.backend = 'test'
+
+    return requires_mayavi
+
+
 def requires_good_network(function):
     """Helper for testing"""
 
@@ -854,6 +875,25 @@ def requires_scipy_version(min_version):
     ok = check_scipy_version(min_version)
     return np.testing.dec.skipif(not ok, 'Requires scipy version >= %s'
                                  % min_version)
+
+
+def _check_pytables():
+    """Helper to error if Pytables is not found"""
+    try:
+        import tables as tb
+    except ImportError:
+        raise ImportError('pytables could not be imported')
+    return tb
+
+
+def requires_pytables():
+    """Helper for testing"""
+    have = True
+    try:
+        _check_pytables()
+    except ImportError:
+        have = False
+    return np.testing.dec.skipif(not have, 'Requires pytables')
 
 
 ###############################################################################

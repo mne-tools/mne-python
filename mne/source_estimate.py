@@ -14,6 +14,7 @@ from scipy import linalg, sparse
 from scipy.sparse import csr_matrix, coo_matrix
 import warnings
 
+from ._hdf5 import read_hdf5, write_hdf5
 from .filter import resample
 from .evoked import _get_peak
 from .parallel import parallel_func
@@ -265,16 +266,24 @@ def read_source_estimate(fname, subject=None):
                        "hemisphere tag ('...-lh.w' or '...-rh.w')"
                        % fname)
                 raise IOError(err)
+        elif fname.endswith('-stc.h5'):
+            ftype = 'h5'
+            fname = fname[:-7]
+        else:
+            raise RuntimeError('Unknown extension for file %s' % fname_arg)
 
     if ftype is not 'volume':
         stc_exist = [os.path.exists(f)
                      for f in [fname + '-rh.stc', fname + '-lh.stc']]
         w_exist = [os.path.exists(f)
                    for f in [fname + '-rh.w', fname + '-lh.w']]
+        h5_exist = os.path.exists(fname + '-stc.h5')
         if all(stc_exist) and (ftype is not 'w'):
             ftype = 'surface'
         elif all(w_exist):
             ftype = 'w'
+        elif h5_exist:
+            ftype = 'h5'
         elif any(stc_exist) or any(w_exist):
             raise IOError("Hemisphere missing for %r" % fname_arg)
         else:
@@ -309,6 +318,8 @@ def read_source_estimate(fname, subject=None):
         # w files only have a single time point
         kwargs['tmin'] = 0.0
         kwargs['tstep'] = 1.0
+    elif ftype == 'h5':
+        kwargs = read_hdf5(fname + '-stc.h5')
 
     if ftype != 'volume':
         # Make sure the vertices are ordered
@@ -320,7 +331,12 @@ def read_source_estimate(fname, subject=None):
             kwargs['vertices'] = vertices
             kwargs['data'] = data
 
-    kwargs['subject'] = subject
+    if 'subject' not in kwargs:
+        kwargs['subject'] = subject
+    if subject is not None and subject != kwargs['subject']:
+        raise RuntimeError('provided subject name "%s" does not match '
+                           'subject name from the file "%s'
+                           % (subject, kwargs['subject']))
 
     if ftype == 'volume':
         stc = VolSourceEstimate(**kwargs)
@@ -1005,14 +1021,15 @@ class SourceEstimate(_BaseSourceEstimate):
             and "-rh.w") to the stem provided, for the left and the right
             hemisphere, respectively.
         ftype : string
-            File format to use. Allowed values are "stc" (default) and "w".
-            The "w" format only supports a single time point.
+            File format to use. Allowed values are "stc" (default), "w",
+            and "h5". The "w" format only supports a single time point.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
         """
-        if ftype not in ['stc', 'w']:
-            raise ValueError('ftype must be "stc" or "w", not "%s"' % ftype)
+        if ftype not in ('stc', 'w', 'h5'):
+            raise ValueError('ftype must be "stc", "w", or "h5", not "%s"'
+                             % ftype)
 
         lh_data = self.data[:len(self.lh_vertno)]
         rh_data = self.data[-len(self.rh_vertno):]
@@ -1032,7 +1049,11 @@ class SourceEstimate(_BaseSourceEstimate):
                      data=lh_data[:, 0])
             _write_w(fname + '-rh.w', vertices=self.rh_vertno,
                      data=rh_data[:, 0])
-
+        elif ftype == 'h5':
+            write_hdf5(fname + '-stc.h5',
+                       dict(vertices=self.vertno, data=self.data,
+                            tmin=self.tmin, tstep=self.tstep,
+                            subject=self.subject))
         logger.info('[done]')
 
     def __repr__(self):
@@ -1849,8 +1870,13 @@ def mesh_edges(tris):
     edges : sparse matrix
         The adjacency matrix.
     """
+    if np.max(tris) > len(np.unique(tris)):
+        raise ValueError('Cannot compute connectivity on a selection of '
+                         'triangles.')
+
     npoints = np.max(tris) + 1
     ones_ntris = np.ones(3 * len(tris))
+
     a, b, c = tris.T
     x = np.concatenate((a, b, c))
     y = np.concatenate((b, c, a))
@@ -1872,7 +1898,6 @@ def mesh_dist(tris, vert):
         Mesh triangulation
     vert : array (n_vert x 3)
         Vertex locations
-
     Returns
     -------
     dist_matrix : scipy.sparse.csr_matrix
@@ -2418,7 +2443,8 @@ def grade_to_tris(grade, verbose=None):
 
 
 @verbose
-def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
+def spatio_temporal_tris_connectivity(tris, n_times, remap_vertices=False,
+                                      verbose=None):
     """Compute connectivity from triangles and time instants
 
     Parameters
@@ -2427,6 +2453,9 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
         N x 3 array defining triangles.
     n_times : int
         Number of time points
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2439,6 +2468,10 @@ def spatio_temporal_tris_connectivity(tris, n_times, verbose=None):
         vertices are time 1, the nodes from 2 to 2N are the vertices
         during time 2, etc.
     """
+    if remap_vertices:
+        logger.info('Reassigning vertex indices.')
+        tris = np.searchsorted(np.unique(tris), tris)
+
     edges = mesh_edges(tris).tocoo()
     return _get_connectivity_from_edges(edges, n_times)
 
@@ -2507,13 +2540,16 @@ def spatial_src_connectivity(src, dist=None, verbose=None):
 
 
 @verbose
-def spatial_tris_connectivity(tris, verbose=None):
+def spatial_tris_connectivity(tris, remap_vertices=False, verbose=None):
     """Compute connectivity from triangles
 
     Parameters
     ----------
     tris : array
         N x 3 array defining triangles.
+    remap_vertices : bool
+        Reassign vertex indices based on unique values. Useful
+        to process a subset of triangles. Defaults to False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2522,7 +2558,7 @@ def spatial_tris_connectivity(tris, verbose=None):
     connectivity : sparse COO matrix
         The connectivity matrix describing the spatial graph structure.
     """
-    return spatio_temporal_tris_connectivity(tris, 1)
+    return spatio_temporal_tris_connectivity(tris, 1, remap_vertices)
 
 
 def spatial_dist_connectivity(src, dist, verbose=None):
@@ -2684,9 +2720,10 @@ def save_stc_as_volume(fname, stc, src, dest='mri', mri_resolution=False):
     header = nib.nifti1.Nifti1Header()
     header.set_xyzt_units('mm', 'msec')
     header['pixdim'][4] = 1e3 * stc.tstep
-    img = nib.Nifti1Image(vol, affine, header=header)
-    if fname is not None:
-        nib.save(img, fname)
+    with warnings.catch_warnings(record=True):  # nibabel<->numpy warning
+        img = nib.Nifti1Image(vol, affine, header=header)
+        if fname is not None:
+            nib.save(img, fname)
     return img
 
 

@@ -7,7 +7,6 @@ import os.path as op
 from functools import wraps
 import warnings
 
-import numpy as np
 from numpy.testing import assert_raises
 
 from mne import io, read_events, Epochs, read_cov
@@ -103,7 +102,8 @@ def test_plot_ica_sources():
     ica.fit(raw, picks=ica_picks)
     ica.plot_sources(raw)
     ica.plot_sources(epochs)
-    ica.plot_sources(epochs.average())
+    with warnings.catch_warnings(record=True):  # no labeled objects mpl
+        ica.plot_sources(epochs.average())
     assert_raises(ValueError, ica.plot_sources, 'meeow')
     plt.close('all')
 

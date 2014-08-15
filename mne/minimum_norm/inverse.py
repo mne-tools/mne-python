@@ -20,7 +20,7 @@ from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
                         write_coord_trans, write_string)
 
-from ..io.pick import channel_type, pick_info
+from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import prepare_noise_cov, _read_cov, _write_cov
 from ..forward import (compute_depth_prior, read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
@@ -32,6 +32,41 @@ from ..transforms import invert_transform, transform_surface_to
 from ..source_estimate import _make_stc
 from ..utils import check_fname, logger, verbose
 from functools import reduce
+
+
+class InverseOperator(dict):
+    """InverseOperator class to represent info from inverse operator
+    """
+
+    def __repr__(self):
+        """Summarize inverse info instead of printing all"""
+
+        entr = '<InverseOperator'
+
+        nchan = len(pick_types(self['info'], meg=True, eeg=False))
+        entr += ' | ' + 'MEG channels: %d' % nchan
+        nchan = len(pick_types(self['info'], meg=False, eeg=True))
+        entr += ' | ' + 'EEG channels: %d' % nchan
+
+        # XXX TODO: This and the __repr__ in SourceSpaces should call a
+        # function _get_name_str() in source_space.py
+        if self['src'][0]['type'] == 'surf':
+            entr += (' | Source space: Surface with %d vertices'
+                     % self['nsource'])
+        elif self['src'][0]['type'] == 'vol':
+            entr += (' | Source space: Volume with %d grid points'
+                     % self['nsource'])
+        elif self['src'][0]['type'] == 'discrete':
+            entr += (' | Source space: Discrete with %d dipoles'
+                     % self['nsource'])
+
+        source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
+                      FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
+                      FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
+        entr += ' | Source orientation: %s' % source_ori[self['source_ori']]
+        entr += '>'
+
+        return entr
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -64,7 +99,7 @@ def read_inverse_operator(fname, verbose=None):
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         The inverse operator.
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
@@ -286,7 +321,7 @@ def read_inverse_operator(fname, verbose=None):
     #
     fid.close()
 
-    return inv
+    return InverseOperator(inv)
 
 
 @verbose
@@ -481,7 +516,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         Prepared inverse operator.
     """
     if nave <= 0:
@@ -600,7 +635,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
     else:
         inv['noisenorm'] = []
 
-    return inv
+    return InverseOperator(inv)
 
 
 @verbose
@@ -709,7 +744,8 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_ori=None, verbose=None, pick_normal=None):
+                  pick_ori=None, pick_normal=None, prepared=False,
+                  verbose=None):
     """Apply inverse operator to evoked data
 
     Computes a L2-norm inverse solution
@@ -720,8 +756,9 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     ----------
     evoked : Evoked object
         Evoked data.
-    inverse_operator: dict
-        Inverse operator read with mne.read_inverse_operator.
+    inverse_operator: instance of InverseOperator
+        Inverse operator returned from `mne.read_inverse_operator`,
+        `prepare_inverse_operator` or `make_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -730,6 +767,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+    prepared : bool
+        If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -747,7 +786,10 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     _check_ch_names(inverse_operator, evoked.info)
 
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
@@ -784,8 +826,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_ori=None,
-                      buffer_size=None, verbose=None,
-                      pick_normal=None):
+                      buffer_size=None, pick_normal=None, prepared=False,
+                      verbose=None):
     """Apply inverse operator to Raw data
 
     Computes a L2-norm inverse solution
@@ -797,7 +839,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     raw : Raw object
         Raw data.
     inverse_operator : dict
-        Inverse operator read with mne.read_inverse_operator.
+        Inverse operator returned from `mne.read_inverse_operator`,
+        `prepare_inverse_operator` or `make_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -826,6 +869,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         buffer_size << data length).
         Note that this setting has no effect for fixed-orientation inverse
         operators.
+    prepared : bool
+        If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -842,7 +887,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
@@ -898,7 +946,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
-                              verbose=None, pick_normal=None):
+                              pick_normal=None, prepared=False, verbose=None):
     """ see apply_inverse_epochs """
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
@@ -908,7 +956,10 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
@@ -957,8 +1008,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
-                         return_generator=False, verbose=None,
-                         pick_normal=None):
+                         return_generator=False, pick_normal=None,
+                         prepared=False, verbose=None):
     """Apply inverse operator to Epochs
 
     Computes a L2-norm inverse solution on each epochs and returns
@@ -969,7 +1020,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     epochs : Epochs object
         Single trial epochs.
     inverse_operator : dict
-        Inverse operator read with mne.read_inverse_operator.
+        Inverse operator returned from `mne.read_inverse_operator`,
+        `prepare_inverse_operator` or `make_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -987,6 +1039,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
+    prepared : bool
+        If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -998,7 +1052,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
                                      pick_ori=pick_ori, verbose=verbose,
-                                     pick_normal=pick_normal)
+                                     pick_normal=pick_normal,
+                                     prepared=prepared)
 
     if not return_generator:
         # return a list
@@ -1137,7 +1192,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         Inverse operator.
 
     Notes
@@ -1367,7 +1422,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     inv_op['units'] = 'Am'
     inv_op['info'] = inv_info
 
-    return inv_op
+    return InverseOperator(inv_op)
 
 
 def compute_rank_inverse(inv):

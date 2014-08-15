@@ -6,6 +6,7 @@ from warnings import warn
 
 import numpy as np
 from scipy import fftpack, linalg, interpolate
+import warnings
 
 from ..parallel import parallel_func
 from ..utils import verbose, sum_squared
@@ -228,8 +229,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
-    NFFT = 2 ** int(np.ceil(np.log2(rxx_size)))
-    dpss_fft = fftpack.fft(dpss, NFFT)
+    n_fft = 2 ** int(np.ceil(np.log2(rxx_size)))
+    dpss_fft = fftpack.fft(dpss, n_fft)
     dpss_rxx = np.real(fftpack.ifft(dpss_fft * dpss_fft.conj()))
     dpss_rxx = dpss_rxx[:, :N]
 
@@ -239,8 +240,12 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     if low_bias:
         idx = (eigvals > 0.9)
+        if not idx.any():
+            warnings.warn('Could not properly use low_bias, '
+                          'keeping lowest-bias taper')
+            idx = [np.argmax(eigvals)]
         dpss, eigvals = dpss[idx], eigvals[idx]
-
+    assert len(dpss) > 0  # should never happen
     return dpss, eigvals
 
 

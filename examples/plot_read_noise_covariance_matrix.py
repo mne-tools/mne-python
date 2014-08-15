@@ -24,6 +24,6 @@ print(cov)
 # Note: if you have the measurement info you can use mne.viz.plot_cov
 
 import matplotlib.pyplot as plt
-plt.matshow(cov.data)
+plt.matshow(cov.data, cmap='RdBu_r')
 plt.title('Noise covariance matrix (%d channels)' % cov.data.shape[0])
 plt.show()

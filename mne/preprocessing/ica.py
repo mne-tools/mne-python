@@ -1194,6 +1194,7 @@ class ICA(ContainsMixin):
                              'n_components and <= max_pca_components.')
 
         n_components = self.n_components_
+        logger.info('Transforming to ICA space (%i components)' % n_components)
 
         # Apply first PCA
         if self.pca_mean_ is not None:
@@ -1207,13 +1208,18 @@ class ICA(ContainsMixin):
             mask = np.ones(len(sources), dtype=np.bool)
             mask[np.unique(include)] = False
             sources[mask] = 0.
+            logger.info('Zeroing out %i ICA components' % mask.sum())
         elif exclude not in (None, []):
-            sources[np.unique(exclude)] = 0.
-
+            exclude_ = np.unique(exclude)
+            sources[exclude_] = 0.
+            logger.info('Zeroing out %i ICA components' % len(exclude_))
+        logger.info('Inverse transforming to PCA space')
         pca_data[:n_components] = fast_dot(self.mixing_matrix_, sources)
         data = fast_dot(self.pca_components_[:n_components].T,
                         pca_data[:n_components])
-        if self.n_pca_components is not None and _n_pca_comp > n_components:
+        logger.info('Reconstructing sensor space signals from %i PCA '
+                    'components' % max(_n_pca_comp, n_components))
+        if _n_pca_comp > n_components:
             data += fast_dot(self.pca_components_[n_components:_n_pca_comp].T,
                              pca_data[n_components:_n_pca_comp])
 
@@ -1809,7 +1815,9 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
                        <= _n_pca_comp).sum()
         logger.info('Selected %i PCA components by explained '
                     'variance' % _n_pca_comp)
-    elif _n_pca_comp is None or _n_pca_comp < ica.n_components_:
+    elif _n_pca_comp is None:
+        _n_pca_comp = ica.max_pca_components
+    elif _n_pca_comp < ica.n_components_:
         _n_pca_comp = ica.n_components_
 
     return _n_pca_comp

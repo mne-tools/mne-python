@@ -63,7 +63,7 @@ mlab.figure(size=(600, 600), bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 points = brain_surface['rr']
 faces = brain_surface['tris']
 coord_trans = fwd['mri_head_t']['trans']
-points = np.dot(coord_trans[:3,:3], points.T).T + coord_trans[:3,-1]
+points = np.dot(coord_trans[:3, :3], points.T).T + coord_trans[:3, -1]
 mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
                      faces, color=(1, 1, 0), opacity=0.3)
 
@@ -72,10 +72,12 @@ mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
                      lh_faces, color=(0.7, ) * 3)
 
 # show dipole as small cones
-dipoles = mlab.quiver3d(pos[:,0], pos[:,1], pos[:,2],
-                        ori[:,0], ori[:,1], ori[:,2],
+dipoles = mlab.quiver3d(pos[:, 0], pos[:, 1], pos[:, 2],
+                        ori[:, 0], ori[:, 1], ori[:, 2],
                         opacity=1., scale_factor=4e-4, scalars=time,
-                        mode='cone')
+                        mode='cone', colormap='RdBu')
+# revert colormap
+dipoles.module_manager.scalar_lut_manager.reverse_lut = True
 mlab.colorbar(dipoles, title='Dipole fit time (ms)')
 
 # proper 3D orientation

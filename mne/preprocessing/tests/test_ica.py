@@ -119,6 +119,34 @@ def test_ica_full_data_recovery():
 
 
 @requires_sklearn
+def test_ica_rank_reduction():
+    """Test recovery of full data when no source is rejected"""
+    # Most basic recovery
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(0.5)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')[:10]
+    n_components = 5
+    max_pca_components = len(picks)
+    for n_pca_components in [6, 10]:
+        with warnings.catch_warnings(record=True):  # non-convergence
+            warnings.simplefilter('always')
+            ica = ICA(n_components=n_components,
+                      max_pca_components=max_pca_components,
+                      n_pca_components=n_pca_components,
+                      method='fastica', max_iter=1).fit(raw, picks=picks)
+
+        rank_before = raw.estimate_rank(picks=picks)
+        assert_equal(rank_before, len(picks))
+        raw_clean = ica.apply(raw, copy=True)
+        rank_after = raw_clean.estimate_rank(picks=picks)
+        # interaction between ICA rejection and PCA components difficult
+        # to preduct. Rank_after often seems to be 1 higher then
+        # n_pca_components
+        assert_true(n_components < n_pca_components <= rank_after <=
+                    rank_before)
+
+
+@requires_sklearn
 def test_ica_core():
     """Test ICA on raw and epochs"""
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
@@ -160,7 +188,7 @@ def test_ica_core():
         # test decomposition
         with warnings.catch_warnings(record=True):
             ica.fit(raw, picks=pcks, start=start, stop=stop)
-            _ = repr(ica)  # to test repr
+            repr(ica)  # to test repr
 
         # test re-fit
         unmixing1 = ica.unmixing_matrix_
@@ -386,7 +414,8 @@ def test_ica_additional():
         assert_equal(len(scores), ica.n_components_)
         assert_raises(ValueError, ica.find_bads_ecg, epochs.average(),
                       method='ctps')
-        assert_raises(ValueError, ica.find_bads_ecg, raw, method='crazy-coupling')
+        assert_raises(ValueError, ica.find_bads_ecg, raw,
+                      method='crazy-coupling')
 
         idx, scores = ica.find_bads_eog(raw)
         assert_equal(len(scores), ica.n_components_)
@@ -487,7 +516,7 @@ def test_ica_reject_buffer():
     set_log_file(drop_log, overwrite=True)
     with warnings.catch_warnings(record=True):
         ica.fit(raw, picks[:5], reject=dict(mag=2.5e-12), decim=2,
-            tstep=0.01, verbose=True)
+                tstep=0.01, verbose=True)
     assert_true(raw._data[:5, ::2].shape[1] - 4 == ica.n_samples_)
     with open(drop_log) as fid:
         log = [l for l in fid if 'detected' in l]

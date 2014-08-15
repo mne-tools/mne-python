@@ -23,7 +23,8 @@ from .utils import _draw_proj_checkbox, tight_layout
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
-                 scalings, titles, axes, plot_type):
+                 scalings, titles, axes, plot_type,
+                 cmap=None):
     """Aux function for plot_evoked and plot_evoked_image (cf. docstrings)
 
     Extra param is:
@@ -123,7 +124,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             elif plot_type == 'image':
                 im = ax.imshow(D, interpolation='nearest', origin='lower',
                                extent=[times[0], times[-1], 0, D.shape[0]],
-                               aspect='auto')
+                               aspect='auto', cmap=cmap)
                 plt.colorbar(im, ax=ax)
             if xlim is not None:
                 if xlim == 'tight':
@@ -223,7 +224,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
                       clim=None, proj=False, xlim='tight', units=None,
-                      scalings=None, titles=None, axes=None):
+                      scalings=None, titles=None, axes=None, cmap='RdBu_r'):
     """Plot evoked data as images
 
     Parameters
@@ -262,11 +263,14 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
         The axes to plot to. If list, the list must be a list of Axes of
         the same length as the number of channel types. If instance of
         Axes, there must be only one channel type plotted.
+    cmap : matplotlib colormap
+        Colormap.
     """
     return _plot_evoked(evoked=evoked, picks=picks, exclude=exclude, unit=unit,
                         show=show, ylim=clim, proj=proj, xlim=xlim,
                         hline=None, units=units, scalings=scalings,
-                        titles=titles, axes=axes, plot_type="image")
+                        titles=titles, axes=axes, plot_type="image",
+                        cmap=cmap)
 
 
 def _plot_update_evoked(params, bools):

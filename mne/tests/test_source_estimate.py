@@ -20,7 +20,8 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
 
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
-from mne.utils import _TempDir, requires_pandas, requires_sklearn
+from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
+                       requires_pytables)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -59,6 +60,7 @@ def test_volume_stc():
             assert_true(isinstance(stc_new, VolSourceEstimate))
             assert_array_equal(vertno_read, stc_new.vertno)
             assert_array_almost_equal(stc.data, stc_new.data)
+
     # now let's actually read a MNE-C processed file
     stc = read_source_estimate(fname_vol, 'sample')
     assert_true(isinstance(stc, VolSourceEstimate))
@@ -83,13 +85,16 @@ def test_volume_stc():
         vol_fname = op.join(tempdir, 'stc.nii.gz')
         stc.save_as_volume(vol_fname, src,
                            dest='surf', mri_resolution=False)
-        img = nib.load(vol_fname)
+        with warnings.catch_warnings(record=True):  # nib<->numpy
+            img = nib.load(vol_fname)
         assert_true(img.shape == src[0]['shape'] + (len(stc.times),))
 
-        t1_img = nib.load(fname_t1)
+        with warnings.catch_warnings(record=True):  # nib<->numpy
+            t1_img = nib.load(fname_t1)
         stc.save_as_volume(op.join(tempdir, 'stc.nii.gz'), src,
                            dest='mri', mri_resolution=True)
-        img = nib.load(vol_fname)
+        with warnings.catch_warnings(record=True):  # nib<->numpy
+            img = nib.load(vol_fname)
         assert_true(img.shape == t1_img.shape + (len(stc.times),))
         assert_array_almost_equal(img.get_affine(), t1_img.get_affine(),
                                   decimal=5)
@@ -112,7 +117,8 @@ def test_expand():
     assert_true('sample' in repr(stc))
     labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
                                        subjects_dir=subjects_dir)
-    stc_limited = stc.in_label(labels_lh[0] + labels_lh[1])
+    new_label = labels_lh[0] + labels_lh[1]
+    stc_limited = stc.in_label(new_label)
     stc_new = stc_limited.copy()
     stc_new.data.fill(0)
     for label in labels_lh[:2]:
@@ -121,46 +127,65 @@ def test_expand():
     assert_raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
 
-@sample.requires_sample_data
+def _fake_stc(n_time=10):
+    verts = [np.arange(10), np.arange(90)]
+    return SourceEstimate(np.random.rand(100, n_time), verts, 0, 1e-1, 'foo')
+
+
 def test_io_stc():
     """Test IO for STC files
     """
-    stc = read_source_estimate(fname)
+    stc = _fake_stc()
     stc.save(op.join(tempdir, "tmp.stc"))
     stc2 = read_source_estimate(op.join(tempdir, "tmp.stc"))
 
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.tmin, stc2.tmin)
-    assert_true(len(stc.vertno) == len(stc2.vertno))
+    assert_equal(len(stc.vertno), len(stc2.vertno))
     for v1, v2 in zip(stc.vertno, stc2.vertno):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
 
 
-@sample.requires_sample_data
+@requires_pytables()
+def test_io_stc_h5():
+    """Test IO for STC files using HDF5
+    """
+    stc = _fake_stc()
+    assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
+    out_name = op.join(tempdir, 'tmp')
+    stc.save(out_name, ftype='h5')
+    stc3 = read_source_estimate(out_name)
+    stc4 = read_source_estimate(out_name + '-stc.h5')
+    assert_raises(RuntimeError, read_source_estimate, out_name, subject='bar')
+    for stc_new in stc3, stc4:
+        assert_equal(stc_new.subject, stc.subject)
+        assert_array_equal(stc_new.data, stc.data)
+        assert_array_equal(stc_new.tmin, stc.tmin)
+        assert_array_equal(stc_new.tstep, stc.tstep)
+        assert_equal(len(stc_new.vertno), len(stc.vertno))
+        for v1, v2 in zip(stc_new.vertno, stc.vertno):
+            assert_array_equal(v1, v2)
+
+
 def test_io_w():
     """Test IO for w files
     """
-    w_fname = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis-meg-oct-6-fwd-sensmap')
-
+    stc = _fake_stc(n_time=1)
+    w_fname = op.join(tempdir, 'fake')
+    stc.save(w_fname, ftype='w')
     src = read_source_estimate(w_fname)
-
     src.save(op.join(tempdir, 'tmp'), ftype='w')
-
     src2 = read_source_estimate(op.join(tempdir, 'tmp-lh.w'))
-
     assert_array_almost_equal(src.data, src2.data)
     assert_array_almost_equal(src.lh_vertno, src2.lh_vertno)
     assert_array_almost_equal(src.rh_vertno, src2.rh_vertno)
 
 
-@sample.requires_sample_data
 def test_stc_arithmetic():
     """Test arithmetic for STC files
     """
-    fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
-    stc = read_source_estimate(fname)
+    stc = _fake_stc()
     data = stc.data.copy()
 
     out = list()
@@ -214,6 +239,12 @@ def test_stc_methods():
     assert_true(np.round(t, 3) == 0.123)
 
     stc = read_source_estimate(fname)
+    label = read_labels_from_annot('sample', 'aparc', 'lh',
+                                   subjects_dir=subjects_dir)[0]
+    stc_label = stc.in_label(label)
+    n_vertices_used = len(label.get_vertices_used(stc_label.vertno[0]))
+    assert_equal(len(stc_label.data), n_vertices_used)
+
     stc_new = deepcopy(stc)
     o_sfreq = 1.0 / stc.tstep
     # note that using no padding for this STC reduces edge ringing...
@@ -447,7 +478,7 @@ def test_transform_data():
 def test_transform():
     """Test applying linear (time) transform to data"""
     # make up some data
-    n_sensors, n_verts_lh, n_verts_rh, n_times = 10, 10, 10, 10
+    n_verts_lh, n_verts_rh, n_times = 10, 10, 10
     vertices = [np.arange(n_verts_lh), n_verts_lh + np.arange(n_verts_rh)]
     data = np.random.randn(n_verts_lh + n_verts_rh, n_times)
     stc = SourceEstimate(data, vertices=vertices, tmin=-0.1, tstep=0.1)
@@ -561,7 +592,8 @@ def test_as_data_frame():
                         if isinstance(ind, list) else [ind])
             assert_array_equal(df.values.T[ncat:], stc.data)
             # test that non-indexed data were present as categorial variables
-            df.reset_index().columns[:3] == ['subject', 'time']
+            with warnings.catch_warnings(record=True):  # pandas
+                df.reset_index().columns[:3] == ['subject', 'time']
 
 
 def test_get_peak():

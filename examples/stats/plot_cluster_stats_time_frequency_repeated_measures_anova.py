@@ -141,7 +141,7 @@ for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
                origin='lower')
     # create mask for significant Time-frequency locations
     effect = np.ma.masked_array(effect, [sig > .05])
-    plt.imshow(effect.reshape(8, 211), cmap=plt.cm.jet, extent=[times[0],
+    plt.imshow(effect.reshape(8, 211), cmap='RdBu_r', extent=[times[0],
                times[-1], frequencies[0], frequencies[-1]], aspect='auto',
                origin='lower')
     plt.colorbar()
@@ -171,13 +171,9 @@ def stat_fun(*args):
     # flattened array, necessitated by the clustering procedure.
     # The ANOVA however expects an input array of dimensions:
     # subjects X conditions X observations (optional).
-    # The following expression catches the list input, swaps the first and the
-    # second dimension and puts the remaining observations in the third
-    # dimension.
-    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_replications,
-                                                       n_conditions,
-                                                       n_times * n_frequencies)
-    return f_twoway_rm(data, factor_levels=factor_levels,
+    # The following expression catches the list input and swaps the first and
+    # the second dimension and finally calls the ANOVA function.
+    return f_twoway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
                        effects=effects, return_pvals=False)[0]
     # The ANOVA returns a tuple f-values and p-values, we will pick the former.
 
@@ -193,10 +189,11 @@ T_obs, clusters, cluster_p_values, h0 = mne.stats.permutation_cluster_test(
 
 # Create new stats image with only significant clusters
 good_clusers = np.where(cluster_p_values < .05)[0]
-T_obs_plot = np.ma.masked_array(T_obs, np.invert(clusters[good_clusers]))
+T_obs_plot = np.ma.masked_array(T_obs,
+                                np.invert(clusters[np.squeeze(good_clusers)]))
 
 plt.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, plt.cm.jet]):
+for f_image, cmap in zip([T_obs, T_obs_plot], [plt.cm.gray, 'RdBu_r']):
     plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
                frequencies[0], frequencies[-1]], aspect='auto',
                origin='lower')
@@ -211,7 +208,7 @@ mask, _ = fdr_correction(pvals[2])
 T_obs_plot2 = np.ma.masked_array(T_obs, np.invert(mask))
 
 plt.figure()
-for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, plt.cm.jet]):
+for f_image, cmap in zip([T_obs, T_obs_plot2], [plt.cm.gray, 'RdBu_r']):
     plt.imshow(f_image, cmap=cmap, extent=[times[0], times[-1],
                frequencies[0], frequencies[-1]], aspect='auto',
                origin='lower')

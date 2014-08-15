@@ -70,12 +70,12 @@ ica.exclude += ecg_inds
 # detect EOG by correlation
 
 eog_inds, scores = ica.find_bads_eog(raw)
-ica.plot_scores(scores, exclude=eog_inds, title=title % 'ocg')
+ica.plot_scores(scores, exclude=eog_inds, title=title % 'eog')
 
 show_picks = np.abs(scores).argsort()[::-1][:5]
 
 ica.plot_sources(raw, show_picks, exclude=ecg_inds, title=title % 'eog')
-ica.plot_components(eog_inds, title=title % 'ecg', colorbar=True)
+ica.plot_components(eog_inds, title=title % 'eog', colorbar=True)
 
 eog_inds = eog_inds[:n_max_eog]
 ica.exclude += eog_inds

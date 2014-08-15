@@ -1,9 +1,30 @@
 What's new
 ==========
 
-.. _changes_0_8:
+.. _changes_0_9:
 
 Current
+-----------
+
+Changelog
+~~~~~~~~~
+
+   - Add support for mayavi figures in `add_section` method in Report by `Mainak Jas`_
+
+BUG
+~~~
+
+   - ...
+
+API
+~~~
+
+   - apply_inverse functions have a new boolean parameter `prepared` which saves computation time by calling `prepare_inverse_operator` only if it is False.
+
+
+.. _changes_0_8:
+
+Version 0.8
 -----------
 
 Changelog
@@ -111,6 +132,13 @@ Changelog
 
    - Add new somatosensory MEG dataset with nice time-frequency content by `Alex Gramfort`_
 
+   - Add HDF5 write/read support for SourceEstimates by `Eric Larson`_
+
+   - Add InverseOperator class to display inverse operator info by `Mainak Jas`_
+
+   - Add `$ mne report` command to generate html reports of MEG/EEG data analysis pipelines by `Mainak Jas`_, `Alex Gramfort`_ and `Denis Engemann`_
+
+   - Improve ICA verbosity with regard to rank reduction by `Denis Engemann`_
 
 BUG
 ~~~
@@ -140,11 +168,9 @@ API
 
    - The default of the new add_dist option of `setup_source_space` to add patch information will change from False to True in MNE-Python 0.9
 
-   - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`.
-read_evokeds will return all Evoked instances in a file by default.
+   - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`. read_evokeds will return all Evoked instances in a file by default.
 
-   - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This
-affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
+   - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
 
    - Deprecate `mne.fiff` module, use `mne.io` instead e.g. `mne.io.Raw` instead of `mne.fiff.Raw`.
 
@@ -153,6 +179,44 @@ affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
    - Deprecated ICA methods specfific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
 
    - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
+
+   - As default, for ICA the maximum number of PCA components equals the number of channels passed. The number of PCA components used to reconstruct the sensor space signals now defaults to the maximum number of PCA components estimated.
+
+Authors
+~~~~~~~~~
+
+The committer list for this release is the following (preceded by number of commits):
+
+   * 418  Denis A. Engemann
+   * 284  Alexandre Gramfort
+   * 242  Eric Larson
+   * 155  Christian Brodbeck
+   * 144  Mainak Jas
+   * 49  Martin Billinger
+   * 49  Andrew Dykstra
+   * 44  Tal Linzen
+   * 37  Dan G. Wakeman
+   * 36  Martin Luessi
+   * 26  Teon Brooks
+   * 20  Cathy Nangini
+   * 15  Hari Bharadwaj
+   * 15  Roman Goj
+   * 10  Ross Maddox
+   * 9  Marmaduke Woodman
+   * 8  Praveen Sripad
+   * 8  Tanay
+   * 8  Roan LaPlante
+   * 5  Saket Choudhary
+   * 4  Nick Ward
+   * 4  Mads Jensen
+   * 3  Olaf Hauk
+   * 3  Brad Buran
+   * 2  Daniel Strohmeier
+   * 2  Federico Raimondo
+   * 2  Alan Leggitt
+   * 1  Jean-Remi King
+   * 1  Matti Hamalainen
+
 
 .. _changes_0_7:
 

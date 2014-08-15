@@ -18,7 +18,8 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
                                       make_inverse_operator,
                                       write_inverse_operator,
-                                      compute_rank_inverse)
+                                      compute_rank_inverse,
+                                      prepare_inverse_operator)
 from mne.utils import _TempDir
 from ...externals import six
 
@@ -184,6 +185,14 @@ def test_apply_inverse_operator():
     assert_true(stc.data.max() < 10e-10)
     assert_true(stc.data.mean() > 1e-11)
 
+    # test if using prepared and not prepared inverse operator give the same
+    # result
+    inv_op = prepare_inverse_operator(inverse_operator, nave=evoked.nave,
+                                      lambda2=lambda2, method="MNE")
+    stc2 = apply_inverse(evoked, inv_op, lambda2, "MNE")
+    assert_array_almost_equal(stc.data, stc2.data)
+    assert_array_almost_equal(stc.times, stc2.times)
+
     stc = apply_inverse(evoked, inverse_operator, lambda2, "sLORETA")
     assert_true(stc.subject == 'sample')
     assert_true(stc.data.min() > 0)
@@ -311,6 +320,7 @@ def test_io_inverse_operator():
     """Test IO of inverse_operator with GZip
     """
     inverse_operator = read_inverse_operator(fname_inv)
+    print(inverse_operator)
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
 
@@ -333,15 +343,18 @@ def test_apply_mne_inverse_raw():
     label_lh = read_label(fname_label % 'Aud-lh')
     _, times = raw[0, start:stop]
     inverse_operator = read_inverse_operator(fname_inv)
+    inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
+                                                lambda2=lambda2, method="dSPM")
     for pick_ori in [None, "normal"]:
         stc = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
                                 label=label_lh, start=start, stop=stop, nave=1,
-                                pick_ori=pick_ori, buffer_size=None)
+                                pick_ori=pick_ori, buffer_size=None,
+                                prepared=True)
 
         stc2 = apply_inverse_raw(raw, inverse_operator, lambda2, "dSPM",
                                  label=label_lh, start=start, stop=stop,
                                  nave=1, pick_ori=pick_ori,
-                                 buffer_size=3)
+                                 buffer_size=3, prepared=True)
 
         if pick_ori is None:
             assert_true(np.all(stc.data > 0))
@@ -370,19 +383,27 @@ def test_apply_mne_inverse_fixed_raw():
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
                                    loose=None, depth=0.8, fixed=True)
 
-    stc = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
+    inv_op2 = prepare_inverse_operator(inv_op, nave=1,
+                                       lambda2=lambda2, method="dSPM")
+    stc = apply_inverse_raw(raw, inv_op2, lambda2, "dSPM",
                             label=label_lh, start=start, stop=stop, nave=1,
-                            pick_ori=None, buffer_size=None)
+                            pick_ori=None, buffer_size=None, prepared=True)
 
-    stc2 = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
+    stc2 = apply_inverse_raw(raw, inv_op2, lambda2, "dSPM",
                              label=label_lh, start=start, stop=stop, nave=1,
-                             pick_ori=None, buffer_size=3)
+                             pick_ori=None, buffer_size=3, prepared=True)
+
+    stc3 = apply_inverse_raw(raw, inv_op, lambda2, "dSPM",
+                             label=label_lh, start=start, stop=stop, nave=1,
+                             pick_ori=None, buffer_size=None)
 
     assert_true(stc.subject == 'sample')
     assert_true(stc2.subject == 'sample')
     assert_array_almost_equal(stc.times, times)
     assert_array_almost_equal(stc2.times, times)
+    assert_array_almost_equal(stc3.times, times)
     assert_array_almost_equal(stc.data, stc2.data)
+    assert_array_almost_equal(stc.data, stc3.data)
 
 
 @sample.requires_sample_data
@@ -405,6 +426,15 @@ def test_apply_mne_inverse_epochs():
                     baseline=(None, 0), reject=reject, flat=flat)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                 label=label_lh, pick_ori="normal")
+    inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
+                                                lambda2=lambda2, method="dSPM")
+    stcs2 = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
+                                 label=label_lh, pick_ori="normal",
+                                 prepared=True)
+    # test if using prepared and not prepared inverse operator give the same
+    # result
+    assert_array_almost_equal(stcs[0].data, stcs2[0].data)
+    assert_array_almost_equal(stcs[0].times, stcs2[0].times)
 
     assert_true(len(stcs) == 4)
     assert_true(3 < stcs[0].data.max() < 10)
@@ -419,11 +449,14 @@ def test_apply_mne_inverse_epochs():
     assert_true(label_mean.max() < label_mean_flip.max())
 
     # test extracting a BiHemiLabel
+
     stcs_rh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                   label=label_rh, pick_ori="normal")
+                                   label=label_rh, pick_ori="normal",
+                                   prepared=True)
     stcs_bh = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
                                    label=label_lh + label_rh,
-                                   pick_ori="normal")
+                                   pick_ori="normal",
+                                   prepared=True)
 
     n_lh = len(stcs[0].data)
     assert_array_almost_equal(stcs[0].data, stcs_bh[0].data[:n_lh])
@@ -431,7 +464,7 @@ def test_apply_mne_inverse_epochs():
 
     # test without using a label (so delayed computation is used)
     stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, "dSPM",
-                                pick_ori="normal")
+                                pick_ori="normal", prepared=True)
     assert_true(stcs[0].subject == 'sample')
     label_stc = stcs[0].in_label(label_rh)
     assert_true(label_stc.subject == 'sample')

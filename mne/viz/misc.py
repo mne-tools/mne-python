@@ -62,7 +62,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     """
     if exclude == 'bads':
         exclude = info['bads']
-    ch_names = [n for n in cov.ch_names if not n in exclude]
+    ch_names = [n for n in cov.ch_names if n not in exclude]
     ch_idx = [cov.ch_names.index(n) for n in ch_names]
     info_ch_names = info['ch_names']
     sel_eeg = pick_types(info, meg=False, eeg=True, ref_meg=False,
@@ -107,7 +107,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     fig_cov = plt.figure(figsize=(2.5 * len(idx_names), 2.7))
     for k, (idx, name, _, _) in enumerate(idx_names):
         plt.subplot(1, len(idx_names), k + 1)
-        plt.imshow(C[idx][:, idx], interpolation="nearest")
+        plt.imshow(C[idx][:, idx], interpolation="nearest", cmap='RdBu_r')
         plt.title(name)
     plt.subplots_adjust(0.04, 0.0, 0.98, 0.94, 0.2, 0.26)
     tight_layout(fig=fig_cov)
@@ -205,7 +205,7 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     # Plotting the results
     fig = plt.figure(figsize=(9, 6))
     plt.pcolor(time_grid, freq_grid, source_power[:, source_index, :],
-               cmap=plt.cm.jet)
+               cmap='Reds')
     ax = plt.gca()
 
     plt.title('Time-frequency source power')
