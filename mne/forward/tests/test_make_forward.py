@@ -17,7 +17,7 @@ from mne.io.constants import FIFF
 from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
                  convert_forward_solution, setup_volume_source_space)
-from mne.utils import requires_mne, _TempDir
+from mne.utils import requires_mne, requires_nibabel, _TempDir
 from mne.tests.test_source_space import _compare_source_spaces
 from mne.forward import Forward
 from mne.source_space import get_volume_labels_from_aseg
@@ -252,6 +252,7 @@ def test_do_forward_solution():
     # done in previous tests.
 
 
+@requires_nibabel
 @sample.requires_sample_data
 def test_forward_mixed_source_space():
     """Test making the forward solution for a mixed source space
@@ -267,7 +268,8 @@ def test_forward_mixed_source_space():
 
     # setup two volume source spaces
     label_names = get_volume_labels_from_aseg(fname_aseg)
-    vol_labels = np.random.choice(label_names, 2)
+    vol_labels = [label_names[int(np.random.rand() * len(label_names))]
+                  for _ in range(2)]
     vol1 = setup_volume_source_space('sample', fname=None, pos=20.,
                                      mri=fname_aseg,
                                      volume_label=vol_labels[0])
