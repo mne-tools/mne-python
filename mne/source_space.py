@@ -1739,7 +1739,6 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
 
         # Read the segmentation data using nibabel
         mgz = nib.load(mri)
-        mgz_hdr = mgz.get_header()
         mgz_data = mgz.get_data()
 
         # Read the freesurfer look up table
@@ -1759,7 +1758,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
 
         # Transform to RAS coordinates
         # (use tkr normalization or volume won't align with surface sources)
-        trans = mgz_hdr.get_vox2ras_tkr()
+        trans = _get_mgz_header(mri)['vox2ras_tkr']
         # Convert transform from mm to m
         trans[:3] /= 1000.
         rr_voi = apply_trans(trans, vox_xyz)  # positions of VOI in RAS space

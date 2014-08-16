@@ -521,7 +521,7 @@ def test_source_space_from_label():
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
-    volume_label = np.random.choice(label_names, 1)[0]
+    volume_label = label_names[int(np.random.rand() * len(label_names))]
 
     # Test pos as dict
     pos = dict()
@@ -555,11 +555,11 @@ def test_combine_source_spaces():
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
-    volume_labels = np.random.choice(label_names, 2)
+    volume_labels = [label_names[int(np.random.rand() * len(label_names))]
+                     for ii in range(2)]
 
-    # setup a surface source space
-    srf = setup_source_space('sample', subjects_dir=subjects_dir,
-                             overwrite=True)
+    # get a surface source space (no need to test creation here)
+    srf = read_source_spaces(fname, add_geom=False)
 
     # setup 2 volume source spaces
     vol1 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
