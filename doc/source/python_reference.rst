@@ -586,6 +586,7 @@ Source Space Data
 
    compute_morph_matrix
    extract_label_time_course
+   get_volume_labels_from_aseg
    grade_to_tris
    grade_to_vertices
    grow_labels

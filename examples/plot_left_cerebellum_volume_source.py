@@ -49,7 +49,7 @@ x1, y1, z1 = lh_surf['rr'].T
 faces = lh_surf['use_tris']
 normals = lh_surf['nn']
 # normalize for mayavi
-normals = normals / np.sum(normals * normals, axis=1)[:, np.newaxis]
+normals /= np.sum(normals * normals, axis=1)[:, np.newaxis]
 
 # extract left cerebellum cortex source positions
 x2, y2, z2 = lh_cereb[0]['rr'][lh_cereb[0]['inuse'].astype(bool)].T
