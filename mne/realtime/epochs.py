@@ -116,7 +116,7 @@ class RtEpochs(_BaseEpochs):
         Names of  of conditions corresponding to event_ids.
     ch_names : list of string
         List of channels' names.
-    events : list of tuples
+    events : array, of shape [n_events, 3]
         The events associated with the epochs currently in the queue.
     verbose : bool, str, int, or None
         See above.
@@ -171,7 +171,7 @@ class RtEpochs(_BaseEpochs):
 
         # FIFO queues for received epochs and events
         self._epoch_queue = list()
-        self.events = list()
+        self._events = list()
 
         # variables needed for receiving raw buffers
         self._last_buffer = None
@@ -186,6 +186,10 @@ class RtEpochs(_BaseEpochs):
         self._last_time = time.time()
 
         self.isi_max = isi_max
+
+    @property
+    def events(self):
+        return np.array(self._events)
 
     def start(self):
         """Start receiving epochs
@@ -235,7 +239,7 @@ class RtEpochs(_BaseEpochs):
                 raise StopIteration
             if len(self._epoch_queue) > self._current:
                 epoch = self._epoch_queue[self._current]
-                event_id = self.events[self._current][-1]
+                event_id = self._events[self._current][-1]
                 self._current += 1
                 self._last_time = current_time
                 if return_event_id:
@@ -370,7 +374,7 @@ class RtEpochs(_BaseEpochs):
 
         if is_good:
             self._epoch_queue.append(epoch)
-            self.events.append((event_samp, 0, event_id))
+            self._events.append((event_samp, 0, event_id))
             self._n_good += 1
         else:
             self._n_bad += 1
