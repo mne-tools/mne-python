@@ -4,8 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
-
 from copy import deepcopy
 from inspect import getargspec, isfunction
 from collections import namedtuple
@@ -41,7 +39,7 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_sklearn_version, logger, check_fname, verbose,
-                     deprecated, _reject_data_segments)
+                     _reject_data_segments)
 from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
@@ -98,7 +96,7 @@ class ICA(ContainsMixin):
     temporally removed before fitting the ICA. You can say::
 
         >> projs, raw.info['projs'] = raw.info['projs'], []
-        >> ica.decompose_raw(raw)
+        >> ica.fit(raw)
         >> raw.info['projs'] = projs
 
     Parameters
@@ -132,22 +130,6 @@ class ICA(ContainsMixin):
         fix the seed to have reproducible results.
     method : {'fastica', 'infomax', 'extended-infomax'}
         The ICA method to use. Defaults to 'fastica'.
-    algorithm : {'parallel', 'deflation'}
-        Apply parallel or deflational algorithm for FastICA. This parameter
-        belongs to FastICA and is deprecated. Please use `fit_params` instead.
-    fun : string or function, optional. Default: 'logcosh'
-        The functional form of the G function used in the
-        approximation to neg-entropy. Could be either 'logcosh', 'exp',
-        or 'cube'.
-        You can also provide your own function. It should return a tuple
-        containing the value of the function, and of its derivative, in the
-        point. This parameter belongs to FastICA and is deprecated.
-        Please use `fit_params` instead.
-    fun_args: dictionary, optional
-        Arguments to send to the functional form.
-        If empty and if fun='logcosh', fun_args will take value
-        {'alpha' : 1.0}. This parameter belongs to FastICA and is deprecated.
-        Please use `fit_params` instead.
     fit_params : dict | None.
         Additional parameters passed to the ICA estimator chosen by `method`.
     max_iter : int, optional
@@ -197,9 +179,8 @@ class ICA(ContainsMixin):
     @verbose
     def __init__(self, n_components=None, max_pca_components=None,
                  n_pca_components=None, noise_cov=None, random_state=None,
-                 method='fastica',
-                 algorithm=None, fun=None, fun_args=None,
-                 fit_params=None, max_iter=200, verbose=None):
+                 method='fastica', fit_params=None, max_iter=200,
+                 verbose=None):
         methods = ('fastica', 'infomax', 'extended-infomax')
         if method not in methods:
             raise ValueError('`method` must be "%s". You passed: "%s"' %
@@ -227,17 +208,6 @@ class ICA(ContainsMixin):
         self.n_pca_components = n_pca_components
         self.ch_names = None
         self.random_state = random_state if random_state is not None else 42
-
-        for attr in ['algorithm', 'fun', 'fun_args']:
-            if eval(attr) is not None:
-                warnings.warn('The parameter `%s` is deprecated and will be'
-                              'removed in MNE 0.9. Please use '
-                              '`fit_params` instead' % attr,
-                              DeprecationWarning)
-
-        self.algorithm = algorithm
-        self.fun = fun
-        self.fun_args = fun_args
 
         if fit_params is None:
             fit_params = {}
@@ -1435,272 +1405,6 @@ class ICA(ContainsMixin):
         return plot_ica_overlay(self, inst=inst, exclude=exclude, start=start,
                                 stop=stop, title=title, show=show)
 
-    @deprecated('`decompose_raw` is deprecated and will be removed in MNE 0.9.'
-                ' Use `fit` instead')
-    @verbose
-    def decompose_raw(self, raw, picks=None, start=None, stop=None,
-                      decim=None, reject=None, flat=None, tstep=2.0,
-                      verbose=None):
-        """This method is deprecated.
-        See ``ICA.fit``
-        """
-        return self.fit(raw, picks, start, stop, decim, reject, flat, tstep,
-                        verbose)
-
-    @deprecated('`decompose_epochs` is deprecated and will be removed in MNE'
-                ' 1.0. Use `fit` instead')
-    @verbose
-    def decompose_epochs(self, epochs, picks=None, decim=None, verbose=None):
-        """This method is deprecated.
-        See ``ICA.fit``
-        """
-        return self._fit_epochs(epochs, picks, decim, verbose)
-
-    @deprecated('`get_sources_raw` is deprecated and will be removed in '
-                'MNE 0.9. Use `get_sources` instead')
-    def get_sources_raw(self, raw, start=None, stop=None):
-        """This method is deprecated.
-        See ``ICA.fit``
-        """
-        return self._transform_raw(raw, start, stop)
-
-    @deprecated('`get_sources_epochs` is deprecated and will be removed in '
-                'MNE 0.9. Use `get_sources` instead')
-    def get_sources_epochs(self, epochs, concatenate=False):
-        """This method is deprecated.
-        See ``ICA.get_sources``
-        """
-        return self._transform_epochs(epochs, concatenate)
-
-    @deprecated('`sources_as_raw` is deprecated and will be removed in '
-                'MNE 0.9. Use `get_sources` instead')
-    def sources_as_raw(self, raw, picks=None, start=None, stop=None):
-        """This method is deprecated
-
-        see ``ICA.get_sources``.
-        """
-        if picks is None:
-            picks = pick_types(raw.info, meg=False, eeg=False, misc=True,
-                               ecg=True, eog=True, stim=True, exclude='bads')
-
-        add_channels = [raw.ch_names[k] for k in picks]
-        return self.get_sources(raw, add_channels, start, stop)
-
-    @deprecated('`sources_as_raw` is deprecated and will be removed in '
-                'MNE 0.9. Use `get_sources` instead')
-    def sources_as_epochs(self, epochs, picks=None):
-        """This method is deprecated
-
-        see ``ICA.get_sources``.
-        """
-        if picks is None:
-            picks = pick_types(epochs.info, meg=False, eeg=False, misc=True,
-                               ecg=True, eog=True, stim=True, exclude='bads')
-
-        add_channels = [epochs.ch_names[k] for k in picks]
-        return self.get_sources(epochs, add_channels, False)
-
-    @deprecated('`find_sources_raw` is deprecated and will be removed in '
-                'MNE 0.9. Use `find_bads` instead')
-    def find_sources_raw(self, raw, target=None, score_func='pearsonr',
-                         start=None, stop=None, l_freq=None, h_freq=None):
-        """Find sources based on own distribution or based on similarity to
-        other sources or between source and target.
-
-        Parameters
-        ----------
-        raw : instance of Raw
-            Raw object to draw sources from.
-        target : array-like | ch_name | None
-            Signal to which the sources shall be compared. It has to be of
-            the same shape as the sources. If some string is supplied, a
-            routine will try to find a matching channel. If None, a score
-            function expecting only one input-array argument must be used,
-            for instance, scipy.stats.skew (default).
-        score_func : callable | str label
-            Callable taking as arguments either two input arrays
-            (e.g. pearson correlation) or one input
-            array (e. g. skewness) and returns a float. For convenience the
-            most common score_funcs are available via string labels: Currently,
-            all distance metrics from scipy.spatial and all functions from
-            scipy.stats taking compatible input arguments are supported. These
-            function have been modified to support iteration over the rows of a
-            2D array.
-        start : int | float | None
-            First sample to include. If float, data will be interpreted as
-            time in seconds. If None, data will be used from the first sample.
-        stop : int | float | None
-            Last sample to not include. If float, data will be interpreted as
-            time in seconds. If None, data will be used to the last sample.
-        scores : ndarray
-            Scores for each source as returned from score_func.
-
-        Returns
-        -------
-        scores : ndarray
-            scores for each source as returned from score_func
-        """
-        return self.score_sources(inst=raw, target=target,
-                                  score_func=score_func,
-                                  start=start, stop=stop, l_freq=l_freq,
-                                  h_freq=h_freq)
-
-    @deprecated('`find_sources_epochs` is deprecated and will be removed in '
-                'MNE 0.9. Use `find_bads` instead')
-    def find_sources_epochs(self, epochs, target=None, score_func='pearsonr',
-                            l_freq=None, h_freq=None):
-        """Find sources based on relations between source and target
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            Epochs object to draw sources from.
-        target : array-like | ch_name | None
-            Signal to which the sources shall be compared. It has to be of
-            the same shape as the sources. If some string is supplied, a
-            routine will try to find a matching channel. If None, a score
-            function expecting only one input-array argument must be used,
-            for instance, scipy.stats.skew (default).
-        score_func : callable | str label
-            Callable taking as arguments either two input arrays
-            (e.g. pearson correlation) or one input
-            array (e. g. skewness) and returns a float. For convenience the
-            most common score_funcs are available via string labels: Currently,
-            all distance metrics from scipy.spatial and all functions from
-            scipy.stats taking compatible input arguments are supported. These
-            function have been modified to support iteration over the rows of a
-            2D array.
-
-        Returns
-        -------
-        scores : ndarray
-            scores for each source as returned from score_func
-        """
-        return self.score_sources(inst=epochs, target=target,
-                                  score_func=score_func, l_freq=l_freq,
-                                  h_freq=h_freq)
-
-    @deprecated('`pick_sources_raw` is deprecated and will be removed in '
-                'MNE 0.9. Use `apply` instead')
-    def pick_sources_raw(self, raw, include=None, exclude=None,
-                         n_pca_components=None, start=None, stop=None,
-                         copy=True):
-        """Recompose raw data including or excluding some sources
-
-        Parameters
-        ----------
-        raw : instance of Raw
-            Raw object to pick to remove ICA components from.
-        include : list-like | None
-            The source indices to use. If None all are used.
-        exclude : list-like | None
-            The source indices to remove. If None all are used.
-        n_pca_components : int | float
-            The number of PCA components to be unwhitened, where
-            `n_components_` is the lower bound and max_pca_components
-            the upper bound. If greater than `self.n_components_`, the next
-            `n_pca_components` minus 'n_components' PCA components will
-            be added before restoring the sensor space data. This can be used
-            to take back the PCA dimension reduction. If float, the number of
-            components selected matches the number of components with a
-            cumulative explained variance below `n_pca_components`.
-        start : int | float | None
-            First sample to include. If float, data will be interpreted as
-            time in seconds. If None, data will be used from the first sample.
-        stop : int | float | None
-            Last sample to not include. If float, data will be interpreted as
-            time in seconds. If None, data will be used to the last sample.
-        copy: bool
-            modify raw instance in place or return modified copy.
-
-        Returns
-        -------
-        raw : instance of Raw
-            raw instance with selected ICA components removed
-        """
-        return self.apply(inst=raw, include=include, exclude=exclude,
-                          n_pca_components=n_pca_components, start=stop,
-                          stop=stop, copy=copy)
-
-    @deprecated('`pick_sources_epochs` is deprecated and will be removed in '
-                'MNE 0.9. Use `apply` instead')
-    def pick_sources_epochs(self, epochs, include=None, exclude=None,
-                            n_pca_components=None, copy=True):
-        """Recompose epochs
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            Epochs object to pick to remove ICA components from.
-            Data must be preloaded.
-        include : list-like | None
-            The source indices to use. If None all are used.
-        exclude : list-like | None
-            The source indices to remove. If None  all are used.
-        n_pca_components : int | float
-            The number of PCA components to be unwhitened, where
-            `n_components_` is the lower bound and max_pca_components
-            the upper bound. If greater than `self.n_components_`, the next
-            `n_pca_components` minus `n_components_` PCA components will
-            be added before restoring the sensor space data. This can be used
-            to take back the PCA dimension reduction. If float, the number of
-            components selected matches the number of components with a
-            cumulative explained variance below `n_pca_components`.
-        copy : bool
-            Modify Epochs instance in place or return modified copy.
-
-        Returns
-        -------
-        epochs : instance of Epochs
-            Epochs with selected ICA components removed.
-        """
-        return self.apply(inst=epochs, include=include,
-                          exclude=exclude, n_pca_components=n_pca_components,
-                          copy=copy)
-
-    @deprecated('`pick_topomap` is deprecated and will be removed in '
-                'MNE 0.9. Use `plot_components` instead')
-    def plot_topomap(self, source_idx, ch_type='mag', res=64, layout=None,
-                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                     show=True):
-        """This method is deprecatd
-
-        see ``ica.plot_components``.
-        """
-        return self.plot_components(picks=source_idx,
-                                    ch_type=ch_type,
-                                    res=res, layout=layout, vmax=vmax,
-                                    cmap=cmap,
-                                    sensors=sensors, colorbar=colorbar,
-                                    show=show)
-
-    @deprecated('`plot_sources_raw` is deprecated and will be removed in '
-                'MNE 0.9. Use `plot_sources` instead')
-    def plot_sources_raw(self, raw, order=None, start=None, stop=None,
-                         n_components=None, source_idx=None, ncol=3, nrow=None,
-                         title=None, show=True):
-        """This method is deprecated.
-
-        See ``ica.plot_sources``
-        """
-        fig = self.plot_sources(inst=raw, picks=source_idx, ncol=ncol,
-                                title=title, show=show)
-
-        return fig
-
-    @deprecated('`plot_sources_epochs` is deprecated and will be removed in '
-                'MNE 0.9. Use `plot_sources` instead')
-    def plot_sources_epochs(self, epochs, order=None, epoch_idx=None,
-                            start=None, stop=None, n_components=None,
-                            source_idx=None, ncol=3, nrow=None, title=None,
-                            show=True):
-        """This method is deprecated.
-
-        See ``ica.plot_sources``
-        """
-        return plot_ica_sources(self, inst=epochs[epoch_idx], picks=order,
-                                start=start, stop=stop, ncol=ncol, show=show)
-
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                          ecg_ch=None, ecg_score_func='pearsonr',
                          ecg_criterion=0.1, eog_ch=None,
@@ -1990,10 +1694,7 @@ def _write_ica(fid, ica):
                     n_components=ica.n_components,
                     n_pca_components=ica.n_pca_components,
                     max_pca_components=ica.max_pca_components,
-                    current_fit=ica.current_fit,
-                    algorithm=ica.algorithm,
-                    fun=ica.fun,
-                    fun_args=ica.fun_args)
+                    current_fit=ica.current_fit)
 
     if ica.info is not None:
         start_block(fid, FIFF.FIFFB_MEAS)
@@ -2202,7 +1903,6 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
 @verbose
 def run_ica(raw, n_components, max_pca_components=100,
             n_pca_components=64, noise_cov=None, random_state=None,
-            algorithm='parallel', fun='logcosh', fun_args=None,
             verbose=None, picks=None, start=None, stop=None, start_find=None,
             stop_find=None, ecg_ch=None, ecg_score_func='pearsonr',
             ecg_criterion=0.1, eog_ch=None, eog_score_func='pearsonr',
@@ -2264,10 +1964,6 @@ def run_ica(raw, n_components, max_pca_components=100,
         You can also provide your own function. It should return a tuple
         containing the value of the function, and of its derivative, in the
         point.
-    fun_args: dictionary, optional
-        Arguments to send to the functional form.
-        If empty and if fun='logcosh', fun_args will take value
-        {'alpha' : 1.0}
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     picks : array-like of int
@@ -2349,10 +2045,9 @@ def run_ica(raw, n_components, max_pca_components=100,
     """
     ica = ICA(n_components=n_components, max_pca_components=max_pca_components,
               n_pca_components=n_pca_components, noise_cov=noise_cov,
-              random_state=random_state, algorithm=algorithm, fun=fun,
-              fun_args=fun_args, verbose=verbose)
+              random_state=random_state, verbose=verbose)
 
-    ica.decompose_raw(raw, start=start, stop=stop, picks=picks)
+    ica.fit(raw, start=start, stop=stop, picks=picks)
     logger.info('%s' % ica)
     logger.info('    Now searching for artifacts...')
 

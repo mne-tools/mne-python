@@ -285,7 +285,6 @@ Visualization
    plot_sparse_source_estimates
    plot_topo
    plot_topo_image_epochs
-   plot_topo_tfr
    plot_topomap
    compare_fiff
 

@@ -47,8 +47,7 @@ from .evoked import (Evoked, EvokedArray, read_evoked, write_evoked,
                      read_evokeds, write_evokeds)
 from .label import (label_time_courses, read_label, label_sign_flip,
                     write_label, stc_to_label, grow_labels, Label, split_label,
-                    BiHemiLabel, labels_from_parc, parc_from_labels,
-                    read_labels_from_annot, write_labels_to_annot)
+                    BiHemiLabel, read_labels_from_annot, write_labels_to_annot)
 from .misc import parse_config, read_reject_parameters
 from .coreg import (create_default_subject, scale_bem, scale_mri, scale_labels,
                     scale_source_space)
@@ -75,7 +74,6 @@ from . import filter
 from . import gui
 from . import layouts
 from . import minimum_norm
-from . import mixed_norm
 from . import preprocessing
 from . import simulation
 from . import stats

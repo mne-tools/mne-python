@@ -83,7 +83,6 @@ if __name__ == "__main__":
                     'mne.gui', 'mne.gui.tests',
                     'mne.layouts', 'mne.layouts.tests',
                     'mne.minimum_norm', 'mne.minimum_norm.tests',
-                    'mne.mixed_norm',
                     'mne.inverse_sparse', 'mne.inverse_sparse.tests',
                     'mne.preprocessing', 'mne.preprocessing.tests',
                     'mne.simulation', 'mne.simulation.tests',

@@ -16,8 +16,7 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .fixes import digitize, in1d
-from .utils import (get_subjects_dir, _check_subject, logger, verbose,
-                    deprecated)
+from .utils import get_subjects_dir, _check_subject, logger, verbose
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .source_space import add_source_space_distances
@@ -1592,21 +1591,6 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
 
 @verbose
-@deprecated("labels_from_parc() will be removed in release 0.9. Use "
-            "read_labels_from_annot() instead (note the change in return "
-            "values).")
-def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
-                     annot_fname=None, regexp=None, subjects_dir=None,
-                     verbose=None):
-    """Deprecated (will be removed in mne 0.9). Use read_labels_from_annot()
-    instead"""
-    labels = read_labels_from_annot(subject, parc, hemi, surf_name,
-                                    annot_fname, regexp, subjects_dir, verbose)
-    label_colors = [l.color for l in labels]
-    return labels, label_colors
-
-
-@verbose
 def read_labels_from_annot(subject, parc='aparc', hemi='both',
                            surf_name='white', annot_fname=None, regexp=None,
                            subjects_dir=None, verbose=None):
@@ -1750,34 +1734,6 @@ def _write_annot(fname, annot, ctab, names):
             np.array(len(name), dtype='>i4').tofile(fid)
             np.fromstring(name, dtype=np.uint8).tofile(fid)
             np.array(color[:4], dtype='>i4').tofile(fid)
-
-
-@verbose
-@deprecated("parc_from_labels() will be removed in release 0.9. Use "
-            "write_labels_to_annot() instead (note the change in the function "
-            "signature).")
-def parc_from_labels(labels, colors=None, subject=None, parc=None,
-                     annot_fname=None, overwrite=False, subjects_dir=None,
-                     verbose=None):
-    """Deprecated (will be removed in mne 0.9). Use write_labels_to_annot()
-    instead"""
-    if colors is not None:
-        # do some input checking
-        colors = np.asarray(colors)
-        if colors.shape[1] != 4:
-            raise ValueError('Each color must have 4 values')
-        if len(colors) != len(labels):
-            raise ValueError('colors must have the same length as labels')
-        if np.any(colors < 0) or np.any(colors > 1):
-            raise ValueError('color values must be between 0 and 1')
-
-        # assign colors to labels
-        labels = [label.copy() for label in labels]
-        for label, color in zip(labels, colors):
-            label.color = color
-
-    write_labels_to_annot(labels, subject, parc, overwrite, subjects_dir,
-                          annot_fname, verbose)
 
 
 @verbose

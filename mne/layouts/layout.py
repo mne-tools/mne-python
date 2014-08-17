@@ -5,11 +5,9 @@
 #
 # License: Simplified BSD
 
-import warnings
 from collections import defaultdict
 import os.path as op
 import numpy as np
-from scipy.optimize import leastsq
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from .. import pick_types
 from ..io.constants import FIFF
@@ -290,7 +288,7 @@ def make_grid_layout(info, picks=None):
     return layout
 
 
-def find_layout(info=None, ch_type=None, chs=None):
+def find_layout(info=None, ch_type=None):
     """Choose a layout based on the channels in the info 'chs' field
 
     Parameters
@@ -302,34 +300,18 @@ def find_layout(info=None, ch_type=None, chs=None):
         Defaults to None. Note, this argument will only be considered for
         VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
-    chs : instance of mne.io.meas_info.Info | None
-        The measurement info. Defaults to None. This keyword is deprecated and
-        will be removed in MNE-Python 0.9. Use `info` instead.
 
     Returns
     -------
     layout : Layout instance | None
         None if layout not found.
     """
-    msg = ("The 'chs' argument is deprecated and will be "
-           "removed in MNE-Python 0.9 Please use "
-           "'info' instead to pass the measurement info")
-    if chs is not None:
-        warnings.warn(msg, DeprecationWarning)
-    elif isinstance(info, list):
-        warnings.warn(msg, DeprecationWarning)
-        chs = info
-    else:
-        chs = info.get('chs')
-    if not chs:
-        raise ValueError('Could not find any channels. The info structure '
-                         'is not valid.')
-
     our_types = ' or '.join(['`None`', '`mag`', '`grad`', '`meg`'])
     if ch_type not in (None, 'meg', 'mag', 'grad', 'eeg'):
         raise ValueError('Invalid channel type (%s) requested '
                          '`ch_type` must be %s' % (ch_type, our_types))
 
+    chs = info['chs']
     coil_types = set([ch['coil_type'] for ch in chs])
     channel_types = set([ch['kind'] for ch in chs])
 
