@@ -261,7 +261,7 @@ def _plot_ica_sources_evoked(evoked, exclude, title):
 
 def plot_ica_scores(ica, scores, exclude=None, axhline=None,
                     title='ICA component scores',
-                    figsize=(12, 6)):
+                    figsize=(12, 6), show=True):
     """Plot scores related to detected components.
 
     Use this function to asses how well your score describes outlier
@@ -318,10 +318,11 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
         ax.set_ylabel('score')
         ax.set_xlabel('ICA components')
         ax.set_xlim(0, len(this_scores))
-    plt.show()
-    tight_layout(fig=fig)
-    if len(axes) > 1:
-        plt.subplots_adjust(top=0.9)
+    if show:
+        plt.show()
+        tight_layout(fig=fig)
+        if len(axes) > 1:
+            plt.subplots_adjust(top=0.9)
     return fig
 
 
