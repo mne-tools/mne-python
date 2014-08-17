@@ -711,6 +711,8 @@ class Report(object):
             will be appended to the end of the section
         """
         try:
+            # on some version mayavi.core won't be exposed unless ...
+            from mayavi import mlab  # ... mlab is imported
             import mayavi
         except ImportError:
             warnings.warn('Could not import mayavi. Trying to render '
