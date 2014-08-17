@@ -1326,7 +1326,7 @@ class ICA(ContainsMixin):
                                    image_interp=image_interp)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
-                     stop=None, show=True, title=None):
+                     stop=None, title=None, show=True):
         """Plot estimated latent sources given the unmixing matrix.
 
         Typical usecases:
@@ -1353,7 +1353,7 @@ class ICA(ContainsMixin):
         title : str | None
             The figure title. If None a default is provided.
         show : bool
-            If True, plot will be shown, else just the figure is returned.
+            If True, all open plots will be shown.
 
         Returns
         -------
@@ -1365,7 +1365,8 @@ class ICA(ContainsMixin):
                                 title=title, start=start, stop=stop, show=show)
 
     def plot_scores(self, scores, exclude=None, axhline=None,
-                    title='ICA component scores', figsize=(12, 6)):
+                    title='ICA component scores', figsize=(12, 6),
+                    show=True):
         """Plot scores related to detected components.
 
         Use this function to asses how well your score describes outlier
@@ -1383,7 +1384,9 @@ class ICA(ContainsMixin):
         title : str
             The figure title.
         figsize : tuple of int
-            The figure size. Defaults to (12, 6)
+            The figure size. Defaults to (12, 6).
+        show : bool
+            If True, all open plots will be shown.
 
         Returns
         -------
@@ -1391,7 +1394,8 @@ class ICA(ContainsMixin):
             The figure object.
         """
         return plot_ica_scores(ica=self, scores=scores, exclude=exclude,
-                               axhline=axhline, title=title, figsize=figsize)
+                               axhline=axhline, title=title, figsize=figsize,
+                               show=show)
 
     def plot_overlay(self, inst, exclude=None, start=None, stop=None,
                      title=None):
@@ -1693,7 +1697,7 @@ class ICA(ContainsMixin):
         See ``ica.plot_sources``
         """
         return plot_ica_sources(self, inst=epochs[epoch_idx], picks=order,
-                                start=start, stop=stop, ncol=ncol)
+                                start=start, stop=stop, ncol=ncol, show=show)
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                          ecg_ch=None, ecg_score_func='pearsonr',
