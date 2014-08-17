@@ -97,7 +97,7 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
                                               nave=nave, n_cycles=n_cycles,
                                               decim=decim, use_fft=use_fft,
                                               pca=pca, n_jobs=n_jobs,
-                                              with_plv=False, prepared=False)
+                                              with_plv=False, prepared=prepared)
 
     Fs = epochs.info['sfreq']  # sampling in Hz
     stcs = dict()
@@ -697,7 +697,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                                           bandwidth=bandwidth,
                                           adaptive=adaptive,
                                           low_bias=low_bias, n_jobs=n_jobs,
-                                          prepared=False)
+                                          prepared=prepared)
 
     if return_generator:
         # return generator object
