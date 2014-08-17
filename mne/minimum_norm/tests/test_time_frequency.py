@@ -27,10 +27,6 @@ fname_data = op.join(data_path, 'MEG', 'sample',
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 warnings.simplefilter('always')
 
-inverse_operator = read_inverse_operator(fname_inv)
-inv = prepare_inverse_operator(inverse_operator, nave=1,
-                               lambda2=1. / 9., method="dSPM")
-
 
 @sample.requires_sample_data
 def test_tfr_with_inverse_operator():
@@ -41,6 +37,9 @@ def test_tfr_with_inverse_operator():
     # Setup for reading the raw data
     raw = io.Raw(fname_data)
     events = find_events(raw, stim_channel='STI 014')
+    inverse_operator = read_inverse_operator(fname_inv)
+    inv = prepare_inverse_operator(inverse_operator, nave=1,
+                                   lambda2=1. / 9., method="dSPM")
 
     raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
@@ -96,15 +95,15 @@ def test_tfr_with_inverse_operator():
 def test_source_psd():
     """Test source PSD computation in label"""
     raw = io.Raw(fname_data)
+    inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
     tmin, tmax = 0, 20  # seconds
     fmin, fmax = 55, 65  # Hz
     n_fft = 2048
-    stc = compute_source_psd(raw, inv, lambda2=1. / 9.,
+    stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
                              method="dSPM", tmin=tmin, tmax=tmax,
                              fmin=fmin, fmax=fmax, pick_ori="normal",
-                             n_fft=n_fft, label=label, overlap=0.1,
-                             prepared=True)
+                             n_fft=n_fft, label=label, overlap=0.1)
     assert_true(stc.times[0] >= fmin * 1e-3)
     assert_true(stc.times[-1] <= fmax * 1e-3)
     # Time max at line frequency (60 Hz in US)
@@ -117,6 +116,7 @@ def test_source_psd_epochs():
     """Test multi-taper source PSD computation in label from epochs"""
 
     raw = io.Raw(fname_data)
+    inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
 
     event_id, tmin, tmax = 1, -0.2, 0.5
@@ -137,6 +137,8 @@ def test_source_psd_epochs():
     epochs.drop_bad_epochs()
     one_epochs = epochs[:1]
 
+    inv = prepare_inverse_operator(inverse_operator, nave=1,
+                                   lambda2=1. / 9., method="dSPM")
     # return list
     stc_psd = compute_source_psd_epochs(one_epochs, inv,
                                         lambda2=lambda2, method=method,
