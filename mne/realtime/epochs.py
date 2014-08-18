@@ -116,7 +116,7 @@ class RtEpochs(_BaseEpochs):
         Names of  of conditions corresponding to event_ids.
     ch_names : list of string
         List of channels' names.
-    events : array, of shape [n_events, 3]
+    events : array, shape (n_events, 3)
         The events associated with the epochs currently in the queue.
     verbose : bool, str, int, or None
         See above.
