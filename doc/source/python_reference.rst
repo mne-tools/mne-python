@@ -32,6 +32,8 @@ Classes
    Epochs
    Evoked
    SourceEstimate
+   VolSourceEstimate
+   MixedSourceEstimate
    Covariance
    Label
    BiHemiLabel
