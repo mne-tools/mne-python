@@ -72,7 +72,6 @@ mlab.points3d(x2, y2, z2, color=(1, 1, 0), scale_factor=0.001)
 # adjust view parameters
 mlab.view(173.78, 101.75, 0.30, np.array([-0.03, -0.01,  0.03]))
 mlab.roll(85)
-mlab.show()
 
 ##############################################################################
 # Compare volume source locations to segmentation file in freeview

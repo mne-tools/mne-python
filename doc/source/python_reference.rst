@@ -503,6 +503,29 @@ Functions:
    restrict_forward_to_label
    restrict_forward_to_stc
 
+:py:mod:`mne.source_space`:
+
+.. automodule:: mne.source_space
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.source_space
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   SourceSpaces
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   get_volume_labels_from_aseg
 
 Inverse Solutions
 =================
@@ -588,7 +611,6 @@ Source Space Data
 
    compute_morph_matrix
    extract_label_time_course
-   get_volume_labels_from_aseg
    grade_to_tris
    grade_to_vertices
    grow_labels
