@@ -1398,7 +1398,7 @@ class ICA(ContainsMixin):
                                show=show)
 
     def plot_overlay(self, inst, exclude=None, start=None, stop=None,
-                     title=None):
+                     title=None, show=True):
         """Overlay of raw and cleaned signals given the unmixing matrix.
 
         This method helps visualizing signal quality and arficat rejection.
@@ -1424,6 +1424,8 @@ class ICA(ContainsMixin):
             X-axis stop index. If None to the end.
         title : str
             The figure title.
+        show : bool
+            If True, all open plots will be shown.
 
         Returns
         -------
@@ -1431,7 +1433,7 @@ class ICA(ContainsMixin):
             The figure.
         """
         return plot_ica_overlay(self, inst=inst, exclude=exclude, start=start,
-                                stop=stop, title=title)
+                                stop=stop, title=title, show=show)
 
     @deprecated('`decompose_raw` is deprecated and will be removed in MNE 0.9.'
                 ' Use `fit` instead')

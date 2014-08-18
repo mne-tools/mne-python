@@ -337,7 +337,7 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
 
 
 def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
-                     stop=None, title=None):
+                     stop=None, title=None, show=True):
     """Overlay of raw and cleaned signals given the unmixing matrix.
 
     This method helps visualizing signal quality and arficat rejection.
@@ -363,6 +363,8 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         X-axis stop index. If None to the end.
     title : str
         The figure title.
+    show : bool
+        If True, all open plots will be shown.
 
     Returns
     -------
@@ -396,7 +398,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(data=data, data_cln=data_cln,
                                     times=times * 1e3, title=title,
-                                    ch_types_used=ch_types_used)
+                                    ch_types_used=ch_types_used, show=show)
     elif isinstance(inst, Evoked):
         if start is not None and stop is not None:
             inst = inst.crop(start, stop, copy=True)
@@ -404,12 +406,12 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
             inst.pick_channels([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(inst, exclude=exclude, copy=True)
         fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
-                                       title=title)
+                                       title=title, show=show)
 
     return fig
 
 
-def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used):
+def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     """Plot evoked after and before ICA cleaning
 
     Parameters
@@ -418,6 +420,8 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used):
         The ICA object.
     epochs : instance of mne.Epochs
         The Epochs to be regarded.
+    show : bool
+        If True, all open plots will be shown.
 
     Returns
     -------
@@ -448,13 +452,17 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used):
     ax2.set_xlabel('time (ms)')
     ax2.set_xlim(times[0], times[-1])
     tight_layout(fig=fig)
+
+    if show:
+        plt.show()
+
     fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
 
     return fig
 
 
-def _plot_ica_overlay_evoked(evoked, evoked_cln, title):
+def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     """Plot evoked after and before ICA cleaning
 
     Parameters
@@ -463,6 +471,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title):
         The ICA object.
     epochs : instance of mne.Epochs
         The Epochs to be regarded.
+    show : bool
+        If True, all open plots will be shown.
 
     Returns
     -------
@@ -482,12 +492,16 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title):
     fig.suptitle('Average signal before (red) and after (black) ICA')
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
 
-    evoked.plot(axes=axes)
+    evoked.plot(axes=axes, show=show)
     for ax in fig.axes:
         [l.set_color('r') for l in ax.get_lines()]
     fig.canvas.draw()
-    evoked_cln.plot(axes=axes)
+    evoked_cln.plot(axes=axes, show=show)
     tight_layout(fig=fig)
+
+    if show:
+        plt.show()
+
     fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
     return fig
