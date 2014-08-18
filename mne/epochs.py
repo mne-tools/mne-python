@@ -511,7 +511,7 @@ class Epochs(_BaseEpochs):
     ----------
     raw : Raw object
         An instance of Raw.
-    events : array, of shape [n_events, 3]
+    events : array, shape (n_events, 3)
         The events typically returned by the read_events function.
         If some events don't match the events of interest as specified
         by event_id, they will be marked as 'IGNORED' in the drop log.
@@ -1033,7 +1033,7 @@ class Epochs(_BaseEpochs):
 
         Returns
         -------
-        data : array of shape [n_epochs, n_channels, n_times]
+        data : array, shape (n_epochs, n_channels, n_times)
             The epochs data
         """
         if self.preload:
