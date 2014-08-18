@@ -66,7 +66,7 @@ def plot_ica_panel(sources, start=None, stop=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     show : bool
-        If True, plot will be shown, else just the figure is returned.
+        If True, all open plots will be shown.
 
     Returns
     -------
@@ -108,7 +108,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     title : str | None
         The figure title. If None a default is provided.
     show : bool
-        If True, plot will be shown, else just the figure is returned.
+        If True, all open plots will be shown.
 
     Returns
     -------
@@ -146,7 +146,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
             inst = inst.crop(start, stop, copy=True)
         fig = _plot_ica_sources_evoked(evoked=sources,
                                        exclude=exclude,
-                                       title=title)
+                                       title=title, show=show)
     else:
         raise ValueError('Data input must be of Raw or Epochs type')
 
@@ -178,7 +178,7 @@ def _plot_ica_grid(sources, start, stop,
     title : str
         The figure title. If None a default is provided.
     show : bool
-        If True, plot will be shown, else just the figure is returned.
+        If True, all open plots will be shown.
     """
     import matplotlib.pyplot as plt
 
@@ -224,7 +224,7 @@ def _plot_ica_grid(sources, start, stop,
     return fig
 
 
-def _plot_ica_sources_evoked(evoked, exclude, title):
+def _plot_ica_sources_evoked(evoked, exclude, title, show):
     """Plot average over epochs in ICA space
 
     Parameters
@@ -235,6 +235,8 @@ def _plot_ica_sources_evoked(evoked, exclude, title):
         The Epochs to be regarded.
     title : str
         The figure title.
+    show : bool
+        If True, all open plots will be shown.
     """
     import matplotlib.pyplot as plt
     if title is None:
@@ -256,12 +258,16 @@ def _plot_ica_sources_evoked(evoked, exclude, title):
     plt.ylabel('(NA)')
     plt.legend(loc='best')
     tight_layout(fig=fig)
+
+    if show:
+        plt.show()
+
     return fig
 
 
 def plot_ica_scores(ica, scores, exclude=None, axhline=None,
                     title='ICA component scores',
-                    figsize=(12, 6)):
+                    figsize=(12, 6), show=True):
     """Plot scores related to detected components.
 
     Use this function to asses how well your score describes outlier
@@ -281,7 +287,9 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
     title : str
         The figure title.
     figsize : tuple of int
-        The figure size. Defaults to (12, 6)
+        The figure size. Defaults to (12, 6).
+    show : bool
+        If True, all open plots will be shown.
 
     Returns
     -------
@@ -318,7 +326,10 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
         ax.set_ylabel('score')
         ax.set_xlabel('ICA components')
         ax.set_xlim(0, len(this_scores))
-    plt.show()
+
+    if show:
+        plt.show()
+
     tight_layout(fig=fig)
     if len(axes) > 1:
         plt.subplots_adjust(top=0.9)
@@ -352,17 +363,18 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         X-axis stop index. If None to the end.
     title : str
         The figure title.
+    show : bool
+        If True, all open plots will be shown.
 
     Returns
     -------
-        fig : instance of pyplot.Figure
+    fig : instance of pyplot.Figure
         The figure.
     """
     # avoid circular imports
     from ..io.base import _BaseRaw
     from ..evoked import Evoked
     from ..preprocessing.ica import _check_start_stop
-    import matplotlib.pyplot as plt
 
     if not isinstance(inst, (_BaseRaw, Evoked)):
         raise ValueError('Data input must be of Raw or Epochs type')
@@ -386,7 +398,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
         data_cln, _ = raw_cln[picks, start_compare:stop_compare]
         fig = _plot_ica_overlay_raw(data=data, data_cln=data_cln,
                                     times=times * 1e3, title=title,
-                                    ch_types_used=ch_types_used)
+                                    ch_types_used=ch_types_used, show=show)
     elif isinstance(inst, Evoked):
         if start is not None and stop is not None:
             inst = inst.crop(start, stop, copy=True)
@@ -394,13 +406,12 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
             inst.pick_channels([inst.ch_names[p] for p in picks])
         evoked_cln = ica.apply(inst, exclude=exclude, copy=True)
         fig = _plot_ica_overlay_evoked(evoked=inst, evoked_cln=evoked_cln,
-                                       title=title)
-    if show is True:
-        plt.show()
+                                       title=title, show=show)
+
     return fig
 
 
-def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used):
+def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     """Plot evoked after and before ICA cleaning
 
     Parameters
@@ -409,6 +420,8 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used):
         The ICA object.
     epochs : instance of mne.Epochs
         The Epochs to be regarded.
+    show : bool
+        If True, all open plots will be shown.
 
     Returns
     -------
@@ -439,13 +452,17 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used):
     ax2.set_xlabel('time (ms)')
     ax2.set_xlim(times[0], times[-1])
     tight_layout(fig=fig)
+
+    if show:
+        plt.show()
+
     fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
 
     return fig
 
 
-def _plot_ica_overlay_evoked(evoked, evoked_cln, title):
+def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     """Plot evoked after and before ICA cleaning
 
     Parameters
@@ -454,6 +471,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title):
         The ICA object.
     epochs : instance of mne.Epochs
         The Epochs to be regarded.
+    show : bool
+        If True, all open plots will be shown.
 
     Returns
     -------
@@ -473,12 +492,16 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title):
     fig.suptitle('Average signal before (red) and after (black) ICA')
     axes = axes.flatten() if isinstance(axes, np.ndarray) else axes
 
-    evoked.plot(axes=axes)
+    evoked.plot(axes=axes, show=show)
     for ax in fig.axes:
         [l.set_color('r') for l in ax.get_lines()]
     fig.canvas.draw()
-    evoked_cln.plot(axes=axes)
+    evoked_cln.plot(axes=axes, show=show)
     tight_layout(fig=fig)
+
+    if show:
+        plt.show()
+
     fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
     return fig

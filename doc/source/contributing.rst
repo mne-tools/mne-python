@@ -103,6 +103,7 @@ More mne-python specific guidelines
 * Use relative imports for references inside mne-python.
 * Use nested imports for ``matplotlib``, ``sklearn``, and ``pandas``.
 * Use ``RdBu_r`` colormap for signed data and ``Reds`` for unsigned data in visualization functions and examples.
+* All visualization functions must accept a ``show`` parameter and return a ``fig`` handle.
 * Efforts to improve test timing without decreasing coverage is well appreciated. To see the top-30 tests in order of decreasing timing, run the following command::
 
     nosetests --with-timer --timer-top-n 30
