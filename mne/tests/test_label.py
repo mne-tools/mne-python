@@ -14,10 +14,14 @@ from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
                  read_labels_from_annot, write_labels_to_annot, split_label)
 from mne.label import Label, _blend_colors
-from mne.utils import (get_config, requires_mne, run_subprocess, _TempDir,
-                       requires_sklearn)
+from mne.utils import (requires_mne, run_subprocess, _TempDir,
+                       requires_sklearn, get_subjects_dir)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
-from mne import spatial_tris_connectivity
+from mne import spatial_tris_connectivity, read_surface
+from mne.label import _n_colors
+from mne.source_space import SourceSpaces
+from mne.externals.six import string_types
+
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -46,6 +50,91 @@ tempdir = _TempDir()
 #    label = Label(np.unique((np.random.rand(100) * 10242).astype(int)),
 #                  hemi=hemi, comment='Test ' + hemi, subject='fsaverage')
 #    label.save(op.join(test_path, 'test-%s.label' % hemi))
+
+
+# XXX : this was added for backward compat and keep the old test_label_in_src
+def _stc_to_label(stc, src, smooth, subjects_dir=None):
+    """Compute a label from the non-zero sources in an stc object.
+
+    Parameters
+    ----------
+    stc : SourceEstimate
+        The source estimates.
+    src : SourceSpaces | str | None
+        The source space over which the source estimates are defined.
+        If it's a string it should the subject name (e.g. fsaverage).
+        Can be None if stc.subject is not None.
+    smooth : int
+        Number of smoothing iterations.
+    subjects_dir : str | None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+
+    Returns
+    -------
+    labels : list of Labels | list of list of Labels
+        The generated labels. If connected is False, it returns
+        a list of Labels (one per hemisphere). If no Label is available
+        in a hemisphere, None is returned. If connected is True,
+        it returns for each hemisphere a list of connected labels
+        ordered in decreasing order depending of the maximum value in the stc.
+        If no Label is available in an hemisphere, an empty list is returned.
+    """
+    src = stc.subject if src is None else src
+
+    if isinstance(src, string_types):
+        subject = src
+    else:
+        subject = stc.subject
+
+    if isinstance(src, string_types):
+        subjects_dir = get_subjects_dir(subjects_dir)
+        surf_path_from = op.join(subjects_dir, src, 'surf')
+        rr_lh, tris_lh = read_surface(op.join(surf_path_from,
+                                      'lh.white'))
+        rr_rh, tris_rh = read_surface(op.join(surf_path_from,
+                                      'rh.white'))
+        rr = [rr_lh, rr_rh]
+        tris = [tris_lh, tris_rh]
+    else:
+        if not isinstance(src, SourceSpaces):
+            raise TypeError('src must be a string or a set of source spaces')
+        if len(src) != 2:
+            raise ValueError('source space should contain the 2 hemispheres')
+        rr = [1e3 * src[0]['rr'], 1e3 * src[1]['rr']]
+        tris = [src[0]['tris'], src[1]['tris']]
+
+    labels = []
+    cnt = 0
+    for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
+            zip(['lh', 'rh'], stc.vertno, tris, rr)):
+        this_data = stc.data[cnt:cnt + len(this_vertno)]
+
+        clusters = [this_vertno[np.any(this_data, axis=1)]]
+
+        cnt += len(this_vertno)
+
+        clusters = [c for c in clusters if len(c) > 0]
+
+        if len(clusters) == 0:
+            this_labels = None
+        else:
+            this_labels = []
+            colors = _n_colors(len(clusters))
+            for c, color in zip(clusters, colors):
+                idx_use = c
+                label = Label(idx_use, this_rr[idx_use], None, hemi,
+                              'Label from stc', subject=subject,
+                              color=color)
+                if smooth:
+                    label = label.fill(src)
+
+                this_labels.append(label)
+
+            this_labels = this_labels[0]
+
+        labels.append(this_labels)
+
+    return labels
 
 
 def assert_labels_equal(l0, l1, decimal=5):
@@ -456,8 +545,8 @@ def test_stc_to_label():
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
         warnings.simplefilter('always')
-        labels1 = stc_to_label(stc, src='sample', smooth=3)
-        labels2 = stc_to_label(stc, src=src, smooth=3)
+        labels1 = _stc_to_label(stc, src='sample', smooth=3)
+        labels2 = _stc_to_label(stc, src=src, smooth=3)
     assert_true(len(w) > 0)
     assert_equal(len(labels1), len(labels2))
     for l1, l2 in zip(labels1, labels2):
