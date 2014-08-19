@@ -491,14 +491,14 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         return self.info['ch_names']
 
     @verbose
-    def plot(self, picks, baseline=None, mode='mean', tmin=None, tmax=None,
+    def plot(self, picks=None, baseline=None, mode='mean', tmin=None, tmax=None,
              fmin=None, fmax=None, vmin=None, vmax=None, cmap='RdBu_r',
              dB=False, colorbar=True, show=True, verbose=None):
         """Plot TFRs in a topography with images
 
         Parameters
         ----------
-        picks : array-like of int
+        picks : array-like of int | None
             The indices of the channels to plot.
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.
