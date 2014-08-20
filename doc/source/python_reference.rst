@@ -32,6 +32,8 @@ Classes
    Epochs
    Evoked
    SourceEstimate
+   VolSourceEstimate
+   MixedSourceEstimate
    Covariance
    Label
    BiHemiLabel
@@ -501,6 +503,29 @@ Functions:
    restrict_forward_to_label
    restrict_forward_to_stc
 
+:py:mod:`mne.source_space`:
+
+.. automodule:: mne.source_space
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.source_space
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   SourceSpaces
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   get_volume_labels_from_aseg
 
 Inverse Solutions
 =================

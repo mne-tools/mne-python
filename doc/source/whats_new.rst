@@ -11,6 +11,14 @@ Changelog
 
    - Add support for mayavi figures in `add_section` method in Report by `Mainak Jas`_
 
+   - Add extract volumes of interest from freesurfer segmentation and setup as volume source space by `Alan Leggitt`_
+
+   - Add support to combine source spaces of different types by `Alan Leggitt`_
+
+   - Add support for source estimate for mixed source spaces by `Alan Leggitt`_
+
+   - Add `SourceSpaces.export_volume` method by `Alan Leggitt`_
+
 BUG
 ~~~
 
@@ -829,3 +837,5 @@ of commits):
 .. _Lukas Breuer: http://www.researchgate.net/profile/Lukas_Breuer
 
 .. _Federico Raimondo: https://github.com/fraimondo
+
+.. _Alan Leggitt: https://github.com/leggitta

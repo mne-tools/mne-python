@@ -49,7 +49,7 @@ x1, y1, z1 = lh_surf['rr'].T
 faces = lh_surf['use_tris']
 normals = lh_surf['nn']
 # normalize for mayavi
-normals = normals / np.sum(normals * normals, axis=1)[:, np.newaxis]
+normals /= np.sum(normals * normals, axis=1)[:, np.newaxis]
 
 # extract left cerebellum cortex source positions
 x2, y2, z2 = lh_cereb[0]['rr'][lh_cereb[0]['inuse'].astype(bool)].T
@@ -72,7 +72,6 @@ mlab.points3d(x2, y2, z2, color=(1, 1, 0), scale_factor=0.001)
 # adjust view parameters
 mlab.view(173.78, 101.75, 0.30, np.array([-0.03, -0.01,  0.03]))
 mlab.roll(85)
-mlab.show()
 
 ##############################################################################
 # Compare volume source locations to segmentation file in freeview
