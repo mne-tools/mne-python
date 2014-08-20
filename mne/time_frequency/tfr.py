@@ -7,6 +7,7 @@ License : BSD 3-clause
 inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
 
+import warnings
 from math import sqrt
 from copy import deepcopy
 import numpy as np
@@ -21,7 +22,7 @@ from ..channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
 
 
-def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
+def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
     """Compute Wavelets for the given frequency range
 
     Parameters
@@ -50,6 +51,13 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
+
+    # deprecate Fs
+    if Fs is not None:
+        sfreq = Fs
+        warnings.warn("`Fs` is deprecated and will be removed in v1.0. "
+                      "Use `sfreq` instead", DeprecationWarning)
+
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
         raise ValueError("n_cycles should be fixed or defined for "
                          "each frequency.")
@@ -156,7 +164,8 @@ def _cwt_convolve(X, Ws, mode='same'):
         yield tfr
 
 
-def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
+def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
+               Fs=None):
     """Compute time freq decomposition with Morlet wavelets
 
     Parameters
@@ -179,6 +188,12 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
     tfr : 3D array
         Time Frequency Decompositions (n_signals x n_frequencies x n_times)
     """
+    # deprecate Fs
+    if Fs is not None:
+        sfreq = Fs
+        warnings.warn("`Fs` is deprecated and will be removed in v1.0. "
+                      "Use `sfreq` instead", DeprecationWarning)
+
     mode = 'same'
     # mode = "valid"
     n_signals, n_times = X.shape
@@ -260,7 +275,8 @@ def _time_frequency(X, Ws, use_fft):
 @verbose
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
-                       decim=1, n_jobs=1, zero_mean=False, verbose=None):
+                       decim=1, n_jobs=1, zero_mean=False, Fs=None,
+                       verbose=None):
     """Compute time-frequency power on single epochs
 
     Parameters
@@ -305,6 +321,12 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     power : 4D array
         Power estimate (Epochs x Channels x Frequencies x Timepoints).
     """
+    # deprecate Fs
+    if Fs is not None:
+        sfreq = Fs
+        warnings.warn("`Fs` is deprecated and will be removed in v1.0. "
+                      "Use `sfreq` instead", DeprecationWarning)
+
     mode = 'same'
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
@@ -340,7 +362,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 
 def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
-                   decim=1, n_jobs=1, zero_mean=False):
+                   decim=1, n_jobs=1, zero_mean=False, Fs=None):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -374,6 +396,11 @@ def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     phase_lock : 2D array
         Phase locking factor in [0, 1] (Channels x Frequencies x Timepoints)
     """
+    # deprecate Fs
+    if Fs is not None:
+        sfreq = Fs
+        warnings.warn("`Fs` is deprecated and will be removed in v1.0. "
+                      "Use `sfreq` instead", DeprecationWarning)
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
 
