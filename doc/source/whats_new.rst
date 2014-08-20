@@ -837,3 +837,5 @@ of commits):
 .. _Lukas Breuer: http://www.researchgate.net/profile/Lukas_Breuer
 
 .. _Federico Raimondo: https://github.com/fraimondo
+
+.. _Alan Leggitt: https://github.com/leggitta
