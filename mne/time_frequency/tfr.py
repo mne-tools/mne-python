@@ -433,6 +433,9 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     freqs = freqs[ifmin:ifmax]
 
+    # crop data
+    data = data[:, ifmin:ifmax, itmin:itmax]
+
     times *= 1e3
     if dB:
         data = 20 * np.log10(data)
