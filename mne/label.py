@@ -16,8 +16,7 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .fixes import digitize, in1d
-from .utils import (get_subjects_dir, _check_subject, logger, verbose,
-                    deprecated)
+from .utils import get_subjects_dir, _check_subject, logger, verbose
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .source_space import add_source_space_distances
@@ -1063,7 +1062,7 @@ def label_sign_flip(label, src):
     return flip
 
 
-def stc_to_label(stc, src=None, smooth=None, connected=False,
+def stc_to_label(stc, src=None, smooth=True, connected=False,
                  subjects_dir=None):
     """Compute a label from the non-zero sources in an stc object.
 
@@ -1078,10 +1077,7 @@ def stc_to_label(stc, src=None, smooth=None, connected=False,
     smooth : bool
         Fill in vertices on the cortical surface that are not in the source
         space based on the closest source space vertex (requires
-        src to be a SourceSpace). The default is currently to smooth with a
-        deprecated method, and will change to True in v0.9 (i.e., the parameter
-        should be explicitly specified as boolean until then to avoid a
-        deprecation warning).
+        src to be a SourceSpace).
     connected : bool
         If True a list of connected labels will be returned in each
         hemisphere. The labels are ordered in decreasing order depending
@@ -1099,6 +1095,9 @@ def stc_to_label(stc, src=None, smooth=None, connected=False,
         ordered in decreasing order depending of the maximum value in the stc.
         If no Label is available in an hemisphere, an empty list is returned.
     """
+    if not isinstance(smooth, bool):
+        raise ValueError('smooth should be True or False. Got %s.' % smooth)
+
     src = stc.subject if src is None else src
     if src is None:
         raise ValueError('src cannot be None if stc.subject is None')
@@ -1110,27 +1109,12 @@ def stc_to_label(stc, src=None, smooth=None, connected=False,
     if not isinstance(stc, SourceEstimate):
         raise ValueError('SourceEstimate should be surface source estimates')
 
-    if not isinstance(smooth, bool):
-        if smooth is None:
-            msg = ("The smooth parameter was not explicitly specified. The "
-                   "default behavior of stc_to_label() will change in v0.9 "
-                   "to filling the label using source space patch "
-                   "information. In order to avoid this warning, set smooth "
-                   "to a boolean explicitly.")
-            smooth = 5
-        else:
-            msg = ("The smooth parameter of stc_to_label() was specified as "
-                   "int. This value is deprecated and will raise an error in "
-                   "v0.9. In order to avoid this warning, set smooth to a "
-                   "boolean.")
-        warn(msg, DeprecationWarning)
-
     if isinstance(src, string_types):
         if connected:
             raise ValueError('The option to return only connected labels is '
                              'only available if source spaces are provided.')
-        if isinstance(smooth, bool) and smooth:
-            msg = ("stc_to_label with smooth='patch' requires src to be an "
+        if smooth:
+            msg = ("stc_to_label with smooth=True requires src to be an "
                    "instance of SourceSpace")
             raise ValueError(msg)
         subjects_dir = get_subjects_dir(subjects_dir)
@@ -1198,19 +1182,11 @@ def stc_to_label(stc, src=None, smooth=None, connected=False,
             colors = _n_colors(len(clusters))
             for c, color in zip(clusters, colors):
                 idx_use = c
-                if isinstance(smooth, bool) and smooth:
-                    label = Label(idx_use, this_rr[idx_use], None, hemi,
-                                  'Label from stc', subject=subject,
-                                  color=color).fill(src)
-                else:
-                    for k in range(smooth):
-                        e_use = e[:, idx_use]
-                        data1 = e_use * np.ones(len(idx_use))
-                        idx_use = np.where(data1)[0]
-
-                    label = Label(idx_use, this_rr[idx_use], None, hemi,
-                                  'Label from stc', subject=subject,
-                                  color=color)
+                label = Label(idx_use, this_rr[idx_use], None, hemi,
+                              'Label from stc', subject=subject,
+                              color=color)
+                if smooth:
+                    label = label.fill(src)
 
                 this_labels.append(label)
 
@@ -1592,21 +1568,6 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
 
 @verbose
-@deprecated("labels_from_parc() will be removed in release 0.9. Use "
-            "read_labels_from_annot() instead (note the change in return "
-            "values).")
-def labels_from_parc(subject, parc='aparc', hemi='both', surf_name='white',
-                     annot_fname=None, regexp=None, subjects_dir=None,
-                     verbose=None):
-    """Deprecated (will be removed in mne 0.9). Use read_labels_from_annot()
-    instead"""
-    labels = read_labels_from_annot(subject, parc, hemi, surf_name,
-                                    annot_fname, regexp, subjects_dir, verbose)
-    label_colors = [l.color for l in labels]
-    return labels, label_colors
-
-
-@verbose
 def read_labels_from_annot(subject, parc='aparc', hemi='both',
                            surf_name='white', annot_fname=None, regexp=None,
                            subjects_dir=None, verbose=None):
@@ -1750,34 +1711,6 @@ def _write_annot(fname, annot, ctab, names):
             np.array(len(name), dtype='>i4').tofile(fid)
             np.fromstring(name, dtype=np.uint8).tofile(fid)
             np.array(color[:4], dtype='>i4').tofile(fid)
-
-
-@verbose
-@deprecated("parc_from_labels() will be removed in release 0.9. Use "
-            "write_labels_to_annot() instead (note the change in the function "
-            "signature).")
-def parc_from_labels(labels, colors=None, subject=None, parc=None,
-                     annot_fname=None, overwrite=False, subjects_dir=None,
-                     verbose=None):
-    """Deprecated (will be removed in mne 0.9). Use write_labels_to_annot()
-    instead"""
-    if colors is not None:
-        # do some input checking
-        colors = np.asarray(colors)
-        if colors.shape[1] != 4:
-            raise ValueError('Each color must have 4 values')
-        if len(colors) != len(labels):
-            raise ValueError('colors must have the same length as labels')
-        if np.any(colors < 0) or np.any(colors > 1):
-            raise ValueError('color values must be between 0 and 1')
-
-        # assign colors to labels
-        labels = [label.copy() for label in labels]
-        for label, color in zip(labels, colors):
-            label.color = color
-
-    write_labels_to_annot(labels, subject, parc, overwrite, subjects_dir,
-                          annot_fname, verbose)
 
 
 @verbose

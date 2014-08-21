@@ -13,8 +13,7 @@ from ..utils import logger, verbose
 @verbose
 def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
                     fmin=0, fmax=np.inf, n_fft=2048, pad_to=None, n_overlap=0,
-                    n_jobs=1, plot=False, proj=False, NFFT=None,
-                    verbose=None):
+                    n_jobs=1, plot=False, proj=False, verbose=None):
     """Compute power spectral density with average periodograms.
 
     Parameters
@@ -33,7 +32,7 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
         it is the smoother are the PSDs.
     pad_to : int | None
         The number of points to which the data segment is padded when
-        performing the FFT. If None, pad_to equals `NFFT`.
+        performing the FFT. If None, pad_to equals `n_fft`.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
@@ -53,10 +52,6 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     freqs: array of float
         The frequencies
     """
-    if NFFT is not None:
-        n_fft = NFFT
-        warnings.warn("`NFFT` is deprecated and will be removed in v0.9. "
-                      "Use `n_fft` instead")
     start, stop = raw.time_as_index([tmin, tmax])
     if picks is not None:
         data, times = raw[picks, start:(stop + 1)]

@@ -60,17 +60,7 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
                  preload=False, reference=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], ch_names=None, verbose=None):
-        # backwards compatibility
-        if ch_names is not None:
-            if elp_names is not None:
-                err = ("ch_names is a deprecated parameter, don't specify "
-                       "ch_names if elp_names are specified.")
-                raise TypeError(err)
-            msg = "The ch_names parameter is deprecated. Use elp_names."
-            warnings.warn(msg, DeprecationWarning)
-            elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None,
-                         None] + list(ch_names)
+                 eog=['HEOGL', 'HEOGR', 'VEOGb'], verbose=None):
 
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
@@ -644,8 +634,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
 
 def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
                          preload=False, reference=None,
-                         eog=['HEOGL', 'HEOGR', 'VEOGb'], ch_names=None,
-                         verbose=None):
+                         eog=['HEOGL', 'HEOGR', 'VEOGb'], verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -680,5 +669,5 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
-                         reference, eog, ch_names, verbose)
+                         reference, eog, verbose)
     return raw

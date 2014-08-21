@@ -18,7 +18,7 @@ from scipy import linalg
 from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import pick_types
-from ..utils import _clean_names, deprecated
+from ..utils import _clean_names
 from .utils import tight_layout, _setup_vmin_vmax, DEFAULTS
 from .utils import _prepare_trellis, _check_delayed_ssp
 from .utils import _draw_proj_checkbox
@@ -522,19 +522,6 @@ def _make_image_mask(outlines, pos, res):
     image_mask[inds.reshape(image_mask.shape)] = True
 
     return image_mask, pos
-
-
-@deprecated('`plot_ica_topomap` is deprecated and will be removed in '
-            'MNE 1.0. Use `plot_ica_components` instead')
-def plot_ica_topomap(ica, source_idx, ch_type='mag', res=64, layout=None,
-                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
-                     show=True):
-    """This functoin is deprecated
-
-    See ``plot_ica_components``.
-    """
-    return plot_ica_components(ica, source_idx, ch_type, res, layout,
-                               vmax, cmap, sensors, colorbar)
 
 
 def plot_ica_components(ica, picks=None, ch_type='mag', res=64,

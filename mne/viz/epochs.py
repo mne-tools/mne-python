@@ -164,7 +164,7 @@ def _drop_log_stats(drop_log, ignore=['IGNORED']):
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
                   color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
-                  show=True, return_fig=False):
+                  show=True, return_fig=True):
     """Show the channel stats based on a drop_log from Epochs
 
     Parameters
@@ -187,13 +187,10 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     show : bool
         Show figure if True.
     return_fig : bool
-        Return only figure handle if True. This argument will default
-        to True in v0.9 and then be removed.
+        This argument is deprecated and will be removed in v0.10.
 
     Returns
     -------
-    perc : float
-        Total percentage of epochs dropped.
     fig : Instance of matplotlib.figure.Figure
         The figure.
     """
@@ -220,13 +217,12 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     if show:
         plt.show()
 
-    if return_fig:
-        return fig
-    else:
-        msg = ("'return_fig=False' will be deprecated in v0.9. "
+    if not return_fig:
+        msg = ("'return_fig=False' will be deprecated in v0.10. "
                "Use 'Epochs.drop_log_stats' to get percentages instead.")
         warnings.warn(msg, DeprecationWarning)
-        return perc, fig
+
+    return fig
 
 
 def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,

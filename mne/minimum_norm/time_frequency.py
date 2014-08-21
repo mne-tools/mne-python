@@ -350,7 +350,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
                        n_fft=2048, overlap=0.5, pick_ori=None, label=None,
                        nave=1, pca=True, verbose=None, pick_normal=None,
-                       prepared=False, NFFT=None):
+                       prepared=False):
     """Compute source power spectrum density (PSD)
 
     Parameters
@@ -400,11 +400,6 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc : SourceEstimate | VolSourceEstimate
         The PSD (in dB) of each of the sources.
     """
-    if NFFT is not None:
-        n_fft = NFFT
-        warnings.warn("`NFFT` is deprecated and will be removed in v0.9. "
-                      "Use `n_fft` instead")
-
     pick_ori = _check_ori(pick_ori, pick_normal)
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))

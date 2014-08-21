@@ -137,15 +137,6 @@ def test_make_grid_layout():
 
 def test_find_layout():
     """Test finding layout"""
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        find_layout(chs=test_info['chs'])
-        assert_true(w[0].category == DeprecationWarning)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        find_layout(test_info['chs'])
-        assert_true(w[0].category == DeprecationWarning)
-    assert_raises(ValueError, find_layout, dict())
     assert_raises(ValueError, find_layout, test_info, ch_type='meep')
 
     sample_info = Raw(fif_fname).info

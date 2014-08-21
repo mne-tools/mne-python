@@ -19,7 +19,6 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose
 from ..channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
-from ..utils import deprecated
 
 
 def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
@@ -406,48 +405,6 @@ def _induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     return psd, plf
 
 
-@deprecated("induced_power will be removed in release 0.9. Use "
-            "tfr_morlet instead.")
-def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
-                  decim=1, n_jobs=1, zero_mean=False):
-    """Compute time induced power and inter-trial phase-locking factor
-
-    The time frequency decomposition is done with Morlet wavelets
-
-    Parameters
-    ----------
-    data : array
-        3D array of shape [n_epochs, n_channels, n_times]
-    Fs : float
-        sampling Frequency
-    frequencies : array
-        Array of frequencies of interest
-    use_fft : bool
-        Compute transform with fft based convolutions or temporal
-        convolutions.
-    n_cycles : float | array of float
-        Number of cycles. Fixed number or one per frequency.
-    decim: int
-        Temporal decimation factor
-    n_jobs : int
-        The number of CPUs used in parallel. All CPUs are used in -1.
-        Requires joblib package.
-    zero_mean : bool
-        Make sure the wavelets are zero mean.
-
-    Returns
-    -------
-    power : 2D array
-        Induced power (Channels x Frequencies x Timepoints).
-        Squared amplitude of time-frequency coefficients.
-    phase_lock : 2D array
-        Phase locking factor in [0, 1] (Channels x Frequencies x Timepoints)
-    """
-    return _induced_power(data, Fs, frequencies, use_fft=use_fft,
-                          n_cycles=n_cycles, decim=decim, n_jobs=n_jobs,
-                          zero_mean=zero_mean)
-
-
 def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                  baseline, vmin, vmax, dB):
     """Aux Function to prepare tfr computation"""
@@ -534,14 +491,14 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         return self.info['ch_names']
 
     @verbose
-    def plot(self, picks, baseline=None, mode='mean', tmin=None, tmax=None,
+    def plot(self, picks=None, baseline=None, mode='mean', tmin=None, tmax=None,
              fmin=None, fmax=None, vmin=None, vmax=None, cmap='RdBu_r',
              dB=False, colorbar=True, show=True, verbose=None):
         """Plot TFRs in a topography with images
 
         Parameters
         ----------
-        picks : array-like of int
+        picks : array-like of int | None
             The indices of the channels to plot.
         baseline : None (default) or tuple of length 2
             The time interval to apply baseline correction.

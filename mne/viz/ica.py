@@ -11,7 +11,6 @@ from functools import partial
 
 import numpy as np
 
-from ..utils import deprecated
 from .utils import tight_layout, _prepare_trellis
 
 
@@ -37,45 +36,6 @@ def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
         # it here to know what went wrong
         print(err)
         raise err
-
-
-@deprecated('`plot_ica_panel` is deprecated and will be removed in '
-            'MNE 1.0. Use `plot_ica_sources` instead')
-def plot_ica_panel(sources, start=None, stop=None,
-                   source_idx=None, ncol=3, verbose=None,
-                   title=None, show=True):
-    """Create panel plots of ICA sources
-
-    Clicking on the plot of an individual source opens a new figure showing
-    the source.
-
-    Parameters
-    ----------
-    sources : ndarray
-        Sources as drawn from ica.get_sources.
-    start : int
-        x-axis start index. If None from the beginning.
-    stop : int
-        x-axis stop index. If None to the end.
-    source_idx : array-like
-        Indices for subsetting the sources.
-    ncol : int
-        Number of panel-columns.
-    title : str
-        The figure title. If None a default is provided.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-    show : bool
-        If True, all open plots will be shown.
-
-    Returns
-    -------
-    fig : instance of pyplot.Figure
-    """
-
-    return _plot_ica_grid(sources=sources, start=start, stop=stop,
-                          source_idx=source_idx, ncol=ncol, verbose=verbose,
-                          title=title, show=show)
 
 
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
