@@ -11,7 +11,8 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_allclose)
 from nose.tools import assert_true, assert_raises
 
 from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout,
@@ -116,9 +117,9 @@ def test_make_eeg_layout():
     lout_orig = read_layout(kind=lout_name, path=lout_path)
     layout = make_eeg_layout(Raw(fif_fname).info)
     layout.save(op.join(tempdir, tmp_name + '.lout'))
-    lout_new = read_layout(kind=tmp_name, path=tempdir)
+    lout_new = read_layout(kind=tmp_name, path=tempdir, scale=False)
     assert_array_equal(lout_new.kind, tmp_name)
-    assert_array_equal(lout_orig.pos, lout_new.pos)
+    assert_allclose(layout.pos, lout_new.pos, atol=0.1)
     assert_array_equal(lout_orig.names, lout_new.names)
 
 
