@@ -396,11 +396,6 @@ def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     phase_lock : 2D array
         Phase locking factor in [0, 1] (Channels x Frequencies x Timepoints)
     """
-    # deprecate Fs
-    if Fs is not None:
-        sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v1.0. "
-                      "Use `sfreq` instead", DeprecationWarning)
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
 
