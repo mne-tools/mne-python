@@ -55,7 +55,7 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
     # deprecate Fs
     if Fs is not None:
         sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v1.0. "
+        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
                       "Use `sfreq` instead", DeprecationWarning)
 
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
@@ -191,7 +191,7 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     # deprecate Fs
     if Fs is not None:
         sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v1.0. "
+        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
                       "Use `sfreq` instead", DeprecationWarning)
 
     mode = 'same'
@@ -324,7 +324,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     # deprecate Fs
     if Fs is not None:
         sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v1.0. "
+        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
                       "Use `sfreq` instead", DeprecationWarning)
 
     mode = 'same'
