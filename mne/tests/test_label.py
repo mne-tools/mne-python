@@ -6,6 +6,8 @@ import glob
 import warnings
 
 import numpy as np
+from scipy import sparse
+
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 
@@ -20,6 +22,7 @@ from mne.fixes import digitize, in1d, assert_is, assert_is_not
 from mne import spatial_tris_connectivity, read_surface
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
+from mne.source_estimate import mesh_edges
 from mne.externals.six import string_types
 
 
@@ -108,6 +111,10 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
     for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
             zip(['lh', 'rh'], stc.vertno, tris, rr)):
         this_data = stc.data[cnt:cnt + len(this_vertno)]
+        e = mesh_edges(this_tris)
+        e.data[e.data == 2] = 1
+        n_vertices = e.shape[0]
+        e = e + sparse.eye(n_vertices, n_vertices)
 
         clusters = [this_vertno[np.any(this_data, axis=1)]]
 
@@ -122,11 +129,14 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
             colors = _n_colors(len(clusters))
             for c, color in zip(clusters, colors):
                 idx_use = c
+                for k in range(smooth):
+                    e_use = e[:, idx_use]
+                    data1 = e_use * np.ones(len(idx_use))
+                    idx_use = np.where(data1)[0]
+
                 label = Label(idx_use, this_rr[idx_use], None, hemi,
                               'Label from stc', subject=subject,
                               color=color)
-                if smooth:
-                    label = label.fill(src)
 
                 this_labels.append(label)
 
@@ -543,11 +553,8 @@ def test_stc_to_label():
     src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
-    with warnings.catch_warnings(record=True) as w:  # connectedness warning
-        warnings.simplefilter('always')
-        labels1 = _stc_to_label(stc, src='sample', smooth=3)
-        labels2 = _stc_to_label(stc, src=src, smooth=3)
-    assert_true(len(w) > 0)
+    labels1 = _stc_to_label(stc, src='sample', smooth=3)
+    labels2 = _stc_to_label(stc, src=src, smooth=3)
     assert_equal(len(labels1), len(labels2))
     for l1, l2 in zip(labels1, labels2):
         assert_labels_equal(l1, l2, decimal=4)
