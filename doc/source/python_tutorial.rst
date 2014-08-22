@@ -24,7 +24,7 @@ What you can do with MNE Python
     - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map, Time-Frequency MxNE)
     - **Connectivity estimation** in sensor and source space
     - **Visualization of sensor and source space data**
-    - **Time-frequency** analysis with Morlet wavelets (induced power, phase lock value) also in the source space
+    - **Time-frequency** analysis with Morlet wavelets (induced power, intertrial coherence, phase lock value) also in the source space
     - **Spectrum estimation** using multi-taper method
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
     - **Non-parametric statistics** in time, space and frequency (including cluster-level)
@@ -281,20 +281,20 @@ Compute a contrast:
     >>> print(contrast)
     <Evoked  |  comment : 'Left Auditory - Right Auditory', time : [-0.199795, 0.499488], n_epochs : 116, n_channels x n_times : 376 x 421>
 
-Time-Frequency: Induced power and phase-locking values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Time-Frequency: Induced power and inter trial coherence
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Define parameters:
 
     >>> import numpy as np
     >>> n_cycles = 2  # number of cycles in Morlet wavelet
-    >>> frequencies = np.arange(7, 30, 3)  # frequencies of interest
-    >>> Fs = raw.info['sfreq']  # sampling in Hz
+    >>> freqs = np.arange(7, 30, 3)  # frequencies of interest
 
 Compute induced power and phase-locking values:
 
-    >>> from mne.time_frequency import induced_power
-    >>> power, phase_lock = induced_power(epochs_data, Fs=Fs, frequencies=frequencies, n_cycles=2, n_jobs=1)
+    >>> from mne.time_frequency import tfr_morlet
+    >>> power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=True, decim=3, n_jobs=1) # doctest: +ELLIPSIS
+    Reading 712 ...
 
 .. figure:: _images/plot_time_frequency.png
     :alt: Time-Frequency
