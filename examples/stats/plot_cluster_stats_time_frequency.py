@@ -136,10 +136,10 @@ for c, p_val in zip(clusters, cluster_p_values):
     if p_val <= 0.05:
         T_obs_plot[c] = T_obs[c]
 
-plt.imshow(T_obs, cmap=plt.cm.gray,
+plt.imshow(T_obs,
            extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
            aspect='auto', origin='lower', cmap='RdBu_r')
-plt.imshow(T_obs_plot, cmap=plt.cm.jet,
+plt.imshow(T_obs_plot,
            extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
            aspect='auto', origin='lower', cmap='RdBu_r')
 
