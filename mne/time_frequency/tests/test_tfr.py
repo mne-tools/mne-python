@@ -91,3 +91,10 @@ def test_time_frequency():
                                       n_cycles=2)
 
     assert_array_almost_equal(np.mean(single_power), power.data)
+
+    power_pick = power.pick_channels(power.ch_names[::2])
+    assert_equal(len(power_pick.ch_names), len(power.ch_names[::2]))
+    assert_equal(power_pick.data.shape[0], len(power.ch_names[::2]))
+    power_drop = power.drop_channels(power.ch_names[1::2])
+    assert_equal(power_drop.ch_names, power_pick.ch_names)
+    assert_equal(power_pick.data.shape[0], len(power_drop.ch_names))
