@@ -3,6 +3,7 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_false, assert_equal
 
+import mne
 from mne import io, Epochs, read_events, pick_types
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
@@ -91,3 +92,14 @@ def test_time_frequency():
                                       n_cycles=2)
 
     assert_array_almost_equal(np.mean(single_power), power.data)
+
+    power_pick = power.pick_channels(power.ch_names[:10:2])
+    assert_equal(len(power_pick.ch_names), len(power.ch_names[:10:2]))
+    assert_equal(power_pick.data.shape[0], len(power.ch_names[:10:2]))
+    power_drop = power.drop_channels(power.ch_names[1:10:2])
+    assert_equal(power_drop.ch_names, power_pick.ch_names)
+    assert_equal(power_pick.data.shape[0], len(power_drop.ch_names))
+
+    mne.equalize_channels([power_pick, power_drop])
+    assert_equal(power_pick.ch_names, power_drop.ch_names)
+    assert_equal(power_pick.data.shape, power_drop.data.shape)
