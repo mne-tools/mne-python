@@ -228,7 +228,7 @@ def stft_norm2(X):
     Returns
     -------
     norms2 : array
-        The squared L2 norm of every raw of X.
+        The squared L2 norm of every row of X.
     """
     X2 = np.abs(X) ** 2
     # compute all L2 coefs and remove freq zero once.
