@@ -166,7 +166,7 @@ def read_layout(kind, path=None, scale=True):
     return Layout(box=box, pos=pos, names=names, kind=kind, ids=ids)
 
 
-def make_eeg_layout(info, radius=20, width=5, height=4):
+def make_eeg_layout(info, radius=0.5, width=0.1, height=0.06):
     """Create .lout file from EEG electrode digitization
 
     Parameters
@@ -174,17 +174,24 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     info : dict
         Measurement info (e.g., raw.info)
     radius : float
-        Viewport radius
+        Viewport radius as a fraction of main figure height.
     width : float
-        Viewport width
+        Width of sensor axes as a fraction of main figure height.
     height : float
-        Viewport height
+        Height of sensor axes as a fraction of main figure height.
 
     Returns
     -------
     layout : Layout
         The generated Layout
     """
+    if radius > 0.5 or radius < 0:
+        raise ValueError('The radius parameter should be between 0 and 0.5.')
+    if width > 1.0 or width < 0:
+        raise ValueError('The width parameter should be between 0 and 1.')
+    if height > 1.0 or height < 0:
+        raise ValueError('The height parameter should be between 0 and 1.')
+
     if info['dig'] in [[], None]:
         raise RuntimeError('Did not find any digitization points in the info. '
                            'Cannot generate layout based on the subject\'s '
@@ -219,6 +226,14 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     # Do the azimuthal equidistant projection
     x = radius * (2.0 * theta / np.pi) * np.cos(phi)
     y = radius * (2.0 * theta / np.pi) * np.sin(phi)
+
+    # Scale [x, y] to [0, 1]
+    x = (x - np.min(x)) / (np.max(x) - np.min(x))
+    y = (y - np.min(y)) / (np.max(y) - np.min(y))
+
+    # Scale to viewport radius and shift to center
+    x = x * (radius / 0.5) + (0.5 - radius)
+    y = y * (radius / 0.5) + (0.5 - radius)
 
     n_channels = len(x)
     pos = np.c_[x, y, width * np.ones(n_channels),
