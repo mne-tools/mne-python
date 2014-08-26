@@ -1172,7 +1172,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 
 @verbose
 def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
-                       overwrite=False, subjects_dir=None, add_dist=None,
+                       overwrite=False, subjects_dir=None, add_dist=True,
                        verbose=None):
     """Setup a source space with subsampling
 
@@ -1195,8 +1195,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
         Path to SUBJECTS_DIR if it is not set in the environment.
     add_dist : bool
         Add distance and patch information to the source space. This takes some
-        time so precomputing it is recommended. The default is currently False
-        but will change to True in release 0.9.
+        time so precomputing it is recommended.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1205,13 +1204,6 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     src : list
         The source space for each hemisphere.
     """
-    if add_dist is None:
-        msg = ("The add_dist parameter to mne.setup_source_space currently "
-               "defaults to False, but the default will change to True in "
-               "release 0.9. Specify the parameter explicitly to avoid this "
-               "warning.")
-        logger.warning(msg)
-
     cmd = ('setup_source_space(%s, fname=%s, spacing=%s, surface=%s, '
            'overwrite=%s, subjects_dir=%s, add_dist=%s, verbose=%s)'
            % (subject, fname, spacing, surface, overwrite,

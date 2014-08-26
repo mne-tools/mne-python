@@ -13,8 +13,7 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_not_equal
 
-from mne import (equalize_channels, pick_types, read_evoked, write_evoked,
-                 read_evokeds, write_evokeds)
+from mne import equalize_channels, pick_types, read_evokeds, write_evokeds
 from mne.evoked import _get_peak, EvokedArray
 from mne.epochs import EpochsArray
 
@@ -74,17 +73,6 @@ def test_io_evoked():
                   kind='standard_error')
     ave3 = read_evokeds(fname, condition)
     assert_array_almost_equal(ave.data, ave3.data, 19)
-
-    # test deprecation warning for read_evoked and write_evoked
-    # XXX should be deleted for 0.9 release
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        ave = read_evoked(fname, setno=0)
-        assert_true(w[0].category == DeprecationWarning)
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        write_evoked(op.join(tempdir, 'evoked-ave.fif'), ave)
-        assert_true(w[0].category == DeprecationWarning)
 
     # test read_evokeds and write_evokeds
     types = ['Left Auditory', 'Right Auditory', 'Left visual', 'Right visual']

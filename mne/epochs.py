@@ -747,23 +747,6 @@ class Epochs(_BaseEpochs):
         else:
             self._data = None
 
-    @deprecated('drop_picks will be removed in v0.9. Use drop_channels.')
-    def drop_picks(self, bad_picks):
-        """Drop some picks
-
-        Allows to discard some channels.
-        """
-        idx = [k for k, p in enumerate(self.picks) if p not in bad_picks]
-        self.picks = self.picks[idx]
-
-        self.info = pick_info(self.info, idx, copy=False)
-
-        if self._projector is not None:
-            self._projector = self._projector[idx][:, idx]
-
-        if self.preload:
-            self._data = self._data[:, idx, :]
-
     def drop_bad_epochs(self):
         """Drop bad epochs without retaining the epochs data.
 
@@ -793,7 +776,7 @@ class Epochs(_BaseEpochs):
 
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
                       color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
-                      show=True, return_fig=False):
+                      show=True, return_fig=True):
         """Show the channel stats based on a drop_log from Epochs
 
         Parameters
@@ -815,7 +798,7 @@ class Epochs(_BaseEpochs):
             Show figure if True.
         return_fig : bool
             Return only figure handle if True. This argument will default
-            to True in v0.9 and then be removed.
+            to True in v0.9 and then be removed in v0.10.
 
         Returns
         -------
