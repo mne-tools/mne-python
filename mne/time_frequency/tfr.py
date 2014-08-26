@@ -599,7 +599,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
-                  colorbar=True, layout_scale=0.945, show=True):
+                  colorbar=True, layout_scale=0.945, show=True,
+                  border='none', fig_facecolor='k', font_color='w'):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -655,8 +656,12 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             on the canvas.
         show : bool
             Call pyplot.show() at the end.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
+        border : str
+            matplotlib borders style to be used for each sensor plot.
+        fig_facecolor : str | obj
+            The figure face color. Defaults to black.
+        font_color: str | obj
+            The color of tick labels in the colorbar. Defaults to white.
         """
         from ..viz.topo import _imshow_tfr, _plot_topo
         times = self.times.copy()
@@ -681,8 +686,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         fig = _plot_topo(info=info, times=times,
                          show_func=imshow, layout=layout,
                          colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
-                         layout_scale=layout_scale, title=title, border='w',
-                         x_label='Time (ms)', y_label='Frequency (Hz)')
+                         layout_scale=layout_scale, title=title, border=border,
+                         x_label='Time (ms)', y_label='Frequency (Hz)',
+                         fig_facecolor=fig_facecolor,
+                         font_color=font_color)
 
         if show:
             import matplotlib.pyplot as plt

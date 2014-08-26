@@ -109,8 +109,9 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
 def _plot_topo(info=None, times=None, show_func=None, layout=None,
                decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
-               border='none', cmap='RdBu_r', layout_scale=None, title=None,
-               x_label=None, y_label=None, vline=None):
+               border='none', axis_facecolor='k', fig_facecolor='k',
+               cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
+               y_label=None, vline=None, font_color='w'):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
@@ -125,14 +126,17 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         norm = normalize_colors(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array(np.linspace(vmin, vmax))
-        ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg='k')
+        ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg=fig_facecolor)
         cb = fig.colorbar(sm, ax=ax)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
-        plt.setp(cb_yticks, color='w')
+        plt.setp(cb_yticks, color=font_color)
+        ax.axis('off')
 
     my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
                                    fig=fig, layout_scale=layout_scale,
                                    axis_spinecolor=border,
+                                   axis_facecolor=axis_facecolor,
+                                   fig_facecolor=fig_facecolor,
                                    colorbar=colorbar)
 
     for ax, ch_idx in my_topo_plot:
@@ -149,7 +153,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             plt.ylim(*ylim_)
 
     if title is not None:
-        plt.figtext(0.03, 0.9, title, color='w', fontsize=19)
+        plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
 
     return fig
 
@@ -231,7 +235,8 @@ def _check_vlim(vlim):
 
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
-              vline=[0.0]):
+              vline=[0.0], fig_facecolor='k', axis_facecolor='k',
+              font_color='w'):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -270,6 +275,12 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Title of the figure.
     vline : list of floats | None
         The values at which to show a vertical line.
+    fig_facecolor : str | obj
+        The figure face color. Defaults to black.
+    axis_facecolor : str | obj
+        The face color to be used for each sensor plot. Defaults to black.
+    font_color : str | obj
+        The color of text in the colorbar and title. Defaults to white.
 
     Returns
     -------
@@ -354,8 +365,10 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
                      decim=1, colorbar=False, ylim=ylim_, cmap=None,
-                     layout_scale=layout_scale, border=border, title=title,
-                     x_label='Time (s)', vline=vline)
+                     layout_scale=layout_scale, border=border,
+                     fig_facecolor=fig_facecolor, font_color=font_color,
+                     axis_facecolor=axis_facecolor,
+                     title=title, x_label='Time (s)', vline=vline)
 
     if proj == 'interactive':
         for e in evoked:
@@ -431,7 +444,8 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 
 def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
-                           layout_scale=.95, title=None, scalings=None):
+                           layout_scale=.95, title=None, scalings=None,
+                           border='none', fig_facecolor='k', font_color='w'):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -467,6 +481,12 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     scalings : dict | None
         The scalings of the channel types to be applied for plotting. If
         None, defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    border : str
+        matplotlib borders style to be used for each sensor plot.
+    fig_facecolor : str | obj
+        The figure face color. Defaults to black.
+    font_color : str | obj
+        The color of tick labels in the colorbar. Defaults to white.
 
     Returns
     -------
@@ -491,6 +511,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                      show_func=erf_imshow, layout=layout, decim=1,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
-                     border='w', x_label='Time (s)', y_label='Epoch')
+                     fig_facecolor=fig_facecolor,
+                     font_color=font_color, border=border,
+                     x_label='Time (s)', y_label='Epoch')
 
     return fig

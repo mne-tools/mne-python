@@ -72,9 +72,9 @@ con, freqs, times, _, _ = spectral_connectivity(epochs, indices=indices,
 con[np.where(indices[1] == seed)] = 1.0
 
 # Show topography of connectivity from seed
-import matplotlib.pyplot as plt
 title = 'WPLI2 - Visual - Seed %s' % seed_ch
 
 layout = mne.find_layout(epochs.info, 'meg')  # use full layout
 
-AverageTFR(epochs.info, con, times, freqs, len(epochs)).plot_topo()
+tfr = AverageTFR(epochs.info, con, times, freqs, len(epochs))
+tfr.plot_topo(fig_facecolor='w', font_color='k', border='k')
