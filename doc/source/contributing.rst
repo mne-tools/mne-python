@@ -59,8 +59,8 @@ General code guidelines
   New public functions should have all variables defined.
 
 * New functionality should be covered by appropriate tests, e.g. a method in
-  ``mne/fiff/raw.py`` should have a corresponding test in
-  ``mne/fiff/tests/test_raw.py``. You can use the ``coverage`` module in
+  ``mne/evoked.py`` should have a corresponding test in
+  ``mne/tests/test_evoked.py``. You can use the ``coverage`` module in
   conjunction with ``nosetests`` (nose can automatically determine the code
   coverage if ``coverage`` is installed) to see how well new code is covered.
   The ambition is to achieve around 85% coverage with tests.
