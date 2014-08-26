@@ -600,8 +600,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
-                  border='none', fig_facecolor='k', axis_facecolor='k',
-                  cb_color='w'):
+                  border='none', fig_facecolor='k', font_color='w'):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -661,9 +660,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             matplotlib borders style to be used for each sensor plot.
         fig_facecolor : str | obj
             The figure face color. Defaults to black.
-        axis_facecolor : str | obj
-            The face color to be used for each sensor plot. Defaults to black.
-        cb_color: str | obj
+        font_color: str | obj
             The color of tick labels in the colorbar. Defaults to white.
         """
         from ..viz.topo import _imshow_tfr, _plot_topo
@@ -691,9 +688,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                          colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                          layout_scale=layout_scale, title=title, border=border,
                          x_label='Time (ms)', y_label='Frequency (Hz)',
-                         axis_facecolor=axis_facecolor,
                          fig_facecolor=fig_facecolor,
-                         cb_color=cb_color)
+                         font_color=font_color)
 
         if show:
             import matplotlib.pyplot as plt

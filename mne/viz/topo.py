@@ -111,7 +111,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, vline=None, cb_color='w'):
+               y_label=None, vline=None, font_color='w'):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
@@ -127,12 +127,10 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array(np.linspace(vmin, vmax))
         ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg=fig_facecolor)
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
         cb = fig.colorbar(sm, ax=ax)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
-        plt.setp(cb_yticks, color=cb_color)
-        plt.setp(list(ax.spines.values()), color=fig_facecolor)
+        plt.setp(cb_yticks, color=font_color)
+        ax.axis('off')
 
     my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
                                    fig=fig, layout_scale=layout_scale,
@@ -155,7 +153,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             plt.ylim(*ylim_)
 
     if title is not None:
-        plt.figtext(0.03, 0.9, title, color='w', fontsize=19)
+        plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
 
     return fig
 
@@ -238,7 +236,7 @@ def _check_vlim(vlim):
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
               vline=[0.0], fig_facecolor='k', axis_facecolor='k',
-              cb_color='w'):
+              font_color='w'):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -281,8 +279,8 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The figure face color. Defaults to black.
     axis_facecolor : str | obj
         The face color to be used for each sensor plot. Defaults to black.
-    cb_color : str | obj
-        The color of tick labels in the colorbar. Defaults to white.
+    font_color : str | obj
+        The color of text in the colorbar and title. Defaults to white.
 
     Returns
     -------
@@ -368,7 +366,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
                      decim=1, colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border,
-                     fig_facecolor=fig_facecolor, cb_color=cb_color,
+                     fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor,
                      title=title, x_label='Time (s)', vline=vline)
 
@@ -447,8 +445,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
                            layout_scale=.95, title=None, scalings=None,
-                           border='none', fig_facecolor='k',
-                           axis_facecolor='k', cb_color='w'):
+                           border='none', fig_facecolor='k', font_color='w'):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -488,9 +485,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         matplotlib borders style to be used for each sensor plot.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
-    axis_facecolor : str | obj
-        The face color to be used for each sensor plot. Defaults to black.
-    cb_color : str | obj
+    font_color : str | obj
         The color of tick labels in the colorbar. Defaults to white.
 
     Returns
@@ -517,7 +512,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
                      fig_facecolor=fig_facecolor,
-                     axis_facecolor=axis_facecolor, cb_color=cb_color,
-                     border=border, x_label='Time (s)', y_label='Epoch')
+                     font_color=font_color, border=border,
+                     x_label='Time (s)', y_label='Epoch')
 
     return fig

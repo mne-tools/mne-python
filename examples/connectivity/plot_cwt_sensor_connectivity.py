@@ -77,4 +77,4 @@ title = 'WPLI2 - Visual - Seed %s' % seed_ch
 layout = mne.find_layout(epochs.info, 'meg')  # use full layout
 
 tfr = AverageTFR(epochs.info, con, times, freqs, len(epochs))
-tfr.plot_topo(fig_facecolor='w', axis_facecolor='w', cb_color='k', border='k')
+tfr.plot_topo(fig_facecolor='w', font_color='k', border='k')
