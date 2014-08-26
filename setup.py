@@ -69,7 +69,6 @@ if __name__ == "__main__":
                     'mne.datasets.eegbci',
                     'mne.datasets.somato',
                     'mne.externals',
-                    'mne.fiff',
                     'mne.io', 'mne.io.tests',
                     'mne.io.array', 'mne.io.array.tests',
                     'mne.io.brainvision', 'mne.io.brainvision.tests',
