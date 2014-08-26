@@ -62,7 +62,7 @@ the required functions:
 Generate the report:
 
     >>> path = sample.data_path()
-    >>> report = Report()
+    >>> report = Report(verbose=True)
     Embedding : jquery-1.10.2.min.js
     Embedding : jquery-ui.min.js
     Embedding : bootstrap.min.js
@@ -88,7 +88,7 @@ Custom plots can be added to the report. Let us first generate a custom plot:
 
     >>> from mne import read_evokeds
     >>> fname = path + '/MEG/sample/sample_audvis-ave.fif'
-    >>> evoked = read_evokeds(fname, condition='Left Auditory', baseline=(None, 0)) # doctest:+ELLIPSIS
+    >>> evoked = read_evokeds(fname, condition='Left Auditory', baseline=(None, 0), verbose=True) # doctest:+ELLIPSIS
     Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active

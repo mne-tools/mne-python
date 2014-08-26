@@ -1364,7 +1364,7 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
     bytes_so_far = initial_size
     # Returns only amount left to download when resuming, not the size of the
     # entire file
-    total_size = int(response.headers['Content-Length'].strip())
+    total_size = int(response.headers.get('Content-Length', '1').strip())
     total_size += initial_size
 
     progress = ProgressBar(total_size, initial_value=bytes_so_far,
@@ -1441,7 +1441,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         # Checking file size and displaying it alongside the download url
         u = urllib.request.urlopen(url)
         try:
-            file_size = int(u.headers['Content-Length'].strip())
+            file_size = int(u.headers.get('Content-Length', '1').strip())
         finally:
             del u
         print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
