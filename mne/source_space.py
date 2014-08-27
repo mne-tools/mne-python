@@ -1173,7 +1173,7 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
 @verbose
 def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
                        overwrite=False, subjects_dir=None, add_dist=True,
-                       verbose=None):
+                       n_jobs=1, verbose=None):
     """Setup a source space with subsampling
 
     Parameters
@@ -1196,6 +1196,9 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     add_dist : bool
         Add distance and patch information to the source space. This takes some
         time so precomputing it is recommended.
+    n_jobs : int
+        Number of jobs to run in parallel. Will use at most 2 jobs
+        (one for each hemisphere).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1313,7 +1316,7 @@ def setup_source_space(subject, fname=True, spacing='oct6', surface='white',
     src = SourceSpaces(src, dict(working_dir=os.getcwd(), command_line=cmd))
 
     if add_dist:
-        add_source_space_distances(src, verbose=verbose)
+        add_source_space_distances(src, n_jobs=n_jobs, verbose=verbose)
 
     # write out if requested, then return the data
     if fname is not None:
