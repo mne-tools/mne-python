@@ -553,7 +553,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         point_dict = {}
         point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         point_dict['ident'] = FIFF.FIFFV_POINT_NASION
-        #point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
         point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
         point_dict['r'] = apply_trans(trans, locs['2'])
         info['dig'].append(point_dict)
@@ -561,7 +560,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         point_dict = {}
         point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         point_dict['ident'] = FIFF.FIFFV_POINT_LPA
-        #point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
         point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
         point_dict['r'] = apply_trans(trans, locs['1'])
         info['dig'].append(point_dict)
@@ -569,7 +567,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         point_dict = {}
         point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         point_dict['ident'] = FIFF.FIFFV_POINT_RPA
-        #point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
         point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
         point_dict['r'] = apply_trans(trans, locs['3'])
         info['dig'].append(point_dict)
