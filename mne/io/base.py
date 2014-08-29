@@ -1379,6 +1379,242 @@ def set_eeg_reference(raw, ref_channels, copy=True):
     # Return rereferenced data and reference array
     return raw, ref_data
 
+def specify_eeg_montage(raw, eeg=None, eog=None, ref=[], bads=None, bipolar=None,
+        calc_reog=False, drop=None, drop_ref=False, copy=True):
+    '''
+    This function can be used to specify an EEG montage, e.g. which electrodes
+    record EEG and EOG, which reference(s) to use and which channels are
+    considered 'bad' and should not be used. Multiple reference types
+    can be specified.
+
+    Channels can be specified either as a string name, or an integer index.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Instance of Raw with all channels.
+
+    eeg : list of channels (default None)
+        Use this parameter to specify a subset of the channels to be regarded
+        as EEG.  Specify an empty list to indicate no EEG channels are present.
+        By default, `raw.info` is used to determine EEG channels.
+
+    eog : list of channels (default None)
+        Use this parameter to specify a subset of the channels to be regarded
+        as EOG. When EOG channels are specified, the `calc_reog` parameter can
+        be used to caluclate the radial EOG channel. Specify an empty list to
+        indicate no EOG channels are present. By default, `raw.info` is used to
+        determine EOG channels.
+
+    ref : list of channels (default [] = CAR)
+        Set to a single channel to use a single electrode as reference. Set to
+        a list of channels to use the mean of multiple electordes as reference.
+        Set to an empty list to use CAR (common average reference, e.g. the
+        mean of all EEG channels). Specify `None` to indicate no referencing 
+        should be done (for example if the signal has already been referenced).
+        
+    bads : list of channels (default None)
+        Use this parameter to specify a subset of channels that are considered
+        'bad' and should not be used. These could for example be electrodes
+        with bad contact, or unusual artifacts. Bad channels are not used to
+        compute the reference. Specify an empty list to indicate no bad
+        channels are present. By default, `raw.info` is used to determine bad
+        channels.
+
+    bipolar : dict: str -> (channel, channel) (default None)
+        Compute the difference between the specified electrode pairs as signal.
+        Electrode pairs are specified in a dictionary, where each value is a
+        pair of two channels. The difference between them will be computed and
+        stored as a new channel. The channel name is specified as the
+        corresponding string key in the dictionary. 
+
+    calc_reog : bool (default False)
+        When set to `True`, the rEOG component is computed by taking the mean
+        of the EOG channels and substracting the EEG reference. This only works
+        if EOG channels have been specified and the reference is not set to
+        `None`. The name of the rEOG channel is 'rEOG'.
+
+    drop : list of channels (default None)
+        Specifies channels to be dropped from the recording. For example, use
+        this to remove channels that are not connected to any electrode.
+   
+    drop_ref : bool (default False)
+        By default, the reference channels are kept. Set this parameter to
+        True to drop the reference channels.
+
+    copy : bool
+        Specifies whether instance of Raw will be copied or modified in place.
+
+    Returns
+    -------
+    raw : instance of Raw
+        Instance of Raw with EEG channels rereferenced.
+
+    ref_data : array
+        Array of reference data subtracted from eeg channels.
+    '''
+    # Check to see that raw data is preloaded
+    if not raw.preload:
+        raise RuntimeError('Raw data needs to be preloaded. Use '
+                           'preload=True (or string) in the constructor.')
+    # Sanity check on inputs
+    assert (eeg == None or hasattr(eeg, '__iter__')), \
+        'Parameter eeg should either be None or a list'
+    assert (eog == None or hasattr(eog, '__iter__')), \
+        'Parameter eog should either be None or a list'
+    assert (ref == None or hasattr(ref, '__iter__')), \
+        'Parameter ref should either be None or a list'
+    assert (bads == None or hasattr(bads, '__iter__')), \
+        'Parameter bads should either be None or a list'
+    assert (bipolar == None or type(bipolar) == dict), \
+        'Parameter bipolar should either be None or a dictionary'
+    if bipolar != None:
+        for channels in bipolar.values():
+            assert len(channels) == 2, ('Bipolar channels should be a '
+                                       'dictionary containing tuples as '
+                                       'values')
+
+    _ch_idx = lambda channels: \
+        set([]) if channels == None else \
+        set([raw.ch_names.index(ch) if type(ch) == str else ch for ch in channels])
+
+    # Copy raw data or modify raw data in place
+    if copy:  # copy data
+        raw = raw.copy()
+
+    all_channels = set(range(raw.info['nchan']))
+    stim_idx = set([i for i in range(raw.info['nchan'])
+                   if raw.info['chs'][i]['kind'] == FIFF.FIFFV_STIM_CH])
+
+    # EEG channels
+    if eeg == None:
+        eeg_idx = set([i for i in range(raw.info['nchan'])
+                   if raw.info['chs'][i]['kind'] == FIFF.FIFFV_EEG_CH])
+    else:
+        eeg_idx = _ch_idx(eeg)
+
+    # EOG channels
+    if eog == None:
+        eog_idx = set([i for i in range(raw.info['nchan'])
+                   if raw.info['chs'][i]['kind'] == FIFF.FIFFV_EOG_CH])
+    else:
+        eog_idx = _ch_idx(eog)
+    eeg_idx -= eog_idx
+
+    # Channels to drop
+    drop_idx = _ch_idx(drop)
+    eeg_idx -= drop_idx
+
+    # Bad channels
+    if bads == None:
+        bads_idx = _ch_idx(raw.info['bads'])
+    else:
+        bads_idx = _ch_idx(bads)
+
+    # Reference channels
+    ref_idx = _ch_idx(ref)
+    eeg_idx -= ref_idx
+    eog_idx -= ref_idx
+
+    # Bipolar channels
+    if bipolar != None:
+        bipolar_idx = {}
+        for name, channels in bipolar.items():
+            bipolar_idx[name] = _ch_idx(channels)
+        bipolar_idx_set = reduce(lambda a,b: a.union(b), bipolar_idx.values())
+    else:
+        bipolar_idx = {}
+        bipolar_idx_set = set([])
+
+    # Collect all the channels used as reference at some point
+    drop_ref_idx = set.union(ref_idx, bipolar_idx_set)
+
+    # Start applying references
+    data = raw._data.copy()
+
+    # Calculate reference signal
+    if ref == None:
+        ref = None
+    elif ref == []:
+        # Common average reference
+        ref = np.mean(data[list(eeg_idx - bads_idx), :], axis=0)
+    else:
+        ref = np.mean(data[list(ref_idx), :], axis=0)
+
+    # Apply reference
+    if ref != None:
+        data[list(eeg_idx.union(eog_idx)-bads_idx), :] -= ref
+
+    # Bipolar channels
+    if bipolar == None:
+        bipolar = None
+    else:
+        bipolar = {}
+        for name, channels in bipolar_idx.items():
+            channels = list(channels)
+            bipolar[name] = data[channels[1],:] - data[channels[0],:]
+
+    # Calculate the rEOG if possible (and desired)
+    if calc_reog:
+        assert len(eog_idx) > 0, \
+            'Must specify EOG channels in order to calculate rEOG'
+        reog = np.mean(data[list(eog_idx),:], axis=0)
+    else:
+        reog = None
+
+    # Drop ref channels from EEG and EOG list if requested
+    if drop_ref:
+        drop_idx = drop_idx.union(drop_ref_idx)
+    else:
+        drop_idx = drop_idx
+
+    # Construct new channel info structure
+    ch_info = list(raw.info['chs'])
+
+    # Channel types
+    for i in eeg_idx:
+        ch_info[i]['kind'] = FIFF.FIFFV_EEG_CH
+    for i in eog_idx:
+        ch_info[i]['kind'] = FIFF.FIFFV_EOG_CH
+
+    # Drop the channels that should be dropped
+    data = data[list(all_channels - drop_idx), :]
+    ch_info = [raw.info['chs'][ch] for ch in all_channels
+            if ch not in drop_idx]
+
+    # Add any new channels
+    data = [data]
+    chan_template = ch_info[0].copy()
+    chan_template['eeg_loc'] = np.zeros((3,1))
+    chan_template['loc'] = np.zeros(12)
+
+    if bipolar != None:
+        for name, channel in bipolar.items():
+            data.append(channel[np.newaxis, :])
+            info = chan_template.copy()
+            info['kind'] = FIFF.FIFFV_EOG_CH
+            info['ch_name'] = name
+            ch_info.append(info)
+
+    if reog != None:
+        data.append(reog[np.newaxis, :])
+        info = chan_template.copy()
+        info['kind'] = FIFF.FIFFV_EOG_CH
+        info['ch_name'] = u'rEOG'
+        ch_info.append(info)
+        
+    data = np.vstack(data)
+
+    # Put everything in the Raw object
+    raw._data = data
+    raw.info['chs'] = ch_info
+    raw.info['ch_names'] = [ch['ch_name'] for ch in ch_info]
+    raw.info['nchan'] = len(raw.info['chs'])
+    raw.info['bads'] = [raw.ch_names[ch] for ch in bads_idx]
+
+    _check_raw_compatibility([raw])
+
+    return raw, ref
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
     if data is None:
