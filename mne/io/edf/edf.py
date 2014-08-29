@@ -553,24 +553,32 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         point_dict = {}
         point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         point_dict['ident'] = FIFF.FIFFV_POINT_NASION
-        point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
+        #point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
+        point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
         point_dict['r'] = apply_trans(trans, locs['2'])
         info['dig'].append(point_dict)
 
         point_dict = {}
         point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         point_dict['ident'] = FIFF.FIFFV_POINT_LPA
-        point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
+        #point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
+        point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
         point_dict['r'] = apply_trans(trans, locs['1'])
         info['dig'].append(point_dict)
 
         point_dict = {}
         point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         point_dict['ident'] = FIFF.FIFFV_POINT_RPA
-        point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
+        #point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
+        point_dict['kind'] = FIFF.FIFFV_POINT_EXTRA
         point_dict['r'] = apply_trans(trans, locs['3'])
         info['dig'].append(point_dict)
 
+        info['dev_head_t'] = {
+            'from': FIFF.FIFFV_COORD_DEVICE,
+            'to': FIFF.FIFFV_COORD_HEAD,
+            'trans': np.eye(4),
+        }
     else:
         locs = {}
     locs = [locs[ch_name.lower()] if ch_name.lower() in locs.keys()
@@ -597,7 +605,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['eeg_loc'] = ch_loc
+        chan_info['eeg_loc'] = np.array([ch_loc]).T
         chan_info['loc'] = np.zeros(12)
         chan_info['loc'][:3] = ch_loc
         if idx > n_eeg:
