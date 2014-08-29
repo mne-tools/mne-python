@@ -1579,7 +1579,7 @@ def specify_eeg_montage(raw, eeg=None, eog=None, ref=[], bads=None, bipolar=None
 
     # Drop the channels that should be dropped
     data = data[list(all_channels - drop_idx), :]
-    ch_info = [raw.info['chs'][ch] for ch in all_channels
+    ch_info = [ch_info[ch] for ch in all_channels
             if ch not in drop_idx]
 
     # Add any new channels

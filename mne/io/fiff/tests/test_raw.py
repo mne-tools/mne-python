@@ -1060,9 +1060,16 @@ def test_specify_eeg_montage():
     assert_array_almost_equal(reref[reref.ch_names.index('rEOG')][0][0,:],
         np.mean(raw[picks_eog][0], axis=0) - ref)
 
+    # Test setting EOG channels (these should be added in addition to the EOG
+    # channel already specified in raw.info)
+    reref, ref = specify_eeg_montage(raw, eog=['EEG 001', 'EEG 002'],
+            copy=True)
+    assert_array_equal(pick_types(reref.info, meg=False, eeg=False, eog=True),
+            pick_channels(reref.ch_names, ['EEG 001', 'EEG 002', 'EOG 061']))
+
     # Test setting bad channels
     reref, ref = specify_eeg_montage(raw, bads=['EEG 001', 'EEG 002'],
-            copy=False)
+            copy=True)
     assert_equal(reref.info['bads'], ['EEG 001', 'EEG 002'])
 
     # Test that data is modified in place when copy=False
