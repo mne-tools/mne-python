@@ -3,6 +3,7 @@ Upstream-Name: MNE-Python
 Upstream-Contact: Alexandre Gramfort <alexandre.gramfort@m4x.org>
 Source: http://github.com/mne-tools/mne-python
 Files-Excluded: mne/html/*.min.js
+Comment: File AppEULA.rst refers to code that is documented in this package but not shipped with it.
 
 Files: *
 Copyright: 2010-2014, MNE-Python Developers
