@@ -52,6 +52,10 @@ def test_time_frequency():
     freqs = np.arange(6, 20, 5)  # define frequencies of interest
     n_cycles = freqs / 4.
 
+    # Test first with a single epoch
+    power, itc = tfr_morlet(epochs[0], freqs=freqs, n_cycles=n_cycles,
+                            use_fft=True, return_itc=True)
+
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
 

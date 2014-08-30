@@ -386,7 +386,7 @@ def _induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
         plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
 
         for c in range(n_channels):
-            X = np.squeeze(data[:, c, :])
+            X = data[:, c, :]
             this_psd, this_plf = _time_frequency(X, Ws, use_fft)
             psd[c], plf[c] = this_psd[:, ::decim], this_plf[:, ::decim]
     else:
