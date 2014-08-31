@@ -79,6 +79,7 @@ def pick_channels(ch_names, include, exclude=[]):
         List of channels to include (if empty include all available).
     exclude : list of string
         List of channels to exclude (if empty do not exclude any channel).
+        Defaults to [].
 
     Returns
     -------
@@ -313,9 +314,9 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
         One evoked dataset.
     include : list of string, (optional)
         List of channels to include (if empty, include all available).
-    exclude : list of string, (optional) | 'bads'
-        Channels to exclude (if empty, do not exclude any).
-         Defaults to 'bads'.
+    exclude : list of string | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in orig.info['bads']. Defaults to 'bads'.
 
     Returns
     -------
@@ -323,7 +324,6 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
         Evoked data restricted to selected channels. If include and
         exclude are empty it returns orig without copy.
     """
-
     if len(include) == 0 and len(exclude) == 0:
         return orig
 
@@ -389,7 +389,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
         List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in info['bads'].
+        If 'bads', exclude channels in info['bads']. Defaults to 'bads'.
 
     Returns
     -------
@@ -414,11 +414,11 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     ----------
     orig : dict
         A forward solution.
-    include : list of string (optional) | None
-        List of channels to include (if empty, include all available). Defaults
-        auto None.
-    exclude : list of string (optional) | None
-        Channels to exclude (if empty, do not exclude any). Defaults to None.
+    include : list of string
+        List of channels to include (if empty, include all available).
+        Defaults to [].
+    exclude : list of string
+        Channels to exclude (if empty, do not exclude any). Defaults to [].
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -428,7 +428,6 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
         Forward solution restricted to selected channels. If include and
         exclude are empty it returns orig without copy.
     """
-
     if len(include) == 0 and len(exclude) == 0:
         return orig
 
