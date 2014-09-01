@@ -238,7 +238,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
 
     # If no width or height specified, calculate the maximum value possible
     # without axes overlapping.
-    if width == None or height == None:
+    if width is None or height is None:
         width, height = _box_size(np.c_[x, y], width, height, padding=0.9)
 
     # Scale to viewport radius
@@ -297,7 +297,7 @@ def make_grid_layout(info, picks=None, n_col=None):
     ids = list(range(len(picks)))
     size = len(picks)
 
-    if n_col == None:
+    if n_col is None:
         # prepare square-like layout
         n_row = n_col = np.sqrt(size)  # try square
         if n_col % 1:
@@ -310,7 +310,7 @@ def make_grid_layout(info, picks=None, n_col=None):
 
     # setup position grid
     x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col), np.linspace(-0.5, 0.5,
-        n_row))
+                       n_row))
     x, y = x.ravel()[:size], y.ravel()[:size]
     width, height = _box_size(np.c_[x, y], padding=0.9)
 
@@ -330,11 +330,12 @@ def make_grid_layout(info, picks=None, n_col=None):
 
     # calculate pos
     pos = np.c_[x - 0.5*width, y - 0.5*height, width * np.ones(size), height *
-            np.ones(size)]
+                np.ones(size)]
     box = (0, 1, 0, 1)
 
     layout = Layout(box=box, pos=pos, names=names, kind='grid-misc', ids=ids)
     return layout
+
 
 def find_layout(info=None, ch_type=None):
     """Choose a layout based on the channels in the info 'chs' field
@@ -381,7 +382,7 @@ def find_layout(info=None, ch_type=None):
     has_CTF_grad = (FIFF.FIFFV_COIL_CTF_GRAD in coil_types or
                     (FIFF.FIFFV_MEG_CH in channel_types and
                      any([k in ctf_other_types for k in coil_types])))
-                    # hack due to MNE-C bug in IO of CTF
+    # hack due to MNE-C bug in IO of CTF
     n_kit_grads = len([ch for ch in chs
                        if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD])
 
@@ -398,7 +399,7 @@ def find_layout(info=None, ch_type=None):
         raise RuntimeError('No EEG channels present. Cannot find EEG layout.')
 
     if ((has_vv_meg and ch_type is None) or
-        (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
+            (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
         layout_name = 'Vectorview-all'
     elif has_vv_only_mag or (has_vv_meg and ch_type == 'mag'):
         layout_name = 'Vectorview-mag'
@@ -427,6 +428,7 @@ def find_layout(info=None, ch_type=None):
 
     return layout
 
+
 def _box_size(points, width=None, height=None, padding=1.0):
     """ Given a series of points, calculate an appropriate box size.
 
@@ -434,7 +436,7 @@ def _box_size(points, width=None, height=None, padding=1.0):
     ----------
     points : array, shape = (n_points, [x-coordinate, y-coordinate])
         The centers of the axes. Normally these are points in the range [0, 1]
-        centered at 0.5. 
+        centered at 0.5.
     width : float | None
         An optional box width to enforce. When set, only the box height will be
         calculated by the function.
@@ -451,13 +453,13 @@ def _box_size(points, width=None, height=None, padding=1.0):
     height : float
         Height of the box
     """
-    xdiff = lambda a,b: np.abs(a[0] - b[0])
-    ydiff = lambda a,b: np.abs(a[1] - b[1])
-    dist = lambda a,b: np.sqrt(xdiff(a,b)**2 + ydiff(a,b)**2)
+    xdiff = lambda a, b: np.abs(a[0] - b[0])
+    ydiff = lambda a, b: np.abs(a[1] - b[1])
+    dist = lambda a, b: np.sqrt(xdiff(a, b)**2 + ydiff(a, b)**2)
 
     points = np.asarray(points)
 
-    if width == None and height == None:
+    if width is None and height is None:
         if len(points) <= 1:
             # Trivial case first
             width = 1.0
@@ -465,7 +467,8 @@ def _box_size(points, width=None, height=None, padding=1.0):
         else:
             # Find the closest two points A and B.
             all_combinations = list(combinations(points, 2))
-            closest_points_idx = np.argmin([dist(a, b) for a, b in all_combinations])
+            closest_points_idx = np.argmin([dist(a, b)
+                                            for a, b in all_combinations])
             a, b = all_combinations[closest_points_idx]
 
             # The closest points define either the max width or max height.
@@ -476,7 +479,7 @@ def _box_size(points, width=None, height=None, padding=1.0):
                 height = h
 
     # At this point, either width or height is known, or both are known.
-    if height == None:
+    if height is None:
         # Find all axes that could potentially overlap horizontally.
         candidates = [c for c in combinations(points, 2) if xdiff(*c) < width]
 
@@ -487,9 +490,9 @@ def _box_size(points, width=None, height=None, padding=1.0):
             # Find an appropriate height so all none of the found axes will
             # overlap.
             height = ydiff(*candidates[np.argmin([ydiff(*c) for c in
-                candidates])])
+                           candidates])])
 
-    elif width == None:
+    elif width is None:
         # Find all axes that could potentially overlap vertically.
         candidates = [c for c in combinations(points, 2) if ydiff(*c) < height]
 
@@ -500,13 +503,14 @@ def _box_size(points, width=None, height=None, padding=1.0):
             # Find an appropriate width so all none of the found axes will
             # overlap.
             width = xdiff(*candidates[np.argmin([xdiff(*c) for c in
-                candidates])])
+                          candidates])])
 
     # Add a bit of padding between boxes
     width *= padding
     height *= padding
 
     return width, height
+
 
 def _find_topomap_coords(chs, layout=None):
     """Try to guess the E/MEG layout and return appropriate topomap coordinates
