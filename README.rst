@@ -6,6 +6,11 @@
 .. |Travis| image:: https://api.travis-ci.org/mne-tools/mne-python.png?branch=master
 .. _Travis: https://travis-ci.org/mne-tools/mne-python
 
+|Zenodo|_
+
+.. |Zenodo| image:: https://zenodo.org/badge/doi/10.5281/zenodo.11556.png
+.. _Zenodo: http://dx.doi.org/10.5281/zenodo.11556
+
 
 `mne-python <http://martinos.org/mne/mne-python.html>`_
 =======================================================
