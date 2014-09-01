@@ -239,7 +239,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
     # If no width or height specified, calculate the maximum value possible
     # without axes overlapping.
     if width == None or height == None:
-        width, height = _box_size(np.c_[x, y], width, height)
+        width, height = _box_size(np.c_[x, y], width, height, padding=0.9)
 
     # Scale to viewport radius
     x *= 2 * radius
@@ -312,7 +312,7 @@ def make_grid_layout(info, picks=None, n_col=None):
     x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col), np.linspace(-0.5, 0.5,
         n_row))
     x, y = x.ravel()[:size], y.ravel()[:size]
-    width, height = _box_size(np.c_[x, y])
+    width, height = _box_size(np.c_[x, y], padding=0.9)
 
     # Some axes will be at the figure edge. Shrink everything so it fits in the
     # figure. Add 0.01 border around everything
@@ -427,7 +427,7 @@ def find_layout(info=None, ch_type=None):
 
     return layout
 
-def _box_size(points, width=None, height=None, padding=0.9):
+def _box_size(points, width=None, height=None, padding=1.0):
     """ Given a series of points, calculate an appropriate box size.
 
     Parameters
@@ -441,8 +441,8 @@ def _box_size(points, width=None, height=None, padding=0.9):
     height : float
         An optional box height to enforce. When set, only the box width will be
         calculated by the function.
-    padding : float
-        Shrink boxes by this amount to achieve padding between boxes.
+    padding : float | 1.0
+        Scale boxes by this amount to achieve padding between boxes.
 
     Returns
     -------
@@ -455,18 +455,25 @@ def _box_size(points, width=None, height=None, padding=0.9):
     ydiff = lambda a,b: np.abs(a[1] - b[1])
     dist = lambda a,b: np.sqrt(xdiff(a,b)**2 + ydiff(a,b)**2)
 
-    if width == None and height == None:
-        # Find the closest two points A and B.
-        all_combinations = list(combinations(points, 2))
-        closest_points_idx = np.argmin([dist(a, b) for a, b in all_combinations])
-        a, b = all_combinations[closest_points_idx]
+    points = np.asarray(points)
 
-        # The closest points define either the max width or max height.
-        w, h = xdiff(a, b), ydiff(a, b)
-        if w > h:
-            width = w
+    if width == None and height == None:
+        if len(points) <= 1:
+            # Trivial case first
+            width = 1.0
+            height = 1.0
         else:
-            height = h
+            # Find the closest two points A and B.
+            all_combinations = list(combinations(points, 2))
+            closest_points_idx = np.argmin([dist(a, b) for a, b in all_combinations])
+            a, b = all_combinations[closest_points_idx]
+
+            # The closest points define either the max width or max height.
+            w, h = xdiff(a, b), ydiff(a, b)
+            if w > h:
+                width = w
+            else:
+                height = h
 
     # At this point, either width or height is known, or both are known.
     if height == None:
@@ -475,7 +482,7 @@ def _box_size(points, width=None, height=None, padding=0.9):
 
         if len(candidates) == 0:
             # No axes overlap, take all the height you want.
-            width = 1.0
+            height = 1.0
         else:
             # Find an appropriate height so all none of the found axes will
             # overlap.
