@@ -6,6 +6,7 @@
 # License: Simplified BSD
 
 from collections import defaultdict
+from itertools import combinations
 import os.path as op
 import numpy as np
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
@@ -166,7 +167,7 @@ def read_layout(kind, path=None, scale=True):
     return Layout(box=box, pos=pos, names=names, kind=kind, ids=ids)
 
 
-def make_eeg_layout(info, radius=0.5, width=0.1, height=0.06):
+def make_eeg_layout(info, radius=0.5, width=None, height=None):
     """Create .lout file from EEG electrode digitization
 
     Parameters
@@ -176,20 +177,24 @@ def make_eeg_layout(info, radius=0.5, width=0.1, height=0.06):
     radius : float
         Viewport radius as a fraction of main figure height.
     width : float
-        Width of sensor axes as a fraction of main figure height.
+        Width of sensor axes as a fraction of main figure height. If not
+        specified, this will be the maximum width possible without axes
+        overlapping.
     height : float
-        Height of sensor axes as a fraction of main figure height.
+        Height of sensor axes as a fraction of main figure height. If not
+        specified, this will be the maximum height possible withough axes
+        overlapping.
 
     Returns
     -------
     layout : Layout
         The generated Layout
     """
-    if radius > 0.5 or radius < 0:
+    if not (0 <= radius <= 0.5):
         raise ValueError('The radius parameter should be between 0 and 0.5.')
-    if width > 1.0 or width < 0:
+    if width != None and not (0 <= width <= 1.0):
         raise ValueError('The width parameter should be between 0 and 1.')
-    if height > 1.0 or height < 0:
+    if width != None and not (0 <= height <= 1.0):
         raise ValueError('The height parameter should be between 0 and 1.')
 
     if info['dig'] in [[], None]:
@@ -227,26 +232,42 @@ def make_eeg_layout(info, radius=0.5, width=0.1, height=0.06):
     x = radius * (2.0 * theta / np.pi) * np.cos(phi)
     y = radius * (2.0 * theta / np.pi) * np.sin(phi)
 
-    # Scale [x, y] to [0, 1]
-    x = (x - np.min(x)) / (np.max(x) - np.min(x))
-    y = (y - np.min(y)) / (np.max(y) - np.min(y))
+    # Scale [x, y] to [-0.5, 0.5]
+    x = (x - (np.max(x) + np.min(x))/2.) / (np.max(x) - np.min(x))
+    y = (y - (np.max(y) + np.min(y))/2.) / (np.max(y) - np.min(y))
 
-    # Scale to viewport radius and shift to center
-    x = x * (radius / 0.5) + (0.5 - radius)
-    y = y * (radius / 0.5) + (0.5 - radius)
+    # If no width or height specified, calculate the maximum value possible
+    # without axes overlapping.
+    if width == None or height == None:
+        width, height = _box_size(np.c_[x, y], width, height)
+
+    # Scale to viewport radius
+    x *= 2 * radius
+    y *= 2 * radius
+
+    # Some subplot centers will be at the figure edge. Shrink everything so it
+    # fits in the figure.
+    scaling = min(1 / (1. + width), 1 / (1. + height))
+    x *= scaling
+    y *= scaling
+    width *= scaling
+    height *= scaling
+
+    # Shift to center
+    x += 0.5
+    y += 0.5
 
     n_channels = len(x)
-    pos = np.c_[x, y, width * np.ones(n_channels),
+    pos = np.c_[x - 0.5*width, y - 0.5*height, width * np.ones(n_channels),
                 height * np.ones(n_channels)]
 
-    box = (x.min() - 0.1 * width, x.max() + 1.1 * width,
-           y.min() - 0.1 * width, y.max() + 1.1 * height)
+    box = (0, 1, 0, 1)
     ids = 1 + np.arange(n_channels)
     layout = Layout(box=box, pos=pos, names=names, kind='EEG', ids=ids)
     return layout
 
 
-def make_grid_layout(info, picks=None):
+def make_grid_layout(info, picks=None, n_col=None):
     """ Generate .lout file for custom data, i.e., ICA sources
 
     Parameters
@@ -257,6 +278,8 @@ def make_grid_layout(info, picks=None):
     picks : array-like of int | None
         The indices of the channels to be included. If None, al misc channels
         will be included.
+    n_col : int | None
+        Number of columns to generate. If None, a square grid will be produced.
 
     Returns
     -------
@@ -274,34 +297,44 @@ def make_grid_layout(info, picks=None):
     ids = list(range(len(picks)))
     size = len(picks)
 
-    # prepare square-like layout
-    ht = wd = np.sqrt(size)  # try square
-    if wd % 1:
-        wd, ht = int(wd + 1), int(ht)  # try n * (n-1) rectangle
+    if n_col == None:
+        # prepare square-like layout
+        n_row = n_col = np.sqrt(size)  # try square
+        if n_col % 1:
+            n_col, n_row = int(n_col + 1), int(n_row)  # try n * (n-1) rectangle
 
-    if wd * ht < size:  # jump to the next full square
-        ht += 1
+        if n_col * n_row < size:  # jump to the next full square
+            n_row += 1
+    else:
+        n_row = np.ceil(size / float(n_col))
 
-    # setup position grid and fill up
-    x, y = np.meshgrid(np.linspace(0, 1, wd), np.linspace(0, 1, ht))
+    # setup position grid
+    x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col), np.linspace(-0.5, 0.5,
+        n_row))
+    x, y = x.ravel()[:size], y.ravel()[:size]
+    width, height = _box_size(np.c_[x, y])
 
-    # scale boxes depending on size such that square is always filled
-    width = size * .15  # value depends on mne default full-view size
-    spacing = (width * ht)
+    # Some axes will be at the figure edge. Shrink everything so it fits in the
+    # figure. Add 0.01 border around everything
+    border_x, border_y = (0.01, 0.01)
+    x_scaling = 1 / (1. + width + border_x)
+    y_scaling = 1 / (1. + height + border_y)
+    x = x * x_scaling
+    y = y * y_scaling
+    width *= x_scaling
+    height *= y_scaling
 
-    # XXX : width and height are here assumed to be equal. Could be improved.
-    x, y = (x.ravel()[:size] * spacing, y.ravel()[:size] * spacing)
+    # Shift to center
+    x += 0.5
+    y += 0.5
 
     # calculate pos
-    pos = np.c_[x, y, width * np.ones(size), width * np.ones(size)]
-
-    # calculate box
-    box = (x.min() - 0.1 * width, x.max() + 1.1 * width,
-           y.min() - 0.1 * width, y.max() + 1.1 * width)
+    pos = np.c_[x - 0.5*width, y - 0.5*height, width * np.ones(size), height *
+            np.ones(size)]
+    box = (0, 1, 0, 1)
 
     layout = Layout(box=box, pos=pos, names=names, kind='grid-misc', ids=ids)
     return layout
-
 
 def find_layout(info=None, ch_type=None):
     """Choose a layout based on the channels in the info 'chs' field
@@ -394,6 +427,79 @@ def find_layout(info=None, ch_type=None):
 
     return layout
 
+def _box_size(points, width=None, height=None, padding=0.9):
+    """ Given a series of points, calculate an appropriate box size.
+
+    Parameters
+    ----------
+    points : array, shape = (n_points, [x-coordinate, y-coordinate])
+        The centers of the axes. Normally these are points in the range [0, 1]
+        centered at 0.5. 
+    width : float
+        An optional box width to enforce. When set, only the box height will be
+        calculated by the function.
+    height : float
+        An optional box height to enforce. When set, only the box width will be
+        calculated by the function.
+    padding : float
+        Shrink boxes by this amount to achieve padding between boxes.
+
+    Returns
+    -------
+    width : float
+        Width of the box
+    height : float
+        Height of the box
+    """
+    xdiff = lambda a,b: np.abs(a[0] - b[0])
+    ydiff = lambda a,b: np.abs(a[1] - b[1])
+    dist = lambda a,b: np.sqrt(xdiff(a,b)**2 + ydiff(a,b)**2)
+
+    if width == None and height == None:
+        # Find the closest two points A and B.
+        all_combinations = list(combinations(points, 2))
+        closest_points_idx = np.argmin([dist(a, b) for a, b in all_combinations])
+        a, b = all_combinations[closest_points_idx]
+
+        # The closest points define either the max width or max height.
+        w, h = xdiff(a, b), ydiff(a, b)
+        if w > h:
+            width = w
+        else:
+            height = h
+
+    # At this point, either width or height is known, or both are known.
+    if height == None:
+        # Find all axes that could potentially overlap horizontally.
+        candidates = [c for c in combinations(points, 2) if xdiff(*c) < width]
+
+        if len(candidates) == 0:
+            # No axes overlap, take all the height you want.
+            width = 1.0
+        else:
+            # Find an appropriate height so all none of the found axes will
+            # overlap.
+            height = ydiff(*candidates[np.argmin([ydiff(*c) for c in
+                candidates])])
+
+    elif width == None:
+        # Find all axes that could potentially overlap vertically.
+        candidates = [c for c in combinations(points, 2) if ydiff(*c) < height]
+
+        if len(candidates) == 0:
+            # No axes overlap, take all the width you want.
+            width = 1.0
+        else:
+            # Find an appropriate width so all none of the found axes will
+            # overlap.
+            width = xdiff(*candidates[np.argmin([xdiff(*c) for c in
+                candidates])])
+
+    # Add a bit of padding between boxes
+    width *= padding
+    height *= padding
+
+    return width, height
 
 def _find_topomap_coords(chs, layout=None):
     """Try to guess the E/MEG layout and return appropriate topomap coordinates
