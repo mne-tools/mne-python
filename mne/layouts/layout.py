@@ -435,13 +435,13 @@ def _box_size(points, width=None, height=None, padding=1.0):
     points : array, shape = (n_points, [x-coordinate, y-coordinate])
         The centers of the axes. Normally these are points in the range [0, 1]
         centered at 0.5. 
-    width : float
+    width : float | None
         An optional box width to enforce. When set, only the box height will be
         calculated by the function.
-    height : float
+    height : float | None
         An optional box height to enforce. When set, only the box width will be
         calculated by the function.
-    padding : float | 1.0
+    padding : float
         Scale boxes by this amount to achieve padding between boxes.
 
     Returns
