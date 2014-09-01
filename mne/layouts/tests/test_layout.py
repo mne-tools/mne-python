@@ -131,7 +131,6 @@ def test_make_grid_layout():
     lout_orig = read_layout(kind=lout_name, path=lout_path)
     layout = make_grid_layout(test_info)
     layout.save(op.join(tempdir, tmp_name + '.lout'))
-    layout.save('/home/marijn/test.lout')
     lout_new = read_layout(kind=tmp_name, path=tempdir)
     assert_array_equal(lout_new.kind, tmp_name)
     assert_array_equal(lout_orig.pos, lout_new.pos)
@@ -211,52 +210,53 @@ def test_find_layout():
     assert_raises(RuntimeError, find_layout, sample_info5)
 
 def test_box_size():
-    # No points. Box size should be 1,1
+    """Test calculation of box sizes."""
+    # No points. Box size should be 1,1.
     assert_allclose(_box_size([]), (1.0, 1.0))
 
-    # Create one point. Box size should be 1,1
+    # Create one point. Box size should be 1,1.
     point = [(0,0)]
     assert_allclose(_box_size(point), (1.0, 1.0))
 
-    # Create two points. Box size should be 0.5,1
+    # Create two points. Box size should be 0.5,1.
     points = [(0.25, 0.5), (0.75, 0.5)]
     assert_allclose(_box_size(points), (0.5, 1.0))
 
-    # Create three points. Box size should be (0.5, 0.5)
+    # Create three points. Box size should be (0.5, 0.5).
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
     assert_allclose(_box_size(points), (0.5, 0.5))
 
-    # Create a grid of points. Box size should be (0.1, 0.1)
+    # Create a grid of points. Box size should be (0.1, 0.1).
     x, y = np.meshgrid(np.linspace(-0.5, 0.5, 11), np.linspace(-0.5, 0.5, 11))
     x, y = x.ravel(), y.ravel()
     assert_allclose(_box_size(np.c_[x,y]), (0.1, 0.1))
 
-    # Create a random set of points. This should never break the function
+    # Create a random set of points. This should never break the function.
     points = np.random.rand(100, 2)
     width, height = _box_size(points)
     assert_true(width != None)
     assert_true(height != None)
 
-    # Test specifying an existing width
+    # Test specifying an existing width.
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
     assert_allclose(_box_size(points, width=0.4), (0.4, 0.5))
 
     # Test specifying an existing width that has influence on the calculated
-    # height
+    # height.
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
     assert_allclose(_box_size(points, width=0.2), (0.2, 1.0))
 
-    # Test specifying an existing height
+    # Test specifying an existing height.
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
     assert_allclose(_box_size(points, height=0.4), (0.5, 0.4))
 
     # Test specifying an existing height that has influence on the calculated
-    # width
+    # width.
     points = [(0.25, 0.25), (0.75, 0.45), (0.5, 0.75)]
     assert_allclose(_box_size(points, height=0.1), (1.0, 0.1))
 
     # Test specifying both width and height. The function should simply return
-    # these
+    # these.
     points = [(0.25, 0.25), (0.75, 0.45), (0.5, 0.75)]
     assert_array_equal(_box_size(points, width=0.1, height=0.1), (0.1, 0.1))
 
@@ -265,7 +265,7 @@ def test_box_size():
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
     assert_array_equal(_box_size(points, width=1), (1, 0))
 
-    # Test adding some padding
-    # Create three points. Box size should be (0.5, 0.5)
+    # Test adding some padding.
+    # Create three points. Box size should be a little less than (0.5, 0.5).
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
     assert_allclose(_box_size(points, padding=0.9), (0.9*0.5, 0.9*0.5))
