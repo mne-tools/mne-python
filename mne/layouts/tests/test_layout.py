@@ -136,6 +136,15 @@ def test_make_grid_layout():
     assert_array_equal(lout_orig.pos, lout_new.pos)
     assert_array_equal(lout_orig.names, lout_new.names)
 
+    # Test creating grid layout with specified number of columns
+    layout = make_grid_layout(test_info, n_col=2)
+    # Vertical positions should be equal
+    assert_true(layout.pos[0,1] == layout.pos[1,1])
+    # Horizontal positions should be unequal
+    assert_true(layout.pos[0,0] != layout.pos[1,0])
+    # Box sizes should be equal
+    assert_array_equal(layout.pos[0,3:], layout.pos[1,3:])
+
 def test_find_layout():
     """Test finding layout"""
     assert_raises(ValueError, find_layout, test_info, ch_type='meep')
