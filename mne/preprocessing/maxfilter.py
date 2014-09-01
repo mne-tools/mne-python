@@ -41,9 +41,17 @@ def fit_sphere_to_headshape(info, verbose=None):
         Head center in device coordinates (mm).
 
     """
-    # get head digization points, excluding some frontal points (nose etc.)
-    hsp = [p['r'] for p in info['dig'] if p['kind'] == FIFF.FIFFV_POINT_EXTRA
-           and not (p['r'][2] < 0 and p['r'][1] > 0)]
+    # get head digization points, which should be of type cardinal
+    hsp = [p['r'] for p in info['dig']
+           if p['kind'] == FIFF.FIFFV_POINT_CARDINAL]
+
+    # if no cardinal points are specified, look for points of type extra
+    if len(hsp) == 0:
+        hsp = [p['r'] for p in info['dig']
+               if p['kind'] == FIFF.FIFFV_POINT_EXTRA]
+
+    # exclude some frontal points (nose etc.)
+    hsp = [p for p in hsp if not (p[2] < 0 and p[1] > 0)]
 
     if len(hsp) == 0:
         raise ValueError('No head digitization points found')
