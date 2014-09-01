@@ -233,8 +233,8 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
     y = radius * (2.0 * theta / np.pi) * np.sin(phi)
 
     # Scale [x, y] to [-0.5, 0.5]
-    x = (x - (np.max(x) + np.min(x))/2.) / (np.max(x) - np.min(x))
-    y = (y - (np.max(y) + np.min(y))/2.) / (np.max(y) - np.min(y))
+    x = (x - (np.max(x) + np.min(x)) / 2.) / (np.max(x) - np.min(x))
+    y = (y - (np.max(y) + np.min(y)) / 2.) / (np.max(y) - np.min(y))
 
     # If no width or height specified, calculate the maximum value possible
     # without axes overlapping.
@@ -258,7 +258,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
     y += 0.5
 
     n_channels = len(x)
-    pos = np.c_[x - 0.5*width, y - 0.5*height, width * np.ones(n_channels),
+    pos = np.c_[x - 0.5 * width, y - 0.5 * height, width * np.ones(n_channels),
                 height * np.ones(n_channels)]
 
     box = (0, 1, 0, 1)
