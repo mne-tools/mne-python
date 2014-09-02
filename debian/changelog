@@ -2,6 +2,8 @@ python-mne (0.8.2+dfsg-1) UNRELEASED; urgency=low
 
   [ Alexandre Gramfort ]
   * New upstream version.
+  * Skip tests needing network access
+    Closes: #759916
 
   [ Andreas Tille ]
   * Strip compressed JS files from upstream source
