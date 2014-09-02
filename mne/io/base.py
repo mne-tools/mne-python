@@ -1379,13 +1379,15 @@ def set_eeg_reference(raw, ref_channels, copy=True):
     # Return rereferenced data and reference array
     return raw, ref_data
 
-def specify_eeg_montage(raw, eeg=None, eog=None, ref=[], bads=None, bipolar=None,
-        calc_reog=False, drop=None, drop_ref=False, copy=True):
+
+def specify_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
+                           bipolar=None, calc_reog=False, drop=None,
+                           drop_ref=False, copy=True):
     '''
-    This function can be used to specify an EEG montage, e.g. which electrodes
-    record EEG and EOG, which reference(s) to use and which channels are
-    considered 'bad' and should not be used. Multiple reference types
-    can be specified.
+    This function can be used to specify the EEG electrode types, e.g. which
+    electrodes record EEG and EOG, which reference(s) to use and which channels
+    are considered 'bad' and should not be used. Multiple reference types can
+    be specified.
 
     Channels can be specified either as a string name, or an integer index.
 
