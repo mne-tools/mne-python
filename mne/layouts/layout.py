@@ -176,14 +176,12 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
         Measurement info (e.g., raw.info)
     radius : float
         Viewport radius as a fraction of main figure height.
-    width : float
-        Width of sensor axes as a fraction of main figure height. If not
-        specified, this will be the maximum width possible without axes
-        overlapping.
-    height : float
-        Height of sensor axes as a fraction of main figure height. If not
-        specified, this will be the maximum height possible withough axes
-        overlapping.
+    width : float | None
+        Width of sensor axes as a fraction of main figure height. If None, this
+        will be the maximum width possible without axes overlapping.
+    height : float | None
+        Height of sensor axes as a fraction of main figure height. If None,
+        this will be the maximum height possible withough axes overlapping.
 
     Returns
     -------
@@ -239,7 +237,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
     # If no width or height specified, calculate the maximum value possible
     # without axes overlapping.
     if width is None or height is None:
-        width, height = _box_size(np.c_[x, y], width, height, padding=0.9)
+        width, height = _box_size(np.c_[x, y], width, height, padding=0.1)
 
     # Scale to viewport radius
     x *= 2 * radius
@@ -309,10 +307,10 @@ def make_grid_layout(info, picks=None, n_col=None):
         n_row = np.ceil(size / float(n_col))
 
     # setup position grid
-    x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col), np.linspace(-0.5, 0.5,
-                       n_row))
+    x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col),
+                       np.linspace(-0.5, 0.5, n_row))
     x, y = x.ravel()[:size], y.ravel()[:size]
-    width, height = _box_size(np.c_[x, y], padding=0.9)
+    width, height = _box_size(np.c_[x, y], padding=0.1)
 
     # Some axes will be at the figure edge. Shrink everything so it fits in the
     # figure. Add 0.01 border around everything
@@ -429,14 +427,14 @@ def find_layout(info=None, ch_type=None):
     return layout
 
 
-def _box_size(points, width=None, height=None, padding=1.0):
+def _box_size(points, width=None, height=None, padding=0.0):
     """ Given a series of points, calculate an appropriate box size.
 
     Parameters
     ----------
-    points : array, shape = (n_points, [x-coordinate, y-coordinate])
-        The centers of the axes. Normally these are points in the range [0, 1]
-        centered at 0.5.
+    points : array, shape (n_points, 2)
+        The centers of the axes as a list of (x, y) coordinate pairs. Normally
+        these are points in the range [0, 1] centered at 0.5.
     width : float | None
         An optional box width to enforce. When set, only the box height will be
         calculated by the function.
@@ -444,7 +442,8 @@ def _box_size(points, width=None, height=None, padding=1.0):
         An optional box height to enforce. When set, only the box width will be
         calculated by the function.
     padding : float
-        Scale boxes by this amount to achieve padding between boxes.
+        Portion of the box to reserve for padding. The value can range between
+        0.0 (boxes will touch) to 1.0 (boxes consist of only padding).
 
     Returns
     -------
@@ -506,8 +505,8 @@ def _box_size(points, width=None, height=None, padding=1.0):
                           candidates])])
 
     # Add a bit of padding between boxes
-    width *= padding
-    height *= padding
+    width *= 1 - padding
+    height *= 1 - padding
 
     return width, height
 

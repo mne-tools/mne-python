@@ -218,13 +218,14 @@ def test_find_layout():
     sample_info5['dig'] = []
     assert_raises(RuntimeError, find_layout, sample_info5)
 
+
 def test_box_size():
     """Test calculation of box sizes."""
     # No points. Box size should be 1,1.
     assert_allclose(_box_size([]), (1.0, 1.0))
 
     # Create one point. Box size should be 1,1.
-    point = [(0,0)]
+    point = [(0, 0)]
     assert_allclose(_box_size(point), (1.0, 1.0))
 
     # Create two points. Box size should be 0.5,1.
@@ -238,13 +239,14 @@ def test_box_size():
     # Create a grid of points. Box size should be (0.1, 0.1).
     x, y = np.meshgrid(np.linspace(-0.5, 0.5, 11), np.linspace(-0.5, 0.5, 11))
     x, y = x.ravel(), y.ravel()
-    assert_allclose(_box_size(np.c_[x,y]), (0.1, 0.1))
+    assert_allclose(_box_size(np.c_[x, y]), (0.1, 0.1))
 
     # Create a random set of points. This should never break the function.
-    points = np.random.rand(100, 2)
+    rng = np.random.RandomState(42)
+    points = rng.rand(100, 2)
     width, height = _box_size(points)
-    assert_true(width != None)
-    assert_true(height != None)
+    assert_true(width is not None)
+    assert_true(height is not None)
 
     # Test specifying an existing width.
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
@@ -277,4 +279,4 @@ def test_box_size():
     # Test adding some padding.
     # Create three points. Box size should be a little less than (0.5, 0.5).
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
-    assert_allclose(_box_size(points, padding=0.9), (0.9*0.5, 0.9*0.5))
+    assert_allclose(_box_size(points, padding=0.1), (0.9*0.5, 0.9*0.5))
