@@ -132,7 +132,7 @@ Functions:
    get_head_surf
    get_meg_helmet_surf
    parse_config
-   read_annot
+   read_labels_from_annot
    read_bem_solution
    read_bem_surfaces
    read_cov
@@ -151,7 +151,7 @@ Functions:
    read_surface
    read_trans
    save_stc_as_volume
-   write_annot
+   write_labels_to_annot
    write_bem_surface
    write_cov
    write_events
@@ -723,7 +723,19 @@ Decoding
 
 .. automodule:: mne.decoding
    :no-members:
+   :no-inherited-members:
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   Scaler
+   ConcatenateChannels
+   PSDEstimator
+   FilterEstimator
+   CSP
 
 Realtime
 ========
@@ -732,6 +744,20 @@ Realtime
 
 .. automodule:: mne.realtime
    :no-members:
+   :no-inherited-members:
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   RtEpochs
+   RtClient
+   MockRtClient
+   FieldTripClient
+   StimServer
+   StimClient
 
 MNE-Report
 ==========
