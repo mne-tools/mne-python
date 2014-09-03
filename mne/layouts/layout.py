@@ -14,6 +14,7 @@ from .. import pick_types
 from ..io.constants import FIFF
 from ..utils import _clean_names
 from ..externals.six.moves import map
+from scipy.spatial.distance import pdist
 
 
 class Layout(object):
@@ -454,9 +455,10 @@ def _box_size(points, width=None, height=None, padding=0.0):
     """
     xdiff = lambda a, b: np.abs(a[0] - b[0])
     ydiff = lambda a, b: np.abs(a[1] - b[1])
-    dist = lambda a, b: np.sqrt(xdiff(a, b)**2 + ydiff(a, b)**2)
 
     points = np.asarray(points)
+    all_combinations = list(combinations(points, 2))
+    n_points = len(points)
 
     if width is None and height is None:
         if len(points) <= 1:
@@ -465,10 +467,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
             height = 1.0
         else:
             # Find the closest two points A and B.
-            all_combinations = list(combinations(points, 2))
-            closest_points_idx = np.argmin([dist(a, b)
-                                            for a, b in all_combinations])
-            a, b = all_combinations[closest_points_idx]
+            a, b = all_combinations[np.argmin(pdist(points))]
 
             # The closest points define either the max width or max height.
             w, h = xdiff(a, b), ydiff(a, b)
@@ -480,7 +479,9 @@ def _box_size(points, width=None, height=None, padding=0.0):
     # At this point, either width or height is known, or both are known.
     if height is None:
         # Find all axes that could potentially overlap horizontally.
-        candidates = [c for c in combinations(points, 2) if xdiff(*c) < width]
+        hdist = pdist(points, xdiff)
+        candidates = [all_combinations[i] for i, d in enumerate(hdist)
+                      if d < width]
 
         if len(candidates) == 0:
             # No axes overlap, take all the height you want.
@@ -488,12 +489,13 @@ def _box_size(points, width=None, height=None, padding=0.0):
         else:
             # Find an appropriate height so all none of the found axes will
             # overlap.
-            height = ydiff(*candidates[np.argmin([ydiff(*c) for c in
-                           candidates])])
+            height = np.min([ydiff(*c) for c in candidates])
 
     elif width is None:
         # Find all axes that could potentially overlap vertically.
-        candidates = [c for c in combinations(points, 2) if ydiff(*c) < height]
+        vdist = pdist(points, ydiff)
+        candidates = [all_combinations[i] for i, d in enumerate(vdist)
+                      if d < height]
 
         if len(candidates) == 0:
             # No axes overlap, take all the width you want.
@@ -501,8 +503,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
         else:
             # Find an appropriate width so all none of the found axes will
             # overlap.
-            width = xdiff(*candidates[np.argmin([xdiff(*c) for c in
-                          candidates])])
+            width = np.min([xdiff(*c) for c in candidates])
 
     # Add a bit of padding between boxes
     width *= 1 - padding
