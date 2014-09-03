@@ -27,7 +27,7 @@ from mne.utils import _TempDir
 warnings.simplefilter('always')
 
 fif_fname = op.join(op.dirname(__file__), '..', '..', 'io',
-                   'tests', 'data', 'test_raw.fif')
+                    'tests', 'data', 'test_raw.fif')
 
 lout_path = op.join(op.dirname(__file__), '..', '..', 'io',
                     'tests', 'data')
@@ -41,50 +41,51 @@ fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 fname_kit_157 = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
-test_info = {'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
- 'chs': [{'cal': 1,
-   'ch_name': 'ICA 001',
-   'coil_trans': None,
-   'coil_type': 0,
-   'coord_Frame': 0,
-   'eeg_loc': None,
-   'kind': 502,
-   'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                   dtype=np.float32),
-   'logno': 1,
-   'range': 1.0,
-   'scanno': 1,
-   'unit': -1,
-   'unit_mul': 0},
-  {'cal': 1,
-   'ch_name': 'ICA 002',
-   'coil_trans': None,
-   'coil_type': 0,
-   'coord_Frame': 0,
-   'eeg_loc': None,
-   'kind': 502,
-   'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                    dtype=np.float32),
-   'logno': 2,
-   'range': 1.0,
-   'scanno': 2,
-   'unit': -1,
-   'unit_mul': 0},
-  {'cal': 0.002142000012099743,
-   'ch_name': 'EOG 061',
-   'coil_trans': None,
-   'coil_type': 1,
-   'coord_frame': 0,
-   'eeg_loc': None,
-   'kind': 202,
-   'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
-                    dtype=np.float32),
-   'logno': 61,
-   'range': 1.0,
-   'scanno': 376,
-   'unit': 107,
-   'unit_mul': 0}],
-   'nchan': 3}
+test_info = {
+    'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
+    'chs': [{'cal': 1,
+             'ch_name': 'ICA 001',
+             'coil_trans': None,
+             'coil_type': 0,
+             'coord_Frame': 0,
+             'eeg_loc': None,
+             'kind': 502,
+             'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
+                             dtype=np.float32),
+             'logno': 1,
+             'range': 1.0,
+             'scanno': 1,
+             'unit': -1,
+             'unit_mul': 0},
+            {'cal': 1,
+             'ch_name': 'ICA 002',
+             'coil_trans': None,
+             'coil_type': 0,
+             'coord_Frame': 0,
+             'eeg_loc': None,
+             'kind': 502,
+             'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
+                             dtype=np.float32),
+             'logno': 2,
+             'range': 1.0,
+             'scanno': 2,
+             'unit': -1,
+             'unit_mul': 0},
+            {'cal': 0.002142000012099743,
+             'ch_name': 'EOG 061',
+             'coil_trans': None,
+             'coil_type': 1,
+             'coord_frame': 0,
+             'eeg_loc': None,
+             'kind': 202,
+             'loc': np.array([0., 0., 0., 1., 0., 0., 0., 1., 0., 0., 0., 1.],
+                             dtype=np.float32),
+             'logno': 61,
+             'range': 1.0,
+             'scanno': 376,
+             'unit': 107,
+             'unit_mul': 0}],
+    'nchan': 3}
 
 tempdir = _TempDir()
 
@@ -139,11 +140,12 @@ def test_make_grid_layout():
     # Test creating grid layout with specified number of columns
     layout = make_grid_layout(test_info, n_col=2)
     # Vertical positions should be equal
-    assert_true(layout.pos[0,1] == layout.pos[1,1])
+    assert_true(layout.pos[0, 1] == layout.pos[1, 1])
     # Horizontal positions should be unequal
-    assert_true(layout.pos[0,0] != layout.pos[1,0])
+    assert_true(layout.pos[0, 0] != layout.pos[1, 0])
     # Box sizes should be equal
-    assert_array_equal(layout.pos[0,3:], layout.pos[1,3:])
+    assert_array_equal(layout.pos[0, 3:], layout.pos[1, 3:])
+
 
 def test_find_layout():
     """Test finding layout"""
@@ -176,7 +178,7 @@ def test_find_layout():
     # test new vector-view
     lout = find_layout(sample_info4, ch_type=None)
     assert_true(lout.kind == 'Vectorview-all')
-    assert_true(all(not ' ' in k for k in lout.names))
+    assert_true(all(' ' not in k for k in lout.names))
 
     lout = find_layout(sample_info, ch_type='grad')
     assert_true(lout.kind == 'Vectorview-grad')
@@ -187,7 +189,6 @@ def test_find_layout():
     lout = find_layout(sample_info2, ch_type='meg')
     assert_true(lout.kind == 'Vectorview-all')
 
-
     lout = find_layout(sample_info, ch_type='mag')
     assert_true(lout.kind == 'Vectorview-mag')
     lout = find_layout(sample_info3)
@@ -196,7 +197,7 @@ def test_find_layout():
     assert_true(lout.kind == 'Vectorview-mag')
     lout = find_layout(sample_info3, ch_type='meg')
     assert_true(lout.kind == 'Vectorview-all')
-    #
+
     lout = find_layout(sample_info, ch_type='eeg')
     assert_true(lout.kind == 'EEG')
     lout = find_layout(sample_info5)

@@ -300,7 +300,8 @@ def make_grid_layout(info, picks=None, n_col=None):
         # prepare square-like layout
         n_row = n_col = np.sqrt(size)  # try square
         if n_col % 1:
-            n_col, n_row = int(n_col + 1), int(n_row)  # try n * (n-1) rectangle
+            # try n * (n-1) rectangle
+            n_col, n_row = int(n_col + 1), int(n_row)
 
         if n_col * n_row < size:  # jump to the next full square
             n_row += 1
@@ -368,7 +369,8 @@ def find_layout(info=None, ch_type=None):
                                                 FIFF.FIFFV_COIL_VV_MAG_T3]])
     has_vv_grad = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
                                                  FIFF.FIFFV_COIL_VV_PLANAR_T2,
-                                                 FIFF.FIFFV_COIL_VV_PLANAR_T3]])
+                                                 FIFF.FIFFV_COIL_VV_PLANAR_T3]]
+                      )
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
