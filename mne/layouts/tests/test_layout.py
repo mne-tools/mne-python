@@ -280,4 +280,4 @@ def test_box_size():
     # Test adding some padding.
     # Create three points. Box size should be a little less than (0.5, 0.5).
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
-    assert_allclose(_box_size(points, padding=0.1), (0.9*0.5, 0.9*0.5))
+    assert_allclose(_box_size(points, padding=0.1), (0.9 * 0.5, 0.9 * 0.5))
