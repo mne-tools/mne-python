@@ -193,7 +193,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
         raise ValueError('The radius parameter should be between 0 and 0.5.')
     if width is not None and not (0 <= width <= 1.0):
         raise ValueError('The width parameter should be between 0 and 1.')
-    if width is not None and not (0 <= height <= 1.0):
+    if height is not None and not (0 <= height <= 1.0):
         raise ValueError('The height parameter should be between 0 and 1.')
 
     if info['dig'] in [[], None]:

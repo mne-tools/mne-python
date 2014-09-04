@@ -117,12 +117,27 @@ def test_make_eeg_layout():
     tmp_name = 'foo'
     lout_name = 'test_raw'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
-    layout = make_eeg_layout(Raw(fif_fname).info)
+    info = Raw(fif_fname).info
+    layout = make_eeg_layout(info)
     layout.save(op.join(tempdir, tmp_name + '.lout'))
     lout_new = read_layout(kind=tmp_name, path=tempdir, scale=False)
     assert_array_equal(lout_new.kind, tmp_name)
     assert_allclose(layout.pos, lout_new.pos, atol=0.1)
     assert_array_equal(lout_orig.names, lout_new.names)
+
+    # Test input validation
+    assert_raises(ValueError, make_eeg_layout, info, radius=-0.1)
+    assert_raises(ValueError, make_eeg_layout, info, radius=0.6)
+    assert_raises(ValueError, make_eeg_layout, info, width=-0.1)
+    assert_raises(ValueError, make_eeg_layout, info, width=1.1)
+    assert_raises(ValueError, make_eeg_layout, info, height=-0.1)
+    assert_raises(ValueError, make_eeg_layout, info, height=1.1)
+
+    bad_info = info.copy()
+    bad_info['dig'] = None
+    assert_raises(RuntimeError, make_eeg_layout, bad_info)
+    bad_info['dig'] = []
+    assert_raises(RuntimeError, make_eeg_layout, bad_info)
 
 
 def test_make_grid_layout():
