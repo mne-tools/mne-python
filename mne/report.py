@@ -702,14 +702,17 @@ class Report(object):
 
         Parameters
         ----------
-        figs : list of matplotlib.pyplot.Figure/mayavi.core.scene.Scene
-            A list of figures to be included in the report.
+        figs : list of figures.
+            Each figure in the list can be an instance of
+            matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
+            or np.ndarray (images read in using scipy.imread).
         captions : list of str
             A list of captions to the figures.
         section : str
             Name of the section. If section already exists, the figures
             will be appended to the end of the section
         """
+        import matplotlib.pyplot as plt
         try:
             # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # ... mlab is imported
@@ -737,15 +740,15 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             if isinstance(fig, mayavi.core.scene.Scene):
-                import matplotlib.pyplot as plt
                 from scipy.misc import imread
 
-                _, ax = plt.subplots(1)
                 fig.scene.save_bmp(temp_fname)
                 im = imread(temp_fname)
-                ax.imshow(im)
-                ax.axis('off')
-                fig = ax.get_figure()
+                fig = plt.imshow(im).figure
+                plt.axis('off')
+            if isinstance(fig, np.ndarray):
+                fig = plt.imshow(fig).figure
+                plt.axis('off')
 
             img = _fig_to_img(fig=fig)
             html = image_template.substitute(img=img, id=global_id,
