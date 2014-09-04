@@ -128,7 +128,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              colorbar_size=0.2, colorbar_pos=(-0.3, 0.1),
                              fontsize_title=12, fontsize_names=8,
                              fontsize_colorbar=8, padding=6.,
-                             fig=None, subplot=111, interactive=True):
+                             fig=None, subplot=111, interactive=True,
+                             node_linewidth=2.):
     """Visualize connectivity as a circular graph.
 
     Note: This code is based on the circle graph example by Nicolas P. Rougier
@@ -198,6 +199,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     interactive : bool
         When enabled, left-click on a node to show only connections to that
         node. Right-click shows all connections.
+    node_linewidth : float
+        Line with for nodes.
 
     Returns
     -------
@@ -359,8 +362,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     # Draw ring with colored nodes
     height = np.ones(n_nodes) * 1.0
     bars = axes.bar(node_angles, height, width=node_width, bottom=9,
-                    edgecolor=node_edgecolor, lw=2, facecolor='.9',
-                    align='center')
+                    edgecolor=node_edgecolor, lw=node_linewidth,
+                    facecolor='.9', align='center')
 
     for bar, color in zip(bars, node_colors):
         bar.set_facecolor(color)
@@ -404,5 +407,3 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         fig.canvas.mpl_connect('button_press_event', callback)
 
     return fig, axes
-
-
