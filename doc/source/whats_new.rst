@@ -19,7 +19,7 @@ Changelog
 
    - Add `SourceSpaces.export_volume` method by `Alan Leggitt`_
 
-   - Automatically compute proper box sized when generating layouts on the fly by `Marijn van Vliet`_
+   - Automatically compute proper box sizes when generating layouts on the fly by `Marijn van Vliet`_
 
 BUG
 ~~~
