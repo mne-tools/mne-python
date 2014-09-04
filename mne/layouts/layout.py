@@ -460,7 +460,6 @@ def _box_size(points, width=None, height=None, padding=0.0):
 
     points = np.asarray(points)
     all_combinations = list(combinations(points, 2))
-    n_points = len(points)
 
     if width is None and height is None:
         if len(points) <= 1:
