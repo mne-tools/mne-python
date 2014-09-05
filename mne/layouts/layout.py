@@ -9,12 +9,12 @@ from collections import defaultdict
 from itertools import combinations
 import os.path as op
 import numpy as np
+from scipy.spatial.distance import pdist
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
 from .. import pick_types
 from ..io.constants import FIFF
 from ..utils import _clean_names
 from ..externals.six.moves import map
-from scipy.spatial.distance import pdist
 
 
 class Layout(object):
