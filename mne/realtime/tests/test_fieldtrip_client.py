@@ -77,4 +77,4 @@ def test_fieldtrip_client():
         kill_signal.put(False)  # stop the buffer
     except:
         kill_signal.put(False)  # stop the buffer even if tests fail
-        raise
+        raise RuntimeError
