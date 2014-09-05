@@ -11,6 +11,7 @@ import os.path as op
 
 from nose.tools import assert_true
 
+import mne
 from mne.utils import requires_neuromag2ft
 from mne.realtime import FieldTripClient
 from mne.externals.six.moves import queue
@@ -22,13 +23,13 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 def _run_buffer(kill_signal, neuromag2ft_fname):
+    # Works with neuromag2ft-3.0.2
     cmd = (neuromag2ft_fname, '--file', raw_fname, '--speed', '4.0')
 
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     # Let measurement continue for the entire duration
     kill_signal.get(timeout=10.0)
-    print('Terminating subprocess')
     process.terminate()
 
 
@@ -45,24 +46,35 @@ def test_fieldtrip_client():
     thread.daemon = True
     thread.start()
 
-    # Start the FieldTrip buffer
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        with FieldTripClient(host='localhost', port=1972,
-                             tmax=5, wait_max=1) as rt_client:
-            tmin_samp1 = rt_client.tmin_samp
+    try:
+        # Start the FieldTrip buffer
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            with FieldTripClient(host='localhost', port=1972,
+                                 tmax=5, wait_max=1) as rt_client:
+                tmin_samp1 = rt_client.tmin_samp
 
-    time.sleep(1)  # Pause measurement
-    assert_true(len(w) == 1)
+        time.sleep(1)  # Pause measurement
+        assert_true(len(w) == 1)
 
-    # Start the FieldTrip buffer again
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        with FieldTripClient(host='localhost', port=1972,
-                             tmax=5, wait_max=1) as rt_client:
-            print(rt_client.tmin_samp)
-            tmin_samp2 = rt_client.tmin_samp
+        # Start the FieldTrip buffer again
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            with FieldTripClient(host='localhost', port=1972,
+                                 tmax=5, wait_max=1) as rt_client:
+                raw_info = rt_client.get_measurement_info()
 
-    kill_signal.put(False)  # stop the buffer
-    assert_true(tmin_samp2 > tmin_samp1)
-    assert_true(len(w) == 1)
+                tmin_samp2 = rt_client.tmin_samp
+                picks = mne.pick_types(raw_info, meg='grad', eeg=False,
+                                       stim=False, eog=False)
+                epoch = rt_client.get_data_as_epoch(n_samples=5, picks=picks)
+                _, n_channels, n_samples = epoch.get_data().shape
+
+        assert_true(tmin_samp2 > tmin_samp1)
+        assert_true(len(w) == 1)
+        assert_true(n_samples == 5)
+        assert_true(n_channels == len(picks))
+        kill_signal.put(False)  # stop the buffer
+    except:
+        kill_signal.put(False)  # stop the buffer even if tests fail
+        raise RuntimeError
