@@ -746,7 +746,7 @@ class Report(object):
                 im = imread(temp_fname)
                 fig = plt.imshow(im).figure
                 plt.axis('off')
-            if isinstance(fig, np.ndarray):
+            elif isinstance(fig, np.ndarray):
                 fig = plt.imshow(fig).figure
                 plt.axis('off')
 
