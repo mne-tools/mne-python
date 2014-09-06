@@ -103,8 +103,8 @@ def read_big(fid, size=None):
         >>> fid_gz = gzip.open(fname_gz, 'rb')
         >>> y = np.fromstring(read_big(fid_gz))
         >>> assert np.all(x == y)
-        >>> shutil.rmtree(os.path.dirname(fname))
         >>> fid_gz.close()
+        >>> shutil.rmtree(os.path.dirname(fname))
 
     """
     # buf_size is chosen as a largest working power of 2 (16 MB):

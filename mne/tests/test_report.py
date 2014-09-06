@@ -12,7 +12,7 @@ from nose.tools import assert_true, assert_equal, assert_raises
 from mne import read_evokeds
 from mne.datasets import sample
 from mne.report import Report
-from mne.utils import _TempDir, requires_mayavi
+from mne.utils import _TempDir, requires_mayavi, requires_nibabel
 
 data_dir = sample.data_path(download=False)
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
@@ -97,6 +97,7 @@ def test_render_report():
     assert_true(op.isfile(op.join(tempdir, 'report.html')))
 
 
+@requires_nibabel()
 @sample.requires_sample_data
 def test_render_mri():
     """Test rendering MRI for mne report.
