@@ -19,6 +19,7 @@ from mne.datasets import sample
 
 from mne.viz import plot_cov, plot_bem, plot_events
 from mne.viz import plot_source_spectrogram
+from mne.utils import requires_nibabel
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -56,6 +57,7 @@ def test_plot_cov():
     plt.close('all')
 
 
+@requires_nibabel()
 @sample.requires_sample_data
 def test_plot_bem():
     """Test plotting of BEM contours
