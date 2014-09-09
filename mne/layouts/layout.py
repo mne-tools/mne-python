@@ -634,6 +634,8 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
         return picks
 
 
+# this function is used to pair grad when info is not present
+# it is the case of Projection that don't have the info.
 def _pair_grad_sensors_from_ch_names(ch_names):
     """Find the indexes for pairing grad channels
 

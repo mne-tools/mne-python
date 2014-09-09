@@ -26,6 +26,8 @@ BUG
 
    - Fix incorrect data matrix when tfr was plotted with parameters `tmin`, `tmax`, `fmin` and `fmax` by `Mainak Jas`_
 
+   - Fix channel names in topomaps by `Alex Gramfort`_
+
 API
 ~~~
 

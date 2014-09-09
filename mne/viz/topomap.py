@@ -64,7 +64,13 @@ def _prepare_topo_plot(obj, ch_type, layout):
             pos = [layout.pos[names.index(info['ch_names'][k].upper())]
                    for k in picks]
 
-    return picks, pos, merge_grads, info['ch_names']
+    ch_names = [info['ch_names'][k] for k in picks]
+    if merge_grads:
+        # change names so that vectorview combined grads appear as MEG014x instead
+        # of MEG0142 or MEG0143 which are the 2 planar grads.
+        ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
+
+    return picks, pos, merge_grads, ch_names
 
 
 def _plot_update_evoked_topomap(params, bools):
@@ -249,7 +255,7 @@ def _check_outlines(pos, outlines, head_scale=0.85):
 
 def _inside_contour(pos, contour):
     """Aux function"""
-    npos, ncnt = len(pos), len(contour)
+    npos = len(pos)
     x, y = pos[:, :2].T
 
     check_mask = np.ones((npos), dtype=bool)
