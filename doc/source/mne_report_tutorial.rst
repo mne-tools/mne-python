@@ -105,13 +105,13 @@ Custom plots can be added to the report. Let us first generate a custom plot:
 
 To add the custom plot to the report, do:
 
-    >>> report.add_section(fig, captions='Left Auditory', section='evoked') # doctest: +SKIP
+    >>> report.add_figs_to_section(fig, captions='Left Auditory', section='evoked') # doctest: +SKIP
     >>> report.save('report.html', overwrite=True) # doctest: +SKIP
     Rendering : Table of Contents...
 
 The MNE report command internally manages the sections so that plots belonging to the same section
 are rendered consecutively. Within a section, the plots are ordered in the same order that they were 
-added using the `add_section` command. Each section is identified by a toggle button in the navigation 
+added using the `add_figs_to_section` command. Each section is identified by a toggle button in the navigation 
 bar of the report which can be used to show or hide the contents of the section.
 
 That's it!
