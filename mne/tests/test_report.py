@@ -78,14 +78,29 @@ def test_render_report():
     report.save(fname=op.join(tempdir, 'report.html'), open_browser=False)
     assert_true(op.isfile(op.join(tempdir, 'report.html')))
 
-    # Check add_section functionality
+    # Check add_figs_to_section functionality
     fig = evoked1[0].plot(show=False)
-    report.add_section(figs=fig,  # test non-list input
-                       captions=['evoked response'])
+    report.add_figs_to_section(figs=fig,  # test non-list input
+                               captions=['evoked response'])
     assert_equal(len(report.html), len(fnames) + 1)
     assert_equal(len(report.html), len(report.fnames))
-    assert_raises(ValueError, report.add_section, figs=[fig, fig],
+    assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
+
+    # Check add_images_to_section
+    img_fname = op.join(tempdir, 'testimage.png')
+    fig.savefig(img_fname)
+    report.add_images_to_section(fnames=[img_fname],
+                                 captions=['evoked response'])
+    assert_raises(ValueError, report.add_images_to_section,
+                  fnames=[img_fname, img_fname], captions='H')
+
+    # Check deprecation of add_section
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        report.add_section(figs=fig,
+                           captions=['evoked response'])
+        assert_true(w[0].category == DeprecationWarning)
 
     # Check saving same report to new filename
     report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)

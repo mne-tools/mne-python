@@ -19,7 +19,7 @@ from datetime import datetime as dt
 
 from . import read_evokeds, read_events, pick_types, Covariance
 from .io import Raw, read_info
-from .utils import _TempDir, logger, verbose, get_subjects_dir
+from .utils import _TempDir, logger, verbose, get_subjects_dir, deprecated
 from .viz import plot_events, plot_trans, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -697,19 +697,28 @@ class Report(object):
         self.initial_id += 1
         return self.initial_id
 
-    def add_section(self, figs, captions, section='custom'):
-        """Append custom user-defined figures.
-
-        Parameters
-        ----------
-        figs : list of matplotlib.pyplot.Figure/mayavi.core.scene.Scene
-            A list of figures to be included in the report.
-        captions : list of str
-            A list of captions to the figures.
-        section : str
-            Name of the section. If section already exists, the figures
-            will be appended to the end of the section
+    def _validate_input(self, items, captions, section):
+        """Validate input.
         """
+        if not isinstance(items, (list, tuple)):
+            items = [items]
+        if not isinstance(captions, (list, tuple)):
+            captions = [captions]
+        if not len(items) == len(captions):
+            raise ValueError('Captions and report items must have the same'
+                             ' length.')
+
+        # Book-keeping of section names
+        if section not in self.sections:
+            self.sections.append(section)
+            self._sectionvars[section] = _clean_varnames(section)
+
+        return items, captions
+
+    def _add_figs_to_section(self, figs, captions, section='custom'):
+        """Auxiliary method for `add_section` and `add_figs_to_section`.
+        """
+        import matplotlib.pyplot as plt
         try:
             # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # ... mlab is imported
@@ -719,15 +728,7 @@ class Report(object):
                           '`mayavi.core.scene.Scene` figure instances'
                           ' will throw an error.')
 
-        if not isinstance(figs, (list, tuple)):
-            figs = [figs]
-        if not isinstance(captions, (list, tuple)):
-            captions = [captions]
-        if not len(figs) == len(captions):
-            raise ValueError('Captions and figures must have the same length.')
-        if section not in self.sections:
-            self.sections.append(section)
-            self._sectionvars[section] = _clean_varnames(section)
+        figs, captions = self._validate_input(figs, captions, section)
 
         for fig, caption in zip(figs, captions):
             caption = 'custom plot' if caption == '' else caption
@@ -737,21 +738,104 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             if isinstance(fig, mayavi.core.scene.Scene):
-                import matplotlib.pyplot as plt
                 from scipy.misc import imread
 
-                _, ax = plt.subplots(1)
                 fig.scene.save_bmp(temp_fname)
                 im = imread(temp_fname)
-                ax.imshow(im)
-                ax.axis('off')
-                fig = ax.get_figure()
+                fig = plt.imshow(im).figure
+                plt.axis('off')
 
             img = _fig_to_img(fig=fig)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
+                                             show=True)
+            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
+            self._sectionlabels.append(sectionvar)
+            self.html.append(html)
+
+    @deprecated("'add_section' will be removed in v0.10. Use"
+                " 'add_figs_to_section' and 'add_images_to_section' instead.")
+    def add_section(self, figs, captions, section='custom'):
+        """Append custom user-defined figures.
+
+        Parameters
+        ----------
+        figs : list of figures.
+            Each figure in the list can be an instance of
+            matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
+            or np.ndarray (images read in using scipy.imread).
+        captions : list of str
+            A list of captions to the figures.
+        section : str
+            Name of the section. If section already exists, the figures
+            will be appended to the end of the section
+        """
+        return self._add_figs_to_section(figs=figs, captions=captions,
+                                         section=section)
+
+    def add_figs_to_section(self, figs, captions, section='custom'):
+        """Append custom user-defined figures.
+
+        Parameters
+        ----------
+        figs : list of figures.
+            Each figure in the list can be an instance of
+            matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
+            or np.ndarray (images read in using scipy.imread).
+        captions : list of str
+            A list of captions to the figures.
+        section : str
+            Name of the section. If section already exists, the figures
+            will be appended to the end of the section
+        """
+        return self._add_figs_to_section(figs=figs, captions=captions,
+                                         section=section)
+
+    def add_images_to_section(self, fnames, captions, scale=1.0,
+                              section='custom'):
+        """Append custom user-defined images.
+
+        Parameters
+        ----------
+        fnames : list of str
+            A list of filenames from which images are read.
+        captions : list of str
+            A list of captions to the images.
+        scale : float
+            Scale the images maintaining the aspect ratio.
+            Defaults to 1.
+        section : str
+            Name of the section. If section already exists, the images
+            will be appended to the end of the section.
+        """
+        # Note: using scipy.misc is equivalent because scipy internally
+        # imports PIL anyway. It's not possible to redirect image output
+        # to binary string using scipy.misc.
+        from PIL import Image
+
+        scale *= 100
+        fnames, captions = self._validate_input(fnames, captions, section)
+
+        for fname, caption in zip(fnames, captions):
+            caption = 'custom plot' if caption == '' else caption
+            sectionvar = self._sectionvars[section]
+            global_id = self._get_id()
+            div_klass = self._sectionvars[section]
+            img_klass = self._sectionvars[section]
+
+            # Convert image to binary string.
+            im = Image.open(fname)
+            output = BytesIO()
+            im.save(output, format='png')
+            img = base64.b64encode(output.getvalue()).decode('ascii')
+
+            html = image_template.substitute(img=img, id=global_id,
+                                             div_klass=div_klass,
+                                             img_klass=img_klass,
+                                             caption=caption,
+                                             width=scale,
                                              show=True)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
