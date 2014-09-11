@@ -793,7 +793,8 @@ class Report(object):
         return self._add_figs_to_section(figs=figs, captions=captions,
                                          section=section)
 
-    def add_images_to_section(self, fnames, captions, section='custom'):
+    def add_images_to_section(self, fnames, captions, scale=1.0,
+                              section='custom'):
         """Append custom user-defined images.
 
         Parameters
@@ -802,13 +803,19 @@ class Report(object):
             A list of filenames from which images are read.
         captions : list of str
             A list of captions to the images.
+        scale : float
+            Scale the images maintaining the aspect ratio.
+            Defaults to 1.
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
         """
-        from scipy.misc import imread
-        import matplotlib.pyplot as plt
+        # Note: using scipy.misc is equivalent because scipy internally
+        # imports PIL anyway. It's not possible to redirect image output
+        # to binary string using scipy.misc.
+        from PIL import Image
 
+        scale *= 100
         fnames, captions = self._validate_input(fnames, captions, section)
 
         for fname, caption in zip(fnames, captions):
@@ -817,15 +824,18 @@ class Report(object):
             global_id = self._get_id()
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
-            im = imread(fname)
-            fig = plt.imshow(im).figure
-            plt.axis('off')
 
-            img = _fig_to_img(fig=fig)
+            # Convert image to binary string.
+            im = Image.open(fname)
+            output = BytesIO()
+            im.save(output, format='png')
+            img = base64.b64encode(output.getvalue()).decode('ascii')
+
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
+                                             width=scale,
                                              show=True)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
