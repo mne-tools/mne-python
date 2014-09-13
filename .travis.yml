@@ -36,6 +36,8 @@ install:
         fi;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
+    # Suppress the parallel outputs for logging cleanliness
+    - MNE_LOGGING_LEVEL=warning
     - MNE_SKIP_SAMPLE_DATASET_TESTS=1
     # Skip tests that require large downloads over the network to save bandwith
     # usage as travis workers are stateless and therefore traditional local
@@ -60,8 +62,6 @@ install:
     - ln -s ${MNE_DIR}/../.coverage ${SRC_DIR}/.coverage
 
 script:
-    # Suppress the parallel outputs for logging cleanliness
-    - export MNE_LOGGING_LEVEL=warning
     - cd ${MNE_DIR}/../
     - nosetests --with-timer --timer-top-n 30;
 
