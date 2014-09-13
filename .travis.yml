@@ -18,9 +18,6 @@ before_install:
   - ./miniconda.sh -b &> /dev/null;
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes --quiet conda &> /dev/null;
-  # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
-  - sudo rm -rf /dev/shm
-  - sudo ln -s /run/shm /dev/shm
 
 install:
     - conda create -n testenv --yes pip python=$PYTHON &> /dev/null
