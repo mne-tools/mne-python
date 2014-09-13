@@ -25,7 +25,12 @@ before_install:
 install:
     - conda create -n testenv --yes pip python=$PYTHON &> /dev/null
     - source activate testenv &> /dev/null
-    - conda install --yes --quiet ipython==1.1.0 numpy scipy nose matplotlib > /dev/null
+    - conda install --yes --quiet numpy scipy nose matplotlib > /dev/null
+    - if [ "${PYTHON}" == "3.4" ]; then
+        conda install --yes --quiet ipython > /dev/null;
+      else
+        conda install --yes --quiet ipython==1.1.0 > /dev/null;
+      fi;
     - if [ "${DEPS}" == "full" ]; then
         conda install --yes --quiet pandas statsmodels scikit-learn patsy pytables > /dev/null;
         pip install -q nibabel;
