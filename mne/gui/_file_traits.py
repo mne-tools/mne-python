@@ -197,18 +197,20 @@ def set_mne_root(set_mne_bin=False):
         return True
 
 def _mne_root_problem(mne_root):
-    "Check MNE_ROOT path"
-    test_dir = os.path.join(mne_root, 'share', 'mne', 'mne_analyze')
+    """Check MNE_ROOT path
+
+    Return str describing problem or None if the path is okay.
+    """
     if mne_root is None:
-        problem = "MNE_ROOT is not set."
+        return "MNE_ROOT is not set."
     elif not os.path.exists(mne_root):
-        problem = "MNE_ROOT (%s) does not exist." % mne_root
-    elif not os.path.exists(test_dir):
-        problem = ("MNE_ROOT (%s) is missing files. If this is your MNE "
-                   "installation, consider reinstalling." % mne_root)
+        return "MNE_ROOT (%s) does not exist." % mne_root
     else:
-        problem = None
-    return problem
+        test_dir = os.path.join(mne_root, 'share', 'mne', 'mne_analyze')
+        if not os.path.exists(test_dir):
+            return ("MNE_ROOT (%s) is missing files. If this is your MNE "
+                    "installation, consider reinstalling." % mne_root)
+    return None
 
 
 class BemSource(HasTraits):
