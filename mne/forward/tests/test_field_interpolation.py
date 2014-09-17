@@ -6,7 +6,7 @@ from nose.tools import assert_raises, assert_true
 
 from mne.forward import _make_surface_mapping, make_field_map
 from mne.surface import get_meg_helmet_surf, get_head_surf
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_table,
                                     _get_legen_lut_fast,
@@ -19,9 +19,9 @@ from mne.externals.six.moves import zip
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path()
 trans_fname = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_raw-trans.fif')
+                      'sample_audvis_trunc-trans.fif')
 subjects_dir = op.join(data_path, 'subjects')
 
 
@@ -90,7 +90,6 @@ def test_legendre_table():
         assert_allclose(n_fact1, n_fact2)
 
 
-@sample.requires_sample_data
 def test_make_field_map_eeg():
     """Test interpolation of EEG field onto head
     """
@@ -111,7 +110,7 @@ def test_make_field_map_eeg():
     fmd = make_field_map(evoked, trans_fname=trans_fname,
                          subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)
-    assert_array_equal(fmd[0]['data'].shape, (2562, 59))  # maps data onto surf
+    assert_array_equal(fmd[0]['data'].shape, (162, 59))  # maps data onto surf
     assert_true(len(fmd[0]['ch_names']), 59)
 
 

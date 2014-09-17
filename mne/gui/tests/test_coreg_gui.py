@@ -12,13 +12,14 @@ from nose.tools import (assert_equal, assert_almost_equal, assert_false,
 import warnings
 
 import mne
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
 
 
-data_path = sample.data_path(download=False)
-raw_path = os.path.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
+data_path = testing.data_path()
+raw_path = os.path.join(data_path, 'MEG', 'sample',
+                        'sample_audvis_trunc_raw.fif')
 kit_raw_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 warnings.simplefilter('always')
@@ -28,7 +29,6 @@ tempdir = _TempDir()
 trans_dst = os.path.join(tempdir, 'test-trans.fif')
 
 
-@sample.requires_sample_data
 @requires_traits
 def test_coreg_model():
     """Test CoregModel"""
@@ -100,7 +100,6 @@ def test_coreg_model():
     assert_true(isinstance(model.points_eval_str, string_types))
 
 
-@sample.requires_sample_data
 @requires_traits
 @requires_mne_fs_in_env
 def test_coreg_model_with_fsaverage():

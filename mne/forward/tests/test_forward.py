@@ -7,7 +7,7 @@ import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.io import Raw
 from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  average_forward_solutions, write_forward_solution,
@@ -18,17 +18,17 @@ from mne.utils import requires_mne, run_subprocess, _TempDir
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward)
 
-data_path = sample.data_path(download=False)
-fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
+data_path = testing.data_path()
 fname_meeg = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis-meg-eeg-oct-6-fwd.fif')
+                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
 fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                        'data', 'test-ave.fif')
-fname_mri = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
+fname_mri = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 temp_dir = _TempDir()
@@ -52,7 +52,6 @@ def compare_forwards(f1, f2):
     assert_equal(f1['surf_ori'], f2['surf_ori'])
 
 
-@sample.requires_sample_data
 def test_convert_forward():
     """Test converting forward solution between different representations
     """
@@ -83,61 +82,49 @@ def test_convert_forward():
     compare_forwards(fwd, fwd_new)
 
 
-@sample.requires_sample_data
 def test_io_forward():
     """Test IO for forward solutions
     """
-    # test M/EEG
-    fwd_meeg = read_forward_solution(fname_meeg)
-    assert_true(isinstance(fwd_meeg, Forward))
-    leadfield = fwd_meeg['sol']['data']
-    assert_equal(leadfield.shape, (366, 22494))
-    assert_equal(len(fwd_meeg['sol']['row_names']), 366)
-    fname_temp = op.join(temp_dir, 'test-fwd.fif')
-    write_forward_solution(fname_temp, fwd_meeg, overwrite=True)
-
-    fwd_meeg = read_forward_solution(fname_temp)
-    assert_allclose(leadfield, fwd_meeg['sol']['data'])
-    assert_equal(len(fwd_meeg['sol']['row_names']), 366)
-
-    # now do extensive tests with MEG
-    fwd = read_forward_solution(fname)
-    fwd = read_forward_solution(fname, surf_ori=True)
+    # do extensive tests with MEEG
+    n_src = 1533
+    fwd = read_forward_solution(fname_meeg)
+    assert_true(isinstance(fwd, Forward))
+    fwd = read_forward_solution(fname_meeg, surf_ori=True)
     leadfield = fwd['sol']['data']
-    assert_equal(leadfield.shape, (306, 22494))
-    assert_equal(len(fwd['sol']['row_names']), 306)
+    assert_equal(leadfield.shape, (366, n_src))
+    assert_equal(len(fwd['sol']['row_names']), 366)
     fname_temp = op.join(temp_dir, 'test-fwd.fif')
     write_forward_solution(fname_temp, fwd, overwrite=True)
 
-    fwd = read_forward_solution(fname, surf_ori=True)
+    fwd = read_forward_solution(fname_meeg, surf_ori=True)
     fwd_read = read_forward_solution(fname_temp, surf_ori=True)
     leadfield = fwd_read['sol']['data']
-    assert_equal(leadfield.shape, (306, 22494))
-    assert_equal(len(fwd_read['sol']['row_names']), 306)
-    assert_equal(len(fwd_read['info']['chs']), 306)
+    assert_equal(leadfield.shape, (366, n_src))
+    assert_equal(len(fwd_read['sol']['row_names']), 366)
+    assert_equal(len(fwd_read['info']['chs']), 366)
     assert_true('dev_head_t' in fwd_read['info'])
     assert_true('mri_head_t' in fwd_read)
     assert_array_almost_equal(fwd['sol']['data'], fwd_read['sol']['data'])
 
-    fwd = read_forward_solution(fname, force_fixed=True)
+    fwd = read_forward_solution(fname_meeg, force_fixed=True)
     leadfield = fwd['sol']['data']
-    assert_equal(leadfield.shape, (306, 22494 / 3))
-    assert_equal(len(fwd['sol']['row_names']), 306)
-    assert_equal(len(fwd['info']['chs']), 306)
+    assert_equal(leadfield.shape, (366, n_src / 3))
+    assert_equal(len(fwd['sol']['row_names']), 366)
+    assert_equal(len(fwd['info']['chs']), 366)
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])
 
     # test warnings on bad filenames
+    fwd = read_forward_solution(fname_meeg)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
-        write_forward_solution(fwd_badname, fwd_meeg)
+        write_forward_solution(fwd_badname, fwd)
         read_forward_solution(fwd_badname)
     assert_true(len(w) == 2)
 
 
-@sample.requires_sample_data
 def test_apply_forward():
     """Test projection of source space data to sensor space
     """
@@ -147,7 +134,7 @@ def test_apply_forward():
     sfreq = 10.0
     t_start = 0.123
 
-    fwd = read_forward_solution(fname, force_fixed=True)
+    fwd = read_forward_solution(fname_meeg, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True)
     assert_true(isinstance(fwd, Forward))
 
@@ -183,7 +170,6 @@ def test_apply_forward():
         assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
 
 
-@sample.requires_sample_data
 def test_restrict_forward_to_stc():
     """Test restriction of source space to source SourceEstimate
     """
@@ -193,7 +179,7 @@ def test_restrict_forward_to_stc():
     sfreq = 10.0
     t_start = 0.123
 
-    fwd = read_forward_solution(fname, force_fixed=True)
+    fwd = read_forward_solution(fname_meeg, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True)
 
     vertno = [fwd['src'][0]['vertno'][0:15], fwd['src'][1]['vertno'][0:5]]
@@ -209,7 +195,7 @@ def test_restrict_forward_to_stc():
     assert_equal(fwd_out['src'][0]['vertno'], fwd['src'][0]['vertno'][0:15])
     assert_equal(fwd_out['src'][1]['vertno'], fwd['src'][1]['vertno'][0:5])
 
-    fwd = read_forward_solution(fname, force_fixed=False)
+    fwd = read_forward_solution(fname_meeg, force_fixed=False)
     fwd = pick_types_forward(fwd, meg=True)
 
     vertno = [fwd['src'][0]['vertno'][0:15], fwd['src'][1]['vertno'][0:5]]
@@ -225,11 +211,10 @@ def test_restrict_forward_to_stc():
     assert_equal(fwd_out['src'][1]['vertno'], fwd['src'][1]['vertno'][0:5])
 
 
-@sample.requires_sample_data
 def test_restrict_forward_to_label():
     """Test restriction of source space to label
     """
-    fwd = read_forward_solution(fname, force_fixed=True)
+    fwd = read_forward_solution(fname_meeg, force_fixed=True)
     fwd = pick_types_forward(fwd, meg=True)
 
     label_path = op.join(data_path, 'MEG', 'sample', 'labels')
@@ -252,7 +237,7 @@ def test_restrict_forward_to_label():
     assert_equal(fwd_out['src'][0]['vertno'], src_sel_lh)
     assert_equal(fwd_out['src'][1]['vertno'], src_sel_rh)
 
-    fwd = read_forward_solution(fname, force_fixed=False)
+    fwd = read_forward_solution(fname_meeg, force_fixed=False)
     fwd = pick_types_forward(fwd, meg=True)
 
     label_path = op.join(data_path, 'MEG', 'sample', 'labels')
@@ -277,12 +262,11 @@ def test_restrict_forward_to_label():
     assert_equal(fwd_out['src'][1]['vertno'], src_sel_rh)
 
 
-@sample.requires_sample_data
 @requires_mne
 def test_average_forward_solution():
     """Test averaging forward solutions
     """
-    fwd = read_forward_solution(fname)
+    fwd = read_forward_solution(fname_meeg)
     # input not a list
     assert_raises(TypeError, average_forward_solutions, 1)
     # list is too short
@@ -305,7 +289,7 @@ def test_average_forward_solution():
     fwd_copy['sol']['data'] *= 0.5
     fname_copy = op.join(temp_dir, 'copy-fwd.fif')
     write_forward_solution(fname_copy, fwd_copy, overwrite=True)
-    cmd = ('mne_average_forward_solutions', '--fwd', fname, '--fwd',
+    cmd = ('mne_average_forward_solutions', '--fwd', fname_meeg, '--fwd',
            fname_copy, '--out', fname_copy)
     run_subprocess(cmd)
 

@@ -68,7 +68,9 @@ def _data_path(path=None, force_update=False, update_path=True,
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
            'spm': 'MNE_DATASETS_SPM_FACE_PATH',
-           'somato': 'MNE_DATASETS_SOMATO_PATH',}[name]
+           'somato': 'MNE_DATASETS_SOMATO_PATH',
+           'testing': 'MNE_DATASETS_TESTING_PATH',
+           }[name]
 
     if path is None:
         # use an intelligent guess if it's not defined
@@ -95,8 +97,8 @@ def _data_path(path=None, force_update=False, update_path=True,
                         os.mkdir(path)
                 except OSError:
                     raise OSError("User does not have write permissions "
-                                  "at '%s', try giving the path as an argument "
-                                  "to data_path() where user has write "
+                                  "at '%s', try giving the path as an argument"
+                                  " to data_path() where user has write "
                                   "permissions, for ex:data_path"
                                   "('/home/xyz/me2/')" % (path))
 
@@ -104,21 +106,24 @@ def _data_path(path=None, force_update=False, update_path=True,
         raise ValueError('path must be a string or None')
     if name == 'sample':
         archive_name = "MNE-sample-data-processed.tar.gz"
-        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
         folder_name = "MNE-sample-data"
-        folder_path = op.join(path, folder_name)
+        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
     elif name == 'spm':
         archive_name = 'MNE-spm-face.tar.bz2'
-        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         folder_name = "MNE-spm-face"
-        folder_path = op.join(path, folder_name)
+        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
     elif name == 'somato':
         archive_name = 'MNE-somato-data.tar.gz'
-        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         folder_name = "MNE-somato-data"
-        folder_path = op.join(path, folder_name)
+        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
+    elif name == 'testing':
+        archive_name = 'MNE-testing-data.tar.gz'
+        folder_name = 'MNE-testing-data'
+        url = 'https://lester.ilabs.uw.edu/files/' + archive_name
     else:
         raise ValueError('Sorry, the dataset "%s" is not known.' % name)
+    folder_path = op.join(path, folder_name)
+
     rm_archive = False
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name

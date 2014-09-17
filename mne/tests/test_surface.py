@@ -5,7 +5,7 @@ from nose.tools import assert_true, assert_raises
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne import (read_bem_surfaces, write_bem_surface, read_surface,
                  write_surface, decimate_surface)
 from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
@@ -15,10 +15,10 @@ from mne.utils import _TempDir, requires_tvtk
 from mne.io import read_info
 from mne.transforms import _get_mri_head_t_from_trans_file
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
-                'sample-5120-5120-5120-bem-sol.fif')
+                'sample-320-320-320-bem-sol.fif')
 tempdir = _TempDir()
 
 
@@ -41,7 +41,6 @@ def test_helmet():
         assert_equal(len(helmet['rr']), len(helmet['nn']))
 
 
-@sample.requires_sample_data
 def test_head():
     """Test loading the head surface
     """
@@ -82,7 +81,6 @@ def test_compute_nearest():
         assert_array_equal(nn1, nn2)
 
 
-@sample.requires_sample_data
 def test_make_morph_maps():
     """Test reading and creating morph maps
     """
@@ -95,7 +93,6 @@ def test_make_morph_maps():
         assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
 
-@sample.requires_sample_data
 def test_io_bem_surfaces():
     """Test reading of bem surfaces
     """
@@ -111,7 +108,6 @@ def test_io_bem_surfaces():
         assert_array_almost_equal(surf[0][key], surf_read[0][key])
 
 
-@sample.requires_sample_data
 def test_io_surface():
     """Test reading and writing of Freesurfer surface mesh files
     """

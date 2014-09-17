@@ -1070,6 +1070,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
         fname = op.join(mmap_dir, '%s-%s-morph.fif'
                         % (subject_to, subject_from))
         if not op.exists(fname):
+            raise RuntimeError
             logger.warning('Morph map "%s" does not exist, '
                            'creating it and saving it to disk (this may take '
                            'a few minutes)' % fname)

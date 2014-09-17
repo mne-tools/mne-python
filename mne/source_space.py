@@ -8,6 +8,7 @@ import numpy as np
 import os
 import os.path as op
 from scipy import sparse, linalg
+from scipy.spatial.distance import cdist
 from copy import deepcopy
 
 from .io.constants import FIFF
@@ -1106,6 +1107,10 @@ def _read_talxfm(subject, subjects_dir, mode=None, verbose=None):
     # now get Norig and Torig
     # (i.e. vox_ras_t and vox_mri_t, respectively)
     path = op.join(subjects_dir, subject, 'mri', 'orig.mgz')
+    if not op.isfile(path):
+        path = op.join(subjects_dir, subject, 'mri', 'T1.mgz')
+    if not op.isfile(path):
+        raise IOError('mri not found: %s' % path)
 
     if has_nibabel():
         use_nibabel = True
@@ -2210,3 +2215,95 @@ def get_volume_labels_from_aseg(mgz_fname):
     label_names = sorted(label_names, key=lambda n: n.lower())
 
     return label_names
+
+
+def _compare_source_spaces(src0, src1, mode='exact'):
+    """Compare two source spaces
+
+    Note: this function is also used by forward/tests/test_make_forward.py
+    """
+    from nose.tools import assert_equal, assert_true
+    from numpy.testing import assert_allclose, assert_array_equal
+
+    for s0, s1 in zip(src0, src1):
+        for name in ['nuse', 'ntri', 'np', 'type', 'id']:
+            print(name)
+            assert_equal(s0[name], s1[name])
+        for name in ['subject_his_id']:
+            if name in s0 or name in s1:
+                print(name)
+                assert_equal(s0[name], s1[name])
+        for name in ['interpolator']:
+            if name in s0 or name in s1:
+                print(name)
+                diffs = (s0['interpolator'] - s1['interpolator']).data
+                if len(diffs) > 0:
+                    assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.05)  # 5%
+        for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
+            print(name)
+            if s0[name] is None:
+                assert_true(s1[name] is None)
+            else:
+                if mode == 'exact':
+                    assert_array_equal(s0[name], s1[name])
+                elif mode == 'approx':
+                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4)
+                else:
+                    raise RuntimeError('unknown mode')
+        for name in ['seg_name']:
+            if name in s0 or name in s1:
+                print(name)
+                assert_equal(s0[name], s1[name])
+        if mode == 'exact':
+            for name in ['inuse', 'vertno', 'use_tris']:
+                assert_array_equal(s0[name], s1[name])
+            # these fields will exist if patch info was added, these are
+            # not tested in mode == 'approx'
+            for name in ['nearest', 'nearest_dist']:
+                print(name)
+                if s0[name] is None:
+                    assert_true(s1[name] is None)
+                else:
+                    assert_array_equal(s0[name], s1[name])
+            for name in ['dist_limit']:
+                print(name)
+                assert_true(s0[name] == s1[name])
+            for name in ['dist']:
+                if s0[name] is not None:
+                    assert_equal(s1[name].shape, s0[name].shape)
+                    assert_true(len((s0['dist'] - s1['dist']).data) == 0)
+            for name in ['pinfo']:
+                if s0[name] is not None:
+                    assert_true(len(s0[name]) == len(s1[name]))
+                    for p1, p2 in zip(s0[name], s1[name]):
+                        assert_true(all(p1 == p2))
+        elif mode == 'approx':
+            # deal with vertno, inuse, and use_tris carefully
+            assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0])
+            assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0])
+            assert_equal(len(s0['vertno']), len(s1['vertno']))
+            agreement = np.mean(s0['inuse'] == s1['inuse'])
+            assert_true(agreement > 0.99)
+            if agreement < 1.0:
+                # make sure mismatched vertno are within 1.5mm
+                v0 = np.setdiff1d(s0['vertno'], s1['vertno'])
+                v1 = np.setdiff1d(s1['vertno'], s0['vertno'])
+                dists = cdist(s0['rr'][v0], s1['rr'][v1])
+                assert_allclose(np.min(dists, axis=1), np.zeros(len(v0)),
+                                atol=1.5e-3)
+            if s0['use_tris'] is not None:  # for "spacing"
+                assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
+            else:
+                assert_true(s1['use_tris'] is None)
+            assert_true(np.mean(s0['use_tris'] == s1['use_tris']) > 0.99)
+    # The above "if s0[name] is not None" can be removed once the sample
+    # dataset is updated to have a source space with distance info
+    for name in ['working_dir', 'command_line']:
+        if mode == 'exact':
+            assert_equal(src0.info[name], src1.info[name])
+        elif mode == 'approx':
+            print(name)
+            if name in src0.info:
+                assert_true(name in src1.info)
+            else:
+                assert_true(name not in src1.info)

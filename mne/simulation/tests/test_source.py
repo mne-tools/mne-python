@@ -10,6 +10,8 @@ from mne.label import Label
 from mne.simulation.source import generate_stc, generate_sparse_stc
 
 
+# XXX Not using "testing" dataset here b/c labels don't contain source verts
+# (I think)
 data_path = sample.data_path(download=False)
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis-meg-oct-6-fwd.fif')

@@ -10,15 +10,15 @@ import warnings
 from nose.tools import assert_true, assert_equal, assert_raises
 
 from mne import read_evokeds
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.report import Report
 from mne.utils import _TempDir, requires_mayavi, requires_nibabel
 
-data_dir = sample.data_path(download=False)
-base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
-                               'data'))
+data_dir = testing.data_path()
 subjects_dir = op.join(data_dir, 'subjects')
 
+base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
+                               'data'))
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 evoked1_fname = op.join(base_dir, 'test-nf-ave.fif')
@@ -121,7 +121,6 @@ def test_render_add_sections():
 
 
 @requires_nibabel()
-@sample.requires_sample_data
 def test_render_mri():
     """Test rendering MRI for mne report.
     """

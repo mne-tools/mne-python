@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 from mne import io, read_events, Epochs
 from mne import pick_channels_evoked
 from mne.layouts import read_layout
-from mne.datasets import sample
 from mne.time_frequency.tfr import AverageTFR
 
 from mne.viz import plot_topo, plot_topo_image_epochs
@@ -27,10 +26,6 @@ from mne.viz import plot_topo, plot_topo_image_epochs
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-
-data_dir = sample.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')

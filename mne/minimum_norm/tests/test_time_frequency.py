@@ -5,7 +5,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 import warnings
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne import io, find_events, Epochs, pick_types
 from mne.label import read_label
 from mne.minimum_norm.inverse import (read_inverse_operator,
@@ -19,16 +19,15 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
 
 from mne.time_frequency import multitaper_psd
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path()
 fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-meg-inv.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
 fname_data = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_raw.fif')
+                     'sample_audvis_trunc_raw.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 warnings.simplefilter('always')
 
 
-@sample.requires_sample_data
 def test_tfr_with_inverse_operator():
     """Test time freq with MNE inverse computation"""
 
@@ -88,17 +87,16 @@ def test_tfr_with_inverse_operator():
                                              prepared=True)
     assert_true(np.all(phase_lock > 0))
     assert_true(np.all(phase_lock <= 1))
-    assert_true(np.max(power) > 10)
+    assert_true(np.max(power) > 3)
 
 
-@sample.requires_sample_data
 def test_source_psd():
     """Test source PSD computation in label"""
     raw = io.Raw(fname_data)
     inverse_operator = read_inverse_operator(fname_inv)
     label = read_label(fname_label)
     tmin, tmax = 0, 20  # seconds
-    fmin, fmax = 55, 65  # Hz
+    fmin, fmax = 10, 65  # Hz
     n_fft = 2048
     stc = compute_source_psd(raw, inverse_operator, lambda2=1. / 9.,
                              method="dSPM", tmin=tmin, tmax=tmax,
@@ -106,12 +104,9 @@ def test_source_psd():
                              n_fft=n_fft, label=label, overlap=0.1)
     assert_true(stc.times[0] >= fmin * 1e-3)
     assert_true(stc.times[-1] <= fmax * 1e-3)
-    # Time max at line frequency (60 Hz in US)
-    assert_true(59e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))]
-                      <= 61e-3)
+    # Can't test line freq b/c data has been low-passed @ 40 Hz
 
 
-@sample.requires_sample_data
 def test_source_psd_epochs():
     """Test multi-taper source PSD computation in label from epochs"""
 

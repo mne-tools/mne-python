@@ -2,14 +2,12 @@ import os.path as op
 from nose.tools import assert_true
 
 from mne import read_dip
-from mne.datasets import sample
+from mne.datasets import testing
 
-data_path = sample.data_path(download=False)
-dip_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_set1.dip')
+data_path = testing.data_path()
+dip_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
 
 
-@sample.requires_sample_data
 def test_io_dip():
     """Test IO for .dip files
     """

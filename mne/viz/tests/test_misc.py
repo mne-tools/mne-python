@@ -15,7 +15,7 @@ from numpy.testing import assert_raises
 
 from mne import io, read_events, read_cov, read_source_spaces
 from mne import SourceEstimate
-from mne.datasets import sample
+from mne.datasets import testing
 
 from mne.viz import plot_cov, plot_bem, plot_events
 from mne.viz import plot_source_spectrogram
@@ -30,9 +30,7 @@ matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt
 
 
-data_dir = sample.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
+subjects_dir = op.join(testing.data_path(), 'subjects')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -58,7 +56,6 @@ def test_plot_cov():
 
 
 @requires_nibabel()
-@sample.requires_sample_data
 def test_plot_bem():
     """Test plotting of BEM contours
     """
@@ -95,12 +92,11 @@ def test_plot_events():
                       raw.first_samp, event_id={'aud_l': 111}, color=color)
 
 
-@sample.requires_sample_data
 def test_plot_source_spectrogram():
     """Test plotting of source spectrogram
     """
-    sample_src = read_source_spaces(op.join(data_dir, 'subjects', 'sample',
-                                            'bem', 'sample-oct-6-src.fif'))
+    sample_src = read_source_spaces(op.join(subjects_dir, 'sample',
+                                            'bem', 'sample-oct-4-src.fif'))
 
     # dense version
     vertices = [s['vertno'] for s in sample_src]

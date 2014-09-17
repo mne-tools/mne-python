@@ -9,7 +9,7 @@ from numpy.testing import (assert_array_almost_equal, assert_allclose,
 import copy as cp
 
 import mne
-from mne.datasets import sample
+from mne.datasets import testing
 from mne import pick_types
 from mne.io import Raw
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
@@ -27,10 +27,10 @@ proj_fname = op.join(base_dir, 'test-proj.fif')
 proj_gz_fname = op.join(base_dir, 'test-proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
 
-data_path = sample.data_path(download=False)
-sample_path = op.join(data_path, 'MEG', 'sample')
-fwd_fname = op.join(sample_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
-sensmap_fname = op.join(sample_path, 'sample_audvis-%s-oct-6-fwd-sensmap-%s.w')
+sample_path = op.join(testing.data_path(), 'MEG', 'sample')
+fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+sensmap_fname = op.join(sample_path,
+                        'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
 
 # sample dataset should be updated to reflect mne conventions
 eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
@@ -38,7 +38,6 @@ eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
 tempdir = _TempDir()
 
 
-@sample.requires_sample_data
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)

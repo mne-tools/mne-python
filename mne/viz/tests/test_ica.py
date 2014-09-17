@@ -11,7 +11,6 @@ from numpy.testing import assert_raises
 
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
-from mne.datasets import sample
 from mne.utils import check_sklearn_version
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
@@ -23,10 +22,6 @@ import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt
 
-
-data_dir = sample.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')

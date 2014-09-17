@@ -7,9 +7,8 @@ from nose.plugins.skip import SkipTest
 import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import warnings
-from scipy.spatial.distance import cdist
 
-from mne.datasets import sample
+from mne.datasets import testing, sample
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances)
@@ -19,22 +18,26 @@ from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
-from mne.source_space import get_volume_labels_from_aseg, SourceSpaces
+from mne.source_space import (get_volume_labels_from_aseg, SourceSpaces,
+                              _compare_source_spaces)
 from mne.io.constants import FIFF
 
 warnings.simplefilter('always')
 
-# WARNING: test_source_space is imported by forward, so download=False
-# is critical here, otherwise on first import of MNE users will have to
-# download the whole sample dataset!
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
-data_path = sample.data_path(download=False)
+data_path = testing.data_path()
 subjects_dir = op.join(data_path, 'subjects')
-fname_small = op.join(base_dir, 'small-src.fif.gz')
-fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
-fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
-                    'sample-5120-bem.fif')
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
+fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
+
+sample_path = sample.data_path(download=False)
+subjects_dir_sample = op.join(sample_path, 'subjects')
+fname_vol = op.join(subjects_dir_sample, 'sample', 'bem',
+                    'volume-7mm-src.fif')
+fname_bem = op.join(sample_path, 'subjects', 'sample', 'bem',
+                    'sample-5120-bem.fif')
+
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
+fname_small = op.join(base_dir, 'small-src.fif.gz')
 
 tempdir = _TempDir()
 
@@ -81,7 +84,6 @@ def test_add_patch_info():
             assert_array_equal(p1, p2)
 
 
-@sample.requires_sample_data
 @requires_scipy_version('0.11')
 def test_add_source_space_distances_limited():
     """Test adding distances to source space with a dist_limit"""
@@ -104,21 +106,15 @@ def test_add_source_space_distances_limited():
         assert_array_equal(so['dist_limit'], np.array([-0.007], np.float32))
         assert_array_equal(sn['dist_limit'], np.array([0.007], np.float32))
         do = so['dist']
-        dn = sn['dist']
 
         # clean out distances > 0.007 in C code
         do.data[do.data > 0.007] = 0
         do.eliminate_zeros()
 
-        # make sure we have some comparable distances
-        assert_true(np.sum(do.data < 0.007) > 400)
-
-        # do comparison over the region computed
-        d = (do - dn)[:sn['vertno'][n_do - 1]][:, :sn['vertno'][n_do - 1]]
-        assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-6)
+        # we don't have any comparable distances :(
+        assert_true(np.sum(do.data < 0.007) == 0)
 
 
-@sample.requires_sample_data
 @requires_scipy_version('0.11')
 def test_add_source_space_distances():
     """Test adding distances to source space"""
@@ -150,15 +146,9 @@ def test_add_source_space_distances():
             d.eliminate_zeros()
             ds.append(d)
 
-        # make sure we actually calculated some comparable distances
-        assert_true(np.sum(ds[0].data < 0.007) > 10)
-
-        # do comparison
-        d = ds[0] - ds[1]
-        assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-9)
+        # we didn't actually have any comparable distances :(
 
 
-@sample.requires_sample_data
 @requires_mne
 def test_discrete_source_space():
     """Test setting up (and reading/writing) discrete source spaces
@@ -204,15 +194,13 @@ def test_discrete_source_space():
 def test_volume_source_space():
     """Test setting up volume source spaces
     """
-    fname_vol = op.join(data_path, 'subjects', 'sample', 'bem',
-                        'volume-7mm-src.fif')
     src = read_source_spaces(fname_vol)
     temp_name = op.join(tempdir, 'temp-src.fif')
     try:
         # The one in the sample dataset (uses bem as bounds)
         src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
                                             bem=fname_bem, mri=fname_mri,
-                                            subjects_dir=subjects_dir)
+                                            subjects_dir=subjects_dir_sample)
         _compare_source_spaces(src, src_new, mode='approx')
         src_new = read_source_spaces(temp_name)
         _compare_source_spaces(src, src_new, mode='approx')
@@ -225,7 +213,7 @@ def test_volume_source_space():
         src = read_source_spaces(temp_name)
         src_new = setup_volume_source_space('sample', temp_name, pos=15.0,
                                             mri=fname_mri,
-                                            subjects_dir=subjects_dir)
+                                            subjects_dir=subjects_dir_sample)
         _compare_source_spaces(src, src_new, mode='approx')
 
         # now without MRI argument, it should give an error when we try
@@ -239,7 +227,6 @@ def test_volume_source_space():
             os.remove(temp_name)
 
 
-@sample.requires_sample_data
 def test_triangle_neighbors():
     """Test efficient vertex neighboring triangles for surfaces"""
     this = read_source_spaces(fname)[0]
@@ -282,14 +269,9 @@ def test_accumulate_normals():
     assert_allclose(nn, this['nn'], rtol=1e-7, atol=1e-7)
 
 
-@sample.requires_sample_data
 def test_setup_source_space():
     """Test setting up ico, oct, and all source spaces
     """
-    fname_all = op.join(data_path, 'subjects', 'sample', 'bem',
-                        'sample-all-src.fif')
-    fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
-                        'fsaverage-ico-5-src.fif')
     # first lets test some input params
     assert_raises(ValueError, setup_source_space, 'sample', spacing='oct',
                   add_dist=False)
@@ -301,25 +283,27 @@ def test_setup_source_space():
                   add_dist=False)
     assert_raises(ValueError, setup_source_space, 'sample', spacing='alls',
                   add_dist=False)
-    assert_raises(IOError, setup_source_space, 'sample', spacing='oct6',
+    assert_raises(IOError, setup_source_space, 'sample', spacing='oct4',
                   subjects_dir=subjects_dir, add_dist=False)
 
     # ico 5 (fsaverage) - write to temp file
-    src = read_source_spaces(fname_ico)
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         warnings.simplefilter('always')
         src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
                                      subjects_dir=subjects_dir, add_dist=False,
                                      overwrite=True)
+    src = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx')
+    assert_array_equal(src[0]['vertno'], np.arange(10242))
+    assert_array_equal(src[1]['vertno'], np.arange(10242))
 
-    # oct-6 (sample) - auto filename + IO
+    # oct-4 (testing sample) - auto filename + IO
     src = read_source_spaces(fname)
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         warnings.simplefilter('always')
-        src_new = setup_source_space('sample', temp_name, spacing='oct6',
+        src_new = setup_source_space('sample', temp_name, spacing='oct4',
                                      subjects_dir=subjects_dir,
                                      overwrite=True, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')
@@ -327,13 +311,12 @@ def test_setup_source_space():
     _compare_source_spaces(src, src_new, mode='approx')
 
     # all source points - no file writing
-    src = read_source_spaces(fname_all)
     src_new = setup_source_space('sample', None, spacing='all',
                                  subjects_dir=subjects_dir, add_dist=False)
-    _compare_source_spaces(src, src_new, mode='approx')
+    assert_true(src_new[0]['nuse'] == len(src_new[0]['rr']))
+    assert_true(src_new[1]['nuse'] == len(src_new[1]['rr']))
 
 
-@sample.requires_sample_data
 def test_read_source_spaces():
     """Test reading of source space meshes
     """
@@ -356,7 +339,6 @@ def test_read_source_spaces():
     assert_true(rh_use_faces.max() <= rh_points.shape[0] - 1)
 
 
-@sample.requires_sample_data
 def test_write_source_space():
     """Test writing and reading of source spaces
     """
@@ -375,96 +357,6 @@ def test_write_source_space():
     assert_equal(len(w), 2)
 
 
-def _compare_source_spaces(src0, src1, mode='exact'):
-    """Compare two source spaces
-
-    Note: this function is also used by forward/tests/test_make_forward.py
-    """
-    for s0, s1 in zip(src0, src1):
-        for name in ['nuse', 'ntri', 'np', 'type', 'id']:
-            print(name)
-            assert_equal(s0[name], s1[name])
-        for name in ['subject_his_id']:
-            if name in s0 or name in s1:
-                print(name)
-                assert_equal(s0[name], s1[name])
-        for name in ['interpolator']:
-            if name in s0 or name in s1:
-                print(name)
-                diffs = (s0['interpolator'] - s1['interpolator']).data
-                if len(diffs) > 0:
-                    assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.05)  # 5%
-        for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
-            print(name)
-            if s0[name] is None:
-                assert_true(s1[name] is None)
-            else:
-                if mode == 'exact':
-                    assert_array_equal(s0[name], s1[name])
-                elif mode == 'approx':
-                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4)
-                else:
-                    raise RuntimeError('unknown mode')
-        for name in ['seg_name']:
-            if name in s0 or name in s1:
-                print(name)
-                assert_equal(s0[name], s1[name])
-        if mode == 'exact':
-            for name in ['inuse', 'vertno', 'use_tris']:
-                assert_array_equal(s0[name], s1[name])
-            # these fields will exist if patch info was added, these are
-            # not tested in mode == 'approx'
-            for name in ['nearest', 'nearest_dist']:
-                print(name)
-                if s0[name] is None:
-                    assert_true(s1[name] is None)
-                else:
-                    assert_array_equal(s0[name], s1[name])
-            for name in ['dist_limit']:
-                print(name)
-                assert_true(s0[name] == s1[name])
-            for name in ['dist']:
-                if s0[name] is not None:
-                    assert_equal(s1[name].shape, s0[name].shape)
-                    assert_true(len((s0['dist'] - s1['dist']).data) == 0)
-            for name in ['pinfo']:
-                if s0[name] is not None:
-                    assert_true(len(s0[name]) == len(s1[name]))
-                    for p1, p2 in zip(s0[name], s1[name]):
-                        assert_true(all(p1 == p2))
-        elif mode == 'approx':
-            # deal with vertno, inuse, and use_tris carefully
-            assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0])
-            assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0])
-            assert_equal(len(s0['vertno']), len(s1['vertno']))
-            agreement = np.mean(s0['inuse'] == s1['inuse'])
-            assert_true(agreement > 0.99)
-            if agreement < 1.0:
-                # make sure mismatched vertno are within 1.5mm
-                v0 = np.setdiff1d(s0['vertno'], s1['vertno'])
-                v1 = np.setdiff1d(s1['vertno'], s0['vertno'])
-                dists = cdist(s0['rr'][v0], s1['rr'][v1])
-                assert_allclose(np.min(dists, axis=1), np.zeros(len(v0)),
-                                atol=1.5e-3)
-            if s0['use_tris'] is not None:  # for "spacing"
-                assert_array_equal(s0['use_tris'].shape, s1['use_tris'].shape)
-            else:
-                assert_true(s1['use_tris'] is None)
-            assert_true(np.mean(s0['use_tris'] == s1['use_tris']) > 0.99)
-    # The above "if s0[name] is not None" can be removed once the sample
-    # dataset is updated to have a source space with distance info
-    for name in ['working_dir', 'command_line']:
-        if mode == 'exact':
-            assert_equal(src0.info[name], src1.info[name])
-        elif mode == 'approx':
-            print(name)
-            if name in src0.info:
-                assert_true(name in src1.info)
-            else:
-                assert_true(name not in src1.info)
-
-
-@sample.requires_sample_data
 @requires_fs_or_nibabel
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates
@@ -482,7 +374,6 @@ def test_vertex_to_mni():
         assert_allclose(coords, coords_2, atol=1.0)
 
 
-@sample.requires_sample_data
 @requires_freesurfer
 @requires_nibabel()
 def test_vertex_to_mni_fs_nibabel():
@@ -500,7 +391,6 @@ def test_vertex_to_mni_fs_nibabel():
         assert_allclose(coords, coords_2, atol=0.1)
 
 
-@sample.requires_sample_data
 @requires_freesurfer
 @requires_nibabel()
 def test_get_volume_label_names():
@@ -513,7 +403,6 @@ def test_get_volume_label_names():
     assert_equal(label_names.count('Brain-Stem'), 1)
 
 
-@sample.requires_sample_data
 @requires_freesurfer
 @requires_nibabel()
 def test_source_space_from_label():
@@ -547,7 +436,6 @@ def test_source_space_from_label():
     _compare_source_spaces(src, src_from_file, mode='approx')
 
 
-@sample.requires_sample_data
 @requires_freesurfer
 @requires_nibabel()
 def test_combine_source_spaces():

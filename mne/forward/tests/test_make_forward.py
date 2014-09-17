@@ -9,7 +9,7 @@ from nose.tools import assert_raises, assert_true
 import numpy as np
 from numpy.testing import (assert_equal, assert_allclose)
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.io import Raw
 from mne.io import read_raw_kit
 from mne.io import read_raw_bti
@@ -18,21 +18,19 @@ from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
                  convert_forward_solution, setup_volume_source_space)
 from mne.utils import requires_mne, requires_nibabel, _TempDir
-from mne.tests.test_source_space import _compare_source_spaces
 from mne.forward import Forward
-from mne.source_space import get_volume_labels_from_aseg
+from mne.source_space import (get_volume_labels_from_aseg,
+                              _compare_source_spaces)
 
-data_path = sample.data_path(download=False)
-fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-oct-6-fwd.fif')
+data_path = testing.data_path()
 fname_meeg = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis-meg-eeg-oct-6-fwd.fif')
-
+                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
-
 fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                        'data', 'test-ave.fif')
-fname_mri = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
+fname_mri = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 temp_dir = _TempDir()
 
@@ -78,13 +76,12 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                             rtol=1e-3, atol=1e-3)
 
 
-@sample.requires_sample_data
 @requires_mne
 def test_make_forward_solution_kit():
     """Test making fwd using KIT, BTI, and CTF (compensated) files
     """
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-5120-bem-sol.fif')
+                        'sample-320-bem-sol.fif')
     kit_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                       'tests', 'data')
     sqd_path = op.join(kit_dir, 'test.sqd')
@@ -169,23 +166,21 @@ def test_make_forward_solution_kit():
     _compare_forwards(fwd, fwd_py, 274, 108)
 
 
-@sample.requires_sample_data
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python
     """
-    fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
+    fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-5120-5120-5120-bem-sol.fif')
+                        'sample-320-320-320-bem-sol.fif')
     fwd_py = make_forward_solution(fname_raw, mindist=5.0,
                                    src=fname_src, eeg=True, meg=True,
                                    bem=fname_bem, mri=fname_mri)
     assert_true(isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
-    _compare_forwards(fwd, fwd_py, 366, 22494)
+    _compare_forwards(fwd, fwd_py, 366, 1533)
 
 
-@sample.requires_sample_data
 @requires_mne
 def test_do_forward_solution():
     """Test wrapping forward solution from python
@@ -246,14 +241,13 @@ def test_do_forward_solution():
     # let's catch an MNE error, this time about trans being wrong
     assert_raises(CalledProcessError, do_forward_solution, 'sample',
                   fname_raw, existing_file, trans=fname_mri, overwrite=True,
-                  spacing='oct6', subjects_dir=subjects_dir)
+                  spacing='oct4', subjects_dir=subjects_dir)
 
     # No need to actually calculate and check here, since it's effectively
     # done in previous tests.
 
 
 @requires_nibabel
-@sample.requires_sample_data
 def test_forward_mixed_source_space():
     """Test making the forward solution for a mixed source space
     """

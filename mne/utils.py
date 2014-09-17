@@ -372,6 +372,8 @@ def run_subprocess(command, *args, **kwargs):
     logger.info("Running subprocess: %s" % str(command))
     p = subprocess.Popen(command, *args, **kwargs)
     stdout_, stderr = p.communicate()
+    stdout_ = '' if stdout_ is None else stdout_
+    stderr = '' if stderr is None else stderr
 
     if stdout_.strip():
         logger.info("stdout:\n%s" % stdout_)
@@ -1095,6 +1097,7 @@ known_config_types = [
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
+    'MNE_DATASETS_TESTING_PATH',
     'MNE_LOGGING_LEVEL',
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',

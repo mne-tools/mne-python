@@ -22,7 +22,7 @@ from mne import io
 from mne import read_evokeds, read_proj
 from mne.io.constants import FIFF
 from mne.layouts import read_layout
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
@@ -31,7 +31,7 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-data_dir = sample.data_path(download=False)
+data_dir = testing.data_path()
 subjects_dir = op.join(data_dir, 'subjects')
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 
@@ -47,7 +47,6 @@ def _get_raw():
     return io.Raw(raw_fname, preload=False)
 
 
-@sample.requires_sample_data
 def test_plot_topomap():
     """Test topomap plotting
     """
