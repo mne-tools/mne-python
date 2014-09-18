@@ -37,11 +37,13 @@ def test_gamma_map():
                     xyz_same_gamma=True, update_mode=1)
     # idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     # assert_true(np.concatenate(stc.vertno)[idx] == 96397)
+    # XXX fix
 
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
                     xyz_same_gamma=False, update_mode=1)
     # idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     # assert_true(np.concatenate(stc.vertno)[idx] == 82010)
+    # XXX fix
 
     # force fixed orientation
     stc, res = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
@@ -49,6 +51,6 @@ def test_gamma_map():
                          loose=None, return_residual=True)
     # idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     # assert_true(np.concatenate(stc.vertno)[idx] == 83398)
-    # XXX: Fix these...
+    # XXX fix
 
     assert_array_almost_equal(evoked.times, res.times)

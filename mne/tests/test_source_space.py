@@ -279,6 +279,8 @@ def test_accumulate_normals():
 def test_setup_source_space():
     """Test setting up ico, oct, and all source spaces
     """
+    fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
+                        'fsaverage-ico-5-src.fif')
     # first lets test some input params
     assert_raises(ValueError, setup_source_space, 'sample', spacing='oct',
                   add_dist=False)
@@ -294,13 +296,13 @@ def test_setup_source_space():
                   subjects_dir=subjects_dir, add_dist=False)
 
     # ico 5 (fsaverage) - write to temp file
+    src = read_source_spaces(fname_ico)
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         warnings.simplefilter('always')
         src_new = setup_source_space('fsaverage', temp_name, spacing='ico5',
                                      subjects_dir=subjects_dir, add_dist=False,
                                      overwrite=True)
-    src = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx')
     assert_array_equal(src[0]['vertno'], np.arange(10242))
     assert_array_equal(src[1]['vertno'], np.arange(10242))

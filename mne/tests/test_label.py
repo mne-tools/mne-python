@@ -42,6 +42,8 @@ v1_label_fname = op.join(subjects_dir, 'sample', 'label', 'lh.V1.label')
 
 fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
+                        'fsaverage-ico-5-src.fif')
 
 test_path = op.join(op.split(__file__)[0], '..', 'io', 'tests', 'data')
 label_fname = op.join(test_path, 'test-lh.label')
@@ -353,6 +355,7 @@ def test_read_labels_from_annot():
     for label in labels_rh:
         assert_true(label.name.endswith('-rh'))
         assert_true(label.hemi == 'rh')
+        # XXX doesn't work on py26 for some reason
         if int(sys.version[0]) > 2 or int(sys.version[2]) > 6:
             assert_is_not(label.color, None)
 
@@ -545,6 +548,7 @@ def test_stc_to_label():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         src = read_source_spaces(fwd_fname)
+    src_bad = read_source_spaces(src_bad_fname)
     stc = read_source_estimate(stc_fname, 'sample')
     os.environ['SUBJECTS_DIR'] = op.join(data_path, 'subjects')
     labels1 = _stc_to_label(stc, src='sample', smooth=3)
@@ -560,6 +564,8 @@ def test_stc_to_label():
 
     assert_true(len(w) > 0)
     assert_raises(ValueError, stc_to_label, stc, 'sample', smooth=True,
+                  connected=True)
+    assert_raises(RuntimeError, stc_to_label, stc, smooth=True, src=src_bad,
                   connected=True)
     assert_equal(len(labels_lh), 1)
     assert_equal(len(labels_rh), 1)
@@ -602,6 +608,11 @@ def test_morph():
         assert_true(len(label.vertices) < 3 * len(label_orig.vertices))
         vals.append(label.vertices)
     assert_array_equal(vals[0], vals[1])
+    # make sure label smoothing can run
+    assert_equal(label.subject, 'sample')
+    label.morph(label.subject, 'fsaverage', 5,
+                [np.arange(10242), np.arange(10242)], subjects_dir, 2,
+                copy=False)
 
 
 def test_grow_labels():

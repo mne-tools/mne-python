@@ -21,15 +21,16 @@ before_install:
   # We need to create a (fake) display on Travis (allows Mayavi tests to run)
   - export DISPLAY=:99.0
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
-  # Simple tools
-  - curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz
-  - export MNE_ROOT="${PWD}/minimal_cmds" && source ${MNE_ROOT}/bin/mne_setup_sh
 
 install:
     - conda create -n testenv --yes pip python=$PYTHON &> /dev/null
     - source activate testenv &> /dev/null
     - conda install --yes --quiet numpy scipy nose matplotlib > /dev/null
     - if [ "${DEPS}" == "full" ]; then
+        curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz;
+        export MNE_ROOT="${PWD}/minimal_cmds" && source ${MNE_ROOT}/bin/mne_setup_sh;
+        sudo apt-get update -qq;
+        sudo apt-get install -qq -y libxp6;
         conda install --yes --quiet pandas scikit-learn patsy pytables pillow;
         pip install -q nibabel joblib;
         if [ ${PYTHON:0:1} == "2" ]; then
