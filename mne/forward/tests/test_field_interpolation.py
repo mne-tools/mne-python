@@ -110,7 +110,7 @@ def test_make_field_map_eeg():
     fmd = make_field_map(evoked, trans_fname=trans_fname,
                          subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)
-    assert_array_equal(fmd[0]['data'].shape, (162, 59))  # maps data onto surf
+    assert_array_equal(fmd[0]['data'].shape, (642, 59))  # maps data onto surf
     assert_true(len(fmd[0]['ch_names']), 59)
 
 

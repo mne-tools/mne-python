@@ -77,8 +77,7 @@ def test_mxne_inverse():
                         return_residual=True)
 
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
-    # assert_true(stc.vertno[1][0] in label.vertices)
-    # XXX: Fix this
+    assert_true(stc.vertno[1][0] in label.vertices)
 
     # Do with TF-MxNE for test memory savings
     alpha_space = 60.  # spatial regularization parameter
@@ -90,5 +89,4 @@ def test_mxne_inverse():
                            weights_min=weights_min, return_residual=True)
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
-    # assert_true(stc.vertno[1][0] in label.vertices)
-    # XXX: Fix this
+    assert_true(stc.vertno[1][0] in label.vertices)

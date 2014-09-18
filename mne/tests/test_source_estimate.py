@@ -235,8 +235,8 @@ def test_stc_methods():
     vertex, hemi, t = stc.center_of_mass('sample', subjects_dir=subjects_dir)
     assert_true(hemi == 1)
     # XXX Should design a fool-proof test case, but here were the results:
-    assert_true(vertex == 84102)
-    assert_true(np.round(t, 3) == 0.122)
+    assert_equal(vertex, 156191)
+    assert_equal(np.round(t, 3), 0.125)
 
     stc = read_source_estimate(fname_stc)
     label = read_labels_from_annot('sample', 'aparc', 'lh',
@@ -394,7 +394,7 @@ def test_morph_data():
 
     # Morph sparse data
     # Make a sparse stc
-    stc_from.vertno[0] = stc_from.vertno[0][[100, 150]]
+    stc_from.vertno[0] = stc_from.vertno[0][[100, 500]]
     stc_from.vertno[1] = stc_from.vertno[1][[200]]
     stc_from._data = stc_from._data[:3]
 

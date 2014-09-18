@@ -104,7 +104,7 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,
     if check_depth:
         if inv_1['depth_prior'] is not None:
             assert_array_almost_equal(inv_1['depth_prior']['data'],
-                                      inv_2['depth_prior']['data'])
+                                      inv_2['depth_prior']['data'], 5)
         else:
             assert_true(inv_2['depth_prior'] is None)
     # orient prior
@@ -246,7 +246,7 @@ def test_make_inverse_operator_fixed():
                                    loose=None, fixed=True)
     inverse_operator_nodepth = read_inverse_operator(fname_inv_fixed_nodepth)
     _compare_inverses_approx(inverse_operator_nodepth, inv_op, evoked, 0, 1e-2)
-    # Inverse has 366 channels - 6 proj = 302
+    # Inverse has 306 channels - 6 proj = 302
     assert_true(compute_rank_inverse(inverse_operator_nodepth) == 302)
 
 
@@ -290,7 +290,7 @@ def test_make_inverse_operator_diag():
     inverse_operator_diag = read_inverse_operator(fname_inv_meeg_diag)
     # This one's only good to zero decimal places, roundoff error (?)
     _compare_inverses_approx(inverse_operator_diag, inv_op, evoked, 0, 1e0)
-    # Inverse has 306 channels - 4 proj = 302
+    # Inverse has 366 channels - 6 proj = 360
     assert_true(compute_rank_inverse(inverse_operator_diag) == 360)
 
 

@@ -87,7 +87,7 @@ def test_tfr_with_inverse_operator():
                                              prepared=True)
     assert_true(np.all(phase_lock > 0))
     assert_true(np.all(phase_lock <= 1))
-    assert_true(np.max(power) > 3)
+    assert_true(np.max(power) > 10)
 
 
 def test_source_psd():

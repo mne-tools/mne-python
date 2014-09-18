@@ -31,8 +31,8 @@ def test_bem_source():
     assert_equal(bem.tris.shape, (0, 3))
 
     bem.file = bem_path
-    assert_equal(bem.points.shape, (162, 3))
-    assert_equal(bem.tris.shape, (320, 3))
+    assert_equal(bem.points.shape, (642, 3))
+    assert_equal(bem.tris.shape, (1280, 3))
 
 
 @requires_traits

@@ -104,13 +104,18 @@ def test_add_source_space_distances_limited():
         assert_array_equal(so['dist_limit'], np.array([-0.007], np.float32))
         assert_array_equal(sn['dist_limit'], np.array([0.007], np.float32))
         do = so['dist']
+        dn = sn['dist']
 
         # clean out distances > 0.007 in C code
         do.data[do.data > 0.007] = 0
         do.eliminate_zeros()
 
-        # we don't have any comparable distances :(
-        assert_true(np.sum(do.data < 0.007) == 0)
+        # make sure we have some comparable distances
+        assert_true(np.sum(do.data < 0.007) > 400)
+
+        # do comparison over the region computed
+        d = (do - dn)[:sn['vertno'][n_do - 1]][:, :sn['vertno'][n_do - 1]]
+        assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-6)
 
 
 @requires_scipy_version('0.11')
@@ -144,7 +149,12 @@ def test_add_source_space_distances():
             d.eliminate_zeros()
             ds.append(d)
 
-        # we didn't actually have any comparable distances :(
+        # make sure we actually calculated some comparable distances
+        assert_true(np.sum(ds[0].data < 0.007) > 10)
+
+        # do comparison
+        d = ds[0] - ds[1]
+        assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-9)
 
 
 @requires_mne

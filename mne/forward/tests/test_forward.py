@@ -86,31 +86,31 @@ def test_io_forward():
     """Test IO for forward solutions
     """
     # do extensive tests with MEEG
-    n_src = 1533
+    n_sen, n_src = 366, 23784
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
     fwd = read_forward_solution(fname_meeg, surf_ori=True)
     leadfield = fwd['sol']['data']
-    assert_equal(leadfield.shape, (366, n_src))
-    assert_equal(len(fwd['sol']['row_names']), 366)
+    assert_equal(leadfield.shape, (n_sen, n_src))
+    assert_equal(len(fwd['sol']['row_names']), n_sen)
     fname_temp = op.join(temp_dir, 'test-fwd.fif')
     write_forward_solution(fname_temp, fwd, overwrite=True)
 
     fwd = read_forward_solution(fname_meeg, surf_ori=True)
     fwd_read = read_forward_solution(fname_temp, surf_ori=True)
     leadfield = fwd_read['sol']['data']
-    assert_equal(leadfield.shape, (366, n_src))
-    assert_equal(len(fwd_read['sol']['row_names']), 366)
-    assert_equal(len(fwd_read['info']['chs']), 366)
+    assert_equal(leadfield.shape, (n_sen, n_src))
+    assert_equal(len(fwd_read['sol']['row_names']), n_sen)
+    assert_equal(len(fwd_read['info']['chs']), n_sen)
     assert_true('dev_head_t' in fwd_read['info'])
     assert_true('mri_head_t' in fwd_read)
     assert_array_almost_equal(fwd['sol']['data'], fwd_read['sol']['data'])
 
     fwd = read_forward_solution(fname_meeg, force_fixed=True)
     leadfield = fwd['sol']['data']
-    assert_equal(leadfield.shape, (366, n_src / 3))
-    assert_equal(len(fwd['sol']['row_names']), 366)
-    assert_equal(len(fwd['info']['chs']), 366)
+    assert_equal(leadfield.shape, (n_sen, n_src / 3))
+    assert_equal(len(fwd['sol']['row_names']), n_sen)
+    assert_equal(len(fwd['info']['chs']), n_sen)
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])

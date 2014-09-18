@@ -178,7 +178,7 @@ def test_make_forward_solution():
     assert_true(isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
-    _compare_forwards(fwd, fwd_py, 366, 1533)
+    _compare_forwards(fwd, fwd_py, 366, 23784, meg_rtol=1e-3)
 
 
 @requires_mne
@@ -241,7 +241,7 @@ def test_do_forward_solution():
     # let's catch an MNE error, this time about trans being wrong
     assert_raises(CalledProcessError, do_forward_solution, 'sample',
                   fname_raw, existing_file, trans=fname_mri, overwrite=True,
-                  spacing='oct4', subjects_dir=subjects_dir)
+                  spacing='oct6', subjects_dir=subjects_dir)
 
     # No need to actually calculate and check here, since it's effectively
     # done in previous tests.

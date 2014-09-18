@@ -63,7 +63,7 @@ def test_plot_sparse_source_estimates():
 
     # now do sparse version
     vertices = sample_src[0]['vertno']
-    inds = [111, 222]
+    inds = [111, 333]
     stc_data = np.zeros((len(inds), n_time))
     stc_data[0, 1] = 1.
     stc_data[1, 4] = 2.

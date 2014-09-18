@@ -4,26 +4,29 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true
 
-from mne.datasets import sample
-from mne import read_label, read_forward_solution
+from mne.datasets import testing
+from mne import read_label, read_forward_solution, pick_types_forward
 from mne.label import Label
 from mne.simulation.source import generate_stc, generate_sparse_stc
 
 
-# XXX Not using "testing" dataset here b/c labels don't contain source verts
-# (I think)
-data_path = sample.data_path(download=False)
+data_path = testing.data_path()
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']
 
 label_names_single_hemi = ['Aud-rh', 'Vis-rh']
 
 
-@sample.requires_sample_data
+def read_forward_solution_meg(*args, **kwargs):
+    fwd = read_forward_solution(*args, **kwargs)
+    fwd = pick_types_forward(fwd, meg=True, eeg=False)
+    return fwd
+
+
 def test_generate_stc():
     """ Test generation of source estimate """
-    fwd = read_forward_solution(fname_fwd, force_fixed=True)
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
     mylabels = []
@@ -79,10 +82,9 @@ def test_generate_stc():
         assert_array_almost_equal(stc.data[idx], res)
 
 
-@sample.requires_sample_data
 def test_generate_sparse_stc():
     """ Test generation of sparse source estimate """
-    fwd = read_forward_solution(fname_fwd, force_fixed=True)
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
                          '%s.label' % label)) for label in label_names]
 
@@ -118,10 +120,9 @@ def test_generate_sparse_stc():
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
 
 
-@sample.requires_sample_data
 def test_generate_stc_single_hemi():
     """ Test generation of source estimate """
-    fwd = read_forward_solution(fname_fwd, force_fixed=True)
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     labels_single_hemi = [read_label(op.join(data_path, 'MEG', 'sample',
                                              'labels', '%s.label' % label))
                           for label in label_names_single_hemi]
@@ -178,10 +179,9 @@ def test_generate_stc_single_hemi():
         assert_array_almost_equal(stc.data[idx], res)
 
 
-@sample.requires_sample_data
 def test_generate_sparse_stc_single_hemi():
     """ Test generation of sparse source estimate """
-    fwd = read_forward_solution(fname_fwd, force_fixed=True)
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
     n_times = 10
     tmin = 0
     tstep = 1e-3
