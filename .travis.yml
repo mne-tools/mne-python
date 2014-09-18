@@ -35,7 +35,10 @@ install:
         if [ "${PYTHON}" == "3.4" ]; then
           conda install --yes --quiet ipython > /dev/null;
         else
-          conda install --yes --quiet ipython==1.1.0 statsmodels mayavi traits > /dev/null;
+          conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
+          if [ "${PYTHON}" == "2.7" ]; then
+            conda install --yes --quiet mayavi traits > /dev/null;
+          fi;
         fi;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
