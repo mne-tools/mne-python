@@ -8,7 +8,7 @@ from nose.tools import assert_true, assert_raises
 import copy
 import warnings
 
-from mne.datasets import testing, sample
+from mne.datasets import testing
 from mne.label import read_label, label_sign_flip
 from mne.event import read_events
 from mne.epochs import Epochs
@@ -41,9 +41,7 @@ fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
 fname_raw = op.join(s_path, 'sample_audvis_trunc_raw.fif')
 fname_event = op.join(s_path, 'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(s_path, 'labels', '%s.label')
-
-fname_vol_inv = op.join(sample.data_path(download=False), 'MEG', 'sample',
-                        'sample_audvis-meg-vol-7-meg-inv.fif')
+fname_vol_inv = op.join(s_path, 'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
 
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
@@ -296,7 +294,6 @@ def test_make_inverse_operator_diag():
     assert_true(compute_rank_inverse(inverse_operator_diag) == 360)
 
 
-@sample.requires_sample_data
 def test_inverse_operator_volume():
     """Test MNE inverse computation on volume source space
     """

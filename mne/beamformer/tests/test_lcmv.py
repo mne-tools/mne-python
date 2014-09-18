@@ -7,22 +7,23 @@ import warnings
 
 import mne
 from mne import compute_covariance
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw, tf_lcmv
 from mne.beamformer._lcmv import _lcmv_source_power
 from mne.source_estimate import SourceEstimate, VolSourceEstimate
 from mne.externals.six import advance_iterator
 
 
-data_path = sample.data_path(download=False)
-fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
+data_path = testing.data_path()
+fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-ave.fif')
+fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_fwd_vol = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis-meg-vol-7-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
+                        'sample_audvis_trunc-meg-vol-7-fwd.fif')
+fname_event = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
@@ -85,7 +86,6 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori, forward_fixed, forward_vol
 
 
-@sample.requires_sample_data
 def test_lcmv():
     """Test LCMV with evoked data and single trials
     """
@@ -185,7 +185,6 @@ def test_lcmv():
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
 
-@sample.requires_sample_data
 def test_lcmv_raw():
     """Test LCMV with raw data
     """
@@ -216,7 +215,6 @@ def test_lcmv_raw():
     assert_true(len(stc.vertno[1]) == 0)
 
 
-@sample.requires_sample_data
 def test_lcmv_source_power():
     """Test LCMV source power computation
     """
@@ -257,12 +255,9 @@ def test_lcmv_source_power():
                   noise_cov, data_cov, pick_ori="normal")
 
 
-@sample.requires_sample_data
 def test_tf_lcmv():
     """Test TF beamforming based on LCMV
     """
-    fname_raw = op.join(data_path, 'MEG', 'sample',
-                        'sample_audvis_filt-0-40_raw.fif')
     label = mne.read_label(fname_label)
     events = mne.read_events(fname_event)
     raw = mne.io.Raw(fname_raw, preload=True)

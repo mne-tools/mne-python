@@ -8,7 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 import warnings
 
-from mne.datasets import testing, sample
+from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
                  add_source_space_distances)
@@ -28,13 +28,10 @@ data_path = testing.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
-
-sample_path = sample.data_path(download=False)
-subjects_dir_sample = op.join(sample_path, 'subjects')
-fname_vol = op.join(subjects_dir_sample, 'sample', 'bem',
-                    'volume-7mm-src.fif')
-fname_bem = op.join(sample_path, 'subjects', 'sample', 'bem',
-                    'sample-5120-bem.fif')
+fname_vol = op.join(subjects_dir, 'sample', 'bem',
+                    'sample-volume-7mm-src.fif')
+fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
+                    'sample-320-bem.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_small = op.join(base_dir, 'small-src.fif.gz')
@@ -189,7 +186,6 @@ def test_discrete_source_space():
             os.remove(temp_name)
 
 
-@sample.requires_sample_data
 @requires_mne
 def test_volume_source_space():
     """Test setting up volume source spaces
@@ -200,7 +196,7 @@ def test_volume_source_space():
         # The one in the sample dataset (uses bem as bounds)
         src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
                                             bem=fname_bem, mri=fname_mri,
-                                            subjects_dir=subjects_dir_sample)
+                                            subjects_dir=subjects_dir)
         _compare_source_spaces(src, src_new, mode='approx')
         src_new = read_source_spaces(temp_name)
         _compare_source_spaces(src, src_new, mode='approx')
@@ -213,7 +209,7 @@ def test_volume_source_space():
         src = read_source_spaces(temp_name)
         src_new = setup_volume_source_space('sample', temp_name, pos=15.0,
                                             mri=fname_mri,
-                                            subjects_dir=subjects_dir_sample)
+                                            subjects_dir=subjects_dir)
         _compare_source_spaces(src, src_new, mode='approx')
 
         # now without MRI argument, it should give an error when we try
@@ -361,17 +357,14 @@ def test_write_source_space():
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates
     """
-    # obtained using "tksurfer (sample/fsaverage) (l/r)h white"
+    # obtained using "tksurfer (sample) (l/r)h white"
     vertices = [100960, 7620, 150549, 96761]
-    coords_s = np.array([[-60.86, -11.18, -3.19], [-36.46, -93.18, -2.36],
-                         [-38.00, 50.08, -10.61], [47.14, 8.01, 46.93]])
-    coords_f = np.array([[-41.28, -40.04, 18.20], [-6.05, 49.74, -18.15],
-                         [-61.71, -14.55, 20.52], [21.70, -60.84, 25.02]])
+    coords = np.array([[-60.86, -11.18, -3.19], [-36.46, -93.18, -2.36],
+                       [-38.00, 50.08, -10.61], [47.14, 8.01, 46.93]])
     hemis = [0, 0, 0, 1]
-    for coords, subject in zip([coords_s, coords_f], ['sample', 'fsaverage']):
-        coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir)
-        # less than 1mm error
-        assert_allclose(coords, coords_2, atol=1.0)
+    coords_2 = vertex_to_mni(vertices, hemis, 'sample', subjects_dir)
+    # less than 1mm error
+    assert_allclose(coords, coords_2, atol=1.0)
 
 
 @requires_freesurfer
@@ -380,15 +373,15 @@ def test_vertex_to_mni_fs_nibabel():
     """Test equivalence of vert_to_mni for nibabel and freesurfer
     """
     n_check = 1000
-    for subject in ['sample', 'fsaverage']:
-        vertices = np.random.randint(0, 100000, n_check)
-        hemis = np.random.randint(0, 1, n_check)
-        coords = vertex_to_mni(vertices, hemis, subject, subjects_dir,
-                               'nibabel')
-        coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir,
-                                 'freesurfer')
-        # less than 0.1 mm error
-        assert_allclose(coords, coords_2, atol=0.1)
+    subject = 'sample'
+    vertices = np.random.randint(0, 100000, n_check)
+    hemis = np.random.randint(0, 1, n_check)
+    coords = vertex_to_mni(vertices, hemis, subject, subjects_dir,
+                           'nibabel')
+    coords_2 = vertex_to_mni(vertices, hemis, subject, subjects_dir,
+                             'freesurfer')
+    # less than 0.1 mm error
+    assert_allclose(coords, coords_2, atol=0.1)
 
 
 @requires_freesurfer

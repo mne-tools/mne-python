@@ -10,7 +10,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 
 from scipy.fftpack import fft
 
-from mne.datasets import testing, sample
+from mne.datasets import testing
 from mne import (stats, SourceEstimate, VolSourceEstimate, Label,
                  read_source_spaces, MixedSourceEstimate)
 from mne import read_source_estimate, morph_data, extract_label_time_course
@@ -37,16 +37,13 @@ fname_smorph = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-meg')
 fname_fmorph = op.join(data_path, 'MEG', 'sample',
                        'fsaverage_audvis_trunc-meg')
-
-sample_path = sample.data_path(download=False)
-fname_vol = op.join(sample_path, 'MEG', 'sample',
-                    'sample_audvis-grad-vol-7-fwd-sensmap-vol.w')
-fname_vsrc = op.join(sample_path, 'MEG', 'sample',
-                     'sample_audvis-meg-vol-7-fwd.fif')
+fname_vol = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
+fname_vsrc = op.join(data_path, 'MEG', 'sample',
+                     'sample_audvis_trunc-meg-vol-7-fwd.fif')
 tempdir = _TempDir()
 
 
-@sample.requires_sample_data
 def test_volume_stc():
     """Test volume STCs
     """
@@ -613,7 +610,6 @@ def test_get_peak():
         assert_true(time_idx < len(stc.times))
 
 
-@sample.requires_sample_data
 def test_mixed_stc():
     """Test source estimate from mixed source space
     """
