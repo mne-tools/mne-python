@@ -785,6 +785,30 @@ def requires_mayavi():
     return requires_mayavi
 
 
+def requires_pysurfer():
+    """Decorator to skip test if PySurfer is not available"""
+    try:
+        from surfer import Brain  # noqa, analysis:ignore
+    except Exception:
+        lacks_surfer = True
+    else:
+        lacks_surfer = False
+    requires_mayavi = np.testing.dec.skipif(lacks_surfer, 'Requires PySurfer')
+    return requires_mayavi
+
+
+def requires_PIL():
+    """Decorator to skip test if PIL is not available"""
+    try:
+        from PIL import image  # noqa, analysis:ignore
+    except Exception:
+        lacks_PIL = True
+    else:
+        lacks_PIL = False
+    requires_mayavi = np.testing.dec.skipif(lacks_PIL, 'Requires PIL')
+    return requires_mayavi
+
+
 def requires_good_network(function):
     """Helper for testing"""
 

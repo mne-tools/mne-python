@@ -16,7 +16,7 @@ from mne import SourceEstimate
 from mne import make_field_map, pick_channels_evoked, read_evokeds
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, mne_analyze_colormap)
-from mne.utils import requires_mayavi
+from mne.utils import requires_mayavi, requires_pysurfer
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
@@ -37,6 +37,7 @@ import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
 
+@requires_pysurfer()
 @requires_mayavi()
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates

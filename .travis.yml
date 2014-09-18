@@ -3,8 +3,8 @@ language: python
 env:
     # Enable python 2 and python 3 builds
     # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
-    #            scikit-learn, patsy, nibabel; in the case of Python 2, also
-    #            nitime
+    #            scikit-learn, patsy, nibabel pillow;
+    #            in the case of Python 2, also nitime, mayavi, traits, pysurfer
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
     - PYTHON=2.7 DEPS=full
@@ -27,7 +27,7 @@ install:
     - source activate testenv &> /dev/null
     - conda install --yes --quiet numpy scipy nose matplotlib > /dev/null
     - if [ "${DEPS}" == "full" ]; then
-        conda install --yes --quiet pandas scikit-learn patsy pytables;
+        conda install --yes --quiet pandas scikit-learn patsy pytables pillow;
         pip install -q nibabel joblib;
         if [ ${PYTHON:0:1} == "2" ]; then
           pip install -q nitime;
@@ -38,6 +38,7 @@ install:
           conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
           if [ "${PYTHON}" == "2.7" ]; then
             conda install --yes --quiet mayavi traits > /dev/null;
+            pip install -q pysurfer;
           fi;
         fi;
       fi;
