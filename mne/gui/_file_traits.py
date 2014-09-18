@@ -8,7 +8,6 @@ import os
 
 import numpy as np
 from ..externals.six.moves import map
-from ..externals.six.moves import zip
 
 # allow import without traits
 try:
@@ -95,6 +94,7 @@ def get_fs_home():
 
     return fs_home
 
+
 def set_fs_home():
     """Set the FREESURFER_HOME environment variable
 
@@ -116,6 +116,7 @@ def set_fs_home():
     else:
         os.environ['FREESURFER_HOME'] = fs_home
         return True
+
 
 def _fs_home_problem(fs_home):
     """Check FREESURFER_HOME path
@@ -166,6 +167,7 @@ def get_mne_root():
 
     return mne_root
 
+
 def set_mne_root(set_mne_bin=False):
     """Set the MNE_ROOT environment variable
 
@@ -196,6 +198,7 @@ def set_mne_root(set_mne_bin=False):
             if mne_bin not in map(_expand_path, os.environ['PATH'].split(':')):
                 os.environ['PATH'] += ':' + mne_bin
         return True
+
 
 def _mne_root_problem(mne_root):
     """Check MNE_ROOT path

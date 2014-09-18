@@ -740,13 +740,13 @@ def requires_pysurfer():
 def requires_PIL():
     """Decorator to skip test if PIL is not available"""
     try:
-        from PIL import image  # noqa, analysis:ignore
+        from PIL import Image  # noqa, analysis:ignore
     except Exception:
         lacks_PIL = True
     else:
         lacks_PIL = False
-    requires_mayavi = np.testing.dec.skipif(lacks_PIL, 'Requires PIL')
-    return requires_mayavi
+    requires_PIL = np.testing.dec.skipif(lacks_PIL, 'Requires PIL')
+    return requires_PIL
 
 
 def requires_good_network(function):
@@ -906,7 +906,11 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
         warnings.warn(msg)
 
     logger.info("Running subprocess: %s" % str(command))
-    p = subprocess.Popen(command, *args, **kwargs)
+    try:
+        p = subprocess.Popen(command, *args, **kwargs)
+    except Exception:
+        logger.error('Command not found: %s' % (command[0],))
+        raise
     stdout_, stderr = p.communicate()
     stdout_ = '' if stdout_ is None else stdout_.decode('utf-8')
     stderr = '' if stderr is None else stderr.decode('utf-8')

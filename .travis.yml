@@ -21,6 +21,9 @@ before_install:
   # We need to create a (fake) display on Travis (allows Mayavi tests to run)
   - export DISPLAY=:99.0
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
+  # Simple tools
+  - curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz
+  - export MNE_ROOT="${PWD}/minimal_cmds" && source ${MNE_ROOT}/bin/mne_setup_sh
 
 install:
     - conda create -n testenv --yes pip python=$PYTHON &> /dev/null
