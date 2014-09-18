@@ -332,66 +332,6 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
     return data, drop_inds
 
 
-def run_subprocess(command, *args, **kwargs):
-    """Run command using subprocess.Popen
-
-    Run command and wait for command to complete. If the return code was zero
-    then return, otherwise raise CalledProcessError.
-    By default, this will also add stdout= and stderr=subproces.PIPE
-    to the call to Popen to suppress printing to the terminal.
-
-    Parameters
-    ----------
-    command : list of str
-        Command to run as subprocess (see subprocess.Popen documentation).
-    *args, **kwargs : arguments
-        Arguments to pass to subprocess.Popen.
-
-    Returns
-    -------
-    stdout : str
-        Stdout returned by the process.
-    stderr : str
-        Stderr returned by the process.
-    """
-    if 'stderr' not in kwargs:
-        kwargs['stderr'] = subprocess.PIPE
-    if 'stdout' not in kwargs:
-        kwargs['stdout'] = subprocess.PIPE
-
-    # Check the PATH environment variable. If run_subprocess() is to be called
-    # frequently this should be refactored so as to only check the path once.
-    env = kwargs.get('env', os.environ)
-    if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
-        msg = ("Your PATH environment variable contains at least one path "
-               "starting with a tilde ('~') character. Such paths are not "
-               "interpreted correctly from within Python. It is recommended "
-               "that you use '$HOME' instead of '~'.")
-        warnings.warn(msg)
-
-    logger.info("Running subprocess: %s" % str(command))
-    p = subprocess.Popen(command, *args, **kwargs)
-    stdout_, stderr = p.communicate()
-    stdout_ = '' if stdout_ is None else stdout_
-    stderr = '' if stderr is None else stderr
-
-    if stdout_.strip():
-        logger.info("stdout:\n%s" % stdout_)
-    if stderr.strip():
-        logger.info("stderr:\n%s" % stderr)
-
-    output = (stdout_, stderr)
-    if p.returncode:
-        print(output)
-        err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in inspect.getargspec(err_fun).args:
-            raise subprocess.CalledProcessError(p.returncode, command, output)
-        else:
-            raise subprocess.CalledProcessError(p.returncode, command)
-
-    return output
-
-
 class _FormatDict(dict):
     """Helper for pformat()"""
     def __missing__(self, key):
@@ -922,6 +862,70 @@ def requires_pytables():
     except ImportError:
         have = False
     return np.testing.dec.skipif(not have, 'Requires pytables')
+
+
+@verbose
+def run_subprocess(command, verbose=None, *args, **kwargs):
+    """Run command using subprocess.Popen
+
+    Run command and wait for command to complete. If the return code was zero
+    then return, otherwise raise CalledProcessError.
+    By default, this will also add stdout= and stderr=subproces.PIPE
+    to the call to Popen to suppress printing to the terminal.
+
+    Parameters
+    ----------
+    command : list of str
+        Command to run as subprocess (see subprocess.Popen documentation).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to self.verbose.
+    *args, **kwargs : arguments
+        Additional arguments to pass to subprocess.Popen.
+
+    Returns
+    -------
+    stdout : str
+        Stdout returned by the process.
+    stderr : str
+        Stderr returned by the process.
+    """
+    if 'stderr' not in kwargs:
+        kwargs['stderr'] = subprocess.PIPE
+    if 'stdout' not in kwargs:
+        kwargs['stdout'] = subprocess.PIPE
+
+    # Check the PATH environment variable. If run_subprocess() is to be called
+    # frequently this should be refactored so as to only check the path once.
+    env = kwargs.get('env', os.environ)
+    if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
+        msg = ("Your PATH environment variable contains at least one path "
+               "starting with a tilde ('~') character. Such paths are not "
+               "interpreted correctly from within Python. It is recommended "
+               "that you use '$HOME' instead of '~'.")
+        warnings.warn(msg)
+
+    logger.info("Running subprocess: %s" % str(command))
+    p = subprocess.Popen(command, *args, **kwargs)
+    stdout_, stderr = p.communicate()
+    stdout_ = '' if stdout_ is None else stdout_.decode('utf-8')
+    stderr = '' if stderr is None else stderr.decode('utf-8')
+
+    if stdout_.strip():
+        logger.info("stdout:\n%s" % stdout_)
+    if stderr.strip():
+        logger.info("stderr:\n%s" % stderr)
+
+    output = (stdout_, stderr)
+    if p.returncode:
+        print(output)
+        err_fun = subprocess.CalledProcessError.__init__
+        if 'output' in inspect.getargspec(err_fun).args:
+            raise subprocess.CalledProcessError(p.returncode, command, output)
+        else:
+            raise subprocess.CalledProcessError(p.returncode, command)
+
+    return output
 
 
 ###############################################################################

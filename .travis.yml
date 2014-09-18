@@ -44,6 +44,8 @@ install:
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
     # Suppress the parallel outputs for logging cleanliness
+    - export MNE_LOGGING_LEVEL=warning
+    - export MNE_SKIP_SAMPLE_DATASET_TESTS=1
     # Skip tests that require large downloads over the network to save bandwith
     # usage as travis workers are stateless and therefore traditional local
     # disk caching does not work.
@@ -55,10 +57,7 @@ install:
     - SRC_DIR=$(pwd)
     - cd ~
     # Trigger download of testing data
-    - python -c 'import mne; mne.datasets.testing.data_path()'
-    # Set up tests
-    - export MNE_LOGGING_LEVEL=warning
-    - export MNE_SKIP_SAMPLE_DATASET_TESTS=1
+    - python -c 'import mne; mne.datasets.testing.data_path(verbose=True)'
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
     - ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data
     - ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data
