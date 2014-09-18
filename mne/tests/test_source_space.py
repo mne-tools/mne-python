@@ -27,11 +27,11 @@ warnings.simplefilter('always')
 data_path = testing.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
-fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
+fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 fname_vol = op.join(subjects_dir, 'sample', 'bem',
                     'sample-volume-7mm-src.fif')
 fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
-                    'sample-320-bem.fif')
+                    'sample-1280-bem.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_small = op.join(base_dir, 'small-src.fif.gz')
@@ -280,7 +280,7 @@ def test_setup_source_space():
                   add_dist=False)
     assert_raises(ValueError, setup_source_space, 'sample', spacing='alls',
                   add_dist=False)
-    assert_raises(IOError, setup_source_space, 'sample', spacing='oct4',
+    assert_raises(IOError, setup_source_space, 'sample', spacing='oct6',
                   subjects_dir=subjects_dir, add_dist=False)
 
     # ico 5 (fsaverage) - write to temp file
@@ -295,12 +295,12 @@ def test_setup_source_space():
     assert_array_equal(src[0]['vertno'], np.arange(10242))
     assert_array_equal(src[1]['vertno'], np.arange(10242))
 
-    # oct-4 (testing sample) - auto filename + IO
+    # oct-6 (sample) - auto filename + IO
     src = read_source_spaces(fname)
     temp_name = op.join(tempdir, 'temp-src.fif')
     with warnings.catch_warnings(record=True):  # sklearn equiv neighbors
         warnings.simplefilter('always')
-        src_new = setup_source_space('sample', temp_name, spacing='oct4',
+        src_new = setup_source_space('sample', temp_name, spacing='oct6',
                                      subjects_dir=subjects_dir,
                                      overwrite=True, add_dist=False)
     _compare_source_spaces(src, src_new, mode='approx')

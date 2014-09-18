@@ -26,15 +26,15 @@ from mne.utils import _TempDir, travis_skip
 from ...externals import six
 
 s_path = op.join(testing.data_path(), 'MEG', 'sample')
-fname_fwd_meeg = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_fwd_meeg = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 # Three inverses:
-fname_inv = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
+fname_inv = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_inv_fixed_nodepth = op.join(s_path,
-                                  'sample_audvis_trunc-meg-eeg-oct-4-meg'
+                                  'sample_audvis_trunc-meg-eeg-oct-6-meg'
                                   '-nodepth-fixed-inv.fif')
 fname_inv_meeg_diag = op.join(s_path,
                               'sample_audvis_trunc-'
-                              'meg-eeg-oct-4-meg-eeg-diagnoise-inv.fif')
+                              'meg-eeg-oct-6-meg-eeg-diagnoise-inv.fif')
 
 fname_data = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')

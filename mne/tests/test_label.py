@@ -31,7 +31,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_path = testing.data_path()
 subjects_dir = op.join(data_path, 'subjects')
-src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
+src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 stc_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-lh.stc')
 real_label_fname = op.join(data_path, 'MEG', 'sample', 'labels',
@@ -41,7 +41,7 @@ real_label_rh_fname = op.join(data_path, 'MEG', 'sample', 'labels',
 v1_label_fname = op.join(subjects_dir, 'sample', 'label', 'lh.V1.label')
 
 fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 
 test_path = op.join(op.split(__file__)[0], '..', 'io', 'tests', 'data')
 label_fname = op.join(test_path, 'test-lh.label')

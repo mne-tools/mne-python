@@ -24,7 +24,7 @@ from mne.source_space import (get_volume_labels_from_aseg,
 
 data_path = testing.data_path()
 fname_meeg = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
@@ -81,7 +81,7 @@ def test_make_forward_solution_kit():
     """Test making fwd using KIT, BTI, and CTF (compensated) files
     """
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-320-bem-sol.fif')
+                        'sample-1280-bem-sol.fif')
     kit_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                       'tests', 'data')
     sqd_path = op.join(kit_dir, 'test.sqd')
@@ -169,9 +169,9 @@ def test_make_forward_solution_kit():
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python
     """
-    fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
+    fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
     fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-320-320-320-bem-sol.fif')
+                        'sample-1280-1280-1280-bem-sol.fif')
     fwd_py = make_forward_solution(fname_raw, mindist=5.0,
                                    src=fname_src, eeg=True, meg=True,
                                    bem=fname_bem, mri=fname_mri)

@@ -25,7 +25,7 @@ subjects_dir = op.join(data_dir, 'subjects')
 trans_fname = op.join(data_dir, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 src_fname = op.join(data_dir, 'subjects', 'sample',
-                    'bem', 'sample-oct-4-src.fif')
+                    'bem', 'sample-oct-6-src.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')

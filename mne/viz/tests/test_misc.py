@@ -96,7 +96,7 @@ def test_plot_source_spectrogram():
     """Test plotting of source spectrogram
     """
     sample_src = read_source_spaces(op.join(subjects_dir, 'sample',
-                                            'bem', 'sample-oct-4-src.fif'))
+                                            'bem', 'sample-oct-6-src.fif'))
 
     # dense version
     vertices = [s['vertno'] for s in sample_src]

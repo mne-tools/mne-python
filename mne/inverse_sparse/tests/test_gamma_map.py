@@ -18,7 +18,7 @@ fname_evoked = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 
 
 def test_gamma_map():

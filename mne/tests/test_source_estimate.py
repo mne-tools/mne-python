@@ -28,10 +28,10 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 data_path = testing.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
 fname_smorph = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-meg')

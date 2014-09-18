@@ -21,7 +21,7 @@ warnings.simplefilter('always')
 
 data_path = testing.data_path()
 fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test_raw.fif')
 ave_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',

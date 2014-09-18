@@ -14,7 +14,7 @@ from mne.utils import _TempDir, requires_mne_fs_in_env, requires_traits
 
 data_path = testing.data_path()
 subjects_dir = os.path.join(data_path, 'subjects')
-bem_path = os.path.join(subjects_dir, 'sample', 'bem', 'sample-320-bem.fif')
+bem_path = os.path.join(subjects_dir, 'sample', 'bem', 'sample-1280-bem.fif')
 raw_path = os.path.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc_raw.fif')
 fid_path = os.path.join(fiff_data_dir, 'fsaverage-fiducials.fif')

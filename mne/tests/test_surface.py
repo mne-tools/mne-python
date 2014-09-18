@@ -18,7 +18,7 @@ from mne.transforms import _get_mri_head_t_from_trans_file
 data_path = testing.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
-                'sample-320-320-320-bem-sol.fif')
+                'sample-1280-1280-1280-bem-sol.fif')
 tempdir = _TempDir()
 
 

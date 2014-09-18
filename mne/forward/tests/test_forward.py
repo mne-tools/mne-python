@@ -20,7 +20,7 @@ from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
 
 data_path = testing.data_path()
 fname_meeg = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')

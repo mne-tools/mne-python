@@ -28,9 +28,9 @@ proj_gz_fname = op.join(base_dir, 'test-proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
 
 sample_path = op.join(testing.data_path(), 'MEG', 'sample')
-fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 sensmap_fname = op.join(sample_path,
-                        'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
+                        'sample_audvis_trunc-%s-oct-6-fwd-sensmap-%s.w')
 
 # sample dataset should be updated to reflect mne conventions
 eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')

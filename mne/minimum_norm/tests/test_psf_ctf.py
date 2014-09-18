@@ -9,8 +9,8 @@ from mne.minimum_norm import (read_inverse_operator,
 from nose.tools import assert_true
 
 data_path = op.join(testing.data_path(), 'MEG', 'sample')
-fname_inv = op.join(data_path, 'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
-fname_fwd = op.join(data_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_inv = op.join(data_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_fwd = op.join(data_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 
 fname_label = [op.join(data_path, 'labels', 'Aud-rh.label'),
                op.join(data_path, 'labels', 'Aud-lh.label')]

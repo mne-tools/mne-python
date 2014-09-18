@@ -20,7 +20,7 @@ data_path = testing.data_path()
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 

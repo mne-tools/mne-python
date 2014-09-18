@@ -21,7 +21,7 @@ from mne.time_frequency import multitaper_psd
 
 data_path = testing.data_path()
 fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_data = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc_raw.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
