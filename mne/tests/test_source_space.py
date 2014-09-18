@@ -41,6 +41,7 @@ tempdir = _TempDir()
 
 @requires_nibabel(vox2ras_tkr=True)
 def test_mgz_header():
+    """Test MGZ header reading"""
     import nibabel as nib
     header = _get_mgz_header(fname_mri)
     mri_hdr = nib.load(fname_mri).get_header()
