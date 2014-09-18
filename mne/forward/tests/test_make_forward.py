@@ -17,7 +17,7 @@ from mne.io.constants import FIFF
 from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, setup_source_space, read_trans,
                  convert_forward_solution, setup_volume_source_space)
-from mne.utils import requires_mne, requires_nibabel, _TempDir, travis_skip
+from mne.utils import requires_mne, requires_nibabel, _TempDir
 from mne.forward import Forward
 from mne.source_space import (get_volume_labels_from_aseg,
                               _compare_source_spaces)
@@ -166,7 +166,6 @@ def test_make_forward_solution_kit():
     _compare_forwards(fwd, fwd_py, 274, 108)
 
 
-@travis_skip  # blows up sometimes
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python
     """

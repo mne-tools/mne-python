@@ -3,6 +3,7 @@ branch = True
 source = mne
 include = */mne/*
 omit =
+    */mne/commands/*
     */mne/externals/*
     */bin/*
     */setup.py

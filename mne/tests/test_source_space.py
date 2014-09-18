@@ -203,35 +203,34 @@ def test_volume_source_space():
     """
     src = read_source_spaces(fname_vol)
     temp_name = op.join(tempdir, 'temp-src.fif')
-    try:
-        # The one in the sample dataset (uses bem as bounds)
-        src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
-                                            bem=fname_bem, mri=fname_mri,
-                                            subjects_dir=subjects_dir)
-        _compare_source_spaces(src, src_new, mode='approx')
-        src_new = read_source_spaces(temp_name)
-        _compare_source_spaces(src, src_new, mode='approx')
+    # The one in the sample dataset (uses bem as bounds)
+    src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
+                                        bem=fname_bem, mri=fname_mri,
+                                        subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
+    del src_new
+    src_new = read_source_spaces(temp_name)
+    _compare_source_spaces(src, src_new, mode='approx')
+    del src, src_new
 
-        # let's try the spherical one (no bem or surf supplied)
-        run_subprocess(['mne_volume_source_space',
-                        '--grid', '15.0',
-                        '--src', temp_name,
-                        '--mri', fname_mri])
-        src = read_source_spaces(temp_name)
-        src_new = setup_volume_source_space('sample', temp_name, pos=15.0,
-                                            mri=fname_mri,
-                                            subjects_dir=subjects_dir)
-        _compare_source_spaces(src, src_new, mode='approx')
+    # let's try the spherical one (no bem or surf supplied)
+    run_subprocess(['mne_volume_source_space',
+                    '--grid', '15.0',
+                    '--src', temp_name,
+                    '--mri', fname_mri])
+    src = read_source_spaces(temp_name)
+    src_new = setup_volume_source_space('sample', temp_name, pos=15.0,
+                                        mri=fname_mri,
+                                        subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
+    del src, src_new
 
-        # now without MRI argument, it should give an error when we try
-        # to read it
-        run_subprocess(['mne_volume_source_space',
-                        '--grid', '15.0',
-                        '--src', temp_name])
-        assert_raises(ValueError, read_source_spaces, temp_name)
-    finally:
-        if op.isfile(temp_name):
-            os.remove(temp_name)
+    # now without MRI argument, it should give an error when we try
+    # to read it
+    run_subprocess(['mne_volume_source_space',
+                    '--grid', '15.0',
+                    '--src', temp_name])
+    assert_raises(ValueError, read_source_spaces, temp_name)
 
 
 def test_triangle_neighbors():
