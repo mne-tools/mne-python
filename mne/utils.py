@@ -813,6 +813,8 @@ def make_skipper_dec(module, skip_str):
 
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
 requires_traits = make_skipper_dec('traits', 'traits not installed')
+travis_skip = np.testing.dec.skipif(os.getenv('TRAVIS', '') == 'true',
+                                    'Test does not run on Travis platforms')
 
 
 def _mne_fs_not_in_env():

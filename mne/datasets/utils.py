@@ -119,7 +119,7 @@ def _data_path(path=None, force_update=False, update_path=True,
     elif name == 'testing':
         archive_name = 'MNE-testing-data.tar.gz'
         folder_name = 'MNE-testing-data'
-        url = 'https://lester.ilabs.uw.edu/files/' + archive_name
+        url = 'http://lester.ilabs.uw.edu/files/' + archive_name
     else:
         raise ValueError('Sorry, the dataset "%s" is not known.' % name)
     folder_path = op.join(path, folder_name)
