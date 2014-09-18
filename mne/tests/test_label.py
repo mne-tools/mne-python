@@ -353,7 +353,8 @@ def test_read_labels_from_annot():
     for label in labels_rh:
         assert_true(label.name.endswith('-rh'))
         assert_true(label.hemi == 'rh')
-        assert_is_not(label.color, None)
+        if int(sys.version[0]) > 2 or int(sys.version[2]) > 6:
+            assert_is_not(label.color, None)
 
     # combine the lh, rh, labels and sort them
     labels_lhrh = list()

@@ -22,7 +22,7 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
-from mne.utils import _TempDir
+from mne.utils import _TempDir, travis_skip
 from ...externals import six
 
 s_path = op.join(testing.data_path(), 'MEG', 'sample')
@@ -294,6 +294,7 @@ def test_make_inverse_operator_diag():
     assert_true(compute_rank_inverse(inverse_operator_diag) == 360)
 
 
+@travis_skip  # probably too much memory, causes the job to be killed...
 def test_inverse_operator_volume():
     """Test MNE inverse computation on volume source space
     """
