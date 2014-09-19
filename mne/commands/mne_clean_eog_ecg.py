@@ -59,7 +59,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
     print('Implementing ECG and EOG artifact rejection on data')
 
     if ecg:
-        ecg_events, _, _  = mne.preprocessing.find_ecg_events(raw_in)
+        ecg_events, _, _ = mne.preprocessing.find_ecg_events(raw_in)
         print("Writing ECG events in %s" % ecg_event_fname)
         mne.write_events(ecg_event_fname, ecg_events)
 
@@ -85,8 +85,8 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
         command = ('mne_process_raw --cd %s --raw %s --events %s --makeproj '
                    '--projtmin -0.15 --projtmax 0.15 --saveprojtag _eog_proj '
                    '--projnmag 2 --projngrad 2 --projevent 998 --lowpass 35 '
-                   '--projmagrej 4000  --projgradrej 3000' % (in_path,
-                   in_fif_fname, eog_event_fname))
+                   '--projmagrej 4000  --projgradrej 3000'
+                   % (in_path, in_fif_fname, eog_event_fname))
 
         print('Running : %s' % command)
 
@@ -117,27 +117,28 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
         print('Projection not applied to raw data.')
 
 
-if __name__ == '__main__':
-
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
 
     parser.add_option("-i", "--in", dest="raw_in",
-                    help="Input raw FIF file", metavar="FILE")
+                      help="Input raw FIF file", metavar="FILE")
     parser.add_option("-o", "--out", dest="raw_out",
-                    help="Output raw FIF file", metavar="FILE",
-                    default=None)
+                      help="Output raw FIF file", metavar="FILE",
+                      default=None)
     parser.add_option("-e", "--no-eog", dest="eog", action="store_false",
-                    help="Remove EOG", default=True)
+                      help="Remove EOG", default=True)
     parser.add_option("-c", "--no-ecg", dest="ecg", action="store_false",
-                    help="Remove ECG", default=True)
+                      help="Remove ECG", default=True)
 
     options, args = parser.parse_args()
 
     if options.raw_in is None:
         parser.print_help()
-        sys.exit(1)
+        if is_main:
+            sys.exit(1)
+        return
 
     raw_in = options.raw_in
     raw_out = options.raw_out
@@ -145,3 +146,8 @@ if __name__ == '__main__':
     ecg = options.ecg
 
     clean_ecg_eog(raw_in, raw_out, eog=eog, ecg=ecg)
+
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

@@ -107,6 +107,7 @@ def test_make_forward_solution_kit():
 
     fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                             'data', 'test_ctf_comp_raw.fif')
+    n_src = 1548
 
     # first set up a testing source space
     src = read_source_spaces(fname_src)
@@ -121,7 +122,7 @@ def test_make_forward_solution_kit():
     fwd_py = make_forward_solution(fname_kit_raw, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=mri_path)
-    _compare_forwards(fwd, fwd_py, 157, 108)
+    _compare_forwards(fwd, fwd_py, 157, 1548)
     assert_true(isinstance(fwd_py, Forward))
 
     # now let's use mne-python all the way
@@ -134,7 +135,7 @@ def test_make_forward_solution_kit():
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=mri_path,
                                    ignore_ref=True)
-    _compare_forwards(fwd, fwd_py, 157, 108,
+    _compare_forwards(fwd, fwd_py, 157, n_src,
                       meg_rtol=1e-3, meg_atol=1e-7)
 
     # BTI python end-to-end versus C
@@ -145,7 +146,7 @@ def test_make_forward_solution_kit():
     fwd_py = make_forward_solution(raw_py.info, mindist=0.0,
                                    src=src, eeg=False, meg=True,
                                    bem=fname_bem, mri=mri_path)
-    _compare_forwards(fwd, fwd_py, 248, 108)
+    _compare_forwards(fwd, fwd_py, 248, n_src)
 
     # now let's test CTF w/compensation
     fwd_py = make_forward_solution(fname_ctf_raw, mindist=0.0,
@@ -155,7 +156,7 @@ def test_make_forward_solution_kit():
     fwd = do_forward_solution('sample', fname_ctf_raw, src=fname_src,
                               mindist=0.0, bem=fname_bem, mri=fname_mri,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
-    _compare_forwards(fwd, fwd_py, 274, 108)
+    _compare_forwards(fwd, fwd_py, 274, n_src)
 
     # CTF with compensation changed in python
     ctf_raw = Raw(fname_ctf_raw, compensation=2)
@@ -168,7 +169,7 @@ def test_make_forward_solution_kit():
                                   mindist=0.0, bem=fname_bem, mri=fname_mri,
                                   eeg=False, meg=True,
                                   subjects_dir=subjects_dir)
-    _compare_forwards(fwd, fwd_py, 274, 108)
+    _compare_forwards(fwd, fwd_py, 274, n_src)
 
 
 def test_make_forward_solution():

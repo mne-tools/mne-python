@@ -61,6 +61,7 @@ from .channels import (equalize_channels, rename_channels,
                        read_ch_connectivity)
 
 from . import beamformer
+from . import commands
 from . import connectivity
 from . import coreg
 from . import cuda

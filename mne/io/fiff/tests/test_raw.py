@@ -18,20 +18,24 @@ from nose.tools import (assert_true, assert_raises, assert_equal,
                         assert_not_equal)
 
 from mne import pick_types, pick_channels
+from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.io import (Raw, concatenate_raws,
                     get_chpi_positions, set_eeg_reference)
 from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
-                       requires_mne, run_subprocess)
+                       requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip
 from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
+data_dir = op.join(testing.data_path(), 'MEG', 'sample')
+fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
+
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
-fif_fname = op.join(base_dir, 'test_raw.fif')
-fif_gz_fname = op.join(base_dir, 'test_raw.fif.gz')
+test_fif_fname = op.join(base_dir, 'test_raw.fif')
+test_fif_gz_fname = op.join(base_dir, 'test_raw.fif.gz')
 ctf_fname = op.join(base_dir, 'test_ctf_raw.fif')
 ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 fif_bad_marked_fname = op.join(base_dir, 'test_withbads_raw.fif')
@@ -137,7 +141,7 @@ def test_output_formats():
     tols = [1e-4, 1e-7, 1e-7, 1e-15]
 
     # let's fake a raw file with different formats
-    raw = Raw(fif_fname, preload=True)
+    raw = Raw(test_fif_fname, preload=False)
     raw.crop(0, 1, copy=False)
 
     temp_file = op.join(tempdir, 'raw.fif')
@@ -148,7 +152,7 @@ def test_output_formats():
         raw.save(temp_file, format=format, overwrite=True)
         raw2 = Raw(temp_file)
         raw2_data = raw2[:, :][0]
-        assert_allclose(raw2_data, raw._data, rtol=tol, atol=1e-25)
+        assert_allclose(raw2_data, raw[:, :][0], rtol=tol, atol=1e-25)
         assert_true(raw2.orig_format == format)
 
 
@@ -304,7 +308,7 @@ def test_load_bad_channels():
     # Load correctly marked file (manually done in mne_process_raw)
     raw_marked = Raw(fif_bad_marked_fname)
     correct_bads = raw_marked.info['bads']
-    raw = Raw(fif_fname)
+    raw = Raw(test_fif_fname)
     # Make sure it starts clean
     assert_array_equal(raw.info['bads'], [])
 
@@ -369,7 +373,7 @@ def test_io_raw():
     assert_true(np.allclose(data[:, sl], raw[:, sl][0], 1e-6, 1e-20))
 
     # now let's do some real I/O
-    fnames_in = [fif_fname, fif_gz_fname, ctf_fname]
+    fnames_in = [fif_fname, test_fif_gz_fname, ctf_fname]
     fnames_out = ['raw.fif', 'raw.fif.gz', 'raw.fif']
     for fname_in, fname_out in zip(fnames_in, fnames_out):
         fname_out = op.join(tempdir, fname_out)
@@ -395,7 +399,7 @@ def test_io_raw():
         # Writing with drop_small_buffer True
         raw.save(fname_out, picks, tmin=0, tmax=4, buffer_size_sec=3,
                  drop_small_buffer=True, overwrite=True)
-        raw2 = Raw(fname_out, preload=True)
+        raw2 = Raw(fname_out)
 
         sel = pick_channels(raw2.ch_names, meg_ch_names)
         data2, times2 = raw2[sel, :]
@@ -965,8 +969,8 @@ def test_set_eeg_reference():
     reref_other_data = reref[picks_other][0]
 
     # Check that both EEG data and other data is the same
-    assert_array_equal(raw_eeg_data, unref_eeg_data)
-    assert_array_equal(raw_other_data, reref_other_data)
+    assert_allclose(raw_eeg_data, unref_eeg_data, 1e-6, atol=1e-15)
+    assert_allclose(raw_other_data, reref_other_data, 1e-6, atol=1e-15)
 
     # Test that data is modified in place when copy=False
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
@@ -1030,3 +1034,6 @@ def test_equalize_channels():
     equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
+
+
+run_tests_if_main()

@@ -14,11 +14,13 @@ from mne.label import read_label
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.minimum_norm import apply_inverse, make_inverse_operator
+from mne.utils import run_tests_if_main
 
 
 data_path = testing.data_path()
-fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-ave.fif')
-fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
+# NOTE: These use the ave and cov from sample dataset (no _trunc)
+fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 label = 'Aud-rh'
@@ -90,3 +92,6 @@ def test_mxne_inverse():
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertno[1][0] in label.vertices)
+
+
+run_tests_if_main()

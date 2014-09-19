@@ -61,6 +61,7 @@ if __name__ == "__main__":
           platforms='any',
           packages=['mne', 'mne.tests',
                     'mne.beamformer', 'mne.beamformer.tests',
+                    'mne.commands', 'mne.commands.tests',
                     'mne.connectivity', 'mne.connectivity.tests',
                     'mne.data',
                     'mne.datasets',
