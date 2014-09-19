@@ -271,14 +271,15 @@ def test_fetch_file():
             'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
     for url in urls:
         archive_name = op.join(tempdir, "download_test")
-        _fetch_file(url, archive_name, print_destination=False)
+        _fetch_file(url, archive_name, print_destination=False, verbose=False)
         assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
-                      op.join(tempdir, 'test'))
+                      op.join(tempdir, 'test'), verbose=False)
         resume_name = op.join(tempdir, "download_resume")
         # touch file
         with open(resume_name + '.part', 'w'):
             os.utime(resume_name + '.part', None)
-        _fetch_file(url, resume_name, print_destination=False, resume=True)
+        _fetch_file(url, resume_name, print_destination=False, resume=True,
+                    verbose=False)
 
 
 def test_sum_squared():

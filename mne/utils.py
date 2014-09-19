@@ -1467,7 +1467,8 @@ def _chunk_write(chunk, local_file, progress):
     progress.update_with_increment_value(len(chunk))
 
 
-def _fetch_file(url, file_name, print_destination=True, resume=True):
+def _fetch_file(url, file_name, print_destination=True, resume=True,
+                verbose=None):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -1481,6 +1482,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         download finishes.
     resume: bool, optional
         If true, try to resume partially downloaded files.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
@@ -1490,7 +1493,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     initial_size = 0
     try:
         # Checking file size and displaying it alongside the download url
-        u = urllib.request.urlopen(url)
+        u = urllib.request.urlopen(url, timeout=10.)
         try:
             file_size = int(u.headers.get('Content-Length', '1').strip())
         finally:
