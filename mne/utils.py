@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Some utility functions"""
 from __future__ import print_function
 
@@ -48,7 +49,7 @@ except ImportError:
 try:
     from memory_profiler import memory_usage
 except ImportError:
-    memory_usage = lambda: [0]
+    memory_usage = lambda: -1
 
 
 ###############################################################################
@@ -1716,20 +1717,32 @@ def run_tests_if_main():
     except Exception:
         pass
     import __main__
+    mem = int(round(memory_usage(-1, max_usage=True)))
+    if mem >= 0:
+        print('Memory consumption after import: %s' % mem)
+    t0 = time.time()
+    peak_mem, peak_name = mem, 'import'
+    max_elapsed, elapsed_name = 0, 'N/A'
+    count = 0
     for name in sorted(dir(__main__), key=lambda x: x.lower()):
         val = getattr(__main__, name)
         if name.startswith('_'):
             continue
         elif callable(val) and name.startswith('test'):
-            doc = val.__doc__.strip()
-            doc = name if not val.__doc__ else doc
+            count += 1
+            doc = val.__doc__.strip() if val.__doc__ else name
             print('%s ... ' % doc, end='')
             sys.stdout.flush()
             try:
-                t0 = time.time()
-                mem = round(max(memory_usage((val, (), {}))))
-                elapsed = round(time.time() - t0)
-                print('time: %s sec, mem: %s MB' % (elapsed, mem))
+                t1 = time.time()
+                mem = int(round(memory_usage((val, (), {}), max_usage=True)))
+                if mem >= peak_mem:
+                    peak_mem, peak_name = mem, name
+                mem = ', mem: %s MB' % mem if mem >= 0 else ''
+                elapsed = int(round(time.time() - t1))
+                if elapsed >= max_elapsed:
+                    max_elapsed, elapsed_name = elapsed, name
+                print('time: %s sec%s' % (elapsed, mem))
                 sys.stdout.flush()
             except Exception as err:
                 if 'skiptest' in err.__class__.__name__.lower():
@@ -1737,3 +1750,6 @@ def run_tests_if_main():
                     sys.stdout.flush()
                 else:
                     raise
+    elapsed = int(round(time.time() - t0))
+    print('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory %s MB (%s)'
+          % (count, elapsed, max_elapsed, elapsed_name, peak_mem, peak_name))

@@ -21,7 +21,7 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_pytables)
+                       requires_pytables, run_tests_if_main)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -235,8 +235,8 @@ def test_stc_methods():
     vertex, hemi, t = stc.center_of_mass('sample', subjects_dir=subjects_dir)
     assert_true(hemi == 1)
     # XXX Should design a fool-proof test case, but here were the results:
-    assert_equal(vertex, 156191)
-    assert_equal(np.round(t, 3), 0.125)
+    assert_equal(vertex, 124791)
+    assert_equal(np.round(t, 2), 0.12)
 
     stc = read_source_estimate(fname_stc)
     label = read_labels_from_annot('sample', 'aparc', 'lh',
@@ -630,3 +630,6 @@ def test_mixed_stc():
 
     # make sure error is raised for plotting surface with volume source
     assert_raises(ValueError, stc.plot_surface, src=vol)
+
+
+run_tests_if_main()

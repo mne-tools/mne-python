@@ -7,6 +7,7 @@ import warnings
 
 from mne.datasets import testing
 from mne import io, find_events, Epochs, pick_types
+from mne.utils import run_tests_if_main
 from mne.label import read_label
 from mne.minimum_norm.inverse import (read_inverse_operator,
                                       apply_inverse_epochs,
@@ -189,3 +190,6 @@ def test_source_psd_epochs():
     assert_true(len(w) >= 2)
     assert_true(any('not properly use' in str(ww.message) for ww in w))
     assert_true(any('Bandwidth too small' in str(ww.message) for ww in w))
+
+
+run_tests_if_main()

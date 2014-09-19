@@ -15,16 +15,18 @@ from mne.io import read_raw_kit
 from mne.io import read_raw_bti
 from mne.io.constants import FIFF
 from mne import (read_forward_solution, make_forward_solution,
-                 do_forward_solution, setup_source_space, read_trans,
-                 convert_forward_solution, setup_volume_source_space)
-from mne.utils import requires_mne, requires_nibabel, _TempDir
+                 do_forward_solution, read_trans,
+                 convert_forward_solution, setup_volume_source_space,
+                 read_source_spaces)
+from mne.utils import (requires_mne, requires_nibabel, _TempDir,
+                       run_tests_if_main, travis_skip)
 from mne.forward import Forward
 from mne.source_space import (get_volume_labels_from_aseg,
                               _compare_source_spaces)
 
 data_path = testing.data_path()
 fname_meeg = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
@@ -32,6 +34,11 @@ fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 fname_mri = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
+fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
+fname_bem = op.join(subjects_dir, 'sample', 'bem',
+                    'sample-1280-1280-1280-bem-sol.fif')
+fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+
 temp_dir = _TempDir()
 
 # make a file that exists with some data in it
@@ -102,9 +109,7 @@ def test_make_forward_solution_kit():
                             'data', 'test_ctf_comp_raw.fif')
 
     # first set up a testing source space
-    fname_src = op.join(temp_dir, 'oct2-src.fif')
-    src = setup_source_space('sample', fname_src, 'oct2',
-                             subjects_dir=subjects_dir)
+    src = read_source_spaces(fname_src)
 
     # first use mne-C: convert file, make forward solution
     fwd = do_forward_solution('sample', fname_kit_raw, src=fname_src,
@@ -169,16 +174,13 @@ def test_make_forward_solution_kit():
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python
     """
-    fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
-    fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-1280-1280-1280-bem-sol.fif')
     fwd_py = make_forward_solution(fname_raw, mindist=5.0,
                                    src=fname_src, eeg=True, meg=True,
                                    bem=fname_bem, mri=fname_mri)
     assert_true(isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
-    _compare_forwards(fwd, fwd_py, 366, 23784, meg_rtol=1e-3)
+    _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3)
 
 
 @requires_mne
@@ -247,18 +249,13 @@ def test_do_forward_solution():
     # done in previous tests.
 
 
-@requires_nibabel
+@travis_skip  # requires far too much memory
+@requires_nibabel(False)
 def test_forward_mixed_source_space():
     """Test making the forward solution for a mixed source space
     """
-    # get bem file
-    fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-5120-5120-5120-bem-sol.fif')
-    # get the aseg file
-    fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-
     # get the surface source space
-    surf = setup_source_space('sample', fname=None, spacing='ico2')
+    surf = read_source_spaces(fname_src)
 
     # setup two volume source spaces
     label_names = get_volume_labels_from_aseg(fname_aseg)
@@ -298,3 +295,6 @@ def test_forward_mixed_source_space():
     vox_mri_t = vol1[0]['vox_mri_t']
     assert_raises(RuntimeError, src_from_fwd.export_volume, fname_img,
                   mri_resolution=True, trans=vox_mri_t)
+
+
+run_tests_if_main()

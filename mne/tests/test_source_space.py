@@ -14,7 +14,8 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  add_source_space_distances)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
-                       requires_mne, requires_scipy_version)
+                       requires_mne, requires_scipy_version,
+                       run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
@@ -361,7 +362,6 @@ def test_write_source_space():
         src_badname = op.join(tempdir, 'test-bad-name.fif.gz')
         write_source_spaces(src_badname, src0)
         read_source_spaces(src_badname)
-        print([ww.message for ww in w])
     assert_equal(len(w), 2)
 
 
@@ -508,6 +508,9 @@ def test_combine_source_spaces():
     disc3[0]['coord_frame'] = 10
     src_mixed_coord = src + disc3
     assert_raises(ValueError, src_mixed_coord.export_volume, image_fname)
+
+
+run_tests_if_main()
 
 # The following code was used to generate small-src.fif.gz.
 # Unfortunately the C code bombs when trying to add source space distances,

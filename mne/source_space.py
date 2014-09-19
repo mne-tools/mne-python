@@ -2227,47 +2227,42 @@ def _compare_source_spaces(src0, src1, mode='exact'):
 
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'ntri', 'np', 'type', 'id']:
-            print(name)
-            assert_equal(s0[name], s1[name])
+            assert_equal(s0[name], s1[name], name)
         for name in ['subject_his_id']:
             if name in s0 or name in s1:
-                print(name)
-                assert_equal(s0[name], s1[name])
+                assert_equal(s0[name], s1[name], name)
         for name in ['interpolator']:
             if name in s0 or name in s1:
-                print(name)
                 diffs = (s0['interpolator'] - s1['interpolator']).data
                 if len(diffs) > 0:
-                    assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.05)  # 5%
+                    # 5%
+                    assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.05, name)
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
-            print(name)
             if s0[name] is None:
-                assert_true(s1[name] is None)
+                assert_true(s1[name] is None, name)
             else:
                 if mode == 'exact':
-                    assert_array_equal(s0[name], s1[name])
+                    assert_array_equal(s0[name], s1[name], name)
                 elif mode == 'approx':
-                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4)
+                    assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4,
+                                    err_msg=name)
                 else:
                     raise RuntimeError('unknown mode')
         for name in ['seg_name']:
             if name in s0 or name in s1:
-                print(name)
-                assert_equal(s0[name], s1[name])
+                assert_equal(s0[name], s1[name], name)
         if mode == 'exact':
             for name in ['inuse', 'vertno', 'use_tris']:
                 assert_array_equal(s0[name], s1[name])
             # these fields will exist if patch info was added, these are
             # not tested in mode == 'approx'
             for name in ['nearest', 'nearest_dist']:
-                print(name)
                 if s0[name] is None:
-                    assert_true(s1[name] is None)
+                    assert_true(s1[name] is None, name)
                 else:
                     assert_array_equal(s0[name], s1[name])
             for name in ['dist_limit']:
-                print(name)
-                assert_true(s0[name] == s1[name])
+                assert_true(s0[name] == s1[name], name)
             for name in ['dist']:
                 if s0[name] is not None:
                     assert_equal(s1[name].shape, s0[name].shape)
@@ -2302,8 +2297,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
         if mode == 'exact':
             assert_equal(src0.info[name], src1.info[name])
         elif mode == 'approx':
-            print(name)
             if name in src0.info:
-                assert_true(name in src1.info)
+                assert_true(name in src1.info, name)
             else:
-                assert_true(name not in src1.info)
+                assert_true(name not in src1.info, name)

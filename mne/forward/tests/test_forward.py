@@ -14,13 +14,13 @@ from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  convert_forward_solution)
 from mne import SourceEstimate, pick_types_forward, read_evokeds
 from mne.label import read_label
-from mne.utils import requires_mne, run_subprocess, _TempDir
+from mne.utils import requires_mne, run_subprocess, _TempDir, run_tests_if_main
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward)
 
 data_path = testing.data_path()
 fname_meeg = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -30,7 +30,7 @@ fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 fname_mri = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
-fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
+fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
 temp_dir = _TempDir()
 # make a file that exists with some data in it
 existing_file = op.join(temp_dir, 'test.fif')
@@ -56,7 +56,8 @@ def test_convert_forward():
     """Test converting forward solution between different representations
     """
     fwd = read_forward_solution(fname_meeg)
-    print(fwd)  # __repr__
+    x = repr(fwd)
+    assert x
     assert_true(isinstance(fwd, Forward))
     # look at surface orientation
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
@@ -64,20 +65,23 @@ def test_convert_forward():
     compare_forwards(fwd_surf, fwd_surf_io)
     # go back
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
-    print(fwd_new)
+    x = repr(fwd_new)
+    assert x
     assert_true(isinstance(fwd, Forward))
     compare_forwards(fwd, fwd_new)
     # now go to fixed
     fwd_fixed = convert_forward_solution(fwd_surf, surf_ori=False,
                                          force_fixed=True)
-    print(fwd_fixed)
+    x = repr(fwd_fixed)
+    assert x
     assert_true(isinstance(fwd_fixed, Forward))
     fwd_fixed_io = read_forward_solution(fname_meeg, surf_ori=False,
                                          force_fixed=True)
     compare_forwards(fwd_fixed, fwd_fixed_io)
     # now go back to cartesian (original condition)
     fwd_new = convert_forward_solution(fwd_fixed)
-    print(fwd_new)
+    x = repr(fwd_new)
+    assert x
     assert_true(isinstance(fwd_new, Forward))
     compare_forwards(fwd, fwd_new)
 
@@ -86,7 +90,7 @@ def test_io_forward():
     """Test IO for forward solutions
     """
     # do extensive tests with MEEG
-    n_sen, n_src = 366, 23784
+    n_sen, n_src = 366, 1494
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
     fwd = read_forward_solution(fname_meeg, surf_ori=True)
@@ -298,3 +302,6 @@ def test_average_forward_solution():
     assert_array_equal(0.75 * fwd['sol']['data'], fwd_ave['sol']['data'])
     # fwd_ave_mne = read_forward_solution(fname_copy)
     # assert_array_equal(fwd_ave_mne['sol']['data'], fwd_ave['sol']['data'])
+
+
+run_tests_if_main()

@@ -22,19 +22,20 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, travis_skip
 from mne.externals import six
 
 s_path = op.join(testing.data_path(), 'MEG', 'sample')
-fname_fwd_meeg = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
-# Three inverses:
-fname_inv = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+# Four inverses:
+fname_full = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_inv = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
 fname_inv_fixed_nodepth = op.join(s_path,
-                                  'sample_audvis_trunc-meg-eeg-oct-6-meg'
+                                  'sample_audvis_trunc-meg-eeg-oct-4-meg'
                                   '-nodepth-fixed-inv.fif')
 fname_inv_meeg_diag = op.join(s_path,
                               'sample_audvis_trunc-'
-                              'meg-eeg-oct-6-meg-eeg-diagnoise-inv.fif')
+                              'meg-eeg-oct-4-meg-eeg-diagnoise-inv.fif')
 
 fname_data = op.join(s_path, 'sample_audvis_trunc-ave.fif')
 fname_cov = op.join(s_path, 'sample_audvis_trunc-cov.fif')
@@ -152,22 +153,21 @@ def test_warn_inverse_operator():
     """
     bad_info = copy.deepcopy(_get_evoked().info)
     bad_info['projs'] = list()
-    fwd_op = read_forward_solution(fname_fwd_meeg, surf_ori=True)
+    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     noise_cov = read_cov(fname_cov)
     with warnings.catch_warnings(record=True) as w:
         make_inverse_operator(bad_info, fwd_op, noise_cov)
     assert_equal(len(w), 1)
 
 
-def test_apply_inverse_operator():
+def test_make_inverse_operator():
     """Test MNE inverse computation (precomputed and non-precomputed)
     """
-    inverse_operator = read_inverse_operator(fname_inv)
+    # Test old version of inverse computation starting from forward operator
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
-
-    # Test old version of inverse computation starting from forward operator
-    fwd_op = read_forward_solution_meg(fname_fwd_meeg, surf_ori=True)
+    inverse_operator = read_inverse_operator(fname_inv)
+    fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8,
                                       limit_depth_chs=False)
@@ -175,14 +175,24 @@ def test_apply_inverse_operator():
     assert_true(inverse_operator['units'] == 'Am')
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 1e-2, 1e-2,
                              check_depth=False)
-    # Inverse has 306 channels - 4 proj = 302
-    assert_true(compute_rank_inverse(inverse_operator) == 302)
-
     # Test MNE inverse computation starting from forward operator
     my_inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov,
                                       loose=0.2, depth=0.8)
     _compare_io(my_inv_op)
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 1e-2, 1e-2)
+    assert_true('dev_head_t' in my_inv_op['info'])
+    assert_true('mri_head_t' in my_inv_op)
+
+
+def test_apply_inverse_operator():
+    """Test MNE inverse application
+    """
+    inverse_operator = read_inverse_operator(fname_full)
+    evoked = _get_evoked()
+
+    # Inverse has 306 channels - 4 proj = 302
+    assert_true(compute_rank_inverse(inverse_operator) == 302)
+
     # Inverse has 306 channels - 4 proj = 302
     assert_true(compute_rank_inverse(inverse_operator) == 302)
 
@@ -212,22 +222,13 @@ def test_apply_inverse_operator():
     assert_true(stc.data.max() < 35)
     assert_true(stc.data.mean() > 0.1)
 
-    my_stc = apply_inverse(evoked, my_inv_op, lambda2, "dSPM")
-
-    assert_true('dev_head_t' in my_inv_op['info'])
-    assert_true('mri_head_t' in my_inv_op)
-
-    assert_true(my_stc.subject == 'sample')
-    assert_equal(stc.times, my_stc.times)
-    assert_array_almost_equal(stc.data, my_stc.data, 2)
-
 
 def test_make_inverse_operator_fixed():
     """Test MNE inverse computation (fixed orientation)
     """
-    fwd_1 = read_forward_solution_meg(fname_fwd_meeg, surf_ori=False,
+    fwd_1 = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                       force_fixed=False)
-    fwd_2 = read_forward_solution_meg(fname_fwd_meeg, surf_ori=False,
+    fwd_2 = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                       force_fixed=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
@@ -253,10 +254,10 @@ def test_make_inverse_operator_fixed():
 def test_make_inverse_operator_free():
     """Test MNE inverse computation (free orientation)
     """
-    fwd_op = read_forward_solution_meg(fname_fwd_meeg, surf_ori=True)
-    fwd_1 = read_forward_solution_meg(fname_fwd_meeg, surf_ori=False,
+    fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
+    fwd_1 = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                       force_fixed=False)
-    fwd_2 = read_forward_solution_meg(fname_fwd_meeg, surf_ori=False,
+    fwd_2 = read_forward_solution_meg(fname_fwd, surf_ori=False,
                                       force_fixed=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
@@ -283,7 +284,7 @@ def test_make_inverse_operator_diag():
     """
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
-    fwd_op = read_forward_solution(fname_fwd_meeg, surf_ori=True)
+    fwd_op = read_forward_solution(fname_fwd, surf_ori=True)
     inv_op = make_inverse_operator(evoked.info, fwd_op, noise_cov.as_diag(),
                                    loose=0.2, depth=0.8)
     _compare_io(inv_op)
@@ -294,6 +295,7 @@ def test_make_inverse_operator_diag():
     assert_true(compute_rank_inverse(inverse_operator_diag) == 360)
 
 
+@travis_skip  # way too much memory
 def test_inverse_operator_volume():
     """Test MNE inverse computation on volume source space
     """
@@ -316,7 +318,8 @@ def test_io_inverse_operator():
     """Test IO of inverse_operator with GZip
     """
     inverse_operator = read_inverse_operator(fname_inv)
-    print(inverse_operator)
+    x = repr(inverse_operator)
+    assert x
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
 
@@ -337,7 +340,7 @@ def test_apply_mne_inverse_raw():
     raw = Raw(fname_raw)
     label_lh = read_label(fname_label % 'Aud-lh')
     _, times = raw[0, start:stop]
-    inverse_operator = read_inverse_operator(fname_inv)
+    inverse_operator = read_inverse_operator(fname_full)
     inverse_operator = prepare_inverse_operator(inverse_operator, nave=1,
                                                 lambda2=lambda2, method="dSPM")
     for pick_ori in [None, "normal"]:
@@ -372,7 +375,7 @@ def test_apply_mne_inverse_fixed_raw():
     label_lh = read_label(fname_label % 'Aud-lh')
 
     # create a fixed-orientation inverse operator
-    fwd = read_forward_solution_meg(fname_fwd_meeg, force_fixed=False,
+    fwd = read_forward_solution_meg(fname_fwd, force_fixed=False,
                                     surf_ori=True)
     noise_cov = read_cov(fname_cov)
     inv_op = make_inverse_operator(raw.info, fwd, noise_cov,
@@ -404,7 +407,7 @@ def test_apply_mne_inverse_fixed_raw():
 def test_apply_mne_inverse_epochs():
     """Test MNE with precomputed inverse operator on Epochs
     """
-    inverse_operator = read_inverse_operator(fname_inv)
+    inverse_operator = read_inverse_operator(fname_full)
     label_lh = read_label(fname_label % 'Aud-lh')
     label_rh = read_label(fname_label % 'Aud-rh')
     event_id, tmin, tmax = 1, -0.2, 0.5
@@ -468,7 +471,7 @@ def test_apply_mne_inverse_epochs():
 def test_make_inverse_operator_bads():
     """Test MNE inverse computation given a mismatch of bad channels
     """
-    fwd_op = read_forward_solution_meg(fname_fwd_meeg, surf_ori=True)
+    fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 

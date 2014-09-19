@@ -14,6 +14,7 @@ from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
 from mne import pick_types_evoked, read_evokeds
 from mne.fixes import partial
 from mne.externals.six.moves import zip
+from mne.utils import run_tests_if_main
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -150,3 +151,6 @@ def test_make_field_map_meg():
     assert_true(len(fmd[0]['ch_names']), 106)
 
     assert_raises(ValueError, make_field_map, evoked, ch_type='foobar')
+
+
+run_tests_if_main()

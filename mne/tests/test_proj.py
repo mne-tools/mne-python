@@ -16,7 +16,7 @@ from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.io.proj import make_projector, activate_proj
 from mne.proj import read_proj, write_proj, make_eeg_average_ref_proj
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
-from mne.utils import _TempDir
+from mne.utils import _TempDir, run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -28,9 +28,9 @@ proj_gz_fname = op.join(base_dir, 'test-proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
 
 sample_path = op.join(testing.data_path(), 'MEG', 'sample')
-fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 sensmap_fname = op.join(sample_path,
-                        'sample_audvis_trunc-%s-oct-6-fwd-sensmap-%s.w')
+                        'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
 
 # sample dataset should be updated to reflect mne conventions
 eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
@@ -213,3 +213,6 @@ def test_compute_proj_raw():
     proj, nproj, U = make_projector(projs, raw.ch_names,
                                     bads=raw.ch_names)
     assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+
+
+run_tests_if_main()
