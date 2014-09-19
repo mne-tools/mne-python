@@ -118,18 +118,19 @@ def set_fs_home():
         return True
 
 def _fs_home_problem(fs_home):
-    "Check FREESURFER_HOME path"
-    test_dir = os.path.join(fs_home, 'subjects', 'fsaverage')
+    """Check FREESURFER_HOME path
+
+    Return str describing problem or None if the path is okay.
+    """
     if fs_home is None:
-        problem = "FREESURFER_HOME is not set."
+        return "FREESURFER_HOME is not set."
     elif not os.path.exists(fs_home):
-        problem = "FREESURFER_HOME (%s) does not exist." % fs_home
-    elif not os.path.exists(test_dir):
-        problem = ("FREESURFER_HOME (%s) does not contain the fsaverage "
-                   "subject." % fs_home)
+        return "FREESURFER_HOME (%s) does not exist." % fs_home
     else:
-        problem = None
-    return problem
+        test_dir = os.path.join(fs_home, 'subjects', 'fsaverage')
+        if not os.path.exists(test_dir):
+            return ("FREESURFER_HOME (%s) does not contain the fsaverage "
+                    "subject." % fs_home)
 
 
 def get_mne_root():
@@ -210,7 +211,6 @@ def _mne_root_problem(mne_root):
         if not os.path.exists(test_dir):
             return ("MNE_ROOT (%s) is missing files. If this is your MNE "
                     "installation, consider reinstalling." % mne_root)
-    return None
 
 
 class BemSource(HasTraits):
